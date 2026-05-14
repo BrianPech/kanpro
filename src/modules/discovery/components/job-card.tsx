@@ -1,0 +1,88 @@
+"use client"
+
+import { Bookmark, MapPin, Clock } from "lucide-react"
+import { cn } from "@/lib/utils"
+import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
+import type { Job } from "../data/mock"
+
+function formatSalary(min: number, max: number) {
+  const f = (n: number) =>
+    n >= 1000 ? `$${(n / 1000).toFixed(0)}k` : `$${n.toLocaleString()}`
+  return `${f(min)} – ${f(max)}`
+}
+
+export function JobCard({ job }: { job: Job }) {
+  return (
+    <div
+      className={cn(
+        "group flex flex-col rounded-[20px] border bg-white p-8 transition-all",
+        job.featured
+          ? "border-[#494fdf]/20 bg-[#494fdf]/[0.02]"
+          : "border-[#e2e2e7]",
+      )}
+    >
+      <div className="flex items-start justify-between gap-4">
+        <div className="flex items-center gap-4">
+          <div
+            className={cn(
+              "flex size-12 shrink-0 items-center justify-center rounded-xl text-sm font-semibold tracking-tight",
+              job.featured
+                ? "bg-[#494fdf] text-white"
+                : "bg-[#f4f4f4] text-[#191c1f]",
+            )}
+          >
+            {job.companyLogo}
+          </div>
+          <div>
+            <p className="text-sm text-[#505a63]">{job.company}</p>
+            <h3 className="mt-0.5 text-lg font-medium leading-tight text-[#191c1f]">
+              {job.title}
+            </h3>
+          </div>
+        </div>
+        <button
+          type="button"
+          className="mt-1 shrink-0 text-[#c9c9cd] transition-colors hover:text-[#494fdf]"
+        >
+          <Bookmark className="size-5" />
+        </button>
+      </div>
+
+      <div className="mt-4 flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-[#505a63]">
+        <span className="inline-flex items-center gap-1.5">
+          <MapPin className="size-3.5" />
+          {job.location}
+        </span>
+        <span className="font-medium text-[#191c1f]">
+          {formatSalary(job.salaryMin, job.salaryMax)}
+        </span>
+        <span className="inline-flex items-center gap-1.5 text-[#8d969e]">
+          <Clock className="size-3.5" />
+          {job.postedAt}
+        </span>
+      </div>
+
+      <div className="mt-5 flex flex-wrap gap-2">
+        {job.skills.map((skill) => (
+          <Badge
+            key={skill}
+            variant="secondary"
+            className="h-7 rounded-full border-0 bg-[#f4f4f4] px-3 text-xs font-normal text-[#505a63]"
+          >
+            {skill}
+          </Badge>
+        ))}
+      </div>
+
+      <div className="mt-6 flex items-center justify-between gap-4">
+        <Button className="h-11 rounded-full bg-[#191c1f] px-6 text-sm font-medium text-white hover:bg-[#191c1f]/90">
+          Apply Now
+        </Button>
+        <span className="text-xs text-[#8d969e]">
+          {job.type}
+        </span>
+      </div>
+    </div>
+  )
+}
