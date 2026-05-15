@@ -1,8 +1,49 @@
 import * as React from "react"
-import { ArrowRight, Eye, Send, DollarSign, PlusCircle, CheckCircle2, ChevronRight, Activity } from "lucide-react"
+import { ArrowRight, Eye, Send, DollarSign, PlusCircle, CheckCircle2, ChevronRight, Activity, Briefcase } from "lucide-react"
 import { Button } from "@/components/ui/button"
+import { createClient } from "@/lib/supabase/server"
+import Link from "next/link"
 
-export default function ProfessionalDashboard() {
+export default async function ProfessionalDashboard() {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+
+  let profileName = "Profesional"
+  let services: any[] = []
+
+  if (user) {
+    // Intentar obtener el nombre del perfil profesional
+    const { data: proProfile } = await supabase
+      .from("professional_profiles")
+      .select("full_name")
+      .eq("id", user.id)
+      .single()
+
+    if (proProfile?.full_name) {
+      profileName = proProfile.full_name.split(" ")[0] // Solo el primer nombre
+    } else {
+      // Fallback al perfil base
+      const { data: baseProfile } = await supabase
+        .from("profiles")
+        .select("full_name")
+        .eq("id", user.id)
+        .single()
+      
+      if (baseProfile?.full_name) {
+        profileName = baseProfile.full_name.split(" ")[0]
+      }
+    }
+
+    // Obtener los servicios reales
+    const { data: servicesData } = await supabase
+      .from("services")
+      .select("*")
+      .eq("professional_id", user.id)
+      .limit(2) // Mostrar solo los 2 primeros en el dashboard
+
+    services = servicesData || []
+  }
+
   return (
     <div className="flex flex-col gap-16 p-6 md:p-12 lg:p-16 max-w-[1400px] mx-auto w-full animate-in fade-in slide-in-from-bottom-4 duration-700">
       
@@ -14,18 +55,22 @@ export default function ProfessionalDashboard() {
             <span className="text-[13px] uppercase tracking-widest font-medium text-primary-foreground/80">Panel de Control</span>
           </div>
           <h1 className="text-[56px] md:text-[80px] font-medium tracking-tighter leading-[1.0] mb-6">
-            Bienvenido,<br />Juan.
+            Bienvenido,<br />{profileName}.
           </h1>
           <p className="text-[18px] text-primary-foreground/90 tracking-[-0.09px] leading-[1.56] mb-10 max-w-[500px]">
-            Tu ecosistema profesional está operando. Has recibido 3 nuevas visitas esta semana. Expande tu alcance completando tu portafolio.
+            Tu ecosistema profesional está operando. Expande tu alcance completando tu portafolio o creando nuevos servicios.
           </p>
           <div className="flex items-center gap-4">
-            <Button className="h-[48px] rounded-full bg-primary-foreground text-primary hover:bg-primary-foreground/90 text-[16px] font-semibold tracking-[0.24px] px-[28px] shadow-none">
-              Completar Portafolio
-            </Button>
-            <Button variant="outline" className="h-[48px] rounded-full bg-transparent border-primary-foreground/20 text-primary-foreground hover:bg-primary-foreground/10 hover:text-primary-foreground text-[16px] font-semibold px-[28px]">
-              Ver Estadísticas
-            </Button>
+            <Link href="/dashboard/pro/profile">
+              <Button className="h-[48px] rounded-full bg-primary-foreground text-primary hover:bg-primary-foreground/90 text-[16px] font-semibold tracking-[0.24px] px-[28px] shadow-none">
+                Completar Perfil
+              </Button>
+            </Link>
+            <Link href="/dashboard/pro/services">
+              <Button variant="outline" className="h-[48px] rounded-full bg-transparent border-primary-foreground/20 text-primary-foreground hover:bg-primary-foreground/10 hover:text-primary-foreground text-[16px] font-semibold px-[28px]">
+                Gestionar Servicios
+              </Button>
+            </Link>
           </div>
         </div>
         {/* Subtle geometric overlay to break the flat color without feeling cheap */}
@@ -54,12 +99,12 @@ export default function ProfessionalDashboard() {
                 <Eye className="h-7 w-7" />
               </div>
               <span className="text-[13px] text-[#428619] font-medium bg-[#428619]/10 px-3 py-1 rounded-full flex items-center gap-1">
-                <Activity className="w-3 h-3" /> +12%
+                <Activity className="w-3 h-3" /> +0%
               </span>
             </div>
             <div className="mt-auto pt-4">
               <p className="text-[16px] text-muted-foreground font-medium mb-2">Vistas del Perfil</p>
-              <h3 className="text-[48px] font-medium tracking-tighter leading-[1.0]">142</h3>
+              <h3 className="text-[48px] font-medium tracking-tighter leading-[1.0]">0</h3>
             </div>
           </div>
 
@@ -70,12 +115,12 @@ export default function ProfessionalDashboard() {
                 <Send className="h-7 w-7" />
               </div>
               <span className="text-[13px] text-muted-foreground font-medium px-3 py-1 rounded-full border border-border">
-                4 en revisión
+                0 en revisión
               </span>
             </div>
             <div className="mt-auto pt-4">
               <p className="text-[16px] text-muted-foreground font-medium mb-2">Propuestas Enviadas</p>
-              <h3 className="text-[48px] font-medium tracking-tighter leading-[1.0]">14</h3>
+              <h3 className="text-[48px] font-medium tracking-tighter leading-[1.0]">0</h3>
             </div>
           </div>
 
@@ -88,7 +133,7 @@ export default function ProfessionalDashboard() {
             </div>
             <div className="mt-auto pt-4">
               <p className="text-[16px] text-muted-foreground font-medium mb-2">Ingresos Estimados</p>
-              <h3 className="text-[48px] font-medium tracking-tighter leading-[1.0]">$3,450</h3>
+              <h3 className="text-[48px] font-medium tracking-tighter leading-[1.0]">$0</h3>
             </div>
           </div>
         </div>
@@ -100,57 +145,46 @@ export default function ProfessionalDashboard() {
           <h2 className="text-[32px] md:text-[40px] font-medium text-foreground tracking-[-0.4px] leading-[1.2]">
             Servicios
           </h2>
-          <Button variant="ghost" className="h-[36px] rounded-full px-4 text-[14px] font-semibold text-foreground hover:bg-muted">
-            Ver todos
-          </Button>
+          <Link href="/dashboard/pro/services">
+            <Button variant="ghost" className="h-[36px] rounded-full px-4 text-[14px] font-semibold text-foreground hover:bg-muted">
+              Ver todos
+            </Button>
+          </Link>
         </div>
         
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          <div className="bg-card text-card-foreground border border-border/50 rounded-[24px] p-6 shadow-sm hover:shadow-md hover:border-foreground/20 transition-all flex flex-col h-[320px]">
-            <div className="bg-muted w-full h-[140px] rounded-[16px] mb-6 flex items-center justify-center overflow-hidden relative group">
-              <div className="absolute inset-0 bg-gradient-to-tr from-muted-foreground/10 to-transparent"></div>
-              <span className="text-muted-foreground text-[14px] font-medium">Miniatura del Servicio</span>
-            </div>
-            <h3 className="text-[20px] font-medium text-foreground leading-[1.4] mb-2 line-clamp-2">
-              Desarrollo de Aplicaciones Web
-            </h3>
-            <div className="mt-auto flex items-end justify-between">
-              <div>
-                <p className="text-[14px] text-muted-foreground">Desde</p>
-                <p className="text-[20px] font-medium tracking-tight">$1,200</p>
+          {services.map((service) => (
+            <div key={service.id} className="bg-card text-card-foreground border border-border/50 rounded-[24px] p-6 shadow-sm hover:shadow-md hover:border-foreground/20 transition-all flex flex-col h-[320px]">
+              <div className="bg-muted w-full h-[140px] rounded-[16px] mb-6 flex items-center justify-center overflow-hidden relative group">
+                <div className="absolute inset-0 bg-gradient-to-tr from-muted-foreground/10 to-transparent"></div>
+                <Briefcase className="w-8 h-8 text-muted-foreground/50" />
               </div>
-              <Button variant="outline" className="rounded-full h-[36px] px-5 text-[14px] font-semibold border-border hover:bg-foreground hover:text-background transition-colors">
-                Editar
-              </Button>
-            </div>
-          </div>
-
-          <div className="bg-card text-card-foreground border border-border/50 rounded-[24px] p-6 shadow-sm hover:shadow-md hover:border-foreground/20 transition-all flex flex-col h-[320px]">
-            <div className="bg-muted w-full h-[140px] rounded-[16px] mb-6 flex items-center justify-center overflow-hidden relative group">
-              <div className="absolute inset-0 bg-gradient-to-tr from-muted-foreground/10 to-transparent"></div>
-              <span className="text-muted-foreground text-[14px] font-medium">Miniatura del Servicio</span>
-            </div>
-            <h3 className="text-[20px] font-medium text-foreground leading-[1.4] mb-2 line-clamp-2">
-              Auditoría UX y Rediseño
-            </h3>
-            <div className="mt-auto flex items-end justify-between">
-              <div>
-                <p className="text-[14px] text-muted-foreground">Desde</p>
-                <p className="text-[20px] font-medium tracking-tight">$800</p>
+              <h3 className="text-[20px] font-medium text-foreground leading-[1.4] mb-2 line-clamp-2">
+                {service.title}
+              </h3>
+              <div className="mt-auto flex items-end justify-between">
+                <div>
+                  <p className="text-[14px] text-muted-foreground">Desde</p>
+                  <p className="text-[20px] font-medium tracking-tight">${service.price}</p>
+                </div>
+                <Link href="/dashboard/pro/services">
+                  <Button variant="outline" className="rounded-full h-[36px] px-5 text-[14px] font-semibold border-border hover:bg-foreground hover:text-background transition-colors">
+                    Editar
+                  </Button>
+                </Link>
               </div>
-              <Button variant="outline" className="rounded-full h-[36px] px-5 text-[14px] font-semibold border-border hover:bg-foreground hover:text-background transition-colors">
-                Editar
-              </Button>
             </div>
-          </div>
+          ))}
 
-          <button className="bg-transparent border-2 border-dashed border-border/60 hover:border-foreground/30 rounded-[24px] p-6 flex flex-col items-center justify-center h-[320px] transition-colors group">
-            <div className="h-16 w-16 rounded-full bg-muted flex items-center justify-center text-foreground mb-6 group-hover:scale-110 transition-transform duration-300">
-              <PlusCircle className="h-8 w-8 opacity-70 group-hover:opacity-100" />
-            </div>
-            <h3 className="text-[20px] font-medium text-foreground tracking-tight">Crear Servicio</h3>
-            <p className="text-[16px] text-muted-foreground mt-2">Empaqueta tus habilidades</p>
-          </button>
+          <Link href="/dashboard/pro/services" className="flex">
+            <button className="bg-transparent border-2 border-dashed border-border/60 hover:border-foreground/30 rounded-[24px] p-6 flex flex-col items-center justify-center h-[320px] w-full transition-colors group">
+              <div className="h-16 w-16 rounded-full bg-muted flex items-center justify-center text-foreground mb-6 group-hover:scale-110 transition-transform duration-300">
+                <PlusCircle className="h-8 w-8 opacity-70 group-hover:opacity-100" />
+              </div>
+              <h3 className="text-[20px] font-medium text-foreground tracking-tight">Crear Servicio</h3>
+              <p className="text-[16px] text-muted-foreground mt-2">Empaqueta tus habilidades</p>
+            </button>
+          </Link>
         </div>
       </section>
 
