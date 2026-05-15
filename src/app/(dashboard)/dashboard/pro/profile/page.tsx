@@ -50,11 +50,16 @@ export default async function ProfilePage() {
       const { data: baseProfile } = await supabase.from("profiles").select("full_name").eq("id", user.id).single()
       if (baseProfile?.full_name) profile.full_name = baseProfile.full_name
     }
+    // Obtener también los servicios para la vista previa
+    const { data: services } = await supabase
+      .from("services")
+      .select("*")
+      .eq("professional_id", user.id)
+
+    return (
+      <ProfileForm initialProfile={profile} userId={user.id} initialServices={services || []} />
+    )
   }
 
-  if (!user) return null
-
-  return (
-    <ProfileForm initialProfile={profile} userId={user.id} />
-  )
+  return null
 }

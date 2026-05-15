@@ -18,12 +18,13 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog"
 
-export function ProfileForm({ initialProfile, userId }: { initialProfile: any, userId: string }) {
+export function ProfileForm({ initialProfile, userId, initialServices = [] }: { initialProfile: any, userId: string, initialServices?: any[] }) {
   const [isSaving, setIsSaving] = useState(false)
   const supabase = createClient()
   
   // Local state for the profile
   const [profile, setProfile] = useState(initialProfile)
+  const [services] = useState(initialServices)
   
   // Separate state for skills string to allow trailing commas while typing
   const [skillsInput, setSkillsInput] = useState(initialProfile.skills?.join(", ") || "")
@@ -200,19 +201,27 @@ export function ProfileForm({ initialProfile, userId }: { initialProfile: any, u
                       </div>
                     )}
 
-                    {/* Fake Portfolio Section to make it look complete */}
+                    {/* Catálogo de Servicios en el Perfil Público */}
                     <div className="mt-10">
-                       <h3 className="text-[16px] font-semibold text-foreground mb-4">Portafolio</h3>
-                       <div className="grid grid-cols-2 gap-4">
-                         <div className="h-[100px] rounded-[16px] bg-muted/50 border border-border/50 flex flex-col items-center justify-center gap-2">
-                           <Briefcase className="w-5 h-5 text-muted-foreground" />
-                           <span className="text-[12px] text-muted-foreground font-medium">Proyecto 1</span>
+                       <h3 className="text-[16px] font-semibold text-foreground mb-4">Servicios Ofertados</h3>
+                       {services.length === 0 ? (
+                         <p className="text-[14px] text-muted-foreground">No hay servicios configurados aún.</p>
+                       ) : (
+                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                           {services.map((service: any) => (
+                             <div key={service.id} className="p-4 rounded-[16px] bg-muted/30 border border-border/50 flex flex-col justify-between h-[140px]">
+                               <div>
+                                 <h4 className="text-[14px] font-semibold text-foreground line-clamp-1">{service.title}</h4>
+                                 <p className="text-[12px] text-muted-foreground line-clamp-2 mt-1">{service.description}</p>
+                               </div>
+                               <div className="flex justify-between items-center mt-2">
+                                 <span className="text-[12px] text-muted-foreground">{service.delivery_time}</span>
+                                 <span className="text-[14px] font-bold text-primary">${service.price}</span>
+                               </div>
+                             </div>
+                           ))}
                          </div>
-                         <div className="h-[100px] rounded-[16px] bg-muted/50 border border-border/50 flex flex-col items-center justify-center gap-2">
-                           <Briefcase className="w-5 h-5 text-muted-foreground" />
-                           <span className="text-[12px] text-muted-foreground font-medium">Proyecto 2</span>
-                         </div>
-                       </div>
+                       )}
                     </div>
 
                   </div>
