@@ -7,6 +7,8 @@ import { Eye, EyeOff, ArrowRight, ArrowLeft, CalendarIcon } from "lucide-react";
 import Link from "next/link";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
+import { useRouter } from "next/navigation";
+import { createClient } from "@/lib/supabase/client";
 
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -33,6 +35,8 @@ import { professionalRegisterSchema, type ProfessionalRegisterValues } from "../
 export function ProfessionalRegisterForm() {
   const [step, setStep] = React.useState(1);
   const [showPassword, setShowPassword] = React.useState(false);
+  const [authError, setAuthError] = React.useState<string | null>(null);
+  const router = useRouter();
 
   const {
     register,
@@ -46,8 +50,43 @@ export function ProfessionalRegisterForm() {
   });
 
   const onSubmit = async (data: ProfessionalRegisterValues) => {
-    console.log("Professional Registration:", data);
-    await new Promise((resolve) => setTimeout(resolve, 1000));
+    setAuthError(null);
+    const supabase = createClient();
+
+    const { data: authData, error: signUpError } = await supabase.auth.signUp({
+      email: data.email,
+      password: data.password,
+      options: {
+        data: {
+          full_name: data.fullName,
+        },
+      },
+    });
+
+    if (signUpError) {
+      setAuthError(signUpError.message);
+      return;
+    }
+
+    if (authData.user) {
+      const { error: profileError } = await supabase
+        .from("professional_profiles")
+        .insert({
+          id: authData.user.id,
+          full_name: data.fullName,
+          birth_date: data.birthDate,
+          location: data.location,
+          category: data.category,
+          terms_accepted: data.termsAccepted,
+        });
+
+      if (profileError) {
+        setAuthError(profileError.message);
+        return;
+      }
+
+      router.push("/dashboard");
+    }
   };
 
   const nextStep = async (fields: (keyof ProfessionalRegisterValues)[]) => {
@@ -95,6 +134,11 @@ export function ProfessionalRegisterForm() {
         </header>
 
         <form className="flex flex-col gap-6 relative" onSubmit={handleSubmit(onSubmit)} noValidate>
+          {authError && (
+            <div className="p-3 bg-red-500/10 border border-red-500/20 rounded-md text-red-500 text-sm mb-4">
+              {authError}
+            </div>
+          )}
           
           {/* PASO 1: IDENTIDAD */}
           {step === 1 && (
