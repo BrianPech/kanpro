@@ -217,7 +217,7 @@ export function ProfessionalRegisterForm() {
                           role="combobox"
                           aria-invalid={!!errors.birthDate}
                           className={cn(
-                            "w-full !h-[56px] px-4 text-[16px] justify-start text-left font-normal rounded-[12px] border border-transparent bg-input/50 dark:bg-input/50 hover:bg-input/50 dark:hover:bg-input/50 focus-visible:ring-primary/20 transition-all",
+                            "w-full !h-[56px] px-4 text-[16px] justify-start text-left font-normal rounded-[12px] border border-input bg-background hover:bg-accent hover:text-accent-foreground focus-visible:ring-ring transition-all",
                             !field.value && "text-muted-foreground"
                           )}
                         >
@@ -252,7 +252,7 @@ export function ProfessionalRegisterForm() {
                   name="location"
                   render={({ field }) => (
                     <Select onValueChange={field.onChange} defaultValue={field.value}>
-                      <SelectTrigger className="w-full !h-[56px] px-4 text-[16px] rounded-[12px] border border-transparent bg-input/50 focus-visible:ring-primary/20 transition-all" aria-invalid={!!errors.location}>
+                      <SelectTrigger className="w-full !h-[56px] px-4 text-[16px] rounded-[12px] border border-input bg-background focus-visible:ring-ring transition-all" aria-invalid={!!errors.location}>
                         <SelectValue placeholder="Seleccione su país" />
                       </SelectTrigger>
                       <SelectContent>
@@ -292,7 +292,7 @@ export function ProfessionalRegisterForm() {
                   name="category"
                   render={({ field }) => (
                     <Select onValueChange={field.onChange} defaultValue={field.value}>
-                      <SelectTrigger className="w-full !h-[56px] px-4 text-[16px] rounded-[12px] border border-transparent bg-input/50 focus-visible:ring-primary/20 transition-all" aria-invalid={!!errors.category}>
+                      <SelectTrigger className="w-full !h-[56px] px-4 text-[16px] rounded-[12px] border border-input bg-background focus-visible:ring-ring transition-all" aria-invalid={!!errors.category}>
                         <SelectValue placeholder="Seleccione una categoría" />
                       </SelectTrigger>
                       <SelectContent>

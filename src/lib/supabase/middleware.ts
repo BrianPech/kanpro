@@ -34,5 +34,33 @@ export async function updateSession(request: NextRequest) {
     data: { user },
   } = await supabase.auth.getUser()
 
+  if (request.nextUrl.pathname === '/dashboard') {
+    if (!user) {
+      const url = request.nextUrl.clone()
+      url.pathname = '/'
+      return NextResponse.redirect(url)
+    }
+
+    // Fetch the user's role from the profiles table
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('role')
+      .eq('id', user.id)
+      .single()
+
+    const role = profile?.role
+
+    const url = request.nextUrl.clone()
+    if (role === 'company') {
+      url.pathname = '/dashboard/company'
+    } else if (role === 'candidate') {
+      url.pathname = '/dashboard/candidate'
+    } else {
+      url.pathname = '/dashboard/pro'
+    }
+
+    return NextResponse.redirect(url)
+  }
+
   return supabaseResponse
 }

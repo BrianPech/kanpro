@@ -36,28 +36,28 @@ export function LoginForm() {
 
   return (
     <main className="flex flex-col md:flex-row min-h-screen w-full font-sans">
-      {/* Left Column: Storytelling Canvas (True Black) */}
-      <section className="flex-1 bg-black flex flex-col justify-between p-8 md:p-16 lg:p-24 relative overflow-hidden">
+      {/* Left Column: Storytelling Canvas */}
+      <section className="hidden md:flex flex-1 bg-muted flex-col justify-between p-8 md:p-16 lg:p-24 relative overflow-hidden border-r border-border">
         {/* Brand Logo Anchor */}
         <div className="z-10">
-          <span className="text-3xl font-medium text-white tracking-tighter">
+          <span className="text-3xl font-medium text-foreground tracking-tighter">
             K'anPro
           </span>
         </div>
 
         {/* Main Narrative */}
         <div className="max-w-[600px] z-10 mt-12 md:mt-0">
-          <h1 className="text-5xl md:text-6xl lg:text-[80px] font-medium text-white mb-6 leading-none tracking-tighter">
+          <h1 className="text-5xl md:text-6xl lg:text-[80px] font-medium text-foreground mb-6 leading-none tracking-tighter">
             El futuro de la gestión profesional.
           </h1>
-          <p className="text-lg text-[rgba(255,255,255,0.72)] max-w-md leading-relaxed tracking-wide">
+          <p className="text-lg text-muted-foreground max-w-md leading-relaxed tracking-wide">
             Una plataforma centralizada diseñada para escalar su ecosistema
             operativo con precisión mecánica y claridad absoluta.
           </p>
         </div>
 
         {/* Aesthetic Accent / Image */}
-        <div className="absolute bottom-0 right-0 w-2/3 h-2/3 opacity-20 pointer-events-none">
+        <div className="absolute bottom-0 right-0 w-2/3 h-2/3 opacity-20 pointer-events-none mix-blend-luminosity">
           <img
             alt="Ethereal digital architecture"
             className="w-full h-full object-cover grayscale"
@@ -66,8 +66,8 @@ export function LoginForm() {
         </div>
 
         <div className="z-10 mt-12">
-          <div className="flex items-center gap-3 text-[rgba(255,255,255,0.72)] text-[13px] uppercase tracking-widest font-medium">
-            <span className="w-12 h-[1px] bg-[rgba(255,255,255,0.12)]"></span>
+          <div className="flex items-center gap-3 text-muted-foreground text-[13px] uppercase tracking-widest font-medium">
+            <span className="w-12 h-[1px] bg-border"></span>
             <span>Sistema de Control v4.0</span>
           </div>
         </div>
