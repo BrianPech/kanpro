@@ -55,15 +55,32 @@ export async function updateSession(request: NextRequest) {
     role = profile?.role
   }
 
-  // Protect admin routes - only admin role can access
-  if (request.nextUrl.pathname.startsWith('/dashboard/admin')) {
-    if (role !== 'admin') {
-      const url = request.nextUrl.clone()
-      if (role === 'company') url.pathname = '/dashboard/company'
-      else if (role === 'candidate') url.pathname = '/dashboard/candidate'
-      else url.pathname = '/dashboard/pro'
-      return NextResponse.redirect(url)
-    }
+  // Protect admin routes
+  if (request.nextUrl.pathname.startsWith('/dashboard/admin') && role !== 'admin') {
+    const url = request.nextUrl.clone()
+    url.pathname = '/dashboard'
+    return NextResponse.redirect(url)
+  }
+
+  // Protect company routes
+  if (request.nextUrl.pathname.startsWith('/dashboard/company') && role !== 'company' && role !== 'admin') {
+    const url = request.nextUrl.clone()
+    url.pathname = '/dashboard'
+    return NextResponse.redirect(url)
+  }
+
+  // Protect candidate routes
+  if (request.nextUrl.pathname.startsWith('/dashboard/candidate') && role !== 'candidate' && role !== 'admin') {
+    const url = request.nextUrl.clone()
+    url.pathname = '/dashboard'
+    return NextResponse.redirect(url)
+  }
+
+  // Protect pro routes (fallback role)
+  if (request.nextUrl.pathname.startsWith('/dashboard/pro') && role !== 'pro' && role !== 'admin' && role !== null) {
+    const url = request.nextUrl.clone()
+    url.pathname = '/dashboard'
+    return NextResponse.redirect(url)
   }
 
   if (request.nextUrl.pathname === '/dashboard') {

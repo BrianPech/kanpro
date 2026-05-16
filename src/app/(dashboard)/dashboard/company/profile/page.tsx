@@ -1,6 +1,6 @@
 import * as React from "react"
 import { createClient } from "@/lib/supabase/server"
-import { CompanyProfileForm } from "./company-profile-form"
+import { CompanyProfileForm } from "@/modules/company/components/company-profile-form"
 
 export default async function CompanyProfilePage() {
   const supabase = await createClient()

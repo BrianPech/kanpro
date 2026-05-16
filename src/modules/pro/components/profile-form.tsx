@@ -1,14 +1,12 @@
 "use client"
 
 import * as React from "react"
-import { useState } from "react"
 import { User, MapPin, Briefcase, DollarSign, Camera, CheckCircle2, Loader2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { Label } from "@/components/ui/label"
 import { toast } from "sonner"
-import { createClient } from "@/lib/supabase/client"
 import {
   Dialog,
   DialogContent,
@@ -18,59 +16,22 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog"
 
+import { useProfileForm } from "../hooks/use-profile-form";
+
 export function ProfileForm({ initialProfile, userId, initialServices = [] }: { initialProfile: any, userId: string, initialServices?: any[] }) {
-  const [isSaving, setIsSaving] = useState(false)
-  const supabase = createClient()
-  
-  // Local state for the profile
-  const [profile, setProfile] = useState(initialProfile)
-  const [services] = useState(initialServices)
-  
-  // Separate state for skills string to allow trailing commas while typing
-  const [skillsInput, setSkillsInput] = useState(initialProfile.skills?.join(", ") || "")
+  const {
+    profile,
+    setProfile,
+    skillsInput,
+    setSkillsInput,
+    isSaving,
+    handleChange,
+    handleSkillsChange,
+    handleSave,
+    handleReset,
+  } = useProfileForm(initialProfile, userId);
 
-  const handleChange = (field: string, value: string) => {
-    setProfile((prev: any) => ({ ...prev, [field]: value }))
-  }
-
-  const handleSkillsChange = (value: string) => {
-    const skillsArray = value.split(',').map((s: string) => s.trim()).filter((s: string) => s !== "")
-    setProfile((prev: any) => ({ ...prev, skills: skillsArray }))
-  }
-
-  const handleSave = async () => {
-    setIsSaving(true)
-    try {
-      const { error } = await supabase
-        .from("professional_profiles")
-        .upsert({
-          id: userId,
-          full_name: profile.full_name,
-          headline: profile.headline,
-          bio: profile.bio,
-          category: profile.category,
-          location: profile.location,
-          birth_date: profile.birth_date,
-          phone: profile.phone,
-          hourly_rate: profile.hourly_rate ? parseFloat(profile.hourly_rate) : null,
-          skills: profile.skills,
-          // avatar_url is omitted for now until file upload is implemented
-        })
-
-      if (error) throw error
-      
-      toast.success("Perfil actualizado", {
-        description: "Los cambios se han guardado correctamente.",
-      })
-    } catch (error: any) {
-      console.error(error)
-      toast.error("Error al guardar", {
-        description: error.message || "Ocurrió un error al actualizar el perfil.",
-      })
-    } finally {
-      setIsSaving(false)
-    }
-  }
+  const services = initialServices;
 
   const fields = [
     profile.full_name, profile.headline, profile.bio, profile.category, 
@@ -425,7 +386,7 @@ export function ProfileForm({ initialProfile, userId, initialServices = [] }: { 
           </div>
 
           <div className="flex justify-end gap-4 mt-2">
-             <Button variant="ghost" className="h-[56px] rounded-full px-8 text-[15px] font-semibold hover:bg-muted" onClick={() => setProfile(initialProfile)}>
+             <Button variant="ghost" className="h-[56px] rounded-full px-8 text-[15px] font-semibold hover:bg-muted" onClick={handleReset}>
                Descartar
              </Button>
              <Button 

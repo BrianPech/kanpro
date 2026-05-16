@@ -6,7 +6,7 @@ import { Textarea } from "@/components/ui/textarea"
 import { Label } from "@/components/ui/label"
 import { createClient } from "@/lib/supabase/server"
 
-import { ProfileForm } from "./profile-form"
+import { ProfileForm } from "@/modules/pro/components/profile-form"
 
 export default async function ProfilePage() {
   const supabase = await createClient()

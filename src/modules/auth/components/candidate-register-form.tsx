@@ -1,8 +1,6 @@
 "use client";
 
 import * as React from "react";
-import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
 import { Eye, EyeOff, ArrowRight, ArrowLeft } from "lucide-react";
 import Link from "next/link";
 
@@ -11,22 +9,18 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { FieldError } from "@/components/ui/field";
 
-import { candidateRegisterSchema, type CandidateRegisterValues } from "../schemas/register.schema";
+import { useCandidateRegisterForm } from "../hooks/use-candidate-register-form";
 
 export function CandidateRegisterForm() {
-  const [showPassword, setShowPassword] = React.useState(false);
   const {
     register,
     handleSubmit,
-    formState: { errors, isSubmitting },
-  } = useForm<CandidateRegisterValues>({
-    resolver: zodResolver(candidateRegisterSchema as any),
-  });
-
-  const onSubmit = async (data: CandidateRegisterValues) => {
-    console.log("Candidate Registration:", data);
-    await new Promise((resolve) => setTimeout(resolve, 1000));
-  };
+    errors,
+    isSubmitting,
+    showPassword,
+    setShowPassword,
+    onSubmit,
+  } = useCandidateRegisterForm();
 
   return (
     <main className="flex flex-col min-h-screen w-full items-center justify-center bg-background font-sans p-6 md:p-12 transition-colors duration-300">

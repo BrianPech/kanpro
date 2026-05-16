@@ -34,6 +34,36 @@ export type Database = {
   }
   public: {
     Tables: {
+      company_profiles: {
+        Row: {
+          company_name: string
+          created_at: string
+          id: string
+          industry: string | null
+          location: string | null
+          updated_at: string
+          website_or_linkedin: string | null
+        }
+        Insert: {
+          company_name: string
+          created_at?: string
+          id: string
+          industry?: string | null
+          location?: string | null
+          updated_at?: string
+          website_or_linkedin?: string | null
+        }
+        Update: {
+          company_name?: string
+          created_at?: string
+          id?: string
+          industry?: string | null
+          location?: string | null
+          updated_at?: string
+          website_or_linkedin?: string | null
+        }
+        Relationships: []
+      }
       professional_profiles: {
         Row: {
           avatar_url: string | null
@@ -79,6 +109,45 @@ export type Database = {
           phone?: string | null
           skills?: string[] | null
           terms_accepted?: boolean
+        }
+        Relationships: []
+      }
+      services: {
+        Row: {
+          category: string | null
+          created_at: string
+          delivery_time: string
+          description: string
+          id: string
+          is_active: boolean | null
+          price: number
+          professional_id: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          category?: string | null
+          created_at?: string
+          delivery_time: string
+          description: string
+          id?: string
+          is_active?: boolean | null
+          price: number
+          professional_id: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          category?: string | null
+          created_at?: string
+          delivery_time?: string
+          description?: string
+          id?: string
+          is_active?: boolean | null
+          price?: number
+          professional_id?: string
+          title?: string
+          updated_at?: string
         }
         Relationships: []
       }

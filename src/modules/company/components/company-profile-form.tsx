@@ -1,13 +1,10 @@
 "use client"
 
 import * as React from "react"
-import { useState } from "react"
 import { Building2, Globe, MapPin, Loader2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { toast } from "sonner"
-import { createClient } from "@/lib/supabase/client"
 import {
   Select,
   SelectContent,
@@ -16,45 +13,16 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 
+import { useCompanyProfileForm } from "../hooks/use-company-profile-form";
+
 export function CompanyProfileForm({ initialProfile, userId }: { initialProfile: any, userId: string }) {
-  const [isSaving, setIsSaving] = useState(false)
-  const supabase = createClient()
-  
-  const [profile, setProfile] = useState(initialProfile)
-
-  const handleSave = async () => {
-    if (!profile.company_name) {
-      toast.error("El nombre de la empresa es obligatorio")
-      return
-    }
-
-    setIsSaving(true)
-    try {
-      const { error } = await supabase
-        .from("company_profiles")
-        .upsert({
-          id: userId,
-          company_name: profile.company_name,
-          industry: profile.industry,
-          website_or_linkedin: profile.website_or_linkedin,
-          location: profile.location,
-          updated_at: new Date().toISOString()
-        })
-
-      if (error) throw error
-
-      toast.success("Perfil actualizado", {
-        description: "La información de tu empresa ha sido guardada."
-      })
-    } catch (error: any) {
-      console.error(error)
-      toast.error("Error", {
-        description: "No se pudo guardar el perfil de la empresa."
-      })
-    } finally {
-      setIsSaving(false)
-    }
-  }
+  const {
+    profile,
+    setProfile,
+    isSaving,
+    handleSave,
+    handleReset,
+  } = useCompanyProfileForm(initialProfile, userId);
 
   return (
     <div className="bg-card rounded-[32px] p-8 md:p-10 border border-border/50 shadow-sm relative overflow-hidden">
@@ -139,7 +107,7 @@ export function CompanyProfileForm({ initialProfile, userId }: { initialProfile:
           <Button 
             variant="ghost" 
             className="h-[48px] rounded-full px-6 text-[15px] font-semibold hover:bg-muted"
-            onClick={() => setProfile(initialProfile)}
+            onClick={handleReset}
           >
             Descartar
           </Button>

@@ -1,5 +1,5 @@
 import { createClient } from "@/lib/supabase/server"
-import { ServicesManager } from "./services-manager"
+import { ServicesManager } from "@/modules/pro/components/services-manager"
 
 export default async function ServicesPage() {
   const supabase = await createClient()
