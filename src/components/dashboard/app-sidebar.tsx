@@ -1,10 +1,11 @@
 "use client"
 
 import * as React from "react"
-import { Briefcase, FileText, Settings, User, LayoutDashboard, CreditCard, Sparkles } from "lucide-react"
+import { Briefcase, FileText, Settings, User, LayoutDashboard, CreditCard, Sparkles, LogOut, Shield, Users, Flag, Globe } from "lucide-react"
 import {
   Sidebar,
   SidebarContent,
+  SidebarFooter,
   SidebarGroup,
   SidebarGroupContent,
   SidebarGroupLabel,
@@ -13,16 +14,35 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
 } from "@/components/ui/sidebar"
-import { usePathname } from "next/navigation"
+import { usePathname, useRouter } from "next/navigation"
 import Link from "next/link"
+import { createClient } from "@/lib/supabase/client"
 
-type Role = "pro" | "company" | "candidate"
+type Role = "pro" | "company" | "candidate" | "admin"
 
 export function AppSidebar({ role = "pro" }: { role?: Role }) {
   const pathname = usePathname()
+  const router = useRouter()
+  const supabase = createClient()
+
+  const handleLogout = async () => {
+    const { error } = await supabase.auth.signOut()
+    if (error) {
+      console.error("Error logging out:", error)
+    } else {
+      router.push("/login")
+      router.refresh()
+    }
+  }
 
   // Navigation Items by Role
   const navigation = {
+    admin: [
+      { title: "Dashboard", url: "/dashboard/admin", icon: LayoutDashboard },
+      { title: "Usuarios", url: "/dashboard/admin/users", icon: Users },
+      { title: "Moderación", url: "/dashboard/admin/content", icon: Flag },
+      { title: "Configuración", url: "/dashboard/admin/settings", icon: Globe },
+    ],
     pro: [
       { title: "Dashboard", url: "/dashboard/pro", icon: LayoutDashboard },
       { title: "Mis Servicios", url: "/dashboard/pro/services", icon: Briefcase },
@@ -34,6 +54,7 @@ export function AppSidebar({ role = "pro" }: { role?: Role }) {
       { title: "Dashboard", url: "/dashboard/company", icon: LayoutDashboard },
       { title: "Talento", url: "/dashboard/company/talent", icon: User },
       { title: "Proyectos", url: "/dashboard/company/projects", icon: Briefcase },
+      { title: "Perfil Empresa", url: "/dashboard/company/profile", icon: User },
     ],
     candidate: [
       { title: "Dashboard", url: "/dashboard/candidate", icon: LayoutDashboard },
@@ -41,8 +62,15 @@ export function AppSidebar({ role = "pro" }: { role?: Role }) {
       { title: "Mi CV", url: "/dashboard/candidate/resume", icon: FileText },
     ]
   }
+  const activeRole = pathname.startsWith("/dashboard/admin")
+    ? "admin"
+    : pathname.startsWith("/dashboard/company") 
+      ? "company" 
+      : pathname.startsWith("/dashboard/candidate") 
+        ? "candidate" 
+        : "pro"
 
-  const items = navigation[role]
+  const items = navigation[activeRole]
 
   return (
     <Sidebar variant="floating" className="hidden md:flex border-none">
@@ -88,6 +116,22 @@ export function AppSidebar({ role = "pro" }: { role?: Role }) {
           </SidebarGroupContent>
         </SidebarGroup>
       </SidebarContent>
+
+      <SidebarFooter className="p-4 border-t border-border/50">
+        <SidebarMenu>
+          <SidebarMenuItem>
+            <SidebarMenuButton 
+              onClick={handleLogout}
+              className="h-[44px] rounded-[14px] px-3.5 hover:bg-destructive/10 text-muted-foreground hover:text-destructive transition-all duration-300 group w-full justify-start"
+            >
+              <LogOut className="h-[18px] w-[18px] text-muted-foreground group-hover:text-destructive transition-colors" />
+              <span className="text-[14px] font-medium tracking-tight">
+                Cerrar Sesión
+              </span>
+            </SidebarMenuButton>
+          </SidebarMenuItem>
+        </SidebarMenu>
+      </SidebarFooter>
     </Sidebar>
   )
 }

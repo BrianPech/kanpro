@@ -34,24 +34,43 @@ export async function updateSession(request: NextRequest) {
     data: { user },
   } = await supabase.auth.getUser()
 
-  if (request.nextUrl.pathname === '/dashboard') {
-    if (!user) {
-      const url = request.nextUrl.clone()
-      url.pathname = '/'
-      return NextResponse.redirect(url)
-    }
+  if (
+    !user &&
+    (request.nextUrl.pathname === '/dashboard' ||
+      request.nextUrl.pathname.startsWith('/dashboard/'))
+  ) {
+    const url = request.nextUrl.clone()
+    url.pathname = '/'
+    return NextResponse.redirect(url)
+  }
 
-    // Fetch the user's role from the profiles table
+  // Fetch the user's role for protected routes
+  let role: string | null = null
+  if (user) {
     const { data: profile } = await supabase
       .from('profiles')
       .select('role')
       .eq('id', user.id)
       .single()
+    role = profile?.role
+  }
 
-    const role = profile?.role
+  // Protect admin routes - only admin role can access
+  if (request.nextUrl.pathname.startsWith('/dashboard/admin')) {
+    if (role !== 'admin') {
+      const url = request.nextUrl.clone()
+      if (role === 'company') url.pathname = '/dashboard/company'
+      else if (role === 'candidate') url.pathname = '/dashboard/candidate'
+      else url.pathname = '/dashboard/pro'
+      return NextResponse.redirect(url)
+    }
+  }
 
+  if (request.nextUrl.pathname === '/dashboard') {
     const url = request.nextUrl.clone()
-    if (role === 'company') {
+    if (role === 'admin') {
+      url.pathname = '/dashboard/admin'
+    } else if (role === 'company') {
       url.pathname = '/dashboard/company'
     } else if (role === 'candidate') {
       url.pathname = '/dashboard/candidate'

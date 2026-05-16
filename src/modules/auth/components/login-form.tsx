@@ -4,16 +4,21 @@ import * as React from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Eye, EyeOff, ArrowRight, Cloud, Shield } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { FieldError } from "@/components/ui/field";
 
+import { createClient } from "@/lib/supabase/client";
 import { loginSchema, type LoginFormValues } from "../schemas/login.schema";
 
 export function LoginForm() {
   const [showPassword, setShowPassword] = React.useState(false);
+  const router = useRouter();
+  const supabase = createClient();
 
   const {
     register,
@@ -28,10 +33,44 @@ export function LoginForm() {
   });
 
   const onSubmit = async (data: LoginFormValues) => {
-    // TODO: Connect with authentication provider (Supabase/Auth.js)
-    console.log("Login data:", data);
-    // Simulate API call
-    await new Promise((resolve) => setTimeout(resolve, 1000));
+    try {
+      const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
+        email: data.email,
+        password: data.password,
+      });
+
+      if (authError) throw authError;
+
+      if (authData.user) {
+        // Leer el rol de la metadata del usuario
+        let role = authData.user.user_metadata?.role;
+
+        // Fallback: Si no hay rol en metadata, verificar si existe en company_profiles
+        if (!role) {
+          const { data: companyProfile } = await supabase
+            .from("company_profiles")
+            .select("id")
+            .eq("id", authData.user.id)
+            .maybeSingle();
+          
+          if (companyProfile) {
+            role = "company";
+          }
+        }
+
+        role = role || "pro";
+        
+        toast.success("Bienvenido de nuevo");
+        
+        router.push(`/dashboard/${role}`);
+        router.refresh();
+      }
+    } catch (error: any) {
+      console.error(error);
+      toast.error("Error al iniciar sesión", {
+        description: error.message || "Credenciales inválidas."
+      });
+    }
   };
 
   return (

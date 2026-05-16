@@ -5,16 +5,22 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Eye, EyeOff, ArrowRight, ArrowLeft } from "lucide-react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { FieldError } from "@/components/ui/field";
 
+import { createClient } from "@/lib/supabase/client";
 import { companyRegisterSchema, type CompanyRegisterValues } from "../schemas/register.schema";
 
 export function CompanyRegisterForm() {
   const [showPassword, setShowPassword] = React.useState(false);
+  const router = useRouter();
+  const supabase = createClient();
+
   const {
     register,
     handleSubmit,
@@ -24,8 +30,61 @@ export function CompanyRegisterForm() {
   });
 
   const onSubmit = async (data: CompanyRegisterValues) => {
-    console.log("Company Registration:", data);
-    await new Promise((resolve) => setTimeout(resolve, 1000));
+    try {
+      console.log("Iniciando registro...");
+      // 1. Crear usuario en Supabase Auth con metadata de rol
+      const { data: authData, error: authError } = await supabase.auth.signUp({
+        email: data.email,
+        password: data.password,
+        options: {
+          data: {
+            role: "company",
+            full_name: data.companyName,
+          }
+        }
+      });
+
+      if (authError) {
+        console.error("Error en Auth:", authError);
+        throw authError;
+      }
+      console.log("Usuario creado en Auth con metadata de rol:", authData.user?.id);
+
+      if (authData.user) {
+        // Omitimos la actualización de 'profiles' ya que la tabla no existe en el esquema.
+        // Usaremos la metadata del usuario para determinar el rol.
+
+        // 2. Insertar en company_profiles
+        console.log("Insertando en company_profiles...");
+        const { error: profileError } = await supabase
+          .from("company_profiles")
+          .insert({
+            id: authData.user.id,
+            company_name: data.companyName,
+            industry: data.industry,
+            website_or_linkedin: data.websiteOrLinkedin,
+            location: data.location,
+          });
+
+        if (profileError) {
+          console.error("Error en company_profiles insert:", profileError);
+          throw profileError;
+        }
+        console.log("Registro completo en base de datos.");
+
+        toast.success("Cuenta creada", {
+          description: "Bienvenido a K'anPro. Serás redirigido al dashboard."
+        });
+        
+        router.push("/dashboard/company");
+        router.refresh();
+      }
+    } catch (error: any) {
+      console.error("Error capturado en onSubmit:", error);
+      toast.error("Error al registrar", {
+        description: error.message || "No se pudo crear la cuenta."
+      });
+    }
   };
 
   return (
@@ -69,6 +128,30 @@ export function CompanyRegisterForm() {
               aria-invalid={!!errors.industry}
             />
             {errors.industry && <FieldError errors={[errors.industry]} />}
+          </div>
+
+          <div className="flex flex-col gap-2">
+            <Label htmlFor="websiteOrLinkedin" className="text-[16px] font-semibold text-foreground tracking-[0.16px]">Sitio Web o LinkedIn</Label>
+            <Input
+              id="websiteOrLinkedin"
+              placeholder="https://tuempresa.com"
+              {...register("websiteOrLinkedin")}
+              className="h-[56px] px-4 text-[16px] rounded-[12px] focus-visible:ring-primary/20 transition-all"
+              aria-invalid={!!errors.websiteOrLinkedin}
+            />
+            {errors.websiteOrLinkedin && <FieldError errors={[errors.websiteOrLinkedin]} />}
+          </div>
+
+          <div className="flex flex-col gap-2">
+            <Label htmlFor="location" className="text-[16px] font-semibold text-foreground tracking-[0.16px]">Ubicación</Label>
+            <Input
+              id="location"
+              placeholder="Ciudad, País"
+              {...register("location")}
+              className="h-[56px] px-4 text-[16px] rounded-[12px] focus-visible:ring-primary/20 transition-all"
+              aria-invalid={!!errors.location}
+            />
+            {errors.location && <FieldError errors={[errors.location]} />}
           </div>
 
           <div className="flex flex-col gap-2">

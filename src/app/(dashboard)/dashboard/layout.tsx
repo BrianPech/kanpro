@@ -16,23 +16,19 @@ export default async function DashboardShellLayout({
 
   let userName = "Invitado"
   let userInitials = "G"
-  let role: "pro" | "company" | "candidate" = "pro"
+  let role: "pro" | "company" | "candidate" | "admin" = "pro"
   let plan = "Plan Básico"
 
   if (user) {
-    // 1. Obtener rol base
-    const { data: profile } = await supabase
-      .from("profiles")
-      .select("role, full_name")
-      .eq("id", user.id)
-      .single()
-    
-    if (profile?.role) {
-      role = profile.role as "pro" | "company" | "candidate"
-    }
+    // 1. Obtener rol y nombre de la metadata del usuario
+    role = (user.user_metadata?.role as "pro" | "company" | "candidate" | "admin") || "pro"
+    const metaFullName = user.user_metadata?.full_name
     
     // 2. Obtener nombre según rol
-    if (role === "pro") {
+    if (role === "admin") {
+      plan = "Administrador"
+      userName = metaFullName || "Admin"
+    } else if (role === "pro") {
       plan = "Plan Pro"
       const { data: proProfile } = await supabase
         .from("professional_profiles")
@@ -40,13 +36,13 @@ export default async function DashboardShellLayout({
         .eq("id", user.id)
         .single()
         
-      userName = proProfile?.full_name || profile?.full_name || "Profesional"
+      userName = proProfile?.full_name || metaFullName || "Profesional"
     } else if (role === "company") {
       plan = "Empresa"
-      userName = profile?.full_name || "Compañía"
+      userName = metaFullName || "Compañía"
     } else if (role === "candidate") {
       plan = "Candidato"
-      userName = profile?.full_name || "Candidato"
+      userName = metaFullName || "Candidato"
     }
 
     if (userName === "Invitado" && user.email) {
