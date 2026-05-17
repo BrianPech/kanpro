@@ -49,7 +49,7 @@ export function CompanyProfileForm({ initialProfile, userId }: { initialProfile:
         {/* Sector / Industria */}
         <div className="flex flex-col gap-3">
           <Label className="text-[12px] uppercase tracking-[0.15em] text-muted-foreground font-semibold">
-            Sector / Industria
+            Sector / Industria *
           </Label>
           <Select 
             value={profile.industry} 
@@ -73,7 +73,7 @@ export function CompanyProfileForm({ initialProfile, userId }: { initialProfile:
         {/* Sitio Web o LinkedIn */}
         <div className="flex flex-col gap-3">
           <Label className="text-[12px] uppercase tracking-[0.15em] text-muted-foreground font-semibold">
-            Sitio Web o LinkedIn
+            Sitio Web o LinkedIn *
           </Label>
           <div className="relative">
             <Globe className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
@@ -89,7 +89,7 @@ export function CompanyProfileForm({ initialProfile, userId }: { initialProfile:
         {/* Ubicación */}
         <div className="flex flex-col gap-3">
           <Label className="text-[12px] uppercase tracking-[0.15em] text-muted-foreground font-semibold">
-            Ubicación
+            Ubicación *
           </Label>
           <div className="relative">
             <MapPin className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
