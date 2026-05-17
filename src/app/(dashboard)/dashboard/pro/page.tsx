@@ -1,48 +1,12 @@
 import * as React from "react"
 import { ArrowRight, Eye, Send, DollarSign, PlusCircle, CheckCircle2, ChevronRight, Activity, Briefcase } from "lucide-react"
 import { Button } from "@/components/ui/button"
-import { createClient } from "@/lib/supabase/server"
 import Link from "next/link"
+import { getProDashboardData } from "@/modules/pro/services/pro-dashboard"
 
 export default async function ProfessionalDashboard() {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
+  const { profileName, services } = await getProDashboardData()
 
-  let profileName = "Profesional"
-  let services: any[] = []
-
-  if (user) {
-    // Intentar obtener el nombre del perfil profesional
-    const { data: proProfile } = await supabase
-      .from("professional_profiles")
-      .select("full_name")
-      .eq("id", user.id)
-      .single()
-
-    if (proProfile?.full_name) {
-      profileName = proProfile.full_name.split(" ")[0] // Solo el primer nombre
-    } else {
-      // Fallback al perfil base
-      const { data: baseProfile } = await supabase
-        .from("profiles")
-        .select("full_name")
-        .eq("id", user.id)
-        .single()
-      
-      if (baseProfile?.full_name) {
-        profileName = baseProfile.full_name.split(" ")[0]
-      }
-    }
-
-    // Obtener los servicios reales
-    const { data: servicesData } = await supabase
-      .from("services")
-      .select("*")
-      .eq("professional_id", user.id)
-      .limit(2) // Mostrar solo los 2 primeros en el dashboard
-
-    services = servicesData || []
-  }
 
   return (
     <div className="flex flex-col gap-16 p-6 md:p-12 lg:p-16 max-w-[1400px] mx-auto w-full animate-in fade-in slide-in-from-bottom-4 duration-700">

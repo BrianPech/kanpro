@@ -52,7 +52,30 @@ export async function updateSession(request: NextRequest) {
       .select('role')
       .eq('id', user.id)
       .single()
-    role = profile?.role
+    role = profile?.role || null
+
+    // Fallback: Si no hay rol en profiles, buscar en tablas específicas
+    if (!role) {
+      const { data: companyProfile } = await supabase
+        .from('company_profiles')
+        .select('id')
+        .eq('id', user.id)
+        .maybeSingle() // Use maybeSingle to avoid errors if not found
+      
+      if (companyProfile) {
+        role = 'company'
+      } else {
+        const { data: proProfile } = await supabase
+          .from('professional_profiles')
+          .select('id')
+          .eq('id', user.id)
+          .maybeSingle()
+        
+        if (proProfile) {
+          role = 'pro'
+        }
+      }
+    }
   }
 
   // Protect admin routes
@@ -77,7 +100,8 @@ export async function updateSession(request: NextRequest) {
   }
 
   // Protect pro routes (fallback role)
-  if (request.nextUrl.pathname.startsWith('/dashboard/pro') && role !== 'pro' && role !== 'admin' && role !== null) {
+  // Only redirect if the user has a specific role that belongs to another dashboard
+  if (request.nextUrl.pathname.startsWith('/dashboard/pro') && (role === 'company' || role === 'candidate')) {
     const url = request.nextUrl.clone()
     url.pathname = '/dashboard'
     return NextResponse.redirect(url)

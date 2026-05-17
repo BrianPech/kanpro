@@ -1,23 +1,9 @@
 import * as React from "react"
-import { createClient } from "@/lib/supabase/server"
+import { getCompanyDashboardData } from "@/modules/company/services/company-dashboard"
 
 export default async function CompanyDashboard() {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
+  const { companyName } = await getCompanyDashboardData()
 
-  let companyName = "Empresa"
-
-  if (user) {
-    const { data } = await supabase
-      .from("company_profiles")
-      .select("company_name")
-      .eq("id", user.id)
-      .single()
-    
-    if (data?.company_name) {
-      companyName = data.company_name
-    }
-  }
 
   return (
     <div className="flex flex-col gap-16 p-6 md:p-12 lg:p-16 max-w-[1400px] mx-auto w-full animate-in fade-in slide-in-from-bottom-4 duration-700">

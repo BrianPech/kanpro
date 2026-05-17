@@ -1,18 +1,13 @@
-import { createClient } from "@/lib/supabase/server"
 import { ServicesManager } from "@/modules/pro/components/services-manager"
+import { getProServices } from "@/modules/pro/services/pro-dashboard"
 
 export default async function ServicesPage() {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
+  const data = await getProServices()
 
-  if (!user) return null
+  if (!data) return null
 
-  // Obtener los servicios del profesional
-  const { data: services } = await supabase
-    .from("services")
-    .select("*")
-    .eq("professional_id", user.id)
-    .order("created_at", { ascending: false })
+  const { services, userId } = data
+
 
   return (
     <div className="flex flex-col gap-8 pb-16 max-w-[1000px] mx-auto w-full animate-in fade-in slide-in-from-bottom-4 duration-700">
@@ -26,7 +21,7 @@ export default async function ServicesPage() {
       </div>
 
       <div className="px-4 md:px-8">
-        <ServicesManager initialServices={services || []} userId={user.id} />
+        <ServicesManager initialServices={services || []} userId={userId} />
       </div>
     </div>
   )
