@@ -43,6 +43,10 @@ export type Database = {
           location: string | null
           updated_at: string
           website_or_linkedin: string | null
+          logo_url: string | null
+          description: string | null
+          company_size: string | null
+          phone: string | null
         }
         Insert: {
           company_name: string
@@ -52,6 +56,10 @@ export type Database = {
           location?: string | null
           updated_at?: string
           website_or_linkedin?: string | null
+          logo_url?: string | null
+          description?: string | null
+          company_size?: string | null
+          phone?: string | null
         }
         Update: {
           company_name?: string
@@ -61,6 +69,10 @@ export type Database = {
           location?: string | null
           updated_at?: string
           website_or_linkedin?: string | null
+          logo_url?: string | null
+          description?: string | null
+          company_size?: string | null
+          phone?: string | null
         }
         Relationships: []
       }

@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useMemo } from "react"
+import { useState, useMemo, useEffect } from "react"
 import { SlidersHorizontal, X, Sparkles } from "lucide-react"
 import Link from "next/link"
 import { cn } from "@/lib/utils"
@@ -10,6 +10,14 @@ import { ProfessionalCard } from "./professional-card"
 import { FilterSidebar, type FilterState } from "./filter-sidebar"
 import { Button } from "@/components/ui/button"
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet"
+import {
+  Pagination,
+  PaginationContent,
+  PaginationItem,
+  PaginationLink,
+  PaginationNext,
+  PaginationPrevious,
+} from "@/components/ui/pagination"
 
 type ViewMode = "jobs" | "professionals"
 
@@ -78,12 +86,25 @@ export function DiscoveryPage({
   const [mode, setMode] = useState<ViewMode>(initialMode)
   const [filter, setFilter] = useState<FilterState>(defaultFilter)
   const [sheetOpen, setSheetOpen] = useState(false)
+  const [currentPage, setCurrentPage] = useState(1)
 
   const filteredJobs = useMemo(() => filterJobs(jobs, filter), [filter])
   const filteredProfessionals = useMemo(
     () => filterProfessionals(professionals, filter),
     [filter],
   )
+
+  useEffect(() => {
+    setCurrentPage(1)
+  }, [filter, mode])
+
+  const itemsPerPage = 9
+  const totalPages = Math.ceil(filteredProfessionals.length / itemsPerPage)
+  const currentProfessionals = useMemo(() => {
+    const indexOfLastItem = currentPage * itemsPerPage
+    const indexOfFirstItem = indexOfLastItem - itemsPerPage
+    return filteredProfessionals.slice(indexOfFirstItem, indexOfLastItem)
+  }, [filteredProfessionals, currentPage])
 
   const tabs: { value: ViewMode; label: string; count: number }[] = [
     { value: "jobs", label: "Vacantes", count: filteredJobs.length },
@@ -221,10 +242,51 @@ export function DiscoveryPage({
                 </div>
               )
             ) : filteredProfessionals.length > 0 ? (
-              <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-3">
-                {filteredProfessionals.map((pro) => (
-                  <ProfessionalCard key={pro.id} professional={pro} />
-                ))}
+              <div className="space-y-8">
+                <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-3">
+                  {currentProfessionals.map((pro) => (
+                    <ProfessionalCard key={pro.id} professional={pro} />
+                  ))}
+                </div>
+                
+                {totalPages > 1 && (
+                  <Pagination>
+                    <PaginationContent>
+                      <PaginationItem>
+                        <PaginationPrevious
+                          onClick={(e) => {
+                            e.preventDefault()
+                            setCurrentPage((p) => Math.max(1, p - 1))
+                          }}
+                          className={currentPage === 1 ? "pointer-events-none opacity-50" : "cursor-pointer"}
+                        />
+                      </PaginationItem>
+                      {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
+                        <PaginationItem key={page}>
+                          <PaginationLink
+                            isActive={currentPage === page}
+                            onClick={(e) => {
+                              e.preventDefault()
+                              setCurrentPage(page)
+                            }}
+                            className="cursor-pointer"
+                          >
+                            {page}
+                          </PaginationLink>
+                        </PaginationItem>
+                      ))}
+                      <PaginationItem>
+                        <PaginationNext
+                          onClick={(e) => {
+                            e.preventDefault()
+                            setCurrentPage((p) => Math.min(totalPages, p + 1))
+                          }}
+                          className={currentPage === totalPages ? "pointer-events-none opacity-50" : "cursor-pointer"}
+                        />
+                      </PaginationItem>
+                    </PaginationContent>
+                  </Pagination>
+                )}
               </div>
             ) : (
               <div className="flex flex-col items-center justify-center py-20 text-center">
