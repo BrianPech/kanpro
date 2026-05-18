@@ -16,10 +16,10 @@ export function JobCard({ job }: { job: Job }) {
   return (
     <div
       className={cn(
-        "group flex flex-col rounded-[20px] border bg-white p-8 transition-all",
+        "group flex flex-col rounded-[20px] border bg-card text-card-foreground p-8 transition-all",
         job.featured
           ? "border-[#494fdf]/20 bg-[#494fdf]/[0.02]"
-          : "border-[#e2e2e7]",
+          : "border-border",
       )}
     >
       <div className="flex items-start justify-between gap-4">
@@ -29,14 +29,14 @@ export function JobCard({ job }: { job: Job }) {
               "flex size-12 shrink-0 items-center justify-center rounded-xl text-sm font-semibold tracking-tight",
               job.featured
                 ? "bg-[#494fdf] text-white"
-                : "bg-[#f4f4f4] text-[#191c1f]",
+                : "bg-muted text-foreground",
             )}
           >
             {job.companyLogo}
           </div>
           <div>
-            <p className="text-sm text-[#505a63]">{job.company}</p>
-            <h3 className="mt-0.5 text-lg font-medium leading-tight text-[#191c1f]">
+            <p className="text-sm text-muted-foreground">{job.company}</p>
+            <h3 className="mt-0.5 text-lg font-medium leading-tight text-foreground">
               {job.title}
             </h3>
           </div>
@@ -49,12 +49,12 @@ export function JobCard({ job }: { job: Job }) {
         </button>
       </div>
 
-      <div className="mt-4 flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-[#505a63]">
+      <div className="mt-4 flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-muted-foreground">
         <span className="inline-flex items-center gap-1.5">
           <MapPin className="size-3.5" />
           {job.location}
         </span>
-        <span className="font-medium text-[#191c1f]">
+        <span className="font-medium text-foreground">
           {formatSalary(job.salaryMin, job.salaryMax)}
         </span>
         <span className="inline-flex items-center gap-1.5 text-[#8d969e]">
@@ -68,7 +68,7 @@ export function JobCard({ job }: { job: Job }) {
           <Badge
             key={skill}
             variant="secondary"
-            className="h-7 rounded-full border-0 bg-[#f4f4f4] px-3 text-xs font-normal text-[#505a63]"
+            className="h-7 rounded-full border-0 bg-muted px-3 text-xs font-normal text-muted-foreground"
           >
             {skill}
           </Badge>
@@ -76,7 +76,7 @@ export function JobCard({ job }: { job: Job }) {
       </div>
 
       <div className="mt-6 flex items-center justify-between gap-4">
-        <Button className="h-11 rounded-full bg-[#191c1f] px-6 text-sm font-medium text-white hover:bg-[#191c1f]/90">
+        <Button className="h-11 rounded-full bg-primary px-6 text-sm font-medium text-primary-foreground hover:bg-primary/90">
           Apply Now
         </Button>
         <span className="text-xs text-[#8d969e]">

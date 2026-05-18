@@ -12,15 +12,15 @@ export function ProfessionalCard({
   professional: Professional
 }) {
   return (
-    <div className="flex flex-col rounded-[20px] border border-[#e2e2e7] bg-white p-8 transition-all">
+    <div className="flex flex-col rounded-[20px] border border-border bg-card text-card-foreground p-8 transition-all">
       <div className="flex items-start justify-between gap-4">
         <div className="flex items-center gap-4">
-          <div className="flex size-12 shrink-0 items-center justify-center rounded-xl bg-[#f4f4f4] text-sm font-semibold tracking-tight text-[#191c1f]">
+          <div className="flex size-14 shrink-0 items-center justify-center rounded-xl bg-muted text-base font-semibold tracking-tight text-foreground">
             {pro.avatar}
           </div>
           <div>
             <div className="flex items-center gap-2">
-              <h3 className="text-lg font-medium leading-tight text-[#191c1f]">
+              <h3 className="text-lg font-medium leading-tight text-foreground">
                 {pro.name}
               </h3>
               {pro.available && (
@@ -30,12 +30,12 @@ export function ProfessionalCard({
                 </span>
               )}
             </div>
-            <p className="mt-0.5 text-sm text-[#505a63]">{pro.title}</p>
+            <p className="mt-0.5 text-sm text-muted-foreground">{pro.title}</p>
           </div>
         </div>
         <div className="flex shrink-0 items-center gap-1.5">
           <Star className="size-3.5 fill-[#b09000] text-[#b09000]" />
-          <span className="text-sm font-medium text-[#191c1f]">
+          <span className="text-sm font-medium text-foreground">
             {pro.rating}
           </span>
           <span className="text-xs text-[#8d969e]">
@@ -44,7 +44,7 @@ export function ProfessionalCard({
         </div>
       </div>
 
-      <div className="mt-4 flex items-center gap-1.5 text-sm text-[#505a63]">
+      <div className="mt-4 flex items-center gap-1.5 text-sm text-muted-foreground">
         <MapPin className="size-3.5" />
         {pro.location}
       </div>
@@ -57,15 +57,15 @@ export function ProfessionalCard({
           {pro.services.map((service) => (
             <div
               key={service.name}
-              className="flex items-center justify-between rounded-xl bg-[#f4f4f4] px-4 py-2.5"
+              className="flex items-center justify-between py-2.5 border-b border-border/50 last:border-0"
             >
-              <span className="flex items-center gap-2 text-sm text-[#191c1f]">
-                <Briefcase className="size-3.5 text-[#505a63]" />
+              <span className="flex items-center gap-2 text-sm text-foreground">
+                <Briefcase className="size-3.5 text-muted-foreground" />
                 {service.name}
               </span>
-              <span className="text-sm font-medium text-[#191c1f]">
+              <span className="text-sm font-medium text-foreground">
                 ${service.rate}
-                <span className="text-xs font-normal text-[#505a63]">/hr</span>
+                <span className="text-xs font-normal text-muted-foreground">/hr</span>
               </span>
             </div>
           ))}
@@ -77,7 +77,7 @@ export function ProfessionalCard({
           <Badge
             key={skill}
             variant="secondary"
-            className="h-7 rounded-full border-0 bg-[#f4f4f4] px-3 text-xs font-normal text-[#505a63]"
+            className="h-7 rounded-full border-0 bg-muted px-3 text-xs font-normal text-muted-foreground"
           >
             {skill}
           </Badge>
@@ -85,7 +85,7 @@ export function ProfessionalCard({
       </div>
 
       <div className="mt-6">
-        <Button className="h-11 w-full rounded-full border border-[#191c1f] bg-white text-sm font-medium text-[#191c1f] hover:bg-[#f4f4f4]">
+        <Button variant="outline" className="h-11 w-full rounded-full text-sm font-medium">
           View Profile
         </Button>
       </div>

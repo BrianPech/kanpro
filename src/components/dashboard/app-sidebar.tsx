@@ -1,7 +1,7 @@
 "use client"
 
 import * as React from "react"
-import { Briefcase, FileText, Settings, User, LayoutDashboard, CreditCard, Sparkles, LogOut, Shield, Users, Flag, Globe } from "lucide-react"
+import { Briefcase, FileText, Settings, User, LayoutDashboard, CreditCard, Sparkles, LogOut, Shield, Users, Flag, Globe, MessageSquare, Compass, Building2 } from "lucide-react"
 import {
   Sidebar,
   SidebarContent,
@@ -41,25 +41,26 @@ export function AppSidebar({ role = "pro" }: { role?: Role }) {
       { title: "Dashboard", url: "/dashboard/admin", icon: LayoutDashboard },
       { title: "Usuarios", url: "/dashboard/admin/users", icon: Users },
       { title: "Moderación", url: "/dashboard/admin/content", icon: Flag },
-      { title: "Configuración", url: "/dashboard/admin/settings", icon: Globe },
+      { title: "Ajustes Sistema", url: "/dashboard/admin/settings", icon: Settings },
     ],
     pro: [
-      { title: "Dashboard", url: "/dashboard/pro", icon: LayoutDashboard },
+      { title: "Panel de Control", url: "/dashboard/pro", icon: LayoutDashboard },
       { title: "Mis Servicios", url: "/dashboard/pro/services", icon: Briefcase },
-      { title: "Propuestas", url: "/dashboard/pro/proposals", icon: FileText },
-      { title: "Ingresos", url: "/dashboard/pro/earnings", icon: CreditCard },
-      { title: "Perfil Público", url: "/dashboard/pro/profile", icon: User },
+      { title: "Mi Perfil Pro", url: "/dashboard/pro/profile", icon: User },
+      { title: "Explorar Vacantes", url: "/dashboard/discovery", icon: Compass }, // ¡Aprovecha tu página pública!
+      { title: "Configuración", url: "/dashboard/settings", icon: Settings }, // Ruta compartida
     ],
     company: [
       { title: "Dashboard", url: "/dashboard/company", icon: LayoutDashboard },
-      { title: "Talento", url: "/dashboard/company/talent", icon: User },
-      { title: "Proyectos", url: "/dashboard/company/projects", icon: Briefcase },
-      { title: "Perfil Empresa", url: "/dashboard/company/profile", icon: User },
+      { title: "Perfil Empresa", url: "/dashboard/company/profile", icon: Building2 },
+      { title: "Gestionar Vacantes", url: "/dashboard/company/vacancies", icon: Briefcase },
+      { title: "Buscar Talento", url: "/dashboard/company/candidates", icon: Compass }, // Las empresas usan discovery para buscar Pros
+      { title: "Configuración", url: "/dashboard/settings", icon: Settings }, // Ruta compartida
     ],
     candidate: [
       { title: "Dashboard", url: "/dashboard/candidate", icon: LayoutDashboard },
-      { title: "Ofertas", url: "/dashboard/candidate/jobs", icon: Briefcase },
-      { title: "Mi CV", url: "/dashboard/candidate/resume", icon: FileText },
+      { title: "Explorar Empleos", url: "/dashboard/discovery", icon: Compass },
+      { title: "Configuración", url: "/dashboard/settings", icon: Settings },
     ]
   }
   const activeRole = pathname.startsWith("/dashboard/admin")
@@ -93,7 +94,7 @@ export function AppSidebar({ role = "pro" }: { role?: Role }) {
           <SidebarGroupContent>
             <SidebarMenu className="gap-1.5">
               {items.map((item) => {
-                const isActive = pathname.startsWith(item.url) && item.url !== "/dashboard/pro" || pathname === item.url
+                const isActive = pathname === item.url || (pathname.startsWith(item.url) && !["/dashboard/pro", "/dashboard/company", "/dashboard/admin", "/dashboard/candidate"].includes(item.url))
                 
                 return (
                   <SidebarMenuItem key={item.title}>

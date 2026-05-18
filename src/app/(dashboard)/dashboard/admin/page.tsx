@@ -2,7 +2,7 @@ import * as React from "react"
 import { AdminHero } from "@/modules/admin/components/admin-hero"
 import { PlatformStats } from "@/modules/admin/components/platform-stats"
 import { RecentActivity } from "@/modules/admin/components/recent-activity"
-import { ReportedContent } from "@/modules/admin/components/reported-content"
+import { RegistrationPanel } from "@/modules/admin/components/registration-panel"
 
 export default function AdminDashboard() {
   return (
@@ -20,7 +20,7 @@ export default function AdminDashboard() {
 
       <section className="grid grid-cols-1 lg:grid-cols-2 gap-8">
         <RecentActivity />
-        <ReportedContent />
+        <RegistrationPanel />
       </section>
     </div>
   )

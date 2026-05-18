@@ -1,6 +1,6 @@
 import * as React from "react";
 import Link from "next/link";
-import { Bell, Search, Settings } from "lucide-react";
+import { Bell, Settings } from "lucide-react";
 import {
   SidebarProvider,
   SidebarInset,
@@ -24,10 +24,6 @@ export default async function DashboardShellLayout({
         <header className="sticky top-0 z-40 flex h-[80px] shrink-0 items-center gap-4 px-6 md:px-10 bg-background/80 backdrop-blur-md">
           <div className="flex items-center gap-4 flex-1">
             <SidebarTrigger className="-ml-2 text-muted-foreground hover:text-foreground" />
-            <div className="hidden md:flex items-center gap-2 text-muted-foreground bg-muted/50 rounded-full h-10 px-4 max-w-[240px] w-full border border-border/50">
-              <Search className="w-4 h-4" />
-              <span className="text-[14px]">Buscar...</span>
-            </div>
           </div>
 
           <div className="flex items-center gap-3">

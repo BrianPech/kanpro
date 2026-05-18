@@ -57,9 +57,9 @@ function CheckboxGroup({
                 onChange(selected.filter((s) => s !== item))
               }
             }}
-            className="size-5 rounded-md data-checked:bg-[#494fdf] data-checked:border-[#494fdf]"
+            className="size-5 rounded-md data-[state=checked]:bg-primary data-[state=checked]:border-primary"
           />
-          <span className="text-sm text-[#1f2226]">{item}</span>
+          <span className="text-sm text-foreground">{item}</span>
         </label>
       ))}
     </div>
@@ -87,14 +87,14 @@ export function FilterSidebar({ filter, onChange, mode, className }: FilterSideb
   }
 
   return (
-    <aside className={cn("w-full", className)}>
+    <aside className={cn("w-full px-6", className)}>
       <div className="mb-6 flex items-center justify-between">
-        <h2 className="text-lg font-medium text-[#191c1f]">Filters</h2>
+        <h2 className="text-xl font-medium tracking-tight text-foreground">Filters</h2>
         {hasActiveFilters && (
           <button
             type="button"
             onClick={clearAll}
-            className="flex items-center gap-1 text-xs text-[#505a63] transition-colors hover:text-[#191c1f]"
+            className="flex items-center gap-1 text-xs text-muted-foreground transition-colors hover:text-foreground"
           >
             <RotateCcw className="size-3" />
             Clear all
@@ -103,22 +103,22 @@ export function FilterSidebar({ filter, onChange, mode, className }: FilterSideb
       </div>
 
       <div className="relative mb-6">
-        <Search className="pointer-events-none absolute left-4 top-1/2 size-4 -translate-y-1/2 text-[#505a63]" />
+        <Search className="pointer-events-none absolute left-4 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
         <Input
           placeholder="Search..."
           value={filter.search}
           onChange={(e) => onChange({ ...filter, search: e.target.value })}
-          className="h-12 rounded-full border-[#e2e2e7] bg-white pl-10 text-sm text-[#191c1f] placeholder:text-[#8d969e]"
+          className="h-14 rounded-xl border-border bg-muted/50 pl-10 text-sm text-foreground placeholder:text-muted-foreground/60"
         />
       </div>
 
       <Accordion type="multiple" defaultValue={["type", "salary", "category", "location", "experience"]}>
         {mode === "jobs" && (
-          <AccordionItem value="type" className="border-[#e2e2e7] data-open:bg-transparent">
-            <AccordionTrigger className="px-0 text-sm font-medium text-[#191c1f] hover:no-underline">
+          <AccordionItem value="type" className="border-border data-open:bg-transparent">
+            <AccordionTrigger className="px-4 text-sm font-medium text-foreground hover:no-underline">
               Job Type
             </AccordionTrigger>
-            <AccordionContent className="px-0">
+            <AccordionContent className="px-4">
               <CheckboxGroup
                 items={jobTypes}
                 selected={filter.types}
@@ -128,11 +128,11 @@ export function FilterSidebar({ filter, onChange, mode, className }: FilterSideb
           </AccordionItem>
         )}
 
-        <AccordionItem value="salary" className="border-[#e2e2e7] data-open:bg-transparent">
-          <AccordionTrigger className="px-0 text-sm font-medium text-[#191c1f] hover:no-underline">
+        <AccordionItem value="salary" className="border-border data-open:bg-transparent">
+          <AccordionTrigger className="px-4 text-sm font-medium text-foreground hover:no-underline">
             {mode === "jobs" ? "Salary Range" : "Rate Range"}
           </AccordionTrigger>
-          <AccordionContent className="px-0">
+          <AccordionContent className="px-4">
             <div className="space-y-3">
               <Slider
                 value={filter.salary}
@@ -144,9 +144,9 @@ export function FilterSidebar({ filter, onChange, mode, className }: FilterSideb
                 step={5}
                 className="py-2"
               />
-              <div className="flex items-center justify-between text-xs text-[#505a63]">
+              <div className="flex items-center justify-between text-xs text-muted-foreground">
                 <span>{mode === "jobs" ? "$0k" : "$0/hr"}</span>
-                <span className="rounded-lg bg-[#f4f4f4] px-3 py-1.5 text-sm font-medium text-[#191c1f]">
+                <span className="rounded-lg bg-muted px-3 py-1.5 text-sm font-medium text-foreground">
                   {mode === "jobs"
                     ? `$${filter.salary[0]}k – $${filter.salary[1]}k`
                     : `$${filter.salary[0]}/hr – $${filter.salary[1]}/hr`}
@@ -157,11 +157,11 @@ export function FilterSidebar({ filter, onChange, mode, className }: FilterSideb
           </AccordionContent>
         </AccordionItem>
 
-        <AccordionItem value="category" className="border-[#e2e2e7] data-open:bg-transparent">
-          <AccordionTrigger className="px-0 text-sm font-medium text-[#191c1f] hover:no-underline">
+        <AccordionItem value="category" className="border-border data-open:bg-transparent">
+          <AccordionTrigger className="px-4 text-sm font-medium text-foreground hover:no-underline">
             Category
           </AccordionTrigger>
-          <AccordionContent className="px-0">
+          <AccordionContent className="px-4">
             <CheckboxGroup
               items={categories}
               selected={filter.categories}
@@ -170,11 +170,11 @@ export function FilterSidebar({ filter, onChange, mode, className }: FilterSideb
           </AccordionContent>
         </AccordionItem>
 
-        <AccordionItem value="location" className="border-[#e2e2e7] data-open:bg-transparent">
-          <AccordionTrigger className="px-0 text-sm font-medium text-[#191c1f] hover:no-underline">
+        <AccordionItem value="location" className="border-border data-open:bg-transparent">
+          <AccordionTrigger className="px-4 text-sm font-medium text-foreground hover:no-underline">
             Location
           </AccordionTrigger>
-          <AccordionContent className="px-0">
+          <AccordionContent className="px-4">
             <CheckboxGroup
               items={locations}
               selected={filter.locations}
@@ -184,11 +184,11 @@ export function FilterSidebar({ filter, onChange, mode, className }: FilterSideb
         </AccordionItem>
 
         {mode === "jobs" && (
-          <AccordionItem value="experience" className="border-[#e2e2e7] data-open:bg-transparent">
-            <AccordionTrigger className="px-0 text-sm font-medium text-[#191c1f] hover:no-underline">
+          <AccordionItem value="experience" className="border-border data-open:bg-transparent">
+            <AccordionTrigger className="px-4 text-sm font-medium text-foreground hover:no-underline">
               Experience
             </AccordionTrigger>
-            <AccordionContent className="px-0">
+            <AccordionContent className="px-4">
               <CheckboxGroup
                 items={experienceLevels}
                 selected={filter.experience}

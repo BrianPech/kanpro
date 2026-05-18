@@ -1,7 +1,8 @@
 "use client"
 
 import { useState, useMemo } from "react"
-import { SlidersHorizontal, X } from "lucide-react"
+import { SlidersHorizontal, X, Sparkles } from "lucide-react"
+import Link from "next/link"
 import { cn } from "@/lib/utils"
 import { jobs, professionals, type Job, type Professional } from "../data/mock"
 import { JobCard } from "./job-card"
@@ -65,8 +66,16 @@ function filterProfessionals(pros: Professional[], filter: FilterState): Profess
   })
 }
 
-export function DiscoveryPage() {
-  const [mode, setMode] = useState<ViewMode>("jobs")
+export function DiscoveryPage({ 
+  showNav = true,
+  initialMode = "jobs",
+  lockMode = false
+}: { 
+  showNav?: boolean
+  initialMode?: ViewMode
+  lockMode?: boolean
+}) {
+  const [mode, setMode] = useState<ViewMode>(initialMode)
   const [filter, setFilter] = useState<FilterState>(defaultFilter)
   const [sheetOpen, setSheetOpen] = useState(false)
 
@@ -82,47 +91,73 @@ export function DiscoveryPage() {
   ]
 
   return (
-    <div className="min-h-screen bg-white">
-      <div className="mx-auto max-w-[1200px] px-6 py-12 md:px-8 md:py-[88px]">
+    <div className={cn("min-h-screen", showNav ? "bg-white" : "bg-transparent")}>
+      {showNav && (
+        <nav className="flex items-center justify-between px-6 py-4 md:px-12 border-b border-[#e2e2e7]">
+          <Link href="/discovery" className="flex items-center gap-2">
+            <div className="h-7 w-7 bg-[#191c1f] rounded-md flex items-center justify-center shadow-sm">
+              <Sparkles className="h-4 w-4 text-white" />
+            </div>
+            <span className="text-[18px] font-semibold text-[#191c1f] tracking-tight">K'anPro</span>
+          </Link>
+          <div className="flex items-center gap-6">
+            <Link
+              href="/contact"
+              className="text-[14px] font-medium text-[#505a63] hover:text-[#191c1f] transition-colors"
+            >
+              Contacto
+            </Link>
+            <Link
+              href="/login"
+              className="text-[14px] font-semibold text-white bg-[#191c1f] hover:bg-[#191c1f]/90 px-5 py-2 rounded-full transition-colors"
+            >
+              Iniciar Sesión
+            </Link>
+          </div>
+        </nav>
+      )}
+      <div className="mx-auto max-w-[1400px] px-6 py-12 md:px-8 md:py-[88px]">
         <div className="mb-10">
-          <h1 className="text-[40px] font-medium leading-[1.2] -tracking-[0.4px] text-[#191c1f]">
-            Discovery
+          <h1 className="text-[40px] font-medium leading-[1.2] -tracking-[0.4px] text-foreground">
+            {lockMode ? (mode === "jobs" ? "Vacantes" : "Talento") : "Discovery"}
           </h1>
-          <p className="mt-3 text-base leading-relaxed text-[#505a63]">
+          <p className="mt-3 text-base leading-relaxed text-muted-foreground">
             Encuentra el talento o la oportunidad perfecta para tu próximo proyecto.
           </p>
         </div>
 
-        <div className="mb-8 flex items-center justify-between border-b border-[#e2e2e7]">
-          <div className="flex gap-0">
-            {tabs.map((tab) => (
-              <button
-                key={tab.value}
-                type="button"
-                onClick={() => setMode(tab.value)}
-                className={cn(
-                  "relative px-6 pb-3 text-sm font-medium transition-colors",
-                  mode === tab.value
-                    ? "text-[#191c1f]"
-                    : "text-[#505a63] hover:text-[#191c1f]",
-                )}
-              >
-                {tab.label}
-                <span className="ml-2 text-xs text-[#8d969e]">
-                  {tab.count}
-                </span>
-                {mode === tab.value && (
-                  <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-[#191c1f]" />
-                )}
-              </button>
-            ))}
-          </div>
+        <div className="mb-8 flex items-center justify-between border-b border-border">
+          {!lockMode && (
+            <div className="flex gap-0">
+              {tabs.map((tab) => (
+                <button
+                  key={tab.value}
+                  type="button"
+                  onClick={() => setMode(tab.value)}
+                  className={cn(
+                    "relative px-6 pb-3 text-sm font-medium transition-colors",
+                    mode === tab.value
+                      ? "text-foreground"
+                      : "text-muted-foreground hover:text-foreground",
+                  )}
+                >
+                  {tab.label}
+                  <span className="ml-2 text-xs text-muted-foreground/60">
+                    {tab.count}
+                  </span>
+                  {mode === tab.value && (
+                    <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary" />
+                  )}
+                </button>
+              ))}
+            </div>
+          )}
 
           <Sheet open={sheetOpen} onOpenChange={setSheetOpen}>
             <SheetTrigger asChild>
               <Button
                 variant="outline"
-                className="flex h-10 items-center gap-2 rounded-full border-[#e2e2e7] bg-white text-sm text-[#191c1f] md:hidden"
+                className="flex h-10 items-center gap-2 rounded-full border-[#e2e2e7] bg-white text-sm text-foreground md:hidden"
               >
                 <SlidersHorizontal className="size-4" />
                 Filters
@@ -130,7 +165,7 @@ export function DiscoveryPage() {
             </SheetTrigger>
             <SheetContent side="left" className="w-[300px] p-6 sm:max-w-sm">
               <SheetHeader className="p-0">
-                <SheetTitle className="text-lg font-medium text-[#191c1f]">
+                <SheetTitle className="text-lg font-medium text-foreground">
                   Filters
                 </SheetTitle>
               </SheetHeader>
@@ -160,9 +195,9 @@ export function DiscoveryPage() {
           </div>
 
           <div className="min-w-0 flex-1">
-            <p className="mb-6 text-sm text-[#505a63]">
+            <p className="mb-6 text-sm text-muted-foreground">
               Showing{" "}
-              <span className="font-medium text-[#191c1f]">
+              <span className="font-medium text-foreground">
                 {mode === "jobs" ? filteredJobs.length : filteredProfessionals.length}
               </span>{" "}
               {mode === "jobs" ? "vacantes" : "profesionales"}
@@ -177,10 +212,10 @@ export function DiscoveryPage() {
                 </div>
               ) : (
                 <div className="flex flex-col items-center justify-center py-20 text-center">
-                  <p className="text-base font-medium text-[#191c1f]">
+                  <p className="text-base font-medium text-foreground">
                     No vacancies match your filters
                   </p>
-                  <p className="mt-1 text-sm text-[#505a63]">
+                  <p className="mt-1 text-sm text-muted-foreground">
                     Try adjusting your search criteria
                   </p>
                 </div>
@@ -193,10 +228,10 @@ export function DiscoveryPage() {
               </div>
             ) : (
               <div className="flex flex-col items-center justify-center py-20 text-center">
-                <p className="text-base font-medium text-[#191c1f]">
+                <p className="text-base font-medium text-foreground">
                   No professionals match your filters
                 </p>
-                <p className="mt-1 text-sm text-[#505a63]">
+                <p className="mt-1 text-sm text-muted-foreground">
                   Try adjusting your search criteria
                 </p>
               </div>
