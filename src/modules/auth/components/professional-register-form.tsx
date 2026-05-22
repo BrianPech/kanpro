@@ -77,7 +77,7 @@ export function ProfessionalRegisterForm() {
           birth_date: data.birthDate,
           location: data.location,
           category: data.category,
-          terms_accepted: data.termsAccepted,
+          terms_accepted: !!data.termsAccepted,
         });
 
       if (profileError) {
@@ -229,14 +229,13 @@ export function ProfessionalRegisterForm() {
                         <Calendar
                           mode="single"
                           captionLayout="dropdown"
-                          fromYear={1900}
-                          toYear={new Date().getFullYear()}
+                          startMonth={new Date(1900, 0)}
+                          endMonth={new Date()}
                           selected={field.value ? new Date(field.value + "T00:00:00") : undefined}
                           onSelect={(date) => field.onChange(date ? format(date, "yyyy-MM-dd") : "")}
                           disabled={(date) =>
                             date > new Date() || date < new Date("1900-01-01")
                           }
-                          initialFocus
                         />
                       </PopoverContent>
                     </Popover>
@@ -316,7 +315,7 @@ export function ProfessionalRegisterForm() {
                   render={({ field }) => (
                     <Checkbox
                       id="termsAccepted"
-                      checked={field.value}
+                      checked={!!field.value}
                       onCheckedChange={field.onChange}
                       className="mt-1"
                     />

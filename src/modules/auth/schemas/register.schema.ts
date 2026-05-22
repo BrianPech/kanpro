@@ -26,8 +26,8 @@ export const professionalRegisterSchema = z.object({
   }, { message: "Debes ser mayor de 18 años" }),
   category: z.string().min(2, "Por favor, seleccione una categoría"),
   location: z.string().min(2, "Por favor, ingrese su ubicación"),
-  termsAccepted: z.literal(true, {
-    errorMap: () => ({ message: "Debes aceptar los términos y condiciones" }),
+  termsAccepted: z.boolean().refine((val) => val === true, {
+    message: "Debes aceptar los términos y condiciones",
   }),
 });
 

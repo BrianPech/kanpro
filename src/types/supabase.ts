@@ -193,6 +193,42 @@ export type Database = {
         }
         Relationships: []
       }
+      vacancies: {
+        Row: {
+          id: string
+          company_id: string
+          title: string
+          description: string
+          modality: string
+          salary: string | null
+          skills: string[]
+          status: string
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          company_id: string
+          title: string
+          description: string
+          modality: string
+          salary?: string | null
+          skills: string[]
+          status?: string
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          company_id?: string
+          title?: string
+          description?: string
+          modality?: string
+          salary?: string | null
+          skills?: string[]
+          status?: string
+          created_at?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
