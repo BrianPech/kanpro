@@ -7,7 +7,6 @@ import {
   User,
   LayoutDashboard,
   Sparkles,
-  LogOut,
   Users,
   Flag,
   Compass,
@@ -16,7 +15,6 @@ import {
 import {
   Sidebar,
   SidebarContent,
-  SidebarFooter,
   SidebarGroup,
   SidebarGroupContent,
   SidebarGroupLabel,
@@ -36,16 +34,6 @@ export function AppSidebar({ role = "pro" }: { role?: Role }) {
   const pathname = usePathname();
   const router = useRouter();
   const supabase = createClient();
-
-  const handleLogout = async () => {
-    const { error } = await supabase.auth.signOut();
-    if (error) {
-      console.error("Error logging out:", error);
-    } else {
-      router.push("/login");
-      router.refresh();
-    }
-  };
 
   const navigation = {
     admin: [
@@ -181,22 +169,6 @@ export function AppSidebar({ role = "pro" }: { role?: Role }) {
         </SidebarGroup>
       </SidebarContent>
 
-      <SidebarFooter className="p-4 border-t border-border/50 group-data-[collapsible=icon]:p-2">
-        <SidebarMenu>
-          <SidebarMenuItem>
-            <SidebarMenuButton
-              onClick={handleLogout}
-              tooltip="Cerrar Sesión"
-              className="h-11 rounded-[14px] px-3.5 gap-3.5 hover:bg-destructive/10 text-muted-foreground hover:text-destructive transition-all duration-300 group w-full justify-start group-data-[collapsible=icon]:size-11! group-data-[collapsible=icon]:mx-auto! group-data-[collapsible=icon]:justify-center! group-data-[collapsible=icon]:gap-0! group-data-[collapsible=icon]:px-0!"
-            >
-              <LogOut className="size-4 shrink-0 text-muted-foreground group-hover:text-destructive transition-colors" />
-              <span className="text-[14px] font-medium tracking-tight group-data-[collapsible=icon]:hidden">
-                Cerrar Sesión
-              </span>
-            </SidebarMenuButton>
-          </SidebarMenuItem>
-        </SidebarMenu>
-      </SidebarFooter>
       <SidebarRail />
     </Sidebar>
   );
