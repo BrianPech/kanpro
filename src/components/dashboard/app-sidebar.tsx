@@ -122,9 +122,9 @@ export function AppSidebar({ role = "pro" }: { role?: Role }) {
       collapsible="icon"
       className="hidden md:flex border-none"
     >
-      <SidebarHeader className="h-20 px-6 flex items-center justify-center border-none group-data-[collapsible=icon]:px-3">
-        <div className="w-full flex items-center gap-2">
-          <div className="h-8 w-8 bg-foreground rounded-lg flex items-center justify-center shadow-md shrink-0">
+      <SidebarHeader className="h-20 px-6 flex items-center justify-center border-none group-data-[collapsible=icon]:px-2">
+        <div className="flex w-full items-center gap-2 transition-all duration-300 group-data-[collapsible=icon]:w-11 group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:gap-0">
+          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-foreground shadow-md transition-all duration-300 group-data-[collapsible=icon]:h-11 group-data-[collapsible=icon]:w-11">
             <Sparkles className="h-4 w-4 text-background" />
           </div>
           <span className="text-[20px] font-semibold text-foreground tracking-[-0.04em] group-data-[collapsible=icon]:hidden">
