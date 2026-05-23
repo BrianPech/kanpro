@@ -24,6 +24,7 @@ import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
+  SidebarRail,
 } from "@/components/ui/sidebar";
 import { usePathname, useRouter } from "next/navigation";
 import Link from "next/link";
@@ -156,11 +157,11 @@ export function AppSidebar({ role = "pro" }: { role?: Role }) {
                       asChild
                       isActive={isActive}
                       tooltip={item.title}
-                      className="h-11 rounded-[14px] px-3.5 hover:bg-muted/60 text-muted-foreground hover:text-foreground data-[active=true]:bg-primary data-[active=true]:text-primary-foreground data-[active=true]:shadow-sm transition-all duration-300 group-data-[collapsible=icon]:ml-auto! group-data-[collapsible=icon]:justify-center! group-data-[collapsible=icon]:items-center! group-data-[collapsible=icon]:gap-0!"
+                      className="h-11 rounded-[14px] px-3.5 gap-3.5 hover:bg-muted/60 text-muted-foreground hover:text-foreground data-[active=true]:bg-primary data-[active=true]:text-primary-foreground data-[active=true]:shadow-sm transition-all duration-300 group-data-[collapsible=icon]:size-11! group-data-[collapsible=icon]:mx-auto! group-data-[collapsible=icon]:justify-center! group-data-[collapsible=icon]:gap-0! group-data-[collapsible=icon]:px-0!"
                     >
                       <Link
                         href={item.url}
-                        className="flex w-full items-center gap-3.5 group-data-[collapsible=icon]:justify-center"
+                        className="flex w-full items-center gap-3.5 group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:gap-0"
                       >
                         <item.icon
                           className={`size-4 shrink-0 transition-colors ${isActive ? "text-primary-foreground" : "text-muted-foreground group-hover:text-foreground"}`}
@@ -186,7 +187,7 @@ export function AppSidebar({ role = "pro" }: { role?: Role }) {
             <SidebarMenuButton
               onClick={handleLogout}
               tooltip="Cerrar Sesión"
-              className="h-11 rounded-[14px] px-3.5 hover:bg-destructive/10 text-muted-foreground hover:text-destructive transition-all duration-300 group w-full justify-start group-data-[collapsible=icon]:ml-auto! group-data-[collapsible=icon]:justify-center! group-data-[collapsible=icon]:items-center! group-data-[collapsible=icon]:gap-0!"
+              className="h-11 rounded-[14px] px-3.5 gap-3.5 hover:bg-destructive/10 text-muted-foreground hover:text-destructive transition-all duration-300 group w-full justify-start group-data-[collapsible=icon]:size-11! group-data-[collapsible=icon]:mx-auto! group-data-[collapsible=icon]:justify-center! group-data-[collapsible=icon]:gap-0! group-data-[collapsible=icon]:px-0!"
             >
               <LogOut className="size-4 shrink-0 text-muted-foreground group-hover:text-destructive transition-colors" />
               <span className="text-[14px] font-medium tracking-tight group-data-[collapsible=icon]:hidden">
@@ -196,6 +197,7 @@ export function AppSidebar({ role = "pro" }: { role?: Role }) {
           </SidebarMenuItem>
         </SidebarMenu>
       </SidebarFooter>
+      <SidebarRail />
     </Sidebar>
   );
 }
