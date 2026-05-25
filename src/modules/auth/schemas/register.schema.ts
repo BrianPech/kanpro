@@ -37,6 +37,13 @@ export const candidateRegisterSchema = z.object({
   password: z.string().min(8, "Mínimo 8 caracteres"),
 });
 
+export const adminRegisterSchema = z.object({
+  fullName: z.string().min(2, "El nombre es muy corto"),
+  email: z.string().email("Correo electrónico inválido"),
+  password: z.string().min(8, "Mínimo 8 caracteres"),
+});
+
 export type CompanyRegisterValues = z.infer<typeof companyRegisterSchema>;
 export type ProfessionalRegisterValues = z.infer<typeof professionalRegisterSchema>;
 export type CandidateRegisterValues = z.infer<typeof candidateRegisterSchema>;
+export type AdminRegisterValues = z.infer<typeof adminRegisterSchema>;

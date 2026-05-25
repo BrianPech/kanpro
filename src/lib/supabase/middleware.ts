@@ -47,32 +47,48 @@ export async function updateSession(request: NextRequest) {
   // Fetch the user's role for protected routes
   let role: string | null = null
   if (user) {
-    const { data: profile } = await supabase
-      .from('profiles')
-      .select('role')
-      .eq('id', user.id)
-      .single()
-    role = profile?.role || null
+    // 1. Try to get role from auth metadata (fastest)
+    role = user.user_metadata?.role || null
 
-    // Fallback: Si no hay rol en profiles, buscar en tablas específicas
+    // 2. If not found in metadata, search in database profiles
     if (!role) {
-      const { data: companyProfile } = await supabase
-        .from('company_profiles')
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('role')
+        .eq('id', user.id)
+        .single()
+      role = profile?.role || null
+    }
+
+    // 3. Fallback: Search specific profile tables
+    if (!role) {
+      const { data: adminProfile } = await supabase
+        .from('admin_profiles')
         .select('id')
         .eq('id', user.id)
-        .maybeSingle() // Use maybeSingle to avoid errors if not found
+        .maybeSingle()
       
-      if (companyProfile) {
-        role = 'company'
+      if (adminProfile) {
+        role = 'admin'
       } else {
-        const { data: proProfile } = await supabase
-          .from('professional_profiles')
+        const { data: companyProfile } = await supabase
+          .from('company_profiles')
           .select('id')
           .eq('id', user.id)
-          .maybeSingle()
+          .maybeSingle() // Use maybeSingle to avoid errors if not found
         
-        if (proProfile) {
-          role = 'pro'
+        if (companyProfile) {
+          role = 'company'
+        } else {
+          const { data: proProfile } = await supabase
+            .from('professional_profiles')
+            .select('id')
+            .eq('id', user.id)
+            .maybeSingle()
+          
+          if (proProfile) {
+            role = 'pro'
+          }
         }
       }
     }

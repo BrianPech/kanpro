@@ -11,6 +11,9 @@ import {
   Flag,
   Compass,
   Building2,
+  MessageSquare,
+  Handshake,
+  ClipboardCheck,
 } from "lucide-react";
 import {
   Sidebar,
@@ -39,6 +42,9 @@ export function AppSidebar({ role = "pro" }: { role?: Role }) {
     admin: [
       { title: "Dashboard", url: "/dashboard/admin", icon: LayoutDashboard },
       { title: "Usuarios", url: "/dashboard/admin/users", icon: Users },
+      { title: "Monitor de SLAs", url: "/dashboard/admin/sla", icon: ClipboardCheck },
+      { title: "Soporte Directo", url: "/dashboard/admin/messages", icon: MessageSquare },
+      { title: "Match Manual", url: "/dashboard/admin/match", icon: Handshake },
       { title: "Moderación", url: "/dashboard/admin/content", icon: Flag },
       {
         title: "Ajustes Sistema",

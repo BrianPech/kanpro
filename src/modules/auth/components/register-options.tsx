@@ -76,15 +76,26 @@ export function RegisterOptions() {
         </div>
 
         {/* Footer Link */}
-        <p className="text-[14px] text-muted-foreground mt-8 text-center">
-          ¿Ya tienes una cuenta?
-          <Link
-            className="text-[16px] font-bold text-primary hover:underline ml-1.5 transition-colors tracking-[0.24px]"
-            href="/"
-          >
-            Iniciar Sesión
-          </Link>
-        </p>
+        <div className="flex flex-col items-center gap-3 mt-8 text-center">
+          <p className="text-[14px] text-muted-foreground">
+            ¿Ya tienes una cuenta?
+            <Link
+              className="text-[16px] font-bold text-primary hover:underline ml-1.5 transition-colors tracking-[0.24px]"
+              href="/"
+            >
+              Iniciar Sesión
+            </Link>
+          </p>
+          <p className="text-[12px] text-muted-foreground/60">
+            ¿Eres parte del equipo?{" "}
+            <Link
+              className="font-medium text-amber-500 hover:text-amber-600 hover:underline transition-colors"
+              href="/register/admin"
+            >
+              Registrar Administrador
+            </Link>
+          </p>
+        </div>
 
       </div>
     </main>

@@ -1,6 +1,6 @@
 import { createClient } from "@/lib/supabase/client";
 import { type LoginFormValues } from "../schemas/login.schema";
-import { type CompanyRegisterValues } from "../schemas/register.schema";
+import { type CompanyRegisterValues, type AdminRegisterValues } from "../schemas/register.schema";
 
 export const authService = {
   async signIn(data: LoginFormValues) {
@@ -16,16 +16,26 @@ export const authService = {
       // Leer el rol de la metadata del usuario
       let role = authData.user.user_metadata?.role;
 
-      // Fallback: Si no hay rol en metadata, verificar si existe en company_profiles
+      // Fallback: Si no hay rol en metadata, verificar si existe en admin_profiles o company_profiles
       if (!role) {
-        const { data: companyProfile } = await supabase
-          .from("company_profiles")
+        const { data: adminProfile } = await supabase
+          .from("admin_profiles")
           .select("id")
           .eq("id", authData.user.id)
           .maybeSingle();
         
-        if (companyProfile) {
-          role = "company";
+        if (adminProfile) {
+          role = "admin";
+        } else {
+          const { data: companyProfile } = await supabase
+            .from("company_profiles")
+            .select("id")
+            .eq("id", authData.user.id)
+            .maybeSingle();
+          
+          if (companyProfile) {
+            role = "company";
+          }
         }
       }
 
@@ -71,5 +81,41 @@ export const authService = {
     }
     
     throw new Error("No se pudieron obtener los datos del usuario");
+  },
+
+  async signUpAdmin(data: AdminRegisterValues) {
+    const supabase = createClient();
+    
+    // 1. Crear usuario en Supabase Auth con metadata de rol 'admin'
+    const { data: authData, error: authError } = await supabase.auth.signUp({
+      email: data.email,
+      password: data.password,
+      options: {
+        data: {
+          role: "admin",
+          full_name: data.fullName,
+        }
+      }
+    });
+
+    if (authError) throw authError;
+
+    if (authData.user) {
+      // 2. Insertar en admin_profiles
+      const { error: profileError } = await supabase
+        .from("admin_profiles")
+        .insert({
+          id: authData.user.id,
+          full_name: data.fullName,
+          email: data.email,
+        });
+
+      if (profileError) throw profileError;
+
+      return { user: authData.user };
+    }
+    
+    throw new Error("No se pudieron obtener los datos del usuario");
   }
 };
+
