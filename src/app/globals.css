@@ -46,6 +46,19 @@
   --radius-2xl: calc(var(--radius) * 1.8);
   --radius-3xl: calc(var(--radius) * 2.2);
   --radius-4xl: calc(var(--radius) * 2.6);
+
+  /* Official Company Dashboard Colors */
+  --color-tertiary-container: #a44100;
+  --color-primary-fixed: #e2dfff;
+  --color-secondary-container: #6063ee;
+  --color-tertiary-fixed: #ffdbcc;
+  --color-on-surface: #191c1e;
+  --color-on-surface-variant: #464555;
+  --color-tertiary: #7e3000;
+  --color-secondary-fixed: #e1e0ff;
+  --color-surface-container-low: #f2f4f6;
+  --color-surface-container-high: #e6e8ea;
+  --color-surface-container-highest: #e0e3e5;
 }
 
 :root {
@@ -127,4 +140,53 @@
   html {
     @apply font-sans;
   }
+}
+
+/* Glassmorphism custom styling for the Company Dashboard */
+.glass-card {
+  background: rgba(255, 255, 255, 0.75);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(0, 0, 0, 0.05);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.dark .glass-card {
+  background: rgba(20, 20, 25, 0.7);
+  border-color: rgba(255, 255, 255, 0.08);
+}
+
+.glass-card:hover {
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  box-shadow: 0 20px 40px rgba(79, 70, 229, 0.06);
+  transform: translateY(-2px);
+}
+
+/* Kanban Board Layout Utilities */
+.kanban-column {
+  min-width: 320px;
+  max-width: 380px;
+}
+
+.hide-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+.hide-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.liquid-card {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.liquid-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 20px 40px rgba(79, 70, 229, 0.08);
+}
+
+.dark .liquid-card:hover {
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
 }

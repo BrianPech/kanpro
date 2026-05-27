@@ -84,6 +84,11 @@ export function AppSidebar({ role = "pro" }: { role?: Role }) {
         icon: Briefcase,
       },
       {
+        title: "Bandeja Postulantes",
+        url: "/dashboard/company/applications",
+        icon: Users,
+      },
+      {
         title: "Buscar Talento",
         url: "/dashboard/company/candidates",
         icon: Compass,
