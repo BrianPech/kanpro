@@ -66,7 +66,7 @@ export function CompanyProfileForm({ initialProfile, userId }: { initialProfile:
   return (
     <div className="space-y-8 animate-in fade-in duration-500">
       
-      <form onSubmit={(e) => { e.preventDefault(); handleSave(); }} className="space-y-8">
+      <form onSubmit={(e) => { e.preventDefault(); handleSave(); }} method="POST" className="space-y-8">
         
         {/* SECTION 1: IDENTIDAD VISUAL (GLASS CARD) */}
         <div className="glass-card rounded-[24px] p-8">

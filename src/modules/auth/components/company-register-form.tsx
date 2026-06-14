@@ -40,7 +40,7 @@ export function CompanyRegisterForm() {
           </p>
         </header>
 
-        <form className="flex flex-col gap-6" onSubmit={handleSubmit(onSubmit)} noValidate>
+        <form className="flex flex-col gap-6" onSubmit={handleSubmit(onSubmit)} method="POST" noValidate>
           <div className="flex flex-col gap-2">
             <Label htmlFor="companyName" className="text-[16px] font-semibold text-foreground tracking-[0.16px]">Nombre de la Empresa</Label>
             <Input

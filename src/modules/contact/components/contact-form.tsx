@@ -80,7 +80,7 @@ export function ContactForm() {
         </p>
       </header>
 
-      <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-6" noValidate>
+      <form onSubmit={handleSubmit(onSubmit)} method="POST" className="flex flex-col gap-6" noValidate>
         <div className="flex flex-col gap-2">
           <Label htmlFor="name" className="text-[15px] font-semibold text-foreground">
             Nombre *

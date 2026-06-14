@@ -432,7 +432,7 @@ export function VacanciesManager({ userId }: { userId: string }) {
 
             {/* Form Fields Card */}
             <section className="glass-card rounded-[28px] p-8 md:p-10 flex flex-col gap-8 shadow-sm">
-              <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+              <form onSubmit={handleSubmit(onSubmit)} method="POST" className="space-y-6">
                 
                 {/* General Info Section */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">

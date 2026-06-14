@@ -133,7 +133,7 @@ export function ProfessionalRegisterForm() {
           </p>
         </header>
 
-        <form className="flex flex-col gap-6 relative" onSubmit={handleSubmit(onSubmit)} noValidate>
+        <form className="flex flex-col gap-6 relative" onSubmit={handleSubmit(onSubmit)} method="POST" noValidate>
           {authError && (
             <div className="p-3 bg-red-500/10 border border-red-500/20 rounded-md text-red-500 text-sm mb-4">
               {authError}
