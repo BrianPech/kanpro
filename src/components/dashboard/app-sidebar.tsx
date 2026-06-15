@@ -31,9 +31,9 @@ import { usePathname, useRouter } from "next/navigation";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 
-type Role = "pro" | "company" | "candidate" | "admin";
+type Role = "company" | "candidate" | "admin";
 
-export function AppSidebar({ role = "pro" }: { role?: Role }) {
+export function AppSidebar({ role = "candidate" }: { role?: Role }) {
   const pathname = usePathname();
   const router = useRouter();
   const supabase = createClient();
@@ -52,25 +52,6 @@ export function AppSidebar({ role = "pro" }: { role?: Role }) {
         icon: Settings,
       },
     ],
-    pro: [
-      {
-        title: "Panel de Control",
-        url: "/dashboard/pro",
-        icon: LayoutDashboard,
-      },
-      {
-        title: "Mis Servicios",
-        url: "/dashboard/pro/services",
-        icon: Briefcase,
-      },
-      { title: "Mi Perfil Pro", url: "/dashboard/pro/profile", icon: User },
-      {
-        title: "Explorar Vacantes",
-        url: "/dashboard/discovery",
-        icon: Compass,
-      },
-      { title: "Configuración", url: "/dashboard/settings", icon: Settings },
-    ],
     company: [
       { title: "Dashboard", url: "/dashboard/company", icon: LayoutDashboard },
       {
@@ -87,11 +68,6 @@ export function AppSidebar({ role = "pro" }: { role?: Role }) {
         title: "Bandeja Postulantes",
         url: "/dashboard/company/applications",
         icon: Users,
-      },
-      {
-        title: "Buscar Talento",
-        url: "/dashboard/company/candidates",
-        icon: Compass,
       },
       { title: "Configuración", url: "/dashboard/settings", icon: Settings },
     ],
@@ -144,7 +120,6 @@ export function AppSidebar({ role = "pro" }: { role?: Role }) {
                   pathname === item.url ||
                   (pathname.startsWith(item.url) &&
                     ![
-                      "/dashboard/pro",
                       "/dashboard/company",
                       "/dashboard/admin",
                       "/dashboard/candidate",

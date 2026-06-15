@@ -49,7 +49,7 @@ export function ReportedContent() {
                 <div className="flex items-center gap-2 flex-wrap mb-1">
                   <span className="text-[14px] font-semibold text-foreground">{item.title}</span>
                   <span className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground/60 bg-muted px-2 py-0.5 rounded-full">
-                    {item.type === "service" ? "Servicio" : "Perfil"}
+                    Perfil
                   </span>
                 </div>
                 <p className="text-[13px] text-muted-foreground">

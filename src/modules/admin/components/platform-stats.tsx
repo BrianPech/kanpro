@@ -43,7 +43,7 @@ function StatCard({ title, value, icon, trend, trendUp, accent }: StatCardProps)
 
 export function PlatformStats() {
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5">
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
       <StatCard
         title="Usuarios Totales"
         value="2,847"
@@ -51,14 +51,6 @@ export function PlatformStats() {
         trend="+12.5%"
         trendUp={true}
         accent="#494fdf"
-      />
-      <StatCard
-        title="Profesionales"
-        value="1,423"
-        icon={<Briefcase className="h-6 w-6" />}
-        trend="+8.3%"
-        trendUp={true}
-        accent="#00a87e"
       />
       <StatCard
         title="Empresas"
@@ -75,14 +67,6 @@ export function PlatformStats() {
         trend="+15.2%"
         trendUp={true}
         accent="#e61e49"
-      />
-      <StatCard
-        title="Servicios Activos"
-        value="623"
-        icon={<Activity className="h-6 w-6" />}
-        trend="+3.7%"
-        trendUp={true}
-        accent="#494fdf"
       />
       <StatCard
         title="Vistas Totales"

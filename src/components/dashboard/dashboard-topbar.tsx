@@ -31,7 +31,7 @@ type DashboardTopbarProps = {
   userName: string;
   userInitials: string;
   plan: string;
-  role: "pro" | "company" | "candidate" | "admin";
+  role: "company" | "candidate" | "admin";
 };
 
 const notifications = [
@@ -70,11 +70,9 @@ export function DashboardTopbar({
   const profileHref =
     role === "company"
       ? "/dashboard/company/profile"
-      : role === "pro"
-        ? "/dashboard/pro/profile"
-        : role === "candidate"
-          ? "/dashboard/candidate"
-          : "/dashboard/admin";
+      : role === "candidate"
+        ? "/dashboard/candidate"
+        : "/dashboard/admin";
 
   const handleLogout = async () => {
     const { error } = await supabase.auth.signOut();

@@ -14,19 +14,7 @@ export interface Job {
   featured?: boolean
 }
 
-export interface Professional {
-  id: string
-  name: string
-  avatar: string
-  title: string
-  location: string
-  rating: number
-  reviewCount: number
-  category: "Design" | "Development" | "Marketing" | "Finance" | "Data"
-  services: { name: string; rate: number }[]
-  skills: string[]
-  available: boolean
-}
+
 
 export const jobs: Job[] = [
   {
@@ -145,107 +133,4 @@ export const jobs: Job[] = [
   },
 ]
 
-export const professionals: Professional[] = [
-  {
-    id: "pro-1",
-    name: "Alex Chen",
-    avatar: "AC",
-    title: "Full-Stack Developer",
-    location: "Remote",
-    rating: 4.9,
-    reviewCount: 32,
-    category: "Development",
-    services: [
-      { name: "React Dashboard Development", rate: 80 },
-      { name: "API Design & Implementation", rate: 100 },
-      { name: "Database Architecture Consulting", rate: 120 },
-    ],
-    skills: ["React", "Node.js", "TypeScript", "PostgreSQL", "GraphQL"],
-    available: true,
-  },
-  {
-    id: "pro-2",
-    name: "Maria Garcia",
-    avatar: "MG",
-    title: "UI/UX Designer",
-    location: "Mexico City",
-    rating: 4.8,
-    reviewCount: 27,
-    category: "Design",
-    services: [
-      { name: "SaaS Design Systems", rate: 90 },
-      { name: "Mobile App UI Design", rate: 85 },
-      { name: "Design Thinking Workshops", rate: 150 },
-    ],
-    skills: ["Figma", "Design Systems", "Prototyping", "User Research", "Motion Design"],
-    available: true,
-  },
-  {
-    id: "pro-3",
-    name: "James Wilson",
-    avatar: "JW",
-    title: "Smart Contract Developer",
-    location: "Remote",
-    rating: 5.0,
-    reviewCount: 18,
-    category: "Development",
-    services: [
-      { name: "Solidity Smart Contract Audits", rate: 200 },
-      { name: "DeFi Protocol Development", rate: 180 },
-      { name: "NFT Marketplace Architecture", rate: 160 },
-    ],
-    skills: ["Solidity", "Ethereum", "Web3.js", "Hardhat", "Rust"],
-    available: true,
-  },
-  {
-    id: "pro-4",
-    name: "Sarah Kim",
-    avatar: "SK",
-    title: "Product Strategist",
-    location: "New York, NY",
-    rating: 4.7,
-    reviewCount: 41,
-    category: "Marketing",
-    services: [
-      { name: "Product Roadmap Planning", rate: 120 },
-      { name: "Growth Strategy Consulting", rate: 140 },
-      { name: "Market Research & Analysis", rate: 100 },
-    ],
-    skills: ["Strategy", "Analytics", "A/B Testing", "User Research", "ProductOps"],
-    available: false,
-  },
-  {
-    id: "pro-5",
-    name: "David Park",
-    avatar: "DP",
-    title: "Data Engineer",
-    location: "Seattle, WA",
-    rating: 4.6,
-    reviewCount: 23,
-    category: "Data",
-    services: [
-      { name: "Data Pipeline Architecture", rate: 130 },
-      { name: "Analytics Infrastructure Setup", rate: 110 },
-      { name: "Machine Learning Model Deployment", rate: 160 },
-    ],
-    skills: ["Python", "SQL", "Spark", "Airflow", "AWS"],
-    available: true,
-  },
-  {
-    id: "pro-6",
-    name: "Elena Torres",
-    avatar: "ET",
-    title: "Brand Designer",
-    location: "Barcelona, Spain",
-    rating: 4.9,
-    reviewCount: 36,
-    category: "Design",
-    services: [
-      { name: "Visual Identity Design", rate: 95 },
-      { name: "Brand Guidelines Development", rate: 110 },
-      { name: "Marketing Collateral Design", rate: 75 },
-    ],
-    skills: ["Figma", "Illustrator", "Typography", "Brand Strategy", "Packaging"],
-    available: true,
-  },
-]
+

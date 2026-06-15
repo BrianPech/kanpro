@@ -6,27 +6,18 @@ export async function getDashboardSession() {
 
   let userName = "Invitado"
   let userInitials = "G"
-  let role: "pro" | "company" | "candidate" | "admin" = "pro"
+  let role: "company" | "candidate" | "admin" = "candidate"
   let plan = "Plan Básico"
 
   if (user) {
     // 1. Obtener rol y nombre de la metadata del usuario
-    role = (user.user_metadata?.role as "pro" | "company" | "candidate" | "admin") || "pro"
+    role = (user.user_metadata?.role as "company" | "candidate" | "admin") || "candidate"
     const metaFullName = user.user_metadata?.full_name
     
     // 2. Obtener nombre según rol
     if (role === "admin") {
       plan = "Administrador"
       userName = metaFullName || "Admin"
-    } else if (role === "pro") {
-      plan = "Plan Pro"
-      const { data: proProfile } = await supabase
-        .from("professional_profiles")
-        .select("full_name")
-        .eq("id", user.id)
-        .single()
-        
-      userName = proProfile?.full_name || metaFullName || "Profesional"
     } else if (role === "company") {
       plan = "Empresa"
       userName = metaFullName || "Compañía"

@@ -7,7 +7,7 @@ interface Registration {
   id: string
   name: string
   email: string
-  role: "pro" | "company" | "candidate"
+  role: "company" | "candidate"
   category?: string
   companyName?: string
   industry?: string
@@ -16,11 +16,6 @@ interface Registration {
 }
 
 const roleConfig = {
-  pro: {
-    label: "Profesional",
-    icon: <Briefcase className="h-4 w-4" />,
-    color: "bg-[#494fdf]/10 text-[#494fdf]",
-  },
   company: {
     label: "Empresa",
     icon: <Building2 className="h-4 w-4" />,
@@ -120,9 +115,6 @@ export function RegistrationPanel() {
                   </div>
                   <p className="text-[13px] text-muted-foreground">{reg.email}</p>
                   <div className="flex items-center gap-3 mt-1.5 text-[12px] text-muted-foreground/70">
-                    {reg.role === "pro" && reg.category && (
-                      <span>{reg.category}</span>
-                    )}
                     {reg.role === "company" && (
                       <>
                         <span className="font-medium text-foreground/60">{reg.companyName}</span>

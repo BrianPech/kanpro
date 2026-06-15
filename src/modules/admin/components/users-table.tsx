@@ -33,14 +33,13 @@ interface User {
   id: string;
   name: string;
   email: string;
-  role: "pro" | "company" | "candidate";
+  role: "company" | "candidate";
   status: "active" | "inactive" | "suspended";
   joinedAt: string;
   avatar: string | null;
 }
 
 const roleLabels: Record<string, string> = {
-  pro: "Profesional",
   company: "Empresa",
   candidate: "Candidato",
 };
@@ -54,7 +53,7 @@ const statusStyles: Record<string, string> = {
 export function UsersTable() {
   const [users, setUsers] = React.useState<User[]>([]);
   const [searchQuery, setSearchQuery] = React.useState("");
-  const [selectedRole, setSelectedRole] = React.useState<"all" | "pro" | "company" | "candidate">("all");
+  const [selectedRole, setSelectedRole] = React.useState<"all" | "company" | "candidate">("all");
   const [selectedStatus, setSelectedStatus] = React.useState<"all" | "active" | "inactive" | "suspended">("all");
 
   React.useEffect(() => {
@@ -90,14 +89,14 @@ export function UsersTable() {
       id: String(users.length + 1),
       name: "Sofía Arriaga",
       email: "sofia.arriaga@email.com",
-      role: "pro" as const,
+      role: "candidate" as const,
       status: "active" as const,
       joinedAt: new Date().toISOString().split("T")[0],
       avatar: null,
     };
     setUsers((prev) => [newUser, ...prev]);
-    toast.success("Nuevo profesional registrado", {
-      description: "Sofía Arriaga ha sido creada localmente con rol Profesional.",
+    toast.success("Nuevo candidato registrado", {
+      description: "Sofía Arriaga ha sido creada localmente con rol Candidato.",
     });
   };
 
@@ -124,8 +123,6 @@ export function UsersTable() {
 
   const getRoleBadge = (role: string) => {
     switch (role) {
-      case "pro":
-        return <Badge className="bg-[#494fdf]/10 hover:bg-[#494fdf]/10 text-[#494fdf] border-none text-[11px] font-bold px-3 py-0.5 rounded-full">Profesional</Badge>;
       case "company":
         return <Badge className="bg-[#007bc2]/10 hover:bg-[#007bc2]/10 text-[#007bc2] border-none text-[11px] font-bold px-3 py-0.5 rounded-full">Empresa</Badge>;
       case "candidate":
@@ -139,7 +136,7 @@ export function UsersTable() {
     <div className="flex flex-col gap-8 w-full animate-in fade-in slide-in-from-bottom-4 duration-700">
       
       {/* Dynamic Summary Stats for Users */}
-      <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+      <section className="grid grid-cols-1 sm:grid-cols-3 gap-6">
         
         {/* Total Users */}
         <Card className="bg-white/70 dark:bg-zinc-900/50 backdrop-blur-xl border border-black/5 dark:border-white/5 p-8 rounded-[24px] flex flex-col gap-2 shadow-xs hover:shadow-xl hover:-translate-y-0.5 transition-all duration-300">
@@ -148,17 +145,6 @@ export function UsersTable() {
             <p className="text-[48px] font-bold text-primary tracking-tight leading-none">2.8K</p>
             <span className="p-2 bg-primary/10 text-primary rounded-xl shrink-0 mt-1">
               <UsersIcon className="h-5 w-5" />
-            </span>
-          </div>
-        </Card>
-
-        {/* Professionals */}
-        <Card className="bg-white/70 dark:bg-zinc-900/50 backdrop-blur-xl border border-black/5 dark:border-white/5 p-8 rounded-[24px] flex flex-col gap-2 shadow-xs hover:shadow-xl hover:-translate-y-0.5 transition-all duration-300">
-          <p className="text-[14px] font-medium text-muted-foreground">Profesionales</p>
-          <div className="flex items-center gap-3">
-            <p className="text-[48px] font-bold text-[#494fdf] tracking-tight leading-none">1.4K</p>
-            <span className="p-2 bg-[#494fdf]/10 text-[#494fdf] rounded-xl shrink-0 mt-1">
-              <Briefcase className="h-5 w-5" />
             </span>
           </div>
         </Card>
@@ -222,13 +208,6 @@ export function UsersTable() {
               className="h-9 px-4 rounded-full text-[11px] font-bold tracking-tight cursor-pointer"
             >
               Todos los Roles
-            </Button>
-            <Button
-              variant={selectedRole === "pro" ? "default" : "outline"}
-              onClick={() => setSelectedRole("pro")}
-              className="h-9 px-4 rounded-full text-[11px] font-bold tracking-tight cursor-pointer border-[#494fdf]/20 text-[#494fdf] hover:bg-[#494fdf]/5 data-[variant=default]:bg-[#494fdf] data-[variant=default]:text-white"
-            >
-              Profesionales
             </Button>
             <Button
               variant={selectedRole === "company" ? "default" : "outline"}

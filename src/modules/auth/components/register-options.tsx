@@ -20,7 +20,7 @@ export function RegisterOptions() {
           </p>
         </header>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 w-full mt-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 w-full max-w-[800px] mt-4">
           
           {/* Card Empresa */}
           <Link 
@@ -33,23 +33,6 @@ export function RegisterOptions() {
             <h3 className="text-[24px] font-medium text-foreground tracking-[0px] mt-2 leading-[1.33]">Empresa</h3>
             <p className="text-[16px] text-muted-foreground leading-[1.5] tracking-[0.24px]">
               Encuentre talento especializado y escale las operaciones de su organización con precisión.
-            </p>
-            <div className="mt-auto pt-6 flex items-center gap-2 text-[14px] font-semibold text-primary transition-all">
-              Comenzar <ArrowRight className="h-4 w-4 group-hover:translate-x-1 transition-transform" />
-            </div>
-          </Link>
-
-          {/* Card Profesional */}
-          <Link 
-            href="/register/professional" 
-            className="group flex flex-col items-start gap-4 bg-card border border-border rounded-[20px] p-[32px] hover:border-primary/50 hover:bg-muted/30 hover:shadow-sm transition-all active:scale-[0.98]"
-          >
-            <div className="h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center text-primary group-hover:scale-110 group-hover:bg-primary/20 transition-all">
-              <Briefcase className="h-6 w-6" />
-            </div>
-            <h3 className="text-[24px] font-medium text-foreground tracking-[0px] mt-2 leading-[1.33]">Profesional</h3>
-            <p className="text-[16px] text-muted-foreground leading-[1.5] tracking-[0.24px]">
-              Gestione su práctica independiente, acceda a proyectos de alto impacto y controle sus clientes.
             </p>
             <div className="mt-auto pt-6 flex items-center gap-2 text-[14px] font-semibold text-primary transition-all">
               Comenzar <ArrowRight className="h-4 w-4 group-hover:translate-x-1 transition-transform" />

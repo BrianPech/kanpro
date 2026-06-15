@@ -79,16 +79,6 @@ export async function updateSession(request: NextRequest) {
         
         if (companyProfile) {
           role = 'company'
-        } else {
-          const { data: proProfile } = await supabase
-            .from('professional_profiles')
-            .select('id')
-            .eq('id', user.id)
-            .maybeSingle()
-          
-          if (proProfile) {
-            role = 'pro'
-          }
         }
       }
     }
@@ -115,24 +105,14 @@ export async function updateSession(request: NextRequest) {
     return NextResponse.redirect(url)
   }
 
-  // Protect pro routes (fallback role)
-  // Only redirect if the user has a specific role that belongs to another dashboard
-  if (request.nextUrl.pathname.startsWith('/dashboard/pro') && (role === 'company' || role === 'candidate')) {
-    const url = request.nextUrl.clone()
-    url.pathname = '/dashboard'
-    return NextResponse.redirect(url)
-  }
-
   if (request.nextUrl.pathname === '/dashboard') {
     const url = request.nextUrl.clone()
     if (role === 'admin') {
       url.pathname = '/dashboard/admin'
     } else if (role === 'company') {
       url.pathname = '/dashboard/company'
-    } else if (role === 'candidate') {
-      url.pathname = '/dashboard/candidate'
     } else {
-      url.pathname = '/dashboard/pro'
+      url.pathname = '/dashboard/candidate'
     }
 
     return NextResponse.redirect(url)
