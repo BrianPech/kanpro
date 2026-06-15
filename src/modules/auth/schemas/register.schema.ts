@@ -14,6 +14,10 @@ export const candidateRegisterSchema = z.object({
   fullName: z.string().min(2, "El nombre es muy corto"),
   email: z.string().email("Correo electrónico inválido"),
   password: z.string().min(8, "Mínimo 8 caracteres"),
+  confirmPassword: z.string().min(1, "Debe confirmar su contraseña"),
+}).refine((data) => data.password === data.confirmPassword, {
+  message: "Las contraseñas no coinciden",
+  path: ["confirmPassword"],
 });
 
 export const adminRegisterSchema = z.object({

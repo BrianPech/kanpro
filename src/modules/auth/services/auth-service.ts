@@ -1,6 +1,6 @@
 import { createClient } from "@/lib/supabase/client";
 import { type LoginFormValues } from "../schemas/login.schema";
-import { type CompanyRegisterValues, type AdminRegisterValues } from "../schemas/register.schema";
+import { type CompanyRegisterValues, type AdminRegisterValues, type CandidateRegisterValues } from "../schemas/register.schema";
 
 export const authService = {
   async signIn(data: LoginFormValues) {
@@ -108,6 +108,41 @@ export const authService = {
           id: authData.user.id,
           full_name: data.fullName,
           email: data.email,
+        });
+
+      if (profileError) throw profileError;
+
+      return { user: authData.user };
+    }
+    
+    throw new Error("No se pudieron obtener los datos del usuario");
+  },
+
+  async signUpCandidate(data: CandidateRegisterValues) {
+    const supabase = createClient();
+    
+    // 1. Crear usuario en Supabase Auth con metadata de rol 'candidate'
+    const { data: authData, error: authError } = await supabase.auth.signUp({
+      email: data.email,
+      password: data.password,
+      options: {
+        data: {
+          role: "candidate",
+          full_name: data.fullName,
+        }
+      }
+    });
+
+    if (authError) throw authError;
+
+    if (authData.user) {
+      // 2. Insertar en profiles
+      const { error: profileError } = await supabase
+        .from("profiles")
+        .insert({
+          id: authData.user.id,
+          full_name: data.fullName,
+          role: "candidate",
         });
 
       if (profileError) throw profileError;

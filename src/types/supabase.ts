@@ -289,6 +289,54 @@ export type Database = {
         };
         Relationships: [];
       };
+      profiles: {
+        Row: {
+          id: string;
+          full_name: string;
+          role: string;
+          bio: string | null;
+          phone: string | null;
+          location: string | null;
+          skills: string[] | null;
+          avatar_url: string | null;
+          headline: string | null;
+          category: string | null;
+          birth_date: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id: string;
+          full_name: string;
+          role: string;
+          bio?: string | null;
+          phone?: string | null;
+          location?: string | null;
+          skills?: string[] | null;
+          avatar_url?: string | null;
+          headline?: string | null;
+          category?: string | null;
+          birth_date?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          full_name?: string;
+          role?: string;
+          bio?: string | null;
+          phone?: string | null;
+          location?: string | null;
+          skills?: string[] | null;
+          avatar_url?: string | null;
+          headline?: string | null;
+          category?: string | null;
+          birth_date?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
     };
     Views: {
       [_ in never]: never;
