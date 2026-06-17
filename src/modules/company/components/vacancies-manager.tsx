@@ -160,7 +160,11 @@ export function VacanciesManager({ userId }: { userId: string }) {
   const fetchVacancies = React.useCallback(async () => {
     try {
       const data = await companyService.getVacancies(userId)
-      setVacancies(data || [])
+      const formattedData = (data || []).map(item => ({
+        ...item,
+        skills: item.skills || [],
+      })) as Vacancy[]
+      setVacancies(formattedData)
     } catch (error) {
       console.error("Error loading vacancies:", error)
       toast.error("Error al cargar las vacantes", {

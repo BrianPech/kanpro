@@ -1,11 +1,13 @@
 "use client";
 
+import * as React from "react";
 import { ArrowLeft, ArrowRight, Eye, EyeOff, Lock, Mail, User } from "lucide-react";
 import Link from "next/link";
 
 import { Button } from "@/components/ui/button";
 import { FieldError } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
+import { cn } from "@/lib/utils";
 
 import { useCandidateRegisterForm } from "../hooks/use-candidate-register-form";
 
@@ -51,181 +53,279 @@ export function CandidateRegisterForm() {
     onSubmit,
   } = useCandidateRegisterForm();
 
+  const [passwordValue, setPasswordValue] = React.useState("");
+
+  const getPasswordStrength = (val: string) => {
+    if (!val) return 0;
+    let score = 0;
+    if (val.length >= 8) score += 1;
+    if (/\d/.test(val) || /[^A-Za-z0-9]/.test(val)) score += 1;
+    if (/[A-Z]/.test(val)) score += 1;
+    return score;
+  };
+
+  const strengthScore = getPasswordStrength(passwordValue);
+
+  const getStrengthLabel = (score: number) => {
+    if (score === 0) return "Muy Débil";
+    if (score === 1) return "Débil";
+    if (score === 2) return "Media";
+    return "Fuerte";
+  };
+
+  const getStrengthColor = (score: number) => {
+    if (score === 1) return "text-rose-500 dark:text-rose-400";
+    if (score === 2) return "text-amber-500 dark:text-amber-400";
+    if (score === 3) return "text-emerald-500 dark:text-emerald-400";
+    return "text-muted-foreground";
+  };
+
+  const getStrengthBg = (score: number) => {
+    if (score === 1) return "bg-rose-500";
+    if (score === 2) return "bg-amber-500";
+    if (score === 3) return "bg-emerald-500";
+    return "bg-zinc-200 dark:bg-zinc-800";
+  };
+
+  const passwordRegister = register("password");
+
   return (
-    <main className="h-screen w-full flex bg-background text-foreground font-sans transition-colors duration-300 overflow-hidden">
+    <main className="min-h-screen w-full flex items-center justify-center p-4 md:p-8 relative overflow-hidden transition-colors duration-300 bg-background">
 
-      {/* Left Column: Registration Form */}
-      <div className="w-full md:w-[45%] lg:w-[40%] flex flex-col justify-between p-6 md:p-8 lg:p-10 shrink-0 h-full overflow-y-auto">
+      {/* Embedded Style Block for animations */}
+      <style dangerouslySetInnerHTML={{ __html: `
+        @keyframes float {
+          0%, 100% { transform: translateY(0); }
+          50% { transform: translateY(-6px); }
+        }
+        .animate-float {
+          animation: float 8s ease-in-out infinite;
+        }
+        @keyframes fadeInUp {
+          from {
+            opacity: 0;
+            transform: translateY(16px);
+          }
+          to {
+            opacity: 1;
+            transform: translateY(0);
+          }
+        }
+        .animate-fade-in-up {
+          opacity: 0;
+          animation: fadeInUp 0.7s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+        }
+      `}} />
 
-        {/* Header Link */}
-        <Link
-          href="/register"
-          className="flex items-center gap-2 text-[14px] font-bold text-muted-foreground hover:text-foreground transition-all w-fit group active:scale-[0.98] shrink-0"
-        >
-          <ArrowLeft className="h-4 w-4 transition-transform group-hover:-translate-x-1" />
-          Volver
-        </Link>
+      {/* Floating Glass Console Container */}
+      <div className="w-full max-w-[540px] z-10 animate-fade-in-up">
+        <div className="animate-float backdrop-blur-xl bg-white/75 dark:bg-zinc-950/60 border border-zinc-200/50 dark:border-zinc-800/40 rounded-[28px] p-6 md:p-10 shadow-[0_24px_50px_-12px_rgba(0,0,0,0.06)] dark:shadow-[0_40px_80px_-20px_rgba(0,0,0,0.7)] transition-all duration-300">
+          
+          {/* Back button */}
+          <Link
+            href="/register"
+            className="inline-flex items-center gap-2 text-[14px] font-semibold text-muted-foreground hover:text-foreground transition-all duration-200 group mb-6"
+          >
+            <ArrowLeft className="h-4 w-4 transition-transform group-hover:-translate-x-1" />
+            Volver a opciones
+          </Link>
 
-        {/* Form Content */}
-        <div className="w-full max-w-[340px] mx-auto flex flex-col gap-5 my-auto py-4 shrink-0">
-
-          {/* Logo */}
-          <div className="flex justify-center md:justify-start items-center gap-2">
-            <span className="text-[24px] font-bold tracking-tighter text-foreground">
-              K&apos;anPro
-            </span>
-          </div>
-
-          {/* Title */}
-          <div className="text-center md:text-left">
-            <h1 className="text-[28px] md:text-[32px] font-extrabold text-foreground tracking-[-0.04em] leading-tight">
-              Start your career
+          {/* Header */}
+          <header className="flex flex-col gap-1 mb-6">
+            <div className="flex items-center gap-2">
+              <span className="text-[20px] font-bold tracking-tighter text-foreground">
+                K&apos;anPro
+              </span>
+              <span className="px-2.5 py-0.5 text-[10px] font-semibold bg-primary/10 text-primary rounded-full uppercase tracking-wider">
+                Candidato
+              </span>
+            </div>
+            <h1 className="text-[28px] md:text-[32px] font-bold text-foreground tracking-[-0.03em] leading-tight mt-2">
+              Crea tu cuenta profesional
             </h1>
-          </div>
+            <p className="text-[14px] text-muted-foreground mt-0.5">
+              Descubre oportunidades, postula a vacantes y potencia tu carrera.
+            </p>
+          </header>
 
-          {/* Social Logins Blob (mimicking reference style, only Google and Facebook) */}
-          <div className="flex justify-center items-center gap-3 py-1.5 px-4 bg-muted/60 dark:bg-zinc-900 rounded-full w-fit mx-auto md:mx-0 border border-border/40">
+          {/* Social Logins */}
+          <div className="grid grid-cols-2 gap-3 mb-6">
             <button
               type="button"
-              className="w-8.5 h-8.5 rounded-full bg-background hover:bg-muted/80 flex items-center justify-center transition-all shadow-xs active:scale-95 border border-border/30"
-              aria-label="Registrarse con Google"
+              className="flex items-center justify-center gap-2.5 h-[48px] rounded-[12px] border border-zinc-200/60 dark:border-zinc-800/50 bg-white/40 dark:bg-zinc-900/30 hover:bg-white/80 dark:hover:bg-zinc-900/60 text-[14px] font-semibold text-foreground transition-all active:scale-[0.98] cursor-pointer"
             >
               <GoogleIcon />
+              <span>Google</span>
             </button>
             <button
               type="button"
-              className="w-8.5 h-8.5 rounded-full bg-background hover:bg-muted/80 flex items-center justify-center transition-all shadow-xs active:scale-95 border border-border/30"
-              aria-label="Registrarse con Facebook"
+              className="flex items-center justify-center gap-2.5 h-[48px] rounded-[12px] border border-zinc-200/60 dark:border-zinc-800/50 bg-white/40 dark:bg-zinc-900/30 hover:bg-white/80 dark:hover:bg-zinc-900/60 text-[14px] font-semibold text-foreground transition-all active:scale-[0.98] cursor-pointer"
             >
               <FacebookIcon />
+              <span>Facebook</span>
             </button>
           </div>
 
-          <div className="text-center md:text-left text-[11px] font-bold text-muted-foreground/60 uppercase tracking-widest">
-            or
+          <div className="relative flex py-2 items-center mb-6">
+            <div className="flex-grow border-t border-zinc-200/50 dark:border-zinc-800/30"></div>
+            <span className="flex-shrink mx-4 text-zinc-400 dark:text-zinc-500 text-[11px] font-bold uppercase tracking-wider">o continuar con correo</span>
+            <div className="flex-grow border-t border-zinc-200/50 dark:border-zinc-800/30"></div>
           </div>
 
-          {/* Flat Pill Inputs */}
-          <form className="flex flex-col gap-3.5" onSubmit={handleSubmit(onSubmit)} method="POST" noValidate>
-
+          {/* Form */}
+          <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-4" noValidate>
             {/* Full Name */}
-            <div className="flex flex-col gap-0.5">
+            <div className="flex flex-col gap-1.5">
+              <label className="text-[13px] font-semibold text-foreground/80" htmlFor="fullName">
+                Nombre completo
+              </label>
               <div className="relative group/input">
-                <User className="absolute left-5 top-1/2 -translate-y-1/2 h-[18px] w-[18px] text-muted-foreground/50 group-focus-within/input:text-primary transition-colors" />
+                <User className="absolute left-4 top-1/2 -translate-y-1/2 h-[18px] w-[18px] text-muted-foreground/60 group-focus-within/input:text-primary transition-colors duration-200" />
                 <Input
                   id="fullName"
-                  placeholder="Full name"
+                  placeholder="Ej. Carlos Mendoza"
                   {...register("fullName")}
-                  className="h-[48px] pl-12 pr-5 bg-muted/60 dark:bg-zinc-900/60 text-[14px] border-0 focus-visible:ring-primary/20 focus-visible:bg-muted/80 transition-all font-semibold placeholder:text-muted-foreground/60 rounded-full text-foreground shadow-none"
-                  aria-invalid={!!errors.fullName}
+                  className="h-[50px] pl-11 pr-4 bg-zinc-100/40 dark:bg-zinc-900/40 border border-zinc-200/60 dark:border-zinc-800/50 focus-visible:border-primary/50 focus-visible:ring-primary/20 rounded-[12px] text-[14px] font-medium placeholder:text-muted-foreground/50 transition-all duration-200"
                 />
               </div>
               {errors.fullName && <FieldError errors={[errors.fullName]} />}
             </div>
 
             {/* Email */}
-            <div className="flex flex-col gap-0.5">
+            <div className="flex flex-col gap-1.5">
+              <label className="text-[13px] font-semibold text-foreground/80" htmlFor="email">
+                Correo electrónico
+              </label>
               <div className="relative group/input">
-                <Mail className="absolute left-5 top-1/2 -translate-y-1/2 h-[18px] w-[18px] text-muted-foreground/50 group-focus-within/input:text-primary transition-colors" />
+                <Mail className="absolute left-4 top-1/2 -translate-y-1/2 h-[18px] w-[18px] text-muted-foreground/60 group-focus-within/input:text-primary transition-colors duration-200" />
                 <Input
                   id="email"
-                  placeholder="Email"
+                  placeholder="nombre@correo.com"
                   type="email"
                   {...register("email")}
-                  className="h-[48px] pl-12 pr-5 bg-muted/60 dark:bg-zinc-900/60 text-[14px] border-0 focus-visible:ring-primary/20 focus-visible:bg-muted/80 transition-all font-semibold placeholder:text-muted-foreground/60 rounded-full text-foreground shadow-none"
-                  aria-invalid={!!errors.email}
+                  className="h-[50px] pl-11 pr-4 bg-zinc-100/40 dark:bg-zinc-900/40 border border-zinc-200/60 dark:border-zinc-800/50 focus-visible:border-primary/50 focus-visible:ring-primary/20 rounded-[12px] text-[14px] font-medium placeholder:text-muted-foreground/50 transition-all duration-200"
                 />
               </div>
               {errors.email && <FieldError errors={[errors.email]} />}
             </div>
 
-            {/* Password */}
-            <div className="flex flex-col gap-0.5">
-              <div className="relative group/input">
-                <Lock className="absolute left-5 top-1/2 -translate-y-1/2 h-[18px] w-[18px] text-muted-foreground/50 group-focus-within/input:text-primary transition-colors" />
-                <Input
-                  id="password"
-                  placeholder="Password"
-                  type={showPassword ? "text" : "password"}
-                  {...register("password")}
-                  className="w-full h-[48px] pl-12 pr-12 bg-muted/60 dark:bg-zinc-900/60 text-[14px] border-0 focus-visible:ring-primary/20 focus-visible:bg-muted/80 transition-all font-semibold placeholder:text-muted-foreground/60 rounded-full text-foreground shadow-none"
-                  aria-invalid={!!errors.password}
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-5 top-1/2 -translate-y-1/2 text-muted-foreground/60 hover:text-foreground transition-colors cursor-pointer focus:outline-none p-1"
-                >
-                  {showPassword ? <EyeOff className="h-4.5 w-4.5" /> : <Eye className="h-4.5 w-4.5" />}
-                </button>
+            {/* Passwords Grid (Row on md+) */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {/* Password */}
+              <div className="flex flex-col gap-1.5">
+                <label className="text-[13px] font-semibold text-foreground/80" htmlFor="password">
+                  Contraseña
+                </label>
+                <div className="relative group/input">
+                  <Lock className="absolute left-4 top-1/2 -translate-y-1/2 h-[18px] w-[18px] text-muted-foreground/60 group-focus-within/input:text-primary transition-colors duration-200" />
+                  <Input
+                    id="password"
+                    placeholder="Mínimo 8 caracteres"
+                    type={showPassword ? "text" : "password"}
+                    {...passwordRegister}
+                    onChange={(e) => {
+                      passwordRegister.onChange(e);
+                      setPasswordValue(e.target.value);
+                    }}
+                    className="h-[50px] pl-11 pr-11 bg-zinc-100/40 dark:bg-zinc-900/40 border border-zinc-200/60 dark:border-zinc-800/50 focus-visible:border-primary/50 focus-visible:ring-primary/20 rounded-[12px] text-[14px] font-medium placeholder:text-muted-foreground/50 transition-all duration-200"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-4 top-1/2 -translate-y-1/2 text-muted-foreground/60 hover:text-foreground transition-colors cursor-pointer p-1"
+                  >
+                    {showPassword ? <EyeOff className="h-4.5 w-4.5" /> : <Eye className="h-4.5 w-4.5" />}
+                  </button>
+                </div>
+                {errors.password && <FieldError errors={[errors.password]} />}
               </div>
-              {errors.password && <FieldError errors={[errors.password]} />}
+
+              {/* Confirm Password */}
+              <div className="flex flex-col gap-1.5">
+                <label className="text-[13px] font-semibold text-foreground/80" htmlFor="confirmPassword">
+                  Confirmar contraseña
+                </label>
+                <div className="relative group/input">
+                  <Lock className="absolute left-4 top-1/2 -translate-y-1/2 h-[18px] w-[18px] text-muted-foreground/60 group-focus-within/input:text-primary transition-colors duration-200" />
+                  <Input
+                    id="confirmPassword"
+                    placeholder="Repetir contraseña"
+                    type={showConfirmPassword ? "text" : "password"}
+                    {...register("confirmPassword")}
+                    className="h-[50px] pl-11 pr-11 bg-zinc-100/40 dark:bg-zinc-900/40 border border-zinc-200/60 dark:border-zinc-800/50 focus-visible:border-primary/50 focus-visible:ring-primary/20 rounded-[12px] text-[14px] font-medium placeholder:text-muted-foreground/50 transition-all duration-200"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                    className="absolute right-4 top-1/2 -translate-y-1/2 text-muted-foreground/60 hover:text-foreground transition-colors cursor-pointer p-1"
+                  >
+                    {showConfirmPassword ? <EyeOff className="h-4.5 w-4.5" /> : <Eye className="h-4.5 w-4.5" />}
+                  </button>
+                </div>
+                {errors.confirmPassword && <FieldError errors={[errors.confirmPassword]} />}
+              </div>
             </div>
 
-            {/* Confirm Password */}
-            <div className="flex flex-col gap-0.5">
-              <div className="relative group/input">
-                <Lock className="absolute left-5 top-1/2 -translate-y-1/2 h-[18px] w-[18px] text-muted-foreground/50 group-focus-within/input:text-primary transition-colors" />
-                <Input
-                  id="confirmPassword"
-                  placeholder="Confirm password"
-                  type={showConfirmPassword ? "text" : "password"}
-                  {...register("confirmPassword")}
-                  className="w-full h-[48px] pl-12 pr-12 bg-muted/60 dark:bg-zinc-900/60 text-[14px] border-0 focus-visible:ring-primary/20 focus-visible:bg-muted/80 transition-all font-semibold placeholder:text-muted-foreground/60 rounded-full text-foreground shadow-none"
-                  aria-invalid={!!errors.confirmPassword}
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                  className="absolute right-5 top-1/2 -translate-y-1/2 text-muted-foreground/60 hover:text-foreground transition-colors cursor-pointer focus:outline-none p-1"
-                >
-                  {showConfirmPassword ? <EyeOff className="h-4.5 w-4.5" /> : <Eye className="h-4.5 w-4.5" />}
-                </button>
-              </div>
-              {errors.confirmPassword && <FieldError errors={[errors.confirmPassword]} />}
-            </div>
+            {/* Password strength indicator */}
+            {passwordValue.length > 0 && (
+              <div className="flex flex-col gap-2 mt-1 p-3 rounded-[12px] bg-zinc-100/50 dark:bg-zinc-900/30 border border-zinc-200/30 dark:border-zinc-800/20">
+                <div className="flex justify-between items-center text-[12px]">
+                  <span className="font-semibold text-muted-foreground">Fuerza de la contraseña:</span>
+                  <span className={cn("font-bold transition-colors", getStrengthColor(strengthScore))}>
+                    {getStrengthLabel(strengthScore)}
+                  </span>
+                </div>
+                
+                {/* Strength meter bar */}
+                <div className="grid grid-cols-3 gap-1.5 h-1.5 w-full">
+                  <div className={cn("h-full rounded-full transition-all duration-300", strengthScore >= 1 ? getStrengthBg(strengthScore) : "bg-zinc-200 dark:bg-zinc-800")} />
+                  <div className={cn("h-full rounded-full transition-all duration-300", strengthScore >= 2 ? getStrengthBg(strengthScore) : "bg-zinc-200 dark:bg-zinc-800")} />
+                  <div className={cn("h-full rounded-full transition-all duration-300", strengthScore >= 3 ? getStrengthBg(strengthScore) : "bg-zinc-200 dark:bg-zinc-800")} />
+                </div>
 
-            {/* Solid Submit Button */}
+                {/* Checklist */}
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-1 mt-1">
+                  <div className="flex items-center gap-1.5 text-[11px] font-medium">
+                    <div className={cn("h-1.5 w-1.5 rounded-full transition-all", passwordValue.length >= 8 ? "bg-emerald-500" : "bg-zinc-300 dark:bg-zinc-700")} />
+                    <span className={passwordValue.length >= 8 ? "text-emerald-500/90" : "text-muted-foreground"}>Mínimo 8 carac.</span>
+                  </div>
+                  <div className="flex items-center gap-1.5 text-[11px] font-medium">
+                    <div className={cn("h-1.5 w-1.5 rounded-full transition-all", /\d/.test(passwordValue) || /[^A-Za-z0-9]/.test(passwordValue) ? "bg-emerald-500" : "bg-zinc-300 dark:bg-zinc-700")} />
+                    <span className={/\d/.test(passwordValue) || /[^A-Za-z0-9]/.test(passwordValue) ? "text-emerald-500/90" : "text-muted-foreground"}>Número o Símbolo</span>
+                  </div>
+                  <div className="flex items-center gap-1.5 text-[11px] font-medium">
+                    <div className={cn("h-1.5 w-1.5 rounded-full transition-all", /[A-Z]/.test(passwordValue) ? "bg-emerald-500" : "bg-zinc-300 dark:bg-zinc-700")} />
+                    <span className={/[A-Z]/.test(passwordValue) ? "text-emerald-500/90" : "text-muted-foreground"}>Mayúscula</span>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Submit */}
             <Button
               type="submit"
               disabled={isSubmitting}
-              className="h-[48px] w-full rounded-full bg-primary hover:bg-primary/95 text-primary-foreground font-bold text-[15px] shadow-sm tracking-[0.2px] transition-all flex items-center justify-center gap-2 cursor-pointer mt-1 active:scale-[0.98] disabled:opacity-50 disabled:pointer-events-none border-0"
+              className="h-[50px] w-full rounded-[12px] bg-primary hover:bg-primary/95 text-primary-foreground font-bold text-[15px] shadow-lg shadow-primary/15 tracking-[0.2px] transition-all flex items-center justify-center gap-2 cursor-pointer mt-3 active:scale-[0.98] disabled:opacity-50 disabled:pointer-events-none border-0"
             >
-              {isSubmitting ? "Creating..." : "Start"}
+              {isSubmitting ? "Creando tu cuenta..." : "Crear cuenta"}
               <ArrowRight className="h-4.5 w-4.5" />
             </Button>
           </form>
 
-        </div>
-
-        {/* Footer Link */}
-        <p className="text-[14px] text-muted-foreground text-center md:text-left font-semibold shrink-0">
-          Already have an account?{" "}
-          <Link
-            href="/login"
-            className="text-[15px] font-black text-primary hover:underline ml-0.5 transition-colors tracking-[0.2px]"
-          >
-            Log in
-          </Link>
-        </p>
-
-      </div>
-
-      {/* Right Column: High Fidelity Image (Visible only on md+) */}
-      <div className="hidden md:block md:w-[55%] lg:w-[60%] p-3 relative shrink-0 h-full">
-        <div className="w-full h-full rounded-[24px] overflow-hidden relative border border-border/30">
-
-          {/* Image */}
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
-            src="/workspace_register_bg.png"
-            alt="K'anPro Workspace View"
-            className="w-full h-full object-cover select-none pointer-events-none"
-          />
+          {/* Footer */}
+          <footer className="mt-8 text-center text-[13px] text-muted-foreground font-medium">
+            ¿Ya tienes una cuenta?{" "}
+            <Link
+              href="/login"
+              className="text-primary font-bold hover:underline transition-all tracking-[0.1px] ml-1"
+            >
+              Inicia Sesión
+            </Link>
+          </footer>
 
         </div>
       </div>
-
     </main>
   );
 }
+
