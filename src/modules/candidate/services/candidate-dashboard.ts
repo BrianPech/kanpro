@@ -21,11 +21,12 @@ export interface CandidateDashboardData {
     id: string
     full_name: string
     headline: string | null
-    bio: string | null
+    experience_summary: string | null
     location: string | null
     skills: string[] | null
     avatar_url: string | null
     is_approved: boolean
+    is_validated: boolean
     completionScore: number
   } | null
   applications: CandidateApplication[]
@@ -59,7 +60,7 @@ export async function getCandidateDashboardData(): Promise<CandidateDashboardDat
   // 2. Fetch candidate profile
   const { data: profileData } = await supabase
     .from("profiles")
-    .select("*")
+    .select("id, full_name, headline, experience_summary, location, skills, avatar_url, is_approved, is_validated, experience, cv_url")
     .eq("id", user.id)
     .single()
 
@@ -67,7 +68,7 @@ export async function getCandidateDashboardData(): Promise<CandidateDashboardDat
   if (profileData) {
     if (profileData.full_name) completionScore += 20
     if (profileData.headline) completionScore += 15
-    if (profileData.bio) completionScore += 15
+    if (profileData.experience_summary) completionScore += 15
     if (profileData.location) completionScore += 10
     if (profileData.skills && profileData.skills.length > 0) completionScore += 15
     if (profileData.cv_url) completionScore += 15
@@ -148,7 +149,6 @@ export async function getCandidateDashboardData(): Promise<CandidateDashboardDat
     const logoUrl = companyInfo?.logo_url || null
     const companyInitials = companyName.substring(0, 2).toUpperCase()
 
-    // Map status from db: 'Pendiente', 'En revisión', 'Preseleccionado', 'Contratado', 'Descartado'
     let statusLabel = app.status
     let statusColor = "text-zinc-500 bg-zinc-500/10 border-zinc-500/20 dark:text-zinc-400 dark:bg-zinc-400/10 dark:border-zinc-400/20"
     let progress = 25
@@ -181,7 +181,6 @@ export async function getCandidateDashboardData(): Promise<CandidateDashboardDat
         break
     }
 
-    // Dynamic Match IA score calculation
     let matchScore = 70 // default fallback
     if (profileData?.skills && vacancy?.skills) {
       const candidateSkills = profileData.skills.map((s: string) => s.toLowerCase().trim())
@@ -221,7 +220,6 @@ export async function getCandidateDashboardData(): Promise<CandidateDashboardDat
     }
   })
 
-  // 6. Consolidated stats
   const total = formattedApplications.length
   const reviewing = formattedApplications.filter(
     (app) => app.status === "En revisión" || app.status === "Preseleccionado"
@@ -237,11 +235,12 @@ export async function getCandidateDashboardData(): Promise<CandidateDashboardDat
           id: profileData.id,
           full_name: profileData.full_name,
           headline: profileData.headline || null,
-          bio: profileData.bio || null,
+          experience_summary: profileData.experience_summary || null,
           location: profileData.location || null,
           skills: profileData.skills || null,
           avatar_url: profileData.avatar_url || null,
           is_approved: profileData.is_approved || false,
+          is_validated: profileData.is_validated || false,
           completionScore
         }
       : null,

@@ -1,3 +1,5 @@
+"use client";
+
 import * as React from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -12,18 +14,21 @@ export function useCandidateProfile() {
   const [isSubmitting, setIsSubmitting] = React.useState(false);
   const [skills, setSkills] = React.useState<string[]>([]);
   const [experience, setExperience] = React.useState<ExperienceItem[]>([]);
+  const [portfolioLinks, setPortfolioLinks] = React.useState<string[]>([]);
   const [skillInput, setSkillInput] = React.useState("");
+  const [portfolioInput, setPortfolioInput] = React.useState("");
 
   const form = useForm<CandidateProfileFormValues>({
     resolver: zodResolver(candidateProfileSchema),
     defaultValues: {
       full_name: "",
       headline: "",
-      bio: "",
-      phone: "",
+      experience_summary: "",
+      whatsapp_number: "",
       location: "",
       skills: [],
       experience: [],
+      portfolio_links: [],
     },
   });
 
@@ -45,18 +50,24 @@ export function useCandidateProfile() {
               ? profile.skills
               : [];
 
+            const parsedPortfolioLinks: string[] = Array.isArray(profile.portfolio_links)
+              ? (profile.portfolio_links as unknown as string[])
+              : [];
+
             form.reset({
               full_name: profile.full_name || "",
               headline: profile.headline || "",
-              bio: profile.bio || "",
-              phone: profile.phone || "",
+              experience_summary: profile.experience_summary || "",
+              whatsapp_number: profile.whatsapp_number || "",
               location: profile.location || "",
               skills: parsedSkills,
               experience: parsedExperience,
+              portfolio_links: parsedPortfolioLinks,
             });
 
             setSkills(parsedSkills);
             setExperience(parsedExperience);
+            setPortfolioLinks(parsedPortfolioLinks);
           }
         }
       } catch (error: unknown) {
@@ -70,7 +81,7 @@ export function useCandidateProfile() {
     fetchUserAndProfile();
   }, [form]);
 
-  // Sync skills and experience with React Hook Form
+  // Sync skills, experience, and portfolio links with React Hook Form
   React.useEffect(() => {
     form.setValue("skills", skills, { shouldValidate: true });
   }, [skills, form]);
@@ -79,7 +90,11 @@ export function useCandidateProfile() {
     form.setValue("experience", experience, { shouldValidate: true });
   }, [experience, form]);
 
-  // Skills management functions
+  React.useEffect(() => {
+    form.setValue("portfolio_links", portfolioLinks, { shouldValidate: true });
+  }, [portfolioLinks, form]);
+
+  // Skills management
   const addSkill = (skill: string) => {
     const trimmed = skill.trim();
     if (!trimmed) return;
@@ -95,7 +110,29 @@ export function useCandidateProfile() {
     setSkills((prev) => prev.filter((s) => s !== skillToRemove));
   };
 
-  // Experience management functions
+  // Portfolio Links management
+  const addPortfolioLink = (url: string) => {
+    const trimmed = url.trim();
+    if (!trimmed) return;
+    try {
+      new URL(trimmed);
+    } catch {
+      toast.error("Por favor, ingresa un enlace de portafolio válido");
+      return;
+    }
+    if (portfolioLinks.some((l) => l.toLowerCase() === trimmed.toLowerCase())) {
+      toast.info("Este enlace ya está agregado");
+      return;
+    }
+    setPortfolioLinks((prev) => [...prev, trimmed]);
+    setPortfolioInput("");
+  };
+
+  const removePortfolioLink = (linkToRemove: string) => {
+    setPortfolioLinks((prev) => prev.filter((l) => l !== linkToRemove));
+  };
+
+  // Experience management
   const addExperience = (item: ExperienceItem) => {
     setExperience((prev) => [...prev, item]);
     toast.success("Experiencia laboral agregada");
@@ -138,10 +175,15 @@ export function useCandidateProfile() {
     isSubmitting,
     skills,
     experience,
+    portfolioLinks,
     skillInput,
+    portfolioInput,
     setSkillInput,
+    setPortfolioInput,
     addSkill,
     removeSkill,
+    addPortfolioLink,
+    removePortfolioLink,
     addExperience,
     removeExperience,
     updateExperience,

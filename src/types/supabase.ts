@@ -184,18 +184,22 @@ export type Database = {
           education: Json | null
           email: string | null
           experience: Json | null
+          experience_summary: string
           full_name: string
           headline: string | null
           id: string
           is_approved: boolean
           is_featured: boolean
+          is_validated: boolean
           location: string | null
           phone: string | null
+          portfolio_links: Json | null
           role: string
           show_email: boolean
           show_phone: boolean
           skills: string[] | null
           updated_at: string
+          whatsapp_number: string
         }
         Insert: {
           avatar_url?: string | null
@@ -208,18 +212,22 @@ export type Database = {
           education?: Json | null
           email?: string | null
           experience?: Json | null
+          experience_summary?: string
           full_name: string
           headline?: string | null
           id: string
           is_approved?: boolean
           is_featured?: boolean
+          is_validated?: boolean
           location?: string | null
           phone?: string | null
+          portfolio_links?: Json | null
           role: string
           show_email?: boolean
           show_phone?: boolean
           skills?: string[] | null
           updated_at?: string
+          whatsapp_number?: string
         }
         Update: {
           avatar_url?: string | null
@@ -232,18 +240,22 @@ export type Database = {
           education?: Json | null
           email?: string | null
           experience?: Json | null
+          experience_summary?: string
           full_name?: string
           headline?: string | null
           id?: string
           is_approved?: boolean
           is_featured?: boolean
+          is_validated?: boolean
           location?: string | null
           phone?: string | null
+          portfolio_links?: Json | null
           role?: string
           show_email?: boolean
           show_phone?: boolean
           skills?: string[] | null
           updated_at?: string
+          whatsapp_number?: string
         }
         Relationships: []
       }

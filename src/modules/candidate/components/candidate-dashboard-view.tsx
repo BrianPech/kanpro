@@ -107,15 +107,15 @@ export function CandidateDashboardView({ initialData }: CandidateDashboardViewPr
                 <ArrowRight className="h-4 w-4 transition-transform duration-300 group-hover:translate-x-1" />
               </Button>
             </Link>
-            {profile?.is_approved ? (
+            {profile?.is_validated ? (
               <div className="flex items-center gap-1.5 px-4 py-2 bg-white/10 backdrop-blur-md border border-white/20 rounded-full text-xs font-semibold text-white">
                 <CheckCircle2 className="h-3.5 w-3.5 text-emerald-300" />
-                Perfil Verificado y Visible
+                Perfil Validado y Visible
               </div>
             ) : (
               <div className="flex items-center gap-1.5 px-4 py-2 bg-amber-500/20 backdrop-blur-md border border-amber-400/30 rounded-full text-xs font-semibold text-amber-200">
                 <AlertCircle className="h-3.5 w-3.5 text-amber-300 animate-pulse" />
-                Perfil en Proceso de Aprobación
+                Perfil en Proceso de Validación
               </div>
             )}
           </div>

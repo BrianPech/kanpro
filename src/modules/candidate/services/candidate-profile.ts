@@ -6,7 +6,7 @@ export const candidateProfileService = {
     const supabase = createClient();
     const { data, error } = await supabase
       .from("profiles")
-      .select("*")
+      .select("id, full_name, headline, experience_summary, whatsapp_number, location, skills, experience, portfolio_links, is_validated, is_approved")
       .eq("id", userId)
       .single();
 
@@ -21,11 +21,12 @@ export const candidateProfileService = {
       .update({
         full_name: data.full_name,
         headline: data.headline,
-        bio: data.bio,
-        phone: data.phone,
+        experience_summary: data.experience_summary,
+        whatsapp_number: data.whatsapp_number,
         location: data.location,
         skills: data.skills,
-        experience: data.experience as unknown as never, // Cast JSONB array
+        experience: data.experience as any,
+        portfolio_links: data.portfolio_links as any,
       })
       .eq("id", userId)
       .select()
