@@ -4,28 +4,7 @@ import * as React from "react";
 import { MapPin, Clock, Sparkles, CheckCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
-
-interface Job {
-  id: string;
-  title: string;
-  company: string;
-  companyLogo: string;
-  logoUrl: string | null;
-  location: string;
-  salaryMin: number;
-  salaryMax: number;
-  salaryFormatted: string;
-  type: string;
-  category: string;
-  experience: string;
-  skills: string[];
-  postedAt: string;
-  featured: boolean;
-  description: string;
-  benefits: string[];
-  isFromDb: boolean;
-  companyPhone: string | null;
-}
+import type { Job } from "../types";
 
 interface VacancyCardProps {
   job: Job;

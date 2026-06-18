@@ -17,28 +17,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 import { createClient } from "@/lib/supabase/client";
 import { cn } from "@/lib/utils";
-
-interface Job {
-  id: string;
-  title: string;
-  company: string;
-  companyLogo: string;
-  logoUrl: string | null;
-  location: string;
-  salaryMin: number;
-  salaryMax: number;
-  salaryFormatted: string;
-  type: string;
-  category: string;
-  experience: string;
-  skills: string[];
-  postedAt: string;
-  featured: boolean;
-  description: string;
-  benefits: string[];
-  isFromDb: boolean;
-  companyPhone: string | null;
-}
+import type { Job } from "../types";
 
 interface VacancyDetailProps {
   job: Job | null;

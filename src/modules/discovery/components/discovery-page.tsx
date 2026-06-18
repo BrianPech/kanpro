@@ -2,33 +2,12 @@
 
 import * as React from "react";
 import { cn } from "@/lib/utils";
-import { jobs } from "../data/mock";
 import { SearchFilters } from "./search-filters";
 import { VacancyList } from "./vacancy-list";
 import { VacancyDetail } from "./vacancy-detail";
 import { Sheet, SheetContent } from "@/components/ui/sheet";
-
-interface Job {
-  id: string;
-  title: string;
-  company: string;
-  companyLogo: string;
-  logoUrl: string | null;
-  location: string;
-  salaryMin: number;
-  salaryMax: number;
-  salaryFormatted: string;
-  type: string;
-  category: string;
-  experience: string;
-  skills: string[];
-  postedAt: string;
-  featured: boolean;
-  description: string;
-  benefits: string[];
-  isFromDb: boolean;
-  companyPhone: string | null;
-}
+import { useVacanciesFeed } from "@/modules/candidate/hooks/use-vacancies-feed";
+import type { Job } from "../types";
 
 interface DiscoveryPageProps {
   showNav?: boolean;
@@ -59,15 +38,9 @@ export function DiscoveryPage({
     setAppliedIds((prev) => [...prev, jobId]);
   };
 
-  // State for Job Details
+  // State for Active Job Details
   const [selectedJob, setSelectedJob] = React.useState<Job | null>(null);
   const [isSheetOpen, setIsSheetOpen] = React.useState(false);
-
-  // Filters State
-  const [search, setSearch] = React.useState("");
-  const [selectedCategory, setSelectedCategory] = React.useState("");
-  const [selectedModality, setSelectedModality] = React.useState("");
-  const [selectedLocation, setSelectedLocation] = React.useState("");
 
   // Media Query State for mobile detection
   const [isMobile, setIsMobile] = React.useState(false);
@@ -81,147 +54,29 @@ export function DiscoveryPage({
     return () => window.removeEventListener("resize", checkMobile);
   }, []);
 
-  // Merge database jobs and mock jobs
-  const allJobs = React.useMemo(() => {
-    const mockJobsMapped = jobs.map((j) => ({
-      ...j,
-      benefits: [
-        "Seguro Médico Gastos Mayores",
-        "Horario Flexible",
-        "Home Office / Híbrido",
-        "Vales de Despensa",
-      ],
-      description:
-        j.id === "job-1"
-          ? "Buscamos un Diseñador UI Senior para unirse a nuestro equipo internacional. Liderarás la creación de interfaces de usuario excepcionales y mantendrás nuestro sistema de diseño en Figma.\n\nRequisitos:\n- Más de 5 años de experiencia en diseño de interfaces.\n- Dominio experto de Figma y sistemas de diseño.\n- Excelentes habilidades de comunicación y trabajo colaborativo."
-          : j.id === "job-2"
-          ? "Únete a TechFlow como Desarrollador Full Stack. Trabajarás con React, Node.js y TypeScript construyendo APIs robustas e interfaces altamente interactivas.\n\nRequisitos:\n- Experiencia sólida en React, Node.js y bases de datos relacionales.\n- Enfoque de alta calidad de código y buenas prácticas."
-          : "Estamos buscando profesionales motivados para unirse a nuestro equipo. Trabajarás en proyectos desafiantes en un ambiente innovador con grandes oportunidades de crecimiento profesional.",
-      isFromDb: false,
-      companyPhone: null, // Mocks have no phone
-      logoUrl: null,
-      salaryFormatted: `$${(j.salaryMin / 1000).toFixed(0)}k - $${(
-        j.salaryMax / 1000
-      ).toFixed(0)}k`,
-      featured: false,
-    }));
+  // Use the custom debounced vacancies hook
+  const {
+    search,
+    setSearch,
+    location,
+    setLocation,
+    category,
+    setCategory,
+    modality,
+    setModality,
+    jobs: filteredJobs,
+    loading,
+    handleClearFilters,
+    hasActiveFilters,
+  } = useVacanciesFeed(dbJobs);
 
-    return [...dbJobs, ...mockJobsMapped];
+  // Unique categories compiled dynamically from the initial full list of vacancies
+  const categories = React.useMemo(() => {
+    const cats = dbJobs.map((j) => j.category).filter(Boolean);
+    return Array.from(new Set(cats));
   }, [dbJobs]);
 
-  // Unique categories and locations compiled dynamically
-  const categories = React.useMemo(() => {
-    const cats = allJobs.map((j) => j.category).filter(Boolean);
-    return Array.from(new Set(cats));
-  }, [allJobs]);
-
-  const locations = React.useMemo(() => {
-    const locs = allJobs
-      .map((j) => {
-        if (!j.location) return "";
-        if (
-          j.location.toLowerCase().includes("remote") ||
-          j.location.toLowerCase().includes("remoto")
-        ) {
-          return "";
-        }
-        return j.location.split(",")[0].trim();
-      })
-      .filter(Boolean);
-    return Array.from(new Set(locs));
-  }, [allJobs]);
-
-  // Modality helper
-  const matchesModality = (job: Job, modalityVal: string) => {
-    if (!modalityVal) return true;
-    const modalityLower = modalityVal.toLowerCase();
-
-    const locationLower = job.location.toLowerCase();
-    const typeLower = job.type.toLowerCase();
-
-    if (modalityLower === "remoto") {
-      return (
-        locationLower.includes("remote") ||
-        locationLower.includes("remoto") ||
-        typeLower.includes("remote") ||
-        typeLower.includes("remoto")
-      );
-    }
-    if (modalityLower === "híbrido" || modalityLower === "hibrido") {
-      return (
-        locationLower.includes("hybrid") ||
-        locationLower.includes("híbrid") ||
-        locationLower.includes("hibrid") ||
-        typeLower.includes("hybrid") ||
-        typeLower.includes("híbrid") ||
-        typeLower.includes("hibrid")
-      );
-    }
-    if (modalityLower === "presencial") {
-      const isRemote =
-        locationLower.includes("remote") ||
-        locationLower.includes("remoto") ||
-        typeLower.includes("remote") ||
-        typeLower.includes("remoto");
-      const isHybrid =
-        locationLower.includes("hybrid") ||
-        locationLower.includes("híbrid") ||
-        locationLower.includes("hibrid") ||
-        typeLower.includes("hybrid") ||
-        typeLower.includes("híbrid") ||
-        typeLower.includes("hibrid");
-      return !isRemote && !isHybrid;
-    }
-    return true;
-  };
-
-  // Filter jobs based on filter state
-  const filteredJobs = React.useMemo(() => {
-    return allJobs.filter((job) => {
-      // 1. Search Query
-      if (search) {
-        const query = search.toLowerCase();
-        const matchesTitle = job.title.toLowerCase().includes(query);
-        const matchesCompany = job.company.toLowerCase().includes(query);
-        const matchesSkills = job.skills.some((skill: string) =>
-          skill.toLowerCase().includes(query)
-        );
-        if (!matchesTitle && !matchesCompany && !matchesSkills) {
-          return false;
-        }
-      }
-
-      // 2. Sector / Category
-      if (selectedCategory) {
-        if (
-          job.category.toLowerCase().trim() !==
-          selectedCategory.toLowerCase().trim()
-        ) {
-          return false;
-        }
-      }
-
-      // 3. Modalidad
-      if (selectedModality) {
-        if (!matchesModality(job, selectedModality)) {
-          return false;
-        }
-      }
-
-      // 4. Ubicación / Zona
-      if (selectedLocation) {
-        const jobLoc = job.location.toLowerCase();
-        const selLoc = selectedLocation.toLowerCase();
-        if (!jobLoc.includes(selLoc)) {
-          return false;
-        }
-      }
-
-      return true;
-    });
-  }, [allJobs, search, selectedCategory, selectedModality, selectedLocation]);
-
-  // Auto-select first job on desktop when list/filters change
+  // Auto-select first job on desktop when list changes or loads
   React.useEffect(() => {
     if (!isMobile && filteredJobs.length > 0) {
       const exists = filteredJobs.some((j) => j.id === selectedJob?.id);
@@ -240,13 +95,6 @@ export function DiscoveryPage({
     }
   };
 
-  const handleClearFilters = () => {
-    setSearch("");
-    setSelectedCategory("");
-    setSelectedModality("");
-    setSelectedLocation("");
-  };
-
   return (
     <div
       className={cn(
@@ -259,14 +107,13 @@ export function DiscoveryPage({
         <SearchFilters
           search={search}
           onSearchChange={setSearch}
-          category={selectedCategory}
-          onCategoryChange={setSelectedCategory}
-          modality={selectedModality}
-          onModalityChange={setSelectedModality}
-          location={selectedLocation}
-          onLocationChange={setSelectedLocation}
+          category={category}
+          onCategoryChange={setCategory}
+          modality={modality}
+          onModalityChange={setModality}
+          location={location}
+          onLocationChange={setLocation}
           categories={categories}
-          locations={locations}
         />
       </div>
 
@@ -281,9 +128,8 @@ export function DiscoveryPage({
             candidateSkills={candidateSkills}
             appliedIds={appliedIds}
             onClearFilters={handleClearFilters}
-            hasActiveFilters={
-              !!(search || selectedCategory || selectedModality || selectedLocation)
-            }
+            hasActiveFilters={hasActiveFilters}
+            loading={loading}
           />
         </div>
 

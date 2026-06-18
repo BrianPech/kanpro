@@ -1,3 +1,4 @@
+// Purged mock data
 export interface Job {
   id: string
   company: string
@@ -6,131 +7,12 @@ export interface Job {
   location: string
   salaryMin: number
   salaryMax: number
-  type: "Full-time" | "Part-time" | "Contract" | "Freelance"
-  category: "Design" | "Development" | "Marketing" | "Finance" | "Data"
-  experience: "Junior" | "Mid" | "Senior" | "Lead"
+  type: string
+  category: string
+  experience: string
   skills: string[]
   postedAt: string
   featured?: boolean
 }
 
-
-
-export const jobs: Job[] = [
-  {
-    id: "job-1",
-    company: "Designify Studio",
-    companyLogo: "DS",
-    title: "Senior UI Designer",
-    location: "Remote",
-    salaryMin: 120000,
-    salaryMax: 150000,
-    type: "Full-time",
-    category: "Design",
-    experience: "Senior",
-    skills: ["Figma", "Design Systems", "Prototyping", "User Research"],
-    postedAt: "2d ago",
-    featured: true,
-  },
-  {
-    id: "job-2",
-    company: "TechFlow Inc",
-    companyLogo: "TF",
-    title: "Full Stack Developer",
-    location: "San Francisco, CA",
-    salaryMin: 130000,
-    salaryMax: 160000,
-    type: "Full-time",
-    category: "Development",
-    experience: "Senior",
-    skills: ["React", "Node.js", "TypeScript", "PostgreSQL"],
-    postedAt: "3d ago",
-  },
-  {
-    id: "job-3",
-    company: "GrowthPad",
-    companyLogo: "GP",
-    title: "Product Manager",
-    location: "New York, NY",
-    salaryMin: 110000,
-    salaryMax: 140000,
-    type: "Full-time",
-    category: "Marketing",
-    experience: "Mid",
-    skills: ["Strategy", "Analytics", "Agile", "A/B Testing"],
-    postedAt: "5d ago",
-  },
-  {
-    id: "job-4",
-    company: "ChainForge",
-    companyLogo: "CF",
-    title: "Smart Contract Engineer",
-    location: "Remote",
-    salaryMin: 150000,
-    salaryMax: 200000,
-    type: "Contract",
-    category: "Development",
-    experience: "Senior",
-    skills: ["Solidity", "Web3", "Rust", "Ethereum"],
-    postedAt: "1d ago",
-    featured: true,
-  },
-  {
-    id: "job-5",
-    company: "BrandPulse",
-    companyLogo: "BP",
-    title: "Marketing Lead",
-    location: "London, UK",
-    salaryMin: 90000,
-    salaryMax: 120000,
-    type: "Full-time",
-    category: "Marketing",
-    experience: "Mid",
-    skills: ["Growth Strategy", "Content", "SEO", "Analytics"],
-    postedAt: "1w ago",
-  },
-  {
-    id: "job-6",
-    company: "DataPulse",
-    companyLogo: "DP",
-    title: "Data Analyst",
-    location: "Remote",
-    salaryMin: 80000,
-    salaryMax: 110000,
-    type: "Freelance",
-    category: "Data",
-    experience: "Junior",
-    skills: ["SQL", "Python", "Tableau", "Excel"],
-    postedAt: "4d ago",
-  },
-  {
-    id: "job-7",
-    company: "CloudStack",
-    companyLogo: "CS",
-    title: "DevOps Engineer",
-    location: "Austin, TX",
-    salaryMin: 140000,
-    salaryMax: 180000,
-    type: "Full-time",
-    category: "Development",
-    experience: "Senior",
-    skills: ["AWS", "Kubernetes", "Terraform", "CI/CD"],
-    postedAt: "6d ago",
-  },
-  {
-    id: "job-8",
-    company: "ExperienceLab",
-    companyLogo: "EL",
-    title: "UX Researcher",
-    location: "Berlin, Germany",
-    salaryMin: 100000,
-    salaryMax: 130000,
-    type: "Full-time",
-    category: "Design",
-    experience: "Mid",
-    skills: ["User Research", "Usability Testing", "Figma", "Data Analysis"],
-    postedAt: "2w ago",
-  },
-]
-
-
+export const jobs: Job[] = [];

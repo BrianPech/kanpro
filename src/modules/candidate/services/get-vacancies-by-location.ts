@@ -1,0 +1,98 @@
+"use server";
+
+import { createClient } from "@/lib/supabase/server";
+import type { Job } from "@/modules/discovery/types";
+
+export async function getVacanciesByLocation(
+  searchQuery?: string,
+  locationQuery?: string
+): Promise<Job[]> {
+  const supabase = await createClient();
+
+  // 1. Query vacancies from Supabase
+  let query = supabase
+    .from("vacancies")
+    .select("id, title, location, modality, salary, salary_min, salary_max, employment_type, category, seniority, skills, created_at, description, benefits, status, company_id")
+    .eq("status", "Activa");
+
+  if (searchQuery) {
+    const term = `%${searchQuery}%`;
+    query = query.or(`title.ilike.${term},description.ilike.${term}`);
+  }
+
+  if (locationQuery) {
+    query = query.ilike("location", `%${locationQuery}%`);
+  }
+
+  query = query.order("created_at", { ascending: false });
+
+  const { data: vacancies, error } = await query;
+
+  if (error) {
+    console.error("Error fetching vacancies in Server Action:", error);
+    throw new Error("Error al consultar las vacantes");
+  }
+
+  if (!vacancies || vacancies.length === 0) {
+    return [];
+  }
+
+  // 2. Fetch company details for vacancies
+  const companyIds = Array.from(
+    new Set(vacancies.map((v) => v.company_id).filter(Boolean))
+  );
+
+  const companies: Record<string, { name: string; logo: string | null; phone: string | null }> = {};
+  
+  if (companyIds.length > 0) {
+    const { data: companyProfiles } = await supabase
+      .from("company_profiles")
+      .select("id, company_name, logo_url, phone")
+      .in("id", companyIds);
+
+    if (companyProfiles) {
+      companyProfiles.forEach((comp) => {
+        companies[comp.id] = {
+          name: comp.company_name || "Empresa",
+          logo: comp.logo_url || null,
+          phone: comp.phone || null,
+        };
+      });
+    }
+  }
+
+  // 3. Format result to conform with Job interface
+  return vacancies.map((vac) => {
+    const companyInfo = companies[vac.company_id];
+    const companyName = companyInfo?.name || "Empresa";
+    const logoUrl = companyInfo?.logo || null;
+    const companyInitials = companyName.substring(0, 2).toUpperCase();
+
+    return {
+      id: vac.id,
+      title: vac.title,
+      company: companyName,
+      companyLogo: companyInitials,
+      logoUrl: logoUrl,
+      location: vac.location || vac.modality || "Remoto",
+      salaryMin: Number(vac.salary_min) || 0,
+      salaryMax: Number(vac.salary_max) || 0,
+      salaryFormatted: vac.salary || "Sueldo no especificado",
+      type: vac.employment_type || vac.modality || "Full-time",
+      category: vac.category || "Development",
+      experience: vac.seniority || "Senior",
+      skills: vac.skills || [],
+      postedAt: vac.created_at
+        ? new Date(vac.created_at).toLocaleDateString("es-ES", {
+            day: "numeric",
+            month: "short",
+          })
+        : "Reciente",
+      featured: false,
+      description: vac.description,
+      benefits: vac.benefits || [],
+      isFromDb: true,
+      companyPhone: companyInfo?.phone || null,
+    };
+  });
+}

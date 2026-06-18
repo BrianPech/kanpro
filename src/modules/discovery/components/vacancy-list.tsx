@@ -4,28 +4,7 @@ import * as React from "react";
 import { VacancyCard } from "./vacancy-card";
 import { Sparkles, RotateCcw } from "lucide-react";
 import { Button } from "@/components/ui/button";
-
-interface Job {
-  id: string;
-  title: string;
-  company: string;
-  companyLogo: string;
-  logoUrl: string | null;
-  location: string;
-  salaryMin: number;
-  salaryMax: number;
-  salaryFormatted: string;
-  type: string;
-  category: string;
-  experience: string;
-  skills: string[];
-  postedAt: string;
-  featured: boolean;
-  description: string;
-  benefits: string[];
-  isFromDb: boolean;
-  companyPhone: string | null;
-}
+import type { Job } from "../types";
 
 interface VacancyListProps {
   jobs: Job[];
@@ -35,6 +14,7 @@ interface VacancyListProps {
   appliedIds?: string[];
   onClearFilters?: () => void;
   hasActiveFilters?: boolean;
+  loading?: boolean;
 }
 
 export function VacancyList({
@@ -45,6 +25,7 @@ export function VacancyList({
   appliedIds = [],
   onClearFilters,
   hasActiveFilters = false,
+  loading = false,
 }: VacancyListProps) {
   return (
     <div className="flex flex-col h-full w-full bg-transparent">
@@ -64,7 +45,28 @@ export function VacancyList({
 
       {/* Scrollable Feed */}
       <div className="flex-1 overflow-y-auto pr-2 -mr-2 space-y-4 pb-8 scroll-smooth scrollbar-thin">
-        {jobs.length > 0 ? (
+        {loading ? (
+          /* Premium Skeleton Loader Cards */
+          Array.from({ length: 3 }).map((_, idx) => (
+            <div
+              key={idx}
+              className="flex flex-col rounded-2xl border border-border/40 bg-white/40 dark:bg-zinc-900/40 p-5 space-y-4 animate-pulse"
+            >
+              <div className="flex items-start gap-4">
+                <div className="size-10 rounded-xl bg-neutral-200 dark:bg-zinc-850 shrink-0" />
+                <div className="flex-1 space-y-2.5">
+                  <div className="h-3 bg-neutral-200 dark:bg-zinc-800 rounded-sm w-[30%]" />
+                  <div className="h-4.5 bg-neutral-200 dark:bg-zinc-800 rounded-sm w-[80%]" />
+                </div>
+              </div>
+              <div className="h-3.5 bg-neutral-200 dark:bg-zinc-800 rounded-sm w-[55%]" />
+              <div className="pt-3 border-t border-border/20 flex items-center justify-between">
+                <div className="h-6 bg-neutral-200 dark:bg-zinc-800 rounded-md w-24" />
+                <div className="h-3.5 bg-neutral-200 dark:bg-zinc-800 rounded-sm w-12" />
+              </div>
+            </div>
+          ))
+        ) : jobs.length > 0 ? (
           jobs.map((job) => (
             <VacancyCard
               key={job.id}
@@ -76,6 +78,7 @@ export function VacancyList({
             />
           ))
         ) : (
+          /* Empty state */
           <div className="bg-white/50 dark:bg-zinc-900/30 border border-dashed border-border/80 rounded-2xl py-12 px-6 text-center flex flex-col items-center justify-center gap-4">
             <div className="w-10 h-10 rounded-full bg-muted flex items-center justify-center text-muted-foreground">
               <RotateCcw className="size-4 animate-spin-once" />
@@ -91,7 +94,7 @@ export function VacancyList({
                 <Button
                   onClick={onClearFilters}
                   variant="link"
-                  className="text-xs font-bold text-primary mt-2 p-0 h-auto"
+                  className="text-xs font-bold text-[#494fdf] mt-2 p-0 h-auto"
                 >
                   Limpiar filtros
                 </Button>

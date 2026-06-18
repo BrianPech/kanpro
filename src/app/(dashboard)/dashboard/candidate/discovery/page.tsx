@@ -1,6 +1,7 @@
 import * as React from "react";
 import { createClient } from "@/lib/supabase/server";
 import { DiscoveryPage } from "@/modules/discovery/components/discovery-page";
+import type { Job } from "@/modules/discovery/types";
 
 export const dynamic = "force-dynamic";
 
@@ -70,7 +71,7 @@ export default async function CandidateDiscoveryRoute() {
   }
 
   // 6. Format database vacancies
-  const dbJobs = (vacancies || []).map((vac) => {
+  const dbJobs: Job[] = (vacancies || []).map((vac) => {
     const companyInfo = companies[vac.company_id];
     const companyName = companyInfo?.name || "Empresa";
     const logoUrl = companyInfo?.logo || null;

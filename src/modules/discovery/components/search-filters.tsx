@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { Search } from "lucide-react";
+import { Search, MapPin } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import {
   Select,
@@ -22,7 +22,7 @@ interface SearchFiltersProps {
   location: string;
   onLocationChange: (val: string) => void;
   categories: string[];
-  locations: string[];
+  locations?: string[]; // Kept for interface compatibility but unused now
   className?: string;
 }
 
@@ -36,7 +36,6 @@ export function SearchFilters({
   location,
   onLocationChange,
   categories,
-  locations,
   className,
 }: SearchFiltersProps) {
   return (
@@ -46,19 +45,31 @@ export function SearchFilters({
         className
       )}
     >
-      {/* Search Bar (Left / Main area) */}
+      {/* 1. Job/Title Search Input (Left area) */}
       <div className="relative w-full md:flex-1 group">
-        <Search className="absolute left-3.5 top-1/2 size-4 -translate-y-1/2 text-muted-foreground/60 group-focus-within:text-primary transition-colors" />
+        <Search className="absolute left-3.5 top-1/2 size-4 -translate-y-1/2 text-muted-foreground/60 group-focus-within:text-[#494fdf] transition-colors" />
         <Input
           type="text"
           placeholder="Buscar vacantes por cargo, habilidades o empresa..."
           value={search}
           onChange={(e) => onSearchChange(e.target.value)}
-          className="h-10 pl-10 pr-4 rounded-xl border-border/60 bg-white/60 dark:bg-zinc-800/40 focus-visible:ring-primary/30 focus-visible:border-primary text-sm placeholder:text-muted-foreground/50 transition-all w-full"
+          className="h-10 pl-10 pr-4 rounded-xl border-border/60 bg-white/60 dark:bg-zinc-800/40 focus-visible:ring-[#494fdf]/30 focus-visible:border-[#494fdf] text-sm placeholder:text-muted-foreground/50 transition-all w-full"
         />
       </div>
 
-      {/* Select Dropdowns (Right aligned) */}
+      {/* 2. Location Text Input (Middle area) */}
+      <div className="relative w-full md:w-[240px] group">
+        <MapPin className="absolute left-3.5 top-1/2 size-4 -translate-y-1/2 text-muted-foreground/60 group-focus-within:text-[#494fdf] transition-colors" />
+        <Input
+          type="text"
+          placeholder="Ciudad, zona o colonia..."
+          value={location}
+          onChange={(e) => onLocationChange(e.target.value)}
+          className="h-10 pl-10 pr-4 rounded-xl border-border/60 bg-white/60 dark:bg-zinc-800/40 focus-visible:ring-[#494fdf]/30 focus-visible:border-[#494fdf] text-sm placeholder:text-muted-foreground/50 transition-all w-full"
+        />
+      </div>
+
+      {/* 3. Dropdowns Container (Right aligned) */}
       <div className="flex flex-wrap items-center gap-3 w-full md:w-auto shrink-0 justify-start md:justify-end">
         {/* Sector / Industria */}
         <div className="flex flex-col gap-1 min-w-[130px] flex-1 md:flex-initial">
@@ -92,23 +103,6 @@ export function SearchFilters({
               <SelectItem value="Presencial" className="text-xs font-medium cursor-pointer rounded-lg">Presencial</SelectItem>
               <SelectItem value="Híbrido" className="text-xs font-medium cursor-pointer rounded-lg">Híbrido</SelectItem>
               <SelectItem value="Remoto" className="text-xs font-medium cursor-pointer rounded-lg">Remoto</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-
-        {/* Zona / Ubicación */}
-        <div className="flex flex-col gap-1 min-w-[130px] flex-1 md:flex-initial">
-          <Select value={location || "todos"} onValueChange={(val) => onLocationChange(val === "todos" ? "" : val)}>
-            <SelectTrigger className="h-10 px-3 py-2 text-xs font-semibold rounded-xl border-border/60 bg-white/60 dark:bg-zinc-800/40 text-muted-foreground hover:text-foreground hover:bg-white dark:hover:bg-zinc-800 transition-all duration-200 w-full md:w-[160px]">
-              <SelectValue placeholder="Zona" />
-            </SelectTrigger>
-            <SelectContent className="bg-white/95 dark:bg-zinc-900/95 border-border/40 rounded-xl">
-              <SelectItem value="todos" className="text-xs font-medium cursor-pointer rounded-lg">Zona: Todas</SelectItem>
-              {locations.map((loc) => (
-                <SelectItem key={loc} value={loc} className="text-xs font-medium cursor-pointer rounded-lg">
-                  {loc}
-                </SelectItem>
-              ))}
             </SelectContent>
           </Select>
         </div>
