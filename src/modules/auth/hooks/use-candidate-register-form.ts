@@ -32,9 +32,22 @@ export function useCandidateRegisterForm() {
       
       router.push("/dashboard/candidate");
       router.refresh();
-    } catch (error: unknown) {
+    } catch (error: any) {
       console.error("Error capturado en onSubmit de candidato:", error);
-      const errorMessage = error instanceof Error ? error.message : "No se pudo crear la cuenta.";
+      if (error && typeof error === "object") {
+        console.error("Detalles del error - Status:", error.status, "Código:", error.code);
+      }
+
+      let errorMessage = "No se pudo crear la cuenta de candidato. Inténtalo de nuevo.";
+
+      if (error instanceof Error) {
+        errorMessage = error.message;
+      } else if (typeof error === "object" && error !== null && "message" in error) {
+        errorMessage = String(error.message);
+      } else if (typeof error === "string") {
+        errorMessage = error;
+      }
+
       toast.error("Error al registrar", {
         description: errorMessage
       });
