@@ -1,0 +1,118 @@
+"use client";
+
+import * as React from "react";
+import { Search } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { cn } from "@/lib/utils";
+
+interface SearchFiltersProps {
+  search: string;
+  onSearchChange: (val: string) => void;
+  category: string;
+  onCategoryChange: (val: string) => void;
+  modality: string;
+  onModalityChange: (val: string) => void;
+  location: string;
+  onLocationChange: (val: string) => void;
+  categories: string[];
+  locations: string[];
+  className?: string;
+}
+
+export function SearchFilters({
+  search,
+  onSearchChange,
+  category,
+  onCategoryChange,
+  modality,
+  onModalityChange,
+  location,
+  onLocationChange,
+  categories,
+  locations,
+  className,
+}: SearchFiltersProps) {
+  return (
+    <div
+      className={cn(
+        "w-full bg-white/70 dark:bg-zinc-900/60 backdrop-blur-md border border-border/40 rounded-2xl p-4 md:p-5 flex flex-col md:flex-row gap-4 items-center shadow-xs transition-all duration-300",
+        className
+      )}
+    >
+      {/* Search Bar (Left / Main area) */}
+      <div className="relative w-full md:flex-1 group">
+        <Search className="absolute left-3.5 top-1/2 size-4 -translate-y-1/2 text-muted-foreground/60 group-focus-within:text-primary transition-colors" />
+        <Input
+          type="text"
+          placeholder="Buscar vacantes por cargo, habilidades o empresa..."
+          value={search}
+          onChange={(e) => onSearchChange(e.target.value)}
+          className="h-10 pl-10 pr-4 rounded-xl border-border/60 bg-white/60 dark:bg-zinc-800/40 focus-visible:ring-primary/30 focus-visible:border-primary text-sm placeholder:text-muted-foreground/50 transition-all w-full"
+        />
+      </div>
+
+      {/* Select Dropdowns (Right aligned) */}
+      <div className="flex flex-wrap items-center gap-3 w-full md:w-auto shrink-0 justify-start md:justify-end">
+        {/* Sector / Industria */}
+        <div className="flex flex-col gap-1 min-w-[130px] flex-1 md:flex-initial">
+          <Select value={category || "todos"} onValueChange={(val) => onCategoryChange(val === "todos" ? "" : val)}>
+            <SelectTrigger className="h-10 px-3 py-2 text-xs font-semibold rounded-xl border-border/60 bg-white/60 dark:bg-zinc-800/40 text-muted-foreground hover:text-foreground hover:bg-white dark:hover:bg-zinc-800 transition-all duration-200 w-full md:w-[150px]">
+              <SelectValue placeholder="Sector" />
+            </SelectTrigger>
+            <SelectContent className="bg-white/95 dark:bg-zinc-900/95 border-border/40 rounded-xl">
+              <SelectItem value="todos" className="text-xs font-medium cursor-pointer rounded-lg">Sector: Todos</SelectItem>
+              {categories.map((cat) => (
+                <SelectItem key={cat} value={cat} className="text-xs font-medium cursor-pointer rounded-lg">
+                  {cat === "Design" ? "Diseño" :
+                   cat === "Development" ? "Desarrollo" :
+                   cat === "Marketing" ? "Marketing" :
+                   cat === "Finance" ? "Finanzas" :
+                   cat === "Data" ? "Datos" : cat}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+
+        {/* Modalidad */}
+        <div className="flex flex-col gap-1 min-w-[130px] flex-1 md:flex-initial">
+          <Select value={modality || "todos"} onValueChange={(val) => onModalityChange(val === "todos" ? "" : val)}>
+            <SelectTrigger className="h-10 px-3 py-2 text-xs font-semibold rounded-xl border-border/60 bg-white/60 dark:bg-zinc-800/40 text-muted-foreground hover:text-foreground hover:bg-white dark:hover:bg-zinc-800 transition-all duration-200 w-full md:w-[140px]">
+              <SelectValue placeholder="Modalidad" />
+            </SelectTrigger>
+            <SelectContent className="bg-white/95 dark:bg-zinc-900/95 border-border/40 rounded-xl">
+              <SelectItem value="todos" className="text-xs font-medium cursor-pointer rounded-lg">Modalidad: Todas</SelectItem>
+              <SelectItem value="Presencial" className="text-xs font-medium cursor-pointer rounded-lg">Presencial</SelectItem>
+              <SelectItem value="Híbrido" className="text-xs font-medium cursor-pointer rounded-lg">Híbrido</SelectItem>
+              <SelectItem value="Remoto" className="text-xs font-medium cursor-pointer rounded-lg">Remoto</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+
+        {/* Zona / Ubicación */}
+        <div className="flex flex-col gap-1 min-w-[130px] flex-1 md:flex-initial">
+          <Select value={location || "todos"} onValueChange={(val) => onLocationChange(val === "todos" ? "" : val)}>
+            <SelectTrigger className="h-10 px-3 py-2 text-xs font-semibold rounded-xl border-border/60 bg-white/60 dark:bg-zinc-800/40 text-muted-foreground hover:text-foreground hover:bg-white dark:hover:bg-zinc-800 transition-all duration-200 w-full md:w-[160px]">
+              <SelectValue placeholder="Zona" />
+            </SelectTrigger>
+            <SelectContent className="bg-white/95 dark:bg-zinc-900/95 border-border/40 rounded-xl">
+              <SelectItem value="todos" className="text-xs font-medium cursor-pointer rounded-lg">Zona: Todas</SelectItem>
+              {locations.map((loc) => (
+                <SelectItem key={loc} value={loc} className="text-xs font-medium cursor-pointer rounded-lg">
+                  {loc}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+      </div>
+    </div>
+  );
+}
