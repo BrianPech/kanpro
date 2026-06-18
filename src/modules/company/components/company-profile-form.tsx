@@ -11,7 +11,9 @@ import {
   Link as LinkIcon, 
   Sparkles,
   RefreshCw,
-  Save
+  Save,
+  Phone,
+  Users
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -29,36 +31,28 @@ import { toast } from "sonner"
 
 export function CompanyProfileForm({ initialProfile, userId }: { initialProfile: any, userId: string }) {
   const {
-    profile,
-    setProfile,
+    form,
     isSaving,
-    handleSave,
+    onSubmit,
     handleReset,
   } = useCompanyProfileForm(initialProfile, userId)
 
-  const [charCount, setCharCount] = React.useState(0)
+  const { register, watch, setValue, formState: { errors } } = form
 
-  React.useEffect(() => {
-    setCharCount((profile.description || "").length)
-  }, [profile.description])
+  const logoUrl = watch("logo_url")
+  const description = watch("description") || ""
+  const charCount = description.length
 
   // Handle local logo file upload showing immediate browser previews
   const handleLogoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (file) {
       const localUrl = URL.createObjectURL(file)
-      setProfile({ ...profile, logo_url: localUrl })
+      setValue("logo_url", localUrl)
       toast.success("Logotipo cargado", {
         description: "Se ha generado una vista previa del logo comercial localmente.",
       })
     }
-  }
-
-  // Handle bio count change under 300 chars limit
-  const handleBioChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
-    const text = e.target.value.slice(0, 300)
-    setProfile({ ...profile, description: text })
-    setCharCount(text.length)
   }
 
   const isWarningCount = charCount >= 280
@@ -66,18 +60,18 @@ export function CompanyProfileForm({ initialProfile, userId }: { initialProfile:
   return (
     <div className="space-y-8 animate-in fade-in duration-500">
       
-      <form onSubmit={(e) => { e.preventDefault(); handleSave(); }} method="POST" className="space-y-8">
+      <form onSubmit={onSubmit} method="POST" className="space-y-8">
         
         {/* SECTION 1: IDENTIDAD VISUAL (GLASS CARD) */}
-        <div className="glass-card rounded-[24px] p-8">
+        <div className="glass-card rounded-[24px] p-8 bg-background/85 backdrop-blur-md border border-border/50">
           <div className="flex flex-col md:flex-row gap-8 items-center md:items-start text-center md:text-left">
             
             {/* Logo uploader circular box */}
             <div className="flex-shrink-0 relative group">
               <div className="w-32 h-32 rounded-full bg-muted/60 border-2 border-dashed border-border/80 flex flex-col items-center justify-center cursor-pointer hover:border-primary hover:bg-primary/5 transition-all duration-300 overflow-hidden relative shadow-sm">
                 
-                {profile.logo_url ? (
-                  <img src={profile.logo_url} alt="Logo" className="w-full h-full object-cover" />
+                {logoUrl ? (
+                  <img src={logoUrl} alt="Logo" className="w-full h-full object-cover" />
                 ) : (
                   <>
                     <Camera className="size-8 text-muted-foreground group-hover:text-primary transition-colors" />
@@ -111,7 +105,7 @@ export function CompanyProfileForm({ initialProfile, userId }: { initialProfile:
             {/* Logo details and specs */}
             <div className="flex-grow pt-2 space-y-2">
               <h3 className="text-xl font-extrabold text-foreground tracking-tight flex items-center gap-2 justify-center md:justify-start">
-                <Sparkles className="size-5 text-primary" />
+                <Sparkles className="size-5 text-indigo-600" />
                 Identidad Corporativa
               </h3>
               <p className="text-sm text-muted-foreground font-medium max-w-md leading-relaxed">
@@ -123,35 +117,37 @@ export function CompanyProfileForm({ initialProfile, userId }: { initialProfile:
         </div>
 
         {/* SECTION 2: INFORMACIÓN GENERAL (GLASS CARD) */}
-        <div className="glass-card rounded-[24px] p-8 space-y-8">
+        <div className="glass-card rounded-[24px] p-8 space-y-8 bg-background/85 backdrop-blur-md border border-border/50">
           
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             
             {/* Commercial Name Input */}
             <div className="space-y-2">
               <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground px-1">
-                Nombre Comercial
+                Nombre Comercial *
               </Label>
               <div className="relative">
                 <Building2 className="absolute left-4 top-1/2 -translate-y-1/2 w-4.5 h-4.5 text-muted-foreground" />
                 <Input 
                   type="text"
                   placeholder="Ej. Soluciones Tech S.A." 
-                  value={profile.company_name || ""}
-                  onChange={(e) => setProfile({ ...profile, company_name: e.target.value })}
+                  {...register("company_name")}
                   className="w-full h-12 bg-muted/30 border-none rounded-xl pl-12 pr-4 focus-visible:ring-2 focus-visible:ring-primary focus-visible:bg-background text-sm font-semibold transition-all outline-none"
                 />
               </div>
+              {errors.company_name && (
+                <p className="text-xs font-semibold text-destructive px-1">{errors.company_name.message}</p>
+              )}
             </div>
 
             {/* Industry Sector Dropdown Select */}
             <div className="space-y-2">
               <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground px-1">
-                Sector Industrial
+                Sector Industrial *
               </Label>
               <Select 
-                value={profile.industry || ""} 
-                onValueChange={(value) => setProfile({ ...profile, industry: value })}
+                value={watch("industry") || ""} 
+                onValueChange={(value) => setValue("industry", value, { shouldValidate: true })}
               >
                 <SelectTrigger className="w-full h-12 bg-muted/30 border-none rounded-xl px-4 text-sm font-semibold focus:ring-2 focus:ring-primary focus:bg-background transition-all outline-none shadow-none">
                   <SelectValue placeholder="Selecciona un sector" />
@@ -163,9 +159,14 @@ export function CompanyProfileForm({ initialProfile, userId }: { initialProfile:
                   <SelectItem value="Educación">Educación</SelectItem>
                   <SelectItem value="Diseño">Diseño & Creatividad</SelectItem>
                   <SelectItem value="Marketing">Marketing & Ventas</SelectItem>
+                  <SelectItem value="Comercial">Comercial & Ventas</SelectItem>
+                  <SelectItem value="Administración">Administración & Operaciones</SelectItem>
                   <SelectItem value="Otro">Otro Sector</SelectItem>
                 </SelectContent>
               </Select>
+              {errors.industry && (
+                <p className="text-xs font-semibold text-destructive px-1">{errors.industry.message}</p>
+              )}
             </div>
 
           </div>
@@ -182,64 +183,93 @@ export function CompanyProfileForm({ initialProfile, userId }: { initialProfile:
               <div className="relative flex items-center">
                 <Globe className="absolute left-4 top-1/2 -translate-y-1/2 w-4.5 h-4.5 text-muted-foreground" />
                 <Input 
-                  type="url"
+                  type="text"
                   placeholder="https://miempresa.com" 
-                  value={profile.website_or_linkedin || ""}
-                  onChange={(e) => setProfile({ ...profile, website_or_linkedin: e.target.value })}
+                  {...register("website_or_linkedin")}
                   className="w-full h-12 bg-muted/30 border-none rounded-xl pl-12 pr-4 focus-visible:ring-2 focus-visible:ring-primary focus-visible:bg-background text-sm font-semibold transition-all outline-none"
                 />
               </div>
+              {errors.website_or_linkedin && (
+                <p className="text-xs font-semibold text-destructive px-1">{errors.website_or_linkedin.message}</p>
+              )}
             </div>
 
-            {/* LinkedIn Profile Input */}
+            {/* Location Input */}
             <div className="space-y-2">
               <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground px-1">
-                LinkedIn de la Empresa
+                Ubicación Principal *
               </Label>
               <div className="relative flex items-center">
-                <LinkIcon className="absolute left-4 top-1/2 -translate-y-1/2 w-4.5 h-4.5 text-muted-foreground" />
+                <MapPin className="absolute left-4 top-1/2 -translate-y-1/2 w-4.5 h-4.5 text-muted-foreground" />
                 <Input 
-                  type="url"
-                  placeholder="linkedin.com/company/miempresa" 
-                  value={profile.linkedin || ""}
-                  onChange={(e) => setProfile({ ...profile, linkedin: e.target.value })}
+                  type="text"
+                  placeholder="Ciudad, País" 
+                  {...register("location")}
                   className="w-full h-12 bg-muted/30 border-none rounded-xl pl-12 pr-4 focus-visible:ring-2 focus-visible:ring-primary focus-visible:bg-background text-sm font-semibold transition-all outline-none"
                 />
               </div>
+              {errors.location && (
+                <p className="text-xs font-semibold text-destructive px-1">{errors.location.message}</p>
+              )}
             </div>
 
           </div>
 
           <div className="h-px bg-border/40 w-full"></div>
 
-          {/* Location Input */}
-          <div className="space-y-2">
-            <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground px-1">
-              Ubicación Principal
-            </Label>
-            <div className="relative flex items-center">
-              <MapPin className="absolute left-4 top-1/2 -translate-y-1/2 w-4.5 h-4.5 text-muted-foreground" />
-              <Input 
-                type="text"
-                placeholder="Ciudad, País" 
-                value={profile.location || ""}
-                onChange={(e) => setProfile({ ...profile, location: e.target.value })}
-                className="w-full h-12 bg-muted/30 border-none rounded-xl pl-12 pr-4 focus-visible:ring-2 focus-visible:ring-primary focus-visible:bg-background text-sm font-semibold transition-all outline-none"
-              />
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            
+            {/* Phone Input */}
+            <div className="space-y-2">
+              <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground px-1">
+                Teléfono de Contacto
+              </Label>
+              <div className="relative flex items-center">
+                <Phone className="absolute left-4 top-1/2 -translate-y-1/2 w-4.5 h-4.5 text-muted-foreground" />
+                <Input 
+                  type="tel"
+                  placeholder="Ej. +52 55 1234 5678" 
+                  {...register("phone")}
+                  className="w-full h-12 bg-muted/30 border-none rounded-xl pl-12 pr-4 focus-visible:ring-2 focus-visible:ring-primary focus-visible:bg-background text-sm font-semibold transition-all outline-none"
+                />
+              </div>
             </div>
+
+            {/* Company Size Input */}
+            <div className="space-y-2">
+              <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground px-1">
+                Tamaño de la Empresa
+              </Label>
+              <Select 
+                value={watch("company_size") || ""} 
+                onValueChange={(value) => setValue("company_size", value)}
+              >
+                <SelectTrigger className="w-full h-12 bg-muted/30 border-none rounded-xl px-4 text-sm font-semibold focus:ring-2 focus:ring-primary focus:bg-background transition-all outline-none shadow-none">
+                  <SelectValue placeholder="Selecciona el tamaño" />
+                </SelectTrigger>
+                <SelectContent className="rounded-xl border-border/60">
+                  <SelectItem value="1-10">1 - 10 empleados</SelectItem>
+                  <SelectItem value="11-50">11 - 50 empleados</SelectItem>
+                  <SelectItem value="51-200">51 - 200 empleados</SelectItem>
+                  <SelectItem value="201-500">201 - 500 empleados</SelectItem>
+                  <SelectItem value="500+">Más de 500 empleados</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
           </div>
 
         </div>
 
         {/* SECTION 3: NARRATIVA (GLASS CARD) */}
-        <div className="glass-card rounded-[24px] p-8 space-y-4">
+        <div className="glass-card rounded-[24px] p-8 space-y-4 bg-background/85 backdrop-blur-md border border-border/50">
           <div className="flex justify-between items-end">
             <div className="space-y-1">
               <h4 className="text-lg font-extrabold text-foreground tracking-tight">
                 Bio Comercial
               </h4>
               <p className="text-xs text-muted-foreground font-medium">
-                Resume la misión y valor de tu empresa para clientes potenciales.
+                Describe brevemente la misión y el valor de tu empresa para los candidatos.
               </p>
             </div>
             <span 
@@ -255,11 +285,13 @@ export function CompanyProfileForm({ initialProfile, userId }: { initialProfile:
           <Textarea 
             id="bio-textarea"
             maxLength={300}
-            value={profile.description || ""}
-            onChange={handleBioChange}
             placeholder="Describe brevemente tu organización..."
+            {...register("description")}
             className="w-full h-32 bg-muted/30 border-none rounded-xl px-6 py-4 focus-visible:ring-2 focus-visible:ring-primary focus-visible:bg-background text-sm font-semibold transition-all resize-none shadow-none"
           />
+          {errors.description && (
+            <p className="text-xs font-semibold text-destructive px-1">{errors.description.message}</p>
+          )}
         </div>
 
         {/* FOOTER ACTIONS BAR */}

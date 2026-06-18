@@ -40,6 +40,10 @@ export const companyService = {
       industry: profile.industry,
       website_or_linkedin: profile.website_or_linkedin,
       location: profile.location,
+      logo_url: profile.logo_url || null,
+      description: profile.description || null,
+      phone: profile.phone || null,
+      company_size: profile.company_size || null,
       updated_at: new Date().toISOString(),
     });
 
@@ -87,4 +91,61 @@ export const companyService = {
 
     if (error) throw error;
   },
+
+  async updateVacancyStatus(vacancyId: string, status: string) {
+    const supabase = createClient();
+    const { error } = await supabase
+      .from("vacancies")
+      .update({ status, updated_at: new Date().toISOString() })
+      .eq("id", vacancyId);
+
+    if (error) throw error;
+  },
+
+  async getApplications(companyId: string) {
+    const supabase = createClient();
+    const { data, error } = await supabase
+      .from("applications")
+      .select(`
+        id,
+        status,
+        created_at,
+        vacancy_id,
+        vacancies (
+          id,
+          title,
+          company_id
+        ),
+        candidate:profiles (
+          id,
+          full_name,
+          headline,
+          bio,
+          phone,
+          location,
+          skills,
+          avatar_url,
+          experience,
+          education,
+          email
+        )
+      `)
+      .order("created_at", { ascending: false });
+
+    if (error) throw error;
+    
+    // Filter records in memory to match vacancy owner
+    return (data || []).filter((app: any) => app.vacancies?.company_id === companyId);
+  },
+
+  async updateApplicationStatus(applicationId: string, status: string) {
+    const supabase = createClient();
+    const { error } = await supabase
+      .from("applications")
+      .update({ status, updated_at: new Date().toISOString() })
+      .eq("id", applicationId);
+
+    if (error) throw error;
+  },
 };
+

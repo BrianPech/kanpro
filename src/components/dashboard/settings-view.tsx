@@ -16,14 +16,11 @@ import {
   Briefcase,
   HelpCircle,
   LogOut,
-  Image as ImageIcon,
-  Star,
-  DollarSign,
-  Award
+  ChevronRight
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
-export default function SettingsPage() {
+export function SettingsView() {
   const [activeTab, setActiveTab] = React.useState("themes");
 
   return (

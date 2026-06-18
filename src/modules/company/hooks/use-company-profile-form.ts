@@ -1,26 +1,38 @@
-import { useState } from "react";
+import * as React from "react";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
+import { companyProfileSchema, type CompanyProfileFormValues } from "../schemas/company.schema";
 import { companyService } from "../services/company-service";
 
 export function useCompanyProfileForm(initialProfile: any, userId: string) {
-  const [isSaving, setIsSaving] = useState(false);
-  const [profile, setProfile] = useState(initialProfile);
+  const [isSaving, setIsSaving] = React.useState(false);
 
-  const handleSave = async () => {
-    if (!profile.company_name) {
-      toast.error("El nombre de la empresa es obligatorio");
-      return;
-    }
+  const form = useForm<CompanyProfileFormValues>({
+    resolver: zodResolver(companyProfileSchema),
+    defaultValues: {
+      company_name: initialProfile?.company_name || "",
+      industry: initialProfile?.industry || "",
+      website_or_linkedin: initialProfile?.website_or_linkedin || "",
+      location: initialProfile?.location || "",
+      logo_url: initialProfile?.logo_url || "",
+      description: initialProfile?.description || "",
+      phone: initialProfile?.phone || "",
+      company_size: initialProfile?.company_size || "",
+    },
+  });
 
+  const onSubmit = async (values: CompanyProfileFormValues) => {
     setIsSaving(true);
     try {
-      await companyService.updateProfile(userId, profile);
-      toast.success("Perfil actualizado", {
-        description: "La información de tu empresa ha sido guardada."
+      await companyService.updateProfile(userId, values);
+      toast.success("¡Perfil actualizado con éxito!", {
+        description: "La información de tu empresa ha sido guardada en la base de datos."
       });
+      form.reset(values);
     } catch (error: any) {
       console.error(error);
-      toast.error("Error", {
+      toast.error("Error al guardar el perfil", {
         description: "No se pudo guardar el perfil de la empresa."
       });
     } finally {
@@ -29,14 +41,13 @@ export function useCompanyProfileForm(initialProfile: any, userId: string) {
   };
 
   const handleReset = () => {
-    setProfile(initialProfile);
+    form.reset();
   };
 
   return {
-    profile,
-    setProfile,
+    form,
     isSaving,
-    handleSave,
+    onSubmit: form.handleSubmit(onSubmit),
     handleReset,
   };
 }

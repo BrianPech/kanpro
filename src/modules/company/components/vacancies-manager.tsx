@@ -36,10 +36,8 @@ import { useSearchParams } from "next/navigation"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { Label } from "@/components/ui/label"
-import { Controller, useForm } from "react-hook-form"
-import { zodResolver } from "@hookform/resolvers/zod"
-import * as z from "zod"
-import { companyService } from "@/modules/company/services/company-service"
+import { Controller } from "react-hook-form"
+import { useVacanciesManager, type Vacancy } from "../hooks/use-vacancies-manager"
 import { toast } from "sonner"
 import {
   Select,
@@ -82,131 +80,29 @@ const employmentTypes = [
 ] as const
 const currencies = ["USD", "EUR", "MXN", "ARS", "COP"] as const
 
-const optionalNumber = z.preprocess((value) => {
-  if (value === "" || value === null || value === undefined) return undefined
-  const parsedValue = Number(value)
-  return Number.isNaN(parsedValue) ? undefined : parsedValue
-}, z.number().positive().optional())
-
-const vacancySchema = z.object({
-  title: z.string().min(3, "El título debe tener al menos 3 caracteres"),
-  description: z
-    .string()
-    .min(10, "La descripción debe tener al menos 10 caracteres"),
-  modality: z.enum(modalities),
-  location: z.string().optional(),
-  category: z.string().optional(),
-  seniority: z.string().optional(),
-  contract_type: z.string().optional(),
-  employment_type: z.string().optional(),
-  vacancies_count: z.coerce
-    .number()
-    .int()
-    .min(1, "Debe haber al menos 1 vacante"),
-  application_deadline: z.string().optional(),
-  salary_min: optionalNumber,
-  salary_max: optionalNumber,
-  currency: z.enum(currencies),
-  skills: z
-    .string()
-    .min(1, "Ingresa al menos una habilidad (separadas por comas)"),
-  benefits: z.string().optional(),
-})
-
-type VacancyFormValues = z.infer<typeof vacancySchema>
-
-interface Vacancy {
-  id: string
-  title: string
-  description: string
-  modality: string
-  salary?: string | null
-  skills: string[]
-  status: string
-  location?: string | null
-  category?: string | null
-  seniority?: string | null
-  contract_type?: string | null
-  employment_type?: string | null
-  vacancies_count?: number | null
-  application_deadline?: string | null
-  benefits?: string[] | null
-  salary_min?: number | null
-  salary_max?: number | null
-  currency?: string | null
-  created_at: string
-  applicants?: number
-  matchScore?: string
-  lastSaved?: string
-  trend?: string
-  closingIn?: string
-  tag?: string
-  cycleTime?: string
-  filledDate?: string
-}
-
 export function VacanciesManager({ userId }: { userId: string }) {
   const searchParams = useSearchParams()
   const shouldCreate = searchParams.get("create") === "true"
 
-  const [isCreating, setIsCreating] = React.useState(shouldCreate)
-  const [vacancies, setVacancies] = React.useState<Vacancy[]>([])
-  const [isLoading, setIsLoading] = React.useState(true)
-  const [searchQuery, setSearchQuery] = React.useState("")
-  const [dragOverColumn, setDragOverColumn] = React.useState<string | null>(null)
-  const [isExporting, setIsExporting] = React.useState(false)
-
-  // Fetch live vacancies
-  const fetchVacancies = React.useCallback(async () => {
-    try {
-      const data = await companyService.getVacancies(userId)
-      const formattedData = (data || []).map(item => ({
-        ...item,
-        skills: item.skills || [],
-      })) as Vacancy[]
-      setVacancies(formattedData)
-    } catch (error) {
-      console.error("Error loading vacancies:", error)
-      toast.error("Error al cargar las vacantes", {
-        description: "Hubo un problema al cargar los datos desde la base de datos.",
-      })
-    } finally {
-      setIsLoading(false)
-    }
-  }, [userId])
-
-  React.useEffect(() => {
-    fetchVacancies()
-  }, [fetchVacancies])
-
-  // Setup react-hook-form
   const {
-    register,
-    handleSubmit,
-    reset,
-    control,
-    watch,
-    formState: { errors, isSubmitting },
-  } = useForm<any>({
-    resolver: zodResolver(vacancySchema as any),
-    defaultValues: {
-      title: "",
-      description: "",
-      modality: "Remoto",
-      location: "",
-      category: "Tecnología",
-      seniority: "Intermedio",
-      contract_type: "Indefinido",
-      employment_type: "Tiempo completo",
-      vacancies_count: 1,
-      application_deadline: "",
-      salary_min: undefined,
-      salary_max: undefined,
-      currency: "USD",
-      skills: "",
-      benefits: "",
-    },
-  })
+    isCreating,
+    setIsCreating,
+    vacancies,
+    isLoading,
+    searchQuery,
+    setSearchQuery,
+    dragOverColumn,
+    isExporting,
+    form,
+    onSubmit,
+    handleSaveDraft,
+    handleExportReport,
+    handleDragOver,
+    handleDragLeave,
+    handleDrop,
+  } = useVacanciesManager(userId, shouldCreate)
+
+  const { register, control, watch, formState: { errors, isSubmitting } } = form
 
   // Watch form fields for live preview synchronization
   const watchTitle = watch("title", "")
@@ -218,48 +114,6 @@ export function VacanciesManager({ userId }: { userId: string }) {
   const watchCurrency = watch("currency", "USD")
   const watchDescription = watch("description", "")
 
-  // Save vacancy to Supabase
-  const onSubmit = async (data: any) => {
-    try {
-      await companyService.createVacancy(userId, data)
-      toast.success("¡Vacante publicada con éxito!", {
-        description: `Se ha registrado "${data.title}" en la columna de ofertas Activas.`,
-      })
-      await fetchVacancies()
-      setIsCreating(false)
-      reset()
-    } catch (error) {
-      console.error("Error creating vacancy:", error)
-      toast.error("Error al publicar la vacante", {
-        description: "Revisa la conexión o los campos obligatorios.",
-      })
-    }
-  }
-
-  // Save Draft simulated handler
-  const handleSaveDraft = () => {
-    toast.success("Borrador guardado", {
-      description: `Se ha guardado tu borrador para "${watchTitle || "Vacante sin título"}".`,
-    })
-    setIsCreating(false)
-    reset()
-  }
-
-  // Simulated Report Export
-  const handleExportReport = () => {
-    setIsExporting(true)
-    toast.info("Generando reporte completo...", {
-      description: "Compilando estadísticas de vacantes y postulantes.",
-    })
-    
-    setTimeout(() => {
-      setIsExporting(false)
-      toast.success("¡Reporte exportado con éxito!", {
-        description: "Se ha guardado el archivo PDF con las métricas de selección.",
-      })
-    }, 1500)
-  }
-
   // Combine database data and official mock seed data
   const allVacancies = React.useMemo(() => {
     const parsedDB: Vacancy[] = vacancies.map((v) => ({
@@ -267,13 +121,13 @@ export function VacanciesManager({ userId }: { userId: string }) {
       skills: Array.isArray(v.skills) ? v.skills : (v.skills ? String(v.skills).split(",") : []),
     }))
 
-    if (parsedDB.length === 0) {
+    if (parsedDB.length === 0 && !isLoading) {
       return [
         {
           id: "mock-draft-1",
           title: "Sr. UI/UX Designer",
           description: "Design Operations Team. Responsable del diseño e interactividad en portales.",
-          modality: "Híbrido",
+          modality: "Híbrido" as const,
           status: "Draft",
           location: "Híbrido / Oficina",
           category: "Tecnología",
@@ -288,7 +142,7 @@ export function VacanciesManager({ userId }: { userId: string }) {
           id: "mock-active-1",
           title: "Full Stack Engineer",
           description: "Platform Infrastructure. Desarrollo de backend estructurado y despliegues automáticos.",
-          modality: "Remoto",
+          modality: "Remoto" as const,
           status: "Active",
           location: "Remoto",
           category: "Tecnología",
@@ -303,7 +157,7 @@ export function VacanciesManager({ userId }: { userId: string }) {
           id: "mock-active-2",
           title: "Data Scientist",
           description: "Core AI Research. Modelación predictiva e implementaciones de LLMs avanzados.",
-          modality: "Remoto",
+          modality: "Remoto" as const,
           status: "Active",
           location: "Remoto",
           category: "Tecnología",
@@ -318,7 +172,7 @@ export function VacanciesManager({ userId }: { userId: string }) {
           id: "mock-paused-1",
           title: "Product Manager",
           description: "Expansion Team. Liderazgo en el despliegue del portal internacional.",
-          modality: "Híbrido",
+          modality: "Híbrido" as const,
           status: "Paused",
           location: "Híbrido",
           category: "Administración",
@@ -333,7 +187,7 @@ export function VacanciesManager({ userId }: { userId: string }) {
           id: "mock-closed-1",
           title: "Account Executive",
           description: "Contratada: María García. Proceso acelerado y con alta tasa de efectividad.",
-          modality: "Presencial",
+          modality: "Presencial" as const,
           status: "Closed",
           location: "Oficina Central",
           category: "Comercial",
@@ -349,7 +203,7 @@ export function VacanciesManager({ userId }: { userId: string }) {
     }
 
     return parsedDB
-  }, [vacancies])
+  }, [vacancies, isLoading])
 
   // Filter roster based on search text
   const filteredVacancies = React.useMemo(() => {
@@ -380,23 +234,6 @@ export function VacanciesManager({ userId }: { userId: string }) {
     filteredVacancies.filter((v) => v.status === "Closed" || v.status === "Cerrada"), 
   [filteredVacancies])
 
-  // Drag & Drop handlers
-  const handleDragOver = (e: React.DragEvent, colName: string) => {
-    e.preventDefault()
-    setDragOverColumn(colName)
-  }
-
-  const handleDragLeave = () => {
-    setDragOverColumn(null)
-  }
-
-  const handleDrop = (colName: string) => {
-    setDragOverColumn(null)
-    toast.success("Estado de vacante actualizado", {
-      description: `La vacante ha sido trasladada a la columna de ${colName}.`,
-    })
-  }
-
   return (
     <div className="flex-grow min-h-screen bg-background px-4 md:px-10 lg:px-12 py-10 flex flex-col gap-8 overflow-hidden h-[calc(100vh-64px)] selection:bg-primary-container selection:text-on-primary animate-in fade-in duration-500">
       
@@ -409,10 +246,10 @@ export function VacanciesManager({ userId }: { userId: string }) {
           <div className="flex-1 flex flex-col gap-8">
             <div className="flex flex-col gap-2">
               <h1 className="text-3xl font-extrabold text-foreground tracking-tight md:text-4xl">
-                Post a New Vacancy
+                Publicar una Nueva Vacante
               </h1>
               <p className="text-sm md:text-base text-muted-foreground font-medium">
-                Fill in the details to find your next elite professional. Your draft is saved automatically.
+                Completa los detalles para encontrar a tu próximo profesional.
               </p>
             </div>
 
@@ -420,23 +257,23 @@ export function VacanciesManager({ userId }: { userId: string }) {
             <div className="flex items-center gap-4 py-2 shrink-0">
               <div className="flex items-center gap-2">
                 <span className="h-8 w-8 rounded-full bg-primary text-on-primary flex items-center justify-center font-bold text-xs">1</span>
-                <span className="text-xs font-bold text-foreground">General Info</span>
+                <span className="text-xs font-bold text-foreground">Info General</span>
               </div>
               <div className="h-[2px] w-12 bg-border/80"></div>
               <div className="flex items-center gap-2 opacity-50">
                 <span className="h-8 w-8 rounded-full bg-muted border border-border flex items-center justify-center font-bold text-xs text-muted-foreground">2</span>
-                <span className="text-xs font-bold text-muted-foreground">Detailed Description</span>
+                <span className="text-xs font-bold text-muted-foreground">Descripción</span>
               </div>
               <div className="h-[2px] w-12 bg-border/80"></div>
               <div className="flex items-center gap-2 opacity-50">
                 <span className="h-8 w-8 rounded-full bg-muted border border-border flex items-center justify-center font-bold text-xs text-muted-foreground">3</span>
-                <span className="text-xs font-bold text-muted-foreground">Perks & Salary</span>
+                <span className="text-xs font-bold text-muted-foreground">Beneficios & Salario</span>
               </div>
             </div>
 
             {/* Form Fields Card */}
-            <section className="glass-card rounded-[28px] p-8 md:p-10 flex flex-col gap-8 shadow-sm">
-              <form onSubmit={handleSubmit(onSubmit)} method="POST" className="space-y-6">
+            <section className="glass-card rounded-[28px] p-8 md:p-10 flex flex-col gap-8 shadow-sm bg-background/80 backdrop-blur-md border border-border/50">
+              <form onSubmit={onSubmit} method="POST" className="space-y-6">
                 
                 {/* General Info Section */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -444,11 +281,11 @@ export function VacanciesManager({ userId }: { userId: string }) {
                   {/* Job Title */}
                   <div className="flex flex-col gap-2 md:col-span-2">
                     <Label htmlFor="title" className="text-xs font-bold uppercase tracking-wider text-muted-foreground px-1">
-                      Job Title
+                      Título de la Vacante *
                     </Label>
                     <Input 
                       id="title"
-                      placeholder="e.g. Senior Cloud Architect" 
+                      placeholder="Ej. Desarrollador React Senior" 
                       className="w-full h-12 bg-muted/30 border-none rounded-xl px-4 focus-visible:ring-2 focus-visible:ring-primary focus-visible:bg-background text-sm font-semibold transition-all outline-none"
                       {...register("title")}
                     />
@@ -460,7 +297,7 @@ export function VacanciesManager({ userId }: { userId: string }) {
                   {/* Category select */}
                   <div className="flex flex-col gap-2">
                     <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground px-1">
-                      Category
+                      Categoría
                     </Label>
                     <Controller
                       control={control}
@@ -468,13 +305,16 @@ export function VacanciesManager({ userId }: { userId: string }) {
                       render={({ field }) => (
                         <Select value={field.value || undefined} onValueChange={field.onChange}>
                           <SelectTrigger className="w-full h-12 bg-muted/30 border-none rounded-xl px-4 text-sm font-semibold focus:ring-2 focus:ring-primary focus:bg-background transition-all outline-none shadow-none">
-                            <SelectValue placeholder="Select Category" />
+                            <SelectValue placeholder="Selecciona Categoría" />
                           </SelectTrigger>
                           <SelectContent className="rounded-xl border-border/60">
-                            <SelectItem value="Tecnología">Engineering & Software</SelectItem>
-                            <SelectItem value="Diseño">Creative & UX Design</SelectItem>
-                            <SelectItem value="Comercial">Sales & Marketing</SelectItem>
-                            <SelectItem value="Administración">Product & Business Management</SelectItem>
+                            <SelectItem value="Tecnología">Tecnología & Software</SelectItem>
+                            <SelectItem value="Diseño">Diseño & Creatividad</SelectItem>
+                            <SelectItem value="Comercial">Comercial & Ventas</SelectItem>
+                            <SelectItem value="Administración">Administración & Operaciones</SelectItem>
+                            <SelectItem value="Atención al cliente">Atención al cliente</SelectItem>
+                            <SelectItem value="Finanzas">Finanzas & Banca</SelectItem>
+                            <SelectItem value="Logística">Logística & Distribución</SelectItem>
                           </SelectContent>
                         </Select>
                       )}
@@ -484,7 +324,7 @@ export function VacanciesManager({ userId }: { userId: string }) {
                   {/* Job Type select */}
                   <div className="flex flex-col gap-2">
                     <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground px-1">
-                      Job Type
+                      Modalidad
                     </Label>
                     <Controller
                       control={control}
@@ -492,12 +332,12 @@ export function VacanciesManager({ userId }: { userId: string }) {
                       render={({ field }) => (
                         <Select value={field.value} onValueChange={field.onChange}>
                           <SelectTrigger className="w-full h-12 bg-muted/30 border-none rounded-xl px-4 text-sm font-semibold focus:ring-2 focus:ring-primary focus:bg-background transition-all outline-none shadow-none">
-                            <SelectValue placeholder="Select Modality" />
+                            <SelectValue placeholder="Selecciona Modalidad" />
                           </SelectTrigger>
                           <SelectContent className="rounded-xl border-border/60">
-                            <SelectItem value="Remoto">Full-time (Remoto)</SelectItem>
-                            <SelectItem value="Híbrido">Hybrid (Híbrido)</SelectItem>
-                            <SelectItem value="Presencial">Presencial (On-Site)</SelectItem>
+                            <SelectItem value="Remoto">Remoto</SelectItem>
+                            <SelectItem value="Híbrido">Híbrido</SelectItem>
+                            <SelectItem value="Presencial">Presencial</SelectItem>
                           </SelectContent>
                         </Select>
                       )}
@@ -507,12 +347,12 @@ export function VacanciesManager({ userId }: { userId: string }) {
                   {/* Location input */}
                   <div className="flex flex-col gap-2">
                     <Label htmlFor="location" className="text-xs font-bold uppercase tracking-wider text-muted-foreground px-1">
-                      Location
+                      Ubicación
                     </Label>
                     <div className="relative">
                       <Input 
                         id="location"
-                        placeholder="e.g. Remote or San Francisco" 
+                        placeholder="Ej. Madrid / Remoto" 
                         className="w-full h-12 bg-muted/30 border-none rounded-xl pl-12 pr-4 focus-visible:ring-2 focus-visible:ring-primary focus-visible:bg-background text-sm font-semibold transition-all outline-none"
                         {...register("location")}
                       />
@@ -523,7 +363,7 @@ export function VacanciesManager({ userId }: { userId: string }) {
                   {/* Positions count */}
                   <div className="flex flex-col gap-2">
                     <Label htmlFor="vacancies_count" className="text-xs font-bold uppercase tracking-wider text-muted-foreground px-1">
-                      Number of positions
+                      Número de puestos *
                     </Label>
                     <Input
                       id="vacancies_count"
@@ -544,7 +384,7 @@ export function VacanciesManager({ userId }: { userId: string }) {
                 {/* Description & Rich Text simulation */}
                 <div className="flex flex-col gap-2">
                   <Label htmlFor="description" className="text-xs font-bold uppercase tracking-wider text-muted-foreground px-1">
-                    Job Description
+                    Descripción del Puesto *
                   </Label>
                   
                   <div className="w-full border border-border/60 rounded-2xl overflow-hidden shadow-sm bg-card">
@@ -566,7 +406,7 @@ export function VacanciesManager({ userId }: { userId: string }) {
 
                     <Textarea 
                       id="description"
-                      placeholder="Tell us about the role, responsibilities, and qualifications..."
+                      placeholder="Describe el rol, responsabilidades y requisitos clave..."
                       className="w-full min-h-48 border-none p-5 text-sm font-semibold transition-all resize-none shadow-none bg-card focus-visible:ring-0 focus-visible:ring-offset-0"
                       {...register("description")}
                     />
@@ -584,7 +424,7 @@ export function VacanciesManager({ userId }: { userId: string }) {
                   {/* Min salary */}
                   <div className="flex flex-col gap-2">
                     <Label htmlFor="salary_min" className="text-xs font-bold uppercase tracking-wider text-muted-foreground px-1">
-                      Min Salary (Annual USD)
+                      Salario Mínimo (Anual)
                     </Label>
                     <Input 
                       id="salary_min"
@@ -598,7 +438,7 @@ export function VacanciesManager({ userId }: { userId: string }) {
                   {/* Max salary */}
                   <div className="flex flex-col gap-2">
                     <Label htmlFor="salary_max" className="text-xs font-bold uppercase tracking-wider text-muted-foreground px-1">
-                      Max Salary (Annual USD)
+                      Salario Máximo (Anual)
                     </Label>
                     <Input 
                       id="salary_max"
@@ -612,7 +452,7 @@ export function VacanciesManager({ userId }: { userId: string }) {
                   {/* Currency */}
                   <div className="flex flex-col gap-2">
                     <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground px-1">
-                      Currency
+                      Moneda
                     </Label>
                     <Controller
                       control={control}
@@ -620,7 +460,7 @@ export function VacanciesManager({ userId }: { userId: string }) {
                       render={({ field }) => (
                         <Select value={field.value} onValueChange={field.onChange}>
                           <SelectTrigger className="w-full h-12 bg-muted/30 border-none rounded-xl px-4 text-sm font-semibold focus:ring-2 focus:ring-primary focus:bg-background transition-all outline-none shadow-none">
-                            <SelectValue placeholder="Currency" />
+                            <SelectValue placeholder="Moneda" />
                           </SelectTrigger>
                           <SelectContent className="rounded-xl border-border/60">
                             {currencies.map((currencyOption) => (
@@ -639,11 +479,11 @@ export function VacanciesManager({ userId }: { userId: string }) {
                 {/* Key Skills */}
                 <div className="flex flex-col gap-2">
                   <Label htmlFor="skills" className="text-xs font-bold uppercase tracking-wider text-muted-foreground px-1">
-                    Key Requirements (Skills, comma separated)
+                    Habilidades Requeridas * (Separadas por comas)
                   </Label>
                   <Input 
                     id="skills"
-                    placeholder="e.g. Cloud Security, AWS, Kubernetes, Terraform"
+                    placeholder="Ej. React, TypeScript, Node.js, TailwindCSS"
                     className="w-full h-12 bg-muted/30 border-none rounded-xl px-4 focus-visible:ring-2 focus-visible:ring-primary focus-visible:bg-background text-sm font-semibold transition-all outline-none"
                     {...register("skills")}
                   />
@@ -655,11 +495,11 @@ export function VacanciesManager({ userId }: { userId: string }) {
                 {/* Benefits */}
                 <div className="flex flex-col gap-2">
                   <Label htmlFor="benefits" className="text-xs font-bold uppercase tracking-wider text-muted-foreground px-1">
-                    Perks & Benefits
+                    Beneficios & Perks (Separados por comas)
                   </Label>
                   <Input 
                     id="benefits"
-                    placeholder="e.g. Health Insurance, Gym Membership, Remote Budget"
+                    placeholder="Ej. Seguro Médico, Trabajo Remoto, Presupuesto de Aprendizaje"
                     className="w-full h-12 bg-muted/30 border-none rounded-xl px-4 focus-visible:ring-2 focus-visible:ring-primary focus-visible:bg-background text-sm font-semibold transition-all outline-none"
                     {...register("benefits")}
                   />
@@ -670,11 +510,11 @@ export function VacanciesManager({ userId }: { userId: string }) {
                   <Button 
                     type="button"
                     variant="ghost"
-                    onClick={() => { setIsCreating(false); reset(); }}
+                    onClick={() => { setIsCreating(false); form.reset(); }}
                     className="px-6 py-5 rounded-xl font-bold text-muted-foreground hover:bg-muted text-xs md:text-sm active:scale-95 transition-all shadow-none flex items-center gap-2"
                   >
                     <Trash2 className="size-4 text-muted-foreground" />
-                    Discard
+                    Descartar
                   </Button>
                   <div className="flex gap-3">
                     <Button 
@@ -683,7 +523,7 @@ export function VacanciesManager({ userId }: { userId: string }) {
                       onClick={handleSaveDraft}
                       className="px-6 py-5 rounded-xl font-bold border-primary text-primary hover:bg-primary/5 text-xs md:text-sm active:scale-95 transition-all shadow-none"
                     >
-                      Save Draft
+                      Guardar Borrador
                     </Button>
                     <Button 
                       type="submit"
@@ -695,7 +535,7 @@ export function VacanciesManager({ userId }: { userId: string }) {
                       ) : (
                         <Save className="size-4 mr-2" />
                       )}
-                      Publish Vacancy
+                      Publicar Vacante
                     </Button>
                   </div>
                 </div>
@@ -710,10 +550,10 @@ export function VacanciesManager({ userId }: { userId: string }) {
               
               <div className="flex items-center justify-between mb-4">
                 <h3 className="text-xs font-bold text-foreground uppercase tracking-wider">
-                  Live Preview
+                  Vista Previa en Vivo
                 </h3>
                 <span className="px-3 py-1 bg-secondary-container/20 text-secondary text-[10px] font-bold rounded-full uppercase font-sans tracking-wide">
-                  Candidate View
+                  Vista del Candidato
                 </span>
               </div>
 
@@ -731,11 +571,7 @@ export function VacanciesManager({ userId }: { userId: string }) {
                   />
                   {/* Floating Company Logo Container */}
                   <div className="absolute -bottom-6 left-8 h-16 w-16 bg-background rounded-2xl shadow-md flex items-center justify-center border border-border/40 overflow-hidden">
-                    <img 
-                      alt="Company Logo" 
-                      className="w-10 h-10 object-contain" 
-                      src="https://lh3.googleusercontent.com/aida-public/AB6AXuDFyiPd__ATPfBuUqsEw18TXwJuAY6NEJmU1TKVD3E5aEyRayQ57EexnLBr0qzVGUwyOTIoIviE0R0thxb8yR2ubCXak1Xhs7cqzixQcktH9CSQhZ4QGRmr5kCOM9gWaB4EHrNQgWq8Z0sfQIINm9pZg8AKNRbVGlyv8wMDo8H0y1JvG47ABZFdJTas9_WWTXPHKLLgrsQHlnv07ktL4IuziXjzh_KbCnAGH7F9Z3S1Xmz84MWDkzWqiQuENmpPZK0I9KTfOcT-xRQ" 
-                    />
+                    <Briefcase className="w-8 h-8 text-primary" />
                   </div>
                 </div>
 
@@ -746,10 +582,10 @@ export function VacanciesManager({ userId }: { userId: string }) {
                       id="preview-title" 
                       className="text-lg md:text-xl font-extrabold text-foreground tracking-tight truncate cursor-default"
                     >
-                      {watchTitle || "Cloud Architect"}
+                      {watchTitle || "Título de la Oferta"}
                     </h2>
                     <p className="text-primary font-bold text-xs md:text-sm">
-                      K&apos;anPro Systems
+                      Tu Empresa
                     </p>
                   </div>
 
@@ -757,11 +593,11 @@ export function VacanciesManager({ userId }: { userId: string }) {
                   <div className="flex flex-wrap gap-2">
                     <div className="flex items-center gap-1.5 bg-muted px-3.5 py-1.5 rounded-full text-muted-foreground font-bold text-[11px] font-sans uppercase">
                       <Briefcase className="size-3.5" />
-                      <span id="preview-type">{watchModality || "Full-time"}</span>
+                      <span id="preview-type">{watchModality || "Remoto"}</span>
                     </div>
                     <div className="flex items-center gap-1.5 bg-muted px-3.5 py-1.5 rounded-full text-muted-foreground font-bold text-[11px] font-sans uppercase max-w-40 truncate">
                       <span className="material-symbols-outlined text-[15px]">location_on</span>
-                      <span id="preview-location">{watchLocation || "Remote"}</span>
+                      <span id="preview-location">{watchLocation || "Ubicación"}</span>
                     </div>
                     <div className="flex items-center gap-1.5 bg-muted px-3.5 py-1.5 rounded-full text-muted-foreground font-bold text-[11px] font-sans uppercase">
                       <span className="material-symbols-outlined text-[15px]">payments</span>
@@ -769,7 +605,7 @@ export function VacanciesManager({ userId }: { userId: string }) {
                         {watchSalaryMin || watchSalaryMax ? (
                           `${watchCurrency} ${Number(watchSalaryMin || 0).toLocaleString()} - ${Number(watchSalaryMax || 0).toLocaleString()}`
                         ) : (
-                          "$140k - $180k"
+                          "Rango Salarial"
                         )}
                       </span>
                     </div>
@@ -780,18 +616,18 @@ export function VacanciesManager({ userId }: { userId: string }) {
                   {/* Role descriptions */}
                   <div className="flex flex-col gap-3 min-w-0">
                     <p className="text-xs font-bold text-foreground uppercase tracking-wider font-sans">
-                      About the role
+                      Acerca del puesto
                     </p>
                     <p 
                       id="preview-desc" 
                       className="text-xs text-muted-foreground font-medium leading-relaxed font-sans line-clamp-4 select-none whitespace-pre-line"
                     >
-                      {watchDescription || "Join our elite engineering team to build the future of decentralized infrastructure. We are looking for a visionary architect who can bridge the gap between complex cloud systems and user-centric applications..."}
+                      {watchDescription || "Completa la descripción a la izquierda para ver un resumen de cómo los postulantes verán tu anuncio en K'anPro."}
                     </p>
                   </div>
 
                   <button className="w-full py-4 bg-muted text-muted-foreground rounded-xl font-bold text-xs md:text-sm opacity-55 cursor-not-allowed uppercase tracking-wider font-sans border border-border/50 shadow-inner mt-2">
-                    Apply Now
+                    Postularse Ahora
                   </button>
                 </div>
 
@@ -801,9 +637,9 @@ export function VacanciesManager({ userId }: { userId: string }) {
               <div className="mt-6 p-6 bg-secondary-container/10 border border-secondary/15 rounded-3xl flex gap-4 animate-in slide-in-from-bottom-2 duration-700">
                 <Lightbulb className="size-6 text-secondary shrink-0" />
                 <div className="flex flex-col gap-1 min-w-0">
-                  <p className="font-extrabold text-sm text-foreground tracking-tight">Pro Tip</p>
+                  <p className="font-extrabold text-sm text-foreground tracking-tight">Consejo Pro</p>
                   <p className="text-xs text-muted-foreground font-medium leading-relaxed font-sans">
-                    Roles with specific salary ranges receive 40% more high-quality applications.
+                    Las vacantes locales con especificación clara de salarios obtienen un 40% más de respuestas.
                   </p>
                 </div>
               </div>
@@ -822,10 +658,10 @@ export function VacanciesManager({ userId }: { userId: string }) {
           <section className="flex flex-col sm:flex-row justify-between items-start sm:items-end gap-6 shrink-0">
             <div>
               <h2 className="text-3xl font-extrabold tracking-tight text-slate-900 dark:text-slate-100 md:text-4xl">
-                Vacancy Manager
+                Gestor de Vacantes
               </h2>
               <p className="text-sm md:text-base text-slate-600 dark:text-slate-300 mt-2 font-medium">
-                Efficiently track your recruitment workflow and candidate matching scores.
+                Sigue el progreso de tu selección local arrastrando vacantes entre fases.
               </p>
             </div>
             <div className="flex gap-2 w-full sm:w-auto">
@@ -835,15 +671,15 @@ export function VacanciesManager({ userId }: { userId: string }) {
                 className="flex-1 sm:flex-none px-6 py-5 rounded-full border border-border/60 bg-card hover:bg-muted font-bold text-xs md:text-sm shadow-sm transition-all"
               >
                 <Filter className="size-4 mr-2" />
-                Filters
+                Filtros
               </Button>
               <Button 
                 onClick={handleExportReport}
                 disabled={isExporting}
                 className="flex-1 sm:flex-none px-6 py-5 rounded-full bg-primary text-on-primary hover:bg-primary/95 font-bold text-xs md:text-sm shadow-lg shadow-primary/10 hover:shadow-primary/25 active:scale-95 transition-all"
               >
-                {isExporting ? <Clock className="size-4 animate-spin mr-2" /> : <FileDown className="size-4 mr-2" />}
-                Export Report
+                {isExporting ? <Loader2 className="size-4 animate-spin mr-2" /> : <FileDown className="size-4 mr-2" />}
+                Exportar Reporte
               </Button>
             </div>
           </section>
@@ -856,7 +692,7 @@ export function VacanciesManager({ userId }: { userId: string }) {
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="w-full pl-12 pr-4 py-6 bg-card border-border/60 rounded-full text-sm font-medium focus-visible:ring-2 focus-visible:ring-primary/20 transition-shadow shadow-sm"
-                placeholder="Search vacancies by title, category, keywords..."
+                placeholder="Buscar vacantes por título, categoría o palabra clave..."
               />
             </div>
           </section>
@@ -868,15 +704,15 @@ export function VacanciesManager({ userId }: { userId: string }) {
             <div 
               onDragOver={(e) => handleDragOver(e, "Draft")}
               onDragLeave={handleDragLeave}
-              onDrop={() => handleDrop("Draft")}
-              className={`kanban-column flex flex-col gap-4 rounded-3xl p-2 transition-colors duration-300 ${dragOverColumn === "Draft" ? "bg-primary/5 border border-dashed border-primary/20" : ""}`}
+              onDrop={() => handleDrop("Draft", (window as any).currentlyDraggedVacancyId || "")}
+              className={`kanban-column flex flex-col gap-4 rounded-3xl p-2 transition-colors duration-300 w-72 shrink-0 ${dragOverColumn === "Draft" ? "bg-primary/5 border border-dashed border-primary/20" : ""}`}
             >
               <div className="flex items-center justify-between px-2 mb-2 shrink-0">
                 <span className="text-[12px] font-bold text-slate-600 dark:text-slate-350 uppercase tracking-widest flex items-center gap-2">
-                  <span className="w-2.5 h-2.5 rounded-full bg-slate-400 dark:bg-slate-500"></span>
-                  Draft
+                  <span className="w-2.5 h-2.5 rounded-full bg-slate-400"></span>
+                  Borradores
                 </span>
-                <span className="bg-muted/80 dark:bg-muted/40 px-2.5 py-0.5 rounded-full text-[11px] font-extrabold text-slate-600 dark:text-slate-300">
+                <span className="bg-muted/80 px-2.5 py-0.5 rounded-full text-[11px] font-extrabold text-slate-600">
                   {draftColumn.length}
                 </span>
               </div>
@@ -884,13 +720,13 @@ export function VacanciesManager({ userId }: { userId: string }) {
               {/* Dotted trigger card to enter Create Vacancy view */}
               <button 
                 onClick={() => setIsCreating(true)}
-                className="w-full p-8 rounded-[24px] border-2 border-dashed border-border/80 hover:border-indigo-500 dark:hover:border-indigo-400 hover:bg-indigo-500/5 group transition-all flex flex-col items-center justify-center gap-4 text-slate-500 dark:text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-300 active:scale-98 shrink-0 animate-in fade-in duration-350"
+                className="w-full p-8 rounded-[24px] border-2 border-dashed border-border/80 hover:border-indigo-500 hover:bg-indigo-500/5 group transition-all flex flex-col items-center justify-center gap-4 text-slate-500 hover:text-indigo-600 active:scale-98 shrink-0"
               >
-                <div className="w-12 h-12 rounded-full bg-muted/60 flex items-center justify-center group-hover:bg-indigo-600 dark:group-hover:bg-indigo-450 group-hover:text-white transition-all shadow-sm">
+                <div className="w-12 h-12 rounded-full bg-muted/60 flex items-center justify-center group-hover:bg-indigo-650 group-hover:text-white transition-all shadow-sm">
                   <Plus className="size-6 transition-transform group-hover:scale-110" />
                 </div>
-                <span className="font-extrabold text-sm group-hover:text-indigo-600 dark:group-hover:text-indigo-300 tracking-wide">
-                  Create New Vacancy
+                <span className="font-extrabold text-sm group-hover:text-indigo-600 tracking-wide">
+                  Nueva Vacante
                 </span>
               </button>
 
@@ -898,39 +734,33 @@ export function VacanciesManager({ userId }: { userId: string }) {
                 {draftColumn.map((v) => (
                   <div 
                     key={v.id} 
-                    className="glass-card liquid-card rounded-[24px] p-6 flex flex-col gap-4 relative overflow-hidden group cursor-pointer"
+                    draggable
+                    onDragStart={() => { (window as any).currentlyDraggedVacancyId = v.id }}
+                    className="glass-card liquid-card rounded-[24px] p-6 flex flex-col gap-4 relative overflow-hidden group cursor-pointer bg-background/80 border border-border/50"
                     onClick={() => toast.info(`Borrador: ${v.title}`, { description: "Puedes editar los detalles o publicarla." })}
                   >
                     <div className="flex justify-between items-start">
-                      <div className="w-12 h-12 rounded-xl bg-muted/50 flex items-center justify-center text-muted-foreground">
+                      <div className="w-10 h-10 rounded-xl bg-muted/50 flex items-center justify-center text-muted-foreground">
                         <FileEdit className="size-5" />
                       </div>
                       <MoreVertical className="size-4 text-muted-foreground cursor-pointer hover:text-foreground transition-colors" />
                     </div>
                     <div>
-                      <h3 className="font-bold text-sm md:text-base text-foreground mb-1 group-hover:text-indigo-600 dark:group-hover:text-indigo-300 transition-colors">
+                      <h3 className="font-bold text-sm md:text-base text-foreground mb-1 group-hover:text-indigo-600 transition-colors">
                         {v.title}
                       </h3>
-                      <p className="text-xs text-slate-650 dark:text-slate-400 font-medium">
-                        {v.category || "Design Operations Team"}
+                      <p className="text-xs text-slate-550 font-medium">
+                        {v.category || "General"}
                       </p>
                     </div>
                     <div className="grid grid-cols-2 gap-4 mt-2">
-                      <div className="bg-muted/60 dark:bg-muted/20 p-3 rounded-xl text-center">
-                        <p className="text-[9px] uppercase tracking-wider text-slate-600 dark:text-slate-400 font-bold mb-0.5">Applicants</p>
-                        <p className="text-lg font-extrabold text-slate-900 dark:text-slate-100">{v.applicants ?? 0}</p>
+                      <div className="bg-muted/60 p-2.5 rounded-xl text-center">
+                        <p className="text-[9px] uppercase tracking-wider text-slate-600 font-bold mb-0.5">Postulantes</p>
+                        <p className="text-md font-extrabold text-slate-900">{v.applicants ?? 0}</p>
                       </div>
-                      <div className="bg-muted/60 dark:bg-muted/20 p-3 rounded-xl text-center">
-                        <p className="text-[9px] uppercase tracking-wider text-slate-600 dark:text-slate-400 font-bold mb-0.5">Match Score</p>
-                        <p className="text-lg font-extrabold text-slate-900 dark:text-slate-100">{v.matchScore ?? "—"}</p>
-                      </div>
-                    </div>
-                    <div className="flex items-center justify-between pt-4 border-t border-border/40 mt-1">
-                      <span className="text-[11px] text-slate-650 dark:text-slate-400 font-medium">
-                        {v.lastSaved ?? "Borrador guardado"}
-                      </span>
-                      <div className="w-6 h-6 rounded-full border border-border bg-indigo-500/10 dark:bg-indigo-500/20 flex items-center justify-center text-[9px] font-bold text-indigo-600 dark:text-indigo-300">
-                        AR
+                      <div className="bg-muted/60 p-2.5 rounded-xl text-center">
+                        <p className="text-[9px] uppercase tracking-wider text-slate-600 font-bold mb-0.5">Afinidad</p>
+                        <p className="text-md font-extrabold text-slate-900">{v.matchScore ?? "—"}</p>
                       </div>
                     </div>
                   </div>
@@ -942,15 +772,15 @@ export function VacanciesManager({ userId }: { userId: string }) {
             <div 
               onDragOver={(e) => handleDragOver(e, "Active")}
               onDragLeave={handleDragLeave}
-              onDrop={() => handleDrop("Active")}
-              className={`kanban-column flex flex-col gap-4 rounded-3xl p-2 transition-colors duration-300 ${dragOverColumn === "Active" ? "bg-primary/5 border border-dashed border-primary/20" : ""}`}
+              onDrop={() => handleDrop("Active", (window as any).currentlyDraggedVacancyId || "")}
+              className={`kanban-column flex flex-col gap-4 rounded-3xl p-2 transition-colors duration-300 w-72 shrink-0 ${dragOverColumn === "Active" ? "bg-primary/5 border border-dashed border-primary/20" : ""}`}
             >
               <div className="flex items-center justify-between px-2 mb-2 shrink-0">
-                <span className="text-[12px] font-bold text-indigo-600 dark:text-indigo-300 uppercase tracking-widest flex items-center gap-2">
+                <span className="text-[12px] font-bold text-indigo-600 uppercase tracking-widest flex items-center gap-2">
                   <span className="w-2.5 h-2.5 rounded-full bg-indigo-500 animate-pulse"></span>
-                  Active
+                  Activas
                 </span>
-                <span className="bg-indigo-500/10 dark:bg-indigo-500/20 px-2.5 py-0.5 rounded-full text-[11px] font-extrabold text-indigo-600 dark:text-indigo-300">
+                <span className="bg-indigo-500/10 px-2.5 py-0.5 rounded-full text-[11px] font-extrabold text-indigo-600">
                   {activeColumn.length}
                 </span>
               </div>
@@ -959,57 +789,34 @@ export function VacanciesManager({ userId }: { userId: string }) {
                 {activeColumn.map((v) => (
                   <div 
                     key={v.id} 
-                    className="glass-card liquid-card rounded-[24px] p-6 flex flex-col gap-4 relative overflow-hidden group cursor-pointer"
+                    draggable
+                    onDragStart={() => { (window as any).currentlyDraggedVacancyId = v.id }}
+                    className="glass-card liquid-card rounded-[24px] p-6 flex flex-col gap-4 relative overflow-hidden group cursor-pointer bg-background/80 border border-border/50 shadow-sm"
                     onClick={() => toast.info(`Detalles de vacante: ${v.title}`, { description: "Consultando candidatos inscritos." })}
                   >
                     <div className="absolute top-0 right-0 w-24 h-24 bg-primary/5 rounded-bl-[100px] -mr-8 -mt-8 group-hover:bg-primary/10 transition-colors pointer-events-none"></div>
                     <div className="flex justify-between items-start">
-                      <div className="w-12 h-12 rounded-xl bg-indigo-500/10 dark:bg-indigo-500/20 flex items-center justify-center text-indigo-600 dark:text-indigo-300 relative z-10">
-                        <Briefcase className="size-5 fill-indigo-500/10" />
+                      <div className="w-10 h-10 rounded-xl bg-indigo-500/10 flex items-center justify-center text-indigo-600 relative z-10">
+                        <Briefcase className="size-5" />
                       </div>
-                      <MoreVertical className="size-4 text-slate-500 dark:text-slate-400 cursor-pointer hover:text-foreground transition-colors z-10" />
+                      <MoreVertical className="size-4 text-slate-500 cursor-pointer hover:text-foreground transition-colors z-10" />
                     </div>
                     <div>
-                      <h3 className="font-bold text-sm md:text-base text-foreground mb-1 group-hover:text-indigo-600 dark:group-hover:text-indigo-300 transition-colors">
+                      <h3 className="font-bold text-sm md:text-base text-foreground mb-1 group-hover:text-indigo-600 transition-colors">
                         {v.title}
                       </h3>
-                      <p className="text-xs text-slate-650 dark:text-slate-400 font-medium">
-                        {v.category || "Platform Infrastructure"}
+                      <p className="text-xs text-slate-550 font-medium">
+                        {v.category || "General"}
                       </p>
                     </div>
                     <div className="grid grid-cols-2 gap-4 mt-2">
-                      <div className="bg-indigo-500/5 dark:bg-indigo-500/10 p-3 rounded-xl text-center">
-                        <p className="text-[9px] uppercase tracking-wider text-indigo-600 dark:text-indigo-300 font-bold mb-0.5">Applicants</p>
-                        <p className="text-lg font-extrabold text-indigo-600 dark:text-indigo-300">{v.applicants ?? 42}</p>
+                      <div className="bg-indigo-500/5 p-2.5 rounded-xl text-center">
+                        <p className="text-[9px] uppercase tracking-wider text-indigo-600 font-bold mb-0.5">Postulantes</p>
+                        <p className="text-md font-extrabold text-indigo-600">{v.applicants ?? 0}</p>
                       </div>
-                      <div className="bg-violet-500/5 dark:bg-violet-500/10 p-3 rounded-xl text-center">
-                        <p className="text-[9px] uppercase tracking-wider text-violet-600 dark:text-violet-300 font-bold mb-0.5">Avg Match</p>
-                        <p className="text-lg font-extrabold text-violet-600 dark:text-violet-300">{v.matchScore ?? "88%"}</p>
-                      </div>
-                    </div>
-                    <div className="flex items-center justify-between pt-4 border-t border-border/40 mt-1">
-                      {v.trend ? (
-                        <div className="flex items-center gap-1 text-indigo-600 dark:text-indigo-300">
-                          <TrendingUp className="size-3.5" />
-                          <span className="text-[11px] font-bold">{v.trend}</span>
-                        </div>
-                      ) : v.closingIn ? (
-                        <div className="flex items-center gap-1 text-slate-600 dark:text-slate-400">
-                          <Clock className="size-3.5 text-slate-500 dark:text-slate-450" />
-                          <span className="text-[11px] font-medium">{v.closingIn}</span>
-                        </div>
-                      ) : (
-                        <span className="text-[11px] text-slate-600 dark:text-slate-450 font-medium">
-                          Activa hace poco
-                        </span>
-                      )}
-                      
-                      <div className="flex -space-x-1.5 overflow-hidden">
-                        <img 
-                          alt="recruiter 1" 
-                          className="w-6 h-6 rounded-full border-2 border-background object-cover" 
-                          src="https://lh3.googleusercontent.com/aida-public/AB6AXuCokxJw5lfwrwJ5-JgWnXk-0y-J0jOSavmDD1CSTQIIkYFHD2ChWbr8JmwrUG2AYcjQlwjrd-ChysqU4ZNj6ABGxqdwF9hn1HxzDYkuV1FbM9P47LNQPmcYkyAzAk2nVFVsi-aFNgvvbNhS0QrcF7iHjKlcV1X9D5koEH-xTGa0OrwT3zs_L0IvQONCZfNqYRTSoGjd3Diz2sXidqlXJjewiko5YtsU0y2ZbX4VOrfiZBzs3wOy7ko4ZTD9R-RDPxPJrg4TOEKsDQY" 
-                        />
+                      <div className="bg-violet-500/5 p-2.5 rounded-xl text-center">
+                        <p className="text-[9px] uppercase tracking-wider text-violet-650 font-bold mb-0.5">Afinidad Prom</p>
+                        <p className="text-md font-extrabold text-violet-600">{v.matchScore ?? "—"}</p>
                       </div>
                     </div>
                   </div>
@@ -1021,15 +828,15 @@ export function VacanciesManager({ userId }: { userId: string }) {
             <div 
               onDragOver={(e) => handleDragOver(e, "Paused")}
               onDragLeave={handleDragLeave}
-              onDrop={() => handleDrop("Paused")}
-              className={`kanban-column flex flex-col gap-4 rounded-3xl p-2 transition-colors duration-300 ${dragOverColumn === "Paused" ? "bg-primary/5 border border-dashed border-primary/20" : ""}`}
+              onDrop={() => handleDrop("Paused", (window as any).currentlyDraggedVacancyId || "")}
+              className={`kanban-column flex flex-col gap-4 rounded-3xl p-2 transition-colors duration-300 w-72 shrink-0 ${dragOverColumn === "Paused" ? "bg-primary/5 border border-dashed border-primary/20" : ""}`}
             >
               <div className="flex items-center justify-between px-2 mb-2 shrink-0">
-                <span className="text-[12px] font-bold text-amber-700 dark:text-amber-450 uppercase tracking-widest flex items-center gap-2">
-                  <span className="w-2.5 h-2.5 rounded-full bg-amber-500 animate-pulse"></span>
-                  Paused
+                <span className="text-[12px] font-bold text-amber-700 uppercase tracking-widest flex items-center gap-2">
+                  <span className="w-2.5 h-2.5 rounded-full bg-amber-500"></span>
+                  Pausadas
                 </span>
-                <span className="bg-amber-500/10 dark:bg-amber-500/20 px-2.5 py-0.5 rounded-full text-[11px] font-extrabold text-amber-700 dark:text-amber-300">
+                <span className="bg-amber-500/10 px-2.5 py-0.5 rounded-full text-[11px] font-extrabold text-amber-700">
                   {pausedColumn.length}
                 </span>
               </div>
@@ -1038,39 +845,33 @@ export function VacanciesManager({ userId }: { userId: string }) {
                 {pausedColumn.map((v) => (
                   <div 
                     key={v.id} 
-                    className="glass-card liquid-card rounded-[24px] p-6 flex flex-col gap-4 relative overflow-hidden grayscale-[0.3] opacity-80 hover:grayscale-0 hover:opacity-100 transition-all group cursor-pointer"
-                    onClick={() => toast.info(`Oferta en pausa: ${v.title}`, { description: "Puedes reactivarla haciendo clic en el menú contextual." })}
+                    draggable
+                    onDragStart={() => { (window as any).currentlyDraggedVacancyId = v.id }}
+                    className="glass-card liquid-card rounded-[24px] p-6 flex flex-col gap-4 relative overflow-hidden group cursor-pointer bg-background/80 border border-border/50 opacity-80 hover:opacity-100 transition-all"
+                    onClick={() => toast.info(`Oferta en pausa: ${v.title}`, { description: "Puedes reactivarla arrastrándola a Activas." })}
                   >
                     <div className="flex justify-between items-start">
-                      <div className="w-12 h-12 rounded-xl bg-amber-500/10 dark:bg-amber-500/20 flex items-center justify-center text-amber-600 dark:text-amber-400">
+                      <div className="w-10 h-10 rounded-xl bg-amber-500/10 flex items-center justify-center text-amber-600">
                         <PauseCircle className="size-5" />
                       </div>
-                      <MoreVertical className="size-4 text-slate-500 dark:text-slate-400 cursor-pointer hover:text-foreground transition-colors" />
+                      <MoreVertical className="size-4 text-slate-500 cursor-pointer hover:text-foreground transition-colors" />
                     </div>
                     <div>
-                      <h3 className="font-bold text-sm md:text-base text-foreground mb-1 group-hover:text-amber-600 dark:group-hover:text-amber-400 transition-colors">
+                      <h3 className="font-bold text-sm md:text-base text-foreground mb-1 group-hover:text-amber-600 transition-colors">
                         {v.title}
                       </h3>
-                      <p className="text-xs text-slate-650 dark:text-slate-400 font-medium">
-                        {v.category || "Expansion Team"}
+                      <p className="text-xs text-slate-550 font-medium">
+                        {v.category || "General"}
                       </p>
                     </div>
                     <div className="grid grid-cols-2 gap-4 mt-2">
-                      <div className="bg-muted/60 dark:bg-muted/20 p-3 rounded-xl text-center">
-                        <p className="text-[9px] uppercase tracking-wider text-slate-600 dark:text-slate-400 font-bold mb-0.5">Applicants</p>
-                        <p className="text-lg font-extrabold text-slate-900 dark:text-slate-100">{v.applicants ?? 56}</p>
+                      <div className="bg-muted/60 p-2.5 rounded-xl text-center">
+                        <p className="text-[9px] uppercase tracking-wider text-slate-650 font-bold mb-0.5">Postulantes</p>
+                        <p className="text-md font-extrabold text-slate-900">{v.applicants ?? 0}</p>
                       </div>
-                      <div className="bg-muted/60 dark:bg-muted/20 p-3 rounded-xl text-center">
-                        <p className="text-[9px] uppercase tracking-wider text-slate-600 dark:text-slate-400 font-bold mb-0.5">Match Score</p>
-                        <p className="text-lg font-extrabold text-slate-900 dark:text-slate-100">{v.matchScore ?? "72%"}</p>
-                      </div>
-                    </div>
-                    <div className="flex items-center justify-between pt-4 border-t border-border/40 mt-1">
-                      <span className="px-2.5 py-0.5 bg-amber-500/10 dark:bg-amber-500/20 rounded-lg text-[9px] font-extrabold text-amber-700 dark:text-amber-300 uppercase tracking-wide">
-                        {v.tag ?? "Internal Review"}
-                      </span>
-                      <div className="w-6 h-6 rounded-full border border-border bg-amber-500/10 dark:bg-amber-500/20 flex items-center justify-center text-[9px] font-bold text-amber-700 dark:text-amber-300">
-                        +2
+                      <div className="bg-muted/60 p-2.5 rounded-xl text-center">
+                        <p className="text-[9px] uppercase tracking-wider text-slate-650 font-bold mb-0.5">Afinidad</p>
+                        <p className="text-md font-extrabold text-slate-900">{v.matchScore ?? "—"}</p>
                       </div>
                     </div>
                   </div>
@@ -1082,15 +883,15 @@ export function VacanciesManager({ userId }: { userId: string }) {
             <div 
               onDragOver={(e) => handleDragOver(e, "Closed")}
               onDragLeave={handleDragLeave}
-              onDrop={() => handleDrop("Closed")}
-              className={`kanban-column flex flex-col gap-4 rounded-3xl p-2 transition-colors duration-300 ${dragOverColumn === "Closed" ? "bg-primary/5 border border-dashed border-primary/20" : ""}`}
+              onDrop={() => handleDrop("Closed", (window as any).currentlyDraggedVacancyId || "")}
+              className={`kanban-column flex flex-col gap-4 rounded-3xl p-2 transition-colors duration-300 w-72 shrink-0 ${dragOverColumn === "Closed" ? "bg-primary/5 border border-dashed border-primary/20" : ""}`}
             >
               <div className="flex items-center justify-between px-2 mb-2 shrink-0">
-                <span className="text-[12px] font-bold text-slate-600 dark:text-slate-350 uppercase tracking-widest flex items-center gap-2">
-                  <span className="w-2.5 h-2.5 rounded-full bg-slate-400 dark:bg-slate-500"></span>
-                  Closed
+                <span className="text-[12px] font-bold text-slate-600 uppercase tracking-widest flex items-center gap-2">
+                  <span className="w-2.5 h-2.5 rounded-full bg-slate-500"></span>
+                  Cerradas
                 </span>
-                <span className="bg-muted/80 dark:bg-muted/40 px-2.5 py-0.5 rounded-full text-[11px] font-extrabold text-slate-600 dark:text-slate-300">
+                <span className="bg-muted/80 px-2.5 py-0.5 rounded-full text-[11px] font-extrabold text-slate-600">
                   {closedColumn.length}
                 </span>
               </div>
@@ -1099,36 +900,24 @@ export function VacanciesManager({ userId }: { userId: string }) {
                 {closedColumn.map((v) => (
                   <div 
                     key={v.id} 
-                    className="glass-card liquid-card rounded-[24px] p-6 flex flex-col gap-4 bg-muted/20 relative overflow-hidden group cursor-pointer"
+                    draggable
+                    onDragStart={() => { (window as any).currentlyDraggedVacancyId = v.id }}
+                    className="glass-card liquid-card rounded-[24px] p-6 flex flex-col gap-4 bg-muted/20 relative overflow-hidden group cursor-pointer border border-border/50"
                     onClick={() => toast.info(`Historial: ${v.title}`, { description: "Revisando métricas de contratación finalizadas." })}
                   >
                     <div className="flex justify-between items-start">
-                      <div className="w-12 h-12 rounded-xl bg-slate-500/10 dark:bg-slate-500/20 flex items-center justify-center text-slate-600 dark:text-slate-400">
-                        <CheckCircle2 className="size-5 text-slate-600 dark:text-slate-400" />
+                      <div className="w-10 h-10 rounded-xl bg-slate-500/10 flex items-center justify-center text-slate-600">
+                        <CheckCircle2 className="size-5" />
                       </div>
-                      <MoreVertical className="size-4 text-slate-500 dark:text-slate-400 cursor-pointer hover:text-foreground transition-colors" />
+                      <MoreVertical className="size-4 text-slate-500 cursor-pointer hover:text-foreground transition-colors" />
                     </div>
                     <div>
                       <h3 className="font-bold text-sm md:text-base text-foreground mb-1">
                         {v.title}
                       </h3>
-                      <p className="text-xs text-slate-650 dark:text-slate-400 font-medium">
-                        {v.description.includes("Contratada") ? v.description.split(".")[0] : `Hired: ${v.category || "Maria Garcia"}`}
+                      <p className="text-xs text-slate-550 font-medium">
+                        {v.category || "General"}
                       </p>
-                    </div>
-                    
-                    <div className="bg-indigo-500/5 dark:bg-indigo-500/10 p-4 rounded-xl flex items-center justify-between mt-1">
-                      <div className="flex flex-col">
-                        <p className="text-[9px] uppercase tracking-wider text-indigo-650 dark:text-indigo-350 font-bold mb-0.5">Hiring Cycle</p>
-                        <p className="text-xs md:text-sm font-extrabold text-indigo-600 dark:text-indigo-300">{v.cycleTime ?? "14 Days"}</p>
-                      </div>
-                      <Award className="size-5 text-indigo-600 dark:text-indigo-300 fill-indigo-500/10" />
-                    </div>
- 
-                    <div className="flex items-center justify-between pt-4 border-t border-border/40 mt-1">
-                      <span className="text-[11px] text-slate-600 dark:text-slate-400 font-semibold italic">
-                        {v.filledDate ?? "Cerrada recientemente"}
-                      </span>
                     </div>
                   </div>
                 ))}
