@@ -21,6 +21,9 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
+import { Controller } from "react-hook-form";
+import PhoneInput from "react-phone-number-input";
+import "react-phone-number-input/style.css";
 import { useCandidateProfile } from "../hooks/use-candidate-profile";
 import {
   Dialog,
@@ -54,7 +57,7 @@ export function CandidateSettingsView() {
     onSubmit,
   } = useCandidateProfile();
 
-  const { register, formState: { errors } } = form;
+  const { register, control, formState: { errors } } = form;
 
   // Dialog State for adding/editing experience
   const [isExpOpen, setIsExpOpen] = React.useState(false);
@@ -199,15 +202,20 @@ export function CandidateSettingsView() {
             {/* WhatsApp Contact Number */}
             <div className="flex flex-col gap-2">
               <Label htmlFor="whatsapp_number" className="text-xs font-bold uppercase tracking-wider text-muted-foreground/80">WhatsApp / Celular de Contacto</Label>
-              <div className="relative">
-                <Phone className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground/60" />
-                <Input
-                  id="whatsapp_number"
-                  placeholder="Ej. +525512345678"
-                  className="h-11 pl-10 rounded-xl bg-background/50"
-                  {...register("whatsapp_number")}
-                />
-              </div>
+              <Controller
+                name="whatsapp_number"
+                control={control}
+                render={({ field: { onChange, value } }) => (
+                  <PhoneInput
+                    id="whatsapp_number"
+                    placeholder="Ej. +52 55 1234 5678"
+                    value={value || ""}
+                    onChange={onChange}
+                    defaultCountry="MX"
+                    className="flex h-11 items-center rounded-xl bg-background/50 border border-transparent px-3.5 focus-within:border-ring focus-within:ring-3 focus-within:ring-ring/30 focus-within:outline-none"
+                  />
+                )}
+              />
               {errors.whatsapp_number && (
                 <p className="text-xs text-destructive font-medium flex items-center gap-1 mt-0.5">
                   <AlertCircle className="w-3.5 h-3.5" />

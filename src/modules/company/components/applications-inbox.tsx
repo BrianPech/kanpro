@@ -39,6 +39,7 @@ export function ApplicationsInbox() {
     isLoading,
     handleUpdateStatus,
     getWhatsAppLink,
+    handleContactApplicant,
   } = useApplicationsInbox("company-id") // Fetch logic inside hooks takes care of user sessions
 
   const [mobileDetailOpen, setMobileDetailOpen] = React.useState(false)
@@ -410,6 +411,7 @@ export function ApplicationsInbox() {
                   target="_blank"
                   rel="noopener noreferrer"
                   className="inline-flex"
+                  onClick={() => handleContactApplicant(selectedApplicant)}
                 >
                   <Button 
                     className="px-8 py-5 h-auto rounded-full font-bold bg-indigo-600 text-white hover:bg-indigo-700 text-xs md:text-sm active:scale-95 transition-all shadow-lg shadow-indigo-500/10 hover:shadow-indigo-500/25 gap-2"

@@ -12,6 +12,7 @@ import {
   User,
   Users,
 } from "lucide-react";
+import * as React from "react";
 
 import { Badge } from "@/components/ui/badge";
 import { createClient } from "@/lib/supabase/client";
@@ -26,6 +27,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { SidebarTrigger } from "@/components/ui/sidebar";
+import { NotificationBell } from "@/modules/notifications/components/notification-bell";
 
 type DashboardTopbarProps = {
   userName: string;
@@ -33,30 +35,6 @@ type DashboardTopbarProps = {
   plan: string;
   role: "company" | "candidate" | "admin";
 };
-
-const notifications = [
-  {
-    title: "Nueva candidatura recibida",
-    description: "María López aplicó a Analista Senior hace 5 min.",
-    time: "5 min",
-    icon: Briefcase,
-    unread: true,
-  },
-  {
-    title: "2 mensajes pendientes",
-    description: "El equipo de soporte respondió en tu bandeja.",
-    time: "12 min",
-    icon: MessageSquareText,
-    unread: true,
-  },
-  {
-    title: "Actividad de equipo",
-    description: "Carlos actualizó el perfil de la empresa.",
-    time: "1 h",
-    icon: Users,
-    unread: false,
-  },
-];
 
 export function DashboardTopbar({
   userName,
@@ -66,6 +44,17 @@ export function DashboardTopbar({
 }: DashboardTopbarProps) {
   const router = useRouter();
   const supabase = createClient();
+  const [userId, setUserId] = React.useState<string | null>(null);
+
+  React.useEffect(() => {
+    async function loadUser() {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        setUserId(user.id);
+      }
+    }
+    loadUser();
+  }, [supabase]);
 
   const profileHref =
     role === "company"
@@ -92,83 +81,17 @@ export function DashboardTopbar({
       </div>
 
       <div className="flex items-center gap-3">
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button
-              variant="ghost"
-              size="icon"
-              className="relative rounded-full text-muted-foreground hover:bg-muted hover:text-foreground"
-            >
-              <Bell className="h-5 w-5" />
-              <span className="absolute right-2 top-2 h-2 w-2 rounded-full bg-primary ring-2 ring-background" />
-              <span className="sr-only">Abrir notificaciones</span>
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent
-            className="w-[min(24rem,calc(100vw-2rem))] rounded-[28px] p-0"
-            align="end"
-            sideOffset={12}
+        {userId ? (
+          <NotificationBell userId={userId} />
+        ) : (
+          <Button
+            variant="ghost"
+            size="icon"
+            className="relative rounded-full text-muted-foreground hover:bg-muted hover:text-foreground"
           >
-            <div className="border-b border-border/60 px-4 py-4">
-              <div className="flex items-start justify-between gap-4">
-                <div>
-                  <p className="text-[15px] font-semibold tracking-tight text-foreground">
-                    Notificaciones
-                  </p>
-                  <p className="text-xs text-muted-foreground">
-                    Tienes 2 notificaciones sin leer
-                  </p>
-                </div>
-                <Badge variant="secondary" className="rounded-full px-2.5">
-                  2 nuevas
-                </Badge>
-              </div>
-            </div>
-
-            <div className="max-h-96 overflow-y-auto p-2">
-              {notifications.map((notification) => {
-                const Icon = notification.icon;
-
-                return (
-                  <DropdownMenuItem
-                    key={notification.title}
-                    className="group flex items-start gap-3 rounded-[22px] px-3 py-3"
-                  >
-                    <div
-                      className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl ${notification.unread ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"}`}
-                    >
-                      <Icon className="h-4 w-4" />
-                    </div>
-
-                    <div className="min-w-0 flex-1">
-                      <div className="flex items-start gap-2">
-                        <p className="truncate text-sm font-semibold text-foreground">
-                          {notification.title}
-                        </p>
-                        {notification.unread && (
-                          <span className="mt-1 h-2 w-2 shrink-0 rounded-full bg-primary" />
-                        )}
-                      </div>
-                      <p className="mt-0.5 line-clamp-2 text-xs leading-5 text-muted-foreground">
-                        {notification.description}
-                      </p>
-                      <div className="mt-2 flex items-center gap-1.5 text-xs text-muted-foreground">
-                        <Clock3 className="h-3.5 w-3.5" />
-                        <span>{notification.time}</span>
-                      </div>
-                    </div>
-                  </DropdownMenuItem>
-                );
-              })}
-            </div>
-
-            <div className="border-t border-border/60 p-2">
-              <DropdownMenuItem className="justify-center rounded-[20px] px-4 py-3 text-sm font-medium text-foreground">
-                Marcar todo como leído
-              </DropdownMenuItem>
-            </div>
-          </DropdownMenuContent>
-        </DropdownMenu>
+            <Bell className="h-5 w-5" />
+          </Button>
+        )}
 
         <DropdownMenu>
           <DropdownMenuTrigger asChild>

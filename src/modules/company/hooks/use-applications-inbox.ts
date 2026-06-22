@@ -1,6 +1,7 @@
 import * as React from "react";
 import { toast } from "sonner";
 import { companyService } from "../services/company-service";
+import { createClient } from "@/lib/supabase/client";
 
 export interface Experience {
   role: string;
@@ -35,6 +36,7 @@ export interface Applicant {
   email?: string;
   vacancyTitle: string;
   vacancyId: string;
+  candidateId: string;
 }
 
 export function useApplicationsInbox(userId: string) {
@@ -110,6 +112,7 @@ export function useApplicationsInbox(userId: string) {
             email: profile.email || "",
             vacancyTitle: app.vacancies?.title || "Vacante",
             vacancyId: app.vacancy_id,
+            candidateId: profile.id,
             portfolio: [
               {
                 image: "https://images.unsplash.com/photo-1555066931-4365d14bab8c?w=400&h=400&fit=crop",
@@ -160,6 +163,7 @@ export function useApplicationsInbox(userId: string) {
             email: "elena@diseno.com",
             vacancyTitle: "Sr. UI/UX Designer",
             vacancyId: "mock-vac-1",
+            candidateId: "mock-candidate-1",
             portfolio: [
               {
                 image: "https://lh3.googleusercontent.com/aida-public/AB6AXuAO2lzdff0_wzEDvpxNjVnlMrBBucYpAKmj6Vt8LvOhir0yxraAj8Sn9ONxw0jpfAOeVBYwAhy7yLypER3mdPCJh3YqRhBOzQ2VM_xdeLe5nnjZLswjdwGzCfIVvq4_s6TUwALUvv_b3_5cB-5XN9hoq20ML5yRI-U5qrVWeVzC4je8RAQvj7YZ6QtXp5dNwdsQIG1NHRo-UQeTjnNGqX2JVzIQEhLU5HDfIQrZwmE2p2aMRCYlMOvsTtAU-vy_x9_XnNIQ6pzSw9g",
@@ -195,6 +199,7 @@ export function useApplicationsInbox(userId: string) {
             email: "marco@dev.com",
             vacancyTitle: "Full Stack Engineer",
             vacancyId: "mock-vac-2",
+            candidateId: "mock-candidate-2",
             portfolio: [
               {
                 image: "https://images.unsplash.com/photo-1555066931-4365d14bab8c?w=400&h=400&fit=crop",
@@ -251,6 +256,36 @@ export function useApplicationsInbox(userId: string) {
     return `https://wa.me/${cleanPhone}?text=${encodeURIComponent(message)}`;
   };
 
+  // Create contact notification via secure RPC
+  const handleContactApplicant = async (applicant: Applicant) => {
+    try {
+      if (applicant.id.startsWith("mock-")) return;
+
+      const supabase = createClient();
+      // Fetch company name
+      const { data: companyProfile } = await supabase
+        .from("company_profiles")
+        .select("company_name")
+        .eq("id", userId)
+        .single();
+
+      const companyName = companyProfile?.company_name || "Empresa";
+
+      // Trigger candidate contact notification via RPC
+      const { error } = await (supabase as any).rpc("notify_candidate_contact", {
+        p_candidate_id: applicant.candidateId,
+        p_vacancy_title: applicant.vacancyTitle,
+        p_company_name: companyName,
+      });
+
+      if (error) {
+        console.error("Error creating contact notification:", error);
+      }
+    } catch (err) {
+      console.error("Error executing handleContactApplicant:", err);
+    }
+  };
+
   return {
     applicants,
     vacancies,
@@ -264,6 +299,7 @@ export function useApplicationsInbox(userId: string) {
     isLoading,
     handleUpdateStatus,
     getWhatsAppLink,
+    handleContactApplicant,
     reloadData: loadData,
   };
 }
