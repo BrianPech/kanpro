@@ -40,8 +40,8 @@ export function HeroSection() {
             Encuentra empleo o contrata talento local en la <span className="font-bold text-primary">Riviera Maya</span> sin comisiones.
           </p>
         </div>
-        <Link 
-          href="/register" 
+        <Link
+          href="/register"
           className="text-xs sm:text-sm font-semibold text-primary hover:text-primary/80 underline underline-offset-4 flex items-center gap-0.5 shrink-0 transition-colors"
         >
           Comenzar ahora <ArrowRight className="size-3.5" />
@@ -51,12 +51,12 @@ export function HeroSection() {
       {/* Main Hero Card */}
       <div className="relative w-full rounded-[28px] overflow-hidden min-h-[500px] md:min-h-[550px] lg:min-h-[600px] flex items-center border border-border/25">
         {/* Background Image */}
-        <img 
-          src="/images/workspace_hero.png" 
-          alt="Workspace Hero" 
-          className="absolute inset-0 w-full h-full object-cover select-none pointer-events-none" 
+        <img
+          src="/images/workspace_hero.png"
+          alt="Workspace Hero"
+          className="absolute inset-0 w-full h-full object-cover select-none pointer-events-none"
         />
-        
+
         {/* Gradient Mask Overlays */}
         {/* Left dark gradient for text readability */}
         <div className="absolute inset-0 bg-gradient-to-r from-black/90 via-black/75 sm:via-black/60 to-transparent z-1" />
@@ -67,7 +67,7 @@ export function HeroSection() {
 
         {/* Content Container */}
         <div className="relative z-10 w-full px-6 py-12 sm:p-12 md:p-16 lg:p-20 flex flex-col items-start text-left max-w-4xl space-y-8">
-          
+
           {/* Main Title & Subtitle */}
           <div className="space-y-4">
             <h1 className="font-sans font-medium text-4xl sm:text-5xl lg:text-[80px] text-white tracking-[-0.8px] sm:tracking-[-1.6px] leading-[1.0]">
@@ -88,11 +88,10 @@ export function HeroSection() {
                   setActiveTab("hire");
                   setSearchQuery("");
                 }}
-                className={`px-6 py-2.5 rounded-full text-xs font-semibold tracking-wide transition-all duration-300 ${
-                  activeTab === "hire"
-                    ? "bg-white text-black"
-                    : "text-white hover:text-white/90 bg-transparent"
-                }`}
+                className={`px-6 py-2.5 rounded-full text-xs font-semibold tracking-wide transition-all duration-300 ${activeTab === "hire"
+                  ? "bg-white text-black"
+                  : "text-white hover:text-white/90 bg-transparent"
+                  }`}
               >
                 Quiero contratar
               </button>
@@ -101,11 +100,10 @@ export function HeroSection() {
                   setActiveTab("work");
                   setSearchQuery("");
                 }}
-                className={`px-6 py-2.5 rounded-full text-xs font-semibold tracking-wide transition-all duration-300 ${
-                  activeTab === "work"
-                    ? "bg-white text-black"
-                    : "text-white hover:text-white/90 bg-transparent"
-                }`}
+                className={`px-6 py-2.5 rounded-full text-xs font-semibold tracking-wide transition-all duration-300 ${activeTab === "work"
+                  ? "bg-white text-black"
+                  : "text-white hover:text-white/90 bg-transparent"
+                  }`}
               >
                 Quiero trabajar
               </button>
