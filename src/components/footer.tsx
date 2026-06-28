@@ -38,7 +38,7 @@ export function Footer() {
       title: "K'anPro",
       links: [
         { label: "Sobre Nosotros", href: "#" },
-        { label: "Empleo en Playa", href: "#" },
+        { label: "Empleo en Carrillo", href: "#" },
         { label: "Términos locales", href: "/terms" },
         { label: "Aviso de Privacidad", href: "/privacy" },
       ],
@@ -47,13 +47,13 @@ export function Footer() {
 
   return (
     <footer className="container mx-auto px-6 py-12 relative z-10 bg-background">
-      <div className="relative rounded-[20px] bg-muted/30 text-foreground border border-border/80 dark:border-border/10 p-8 sm:p-12 space-y-12 overflow-hidden">
+      <div className="relative rounded-[20px] bg-muted/30 text-foreground border border-border/80 dark:border-border/10 p-6 sm:p-12 space-y-12 overflow-hidden">
         
         {/* Subtle Ambient Brand Glow */}
         <div className="absolute -bottom-20 -left-20 size-[320px] rounded-full bg-primary/5 dark:bg-primary/10 blur-[80px] pointer-events-none" />
 
         {/* Columns Grid */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-8 relative z-10">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-6 md:gap-8 relative z-10">
           {companyColumns.map((col, idx) => (
             <div key={idx} className="space-y-4 text-left">
               <h4 className="text-[11px] font-semibold text-muted-foreground uppercase tracking-widest block">
@@ -168,7 +168,7 @@ export function Footer() {
               K&apos;anPro
             </span>
             <span className="mx-1 text-muted-foreground">|</span>
-            <span className="text-[13px] font-normal leading-[1.4] text-muted-foreground">K&apos;anPro - El motor de empleo más rápido de la Riviera Maya.</span>
+            <span className="text-[13px] font-normal leading-[1.4] text-muted-foreground">K&apos;anPro - El motor de empleo más rápido de Felipe Carrillo Puerto.</span>
           </div>
 
           <div className="flex flex-wrap gap-x-4 gap-y-1 justify-center sm:justify-end">
