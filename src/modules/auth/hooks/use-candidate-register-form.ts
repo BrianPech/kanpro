@@ -64,5 +64,6 @@ export function useCandidateRegisterForm() {
     showConfirmPassword,
     setShowConfirmPassword,
     onSubmit,
+    trigger: form.trigger,
   };
 }

@@ -42,5 +42,6 @@ export function useAdminRegisterForm() {
     showPassword,
     setShowPassword,
     onSubmit,
+    trigger: form.trigger,
   };
 }

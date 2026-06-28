@@ -42,5 +42,6 @@ export function useCompanyRegisterForm() {
     showPassword,
     setShowPassword,
     onSubmit,
+    trigger: form.trigger,
   };
 }

@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { ArrowLeft, ArrowRight, Eye, EyeOff, Lock, Mail, User } from "lucide-react";
+import { ArrowLeft, ArrowRight, Eye, EyeOff, Lock, Mail, User, Kanban, Star } from "lucide-react";
 import Link from "next/link";
 
 import { Button } from "@/components/ui/button";
@@ -51,8 +51,10 @@ export function CandidateRegisterForm() {
     showConfirmPassword,
     setShowConfirmPassword,
     onSubmit,
+    trigger,
   } = useCandidateRegisterForm();
 
+  const [step, setStep] = React.useState(0);
   const [passwordValue, setPasswordValue] = React.useState("");
 
   const getPasswordStrength = (val: string) => {
@@ -89,131 +91,153 @@ export function CandidateRegisterForm() {
 
   const passwordRegister = register("password");
 
+  const handleNextStep = async (e: React.MouseEvent) => {
+    e.preventDefault();
+    const isValid = await trigger(["fullName", "email"]);
+    if (isValid) {
+      setStep(1);
+    }
+  };
+
   return (
-    <main className="min-h-screen w-full flex items-center justify-center p-4 md:p-8 relative overflow-hidden transition-colors duration-300 bg-background">
+    <main className="min-h-screen w-full flex items-center justify-center p-4 relative bg-background overflow-hidden box-border font-sans">
+      
+      {/* Ambient background glows (matching hero section) */}
+      <div className="absolute inset-0 overflow-hidden pointer-events-none z-0">
+        <div className="absolute top-[-10%] left-[-10%] w-[50%] h-[50%] rounded-full bg-primary/10 blur-[120px] dark:bg-primary/5" />
+        <div className="absolute bottom-[20%] right-[-10%] w-[45%] h-[45%] rounded-full bg-amber-500/5 blur-[120px] dark:bg-amber-500/2.5" />
+      </div>
 
-      {/* Embedded Style Block for animations */}
-      <style dangerouslySetInnerHTML={{ __html: `
-        @keyframes float {
-          0%, 100% { transform: translateY(0); }
-          50% { transform: translateY(-6px); }
-        }
-        .animate-float {
-          animation: float 8s ease-in-out infinite;
-        }
-        @keyframes fadeInUp {
-          from {
-            opacity: 0;
-            transform: translateY(16px);
-          }
-          to {
-            opacity: 1;
-            transform: translateY(0);
-          }
-        }
-        .animate-fade-in-up {
-          opacity: 0;
-          animation: fadeInUp 0.7s cubic-bezier(0.16, 1, 0.3, 1) forwards;
-        }
-      `}} />
-
-      {/* Floating Glass Console Container */}
-      <div className="w-full max-w-[540px] z-10 animate-fade-in-up">
-        <div className="animate-float backdrop-blur-xl bg-white/75 dark:bg-zinc-950/60 border border-zinc-200/50 dark:border-zinc-800/40 rounded-[28px] p-6 md:p-10 shadow-[0_24px_50px_-12px_rgba(0,0,0,0.06)] dark:shadow-[0_40px_80px_-20px_rgba(0,0,0,0.7)] transition-all duration-300">
-          
-          {/* Back button */}
+      {/* Floating Card */}
+      <div className="relative w-full max-w-[500px] bg-card border border-border/80 dark:border-border/10 rounded-[28px] p-6 sm:p-10 shadow-[0_8px_30px_rgb(0,0,0,0.015)] dark:shadow-[0_8px_30px_rgb(0,0,0,0.15)] z-10 flex flex-col gap-6">
+        
+        {/* Back Link */}
+        {step === 0 ? (
           <Link
             href="/register"
-            className="inline-flex items-center gap-2 text-[14px] font-semibold text-muted-foreground hover:text-foreground transition-all duration-200 group mb-6"
+            className="inline-flex items-center gap-2 text-[13px] font-semibold text-muted-foreground hover:text-foreground transition-all duration-200 group w-fit"
           >
             <ArrowLeft className="h-4 w-4 transition-transform group-hover:-translate-x-1" />
             Volver a opciones
           </Link>
+        ) : (
+          <button
+            type="button"
+            onClick={() => setStep(0)}
+            className="inline-flex items-center gap-2 text-[13px] font-semibold text-muted-foreground hover:text-foreground transition-all duration-200 group w-fit cursor-pointer"
+          >
+            <ArrowLeft className="h-4 w-4 transition-transform group-hover:-translate-x-1" />
+            Volver al paso anterior
+          </button>
+        )}
 
-          {/* Header */}
-          <header className="flex flex-col gap-1 mb-6">
-            <div className="flex items-center gap-2">
-              <span className="text-[20px] font-bold tracking-tighter text-foreground">
-                K&apos;anPro
-              </span>
-              <span className="px-2.5 py-0.5 text-[10px] font-semibold bg-primary/10 text-primary rounded-full uppercase tracking-wider">
-                Candidato
-              </span>
-            </div>
-            <h1 className="text-[28px] md:text-[32px] font-bold text-foreground tracking-[-0.03em] leading-tight mt-2">
-              Crea tu cuenta profesional
-            </h1>
-            <p className="text-[14px] text-muted-foreground mt-0.5">
-              Descubre oportunidades, postula a vacantes y potencia tu carrera.
-            </p>
-          </header>
-
-          {/* Social Logins */}
-          <div className="grid grid-cols-2 gap-3 mb-6">
-            <button
-              type="button"
-              className="flex items-center justify-center gap-2.5 h-[48px] rounded-[12px] border border-zinc-200/60 dark:border-zinc-800/50 bg-white/40 dark:bg-zinc-900/30 hover:bg-white/80 dark:hover:bg-zinc-900/60 text-[14px] font-semibold text-foreground transition-all active:scale-[0.98] cursor-pointer"
-            >
-              <GoogleIcon />
-              <span>Google</span>
-            </button>
-            <button
-              type="button"
-              className="flex items-center justify-center gap-2.5 h-[48px] rounded-[12px] border border-zinc-200/60 dark:border-zinc-800/50 bg-white/40 dark:bg-zinc-900/30 hover:bg-white/80 dark:hover:bg-zinc-900/60 text-[14px] font-semibold text-foreground transition-all active:scale-[0.98] cursor-pointer"
-            >
-              <FacebookIcon />
-              <span>Facebook</span>
-            </button>
+        {/* Header */}
+        <div className="flex flex-col items-center text-center">
+          <div className="size-14 rounded-[18px] bg-card border border-border/85 dark:border-border/10 shadow-sm flex items-center justify-center text-primary mb-3 transition-transform hover:scale-105 duration-300">
+            <Kanban className="size-6.5 fill-primary/5" />
           </div>
-
-          <div className="relative flex py-2 items-center mb-6">
-            <div className="flex-grow border-t border-zinc-200/50 dark:border-zinc-800/30"></div>
-            <span className="flex-shrink mx-4 text-zinc-400 dark:text-zinc-500 text-[11px] font-bold uppercase tracking-wider">o continuar con correo</span>
-            <div className="flex-grow border-t border-zinc-200/50 dark:border-zinc-800/30"></div>
+          
+          <h2 className="text-2xl sm:text-3xl font-bold text-foreground tracking-[-0.03em] leading-tight">
+            Crea tu cuenta profesional
+          </h2>
+          <div className="flex items-center justify-center gap-2 mt-2.5">
+            <div className="bg-primary/10 text-primary text-[10px] font-bold px-2.5 py-0.5 rounded-full uppercase tracking-wider">
+              Candidato
+            </div>
+            {/* Step Pagination dots */}
+            <div className="flex items-center gap-1">
+              <div className={cn("h-1.5 rounded-full transition-all duration-300", step === 0 ? "w-4 bg-primary" : "w-1.5 bg-border")} />
+              <div className={cn("h-1.5 rounded-full transition-all duration-300", step === 1 ? "w-4 bg-primary" : "w-1.5 bg-border")} />
+            </div>
           </div>
+        </div>
 
-          {/* Form */}
-          <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-4" noValidate>
-            {/* Full Name */}
-            <div className="flex flex-col gap-1.5">
-              <label className="text-[13px] font-semibold text-foreground/80" htmlFor="fullName">
-                Nombre completo
-              </label>
-              <div className="relative group/input">
-                <User className="absolute left-4 top-1/2 -translate-y-1/2 h-[18px] w-[18px] text-muted-foreground/60 group-focus-within/input:text-primary transition-colors duration-200" />
-                <Input
-                  id="fullName"
-                  placeholder="Ej. Carlos Mendoza"
-                  {...register("fullName")}
-                  className="h-[50px] pl-11 pr-4 bg-zinc-100/40 dark:bg-zinc-900/40 border border-zinc-200/60 dark:border-zinc-800/50 focus-visible:border-primary/50 focus-visible:ring-primary/20 rounded-[12px] text-[14px] font-medium placeholder:text-muted-foreground/50 transition-all duration-200"
-                />
+        {/* Form */}
+        <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-4.5" noValidate>
+          
+          {/* STEP 1: Basic Information */}
+          {step === 0 && (
+            <div className="flex flex-col gap-4.5 animate-in fade-in duration-300">
+              {/* Social Logins */}
+              <div className="grid grid-cols-2 gap-3">
+                <button
+                  type="button"
+                  className="flex items-center justify-center gap-2.5 h-[42px] rounded-full border border-border bg-card hover:bg-muted/50 text-[13px] font-semibold text-foreground transition-all active:scale-[0.98] cursor-pointer"
+                >
+                  <GoogleIcon />
+                  <span>Google</span>
+                </button>
+                <button
+                  type="button"
+                  className="flex items-center justify-center gap-2.5 h-[42px] rounded-full border border-border bg-card hover:bg-muted/50 text-[13px] font-semibold text-foreground transition-all active:scale-[0.98] cursor-pointer"
+                >
+                  <FacebookIcon />
+                  <span>Facebook</span>
+                </button>
               </div>
-              {errors.fullName && <FieldError errors={[errors.fullName]} />}
-            </div>
 
-            {/* Email */}
-            <div className="flex flex-col gap-1.5">
-              <label className="text-[13px] font-semibold text-foreground/80" htmlFor="email">
-                Correo electrónico
-              </label>
-              <div className="relative group/input">
-                <Mail className="absolute left-4 top-1/2 -translate-y-1/2 h-[18px] w-[18px] text-muted-foreground/60 group-focus-within/input:text-primary transition-colors duration-200" />
-                <Input
-                  id="email"
-                  placeholder="nombre@correo.com"
-                  type="email"
-                  {...register("email")}
-                  className="h-[50px] pl-11 pr-4 bg-zinc-100/40 dark:bg-zinc-900/40 border border-zinc-200/60 dark:border-zinc-800/50 focus-visible:border-primary/50 focus-visible:ring-primary/20 rounded-[12px] text-[14px] font-medium placeholder:text-muted-foreground/50 transition-all duration-200"
-                />
+              {/* Divider */}
+              <div className="relative flex py-1 items-center w-full">
+                <div className="flex-grow border-t border-border/80 dark:border-border/10"></div>
+                <span className="flex-shrink mx-4 text-muted-foreground/80 text-[10px] font-bold uppercase tracking-wider">
+                  o continuar con correo
+                </span>
+                <div className="flex-grow border-t border-border/80 dark:border-border/10"></div>
               </div>
-              {errors.email && <FieldError errors={[errors.email]} />}
-            </div>
 
-            {/* Passwords Grid (Row on md+) */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {/* Full Name */}
+              <div className="flex flex-col gap-1.5">
+                <label className="text-[12.5px] font-semibold text-foreground/85" htmlFor="fullName">
+                  Nombre completo
+                </label>
+                <div className="relative group/input">
+                  <User className="absolute left-4 top-1/2 -translate-y-1/2 h-[18px] w-[18px] text-muted-foreground/60 group-focus-within/input:text-primary transition-colors duration-200" />
+                  <Input
+                    id="fullName"
+                    placeholder="Ej. Carlos Mendoza"
+                    {...register("fullName")}
+                    className="h-[48px] pl-11 pr-4 bg-zinc-50 dark:bg-zinc-900/40 border border-zinc-200/80 dark:border-zinc-800/80 focus-visible:border-primary/50 focus-visible:ring-primary/20 rounded-[12px] text-[14px] font-medium placeholder:text-muted-foreground/50 transition-all duration-200"
+                  />
+                </div>
+                {errors.fullName && <FieldError errors={[errors.fullName]} />}
+              </div>
+
+              {/* Email */}
+              <div className="flex flex-col gap-1.5">
+                <label className="text-[12.5px] font-semibold text-foreground/85" htmlFor="email">
+                  Correo electrónico
+                </label>
+                <div className="relative group/input">
+                  <Mail className="absolute left-4 top-1/2 -translate-y-1/2 h-[18px] w-[18px] text-muted-foreground/60 group-focus-within/input:text-primary transition-colors duration-200" />
+                  <Input
+                    id="email"
+                    placeholder="nombre@correo.com"
+                    type="email"
+                    {...register("email")}
+                    className="h-[48px] pl-11 pr-4 bg-zinc-50 dark:bg-zinc-900/40 border border-zinc-200/80 dark:border-zinc-800/80 focus-visible:border-primary/50 focus-visible:ring-primary/20 rounded-[12px] text-[14px] font-medium placeholder:text-muted-foreground/50 transition-all duration-200"
+                  />
+                </div>
+                {errors.email && <FieldError errors={[errors.email]} />}
+              </div>
+
+              {/* Siguiente Button */}
+              <Button
+                type="button"
+                onClick={handleNextStep}
+                className="h-[48px] w-full rounded-full bg-primary hover:bg-primary/95 text-primary-foreground font-bold text-[14px] shadow-md shadow-primary/10 tracking-[0.2px] transition-all flex items-center justify-center gap-2 cursor-pointer mt-2 border-0"
+              >
+                Siguiente
+                <ArrowRight className="h-4.5 w-4.5" />
+              </Button>
+            </div>
+          )}
+
+          {/* STEP 2: Security & Password */}
+          {step === 1 && (
+            <div className="flex flex-col gap-4.5 animate-in fade-in duration-300">
               {/* Password */}
               <div className="flex flex-col gap-1.5">
-                <label className="text-[13px] font-semibold text-foreground/80" htmlFor="password">
+                <label className="text-[12.5px] font-semibold text-foreground/85" htmlFor="password">
                   Contraseña
                 </label>
                 <div className="relative group/input">
@@ -227,7 +251,7 @@ export function CandidateRegisterForm() {
                       passwordRegister.onChange(e);
                       setPasswordValue(e.target.value);
                     }}
-                    className="h-[50px] pl-11 pr-11 bg-zinc-100/40 dark:bg-zinc-900/40 border border-zinc-200/60 dark:border-zinc-800/50 focus-visible:border-primary/50 focus-visible:ring-primary/20 rounded-[12px] text-[14px] font-medium placeholder:text-muted-foreground/50 transition-all duration-200"
+                    className="h-[48px] pl-11 pr-11 bg-zinc-50 dark:bg-zinc-900/40 border border-zinc-200/80 dark:border-zinc-800/80 focus-visible:border-primary/50 focus-visible:ring-primary/20 rounded-[12px] text-[14px] font-medium placeholder:text-muted-foreground/50 transition-all duration-200"
                   />
                   <button
                     type="button"
@@ -242,7 +266,7 @@ export function CandidateRegisterForm() {
 
               {/* Confirm Password */}
               <div className="flex flex-col gap-1.5">
-                <label className="text-[13px] font-semibold text-foreground/80" htmlFor="confirmPassword">
+                <label className="text-[12.5px] font-semibold text-foreground/85" htmlFor="confirmPassword">
                   Confirmar contraseña
                 </label>
                 <div className="relative group/input">
@@ -252,7 +276,7 @@ export function CandidateRegisterForm() {
                     placeholder="Repetir contraseña"
                     type={showConfirmPassword ? "text" : "password"}
                     {...register("confirmPassword")}
-                    className="h-[50px] pl-11 pr-11 bg-zinc-100/40 dark:bg-zinc-900/40 border border-zinc-200/60 dark:border-zinc-800/50 focus-visible:border-primary/50 focus-visible:ring-primary/20 rounded-[12px] text-[14px] font-medium placeholder:text-muted-foreground/50 transition-all duration-200"
+                    className="h-[48px] pl-11 pr-11 bg-zinc-50 dark:bg-zinc-900/40 border border-zinc-200/80 dark:border-zinc-800/80 focus-visible:border-primary/50 focus-visible:ring-primary/20 rounded-[12px] text-[14px] font-medium placeholder:text-muted-foreground/50 transition-all duration-200"
                   />
                   <button
                     type="button"
@@ -264,68 +288,82 @@ export function CandidateRegisterForm() {
                 </div>
                 {errors.confirmPassword && <FieldError errors={[errors.confirmPassword]} />}
               </div>
+
+              {/* Password strength indicator */}
+              {passwordValue.length > 0 && (
+                <div className="flex flex-col gap-2 p-3.5 rounded-[12px] bg-zinc-100/50 dark:bg-zinc-900/30 border border-zinc-200/30 dark:border-zinc-800/20">
+                  <div className="flex justify-between items-center text-[11px]">
+                    <span className="font-semibold text-muted-foreground">Fuerza de la contraseña:</span>
+                    <span className={cn("font-bold transition-colors", getStrengthColor(strengthScore))}>
+                      {getStrengthLabel(strengthScore)}
+                    </span>
+                  </div>
+                  
+                  {/* Strength meter bar */}
+                  <div className="grid grid-cols-3 gap-1.5 h-1.5 w-full">
+                    <div className={cn("h-full rounded-full transition-all duration-300", strengthScore >= 1 ? getStrengthBg(strengthScore) : "bg-zinc-200 dark:bg-zinc-800")} />
+                    <div className={cn("h-full rounded-full transition-all duration-300", strengthScore >= 2 ? getStrengthBg(strengthScore) : "bg-zinc-200 dark:bg-zinc-800")} />
+                    <div className={cn("h-full rounded-full transition-all duration-300", strengthScore >= 3 ? getStrengthBg(strengthScore) : "bg-zinc-200 dark:bg-zinc-800")} />
+                  </div>
+
+                  {/* Checklist */}
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-1 mt-1">
+                    <div className="flex items-center gap-1.5 text-[10.5px] font-medium">
+                      <div className={cn("h-1.5 w-1.5 rounded-full transition-all", passwordValue.length >= 8 ? "bg-emerald-500" : "bg-zinc-300 dark:bg-zinc-700")} />
+                      <span className={passwordValue.length >= 8 ? "text-emerald-500/90" : "text-muted-foreground"}>Mínimo 8 carac.</span>
+                    </div>
+                    <div className="flex items-center gap-1.5 text-[10.5px] font-medium">
+                      <div className={cn("h-1.5 w-1.5 rounded-full transition-all", /\d/.test(passwordValue) || /[^A-Za-z0-9]/.test(passwordValue) ? "bg-emerald-500" : "bg-zinc-300 dark:bg-zinc-700")} />
+                      <span className={/\d/.test(passwordValue) || /[^A-Za-z0-9]/.test(passwordValue) ? "text-emerald-500/90" : "text-muted-foreground"}>Número o Símbolo</span>
+                    </div>
+                    <div className="flex items-center gap-1.5 text-[10.5px] font-medium">
+                      <div className={cn("h-1.5 w-1.5 rounded-full transition-all", /[A-Z]/.test(passwordValue) ? "bg-emerald-500" : "bg-zinc-300 dark:bg-zinc-700")} />
+                      <span className={/[A-Z]/.test(passwordValue) ? "text-emerald-500/90" : "text-muted-foreground"}>Mayúscula</span>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Submit */}
+              <Button
+                type="submit"
+                disabled={isSubmitting}
+                className="h-[48px] w-full rounded-full bg-primary hover:bg-primary/95 text-primary-foreground font-bold text-[14px] shadow-md shadow-primary/10 tracking-[0.2px] transition-all flex items-center justify-center gap-2 cursor-pointer mt-2 active:scale-[0.98] border-0"
+              >
+                {isSubmitting ? "Creando tu cuenta..." : "Crear cuenta"}
+                <ArrowRight className="h-4.5 w-4.5" />
+              </Button>
             </div>
+          )}
 
-            {/* Password strength indicator */}
-            {passwordValue.length > 0 && (
-              <div className="flex flex-col gap-2 mt-1 p-3 rounded-[12px] bg-zinc-100/50 dark:bg-zinc-900/30 border border-zinc-200/30 dark:border-zinc-800/20">
-                <div className="flex justify-between items-center text-[12px]">
-                  <span className="font-semibold text-muted-foreground">Fuerza de la contraseña:</span>
-                  <span className={cn("font-bold transition-colors", getStrengthColor(strengthScore))}>
-                    {getStrengthLabel(strengthScore)}
-                  </span>
-                </div>
-                
-                {/* Strength meter bar */}
-                <div className="grid grid-cols-3 gap-1.5 h-1.5 w-full">
-                  <div className={cn("h-full rounded-full transition-all duration-300", strengthScore >= 1 ? getStrengthBg(strengthScore) : "bg-zinc-200 dark:bg-zinc-800")} />
-                  <div className={cn("h-full rounded-full transition-all duration-300", strengthScore >= 2 ? getStrengthBg(strengthScore) : "bg-zinc-200 dark:bg-zinc-800")} />
-                  <div className={cn("h-full rounded-full transition-all duration-300", strengthScore >= 3 ? getStrengthBg(strengthScore) : "bg-zinc-200 dark:bg-zinc-800")} />
-                </div>
+        </form>
 
-                {/* Checklist */}
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-1 mt-1">
-                  <div className="flex items-center gap-1.5 text-[11px] font-medium">
-                    <div className={cn("h-1.5 w-1.5 rounded-full transition-all", passwordValue.length >= 8 ? "bg-emerald-500" : "bg-zinc-300 dark:bg-zinc-700")} />
-                    <span className={passwordValue.length >= 8 ? "text-emerald-500/90" : "text-muted-foreground"}>Mínimo 8 carac.</span>
-                  </div>
-                  <div className="flex items-center gap-1.5 text-[11px] font-medium">
-                    <div className={cn("h-1.5 w-1.5 rounded-full transition-all", /\d/.test(passwordValue) || /[^A-Za-z0-9]/.test(passwordValue) ? "bg-emerald-500" : "bg-zinc-300 dark:bg-zinc-700")} />
-                    <span className={/\d/.test(passwordValue) || /[^A-Za-z0-9]/.test(passwordValue) ? "text-emerald-500/90" : "text-muted-foreground"}>Número o Símbolo</span>
-                  </div>
-                  <div className="flex items-center gap-1.5 text-[11px] font-medium">
-                    <div className={cn("h-1.5 w-1.5 rounded-full transition-all", /[A-Z]/.test(passwordValue) ? "bg-emerald-500" : "bg-zinc-300 dark:bg-zinc-700")} />
-                    <span className={/[A-Z]/.test(passwordValue) ? "text-emerald-500/90" : "text-muted-foreground"}>Mayúscula</span>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {/* Submit */}
-            <Button
-              type="submit"
-              disabled={isSubmitting}
-              className="h-[50px] w-full rounded-[12px] bg-primary hover:bg-primary/95 text-primary-foreground font-bold text-[15px] shadow-lg shadow-primary/15 tracking-[0.2px] transition-all flex items-center justify-center gap-2 cursor-pointer mt-3 active:scale-[0.98] disabled:opacity-50 disabled:pointer-events-none border-0"
-            >
-              {isSubmitting ? "Creando tu cuenta..." : "Crear cuenta"}
-              <ArrowRight className="h-4.5 w-4.5" />
-            </Button>
-          </form>
-
-          {/* Footer */}
-          <footer className="mt-8 text-center text-[13px] text-muted-foreground font-medium">
+        {/* Footer info */}
+        <footer className="pt-2 mt-1 w-full border-t border-border/60 dark:border-border/10 flex flex-col gap-3 items-center">
+          <p className="text-[13px] text-muted-foreground font-medium">
             ¿Ya tienes una cuenta?{" "}
             <Link
               href="/login"
-              className="text-primary font-bold hover:underline transition-all tracking-[0.1px] ml-1"
+              className="text-primary font-bold hover:underline transition-all tracking-[0.1px] ml-0.5"
             >
               Inicia Sesión
             </Link>
-          </footer>
+          </p>
 
-        </div>
+          <p className="text-[11px] text-muted-foreground text-center font-medium leading-relaxed max-w-[340px] mx-auto border-t border-border/40 dark:border-border/5 pt-3 w-full">
+            Al continuar, aceptas nuestros{" "}
+            <a className="underline hover:text-foreground transition-colors" href="#">
+              Términos de Servicio
+            </a>{" "}
+            y{" "}
+            <a className="underline hover:text-foreground transition-colors" href="#">
+              Política de Privacidad
+            </a>
+            .
+          </p>
+        </footer>
+
       </div>
     </main>
   );
 }
-
