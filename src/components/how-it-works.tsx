@@ -18,14 +18,14 @@ export function HowItWorks() {
   const [activeTab, setActiveTab] = useState<"hire" | "work">("hire");
 
   return (
-    <section className="py-[88px] border-t border-border bg-background relative overflow-hidden">
+    <section className="py-12 md:py-[88px] border-t border-border bg-background relative overflow-hidden">
       {/* Background decoration */}
       <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] rounded-full bg-primary/5 blur-[120px] pointer-events-none" />
 
       <div className="container mx-auto px-6 max-w-6xl">
         
         {/* Section Header */}
-        <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-16">
+        <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-10 md:mb-16">
           <div className="space-y-3 text-left">
             <h2 className="font-sans font-medium text-3xl md:text-[40px] leading-[1.2] tracking-[-0.4px] text-foreground">
               Cómo funciona
@@ -61,7 +61,7 @@ export function HowItWorks() {
         </div>
 
         {/* 3 Step Cards Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-5 md:gap-8">
           {activeTab === "hire" ? (
             // Employers Flow
             <>

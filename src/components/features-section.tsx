@@ -5,10 +5,10 @@ import { Layers, Briefcase, Users } from "lucide-react";
 
 export function FeaturesSection() {
   return (
-    <section id="features" className="py-[88px] border-t border-border bg-muted/10 relative">
+    <section id="features" className="py-12 md:py-[88px] border-t border-border bg-muted/10 relative">
       <div className="container mx-auto px-6">
         
-        <div className="text-center max-w-3xl mx-auto mb-16 space-y-4">
+        <div className="text-center max-w-3xl mx-auto mb-10 md:mb-16 space-y-4">
           <h2 className="font-sans font-medium text-3xl md:text-[40px] leading-[1.2] tracking-[-0.4px] text-foreground">
             Conexión Real para Negocios Reales
           </h2>
@@ -17,7 +17,7 @@ export function FeaturesSection() {
           </p>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-5 md:gap-8">
           
           {/* Feature 1 */}
           <div className="p-8 rounded-[20px] border border-border/60 dark:border-border/10 bg-card transition-colors duration-300">

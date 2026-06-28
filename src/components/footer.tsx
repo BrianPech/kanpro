@@ -47,13 +47,13 @@ export function Footer() {
 
   return (
     <footer className="container mx-auto px-6 py-12 relative z-10 bg-background">
-      <div className="relative rounded-[20px] bg-muted/30 text-foreground border border-border/80 dark:border-border/10 p-8 sm:p-12 space-y-12 overflow-hidden">
+      <div className="relative rounded-[20px] bg-muted/30 text-foreground border border-border/80 dark:border-border/10 p-6 sm:p-12 space-y-12 overflow-hidden">
         
         {/* Subtle Ambient Brand Glow */}
         <div className="absolute -bottom-20 -left-20 size-[320px] rounded-full bg-primary/5 dark:bg-primary/10 blur-[80px] pointer-events-none" />
 
         {/* Columns Grid */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-8 relative z-10">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-6 md:gap-8 relative z-10">
           {companyColumns.map((col, idx) => (
             <div key={idx} className="space-y-4 text-left">
               <h4 className="text-[11px] font-semibold text-muted-foreground uppercase tracking-widest block">

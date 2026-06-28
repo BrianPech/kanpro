@@ -272,7 +272,7 @@ export function Navbar() {
                 <Menu className="size-5.5" />
               </Button>
             </SheetTrigger>
-            <SheetContent side="right" className="w-[300px] sm:w-[350px] p-6 flex flex-col justify-between">
+            <SheetContent side="right" className="w-[85vw] max-w-[340px] p-6 flex flex-col justify-between">
 
               <div className="space-y-6">
                 <SheetHeader className="p-0 border-b border-border/50 pb-4 flex flex-row items-center justify-between">

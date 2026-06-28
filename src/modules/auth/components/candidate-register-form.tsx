@@ -115,7 +115,7 @@ export function CandidateRegisterForm() {
         {step === 0 ? (
           <Link
             href="/register"
-            className="inline-flex items-center gap-2 text-[13px] font-semibold text-muted-foreground hover:text-foreground transition-all duration-200 group w-fit"
+            className="inline-flex items-center gap-2 text-sm font-semibold text-muted-foreground hover:text-foreground transition-all duration-200 group w-fit"
           >
             <ArrowLeft className="h-4 w-4 transition-transform group-hover:-translate-x-1" />
             Volver a opciones
@@ -124,7 +124,7 @@ export function CandidateRegisterForm() {
           <button
             type="button"
             onClick={() => setStep(0)}
-            className="inline-flex items-center gap-2 text-[13px] font-semibold text-muted-foreground hover:text-foreground transition-all duration-200 group w-fit cursor-pointer"
+            className="inline-flex items-center gap-2 text-sm font-semibold text-muted-foreground hover:text-foreground transition-all duration-200 group w-fit cursor-pointer"
           >
             <ArrowLeft className="h-4 w-4 transition-transform group-hover:-translate-x-1" />
             Volver al paso anterior
@@ -162,14 +162,14 @@ export function CandidateRegisterForm() {
               <div className="grid grid-cols-2 gap-3">
                 <button
                   type="button"
-                  className="flex items-center justify-center gap-2.5 h-[42px] rounded-full border border-border bg-card hover:bg-muted/50 text-[13px] font-semibold text-foreground transition-all active:scale-[0.98] cursor-pointer"
+                  className="flex items-center justify-center gap-2.5 h-11 rounded-full border border-border bg-card hover:bg-muted/50 text-sm font-semibold text-foreground transition-all active:scale-[0.98] cursor-pointer"
                 >
                   <GoogleIcon />
                   <span>Google</span>
                 </button>
                 <button
                   type="button"
-                  className="flex items-center justify-center gap-2.5 h-[42px] rounded-full border border-border bg-card hover:bg-muted/50 text-[13px] font-semibold text-foreground transition-all active:scale-[0.98] cursor-pointer"
+                  className="flex items-center justify-center gap-2.5 h-11 rounded-full border border-border bg-card hover:bg-muted/50 text-sm font-semibold text-foreground transition-all active:scale-[0.98] cursor-pointer"
                 >
                   <FacebookIcon />
                   <span>Facebook</span>
@@ -187,7 +187,7 @@ export function CandidateRegisterForm() {
 
               {/* Full Name */}
               <div className="flex flex-col gap-1.5">
-                <label className="text-[12.5px] font-semibold text-foreground/85" htmlFor="fullName">
+                <label className="text-sm font-semibold text-foreground/85" htmlFor="fullName">
                   Nombre completo
                 </label>
                 <div className="relative group/input">
@@ -196,7 +196,7 @@ export function CandidateRegisterForm() {
                     id="fullName"
                     placeholder="Ej. Carlos Mendoza"
                     {...register("fullName")}
-                    className="h-[48px] pl-11 pr-4 bg-zinc-50 dark:bg-zinc-900/40 border border-zinc-200/80 dark:border-zinc-800/80 focus-visible:border-primary/50 focus-visible:ring-primary/20 rounded-[12px] text-[14px] font-medium placeholder:text-muted-foreground/50 transition-all duration-200"
+                    className="h-12 pl-11 pr-4 bg-zinc-50 dark:bg-zinc-900/40 border border-zinc-200/80 dark:border-zinc-800/80 focus-visible:border-primary/50 focus-visible:ring-primary/20 rounded-[12px] text-sm font-medium placeholder:text-muted-foreground/50 transition-all duration-200"
                   />
                 </div>
                 {errors.fullName && <FieldError errors={[errors.fullName]} />}
@@ -204,7 +204,7 @@ export function CandidateRegisterForm() {
 
               {/* Email */}
               <div className="flex flex-col gap-1.5">
-                <label className="text-[12.5px] font-semibold text-foreground/85" htmlFor="email">
+                <label className="text-sm font-semibold text-foreground/85" htmlFor="email">
                   Correo electrónico
                 </label>
                 <div className="relative group/input">
@@ -214,7 +214,7 @@ export function CandidateRegisterForm() {
                     placeholder="nombre@correo.com"
                     type="email"
                     {...register("email")}
-                    className="h-[48px] pl-11 pr-4 bg-zinc-50 dark:bg-zinc-900/40 border border-zinc-200/80 dark:border-zinc-800/80 focus-visible:border-primary/50 focus-visible:ring-primary/20 rounded-[12px] text-[14px] font-medium placeholder:text-muted-foreground/50 transition-all duration-200"
+                    className="h-12 pl-11 pr-4 bg-zinc-50 dark:bg-zinc-900/40 border border-zinc-200/80 dark:border-zinc-800/80 focus-visible:border-primary/50 focus-visible:ring-primary/20 rounded-[12px] text-sm font-medium placeholder:text-muted-foreground/50 transition-all duration-200"
                   />
                 </div>
                 {errors.email && <FieldError errors={[errors.email]} />}
@@ -224,7 +224,7 @@ export function CandidateRegisterForm() {
               <Button
                 type="button"
                 onClick={handleNextStep}
-                className="h-[48px] w-full rounded-full bg-primary hover:bg-primary/95 text-primary-foreground font-bold text-[14px] shadow-md shadow-primary/10 tracking-[0.2px] transition-all flex items-center justify-center gap-2 cursor-pointer mt-2 border-0"
+                className="h-12 w-full rounded-full bg-primary hover:bg-primary/95 text-primary-foreground font-bold text-sm shadow-md shadow-primary/10 tracking-[0.2px] transition-all flex items-center justify-center gap-2 cursor-pointer mt-2 border-0"
               >
                 Siguiente
                 <ArrowRight className="h-4.5 w-4.5" />
@@ -237,7 +237,7 @@ export function CandidateRegisterForm() {
             <div className="flex flex-col gap-4.5 animate-in fade-in duration-300">
               {/* Password */}
               <div className="flex flex-col gap-1.5">
-                <label className="text-[12.5px] font-semibold text-foreground/85" htmlFor="password">
+                <label className="text-sm font-semibold text-foreground/85" htmlFor="password">
                   Contraseña
                 </label>
                 <div className="relative group/input">
@@ -251,7 +251,7 @@ export function CandidateRegisterForm() {
                       passwordRegister.onChange(e);
                       setPasswordValue(e.target.value);
                     }}
-                    className="h-[48px] pl-11 pr-11 bg-zinc-50 dark:bg-zinc-900/40 border border-zinc-200/80 dark:border-zinc-800/80 focus-visible:border-primary/50 focus-visible:ring-primary/20 rounded-[12px] text-[14px] font-medium placeholder:text-muted-foreground/50 transition-all duration-200"
+                    className="h-12 pl-11 pr-11 bg-zinc-50 dark:bg-zinc-900/40 border border-zinc-200/80 dark:border-zinc-800/80 focus-visible:border-primary/50 focus-visible:ring-primary/20 rounded-[12px] text-sm font-medium placeholder:text-muted-foreground/50 transition-all duration-200"
                   />
                   <button
                     type="button"
@@ -266,7 +266,7 @@ export function CandidateRegisterForm() {
 
               {/* Confirm Password */}
               <div className="flex flex-col gap-1.5">
-                <label className="text-[12.5px] font-semibold text-foreground/85" htmlFor="confirmPassword">
+                <label className="text-sm font-semibold text-foreground/85" htmlFor="confirmPassword">
                   Confirmar contraseña
                 </label>
                 <div className="relative group/input">
@@ -276,7 +276,7 @@ export function CandidateRegisterForm() {
                     placeholder="Repetir contraseña"
                     type={showConfirmPassword ? "text" : "password"}
                     {...register("confirmPassword")}
-                    className="h-[48px] pl-11 pr-11 bg-zinc-50 dark:bg-zinc-900/40 border border-zinc-200/80 dark:border-zinc-800/80 focus-visible:border-primary/50 focus-visible:ring-primary/20 rounded-[12px] text-[14px] font-medium placeholder:text-muted-foreground/50 transition-all duration-200"
+                    className="h-12 pl-11 pr-11 bg-zinc-50 dark:bg-zinc-900/40 border border-zinc-200/80 dark:border-zinc-800/80 focus-visible:border-primary/50 focus-visible:ring-primary/20 rounded-[12px] text-sm font-medium placeholder:text-muted-foreground/50 transition-all duration-200"
                   />
                   <button
                     type="button"
@@ -328,7 +328,7 @@ export function CandidateRegisterForm() {
               <Button
                 type="submit"
                 disabled={isSubmitting}
-                className="h-[48px] w-full rounded-full bg-primary hover:bg-primary/95 text-primary-foreground font-bold text-[14px] shadow-md shadow-primary/10 tracking-[0.2px] transition-all flex items-center justify-center gap-2 cursor-pointer mt-2 active:scale-[0.98] border-0"
+                className="h-12 w-full rounded-full bg-primary hover:bg-primary/95 text-primary-foreground font-bold text-sm shadow-md shadow-primary/10 tracking-[0.2px] transition-all flex items-center justify-center gap-2 cursor-pointer mt-2 active:scale-[0.98] border-0"
               >
                 {isSubmitting ? "Creando tu cuenta..." : "Crear cuenta"}
                 <ArrowRight className="h-4.5 w-4.5" />
@@ -340,7 +340,7 @@ export function CandidateRegisterForm() {
 
         {/* Footer info */}
         <footer className="pt-2 mt-1 w-full border-t border-border/60 dark:border-border/10 flex flex-col gap-3 items-center">
-          <p className="text-[13px] text-muted-foreground font-medium">
+          <p className="text-sm text-muted-foreground font-medium">
             ¿Ya tienes una cuenta?{" "}
             <Link
               href="/login"

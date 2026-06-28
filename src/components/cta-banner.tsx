@@ -65,7 +65,7 @@ function OrbitingIconWithLabel({
 export function CtaBanner() {
   return (
     <section className="container mx-auto px-6 py-16 md:py-24" id="cta-banner">
-      <div className="relative rounded-[24px] bg-card border border-border/80 dark:border-border/10 overflow-hidden min-h-[480px] grid grid-cols-1 lg:grid-cols-12 gap-8 p-8 sm:p-12 lg:p-16 items-center">
+      <div className="relative rounded-[24px] bg-card border border-border/80 dark:border-border/10 overflow-hidden min-h-[480px] grid grid-cols-1 lg:grid-cols-12 gap-8 p-6 sm:p-12 lg:p-16 items-center">
         
         {/* Subtle Stripe / Grid Overlay */}
         <div className="absolute inset-0 text-neutral-900/[0.01] dark:text-white/[0.02] pointer-events-none" 
@@ -84,7 +84,7 @@ export function CtaBanner() {
           </div>
 
           {/* Heading */}
-          <h2 className="text-3xl sm:text-4xl lg:text-5xl font-bold tracking-tight text-foreground leading-[1.15]">
+          <h2 className="text-2xl sm:text-4xl lg:text-5xl font-bold tracking-tight text-foreground leading-[1.15]">
             ¿Listo para contratar en la <span className="text-primary">Riviera Maya</span>?
           </h2>
 

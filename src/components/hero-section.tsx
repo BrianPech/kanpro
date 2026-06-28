@@ -31,7 +31,7 @@ export function HeroSection() {
   return (
     <div className="w-full flex flex-col gap-6 pt-4">
       {/* Top Banner */}
-      <div className="w-full rounded-full bg-primary/10 border border-primary/20 px-6 py-3 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 transition-all duration-300">
+      <div className="w-full rounded-[16px] sm:rounded-full bg-primary/10 border border-primary/20 px-6 py-3 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 transition-all duration-300">
         <div className="flex items-center gap-2">
           <div className="size-5 rounded-full bg-primary/20 text-primary flex items-center justify-center shrink-0">
             <Sparkles className="size-3.5 fill-primary/20" />
@@ -49,7 +49,7 @@ export function HeroSection() {
       </div>
 
       {/* Main Hero Card */}
-      <div className="relative w-full rounded-[28px] overflow-hidden min-h-[500px] md:min-h-[550px] lg:min-h-[600px] flex items-center border border-border/25">
+      <div className="relative w-full rounded-[28px] overflow-hidden min-h-0 sm:min-h-[500px] md:min-h-[550px] lg:min-h-[600px] flex items-center border border-border/25">
         {/* Background Image */}
         <img
           src="/images/workspace_hero.png"
@@ -66,11 +66,11 @@ export function HeroSection() {
         <div className="absolute top-0 left-0 w-80 h-80 bg-primary/10 rounded-full blur-[100px] pointer-events-none z-1" />
 
         {/* Content Container */}
-        <div className="relative z-10 w-full px-6 py-12 sm:p-12 md:p-16 lg:p-20 flex flex-col items-start text-left max-w-4xl space-y-8">
+        <div className="relative z-10 w-full px-6 py-8 sm:py-12 sm:px-12 md:p-16 lg:p-20 flex flex-col items-start text-left max-w-4xl space-y-5 sm:space-y-8">
 
           {/* Main Title & Subtitle */}
           <div className="space-y-4">
-            <h1 className="font-sans font-medium text-4xl sm:text-5xl lg:text-[80px] text-white tracking-[-0.8px] sm:tracking-[-1.6px] leading-[1.0]">
+            <h1 className="font-sans font-medium text-3xl sm:text-5xl lg:text-[72px] text-white tracking-[-0.8px] sm:tracking-[-1.6px] leading-[1.1] sm:leading-[1.0]">
               Trabaja cerca de casa, <br className="hidden sm:block" />
               contrata sin rodeos
             </h1>
