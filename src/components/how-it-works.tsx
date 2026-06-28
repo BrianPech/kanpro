@@ -31,7 +31,7 @@ export function HowItWorks() {
               Cómo funciona
             </h2>
             <p className="text-muted-foreground text-sm sm:text-base max-w-xl">
-              K&apos;anPro facilita la conexión y contratación directa entre candidatos y empresas de la Riviera Maya en tres sencillos pasos.
+              K&apos;anPro facilita la conexión y contratación directa entre candidatos y empresas de Felipe Carrillo Puerto en tres sencillos pasos.
             </p>
           </div>
 
@@ -78,7 +78,7 @@ export function HowItWorks() {
                     <div className="space-y-1.5">
                       <div className="text-[10px] font-semibold text-foreground">Título del puesto:</div>
                       <div className="text-xs font-bold text-foreground border border-border/60 dark:border-border/15 rounded-[8px] px-2.5 py-1.5 bg-muted/30">
-                        Cocinero A - Quinta Avenida
+                        Cocinero A - Colonia Centro
                       </div>
                     </div>
                     <div className="flex justify-between items-center pt-1 text-[9px] text-muted-foreground">
@@ -120,7 +120,7 @@ export function HowItWorks() {
                     <div className="flex flex-wrap gap-1.5">
                       <span className="text-[8px] bg-muted px-2 py-0.5 rounded-[8px] text-muted-foreground font-semibold">Inglés Bilingüe</span>
                       <span className="text-[8px] bg-muted px-2 py-0.5 rounded-[8px] text-muted-foreground font-semibold">Servicio Cliente</span>
-                      <span className="text-[8px] bg-muted px-2 py-0.5 rounded-[8px] text-muted-foreground font-semibold">Playa Centro</span>
+                      <span className="text-[8px] bg-muted px-2 py-0.5 rounded-[8px] text-muted-foreground font-semibold">Colonia Centro</span>
                     </div>
                   </div>
 
@@ -195,7 +195,7 @@ export function HowItWorks() {
                       <span className="text-muted-foreground text-[9px] font-normal ml-1">(42 opiniones)</span>
                     </div>
                     <div className="border-t border-border/60 dark:border-border/15 pt-2 flex items-center justify-between text-[9px] text-muted-foreground">
-                      <span>Zona: Col. Ejidal, Playa</span>
+                      <span>Zona: Col. Emiliano Zapata, FCP</span>
                       <span className="font-bold text-foreground">$14,000/mes</span>
                     </div>
                   </div>
@@ -207,7 +207,7 @@ export function HowItWorks() {
                 <div className="text-left space-y-1.5 px-1">
                   <h3 className="text-[16px] font-semibold leading-[1.5] tracking-[0.16px] text-foreground">1. Crea tu CV Premium</h3>
                   <p className="text-[14px] font-normal leading-[1.43] text-muted-foreground">
-                    Muestra quién eres, qué sabes hacer, tu experiencia en la Riviera Maya y la zona específica de la ciudad donde vives.
+                    Muestra quién eres, qué sabes hacer, tu experiencia en Felipe Carrillo Puerto y la zona específica de la ciudad donde vives.
                   </p>
                 </div>
               </div>
@@ -220,7 +220,7 @@ export function HowItWorks() {
                   <div className="w-full bg-background border border-border/60 dark:border-border/15 rounded-[12px] p-4 space-y-3.5 text-left">
                     <div className="space-y-1">
                       <div className="text-xs font-bold text-foreground">Auxiliar Administrativo</div>
-                      <div className="text-[9px] text-muted-foreground">Hotel Boutique Playacar</div>
+                      <div className="text-[9px] text-muted-foreground">Restaurante Local Centro</div>
                     </div>
                     <div className="flex justify-between items-center pt-1 border-t border-border/60 dark:border-border/15">
                       <span className="text-[9px] text-muted-foreground font-semibold">Canal de postulación:</span>

@@ -13,7 +13,7 @@ export function FeaturesSection() {
             Conexión Real para Negocios Reales
           </h2>
           <p className="text-muted-foreground text-sm sm:text-base max-w-xl mx-auto">
-            Simplificamos la búsqueda de empleo en Playa del Carmen eliminando los procesos burocráticos y uniendo a las partes de forma directa.
+            Simplificamos la búsqueda de empleo en Felipe Carrillo Puerto eliminando los procesos burocráticos y uniendo a las partes de forma directa.
           </p>
         </div>
 
@@ -26,7 +26,7 @@ export function FeaturesSection() {
             </div>
             <h3 className="text-[20px] font-medium leading-[1.4] text-foreground mb-3">Buscador Geográfico / Por Zona</h3>
             <p className="text-[14px] font-normal leading-[1.43] text-muted-foreground">
-              Filtra vacantes y candidatos por cercanía, sector o fraccionamiento en Playa del Carmen, reduciendo los tiempos de traslado diarios.
+              Filtra vacantes y candidatos por cercanía, sector o colonia en Felipe Carrillo Puerto, reduciendo los tiempos de traslado diarios.
             </p>
           </div>
 

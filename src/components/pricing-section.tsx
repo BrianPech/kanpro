@@ -9,7 +9,7 @@ export function PricingSection() {
 
   const candidateFeatures = [
     "CV Digital Premium estructurado",
-    "Ubicación visible por zona en Playa del Carmen",
+    "Ubicación visible por zona en Felipe Carrillo Puerto",
     "Control de Privacidad (oculta/muestra tu número)",
     "Botón de postulación directa por WhatsApp",
     "Acceso a vacantes exclusivas de la zona",
@@ -46,7 +46,7 @@ export function PricingSection() {
             Planes Simples y Directos
           </h2>
           <p className="text-muted-foreground text-sm sm:text-base max-w-xl mx-auto">
-            Sin comisiones por contratación. Elige tu perfil para comenzar a conectar de inmediato en la Riviera Maya.
+            Sin comisiones por contratación. Elige tu perfil para comenzar a conectar de inmediato en Felipe Carrillo Puerto.
           </p>
         </div>
 
@@ -90,7 +90,7 @@ export function PricingSection() {
               </div>
 
               <p className="text-xs sm:text-sm text-muted-foreground leading-relaxed">
-                Crea tu CV Digital Premium, destaca tu zona en Playa del Carmen y conecta directamente con empleadores locales en WhatsApp.
+                Crea tu CV Digital Premium, destaca tu zona en Felipe Carrillo Puerto y conecta directamente con empleadores locales en WhatsApp.
               </p>
 
               <div className="border-t border-border/50 my-6" />

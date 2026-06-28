@@ -85,12 +85,12 @@ export function CtaBanner() {
 
           {/* Heading */}
           <h2 className="text-2xl sm:text-4xl lg:text-5xl font-bold tracking-tight text-foreground leading-[1.15]">
-            ¿Listo para contratar en la <span className="text-primary">Riviera Maya</span>?
+            ¿Listo para contratar en <span className="text-primary">Felipe Carrillo Puerto</span>?
           </h2>
 
           {/* Subheading */}
           <p className="text-muted-foreground text-sm sm:text-base font-normal leading-relaxed max-w-xl">
-            Conectamos de forma directa al mejor talento de Playa del Carmen con hoteles, restaurantes, spas y comercios locales. Sin intermediarios, sin burocracia y directo a WhatsApp.
+            Conectamos de forma directa al mejor talento de Felipe Carrillo Puerto con hoteles, restaurantes, spas y comercios locales. Sin intermediarios, sin burocracia y directo a WhatsApp.
           </p>
 
           {/* CTAs */}

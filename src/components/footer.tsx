@@ -38,7 +38,7 @@ export function Footer() {
       title: "K'anPro",
       links: [
         { label: "Sobre Nosotros", href: "#" },
-        { label: "Empleo en Playa", href: "#" },
+        { label: "Empleo en Carrillo", href: "#" },
         { label: "Términos locales", href: "/terms" },
         { label: "Aviso de Privacidad", href: "/privacy" },
       ],
@@ -168,7 +168,7 @@ export function Footer() {
               K&apos;anPro
             </span>
             <span className="mx-1 text-muted-foreground">|</span>
-            <span className="text-[13px] font-normal leading-[1.4] text-muted-foreground">K&apos;anPro - El motor de empleo más rápido de la Riviera Maya.</span>
+            <span className="text-[13px] font-normal leading-[1.4] text-muted-foreground">K&apos;anPro - El motor de empleo más rápido de Felipe Carrillo Puerto.</span>
           </div>
 
           <div className="flex flex-wrap gap-x-4 gap-y-1 justify-center sm:justify-end">

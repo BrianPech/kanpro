@@ -141,7 +141,7 @@ export function Navbar() {
                         </div>
                         <div>
                           <div className="text-xs font-bold text-foreground">Buscar Empleos</div>
-                          <div className="text-[10px] text-muted-foreground mt-0.5">Explora vacantes en Playa del Carmen y postúlate directo.</div>
+                          <div className="text-[10px] text-muted-foreground mt-0.5">Explora vacantes en Felipe Carrillo Puerto y postúlate directo.</div>
                         </div>
                       </Link>
                     </NavigationMenuLink>

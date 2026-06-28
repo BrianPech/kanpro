@@ -11,15 +11,15 @@ export function HeroSection() {
 
   const popularTags = {
     hire: [
-      { label: "Playa del Carmen", query: "Playa del Carmen" },
-      { label: "Quinta Avenida", query: "Quinta Avenida" },
-      { label: "Hotelería & Turismo", query: "Hotelería" },
+      { label: "Colonia Centro", query: "Centro" },
+      { label: "Col. Emiliano Zapata", query: "Emiliano Zapata" },
+      { label: "Comercio & Ventas", query: "Comercio" },
       { label: "Gastronomía", query: "Gastronomía" },
     ],
     work: [
-      { label: "Centro", query: "Centro" },
-      { label: "Playacar", query: "Playacar" },
-      { label: "Ventas & Comercio", query: "Ventas" },
+      { label: "Colonia Plan de Ayala", query: "Plan de Ayala" },
+      { label: "Colonia Cecilio Chi", query: "Cecilio Chi" },
+      { label: "Servicios Generales", query: "Servicios" },
       { label: "Administración", query: "Administración" },
     ],
   };
@@ -37,7 +37,7 @@ export function HeroSection() {
             <Sparkles className="size-3.5 fill-primary/20" />
           </div>
           <p className="text-xs sm:text-sm font-medium text-foreground">
-            Encuentra empleo o contrata talento local en la <span className="font-bold text-primary">Riviera Maya</span> sin comisiones.
+            Encuentra empleo o contrata talento local en <span className="font-bold text-primary">Felipe Carrillo Puerto</span> sin comisiones.
           </p>
         </div>
         <Link
@@ -75,7 +75,7 @@ export function HeroSection() {
               contrata sin rodeos
             </h1>
             <p className="text-base sm:text-[18px] text-white/85 max-w-2xl leading-[1.56] tracking-[-0.09px] font-normal">
-              Conectamos al talento humano de Playa del Carmen con hoteles, restaurantes, comercios y startups de la Riviera Maya. Directo a WhatsApp, rápido y sin intermediarios.
+              Conectamos al talento humano de Felipe Carrillo Puerto con hoteles, restaurantes, comercios y startups locales. Directo a WhatsApp, rápido y sin intermediarios.
             </p>
           </div>
 
@@ -117,8 +117,8 @@ export function HeroSection() {
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder={
                   activeTab === "hire"
-                    ? "Describe lo que buscas contratar (ej: Cocinero Quinta Avenida, Recepcionista Centro)..."
-                    : "Busca empleos por cercanía (ej: Mesero Playacar, Auxiliar Administrativo Centro)..."
+                    ? "Describe lo que buscas contratar (ej: Cocinero Colonia Centro, Recepcionista)..."
+                    : "Busca empleos por cercanía (ej: Mesero Emiliano Zapata, Auxiliar Administrativo Centro)..."
                 }
                 className="flex-1 bg-transparent border-none outline-none ring-0 focus:ring-0 px-3 text-sm text-foreground placeholder:text-muted-foreground/80 min-w-0"
               />

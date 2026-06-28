@@ -179,7 +179,7 @@ export function CompanyRegisterForm() {
                   <MapPin className="absolute left-4 top-1/2 -translate-y-1/2 h-[18px] w-[18px] text-muted-foreground/60 group-focus-within/input:text-primary transition-colors duration-200" />
                   <Input
                     id="location"
-                    placeholder="Playa del Carmen, Riviera Maya"
+                    placeholder="Felipe Carrillo Puerto, Q. Roo"
                     {...register("location")}
                     className="h-[48px] pl-11 pr-4 bg-zinc-50 dark:bg-zinc-900/40 border border-zinc-200/80 dark:border-zinc-800/80 focus-visible:border-primary/50 focus-visible:ring-primary/20 rounded-[12px] text-[14px] font-medium placeholder:text-muted-foreground/50 transition-all duration-200"
                     aria-invalid={!!errors.location}
