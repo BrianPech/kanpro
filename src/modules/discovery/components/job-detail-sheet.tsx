@@ -78,7 +78,6 @@ export function JobDetailSheet({
   }
 
   const hasApplied = isAlreadyApplied || isAppliedSession;
-  const supabase = createClient();
 
   if (!job) return null;
 
@@ -109,6 +108,7 @@ export function JobDetailSheet({
     }
 
     setIsSubmitting(true);
+    const supabase = createClient();
 
     try {
       if (job.isFromDb) {
