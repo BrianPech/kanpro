@@ -53,7 +53,6 @@ export function VacancyDetail({
   }
 
   const hasApplied = isAlreadyApplied || isAppliedSession;
-  const supabase = createClient();
 
   if (!job) {
     return (
@@ -112,6 +111,7 @@ export function VacancyDetail({
     }
 
     setIsSubmitting(true);
+    const supabase = createClient();
 
     try {
       if (job.isFromDb) {
