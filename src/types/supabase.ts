@@ -37,21 +37,21 @@ export type Database = {
       admin_profiles: {
         Row: {
           created_at: string
-          email: string
+          email: string | null
           full_name: string
           id: string
           updated_at: string
         }
         Insert: {
           created_at?: string
-          email: string
+          email?: string | null
           full_name: string
           id: string
           updated_at?: string
         }
         Update: {
           created_at?: string
-          email?: string
+          email?: string | null
           full_name?: string
           id?: string
           updated_at?: string
@@ -84,20 +84,6 @@ export type Database = {
           vacancy_id?: string
         }
         Relationships: [
-          {
-            foreignKeyName: "applications_candidate_id_fkey"
-            columns: ["candidate_id"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "applications_candidate_id_fkey"
-            columns: ["candidate_id"]
-            isOneToOne: false
-            referencedRelation: "profiles_private"
-            referencedColumns: ["id"]
-          },
           {
             foreignKeyName: "applications_vacancy_id_fkey"
             columns: ["vacancy_id"]
@@ -220,7 +206,6 @@ export type Database = {
           created_at: string
           email: string
           id: string
-          is_read: boolean
           message: string
           name: string
           subject: string | null
@@ -229,7 +214,6 @@ export type Database = {
           created_at?: string
           email: string
           id?: string
-          is_read?: boolean
           message: string
           name: string
           subject?: string | null
@@ -238,7 +222,6 @@ export type Database = {
           created_at?: string
           email?: string
           id?: string
-          is_read?: boolean
           message?: string
           name?: string
           subject?: string | null
@@ -370,7 +353,7 @@ export type Database = {
           company_id: string
           contract_type: string | null
           created_at: string
-          currency: string
+          currency: string | null
           description: string
           employment_type: string | null
           id: string
@@ -388,7 +371,7 @@ export type Database = {
           status: string
           title: string
           updated_at: string
-          vacancies_count: number
+          vacancies_count: number | null
           zone: string | null
         }
         Insert: {
@@ -398,7 +381,7 @@ export type Database = {
           company_id: string
           contract_type?: string | null
           created_at?: string
-          currency?: string
+          currency?: string | null
           description: string
           employment_type?: string | null
           id?: string
@@ -416,7 +399,7 @@ export type Database = {
           status?: string
           title: string
           updated_at?: string
-          vacancies_count?: number
+          vacancies_count?: number | null
           zone?: string | null
         }
         Update: {
@@ -426,7 +409,7 @@ export type Database = {
           company_id?: string
           contract_type?: string | null
           created_at?: string
-          currency?: string
+          currency?: string | null
           description?: string
           employment_type?: string | null
           id?: string
@@ -444,7 +427,7 @@ export type Database = {
           status?: string
           title?: string
           updated_at?: string
-          vacancies_count?: number
+          vacancies_count?: number | null
           zone?: string | null
         }
         Relationships: []
@@ -540,6 +523,14 @@ export type Database = {
       }
     }
     Functions: {
+      get_candidate_masked_phone: {
+        Args: { p_candidate_id: string; p_viewer_id: string }
+        Returns: string
+      }
+      get_candidate_masked_whatsapp: {
+        Args: { p_candidate_id: string; p_viewer_id: string }
+        Returns: string
+      }
       notify_candidate_contact: {
         Args: {
           p_candidate_id: string

@@ -142,6 +142,7 @@ CREATE TABLE IF NOT EXISTS public.contact_messages (
   id uuid DEFAULT gen_random_uuid() PRIMARY KEY,
   name text NOT NULL,
   email text NOT NULL,
+  subject text,
   message text NOT NULL,
   created_at timestamp with time zone DEFAULT timezone('utc'::text, now()) NOT NULL
 );

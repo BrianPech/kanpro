@@ -88,12 +88,25 @@ export function VacancyCard({
         </div>
       </div>
 
+      {/* Description Preview (Requirements) */}
+      {job.description && (
+        <p className="mt-3 text-xs text-slate-600 dark:text-slate-400 font-medium line-clamp-2 leading-relaxed">
+          {job.description}
+        </p>
+      )}
+
       {/* Meta Info: Location and Type */}
       <div className="mt-4 flex flex-wrap items-center gap-x-3 gap-y-1.5 text-xs text-muted-foreground/80 font-medium">
         <span className="inline-flex items-center gap-1">
-          <MapPin className="size-3 text-muted-foreground/60" />
+          <MapPin className="size-3 text-muted-foreground/60 shrink-0" />
           {job.location}
         </span>
+        {job.salaryFormatted && job.salaryFormatted !== "Sueldo no especificado" && (
+          <>
+            <span className="text-muted-foreground/30">•</span>
+            <span className="font-extrabold text-foreground">{job.salaryFormatted}</span>
+          </>
+        )}
         <span className="text-muted-foreground/30">•</span>
         <span className="font-bold text-foreground/95 bg-muted/65 dark:bg-zinc-800/60 px-2 py-0.5 rounded-md text-[10px]">
           {job.type}
