@@ -15,9 +15,11 @@ export type CompanyProfileFormValues = z.infer<typeof companyProfileSchema>;
 
 export const vacancySchema = z.object({
   title: z.string().min(3, "El título debe tener al menos 3 caracteres"),
-  description: z.string().min(10, "La descripción debe tener al menos 10 caracteres"),
+  description: z.string().optional(),
+  requirements: z.string().min(10, "Los requisitos o descripción del puesto deben tener al menos 10 caracteres"),
   modality: z.enum(["Remoto", "Híbrido", "Presencial"]),
   location: z.string().optional(),
+  zone: z.string().min(2, "La zona o área de trabajo es requerida (ej. Centro, Playacar, Akumal)"),
   category: z.string().optional(),
   seniority: z.string().optional(),
   contract_type: z.string().optional(),
@@ -35,6 +37,7 @@ export const vacancySchema = z.object({
     return Number.isNaN(parsedValue) ? undefined : parsedValue;
   }, z.number().positive().optional()),
   currency: z.enum(["USD", "EUR", "MXN", "ARS", "COP"]),
+  salary_range: z.string().optional(),
   skills: z.string().min(1, "Ingresa al menos una habilidad (separadas por comas)"),
   benefits: z.string().optional(),
 });

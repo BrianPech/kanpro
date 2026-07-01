@@ -72,8 +72,10 @@ export function useVacanciesManager(userId: string, shouldCreateInitial: boolean
     defaultValues: {
       title: "",
       description: "",
+      requirements: "",
       modality: "Remoto",
       location: "",
+      zone: "",
       category: "Tecnología",
       seniority: "Intermedio",
       contract_type: "Indefinido",
@@ -83,6 +85,7 @@ export function useVacanciesManager(userId: string, shouldCreateInitial: boolean
       salary_min: undefined,
       salary_max: undefined,
       currency: "USD",
+      salary_range: "",
       skills: "",
       benefits: "",
     },

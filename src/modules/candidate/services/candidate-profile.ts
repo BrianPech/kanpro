@@ -22,7 +22,7 @@ export const candidateProfileService = {
         full_name: data.full_name,
         headline: data.headline,
         experience_summary: data.experience_summary,
-        whatsapp_number: data.whatsapp_number,
+        whatsapp_number: data.whatsapp_number as any,
         location: data.location,
         skills: data.skills,
         experience: data.experience as any,

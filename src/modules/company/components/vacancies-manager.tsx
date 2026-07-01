@@ -109,10 +109,13 @@ export function VacanciesManager({ userId }: { userId: string }) {
   const watchCategory = watch("category", "Tecnología")
   const watchModality = watch("modality", "Remoto")
   const watchLocation = watch("location", "")
+  const watchZone = watch("zone", "")
   const watchSalaryMin = watch("salary_min")
   const watchSalaryMax = watch("salary_max")
   const watchCurrency = watch("currency", "USD")
+  const watchSalaryRange = watch("salary_range", "")
   const watchDescription = watch("description", "")
+  const watchRequirements = watch("requirements", "")
 
   // Combine database data and official mock seed data
   const allVacancies = React.useMemo(() => {
@@ -344,20 +347,23 @@ export function VacanciesManager({ userId }: { userId: string }) {
                     />
                   </div>
 
-                  {/* Location input */}
+                  {/* Zone input */}
                   <div className="flex flex-col gap-2">
-                    <Label htmlFor="location" className="text-xs font-bold uppercase tracking-wider text-muted-foreground px-1">
-                      Ubicación
+                    <Label htmlFor="zone" className="text-xs font-bold uppercase tracking-wider text-muted-foreground px-1">
+                      Zona (ej. Centro, Playacar, Akumal) *
                     </Label>
                     <div className="relative">
                       <Input 
-                        id="location"
-                        placeholder="Ej. Madrid / Remoto" 
+                        id="zone"
+                        placeholder="Ej. Playacar, Centro, Tulum" 
                         className="w-full h-12 bg-muted/30 border-none rounded-xl pl-12 pr-4 focus-visible:ring-2 focus-visible:ring-primary focus-visible:bg-background text-sm font-semibold transition-all outline-none"
-                        {...register("location")}
+                        {...register("zone")}
                       />
                       <span className="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground text-[18px]">location_on</span>
                     </div>
+                    {errors.zone && (
+                      <p className="text-xs font-semibold text-destructive px-1">{errors.zone.message?.toString()}</p>
+                    )}
                   </div>
 
                   {/* Positions count */}
@@ -381,10 +387,10 @@ export function VacanciesManager({ userId }: { userId: string }) {
 
                 <div className="h-px bg-border/40 w-full"></div>
 
-                {/* Description & Rich Text simulation */}
+                {/* Requirements & Rich Text simulation */}
                 <div className="flex flex-col gap-2">
-                  <Label htmlFor="description" className="text-xs font-bold uppercase tracking-wider text-muted-foreground px-1">
-                    Descripción del Puesto *
+                  <Label htmlFor="requirements" className="text-xs font-bold uppercase tracking-wider text-muted-foreground px-1">
+                    Requisitos y Descripción (Express) *
                   </Label>
                   
                   <div className="w-full border border-border/60 rounded-2xl overflow-hidden shadow-sm bg-card">
@@ -405,31 +411,44 @@ export function VacanciesManager({ userId }: { userId: string }) {
                     </div>
 
                     <Textarea 
-                      id="description"
-                      placeholder="Describe el rol, responsabilidades y requisitos clave..."
+                      id="requirements"
+                      placeholder="Escribe aquí los requisitos de la vacante y detalles del puesto en formato express..."
                       className="w-full min-h-48 border-none p-5 text-sm font-semibold transition-all resize-none shadow-none bg-card focus-visible:ring-0 focus-visible:ring-offset-0"
-                      {...register("description")}
+                      {...register("requirements")}
                     />
                   </div>
-                  {errors.description && (
-                    <p className="text-xs font-semibold text-destructive px-1">{errors.description.message?.toString()}</p>
+                  {errors.requirements && (
+                    <p className="text-xs font-semibold text-destructive px-1">{errors.requirements.message?.toString()}</p>
                   )}
                 </div>
 
                 <div className="h-px bg-border/40 w-full"></div>
 
                 {/* Perks & Salary fields */}
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   
+                  {/* Express Salary Range */}
+                  <div className="flex flex-col gap-2 md:col-span-2">
+                    <Label htmlFor="salary_range" className="text-xs font-bold uppercase tracking-wider text-muted-foreground px-1">
+                      Rango Salarial Express (ej. $15,000 - $25,000 MXN/mes o "Competitivo")
+                    </Label>
+                    <Input 
+                      id="salary_range"
+                      placeholder="Ej. $18,000 - $22,000 MXN mensuales libres + Comisiones" 
+                      className="w-full h-12 bg-muted/30 border-none rounded-xl px-4 focus-visible:ring-2 focus-visible:ring-primary focus-visible:bg-background text-sm font-semibold transition-all outline-none"
+                      {...register("salary_range")}
+                    />
+                  </div>
+
                   {/* Min salary */}
                   <div className="flex flex-col gap-2">
                     <Label htmlFor="salary_min" className="text-xs font-bold uppercase tracking-wider text-muted-foreground px-1">
-                      Salario Mínimo (Anual)
+                      Salario Mínimo Numérico (Para filtros internos)
                     </Label>
                     <Input 
                       id="salary_min"
                       type="number"
-                      placeholder="Min" 
+                      placeholder="Ej. 15000" 
                       className="w-full h-12 bg-muted/30 border-none rounded-xl px-4 focus-visible:ring-2 focus-visible:ring-primary focus-visible:bg-background text-sm font-semibold transition-all outline-none"
                       {...register("salary_min")}
                     />
@@ -438,39 +457,14 @@ export function VacanciesManager({ userId }: { userId: string }) {
                   {/* Max salary */}
                   <div className="flex flex-col gap-2">
                     <Label htmlFor="salary_max" className="text-xs font-bold uppercase tracking-wider text-muted-foreground px-1">
-                      Salario Máximo (Anual)
+                      Salario Máximo Numérico (Para filtros internos)
                     </Label>
                     <Input 
                       id="salary_max"
                       type="number"
-                      placeholder="Max" 
+                      placeholder="Ej. 25000" 
                       className="w-full h-12 bg-muted/30 border-none rounded-xl px-4 focus-visible:ring-2 focus-visible:ring-primary focus-visible:bg-background text-sm font-semibold transition-all outline-none"
                       {...register("salary_max")}
-                    />
-                  </div>
-
-                  {/* Currency */}
-                  <div className="flex flex-col gap-2">
-                    <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground px-1">
-                      Moneda
-                    </Label>
-                    <Controller
-                      control={control}
-                      name="currency"
-                      render={({ field }) => (
-                        <Select value={field.value} onValueChange={field.onChange}>
-                          <SelectTrigger className="w-full h-12 bg-muted/30 border-none rounded-xl px-4 text-sm font-semibold focus:ring-2 focus:ring-primary focus:bg-background transition-all outline-none shadow-none">
-                            <SelectValue placeholder="Moneda" />
-                          </SelectTrigger>
-                          <SelectContent className="rounded-xl border-border/60">
-                            {currencies.map((currencyOption) => (
-                              <SelectItem key={currencyOption} value={currencyOption}>
-                                {currencyOption}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      )}
                     />
                   </div>
 
@@ -597,12 +591,14 @@ export function VacanciesManager({ userId }: { userId: string }) {
                     </div>
                     <div className="flex items-center gap-1.5 bg-muted px-3.5 py-1.5 rounded-full text-muted-foreground font-bold text-[11px] font-sans uppercase max-w-40 truncate">
                       <span className="material-symbols-outlined text-[15px]">location_on</span>
-                      <span id="preview-location">{watchLocation || "Ubicación"}</span>
+                      <span id="preview-location">{watchZone || watchLocation || "Zona / Ubicación"}</span>
                     </div>
                     <div className="flex items-center gap-1.5 bg-muted px-3.5 py-1.5 rounded-full text-muted-foreground font-bold text-[11px] font-sans uppercase">
                       <span className="material-symbols-outlined text-[15px]">payments</span>
                       <span>
-                        {watchSalaryMin || watchSalaryMax ? (
+                        {watchSalaryRange ? (
+                          watchSalaryRange
+                        ) : watchSalaryMin || watchSalaryMax ? (
                           `${watchCurrency} ${Number(watchSalaryMin || 0).toLocaleString()} - ${Number(watchSalaryMax || 0).toLocaleString()}`
                         ) : (
                           "Rango Salarial"
@@ -622,7 +618,7 @@ export function VacanciesManager({ userId }: { userId: string }) {
                       id="preview-desc" 
                       className="text-xs text-muted-foreground font-medium leading-relaxed font-sans line-clamp-4 select-none whitespace-pre-line"
                     >
-                      {watchDescription || "Completa la descripción a la izquierda para ver un resumen de cómo los postulantes verán tu anuncio en K'anPro."}
+                      {watchRequirements || watchDescription || "Completa los requisitos a la izquierda para ver un resumen de cómo los postulantes verán tu anuncio en K'anPro."}
                     </p>
                   </div>
 

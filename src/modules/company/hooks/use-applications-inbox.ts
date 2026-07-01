@@ -256,12 +256,26 @@ export function useApplicationsInbox(userId: string) {
     return `https://wa.me/${cleanPhone}?text=${encodeURIComponent(message)}`;
   };
 
-  // Create contact notification via secure RPC
+  // Create contact notification and register connection in db
   const handleContactApplicant = async (applicant: Applicant) => {
     try {
       if (applicant.id.startsWith("mock-")) return;
 
       const supabase = createClient();
+
+      // 1. Register the connection to unmask the candidate's phone
+      const { error: connError } = await supabase.from("connections").insert({
+        candidate_id: applicant.candidateId,
+        recruiter_id: userId,
+        vacancy_id: applicant.vacancyId,
+        status: 'contacted',
+        initiated_by: 'recruiter'
+      });
+
+      if (connError) {
+        console.error("Error creating connection in db:", connError);
+      }
+
       // Fetch company name
       const { data: companyProfile } = await supabase
         .from("company_profiles")
@@ -281,6 +295,9 @@ export function useApplicationsInbox(userId: string) {
       if (error) {
         console.error("Error creating contact notification:", error);
       }
+
+      // 2. Reload the applications so that the phone number gets unmasked in the UI
+      await loadData();
     } catch (err) {
       console.error("Error executing handleContactApplicant:", err);
     }
