@@ -2,6 +2,7 @@
 
 import React, { useState } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { Search, ArrowRight, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
@@ -51,9 +52,12 @@ export function HeroSection() {
       {/* Main Hero Card */}
       <div className="relative w-full rounded-[28px] overflow-hidden min-h-0 sm:min-h-[500px] md:min-h-[550px] lg:min-h-[600px] flex items-center border border-border/25">
         {/* Background Image */}
-        <img
+        <Image
           src="/images/workspace_hero.png"
           alt="Workspace Hero"
+          fill
+          priority
+          sizes="100vw"
           className="absolute inset-0 w-full h-full object-cover select-none pointer-events-none"
         />
 
