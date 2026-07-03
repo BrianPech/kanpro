@@ -6,7 +6,6 @@ import {
   Users, 
   Clock, 
   CalendarDays, 
-  TrendingUp, 
   Download, 
   Plus, 
   ArrowRight,
@@ -18,9 +17,46 @@ import { toast } from "sonner"
 
 interface DashboardViewProps {
   companyName: string
+  metrics?: {
+    activeVacancies: number
+    totalApplications: number
+    reviewingApplications: number
+    totalConnections: number
+  }
+  recentActivities?: {
+    id: string
+    candidateName: string
+    candidateHeadline: string
+    candidateAvatar: string | null
+    skills: string[]
+    vacancyTitle: string
+    createdAt: string
+  }[]
 }
 
-export function DashboardView({ companyName }: DashboardViewProps) {
+function formatRelativeTime(dateString: string) {
+  const date = new Date(dateString)
+  const diffMs = Date.now() - date.getTime()
+  const diffMinutes = Math.floor(diffMs / (1000 * 60))
+  const diffHours = Math.floor(diffMs / (1000 * 60 * 60))
+  const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24))
+
+  if (diffMinutes < 1) return "hace unos segundos"
+  if (diffMinutes < 60) return `hace ${diffMinutes} min`
+  if (diffHours < 24) return `hace ${diffHours} h`
+  return `hace ${diffDays} d`
+}
+
+export function DashboardView({ 
+  companyName, 
+  metrics = {
+    activeVacancies: 0,
+    totalApplications: 0,
+    reviewingApplications: 0,
+    totalConnections: 0
+  },
+  recentActivities = []
+}: DashboardViewProps) {
   const [isDownloading, setIsDownloading] = React.useState(false)
 
   // Report download logic with micro-interaction loading spinner
@@ -82,113 +118,137 @@ export function DashboardView({ companyName }: DashboardViewProps) {
       <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
         
         {/* Metric 1 - Vacantes activas */}
-        <div 
-          onMouseMove={handleMouseMove}
-          className="glass-card p-6 md:p-8 rounded-[24px] flex flex-col gap-4 group cursor-pointer relative overflow-hidden"
-          onClick={() => toast.info("Navegando a vacantes...", { description: "Cargando el listado completo de vacantes." })}
+        <Link 
+          href="/dashboard/company/vacancies"
+          className="no-underline block"
         >
-          {/* Shine glowing radial effect */}
           <div 
-            className="absolute inset-0 pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-[24px]"
-            style={{
-              background: "radial-gradient(300px circle at var(--mouse-x, 0px) var(--mouse-y, 0px), rgba(99, 102, 241, 0.08), transparent 80%)"
-            }}
-          />
-          <div className="w-12 h-12 bg-indigo-500/10 dark:bg-indigo-500/20 rounded-2xl flex items-center justify-center text-indigo-600 dark:text-indigo-300 relative z-10">
-            <Briefcase className="size-6 fill-indigo-500/20 dark:fill-indigo-500/30" />
+            onMouseMove={handleMouseMove}
+            className="glass-card p-6 md:p-8 rounded-[24px] flex flex-col gap-4 group cursor-pointer relative overflow-hidden h-full"
+          >
+            {/* Shine glowing radial effect */}
+            <div 
+              className="absolute inset-0 pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-[24px]"
+              style={{
+                background: "radial-gradient(300px circle at var(--mouse-x, 0px) var(--mouse-y, 0px), rgba(99, 102, 241, 0.08), transparent 80%)"
+              }}
+            />
+            <div className="w-12 h-12 bg-indigo-500/10 dark:bg-indigo-500/20 rounded-2xl flex items-center justify-center text-indigo-600 dark:text-indigo-300 relative z-10">
+              <Briefcase className="size-6 fill-indigo-500/20 dark:fill-indigo-500/30" />
+            </div>
+            <div className="relative z-10">
+              <p className="text-[12px] font-bold text-slate-600 dark:text-slate-300 uppercase tracking-wider">
+                Vacantes activas
+              </p>
+              <h3 className="text-4xl font-extrabold text-slate-900 dark:text-slate-100 mt-1 tracking-tight font-sans">
+                {metrics.activeVacancies}
+              </h3>
+            </div>
+            <div className="flex items-center text-indigo-600 dark:text-indigo-300 gap-1 mt-auto relative z-10 font-semibold text-xs">
+              <span>Gestionar puestos</span>
+              <ArrowRight className="size-3 group-hover:translate-x-1 transition-transform" />
+            </div>
           </div>
-          <div className="relative z-10">
-            <p className="text-[12px] font-bold text-slate-600 dark:text-slate-300 uppercase tracking-wider">
-              Vacantes activas
-            </p>
-            <h3 className="text-4xl font-extrabold text-slate-900 dark:text-slate-100 mt-1 tracking-tight">12</h3>
-          </div>
-          <div className="flex items-center text-emerald-600 dark:text-emerald-400 gap-1 mt-auto relative z-10">
-            <TrendingUp className="size-4" />
-            <span className="text-xs font-bold font-sans">+2 este mes</span>
-          </div>
-        </div>
+        </Link>
 
         {/* Metric 2 - Postulaciones totales */}
-        <div 
-          onMouseMove={handleMouseMove}
-          className="glass-card p-6 md:p-8 rounded-[24px] flex flex-col gap-4 group cursor-pointer relative overflow-hidden"
-          onClick={() => toast.info("Ver postulaciones...", { description: "Cargando todas las postulaciones recibidas." })}
+        <Link 
+          href="/dashboard/company/inbox"
+          className="no-underline block"
         >
           <div 
-            className="absolute inset-0 pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-[24px]"
-            style={{
-              background: "radial-gradient(300px circle at var(--mouse-x, 0px) var(--mouse-y, 0px), rgba(99, 102, 241, 0.08), transparent 80%)"
-            }}
-          />
-          <div className="w-12 h-12 bg-blue-500/10 dark:bg-blue-500/20 rounded-2xl flex items-center justify-center text-blue-600 dark:text-blue-300 relative z-10">
-            <Users className="size-6 fill-blue-500/20 dark:fill-blue-500/30" />
+            onMouseMove={handleMouseMove}
+            className="glass-card p-6 md:p-8 rounded-[24px] flex flex-col gap-4 group cursor-pointer relative overflow-hidden h-full"
+          >
+            <div 
+              className="absolute inset-0 pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-[24px]"
+              style={{
+                background: "radial-gradient(300px circle at var(--mouse-x, 0px) var(--mouse-y, 0px), rgba(99, 102, 241, 0.08), transparent 80%)"
+              }}
+            />
+            <div className="w-12 h-12 bg-blue-500/10 dark:bg-blue-500/20 rounded-2xl flex items-center justify-center text-blue-600 dark:text-blue-300 relative z-10">
+              <Users className="size-6 fill-blue-500/20 dark:fill-blue-500/30" />
+            </div>
+            <div className="relative z-10">
+              <p className="text-[12px] font-bold text-slate-600 dark:text-slate-300 uppercase tracking-wider">
+                Postulaciones totales
+              </p>
+              <h3 className="text-4xl font-extrabold text-slate-900 dark:text-slate-100 mt-1 tracking-tight font-sans">
+                {metrics.totalApplications}
+              </h3>
+            </div>
+            <div className="flex items-center text-blue-600 dark:text-blue-300 gap-1 mt-auto relative z-10 font-semibold text-xs">
+              <span>Ver bandeja de entrada</span>
+              <ArrowRight className="size-3 group-hover:translate-x-1 transition-transform" />
+            </div>
           </div>
-          <div className="relative z-10">
-            <p className="text-[12px] font-bold text-slate-600 dark:text-slate-300 uppercase tracking-wider">
-              Postulaciones totales
-            </p>
-            <h3 className="text-4xl font-extrabold text-slate-900 dark:text-slate-100 mt-1 tracking-tight">284</h3>
-          </div>
-          <div className="flex items-center text-emerald-600 dark:text-emerald-400 gap-1 mt-auto relative z-10">
-            <TrendingUp className="size-4" />
-            <span className="text-xs font-bold font-sans">+15% vs semana pasada</span>
-          </div>
-        </div>
+        </Link>
 
         {/* Metric 3 - Perfiles en revisión */}
-        <div 
-          onMouseMove={handleMouseMove}
-          className="glass-card p-6 md:p-8 rounded-[24px] flex flex-col gap-4 group cursor-pointer relative overflow-hidden"
-          onClick={() => toast.info("Revisar perfiles pendientes...", { description: "Filtrando candidatos en fase de revisión." })}
+        <Link 
+          href="/dashboard/company/inbox"
+          className="no-underline block"
         >
           <div 
-            className="absolute inset-0 pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-[24px]"
-            style={{
-              background: "radial-gradient(300px circle at var(--mouse-x, 0px) var(--mouse-y, 0px), rgba(99, 102, 241, 0.08), transparent 80%)"
-            }}
-          />
-          <div className="w-12 h-12 bg-amber-500/10 dark:bg-amber-500/20 rounded-2xl flex items-center justify-center text-amber-600 dark:text-amber-400 relative z-10">
-            <Clock className="size-6 fill-amber-500/20 dark:fill-amber-500/30" />
+            onMouseMove={handleMouseMove}
+            className="glass-card p-6 md:p-8 rounded-[24px] flex flex-col gap-4 group cursor-pointer relative overflow-hidden h-full"
+          >
+            <div 
+              className="absolute inset-0 pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-[24px]"
+              style={{
+                background: "radial-gradient(300px circle at var(--mouse-x, 0px) var(--mouse-y, 0px), rgba(99, 102, 241, 0.08), transparent 80%)"
+              }}
+            />
+            <div className="w-12 h-12 bg-amber-500/10 dark:bg-amber-500/20 rounded-2xl flex items-center justify-center text-amber-600 dark:text-amber-400 relative z-10">
+              <Clock className="size-6 fill-amber-500/20 dark:fill-amber-500/30" />
+            </div>
+            <div className="relative z-10">
+              <p className="text-[12px] font-bold text-slate-600 dark:text-slate-300 uppercase tracking-wider">
+                Postulaciones pendientes
+              </p>
+              <h3 className="text-4xl font-extrabold text-slate-900 dark:text-slate-100 mt-1 tracking-tight font-sans">
+                {metrics.reviewingApplications}
+              </h3>
+            </div>
+            <div className="flex items-center text-amber-700 dark:text-amber-400 gap-1 mt-auto relative z-10 font-semibold text-xs">
+              <Clock className="size-4 animate-pulse text-amber-500" />
+              <span>Requieren revisión</span>
+            </div>
           </div>
-          <div className="relative z-10">
-            <p className="text-[12px] font-bold text-slate-600 dark:text-slate-300 uppercase tracking-wider">
-              Perfiles en revisión
-            </p>
-            <h3 className="text-4xl font-extrabold text-slate-900 dark:text-slate-100 mt-1 tracking-tight">45</h3>
-          </div>
-          <div className="flex items-center text-amber-700 dark:text-amber-400 gap-1 mt-auto relative z-10">
-            <Clock className="size-4 animate-pulse" />
-            <span className="text-xs font-bold font-sans">Requiere atención pronta</span>
-          </div>
-        </div>
+        </Link>
 
-        {/* Metric 4 - Entrevistas programadas */}
-        <div 
-          onMouseMove={handleMouseMove}
-          className="glass-card p-6 md:p-8 rounded-[24px] flex flex-col gap-4 group cursor-pointer relative overflow-hidden"
-          onClick={() => toast.info("Abriendo agenda...", { description: "Cargando tu calendario de entrevistas." })}
+        {/* Metric 4 - Contactos directos */}
+        <Link 
+          href="/dashboard/company/radar"
+          className="no-underline block"
         >
           <div 
-            className="absolute inset-0 pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-[24px]"
-            style={{
-              background: "radial-gradient(300px circle at var(--mouse-x, 0px) var(--mouse-y, 0px), rgba(99, 102, 241, 0.08), transparent 80%)"
-            }}
-          />
-          <div className="w-12 h-12 bg-indigo-500/10 dark:bg-indigo-500/20 rounded-2xl flex items-center justify-center text-indigo-600 dark:text-indigo-300 relative z-10">
-            <CalendarDays className="size-6 fill-indigo-500/20 dark:fill-indigo-500/30" />
+            onMouseMove={handleMouseMove}
+            className="glass-card p-6 md:p-8 rounded-[24px] flex flex-col gap-4 group cursor-pointer relative overflow-hidden h-full"
+          >
+            <div 
+              className="absolute inset-0 pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-[24px]"
+              style={{
+                background: "radial-gradient(300px circle at var(--mouse-x, 0px) var(--mouse-y, 0px), rgba(99, 102, 241, 0.08), transparent 80%)"
+              }}
+            />
+            <div className="w-12 h-12 bg-emerald-500/10 dark:bg-emerald-500/20 rounded-2xl flex items-center justify-center text-emerald-600 dark:text-emerald-300 relative z-10">
+              <CalendarDays className="size-6 fill-emerald-500/20 dark:fill-emerald-500/30" />
+            </div>
+            <div className="relative z-10">
+              <p className="text-[12px] font-bold text-slate-600 dark:text-slate-300 uppercase tracking-wider">
+                Contactos Directos
+              </p>
+              <h3 className="text-4xl font-extrabold text-slate-900 dark:text-slate-100 mt-1 tracking-tight font-sans">
+                {metrics.totalConnections}
+              </h3>
+            </div>
+            <div className="flex items-center text-emerald-600 dark:text-emerald-300 font-bold gap-1 mt-auto hover:text-emerald-700 transition-colors relative z-10 text-xs">
+              <span>Buscar talento local</span>
+              <ArrowRight className="size-4 text-emerald-600 dark:text-emerald-300 group-hover:translate-x-1 transition-transform duration-300" />
+            </div>
           </div>
-          <div className="relative z-10">
-            <p className="text-[12px] font-bold text-slate-600 dark:text-slate-300 uppercase tracking-wider">
-              Entrevistas programadas
-            </p>
-            <h3 className="text-4xl font-extrabold text-slate-900 dark:text-slate-100 mt-1 tracking-tight">8</h3>
-          </div>
-          <div className="flex items-center text-indigo-600 dark:text-indigo-300 font-bold gap-1 mt-auto hover:text-indigo-700 dark:hover:text-indigo-200 transition-colors relative z-10">
-            <span className="text-xs">Ver calendario</span>
-            <ArrowRight className="size-4 text-indigo-600 dark:text-indigo-300 group-hover:translate-x-1 transition-transform duration-300" />
-          </div>
-        </div>
+        </Link>
 
       </section>
 
@@ -198,146 +258,87 @@ export function DashboardView({ companyName }: DashboardViewProps) {
           <h3 className="text-xl font-extrabold text-slate-900 dark:text-slate-100 tracking-tight md:text-2xl">
             Feed de Actividad Reciente
           </h3>
-          <Button 
-            variant="ghost" 
-            onClick={() => toast.info("Cargando feed completo...", { description: "Accediendo al historial de actividad general." })}
-            className="text-indigo-600 dark:text-indigo-300 hover:text-indigo-700 dark:hover:text-indigo-200 font-bold text-sm hover:bg-indigo-500/5 active:scale-95 transition-all"
-          >
-            Ver todo
-          </Button>
+          <Link href="/dashboard/company/inbox">
+            <Button 
+              variant="ghost" 
+              className="text-indigo-600 dark:text-indigo-300 hover:text-indigo-700 dark:hover:text-indigo-200 font-bold text-sm hover:bg-indigo-500/5 active:scale-95 transition-all"
+            >
+              Ver todo
+            </Button>
+          </Link>
         </div>
 
         <div className="glass-card rounded-[24px] overflow-hidden shadow-sm">
-          
-          {/* Feed Header */}
-          <div className="hidden sm:grid grid-cols-12 px-8 py-4 bg-muted/20 dark:bg-muted/10 border-b border-border/40">
-            <div className="col-span-6 text-xs font-bold text-slate-600 dark:text-slate-400 uppercase tracking-wider">CANDIDATO</div>
-            <div className="col-span-4 text-xs font-bold text-slate-600 dark:text-slate-400 uppercase tracking-wider">HABILIDADES</div>
-            <div className="col-span-2 text-xs font-bold text-slate-600 dark:text-slate-400 uppercase tracking-wider text-right">TIEMPO</div>
-          </div>
-
-          {/* List Items */}
-          <div className="divide-y divide-border/40">
-            
-            {/* Candidate 1 - David Rivera */}
-            <div 
-              onClick={() => toast("Visualizando perfil", { description: "Se abrirá el perfil detallado del candidato David Rivera." })}
-              className="grid grid-cols-1 sm:grid-cols-12 px-6 sm:px-8 py-6 items-center hover:bg-muted/20 dark:hover:bg-muted/10 transition-colors cursor-pointer group gap-4 sm:gap-0"
-            >
-              <div className="col-span-12 sm:col-span-6 flex items-center gap-4">
-                <img 
-                  alt="David Rivera" 
-                  className="w-12 h-12 rounded-full object-cover border-2 border-indigo-500/10 dark:border-indigo-500/30 group-hover:scale-105 transition-transform duration-300 shadow-sm" 
-                  src="https://lh3.googleusercontent.com/aida-public/AB6AXuCh0sczpLCa4_hoGHvWLfisVgi5oSRzfMiEq3khHe6zjaSJqN43loqcqpjYPlu1awoWeMEsmCREHg6RmCMTlIMKJin0FCtbo0PrEh-2f8SCL64PbURlpCOF4bScegobdGidVvqYsi89VI6rWRKMQN6aiqkN98-_4j_3e4UaC8Kd5lNE8CoXaZG3bLrn4wNG3IM_18NuDpol6NmLyBqgdtDQgC11Jm640lwezz2bEcjBOjOBoItnUzJXwjopXoqhanuba5yngbs_PMY" 
-                />
-                <div>
-                  <h4 className="text-sm md:text-base font-bold text-slate-900 dark:text-slate-100 group-hover:text-indigo-600 dark:group-hover:text-indigo-300 transition-colors">
-                    David Rivera
-                  </h4>
-                  <p className="text-xs md:text-sm text-slate-600 dark:text-slate-300 font-medium">
-                    Senior Full-Stack Dev
-                  </p>
-                </div>
-              </div>
-              <div className="col-span-12 sm:col-span-4 flex flex-wrap gap-2">
-                <span className="px-3 py-1 bg-indigo-500/10 dark:bg-indigo-500/20 text-indigo-600 dark:text-indigo-300 text-[10px] font-bold rounded-full uppercase tracking-wider">
-                  React
-                </span>
-                <span className="px-3 py-1 bg-indigo-500/10 dark:bg-indigo-500/20 text-indigo-600 dark:text-indigo-300 text-[10px] font-bold rounded-full uppercase tracking-wider">
-                  Node.js
-                </span>
-                <span className="px-3 py-1 bg-indigo-500/10 dark:bg-indigo-500/20 text-indigo-600 dark:text-indigo-300 text-[10px] font-bold rounded-full uppercase tracking-wider">
-                  AWS
-                </span>
-              </div>
-              <div className="col-span-12 sm:col-span-2 text-left sm:text-right">
-                <p className="text-xs text-slate-600 dark:text-slate-400 font-semibold">
-                  hace 15 min
-                </p>
-              </div>
+          {recentActivities.length === 0 ? (
+            <div className="text-center py-16 px-4 text-muted-foreground bg-card">
+              <Users className="size-12 stroke-[1.2] mx-auto mb-4 text-slate-300 dark:text-slate-700" />
+              <p className="text-sm font-semibold">No hay postulaciones recientes</p>
+              <p className="text-xs mt-1 max-w-sm mx-auto">
+                Tus vacantes activas no han recibido postulaciones en los últimos días. ¡Usa el botón flotante para publicar otra oferta exprés!
+              </p>
             </div>
+          ) : (
+            <>
+              {/* Feed Header */}
+              <div className="hidden sm:grid grid-cols-12 px-8 py-4 bg-muted/20 dark:bg-muted/10 border-b border-border/40">
+                <div className="col-span-6 text-xs font-bold text-slate-600 dark:text-slate-400 uppercase tracking-wider">CANDIDATO</div>
+                <div className="col-span-4 text-xs font-bold text-slate-600 dark:text-slate-400 uppercase tracking-wider">HABILIDADES</div>
+                <div className="col-span-2 text-xs font-bold text-slate-600 dark:text-slate-400 uppercase tracking-wider text-right">TIEMPO</div>
+              </div>
 
-            {/* Candidate 2 - Mariana Gómez */}
-            <div 
-              onClick={() => toast("Visualizando perfil", { description: "Se abrirá el perfil detallado del candidato Mariana Gómez." })}
-              className="grid grid-cols-1 sm:grid-cols-12 px-6 sm:px-8 py-6 items-center hover:bg-muted/20 dark:hover:bg-muted/10 transition-colors cursor-pointer group gap-4 sm:gap-0"
-            >
-              <div className="col-span-12 sm:col-span-6 flex items-center gap-4">
-                <img 
-                  alt="Mariana Gómez" 
-                  className="w-12 h-12 rounded-full object-cover border-2 border-indigo-500/10 dark:border-indigo-500/30 group-hover:scale-105 transition-transform duration-300 shadow-sm" 
-                  src="https://lh3.googleusercontent.com/aida-public/AB6AXuDwJ49HVEK9CCX2gGBHdabYxYkpSaOdFPimAMWpdlYQQkF3sfFy2fBYJes7ltklzb80bLifRPKasTqblhWhSk6dWLhctCTjonnjfYVMG_MDROqTR6Z3PU3IVX_zOncsOHanNxzwyrCufc4xNA6RFCfeJhl5-WVIeehDnNjNAsMZZpneRkmg1IER9sce-gzBtgQROKyt7CX7AeJlIIUcQVTdLldmCP5Z4P19_OF_X2LGtYs-rfDmrMFS481v33AP46ERkzTrKalR-6E" 
-                />
-                <div>
-                  <h4 className="text-sm md:text-base font-bold text-slate-900 dark:text-slate-100 group-hover:text-indigo-600 dark:group-hover:text-indigo-300 transition-colors">
-                    Mariana Gómez
-                  </h4>
-                  <p className="text-xs md:text-sm text-slate-600 dark:text-slate-300 font-medium">
-                    UX/UI Design Lead
-                  </p>
-                </div>
+              {/* List Items */}
+              <div className="divide-y divide-border/40">
+                {recentActivities.map((act) => (
+                  <Link 
+                    key={act.id}
+                    href="/dashboard/company/inbox"
+                    className="no-underline block"
+                  >
+                    <div className="grid grid-cols-1 sm:grid-cols-12 px-6 sm:px-8 py-6 items-center hover:bg-muted/20 dark:hover:bg-muted/10 transition-colors cursor-pointer group gap-4 sm:gap-0">
+                      <div className="col-span-12 sm:col-span-6 flex items-center gap-4">
+                        <img 
+                          alt={act.candidateName} 
+                          className="w-12 h-12 rounded-full object-cover border-2 border-indigo-500/10 dark:border-indigo-500/30 group-hover:scale-105 transition-transform duration-300 shadow-sm" 
+                          src={act.candidateAvatar || "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=100&h=100&fit=crop"} 
+                        />
+                        <div>
+                          <h4 className="text-sm md:text-base font-bold text-slate-900 dark:text-slate-100 group-hover:text-indigo-600 dark:group-hover:text-indigo-300 transition-colors">
+                            {act.candidateName}
+                          </h4>
+                          <p className="text-xs md:text-sm text-slate-600 dark:text-slate-300 font-medium">
+                            {act.candidateHeadline} <span className="text-indigo-500/80 dark:text-indigo-400 font-semibold">• Postuló a {act.vacancyTitle}</span>
+                          </p>
+                        </div>
+                      </div>
+                      <div className="col-span-12 sm:col-span-4 flex flex-wrap gap-2">
+                        {act.skills.length === 0 ? (
+                          <span className="text-xs text-muted-foreground italic">Sin habilidades registradas</span>
+                        ) : (
+                          act.skills.map((skill: string) => (
+                            <span key={skill} className="px-3 py-1 bg-indigo-500/10 dark:bg-indigo-500/20 text-indigo-600 dark:text-indigo-300 text-[10px] font-bold rounded-full uppercase tracking-wider">
+                              {skill}
+                            </span>
+                          ))
+                        )}
+                      </div>
+                      <div className="col-span-12 sm:col-span-2 text-left sm:text-right">
+                        <p className="text-xs text-slate-600 dark:text-slate-400 font-semibold">
+                          {formatRelativeTime(act.createdAt)}
+                        </p>
+                      </div>
+                    </div>
+                  </Link>
+                ))}
               </div>
-              <div className="col-span-12 sm:col-span-4 flex flex-wrap gap-2">
-                <span className="px-3 py-1 bg-blue-500/10 dark:bg-blue-500/20 text-blue-600 dark:text-blue-300 text-[10px] font-bold rounded-full uppercase tracking-wider">
-                  Figma
-                </span>
-                <span className="px-3 py-1 bg-blue-500/10 dark:bg-blue-500/20 text-blue-600 dark:text-blue-300 text-[10px] font-bold rounded-full uppercase tracking-wider">
-                  User Research
-                </span>
-              </div>
-              <div className="col-span-12 sm:col-span-2 text-left sm:text-right">
-                <p className="text-xs text-slate-600 dark:text-slate-400 font-semibold">
-                  hace 2 horas
-                </p>
-              </div>
-            </div>
-
-            {/* Candidate 3 - Carlos Ruiz */}
-            <div 
-              onClick={() => toast("Visualizando perfil", { description: "Se abrirá el perfil detallado del candidato Carlos Ruiz." })}
-              className="grid grid-cols-1 sm:grid-cols-12 px-6 sm:px-8 py-6 items-center hover:bg-muted/20 dark:hover:bg-muted/10 transition-colors cursor-pointer group gap-4 sm:gap-0"
-            >
-              <div className="col-span-12 sm:col-span-6 flex items-center gap-4">
-                <img 
-                  alt="Carlos Ruiz" 
-                  className="w-12 h-12 rounded-full object-cover border-2 border-indigo-500/10 dark:border-indigo-500/30 group-hover:scale-105 transition-transform duration-300 shadow-sm" 
-                  src="https://lh3.googleusercontent.com/aida-public/AB6AXuC09IG5lVQKO5JXGhkMg2AsIb7DwnAwLaeMA53rv4sIfbnCCF8Qo4RprB4xZ_OACUMw5FgzA8P9TQyQGgrjwr_B_jDRaJbBuEQtFK1MFSb1wz8AATggGGP30aNKRyLblM-5xcPTzgaToE_UNeAmrNA0Gpp3T4QdPo0PjErnSj415Am3h_mFQw5cPDijtRmfLFhnoXfqHFjM-nQLWlhJrqKzH2yco5fu-ZB4gMAMvYeE_nVAf22eRRNCzLDdbPAGlHEU2t9H_FQpz6E" 
-                />
-                <div>
-                  <h4 className="text-sm md:text-base font-bold text-slate-900 dark:text-slate-100 group-hover:text-indigo-600 dark:group-hover:text-indigo-300 transition-colors">
-                    Carlos Ruiz
-                  </h4>
-                  <p className="text-xs md:text-sm text-slate-600 dark:text-slate-300 font-medium">
-                    DevOps Engineer
-                  </p>
-                </div>
-              </div>
-              <div className="col-span-12 sm:col-span-4 flex flex-wrap gap-2">
-                <span className="px-3 py-1 bg-amber-500/10 dark:bg-amber-500/20 text-amber-700 dark:text-amber-300 text-[10px] font-bold rounded-full uppercase tracking-wider">
-                  Docker
-                </span>
-                <span className="px-3 py-1 bg-amber-500/10 dark:bg-amber-500/20 text-amber-700 dark:text-amber-300 text-[10px] font-bold rounded-full uppercase tracking-wider">
-                  Kubernetes
-                </span>
-                <span className="px-3 py-1 bg-amber-500/10 dark:bg-amber-500/20 text-amber-700 dark:text-amber-300 text-[10px] font-bold rounded-full uppercase tracking-wider">
-                  Python
-                </span>
-              </div>
-              <div className="col-span-12 sm:col-span-2 text-left sm:text-right">
-                <p className="text-xs text-slate-600 dark:text-slate-400 font-semibold">
-                  hace 5 horas
-                </p>
-              </div>
-            </div>
-
-          </div>
+            </>
+          )}
         </div>
       </section>
 
       {/* Floating Action Button (FAB) persistent */}
       <Link 
         href="/dashboard/company/vacancies?create=true" 
-        className="fixed bottom-10 right-10 z-50 animate-bounce group"
+        className="fixed bottom-20 md:bottom-10 right-10 z-50 animate-bounce group"
         onClick={() => toast.info("Abriendo publicador...", { description: "Preparando formulario de nueva vacante." })}
         style={{ animationDuration: "3s" }}
       >

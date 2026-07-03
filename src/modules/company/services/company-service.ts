@@ -66,10 +66,13 @@ export const companyService = {
     const supabase = createClient();
     const { error } = await supabase.from("vacancies").insert({
       company_id: companyId,
+      recruiter_id: companyId,
       title: vacancy.title,
-      description: vacancy.description,
+      description: vacancy.description || vacancy.requirements || "",
+      requirements: vacancy.requirements || vacancy.description || "",
       modality: vacancy.modality,
-      location: vacancy.location || null,
+      location: vacancy.location || vacancy.zone || null,
+      zone: vacancy.zone || vacancy.location || null,
       category: vacancy.category || null,
       seniority: vacancy.seniority || null,
       contract_type: vacancy.contract_type || null,
@@ -80,13 +83,19 @@ export const companyService = {
       salary_min: vacancy.salary_min ?? null,
       salary_max: vacancy.salary_max ?? null,
       currency: vacancy.currency || "USD",
-      salary: formatSalaryRange(
+      salary: vacancy.salary_range || formatSalaryRange(
+        vacancy.salary_min,
+        vacancy.salary_max,
+        vacancy.currency,
+      ),
+      salary_range: vacancy.salary_range || formatSalaryRange(
         vacancy.salary_min,
         vacancy.salary_max,
         vacancy.currency,
       ),
       skills: splitCsv(vacancy.skills),
       status: "Activa",
+      is_active: true,
     });
 
     if (error) throw error;

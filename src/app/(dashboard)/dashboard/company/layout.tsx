@@ -3,6 +3,7 @@ import { SidebarProvider, SidebarInset } from "@/components/ui/sidebar";
 import { CompanySidebar } from "@/components/dashboard/company-sidebar";
 import { getDashboardSession } from "@/modules/auth/services/dashboard-session";
 import { DashboardTopbar } from "@/components/dashboard/dashboard-topbar";
+import { CompanyBottomNav } from "@/components/dashboard/company-bottom-nav";
 
 export default async function CompanyDashboardLayout({
   children,
@@ -21,7 +22,8 @@ export default async function CompanyDashboardLayout({
           plan={plan}
           role={role}
         />
-        <div className="flex-1 overflow-y-auto min-h-0 bg-background">{children}</div>
+        <div className="flex-1 overflow-y-auto min-h-0 bg-background pb-16 md:pb-0">{children}</div>
+        <CompanyBottomNav />
       </SidebarInset>
     </SidebarProvider>
   );

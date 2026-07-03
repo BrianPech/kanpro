@@ -40,7 +40,7 @@ export function ApplicationsInbox() {
     handleUpdateStatus,
     getWhatsAppLink,
     handleContactApplicant,
-  } = useApplicationsInbox("company-id") // Fetch logic inside hooks takes care of user sessions
+  } = useApplicationsInbox() // Fetch logic inside hooks takes care of user sessions
 
   const [mobileDetailOpen, setMobileDetailOpen] = React.useState(false)
 
@@ -405,7 +405,20 @@ export function ApplicationsInbox() {
               </Button>
               
               {/* WhatsApp invitation button */}
-              {selectedApplicant.phone ? (
+              {!selectedApplicant.id.startsWith("mock-") && !selectedApplicant.phone ? (
+                <Button 
+                  onClick={async () => {
+                    await handleContactApplicant(selectedApplicant);
+                    toast.success("Conexión registrada con éxito", {
+                      description: "Se ha establecido la conexión en el sistema y se ha revelado el teléfono del candidato."
+                    });
+                  }}
+                  className="px-8 py-5 h-auto rounded-full font-bold bg-indigo-650 text-white hover:bg-indigo-700 text-xs md:text-sm active:scale-95 transition-all shadow-lg shadow-indigo-500/10 hover:shadow-indigo-500/25 gap-2 animate-pulse"
+                >
+                  <Phone className="size-4" />
+                  <span>Revelar Teléfono & Contactar</span>
+                </Button>
+              ) : selectedApplicant.phone ? (
                 <a
                   href={getWhatsAppLink(selectedApplicant)}
                   target="_blank"

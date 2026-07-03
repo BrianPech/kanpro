@@ -37,21 +37,21 @@ export type Database = {
       admin_profiles: {
         Row: {
           created_at: string
-          email: string
+          email: string | null
           full_name: string
           id: string
           updated_at: string
         }
         Insert: {
           created_at?: string
-          email: string
+          email?: string | null
           full_name: string
           id: string
           updated_at?: string
         }
         Update: {
           created_at?: string
-          email?: string
+          email?: string | null
           full_name?: string
           id?: string
           updated_at?: string
@@ -84,13 +84,6 @@ export type Database = {
           vacancy_id?: string
         }
         Relationships: [
-          {
-            foreignKeyName: "applications_candidate_id_fkey"
-            columns: ["candidate_id"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
           {
             foreignKeyName: "applications_vacancy_id_fkey"
             columns: ["vacancy_id"]
@@ -142,12 +135,77 @@ export type Database = {
         }
         Relationships: []
       }
+      connections: {
+        Row: {
+          candidate_id: string
+          created_at: string
+          id: string
+          initiated_by: string
+          recruiter_id: string
+          status: string
+          vacancy_id: string | null
+        }
+        Insert: {
+          candidate_id: string
+          created_at?: string
+          id?: string
+          initiated_by?: string
+          recruiter_id: string
+          status?: string
+          vacancy_id?: string | null
+        }
+        Update: {
+          candidate_id?: string
+          created_at?: string
+          id?: string
+          initiated_by?: string
+          recruiter_id?: string
+          status?: string
+          vacancy_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "connections_candidate_id_fkey"
+            columns: ["candidate_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "connections_candidate_id_fkey"
+            columns: ["candidate_id"]
+            isOneToOne: false
+            referencedRelation: "profiles_private"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "connections_recruiter_id_fkey"
+            columns: ["recruiter_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "connections_recruiter_id_fkey"
+            columns: ["recruiter_id"]
+            isOneToOne: false
+            referencedRelation: "profiles_private"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "connections_vacancy_id_fkey"
+            columns: ["vacancy_id"]
+            isOneToOne: false
+            referencedRelation: "vacancies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       contact_messages: {
         Row: {
           created_at: string
           email: string
           id: string
-          is_read: boolean
           message: string
           name: string
           subject: string | null
@@ -156,7 +214,6 @@ export type Database = {
           created_at?: string
           email: string
           id?: string
-          is_read?: boolean
           message: string
           name: string
           subject?: string | null
@@ -165,14 +222,43 @@ export type Database = {
           created_at?: string
           email?: string
           id?: string
-          is_read?: boolean
           message?: string
           name?: string
           subject?: string | null
         }
         Relationships: []
       }
-      profiles: {
+      notifications: {
+        Row: {
+          created_at: string
+          description: string
+          id: string
+          is_read: boolean
+          title: string
+          type: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          description: string
+          id?: string
+          is_read?: boolean
+          title: string
+          type: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          description?: string
+          id?: string
+          is_read?: boolean
+          title?: string
+          type?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      profiles_private: {
         Row: {
           avatar_url: string | null
           bio: string | null
@@ -267,21 +353,26 @@ export type Database = {
           company_id: string
           contract_type: string | null
           created_at: string
-          currency: string
+          currency: string | null
           description: string
           employment_type: string | null
           id: string
+          is_active: boolean
           location: string | null
           modality: string
+          recruiter_id: string
+          requirements: string | null
           salary: string | null
           salary_max: number | null
           salary_min: number | null
+          salary_range: string | null
           seniority: string | null
           skills: string[] | null
           status: string
           title: string
           updated_at: string
-          vacancies_count: number
+          vacancies_count: number | null
+          zone: string | null
         }
         Insert: {
           application_deadline?: string | null
@@ -290,21 +381,26 @@ export type Database = {
           company_id: string
           contract_type?: string | null
           created_at?: string
-          currency?: string
+          currency?: string | null
           description: string
           employment_type?: string | null
           id?: string
+          is_active?: boolean
           location?: string | null
           modality: string
+          recruiter_id: string
+          requirements?: string | null
           salary?: string | null
           salary_max?: number | null
           salary_min?: number | null
+          salary_range?: string | null
           seniority?: string | null
           skills?: string[] | null
           status?: string
           title: string
           updated_at?: string
-          vacancies_count?: number
+          vacancies_count?: number | null
+          zone?: string | null
         }
         Update: {
           application_deadline?: string | null
@@ -313,30 +409,136 @@ export type Database = {
           company_id?: string
           contract_type?: string | null
           created_at?: string
-          currency?: string
+          currency?: string | null
           description?: string
           employment_type?: string | null
           id?: string
+          is_active?: boolean
           location?: string | null
           modality?: string
+          recruiter_id?: string
+          requirements?: string | null
           salary?: string | null
           salary_max?: number | null
           salary_min?: number | null
+          salary_range?: string | null
           seniority?: string | null
           skills?: string[] | null
           status?: string
           title?: string
           updated_at?: string
-          vacancies_count?: number
+          vacancies_count?: number | null
+          zone?: string | null
         }
         Relationships: []
       }
     }
     Views: {
-      [_ in never]: never
+      profiles: {
+        Row: {
+          avatar_url: string | null
+          bio: string | null
+          birth_date: string | null
+          category: string | null
+          constancia_url: string | null
+          created_at: string | null
+          cv_url: string | null
+          education: Json | null
+          email: string | null
+          experience: Json | null
+          experience_summary: string | null
+          full_name: string | null
+          headline: string | null
+          id: string | null
+          is_approved: boolean | null
+          is_featured: boolean | null
+          is_validated: boolean | null
+          location: string | null
+          phone: string | null
+          portfolio_links: Json | null
+          role: string | null
+          show_email: boolean | null
+          show_phone: boolean | null
+          skills: string[] | null
+          updated_at: string | null
+          whatsapp_number: string | null
+        }
+        Insert: {
+          avatar_url?: string | null
+          bio?: string | null
+          birth_date?: string | null
+          category?: string | null
+          constancia_url?: string | null
+          created_at?: string | null
+          cv_url?: string | null
+          education?: Json | null
+          email?: string | null
+          experience?: Json | null
+          experience_summary?: string | null
+          full_name?: string | null
+          headline?: string | null
+          id?: string | null
+          is_approved?: boolean | null
+          is_featured?: boolean | null
+          is_validated?: boolean | null
+          location?: string | null
+          phone?: never
+          portfolio_links?: Json | null
+          role?: string | null
+          show_email?: boolean | null
+          show_phone?: boolean | null
+          skills?: string[] | null
+          updated_at?: string | null
+          whatsapp_number?: never
+        }
+        Update: {
+          avatar_url?: string | null
+          bio?: string | null
+          birth_date?: string | null
+          category?: string | null
+          constancia_url?: string | null
+          created_at?: string | null
+          cv_url?: string | null
+          education?: Json | null
+          email?: string | null
+          experience?: Json | null
+          experience_summary?: string | null
+          full_name?: string | null
+          headline?: string | null
+          id?: string | null
+          is_approved?: boolean | null
+          is_featured?: boolean | null
+          is_validated?: boolean | null
+          location?: string | null
+          phone?: never
+          portfolio_links?: Json | null
+          role?: string | null
+          show_email?: boolean | null
+          show_phone?: boolean | null
+          skills?: string[] | null
+          updated_at?: string | null
+          whatsapp_number?: never
+        }
+        Relationships: []
+      }
     }
     Functions: {
-      [_ in never]: never
+      get_candidate_masked_phone: {
+        Args: { p_candidate_id: string; p_viewer_id: string }
+        Returns: string
+      }
+      get_candidate_masked_whatsapp: {
+        Args: { p_candidate_id: string; p_viewer_id: string }
+        Returns: string
+      }
+      notify_candidate_contact: {
+        Args: {
+          p_candidate_id: string
+          p_company_name: string
+          p_vacancy_title: string
+        }
+        Returns: undefined
+      }
     }
     Enums: {
       [_ in never]: never

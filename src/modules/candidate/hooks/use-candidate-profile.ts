@@ -17,6 +17,7 @@ export function useCandidateProfile() {
   const [portfolioLinks, setPortfolioLinks] = React.useState<string[]>([]);
   const [skillInput, setSkillInput] = React.useState("");
   const [portfolioInput, setPortfolioInput] = React.useState("");
+  const [isValidated, setIsValidated] = React.useState(false);
 
   const form = useForm<CandidateProfileFormValues>({
     resolver: zodResolver(candidateProfileSchema),
@@ -29,6 +30,7 @@ export function useCandidateProfile() {
       skills: [],
       experience: [],
       portfolio_links: [],
+      show_phone: false,
     },
   });
 
@@ -63,11 +65,13 @@ export function useCandidateProfile() {
               skills: parsedSkills,
               experience: parsedExperience,
               portfolio_links: parsedPortfolioLinks,
+              show_phone: profile.show_phone || false,
             });
 
             setSkills(parsedSkills);
             setExperience(parsedExperience);
             setPortfolioLinks(parsedPortfolioLinks);
+            setIsValidated(profile.is_validated || false);
           }
         }
       } catch (error: unknown) {
@@ -187,6 +191,7 @@ export function useCandidateProfile() {
     addExperience,
     removeExperience,
     updateExperience,
+    isValidated,
     onSubmit: form.handleSubmit(onSubmit),
   };
 }

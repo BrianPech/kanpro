@@ -18,6 +18,7 @@ import { toast } from "sonner";
 import { createClient } from "@/lib/supabase/client";
 import { cn } from "@/lib/utils";
 import type { Job } from "../types";
+import { useConnection } from "@/hooks/use-connection";
 
 interface VacancyDetailProps {
   job: Job | null;
@@ -43,6 +44,23 @@ export function VacancyDetail({
   const [isSubmitting, setIsSubmitting] = React.useState(false);
   const [isAppliedSession, setIsAppliedSession] = React.useState(false);
   const [prevJobId, setPrevJobId] = React.useState<string | null>(null);
+
+  const { initiateWhatsAppConnection, loading: connecting } = useConnection();
+
+  const handleWhatsAppContact = async () => {
+    if (!job) return;
+    try {
+      await initiateWhatsAppConnection({
+        candidateId: candidateId || "",
+        vacancyId: job.id,
+        initiatedBy: "candidate",
+      });
+    } catch (err: any) {
+      toast.error("Error al conectar", {
+        description: err.message || "No se pudo abrir el canal de WhatsApp.",
+      });
+    }
+  };
 
   // Synchronize state during render instead of inside useEffect to avoid warnings
   if (job && job.id !== prevJobId) {
@@ -311,18 +329,15 @@ export function VacancyDetail({
             </div>
 
             <div className="flex items-center gap-2.5 w-full sm:w-auto">
-              <a
-                href={whatsappLink}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="w-full sm:w-auto"
+              <Button
+                onClick={handleWhatsAppContact}
+                disabled={connecting}
+                className="h-10 rounded-xl bg-[#25D366] hover:bg-[#20ba59] text-white font-bold text-xs px-5 w-full sm:w-auto gap-2 shadow-xs transition-all border-none"
               >
-                <Button className="h-10 rounded-xl bg-[#25D366] hover:bg-[#20ba59] text-white font-bold text-xs px-5 w-full gap-2 shadow-xs transition-all border-none">
-                  <MessageCircle className="w-4.5 h-4.5" />
-                  WhatsApp
-                  <ExternalLink className="w-3 h-3" />
-                </Button>
-              </a>
+                {connecting ? <Loader2 className="w-4 h-4 animate-spin" /> : <MessageCircle className="w-4.5 h-4.5" />}
+                WhatsApp
+                <ExternalLink className="w-3 h-3" />
+              </Button>
               <Button
                 disabled
                 className="h-10 rounded-xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 font-bold text-xs px-5 w-full sm:w-auto shadow-none"
@@ -370,18 +385,15 @@ export function VacancyDetail({
             {/* Actions button group */}
             <div className="flex items-center gap-3">
               {/* WhatsApp (Green) button */}
-              <a
-                href={whatsappLink}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex-1"
+              <Button
+                onClick={handleWhatsAppContact}
+                disabled={connecting}
+                className="flex-1 h-11 rounded-xl bg-[#25D366] hover:bg-[#20ba59] text-white font-bold text-xs px-5 gap-2 shadow-xs transition-all border-none"
               >
-                <Button className="h-11 rounded-xl bg-[#25D366] hover:bg-[#20ba59] text-white font-bold text-xs px-5 w-full gap-2 shadow-xs transition-all border-none">
-                  <MessageCircle className="w-4.5 h-4.5" />
-                  Contacto Reclutador
-                  <ExternalLink className="w-3 h-3" />
-                </Button>
-              </a>
+                {connecting ? <Loader2 className="w-4 h-4 animate-spin" /> : <MessageCircle className="w-4.5 h-4.5" />}
+                Contacto Reclutador
+                <ExternalLink className="w-3 h-3" />
+              </Button>
 
               {/* Submit Postulación Simple (Indigo) button */}
               <Button

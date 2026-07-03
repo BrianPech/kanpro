@@ -15,7 +15,8 @@ import {
   X,
   Check,
   AlertCircle,
-  Globe
+  Globe,
+  Award
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -34,6 +35,40 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import { ExperienceItem } from "../schemas/candidate.schema";
+import { Badge } from "@/components/ui/badge";
+import { cn } from "@/lib/utils";
+
+// Custom Switch component for local use (avoiding external install of shadcn switch)
+function Switch({
+  checked,
+  onCheckedChange,
+  disabled,
+}: {
+  checked: boolean;
+  onCheckedChange: (checked: boolean) => void;
+  disabled?: boolean;
+}) {
+  return (
+    <button
+      type="button"
+      role="switch"
+      aria-checked={checked}
+      disabled={disabled}
+      onClick={() => onCheckedChange(!checked)}
+      className={cn(
+        "relative inline-flex h-6 w-11 shrink-0 cursor-pointer items-center rounded-full border-2 border-transparent transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:cursor-not-allowed disabled:opacity-50",
+        checked ? "bg-primary" : "bg-slate-200 dark:bg-slate-800"
+      )}
+    >
+      <span
+        className={cn(
+          "pointer-events-none block h-5 w-5 rounded-full bg-background shadow-lg ring-0 transition-transform duration-200",
+          checked ? "translate-x-5" : "translate-x-0"
+        )}
+      />
+    </button>
+  );
+}
 
 export function CandidateSettingsView() {
   const {
@@ -54,6 +89,7 @@ export function CandidateSettingsView() {
     addExperience,
     removeExperience,
     updateExperience,
+    isValidated,
     onSubmit,
   } = useCandidateProfile();
 
@@ -128,6 +164,38 @@ export function CandidateSettingsView() {
         <p className="text-sm text-muted-foreground">
           Mantén tu perfil público actualizado para postularte a ofertas y hacer match mediante nuestro motor de IA.
         </p>
+      </div>
+
+      {/* Visualización del Perfil / Sello de Calidad (Header Banner) */}
+      <div className="bg-white dark:bg-zinc-900 border border-border/50 rounded-3xl p-6 md:p-8 flex flex-col sm:flex-row items-center sm:items-start text-center sm:text-left gap-5 mb-8 shadow-sm relative overflow-hidden">
+        <div className="absolute top-0 right-0 w-24 h-24 bg-primary/5 rounded-full blur-3xl pointer-events-none" />
+        
+        <div className="size-20 rounded-full bg-primary/10 flex items-center justify-center border-2 border-primary/20 relative shrink-0">
+          <User className="size-10 text-primary" />
+        </div>
+        <div className="flex-grow space-y-2">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-center sm:justify-start gap-3">
+            <h2 className="text-xl font-extrabold text-foreground tracking-tight">
+              {form.watch("full_name") || "Mi Perfil Profesional"}
+            </h2>
+            {isValidated && (
+              <Badge className="bg-emerald-500/10 hover:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 font-extrabold text-[10px] tracking-wider uppercase px-2.5 h-6 flex items-center mx-auto sm:mx-0 w-fit gap-1">
+                <Award className="size-3.5 fill-emerald-500/20 text-emerald-500" />
+                <span>Sello de Calidad</span>
+              </Badge>
+            )}
+          </div>
+          <p className="text-xs md:text-sm text-muted-foreground font-semibold">
+            {form.watch("headline") || "Candidato K’anPro"}
+          </p>
+          <div className="flex flex-wrap gap-1.5 justify-center sm:justify-start mt-2">
+            {skills.map((skill, idx) => (
+              <Badge key={idx} variant="secondary" className="text-[10px] font-bold tracking-tight rounded-md px-2 py-0.5">
+                {skill}
+              </Badge>
+            ))}
+          </div>
+        </div>
       </div>
 
       <form onSubmit={onSubmit} className="flex flex-col gap-8 pb-20">
@@ -222,6 +290,29 @@ export function CandidateSettingsView() {
                   {errors.whatsapp_number.message}
                 </p>
               )}
+            </div>
+
+            {/* Control de Privacidad Humana */}
+            <div className="flex flex-col gap-2 md:col-span-2">
+              <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground/80">Privacidad del Teléfono</Label>
+              <div className="flex items-center justify-between p-4 bg-slate-50 dark:bg-zinc-900 rounded-2xl border border-border/40 gap-4 min-h-12">
+                <div className="space-y-1">
+                  <p className="text-xs font-bold text-foreground">Hacer mi teléfono público</p>
+                  <p className="text-[11px] text-muted-foreground leading-normal font-medium">
+                    Si está desactivado, tu teléfono solo será visible para empresas con las que inicies contacto o en vacantes a las que te postules activamente.
+                  </p>
+                </div>
+                <Controller
+                  name="show_phone"
+                  control={control}
+                  render={({ field: { onChange, value } }) => (
+                    <Switch
+                      checked={!!value}
+                      onCheckedChange={onChange}
+                    />
+                  )}
+                />
+              </div>
             </div>
 
             {/* Bio / Resumen de Experiencia */}

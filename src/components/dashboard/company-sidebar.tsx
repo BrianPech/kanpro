@@ -33,6 +33,11 @@ export function CompanySidebar() {
       icon: LayoutDashboard,
     },
     {
+      title: "Radar de Talentos",
+      url: "/dashboard/company/radar",
+      icon: Sparkles,
+    },
+    {
       title: "Perfil Empresa",
       url: "/dashboard/company/profile",
       icon: Building2,

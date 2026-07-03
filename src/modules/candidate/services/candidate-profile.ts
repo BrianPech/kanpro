@@ -6,7 +6,7 @@ export const candidateProfileService = {
     const supabase = createClient();
     const { data, error } = await supabase
       .from("profiles")
-      .select("id, full_name, headline, experience_summary, whatsapp_number, location, skills, experience, portfolio_links, is_validated, is_approved")
+      .select("id, full_name, headline, experience_summary, whatsapp_number, location, skills, experience, portfolio_links, is_validated, is_approved, show_phone")
       .eq("id", userId)
       .single();
 
@@ -22,11 +22,12 @@ export const candidateProfileService = {
         full_name: data.full_name,
         headline: data.headline,
         experience_summary: data.experience_summary,
-        whatsapp_number: data.whatsapp_number,
+        whatsapp_number: data.whatsapp_number as any,
         location: data.location,
         skills: data.skills,
         experience: data.experience as any,
         portfolio_links: data.portfolio_links as any,
+        show_phone: data.show_phone,
       })
       .eq("id", userId)
       .select()

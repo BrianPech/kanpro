@@ -16,6 +16,7 @@ export const candidateProfileSchema = z.object({
   skills: z.array(z.string()).min(1, "Debe agregar al menos una habilidad"),
   experience: z.array(experienceItemSchema),
   portfolio_links: z.array(z.string().url("Enlace de portafolio no válido")),
+  show_phone: z.boolean(),
 });
 
 export type ExperienceItem = z.infer<typeof experienceItemSchema>;
