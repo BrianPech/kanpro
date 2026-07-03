@@ -9,6 +9,25 @@ export async function getVacanciesByLocation(
 ): Promise<Job[]> {
   const supabase = await createClient();
 
+  // Paso A: Filtro Duro por Ciudad (default to candidate's city)
+  let candidateCity = "";
+  const { data: { user } } = await supabase.auth.getUser();
+  if (user) {
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("location")
+      .eq("id", user.id)
+      .single();
+    if (profile?.location) {
+      const loc = profile.location.toLowerCase();
+      if (loc.includes("mérida")) {
+        candidateCity = "Mérida";
+      } else if (loc.includes("playa del carmen")) {
+        candidateCity = "Playa del Carmen";
+      }
+    }
+  }
+
   // 1. Query vacancies from Supabase
   let query = supabase
     .from("vacancies")
@@ -22,6 +41,8 @@ export async function getVacanciesByLocation(
 
   if (locationQuery) {
     query = query.ilike("location", `%${locationQuery}%`);
+  } else if (candidateCity) {
+    query = query.ilike("location", `%${candidateCity}%`);
   }
 
   query = query.order("created_at", { ascending: false });

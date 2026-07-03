@@ -8,6 +8,9 @@ import { VacancyDetail } from "./vacancy-detail";
 import { Sheet, SheetContent } from "@/components/ui/sheet";
 import { useVacanciesFeed } from "@/modules/candidate/hooks/use-vacancies-feed";
 import type { Job } from "../types";
+import { useGeolocation, calculateHaversineDistance } from "@/hooks/use-geolocation";
+import { getCoordsForZone } from "@/config/geo";
+import { createClient } from "@/lib/supabase/client";
 
 interface DiscoveryPageProps {
   showNav?: boolean;
@@ -24,6 +27,27 @@ export function DiscoveryPage({
   appliedVacancyIds = [],
   candidateId = "",
 }: DiscoveryPageProps) {
+  const [candidateProfile, setCandidateProfile] = React.useState<{ location: string | null } | null>(null);
+  const { coordinates: userCoords, requestLocation } = useGeolocation();
+
+  React.useEffect(() => {
+    requestLocation();
+  }, [requestLocation]);
+
+  React.useEffect(() => {
+    if (candidateId) {
+      const supabase = createClient();
+      supabase
+        .from("profiles")
+        .select("location")
+        .eq("id", candidateId)
+        .single()
+        .then(({ data }) => {
+          if (data) setCandidateProfile(data);
+        });
+    }
+  }, [candidateId]);
+
   // Local state to keep track of applications submitted in the current session
   const [prevAppliedVacancyIds, setPrevAppliedVacancyIds] = React.useState<string[]>(appliedVacancyIds);
   const [appliedIds, setAppliedIds] = React.useState<string[]>(appliedVacancyIds);
@@ -76,17 +100,57 @@ export function DiscoveryPage({
     return Array.from(new Set(cats));
   }, [dbJobs]);
 
+  const sortedJobs = React.useMemo(() => {
+    let result = [...filteredJobs];
+    if (userCoords) {
+      result.sort((a, b) => {
+        const aCoords = getCoordsForZone(a.location);
+        const bCoords = getCoordsForZone(b.location);
+        if (!aCoords && !bCoords) return 0;
+        if (!aCoords) return 1;
+        if (!bCoords) return -1;
+        const distA = calculateHaversineDistance(userCoords, aCoords);
+        const distB = calculateHaversineDistance(userCoords, bCoords);
+        return distA - distB;
+      });
+
+      result = result.map((job) => {
+        const coords = getCoordsForZone(job.location);
+        if (coords) {
+          const dist = calculateHaversineDistance(userCoords, coords).toFixed(1);
+          return {
+            ...job,
+            location: `${job.location} (${dist} km)`,
+          };
+        }
+        return job;
+      });
+    } else if (candidateProfile?.location) {
+      const parts = candidateProfile.location.split(" - ");
+      const candidateZone = parts[1] || parts[0] || "";
+      if (candidateZone) {
+        const zoneLower = candidateZone.toLowerCase();
+        result.sort((a, b) => {
+          const aInZone = a.location.toLowerCase().includes(zoneLower) ? 1 : 0;
+          const bInZone = b.location.toLowerCase().includes(zoneLower) ? 1 : 0;
+          return bInZone - aInZone;
+        });
+      }
+    }
+    return result;
+  }, [filteredJobs, userCoords, candidateProfile]);
+
   // Auto-select first job on desktop when list changes or loads
   React.useEffect(() => {
-    if (!isMobile && filteredJobs.length > 0) {
-      const exists = filteredJobs.some((j) => j.id === selectedJob?.id);
+    if (!isMobile && sortedJobs.length > 0) {
+      const exists = sortedJobs.some((j) => j.id === selectedJob?.id);
       if (!exists) {
-        setSelectedJob(filteredJobs[0]);
+        setSelectedJob(sortedJobs[0]);
       }
-    } else if (filteredJobs.length === 0) {
+    } else if (sortedJobs.length === 0) {
       setSelectedJob(null);
     }
-  }, [filteredJobs, isMobile, selectedJob?.id]);
+  }, [sortedJobs, isMobile, selectedJob?.id]);
 
   const handleSelectJob = (job: Job) => {
     setSelectedJob(job);
@@ -122,7 +186,7 @@ export function DiscoveryPage({
         {/* Panel Izquierdo: Listado Scrollable (40% de ancho en escritorio / 100% en móvil) */}
         <div className="w-full md:w-[40%] flex flex-col h-full overflow-hidden shrink-0">
           <VacancyList
-            jobs={filteredJobs}
+            jobs={sortedJobs}
             selectedJob={selectedJob}
             onSelectJob={handleSelectJob}
             candidateSkills={candidateSkills}

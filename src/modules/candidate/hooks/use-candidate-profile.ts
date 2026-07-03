@@ -26,6 +26,8 @@ export function useCandidateProfile() {
       headline: "",
       experience_summary: "",
       whatsapp_number: "",
+      city: "",
+      zone: "",
       location: "",
       skills: [],
       experience: [],
@@ -56,11 +58,30 @@ export function useCandidateProfile() {
               ? (profile.portfolio_links as unknown as string[])
               : [];
 
+            const locationStr = profile.location || "";
+            let city = "Mérida";
+            let zone = "";
+            if (locationStr.includes(" - ")) {
+              const parts = locationStr.split(" - ");
+              city = parts[0];
+              zone = parts[1];
+            } else if (locationStr) {
+              if (locationStr.toLowerCase().includes("playa del carmen")) {
+                city = "Playa del Carmen";
+                zone = locationStr.replace(/Playa del Carmen/i, "").replace(/^[-\s,|]+|[-\s,|]+$/g, "") || "Centro";
+              } else {
+                city = "Mérida";
+                zone = locationStr.replace(/Mérida/i, "").replace(/^[-\s,|]+|[-\s,|]+$/g, "") || "Centro Mérida";
+              }
+            }
+
             form.reset({
               full_name: profile.full_name || "",
               headline: profile.headline || "",
               experience_summary: profile.experience_summary || "",
               whatsapp_number: profile.whatsapp_number || "",
+              city: city,
+              zone: zone,
               location: profile.location || "",
               skills: parsedSkills,
               experience: parsedExperience,
@@ -162,7 +183,11 @@ export function useCandidateProfile() {
 
     setIsSubmitting(true);
     try {
-      await candidateProfileService.updateProfile(userId, values);
+      const mappedData = {
+        ...values,
+        location: `${values.city} - ${values.zone}`
+      };
+      await candidateProfileService.updateProfile(userId, mappedData as any);
       toast.success("¡Perfil actualizado con éxito!");
     } catch (error: unknown) {
       console.error("Error updating candidate profile:", error);
