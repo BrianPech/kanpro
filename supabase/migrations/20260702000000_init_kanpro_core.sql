@@ -141,7 +141,7 @@ CREATE TABLE IF NOT EXISTS public.connections (
   candidate_id uuid REFERENCES public.profiles_private(id) ON DELETE CASCADE NOT NULL,
   recruiter_id uuid REFERENCES public.profiles_private(id) ON DELETE CASCADE NOT NULL,
   vacancy_id uuid REFERENCES public.vacancies(id) ON DELETE SET NULL,
-  initiated_by text DEFAULT 'recruiter' NOT NULL CHECK (initiated_by IN ('candidate', 'recruiter')),
+  initiated_by text DEFAULT 'recruiter' NOT NULL CHECK (initiated_by IN ('candidate', 'recruiter', 'company')),
   status text DEFAULT 'contacted' NOT NULL CHECK (status IN ('contacted', 'hired', 'archived')),
   created_at timestamp with time zone DEFAULT timezone('utc'::text, now()) NOT NULL
 );
