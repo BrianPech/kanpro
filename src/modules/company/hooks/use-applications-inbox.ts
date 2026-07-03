@@ -39,29 +39,38 @@ export interface Applicant {
   candidateId: string;
 }
 
-export function useApplicationsInbox(userId: string) {
+export function useApplicationsInbox() {
   const [applicants, setApplicants] = React.useState<Applicant[]>([]);
   const [vacancies, setVacancies] = React.useState<{ id: string; title: string }[]>([]);
   const [selectedVacancyId, setSelectedVacancyId] = React.useState<string>("all");
   const [selectedId, setSelectedId] = React.useState<string | null>(null);
   const [searchQuery, setSearchQuery] = React.useState("");
   const [isLoading, setIsLoading] = React.useState(true);
+  const [userId, setUserId] = React.useState<string>("");
+
+  const supabase = React.useMemo(() => createClient(), []);
 
   // Load vacancies and applications
   const loadData = React.useCallback(async () => {
     try {
       setIsLoading(true);
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        throw new Error("Usuario no autenticado");
+      }
+      setUserId(user.id);
+
       // Fetch vacancies
-      const vacList = await companyService.getVacancies(userId);
+      const vacList = await companyService.getVacancies(user.id);
       setVacancies(vacList || []);
 
       // Fetch applications
-      const apps = await companyService.getApplications(userId);
+      const apps = await companyService.getApplications(user.id);
       
       if (apps && apps.length > 0) {
         // Map database applications to Applicant format
         const mapped: Applicant[] = apps.map((app: any) => {
-          const profile = app.candidate;
+          const profile = app.candidate || {};
           
           // Parse experience
           let experiences: Experience[] = [];
@@ -112,7 +121,7 @@ export function useApplicationsInbox(userId: string) {
             email: profile.email || "",
             vacancyTitle: app.vacancies?.title || "Vacante",
             vacancyId: app.vacancy_id,
-            candidateId: profile.id,
+            candidateId: profile.id || "",
             portfolio: [
               {
                 image: "https://images.unsplash.com/photo-1555066931-4365d14bab8c?w=400&h=400&fit=crop",
@@ -131,93 +140,17 @@ export function useApplicationsInbox(userId: string) {
           setSelectedId(mapped[0].id);
         }
       } else {
-        // Fallback to high-fidelity mock data if no db applications exist
-        const mockApplicants: Applicant[] = [
-          {
-            id: "mock-1",
-            name: "Elena Rodriguez",
-            headline: "Senior Product Designer",
-            avatar: "https://lh3.googleusercontent.com/aida-public/AB6AXuAJLjSU-yJkXHyVUPb4Sa1YtkFC50TRMMBDjbw0KCOsfJWrfdXsyw2IFqFTnInR4SturkvP2v3S8VIRPOHcq2W2LIU90HGltdUt-IvvpeOO1JpzweTI6jMGRMXKbPiwSY51s9VHXc85Vh2QrinHxtKDSi3CcOR9iW91gNxSLxwn6OjCSba-o33LkmaCVrOoPcfQgFwtqoULsHsMJMgUnUk1jSZDk7lYWf3nftQHYdvvBOsMrmHy8BvLavkRqeOgbO7LVrRnifV4PzU",
-            location: "Madrid, ES",
-            elapsedTime: "Hace 2h",
-            status: "Preseleccionado",
-            rating: 4,
-            reviewsCount: 12,
-            bio: "Diseñadora de productos apasionada por crear experiencias fluidas y accesibles. Con más de 8 años de experiencia trabajando en startups fintech y SaaS de alto impacto, me especializo en sistemas de diseño y flujos de usuario complejos.",
-            experiences: [
-              {
-                role: "Lead UI Designer",
-                period: "2021 - Presente",
-                company: "Global Fintech S.A.",
-                description: "Liderazgo del equipo creativo y mantenimiento del Design System institucional."
-              },
-              {
-                role: "UX Specialist",
-                period: "2018 - 2021",
-                company: "Innova Tech Studio",
-                description: "Investigación de usuarios y prototipado rápido para clientes internacionales."
-              }
-            ],
-            skills: ["Figma Mastery", "Design Systems", "React Foundation", "UX Research", "Motion Design", "Accessibility WCAG"],
-            phone: "+34 600 123 456",
-            email: "elena@diseno.com",
-            vacancyTitle: "Sr. UI/UX Designer",
-            vacancyId: "mock-vac-1",
-            candidateId: "mock-candidate-1",
-            portfolio: [
-              {
-                image: "https://lh3.googleusercontent.com/aida-public/AB6AXuAO2lzdff0_wzEDvpxNjVnlMrBBucYpAKmj6Vt8LvOhir0yxraAj8Sn9ONxw0jpfAOeVBYwAhy7yLypER3mdPCJh3YqRhBOzQ2VM_xdeLe5nnjZLswjdwGzCfIVvq4_s6TUwALUvv_b3_5cB-5XN9hoq20ML5yRI-U5qrVWeVzC4je8RAQvj7YZ6QtXp5dNwdsQIG1NHRo-UQeTjnNGqX2JVzIQEhLU5HDfIQrZwmE2p2aMRCYlMOvsTtAU-vy_x9_XnNIQ6pzSw9g",
-                title: "Fintech Dashboard UI"
-              },
-              {
-                image: "https://lh3.googleusercontent.com/aida-public/AB6AXuDU6IJZrRF4VCHM5ZYFYRx9MLVErY3_kBtp_9gFzpF0lg0B0J68BKiGodaciSsTIFKJCV7oXm57_7c-nuEnxJXx6Yug9bYeBkDpVFk9yLGvgtp3_QdIEZkbVC9cXcxFLyblhe1b0uuuoxxe_2jI0y7etKd5xjyme6XHXytzLheifH9CCZT_2TegG6dudIUXCVCEhtIt1imACxXyDxfla_9GYSbfFUxgfEUfPF_qIh4R8fTyqRX4L6Pnt7ANLptJAh7Ir0zM3Mbm7Kc",
-                title: "Mobile App Layout"
-              }
-            ]
-          },
-          {
-            id: "mock-2",
-            name: "Marco Valdivia",
-            headline: "Fullstack Engineer",
-            avatar: "https://lh3.googleusercontent.com/aida-public/AB6AXuANyNGJmMghWHQjDJX8i2hr6E-Y0-dBUMKpJnTRPg7AYrfMg1mFfIE14CcaQerHWmiJPWYesLzXz9sG8fxPepie0xyNosfR52mB71AP-LhXo4eB6nmrJuM7lYWGBcddxmyeMg4ykcBLUv9FYzdG9XxtLJY-jZN2ORf56Jb3JkmO8THRtQotl32Yp2FGLGb5i0Jeotl7XXddWGGS68Yqhq0UvlhfJaTshgRdqM8e8LFaCXy-fT-MlPoJrBJNV_946WPJxa2YGey5KVs",
-            location: "Barcelona, ES",
-            elapsedTime: "Hace 5h",
-            status: "En revisión",
-            rating: 5,
-            reviewsCount: 18,
-            bio: "Ingeniero fullstack apasionado por la escalabilidad y las arquitecturas de microservicios. Con experiencia en plataformas de comercio electrónico robustas y en la migración de legados hacia nubes elásticas.",
-            experiences: [
-              {
-                role: "Senior Backend Developer",
-                period: "2020 - Presente",
-                company: "SaaS Rocket Corp",
-                description: "Rediseño completo del núcleo de procesamiento con Node.js, Go y Postgres."
-              }
-            ],
-            skills: ["Node.js / Express", "React / Next.js", "Docker & Kubernetes", "AWS Architecture", "PostgreSQL Expert"],
-            phone: "+34 600 987 654",
-            email: "marco@dev.com",
-            vacancyTitle: "Full Stack Engineer",
-            vacancyId: "mock-vac-2",
-            candidateId: "mock-candidate-2",
-            portfolio: [
-              {
-                image: "https://images.unsplash.com/photo-1555066931-4365d14bab8c?w=400&h=400&fit=crop",
-                title: "Microservices Platform"
-              }
-            ]
-          }
-        ];
-        setApplicants(mockApplicants);
-        setSelectedId("mock-1");
+        setApplicants([]);
+        setSelectedId(null);
       }
-    } catch (error) {
-      console.error("Error loading applications:", error);
+    } catch (error: any) {
+      console.error("Error loading applications details:", error?.message || error);
+      console.error("Error details:", JSON.stringify(error));
       toast.error("Error al cargar postulaciones");
     } finally {
       setIsLoading(false);
     }
-  }, [userId]);
+  }, [supabase]);
 
   React.useEffect(() => {
     loadData();

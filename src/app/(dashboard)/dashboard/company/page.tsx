@@ -3,7 +3,7 @@ import { getCompanyDashboardData } from "@/modules/company/services/company-dash
 import { DashboardView } from "@/modules/company/components/dashboard-view"
 
 export default async function CompanyDashboardPage() {
-  const { companyName } = await getCompanyDashboardData()
+  const data = await getCompanyDashboardData()
 
-  return <DashboardView companyName={companyName} />
+  return <DashboardView {...data} />
 }

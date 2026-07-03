@@ -40,7 +40,7 @@ export function ApplicationsInbox() {
     handleUpdateStatus,
     getWhatsAppLink,
     handleContactApplicant,
-  } = useApplicationsInbox("company-id") // Fetch logic inside hooks takes care of user sessions
+  } = useApplicationsInbox() // Fetch logic inside hooks takes care of user sessions
 
   const [mobileDetailOpen, setMobileDetailOpen] = React.useState(false)
 

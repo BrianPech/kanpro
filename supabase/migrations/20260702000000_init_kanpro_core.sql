@@ -107,7 +107,7 @@ CREATE TABLE IF NOT EXISTS public.vacancies (
 -- 2.5. Tabla de postulaciones
 CREATE TABLE IF NOT EXISTS public.applications (
   id uuid DEFAULT gen_random_uuid() PRIMARY KEY,
-  candidate_id uuid REFERENCES auth.users(id) ON DELETE CASCADE NOT NULL,
+  candidate_id uuid REFERENCES public.profiles_private(id) ON DELETE CASCADE NOT NULL,
   vacancy_id uuid REFERENCES public.vacancies(id) ON DELETE CASCADE NOT NULL,
   status text DEFAULT 'Pendiente' NOT NULL CHECK (status IN ('Pendiente', 'En revisión', 'Preseleccionado', 'Contratado', 'Descartado')),
   created_at timestamp with time zone DEFAULT timezone('utc'::text, now()) NOT NULL,
@@ -228,7 +228,7 @@ END;
 $$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public;
 
 -- Vista segura centralizada expuesta a la API pública
-CREATE OR REPLACE VIEW public.profiles AS
+CREATE OR REPLACE VIEW public.profiles WITH (security_invoker = true) AS
 SELECT
   id,
   full_name,
