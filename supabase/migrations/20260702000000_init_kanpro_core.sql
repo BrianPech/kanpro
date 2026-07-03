@@ -3,6 +3,26 @@
 -- Description: Inicializa todo el esquema limpio, triggers y RLS del ecosistema K'anPro en un solo archivo.
 
 -----------------------------------------------------------
+-- 0. LIMPIEZA DE OBJETOS PREVIOS (CASCADE)
+-----------------------------------------------------------
+DROP TABLE IF EXISTS public.profiles CASCADE;
+DROP VIEW IF EXISTS public.profiles CASCADE;
+DROP TABLE IF EXISTS public.notifications CASCADE;
+DROP TABLE IF EXISTS public.connections CASCADE;
+DROP TABLE IF EXISTS public.applications CASCADE;
+DROP TABLE IF EXISTS public.vacancies CASCADE;
+DROP TABLE IF EXISTS public.admin_profiles CASCADE;
+DROP TABLE IF EXISTS public.company_profiles CASCADE;
+DROP TABLE IF EXISTS public.profiles_private CASCADE;
+DROP TABLE IF EXISTS public.contact_messages CASCADE;
+
+DROP FUNCTION IF EXISTS public.handle_updated_at CASCADE;
+DROP FUNCTION IF EXISTS public.get_candidate_masked_phone CASCADE;
+DROP FUNCTION IF EXISTS public.get_candidate_masked_whatsapp CASCADE;
+DROP FUNCTION IF EXISTS public.on_auth_user_created CASCADE;
+DROP FUNCTION IF EXISTS public.notify_candidate_contact CASCADE;
+
+-----------------------------------------------------------
 -- 1. EXTENSIONES Y FUNCIONES DE SOPORTE COMUNES
 -----------------------------------------------------------
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
