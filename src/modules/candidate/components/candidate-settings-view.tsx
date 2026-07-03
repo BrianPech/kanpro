@@ -43,15 +43,21 @@ function Switch({
   checked,
   onCheckedChange,
   disabled,
+  id,
+  "aria-label": ariaLabel,
 }: {
   checked: boolean;
   onCheckedChange: (checked: boolean) => void;
   disabled?: boolean;
+  id?: string;
+  "aria-label"?: string;
 }) {
   return (
     <button
       type="button"
       role="switch"
+      id={id}
+      aria-label={ariaLabel}
       aria-checked={checked}
       disabled={disabled}
       onClick={() => onCheckedChange(!checked)}
@@ -307,6 +313,8 @@ export function CandidateSettingsView() {
                   control={control}
                   render={({ field: { onChange, value } }) => (
                     <Switch
+                      id="show-phone-switch"
+                      aria-label="Hacer mi teléfono público"
                       checked={!!value}
                       onCheckedChange={onChange}
                     />

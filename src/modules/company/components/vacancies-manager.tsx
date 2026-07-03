@@ -398,7 +398,7 @@ export function VacanciesManager({ userId }: { userId: string }) {
                             "text-[9px] font-bold tracking-wider uppercase px-2 h-5 flex items-center border",
                             vacancy.is_active
                               ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20"
-                              : "bg-slate-100 text-slate-500 border-slate-200 dark:bg-slate-800 dark:text-slate-400 dark:border-slate-700"
+                              : "bg-slate-100 text-slate-600 border-slate-200 dark:bg-slate-800 dark:text-slate-300 dark:border-slate-700"
                           )}
                         >
                           {vacancy.is_active ? "Activa / Buscando" : "Vacante Cubierta"}

@@ -22,7 +22,7 @@ export default async function CompanyDashboardLayout({
           plan={plan}
           role={role}
         />
-        <div className="flex-1 overflow-y-auto min-h-0 bg-background pb-16 md:pb-0">{children}</div>
+        <main className="flex-1 overflow-y-auto min-h-0 bg-background pb-16 md:pb-0">{children}</main>
         <CompanyBottomNav />
       </SidebarInset>
     </SidebarProvider>

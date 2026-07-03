@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import Image from "next/image";
 import {
   Search,
   Filter,
@@ -215,18 +216,20 @@ export function CandidateRadar() {
             </div>
           ) : (
             filteredCandidates.map((candidate) => (
-              <Card
-                key={candidate.id}
-                onClick={() => selectCandidateOnMobile(candidate.id)}
-                className={`cursor-pointer border border-border/50 hover:border-primary/40 transition-all rounded-2xl overflow-hidden active:scale-[0.99] ${
-                  selectedId === candidate.id ? "border-primary/60 bg-primary/5 dark:bg-primary/10 shadow-sm" : "bg-card hover:bg-muted/15"
-                }`}
-              >
+              <article key={candidate.id} aria-label={`Perfil de ${candidate.full_name}`} className="w-full">
+                <Card
+                  onClick={() => selectCandidateOnMobile(candidate.id)}
+                  className={`cursor-pointer border border-border/50 hover:border-primary/40 transition-all rounded-2xl overflow-hidden active:scale-[0.99] ${
+                    selectedId === candidate.id ? "border-primary/60 bg-primary/5 dark:bg-primary/10 shadow-sm" : "bg-card hover:bg-muted/15"
+                  }`}
+                >
                 <CardContent className="p-5 flex gap-4">
                   <div className="relative shrink-0">
-                    <img
+                    <Image
                       src={candidate.avatar_url || "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=100&h=100&fit=crop"}
                       alt={candidate.full_name}
+                      width={48}
+                      height={48}
                       className="size-12 rounded-full object-cover border border-border"
                     />
                     {candidate.is_validated && (
@@ -274,7 +277,8 @@ export function CandidateRadar() {
                   </div>
                 </CardContent>
               </Card>
-            ))
+            </article>
+          ))
           )}
         </div>
       </div>
@@ -290,6 +294,7 @@ export function CandidateRadar() {
               <Button
                 variant="ghost"
                 size="icon"
+                aria-label="Regresar al listado de candidatos"
                 onClick={() => setMobileDetailOpen(false)}
                 className="rounded-full size-11 active:scale-95 transition-transform"
               >
@@ -305,9 +310,11 @@ export function CandidateRadar() {
               
               {/* Perfil Principal */}
               <div className="flex flex-col sm:flex-row items-center sm:items-start text-center sm:text-left gap-5">
-                <img
+                <Image
                   src={selectedCandidate.avatar_url || "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=180&h=180&fit=crop"}
                   alt={selectedCandidate.full_name}
+                  width={80}
+                  height={80}
                   className="size-20 rounded-full object-cover border-2 border-primary/20 shadow-sm"
                 />
                 <div className="flex-grow space-y-2.5">
