@@ -60,7 +60,7 @@ export async function getVacanciesByLocation(
 
   // 2. Fetch company details for vacancies
   const companyIds = Array.from(
-    new Set(vacancies.map((v) => v.company_id).filter(Boolean))
+    new Set(vacancies.map((v: any) => v.company_id).filter(Boolean))
   );
 
   const companies: Record<string, { name: string; logo: string | null; phone: string | null }> = {};
@@ -72,7 +72,7 @@ export async function getVacanciesByLocation(
       .in("id", companyIds);
 
     if (companyProfiles) {
-      companyProfiles.forEach((comp) => {
+      companyProfiles.forEach((comp: any) => {
         companies[comp.id] = {
           name: comp.company_name || "Empresa",
           logo: comp.logo_url || null,
@@ -83,7 +83,7 @@ export async function getVacanciesByLocation(
   }
 
   // 3. Format result to conform with Job interface
-  return vacancies.map((vac) => {
+  return vacancies.map((vac: any) => {
     const companyInfo = companies[vac.company_id];
     const companyName = companyInfo?.name || "Empresa";
     const logoUrl = companyInfo?.logo || null;

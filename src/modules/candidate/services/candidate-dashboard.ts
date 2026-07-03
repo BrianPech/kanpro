@@ -130,7 +130,7 @@ export async function getCandidateDashboardData(): Promise<CandidateDashboardDat
         .in("id", companyIds)
 
       if (companyProfiles) {
-        companyProfiles.forEach((comp) => {
+        companyProfiles.forEach((comp: any) => {
           companies[comp.id] = {
             company_name: comp.company_name || "Empresa",
             logo_url: comp.logo_url || null,

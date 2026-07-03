@@ -64,7 +64,7 @@ export default async function CandidateDiscoveryRoute() {
   const companies: Record<string, { name: string; logo: string | null; phone: string | null }> = {};
   if (vacancies && vacancies.length > 0) {
     const companyIds = Array.from(
-      new Set(vacancies.map((v) => v.company_id).filter(Boolean))
+      new Set(vacancies.map((v: any) => v.company_id).filter(Boolean))
     );
 
     if (companyIds.length > 0) {
@@ -74,7 +74,7 @@ export default async function CandidateDiscoveryRoute() {
         .in("id", companyIds);
 
       if (companyProfiles) {
-        companyProfiles.forEach((comp) => {
+        companyProfiles.forEach((comp: any) => {
           companies[comp.id] = {
             name: comp.company_name || "Empresa",
             logo: comp.logo_url || null,
@@ -86,7 +86,7 @@ export default async function CandidateDiscoveryRoute() {
   }
 
   // 6. Format database vacancies
-  const dbJobs: Job[] = (vacancies || []).map((vac) => {
+  const dbJobs: Job[] = (vacancies || []).map((vac: any) => {
     const companyInfo = companies[vac.company_id];
     const companyName = companyInfo?.name || "Empresa";
     const logoUrl = companyInfo?.logo || null;

@@ -42,7 +42,7 @@ export function DiscoveryPage({
         .select("location")
         .eq("id", candidateId)
         .single()
-        .then(({ data }) => {
+        .then(({ data }: any) => {
           if (data) setCandidateProfile(data);
         });
     }
