@@ -26,6 +26,8 @@ import { Controller } from "react-hook-form";
 import PhoneInput from "react-phone-number-input";
 import "react-phone-number-input/style.css";
 import { useCandidateProfile } from "../hooks/use-candidate-profile";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { GEO_CONFIG } from "@/config/geo";
 import {
   Dialog,
   DialogContent,
@@ -99,7 +101,7 @@ export function CandidateSettingsView() {
     onSubmit,
   } = useCandidateProfile();
 
-  const { register, control, formState: { errors } } = form;
+  const { register, control, watch, setValue, formState: { errors } } = form;
 
   // Dialog State for adding/editing experience
   const [isExpOpen, setIsExpOpen] = React.useState(false);
@@ -253,22 +255,60 @@ export function CandidateSettingsView() {
               )}
             </div>
 
-            {/* Location */}
+            {/* City Select */}
             <div className="flex flex-col gap-2">
-              <Label htmlFor="location" className="text-xs font-bold uppercase tracking-wider text-muted-foreground/80">Ubicación (Ciudad o Zona)</Label>
-              <div className="relative">
-                <MapPin className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground/60" />
-                <Input
-                  id="location"
-                  placeholder="Ej. San Ángel, CDMX"
-                  className="h-11 pl-10 rounded-xl bg-background/50"
-                  {...register("location")}
-                />
-              </div>
-              {errors.location && (
+              <Label htmlFor="city" className="text-xs font-bold uppercase tracking-wider text-muted-foreground/80">Ciudad *</Label>
+              <Select
+                value={watch("city") || ""}
+                onValueChange={(val) => {
+                  setValue("city", val, { shouldValidate: true });
+                  const firstZone = Object.keys(GEO_CONFIG[val]?.zones || {})[0] || "";
+                  setValue("zone", firstZone, { shouldValidate: true });
+                }}
+              >
+                <SelectTrigger id="city" className="h-11 rounded-xl bg-background/50 w-full text-left font-semibold">
+                  <SelectValue placeholder="Seleccionar Ciudad" />
+                </SelectTrigger>
+                <SelectContent className="rounded-xl bg-card border-border/40">
+                  {Object.keys(GEO_CONFIG).map((cityKey) => (
+                    <SelectItem key={cityKey} value={cityKey}>
+                      {cityKey}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              {errors.city && (
                 <p className="text-xs text-destructive font-medium flex items-center gap-1 mt-0.5">
                   <AlertCircle className="w-3.5 h-3.5" />
-                  {errors.location.message}
+                  {errors.city.message}
+                </p>
+              )}
+            </div>
+
+            {/* Zone Select */}
+            <div className="flex flex-col gap-2">
+              <Label htmlFor="zone" className="text-xs font-bold uppercase tracking-wider text-muted-foreground/80">Zona de Trabajo *</Label>
+              <Select
+                value={watch("zone") || ""}
+                onValueChange={(val) => setValue("zone", val, { shouldValidate: true })}
+                disabled={!watch("city")}
+              >
+                <SelectTrigger id="zone" className="h-11 rounded-xl bg-background/50 w-full text-left font-semibold">
+                  <SelectValue placeholder="Seleccionar Zona de Trabajo" />
+                </SelectTrigger>
+                <SelectContent className="rounded-xl bg-card border-border/40">
+                  {watch("city") &&
+                    Object.keys(GEO_CONFIG[watch("city")]?.zones || {}).map((zoneKey) => (
+                      <SelectItem key={zoneKey} value={zoneKey}>
+                        {GEO_CONFIG[watch("city")].zones[zoneKey].name}
+                      </SelectItem>
+                    ))}
+                </SelectContent>
+              </Select>
+              {errors.zone && (
+                <p className="text-xs text-destructive font-medium flex items-center gap-1 mt-0.5">
+                  <AlertCircle className="w-3.5 h-3.5" />
+                  {errors.zone.message}
                 </p>
               )}
             </div>

@@ -23,6 +23,8 @@ import { useConnection } from "@/hooks/use-connection";
 import { createClient } from "@/lib/supabase/client";
 import { toast } from "sonner";
 import { Skeleton } from "@/components/ui/skeleton";
+import { useGeolocation, calculateHaversineDistance } from "@/hooks/use-geolocation";
+import { GEO_CONFIG, getCoordsForZone } from "@/config/geo";
 
 export interface Candidate {
   id: string;
@@ -47,18 +49,62 @@ export function CandidateRadar() {
   const [isLoading, setIsLoading] = React.useState(true);
   const [mobileDetailOpen, setMobileDetailOpen] = React.useState(false);
   const [selectedZone, setSelectedZone] = React.useState<string>("all");
+  const [companyCity, setCompanyCity] = React.useState<string>("");
+  const [companyZone, setCompanyZone] = React.useState<string>("");
 
   const { initiateWhatsAppConnection, loading: connecting } = useConnection();
   const supabase = createClient();
+  const { coordinates: userCoords, requestLocation } = useGeolocation();
+
+  React.useEffect(() => {
+    requestLocation();
+  }, [requestLocation]);
 
   const loadCandidates = React.useCallback(async () => {
     try {
       setIsLoading(true);
-      const { data, error } = await supabase
+
+      // Get company city & zone
+      const { data: { user } } = await supabase.auth.getUser();
+      let fetchedCompanyCity = "";
+      let fetchedCompanyZone = "";
+      if (user) {
+        const { data: companyProfile } = await supabase
+          .from("profiles")
+          .select("location")
+          .eq("id", user.id)
+          .single();
+        if (companyProfile?.location) {
+          const locStr = companyProfile.location;
+          if (locStr.includes(" - ")) {
+            const parts = locStr.split(" - ");
+            fetchedCompanyCity = parts[0];
+            fetchedCompanyZone = parts[1];
+          } else {
+            if (locStr.toLowerCase().includes("playa del carmen")) {
+              fetchedCompanyCity = "Playa del Carmen";
+              fetchedCompanyZone = locStr.replace(/Playa del Carmen/i, "").replace(/^[-\s,|]+|[-\s,|]+$/g, "") || "Centro";
+            } else {
+              fetchedCompanyCity = "Mérida";
+              fetchedCompanyZone = locStr.replace(/Mérida/i, "").replace(/^[-\s,|]+|[-\s,|]+$/g, "") || "Centro Mérida";
+            }
+          }
+          setCompanyCity(fetchedCompanyCity);
+          setCompanyZone(fetchedCompanyZone);
+        }
+      }
+
+      // Restrict candidates to the company's city in Supabase (Paso A)
+      let query = supabase
         .from("profiles")
         .select("*")
-        .eq("role", "candidate")
-        .order("created_at", { ascending: false });
+        .eq("role", "candidate");
+
+      if (fetchedCompanyCity) {
+        query = query.ilike("location", `%${fetchedCompanyCity}%`);
+      }
+
+      const { data, error } = await query.order("created_at", { ascending: false });
 
       if (error) throw error;
 
@@ -104,7 +150,7 @@ export function CandidateRadar() {
 
   // Filtrado de candidatos
   const filteredCandidates = React.useMemo(() => {
-    return candidates.filter((c) => {
+    const matched = candidates.filter((c) => {
       const matchesSearch = searchQuery
         ? c.full_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
           c.headline.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -113,11 +159,40 @@ export function CandidateRadar() {
 
       const matchesZone = selectedZone === "all"
         ? true
-        : c.location.toLowerCase().includes(selectedZone.toLowerCase());
+        : c.location.toLowerCase().includes(selectedZone.toLowerCase()) ||
+          c.location.toLowerCase().includes(GEO_CONFIG[companyCity]?.zones[selectedZone]?.name.toLowerCase() || "");
 
       return matchesSearch && matchesZone;
     });
-  }, [candidates, searchQuery, selectedZone]);
+
+    // Paso B: Ordenamiento por Geolocalización
+    if (userCoords) {
+      return [...matched].sort((a, b) => {
+        const aCoords = getCoordsForZone(a.location);
+        const bCoords = getCoordsForZone(b.location);
+
+        if (!aCoords && !bCoords) return 0;
+        if (!aCoords) return 1;
+        if (!bCoords) return -1;
+
+        const distA = calculateHaversineDistance(userCoords, aCoords);
+        const distB = calculateHaversineDistance(userCoords, bCoords);
+        return distA - distB;
+      });
+    }
+
+    // Paso C: Fallback Clásico (Priorizar la zona del perfil)
+    if (companyZone) {
+      const zoneLower = companyZone.toLowerCase();
+      return [...matched].sort((a, b) => {
+        const aInZone = a.location.toLowerCase().includes(zoneLower) ? 1 : 0;
+        const bInZone = b.location.toLowerCase().includes(zoneLower) ? 1 : 0;
+        return bInZone - aInZone;
+      });
+    }
+
+    return matched;
+  }, [candidates, searchQuery, selectedZone, userCoords, companyCity, companyZone]);
 
   const handleContact = async (candidate: Candidate) => {
     try {
@@ -166,10 +241,21 @@ export function CandidateRadar() {
               onChange={(e) => setSelectedZone(e.target.value)}
               className="w-full h-11 px-3 bg-muted/40 border border-border/40 rounded-xl text-xs font-bold text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 cursor-pointer"
             >
-              <option value="all">Todas las zonas (Riviera Maya)</option>
-              <option value="centro">Playa del Carmen Centro</option>
-              <option value="playacar">Playacar</option>
-              <option value="carrillo">Felipe Carrillo Puerto</option>
+              <option value="all">Todas las zonas ({companyCity || "Riviera Maya"})</option>
+              {companyCity && GEO_CONFIG[companyCity] &&
+                Object.keys(GEO_CONFIG[companyCity].zones).map((zoneKey) => (
+                  <option key={zoneKey} value={zoneKey}>
+                    {GEO_CONFIG[companyCity].zones[zoneKey].name}
+                  </option>
+                ))
+              }
+              {!companyCity &&
+                Object.keys(GEO_CONFIG["Mérida"].zones).map((zoneKey) => (
+                  <option key={zoneKey} value={zoneKey}>
+                    {GEO_CONFIG["Mérida"].zones[zoneKey].name}
+                  </option>
+                ))
+              }
             </select>
           </div>
 
@@ -254,7 +340,16 @@ export function CandidateRadar() {
                     </p>
                     <div className="flex items-center gap-1 text-[11px] text-muted-foreground font-semibold">
                       <MapPin className="size-3 text-slate-400 shrink-0" />
-                      <span className="truncate">{candidate.location}</span>
+                      <span className="truncate">
+                        {candidate.location}
+                        {(() => {
+                          const candidateCoords = getCoordsForZone(candidate.location);
+                          if (userCoords && candidateCoords) {
+                            return ` (${calculateHaversineDistance(userCoords, candidateCoords).toFixed(1)} km)`;
+                          }
+                          return "";
+                        })()}
+                      </span>
                     </div>
 
                     {/* Habilidades en Tags */}

@@ -14,17 +14,27 @@ export default async function CandidateDiscoveryRoute() {
 
   let candidateSkills: string[] = [];
   let appliedVacancyIds: string[] = [];
+  let candidateCity = "";
 
   if (user) {
-    // 2. Fetch candidate skills
+    // 2. Fetch candidate skills & location
     const { data: profile } = await supabase
       .from("profiles")
-      .select("skills")
+      .select("skills, location")
       .eq("id", user.id)
       .single();
 
     if (profile?.skills) {
       candidateSkills = profile.skills;
+    }
+
+    if (profile?.location) {
+      const loc = profile.location.toLowerCase();
+      if (loc.includes("mérida")) {
+        candidateCity = "Mérida";
+      } else if (loc.includes("playa del carmen")) {
+        candidateCity = "Playa del Carmen";
+      }
     }
 
     // 3. Fetch candidate's current applications to mark them as "Applied"
@@ -39,11 +49,16 @@ export default async function CandidateDiscoveryRoute() {
   }
 
   // 4. Fetch active vacancies from Supabase
-  const { data: vacancies } = await supabase
+  let query = supabase
     .from("vacancies")
     .select("*")
-    .eq("status", "Activa")
-    .order("created_at", { ascending: false });
+    .eq("status", "Activa");
+
+  if (candidateCity) {
+    query = query.ilike("location", `%${candidateCity}%`);
+  }
+
+  const { data: vacancies } = await query.order("created_at", { ascending: false });
 
   // 5. Fetch company details for vacancies
   const companies: Record<string, { name: string; logo: string | null; phone: string | null }> = {};

@@ -23,6 +23,8 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { useVacancyManager, type VacancyRow } from "@/hooks/use-vacancy-manager";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { GEO_CONFIG } from "@/config/geo";
 
 // Custom Switch component for local use (avoiding external install of shadcn switch)
 function Switch({
@@ -56,12 +58,7 @@ function Switch({
   );
 }
 
-const zones = [
-  "Centro, Playa del Carmen",
-  "Playacar, Playa del Carmen",
-  "Felipe Carrillo Puerto Centro",
-  "Zona Turística, Playa del Carmen",
-] as const;
+
 
 const categories = [
   "Restaurantes / Alimentos",
@@ -87,7 +84,8 @@ export function VacanciesManager({ userId }: { userId: string }) {
 
   // Form states for express vacancy creation (exactly 4 core fields + 1 optional)
   const [title, setTitle] = React.useState("");
-  const [zone, setZone] = React.useState<string>(zones[0]);
+  const [city, setCity] = React.useState<string>("Mérida");
+  const [zone, setZone] = React.useState<string>("Centro Mérida");
   const [category, setCategory] = React.useState<string>(categories[0]);
   const [requirements, setRequirements] = React.useState("");
   const [salaryRange, setSalaryRange] = React.useState("");
@@ -148,7 +146,7 @@ export function VacanciesManager({ userId }: { userId: string }) {
     try {
       const newVac = await createExpressVacancy({
         title,
-        zone,
+        zone: `${city} - ${zone}`,
         category,
         requirements,
         salary_range: salaryRange || null,
@@ -162,6 +160,8 @@ export function VacanciesManager({ userId }: { userId: string }) {
 
       // Reset form and return to list
       setTitle("");
+      setCity("Mérida");
+      setZone("Centro Mérida");
       setRequirements("");
       setSalaryRange("");
       setIsCreating(false);
@@ -238,24 +238,54 @@ export function VacanciesManager({ userId }: { userId: string }) {
                 />
               </div>
 
-              {/* Field 2 & 3: Zona y Categoría (2 columnas en pantallas medianas) */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-                <div className="space-y-2">
-                  <Label htmlFor="zone" className="text-xs font-bold text-foreground uppercase tracking-wider">
+              {/* Field 2 & 3: Ciudad, Zona y Categoría (3 columnas en pantallas medianas) */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+                <div className="space-y-2 flex flex-col justify-end">
+                  <Label htmlFor="city" className="text-xs font-bold text-foreground uppercase tracking-wider mb-1.5">
+                    Ciudad *
+                  </Label>
+                  <Select
+                    value={city}
+                    onValueChange={(val) => {
+                      setCity(val);
+                      const firstZone = Object.keys(GEO_CONFIG[val]?.zones || {})[0] || "";
+                      setZone(firstZone);
+                    }}
+                  >
+                    <SelectTrigger id="city" className="w-full h-12 bg-card border border-border/60 rounded-xl px-3 text-sm font-semibold text-foreground focus:ring-2 focus:ring-primary/20 cursor-pointer text-left">
+                      <SelectValue placeholder="Seleccionar Ciudad" />
+                    </SelectTrigger>
+                    <SelectContent className="rounded-xl bg-card border-border/40">
+                      {Object.keys(GEO_CONFIG).map((cityKey) => (
+                        <SelectItem key={cityKey} value={cityKey}>
+                          {cityKey}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-2 flex flex-col justify-end">
+                  <Label htmlFor="zone" className="text-xs font-bold text-foreground uppercase tracking-wider mb-1.5">
                     Zona de Trabajo *
                   </Label>
-                  <select
-                    id="zone"
+                  <Select
                     value={zone}
-                    onChange={(e) => setZone(e.target.value)}
-                    className="w-full h-12 px-3 bg-card border border-border/60 rounded-xl text-sm font-semibold text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 cursor-pointer"
+                    onValueChange={setZone}
+                    disabled={!city}
                   >
-                    {zones.map((z, idx) => (
-                      <option key={idx} value={z}>
-                        {z}
-                      </option>
-                    ))}
-                  </select>
+                    <SelectTrigger id="zone" className="w-full h-12 bg-card border border-border/60 rounded-xl px-3 text-sm font-semibold text-foreground focus:ring-2 focus:ring-primary/20 cursor-pointer text-left">
+                      <SelectValue placeholder="Seleccionar Zona" />
+                    </SelectTrigger>
+                    <SelectContent className="rounded-xl bg-card border-border/40">
+                      {city &&
+                        Object.keys(GEO_CONFIG[city]?.zones || {}).map((zoneKey) => (
+                          <SelectItem key={zoneKey} value={zoneKey}>
+                            {GEO_CONFIG[city].zones[zoneKey].name}
+                          </SelectItem>
+                        ))}
+                    </SelectContent>
+                  </Select>
                 </div>
 
                 <div className="space-y-2">
