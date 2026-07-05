@@ -141,7 +141,7 @@ export function Navbar() {
                         </div>
                         <div>
                           <div className="text-xs font-bold text-foreground">Buscar Empleos</div>
-                          <div className="text-[10px] text-muted-foreground mt-0.5">Explora vacantes en Felipe Carrillo Puerto y postúlate directo.</div>
+                          <div className="text-[10px] text-muted-foreground mt-0.5">Explora vacantes en el sureste y postúlate directo.</div>
                         </div>
                       </Link>
                     </NavigationMenuLink>
@@ -244,7 +244,7 @@ export function Navbar() {
               size="icon"
               className="rounded-xl hover:bg-muted/50 shrink-0 text-muted-foreground hover:text-foreground cursor-pointer"
               onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
-              aria-label="Toggle theme"
+              aria-label="Alternar tema oscuro"
             >
               {theme === "dark" ? <Sun className="size-4.5" /> : <Moon className="size-4.5" />}
             </Button>
@@ -267,7 +267,7 @@ export function Navbar() {
                 variant="ghost"
                 size="icon"
                 className="lg:hidden rounded-xl text-muted-foreground hover:text-foreground hover:bg-muted/50"
-                aria-label="Open menu"
+                aria-label="Abrir menú de navegación"
               >
                 <Menu className="size-5.5" />
               </Button>
@@ -342,7 +342,7 @@ export function Navbar() {
                       size="icon-sm"
                       className="rounded-lg hover:bg-muted/80 text-muted-foreground hover:text-foreground"
                       onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
-                      aria-label="Toggle theme"
+                      aria-label="Alternar tema oscuro"
                     >
                       {theme === "dark" ? <Sun className="size-4" /> : <Moon className="size-4" />}
                     </Button>

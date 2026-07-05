@@ -14,7 +14,7 @@ export function JobsBanner() {
         
         {/* Banner content */}
         <h3 className="text-xl sm:text-2xl md:text-[32px] font-medium leading-[1.19] tracking-[-0.32px] z-10 max-w-2xl">
-          Encuentra empleo en Felipe Carrillo Puerto cerca de ti y conecta hoy mismo
+          Encuentra empleo en Mérida o Playa del Carmen cerca de ti y conecta hoy mismo
         </h3>
 
         <Link

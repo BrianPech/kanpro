@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { Search, ArrowRight, Sparkles } from "lucide-react";
@@ -9,17 +9,31 @@ import { Button } from "@/components/ui/button";
 export function HeroSection() {
   const [activeTab, setActiveTab] = useState<"hire" | "work">("hire");
   const [searchQuery, setSearchQuery] = useState("");
+  const [currentCityIndex, setCurrentCityIndex] = useState(0);
+  const [fadeCity, setFadeCity] = useState(true);
+  const cities = ["Mérida", "Playa del Carmen"];
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setFadeCity(false);
+      setTimeout(() => {
+        setCurrentCityIndex((prev) => (prev + 1) % cities.length);
+        setFadeCity(true);
+      }, 300);
+    }, 4000);
+    return () => clearInterval(interval);
+  }, []);
 
   const popularTags = {
     hire: [
-      { label: "Colonia Centro", query: "Centro" },
-      { label: "Col. Emiliano Zapata", query: "Emiliano Zapata" },
+      { label: "Centro Mérida", query: "Centro Mérida" },
+      { label: "Altabrisa", query: "Altabrisa" },
       { label: "Comercio & Ventas", query: "Comercio" },
       { label: "Gastronomía", query: "Gastronomía" },
     ],
     work: [
-      { label: "Colonia Plan de Ayala", query: "Plan de Ayala" },
-      { label: "Colonia Cecilio Chi", query: "Cecilio Chi" },
+      { label: "Villas del Sol", query: "Villas del Sol" },
+      { label: "Paseo de Montejo", query: "Paseo de Montejo" },
       { label: "Servicios Generales", query: "Servicios" },
       { label: "Administración", query: "Administración" },
     ],
@@ -38,7 +52,7 @@ export function HeroSection() {
             <Sparkles className="size-3.5 fill-primary/20" />
           </div>
           <p className="text-xs sm:text-sm font-medium text-foreground">
-            Encuentra empleo o contrata talento local en <span className="font-bold text-primary">Felipe Carrillo Puerto</span> sin comisiones.
+            Encuentra empleo o contrata talento local en <span className={`font-bold text-primary transition-opacity duration-300 ${fadeCity ? "opacity-100" : "opacity-0"}`}>{cities[currentCityIndex]}</span> sin comisiones.
           </p>
         </div>
         <Link
@@ -79,7 +93,7 @@ export function HeroSection() {
               contrata sin rodeos
             </h1>
             <p className="text-base sm:text-[18px] text-white/85 max-w-2xl leading-[1.56] tracking-[-0.09px] font-normal">
-              Conectamos al talento humano de Felipe Carrillo Puerto con hoteles, restaurantes, comercios y startups locales. Directo a WhatsApp, rápido y sin intermediarios.
+              Conectamos talento local y empresas en el sureste en tiempo real a través de WhatsApp. Rápido, directo y sin intermediarios.
             </p>
           </div>
 
