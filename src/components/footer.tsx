@@ -38,7 +38,7 @@ export function Footer() {
       title: "K'anPro",
       links: [
         { label: "Sobre Nosotros", href: "#" },
-        { label: "Empleo en Carrillo", href: "#" },
+        { label: "Empleo en el sureste", href: "#" },
         { label: "Términos locales", href: "/terms" },
         { label: "Aviso de Privacidad", href: "/privacy" },
       ],
@@ -80,7 +80,7 @@ export function Footer() {
           
           {/* Social Networks */}
           <div className="flex flex-wrap items-center gap-4">
-            <span className="text-[11px] font-semibold text-muted-foreground uppercase tracking-widest block">Síguenos</span>
+            <span className="text-[11px] font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-widest block">Síguenos</span>
             <div className="flex items-center gap-2">
               <Link 
                 href="#" 
@@ -132,7 +132,7 @@ export function Footer() {
 
           {/* App Stores */}
           <div className="flex flex-wrap items-center gap-4">
-            <span className="text-[11px] font-semibold text-muted-foreground uppercase tracking-widest block">App Móvil</span>
+            <span className="text-[11px] font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-widest block">App Móvil</span>
             <div className="flex items-center gap-2">
               <Link 
                 href="#" 
@@ -168,7 +168,7 @@ export function Footer() {
               K&apos;anPro
             </span>
             <span className="mx-1 text-muted-foreground">|</span>
-            <span className="text-[13px] font-normal leading-[1.4] text-muted-foreground">K&apos;anPro - El motor de empleo más rápido de Felipe Carrillo Puerto.</span>
+            <span className="text-[13px] font-normal leading-[1.4] text-muted-foreground">K&apos;anPro - El motor de empleo más rápido del sureste.</span>
           </div>
 
           <div className="flex flex-wrap gap-x-4 gap-y-1 justify-center sm:justify-end">

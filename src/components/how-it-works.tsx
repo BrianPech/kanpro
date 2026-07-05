@@ -31,7 +31,7 @@ export function HowItWorks() {
               Cómo funciona
             </h2>
             <p className="text-muted-foreground text-sm sm:text-base max-w-xl">
-              K&apos;anPro facilita la conexión y contratación directa entre candidatos y empresas de Felipe Carrillo Puerto en tres sencillos pasos.
+              K&apos;anPro facilita la conexión y contratación directa entre candidatos y empresas en el sureste en tres sencillos pasos.
             </p>
           </div>
 
@@ -195,7 +195,7 @@ export function HowItWorks() {
                       <span className="text-muted-foreground text-[9px] font-normal ml-1">(42 opiniones)</span>
                     </div>
                     <div className="border-t border-border/60 dark:border-border/15 pt-2 flex items-center justify-between text-[9px] text-muted-foreground">
-                      <span>Zona: Col. Emiliano Zapata, FCP</span>
+                      <span>Zona: Altabrisa, Mérida</span>
                       <span className="font-bold text-foreground">$14,000/mes</span>
                     </div>
                   </div>
@@ -207,7 +207,7 @@ export function HowItWorks() {
                 <div className="text-left space-y-1.5 px-1">
                   <h3 className="text-[16px] font-semibold leading-[1.5] tracking-[0.16px] text-foreground">1. Crea tu CV Premium</h3>
                   <p className="text-[14px] font-normal leading-[1.43] text-muted-foreground">
-                    Muestra quién eres, qué sabes hacer, tu experiencia en Felipe Carrillo Puerto y la zona específica de la ciudad donde vives.
+                    Muestra quién eres, qué sabes hacer, tu experiencia en el sureste y la zona específica de la ciudad donde vives.
                   </p>
                 </div>
               </div>
