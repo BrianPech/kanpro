@@ -11,7 +11,7 @@ export function useCompanyRegisterForm() {
   const router = useRouter();
 
   const form = useForm<CompanyRegisterValues>({
-    resolver: zodResolver(companyRegisterSchema as any),
+    resolver: zodResolver(companyRegisterSchema),
   });
 
   const onSubmit = async (data: CompanyRegisterValues) => {

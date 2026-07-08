@@ -12,7 +12,7 @@ export function useCandidateRegisterForm() {
   const router = useRouter();
 
   const form = useForm<CandidateRegisterValues>({
-    resolver: zodResolver(candidateRegisterSchema as any),
+    resolver: zodResolver(candidateRegisterSchema),
     defaultValues: {
       fullName: "",
       email: "",

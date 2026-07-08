@@ -219,7 +219,7 @@ export function useApplicationsInbox() {
       const companyName = companyProfile?.company_name || "Empresa";
 
       // Trigger candidate contact notification via RPC
-      const { error } = await (supabase as any).rpc("notify_candidate_contact", {
+      const { error } = await supabase.rpc("notify_candidate_contact", {
         p_candidate_id: applicant.candidateId,
         p_vacancy_title: applicant.vacancyTitle,
         p_company_name: companyName,

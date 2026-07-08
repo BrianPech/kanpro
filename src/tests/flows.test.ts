@@ -204,13 +204,18 @@ describe("K'anPro Integration and Functional Test Suite", () => {
       companyId = compAuth.user!.id;
       createdUserIds.push(companyId);
 
-      // Registrar perfil extendido en la tabla company_profiles para sincronizar ubicación
+      // Registrar ubicación en profiles
+      await supabaseAdmin
+        .from("profiles")
+        .update({ location: "Playa del Carmen - Centro" })
+        .eq("id", companyId);
+
+      // Registrar perfil extendido en la tabla company_profiles
       const { error: compErr } = await supabaseAdmin
         .from("company_profiles")
         .insert({
           id: companyId,
           company_name: "Empresa Riviera",
-          location: "Playa del Carmen - Centro",
         });
       expect(compErr).toBeNull();
 
@@ -332,9 +337,16 @@ describe("K'anPro Integration and Functional Test Suite", () => {
       });
       companyId = compAuth.user!.id;
       createdUserIds.push(companyId);
+      // Registrar ubicación en profiles
+      await supabaseAdmin
+        .from("profiles")
+        .update({ location: "Mérida - Centro" })
+        .eq("id", companyId);
+
+      // Registrar perfil extendido en la tabla company_profiles
       await supabaseAdmin
         .from("company_profiles")
-        .insert({ id: companyId, company_name: "Empresa Reclutadora", location: "Mérida - Centro" });
+        .insert({ id: companyId, company_name: "Empresa Reclutadora" });
 
       // 2. Crear candidato con teléfono y show_phone = false (oculto por defecto)
       const { data: candAuth } = await supabaseAdmin.auth.admin.createUser({
@@ -363,7 +375,7 @@ describe("K'anPro Integration and Functional Test Suite", () => {
     test("Caso A: Flujo completo de Conexión, RLS y URL de WhatsApp", async () => {
       // 1. Query inicial: La empresa NO tiene conexión, por ende el RLS debe retornar phone = null
       const { data: pBefore, error: errBefore } = await companyClient
-        .from("profiles")
+        .from("profiles_view")
         .select("phone, whatsapp_number")
         .eq("id", candidateId)
         .single();
@@ -386,7 +398,7 @@ describe("K'anPro Integration and Functional Test Suite", () => {
 
       // 3. Query posterior: Al existir la fila en 'connections', la vista con security_invoker desoculta el teléfono
       const { data: pAfter, error: errAfter } = await companyClient
-        .from("profiles")
+        .from("profiles_view")
         .select("full_name, phone, whatsapp_number")
         .eq("id", candidateId)
         .single();

@@ -28,21 +28,18 @@ export default async function AdminDashboard() {
     redirect("/login");
   }
 
-  // 3. Query candidates and companies from consolidated Supabase tables/views
-  const [candidatesResult, companyProfilesResult, companyProfilesStatusResult] = await Promise.all([
+  // 3. Query candidates and companies from consolidated Supabase views
+  const [candidatesResult, companyProfilesResult] = await Promise.all([
     supabase
-      .from("profiles")
+      .from("profiles_view")
       .select("id, full_name, role, location, skills, is_validated, avatar_url")
       .eq("role", "candidate")
       .order("created_at", { ascending: false }),
     supabase
-      .from("company_profiles")
-      .select("id, company_name, logo_url, location")
-      .order("created_at", { ascending: false }),
-    supabase
-      .from("profiles")
-      .select("id, is_validated")
+      .from("profiles_view")
+      .select("id, company_name, logo_url, location, is_validated")
       .eq("role", "company")
+      .order("created_at", { ascending: false })
   ]);
 
   const candidates = (candidatesResult.data || []).map((c: any) => ({
@@ -55,16 +52,12 @@ export default async function AdminDashboard() {
     avatar_url: c.avatar_url,
   }));
 
-  const companyStatusMap = new Map(
-    (companyProfilesStatusResult.data || []).map((p: any) => [p.id, p.is_validated])
-  );
-
   const companies = (companyProfilesResult.data || []).map((c: any) => ({
     id: c.id,
     company_name: c.company_name,
     logo_url: c.logo_url,
     location: c.location,
-    is_validated: companyStatusMap.get(c.id) || false,
+    is_validated: !!c.is_validated,
     role: "company" as const
   }));
 

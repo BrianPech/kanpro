@@ -87,23 +87,19 @@ export function VacanciesManager({ userId }: { userId: string }) {
       setLoadingProfile(true);
       const supabase = createClient();
       
-      const [compRes, profRes] = await Promise.all([
-        supabase
-          .from("company_profiles")
-          .select("company_name, phone, logo_url, location")
-          .eq("id", userId)
-          .single(),
-        supabase
-          .from("profiles")
-          .select("is_validated")
-          .eq("id", userId)
-          .single()
-      ]);
+      const { data, error } = await supabase
+        .from("profiles_view")
+        .select("company_name, phone, logo_url, location, is_validated")
+        .eq("id", userId)
+        .single();
 
-      if (!compRes.error && compRes.data) {
+      if (!error && data) {
         setProfile({
-          ...compRes.data,
-          is_validated: profRes.data?.is_validated ?? false
+          company_name: data.company_name,
+          phone: data.phone,
+          logo_url: data.logo_url,
+          location: data.location,
+          is_validated: data.is_validated ?? false
         });
       }
     } catch (err) {

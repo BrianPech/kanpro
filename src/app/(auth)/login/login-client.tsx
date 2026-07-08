@@ -82,29 +82,6 @@ export function LoginClient() {
         if (error) throw error;
 
         if (data.user) {
-          // If we registered a company, insert into company_profiles manually too as fallback
-          if (role === "company") {
-            const { error: profileError } = await supabase
-              .from("company_profiles")
-              .insert({
-                id: data.user.id,
-                company_name: companyName,
-                industry: industry || "Comercial",
-                location: "",
-              });
-            if (profileError) console.error("Error creating company profile:", profileError);
-          } else {
-            // For candidate, trigger handles it, but let's make sure profiles has it
-            const { error: profileError } = await supabase
-              .from("profiles")
-              .insert({
-                id: data.user.id,
-                full_name: fullName,
-                role: "candidate",
-                location: "",
-              });
-            if (profileError) console.error("Error creating candidate profile:", profileError);
-          }
 
           toast.success("¡Cuenta creada con éxito!", {
             description: "Comencemos configurando tu ubicación.",

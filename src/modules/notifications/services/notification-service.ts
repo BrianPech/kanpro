@@ -13,7 +13,7 @@ export interface Notification {
 export const notificationService = {
   // Fetch initial notifications
   async getNotifications(userId: string): Promise<Notification[]> {
-    const supabase = createClient() as any;
+    const supabase = createClient();
     const { data, error } = await supabase
       .from("notifications")
       .select("*")
@@ -30,7 +30,7 @@ export const notificationService = {
 
   // Mark a notification as read (using body parameters, avoiding URL query leaks)
   async markAsRead(notificationId: string): Promise<void> {
-    const supabase = createClient() as any;
+    const supabase = createClient();
     const { error } = await supabase
       .from("notifications")
       .update({ is_read: true })
@@ -44,7 +44,7 @@ export const notificationService = {
 
   // Mark all notifications as read
   async markAllAsRead(userId: string): Promise<void> {
-    const supabase = createClient() as any;
+    const supabase = createClient();
     const { error } = await supabase
       .from("notifications")
       .update({ is_read: true })
@@ -62,7 +62,7 @@ export const notificationService = {
     userId: string,
     onNotification: (notification: Notification) => void
   ) {
-    const supabase = createClient() as any;
+    const supabase = createClient();
 
     const channel = supabase
       .channel(`public:notifications:user_id=eq.${userId}`)

@@ -23,7 +23,7 @@ export function ContactForm() {
     handleSubmit,
     formState: { errors, isSubmitting },
   } = useForm<ContactFormValues>({
-    resolver: zodResolver(contactFormSchema as any),
+    resolver: zodResolver(contactFormSchema),
     mode: "onTouched",
   })
 

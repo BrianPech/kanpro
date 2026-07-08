@@ -139,7 +139,7 @@ export function CandidateRadar() {
 
       // Restrict candidates to the company's city in Supabase (Paso A)
       let query = supabase
-        .from("profiles")
+        .from("profiles_view")
         .select("*")
         .eq("role", "candidate");
 
