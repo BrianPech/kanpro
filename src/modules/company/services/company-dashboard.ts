@@ -121,7 +121,11 @@ export async function getCompanyProfileData() {
     company_name: "",
     industry: "",
     website_or_linkedin: "",
-    location: ""
+    location: "",
+    phone: "",
+    company_size: "",
+    description: "",
+    logo_url: ""
   }
 
   if (user) {
@@ -133,7 +137,7 @@ export async function getCompanyProfileData() {
 
     const { data, error } = await supabase
       .from("profiles_view")
-      .select("company_name, industry, website_or_linkedin, location")
+      .select("company_name, industry, website_or_linkedin, location, phone, company_size, company_description, logo_url")
       .eq("id", user.id)
       .single();
     
@@ -142,7 +146,11 @@ export async function getCompanyProfileData() {
         company_name: data.company_name,
         industry: data.industry || "",
         website_or_linkedin: data.website_or_linkedin || "",
-        location: data.location || baseProfile?.location || ""
+        location: data.location || baseProfile?.location || "",
+        phone: data.phone || "",
+        company_size: data.company_size || "",
+        description: data.company_description || "",
+        logo_url: data.logo_url || ""
       }
     } else {
       profile.company_name = baseProfile?.full_name || "Empresa";

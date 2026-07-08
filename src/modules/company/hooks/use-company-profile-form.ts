@@ -2,11 +2,13 @@ import * as React from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
+import { useRouter } from "next/navigation";
 import { companyProfileSchema, type CompanyProfileFormValues } from "../schemas/company.schema";
 import { companyService } from "../services/company-service";
 
 export function useCompanyProfileForm(initialProfile: any, userId: string) {
   const [isSaving, setIsSaving] = React.useState(false);
+  const router = useRouter();
 
   const form = useForm<CompanyProfileFormValues>({
     resolver: zodResolver(companyProfileSchema),
@@ -30,6 +32,7 @@ export function useCompanyProfileForm(initialProfile: any, userId: string) {
         description: "La información de tu empresa ha sido guardada en la base de datos."
       });
       form.reset(values);
+      router.refresh();
     } catch (error: any) {
       console.error(error);
       toast.error("Error al guardar el perfil", {
