@@ -64,19 +64,6 @@ export const authService = {
     if (authError) throw authError;
 
     if (authData.user) {
-      // 2. Insertar en company_profiles
-      const { error: profileError } = await supabase
-        .from("company_profiles")
-        .insert({
-          id: authData.user.id,
-          company_name: data.companyName,
-          industry: data.industry,
-          website_or_linkedin: data.websiteOrLinkedin,
-          location: data.location,
-        });
-
-      if (profileError) throw profileError;
-
       return { user: authData.user };
     }
     
@@ -101,17 +88,6 @@ export const authService = {
     if (authError) throw authError;
 
     if (authData.user) {
-      // 2. Insertar en admin_profiles
-      const { error: profileError } = await supabase
-        .from("admin_profiles")
-        .insert({
-          id: authData.user.id,
-          full_name: data.fullName,
-          email: data.email,
-        });
-
-      if (profileError) throw profileError;
-
       return { user: authData.user };
     }
     
@@ -136,17 +112,6 @@ export const authService = {
     if (authError) throw authError;
 
     if (authData.user) {
-      // 2. Insertar en profiles
-      const { error: profileError } = await supabase
-        .from("profiles")
-        .insert({
-          id: authData.user.id,
-          full_name: data.fullName,
-          role: "candidate",
-        });
-
-      if (profileError) throw profileError;
-
       return { user: authData.user };
     }
     

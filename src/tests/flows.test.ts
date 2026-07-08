@@ -407,6 +407,34 @@ describe("K'anPro Integration and Functional Test Suite", () => {
       expect(whatsappUrl).toContain("https://wa.me/529991234567");
       expect(whatsappUrl).toContain(encodeURIComponent(pAfter!.full_name));
     });
+
+    test("Caso B: Candidato puede iniciar una conexión con la empresa y el RLS lo permite", async () => {
+      const candidateClientInstance = createClient(supabaseUrl, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || "", {
+        auth: { persistSession: false, autoRefreshToken: false },
+      });
+
+      // Iniciar sesión del candidato
+      const { error: signInErr } = await candidateClientInstance.auth.signInWithPassword({
+        email: candidateEmail,
+        password,
+      });
+      expect(signInErr).toBeNull();
+
+      // Limpiar conexiones previas hechas por el candidato en la base de datos para no violar restricciones si existieran
+      await supabaseAdmin.from("connections").delete().eq("candidate_id", candidateId);
+
+      // Registrar una conexión como candidato
+      const { error: insertErr } = await candidateClientInstance
+        .from("connections")
+        .insert({
+          candidate_id: candidateId,
+          recruiter_id: companyId,
+          status: "contacted",
+          initiated_by: "candidate",
+        });
+
+      expect(insertErr).toBeNull();
+    });
   });
 
   // -------------------------------------------------------------
