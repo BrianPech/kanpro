@@ -72,7 +72,7 @@ export function useConnection() {
 
       // 4. Paso B: Consultar perfil en la vista profiles (que el RLS desoculta por la conexión)
       const { data: profile, error: selectError } = await supabase
-        .from("profiles")
+        .from("profiles_view")
         .select("full_name, phone, whatsapp_number")
         .eq("id", targetCandidateId)
         .single();

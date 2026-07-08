@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import { Eye, EyeOff, ArrowRight, Shield, Mail, Lock, Kanban } from "lucide-react";
+import { Eye, EyeOff, ArrowRight, Shield, Mail, Lock, Kanban, Loader2 } from "lucide-react";
 import Link from "next/link";
 
 import { Button } from "@/components/ui/button";
@@ -116,8 +116,17 @@ export function LoginForm() {
             disabled={isSubmitting}
             className="h-[48px] w-full rounded-full bg-primary hover:bg-primary/95 text-primary-foreground font-bold text-[14px] shadow-md shadow-primary/10 tracking-[0.2px] transition-all flex items-center justify-center gap-2 cursor-pointer mt-2 active:scale-[0.98] disabled:opacity-50 disabled:pointer-events-none border-0"
           >
-            {isSubmitting ? "Autenticando..." : "Iniciar Sesión"}
-            <ArrowRight className="h-4.5 w-4.5" />
+            {isSubmitting ? (
+              <>
+                <Loader2 className="h-4.5 w-4.5 animate-spin" />
+                <span>Autenticando...</span>
+              </>
+            ) : (
+              <>
+                <span>Iniciar Sesión</span>
+                <ArrowRight className="h-4.5 w-4.5" />
+              </>
+            )}
           </Button>
 
           {/* Recover Password Link */}

@@ -25,6 +25,9 @@ import { toast } from "sonner";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useGeolocation, calculateHaversineDistance } from "@/hooks/use-geolocation";
 import { GEO_CONFIG, getCoordsForZone } from "@/config/geo";
+import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
+import Link from "next/link";
+import { cn } from "@/lib/utils";
 
 export interface Candidate {
   id: string;
@@ -55,6 +58,46 @@ export function CandidateRadar() {
   const { initiateWhatsAppConnection, loading: connecting } = useConnection();
   const supabase = createClient();
   const { coordinates: userCoords, requestLocation } = useGeolocation();
+
+  // Company profile checking states
+  const [profile, setProfile] = React.useState<any>(null);
+  const [loadingProfile, setLoadingProfile] = React.useState(true);
+
+  React.useEffect(() => {
+    const checkProfile = async () => {
+      try {
+        setLoadingProfile(true);
+        const { data: { user } } = await supabase.auth.getUser();
+        if (user) {
+          const { data, error } = await supabase
+            .from("company_profiles")
+            .select("company_name, phone, logo_url, location")
+            .eq("id", user.id)
+            .single();
+          if (!error && data) {
+            setProfile(data);
+          }
+        }
+      } catch (err) {
+        console.error("Error loading profile:", err);
+      } finally {
+        setLoadingProfile(false);
+      }
+    };
+    checkProfile();
+  }, [supabase]);
+
+  const isProfileIncomplete = React.useMemo(() => {
+    if (loadingProfile) return false;
+    if (!profile) return true;
+
+    const name = profile.company_name?.trim() || "";
+    const wp = profile.whatsapp_number?.trim() || profile.phone?.trim() || "";
+    const logo = profile.logo_url?.trim() || "";
+    const addr = profile.address?.trim() || profile.location?.trim() || "";
+
+    return !name || !wp || !logo || !addr;
+  }, [profile, loadingProfile]);
 
   React.useEffect(() => {
     requestLocation();
@@ -96,7 +139,7 @@ export function CandidateRadar() {
 
       // Restrict candidates to the company's city in Supabase (Paso A)
       let query = supabase
-        .from("profiles")
+        .from("profiles_view")
         .select("*")
         .eq("role", "candidate");
 
@@ -233,6 +276,30 @@ export function CandidateRadar() {
               {filteredCandidates.length} Candidatos
             </span>
           </div>
+
+          {isProfileIncomplete && !loadingProfile && (
+            <Alert variant="destructive" className="bg-amber-500/10 border-amber-500/20 text-amber-700 dark:text-amber-400 p-4 rounded-xl flex flex-col gap-3">
+              <div className="flex items-start gap-2">
+                <span className="text-base shrink-0 mt-0.5">⚠️</span>
+                <div className="space-y-1">
+                  <AlertTitle className="text-[10px] font-bold uppercase tracking-wider text-amber-700 dark:text-amber-400">
+                    Perfil Incompleto
+                  </AlertTitle>
+                  <AlertDescription className="text-[11px] font-semibold leading-normal text-amber-600 dark:text-amber-300/90">
+                    Para poder consultar los perfiles a detalle, activar tu radar de cercanía y contactar al talento local, primero completa la información esencial de tu negocio en la sección de Mi Perfil.
+                  </AlertDescription>
+                </div>
+              </div>
+              <Button
+                asChild
+                className="w-full h-10 rounded-lg bg-amber-600 hover:bg-amber-700 text-white font-bold text-[10px] uppercase tracking-wider transition-all"
+              >
+                <Link href="/dashboard/company/profile">
+                  Completar Perfil
+                </Link>
+              </Button>
+            </Alert>
+          )}
 
           {/* Filtros de Ubicación */}
           <div className="w-full">
@@ -401,7 +468,7 @@ export function CandidateRadar() {
             </div>
 
             {/* Contenido del Detalle con Scroll */}
-            <div className="flex-grow overflow-y-auto p-6 md:p-8 space-y-8">
+            <div className="flex-grow overflow-y-auto p-6 md:p-8 space-y-8 relative">
               
               {/* Perfil Principal */}
               <div className="flex flex-col sm:flex-row items-center sm:items-start text-center sm:text-left gap-5">
@@ -448,8 +515,11 @@ export function CandidateRadar() {
                 </div>
                 <Button
                   onClick={() => handleContact(selectedCandidate)}
-                  disabled={connecting}
-                  className="bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold h-12 px-6 rounded-xl flex items-center gap-2 shadow-sm w-full sm:w-auto active:scale-95 transition-all text-xs uppercase tracking-wider"
+                  disabled={connecting || isProfileIncomplete}
+                  className={cn(
+                    "bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold h-12 px-6 rounded-xl flex items-center gap-2 shadow-sm w-full sm:w-auto active:scale-95 transition-all text-xs uppercase tracking-wider",
+                    isProfileIncomplete && "opacity-50 cursor-not-allowed hover:bg-emerald-600"
+                  )}
                 >
                   {connecting ? (
                     <Loader2 className="size-4 animate-spin" />
@@ -460,88 +530,114 @@ export function CandidateRadar() {
                 </Button>
               </div>
 
-              {/* Biografía / Acerca de */}
-              <div className="space-y-3">
-                <h3 className="text-sm font-extrabold uppercase tracking-wider text-muted-foreground">
-                  Acerca del Candidato
-                </h3>
-                <div className="p-5 bg-muted/20 dark:bg-muted/10 rounded-2xl text-sm leading-relaxed text-slate-800 dark:text-slate-200 font-medium">
-                  {selectedCandidate.bio || "Este candidato no ha redactado una biografía."}
-                </div>
-              </div>
-
-              {/* Resumen de Experiencia */}
-              <div className="space-y-3">
-                <h3 className="text-sm font-extrabold uppercase tracking-wider text-muted-foreground">
-                  Resumen de Experiencia
-                </h3>
-                <div className="p-5 bg-muted/10 dark:bg-muted/5 rounded-2xl text-sm leading-relaxed text-slate-800 dark:text-slate-200 font-medium">
-                  {selectedCandidate.experience_summary}
-                </div>
-              </div>
-
-              {/* Habilidades Completas */}
-              <div className="space-y-3">
-                <h3 className="text-sm font-extrabold uppercase tracking-wider text-muted-foreground">
-                  Habilidades y Destrezas
-                </h3>
-                <div className="flex flex-wrap gap-2">
-                  {selectedCandidate.skills.map((skill, idx) => (
-                    <Badge
-                      key={idx}
-                      variant="secondary"
-                      className="text-xs font-bold tracking-tight rounded-lg px-3 py-1 bg-muted/65 hover:bg-muted/65 text-slate-800 dark:text-slate-100"
-                    >
-                      {skill}
-                    </Badge>
-                  ))}
-                </div>
-              </div>
-
-              {/* Historial de Trabajos */}
-              {selectedCandidate.experience.length > 0 && (
-                <div className="space-y-4">
+              {/* Contenido Privado (Con blur si el perfil está incompleto) */}
+              <div className={cn("space-y-8", isProfileIncomplete && "filter blur-[4px] select-none pointer-events-none")}>
+                {/* Biografía / Acerca de */}
+                <div className="space-y-3">
                   <h3 className="text-sm font-extrabold uppercase tracking-wider text-muted-foreground">
-                    Historial de Empleo
+                    Acerca del Candidato
                   </h3>
-                  <div className="space-y-4">
-                    {selectedCandidate.experience.map((exp: any, idx: number) => (
-                      <div key={idx} className="flex gap-4 items-start">
-                        <div className="w-1.5 h-1.5 bg-primary rounded-full mt-2 shrink-0" />
-                        <div className="space-y-1">
-                          <h4 className="font-extrabold text-sm text-foreground">
-                            {exp.role} — <span className="text-primary font-bold">{exp.company}</span>
-                          </h4>
-                          <p className="text-xs text-muted-foreground font-semibold">{exp.period}</p>
-                          <p className="text-xs text-slate-700 dark:text-slate-300 font-medium mt-1 leading-relaxed">
-                            {exp.description}
-                          </p>
-                        </div>
-                      </div>
+                  <div className="p-5 bg-muted/20 dark:bg-muted/10 rounded-2xl text-sm leading-relaxed text-slate-800 dark:text-slate-200 font-medium">
+                    {selectedCandidate.bio || "Este candidato no ha redactado una biografía."}
+                  </div>
+                </div>
+
+                {/* Resumen de Experiencia */}
+                <div className="space-y-3">
+                  <h3 className="text-sm font-extrabold uppercase tracking-wider text-muted-foreground">
+                    Resumen de Experiencia
+                  </h3>
+                  <div className="p-5 bg-muted/10 dark:bg-muted/5 rounded-2xl text-sm leading-relaxed text-slate-800 dark:text-slate-200 font-medium">
+                    {selectedCandidate.experience_summary}
+                  </div>
+                </div>
+
+                {/* Habilidades Completas */}
+                <div className="space-y-3">
+                  <h3 className="text-sm font-extrabold uppercase tracking-wider text-muted-foreground">
+                    Habilidades y Destrezas
+                  </h3>
+                  <div className="flex flex-wrap gap-2">
+                    {selectedCandidate.skills.map((skill, idx) => (
+                      <Badge
+                        key={idx}
+                        variant="secondary"
+                        className="text-xs font-bold tracking-tight rounded-lg px-3 py-1 bg-muted/65 hover:bg-muted/65 text-slate-800 dark:text-slate-100"
+                      >
+                        {skill}
+                      </Badge>
                     ))}
                   </div>
                 </div>
-              )}
 
-              {/* Educación */}
-              {selectedCandidate.education.length > 0 && (
-                <div className="space-y-4">
-                  <h3 className="text-sm font-extrabold uppercase tracking-wider text-muted-foreground">
-                    Educación y Certificaciones
-                  </h3>
+                {/* Historial de Trabajos */}
+                {selectedCandidate.experience.length > 0 && (
                   <div className="space-y-4">
-                    {selectedCandidate.education.map((edu: any, idx: number) => (
-                      <div key={idx} className="flex gap-4 items-start">
-                        <div className="w-1.5 h-1.5 bg-indigo-500 rounded-full mt-2 shrink-0" />
-                        <div className="space-y-1">
-                          <h4 className="font-extrabold text-sm text-foreground">
-                            {edu.degree}
-                          </h4>
-                          <p className="text-xs text-slate-600 dark:text-slate-300 font-bold">{edu.institution}</p>
-                          <p className="text-xs text-muted-foreground font-semibold">{edu.period}</p>
+                    <h3 className="text-sm font-extrabold uppercase tracking-wider text-muted-foreground">
+                      Historial de Empleo
+                    </h3>
+                    <div className="space-y-4">
+                      {selectedCandidate.experience.map((exp: any, idx: number) => (
+                        <div key={idx} className="flex gap-4 items-start">
+                          <div className="w-1.5 h-1.5 bg-primary rounded-full mt-2 shrink-0" />
+                          <div className="space-y-1">
+                            <h4 className="font-extrabold text-sm text-foreground">
+                              {exp.role} — <span className="text-primary font-bold">{exp.company}</span>
+                            </h4>
+                            <p className="text-xs text-muted-foreground font-semibold">{exp.period}</p>
+                            <p className="text-xs text-slate-700 dark:text-slate-300 font-medium mt-1 leading-relaxed">
+                              {exp.description}
+                            </p>
+                          </div>
                         </div>
-                      </div>
-                    ))}
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Educación */}
+                {selectedCandidate.education.length > 0 && (
+                  <div className="space-y-4">
+                    <h3 className="text-sm font-extrabold uppercase tracking-wider text-muted-foreground">
+                      Educación y Certificaciones
+                    </h3>
+                    <div className="space-y-4">
+                      {selectedCandidate.education.map((edu: any, idx: number) => (
+                        <div key={idx} className="flex gap-4 items-start">
+                          <div className="w-1.5 h-1.5 bg-indigo-500 rounded-full mt-2 shrink-0" />
+                          <div className="space-y-1">
+                            <h4 className="font-extrabold text-sm text-foreground">
+                              {edu.degree}
+                            </h4>
+                            <p className="text-xs text-slate-600 dark:text-slate-300 font-bold">{edu.institution}</p>
+                            <p className="text-xs text-muted-foreground font-semibold">{edu.period}</p>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Lock Overlay */}
+              {isProfileIncomplete && (
+                <div className="absolute inset-x-0 bottom-0 top-[260px] bg-background/50 backdrop-blur-[1px] flex flex-col items-center justify-center p-6 text-center z-20">
+                  <div className="max-w-sm p-6 bg-card border border-border/80 rounded-2xl shadow-lg flex flex-col items-center gap-3 animate-in zoom-in-95 duration-200">
+                    <span className="text-3xl">🔒</span>
+                    <h4 className="font-extrabold text-sm text-slate-900 dark:text-slate-100">
+                      Detalles Privados Bloqueados
+                    </h4>
+                    <p className="text-xs text-muted-foreground font-semibold leading-relaxed">
+                      Para ver el perfil completo, historial laboral y certificaciones de los candidatos, completa la información de tu negocio.
+                    </p>
+                    <Button
+                      asChild
+                      className="h-11 rounded-xl bg-primary hover:bg-primary/95 text-white font-bold text-xs uppercase tracking-wider px-5"
+                    >
+                      <Link href="/dashboard/company/profile">
+                        Completar Perfil
+                      </Link>
+                    </Button>
                   </div>
                 </div>
               )}

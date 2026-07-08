@@ -1,5 +1,5 @@
 import React, { Suspense } from "react";
-import { LoginClient } from "./login-client";
+import { LoginForm } from "@/modules/auth/components/login-form";
 import { Loader2 } from "lucide-react";
 
 export const dynamic = "force-dynamic";
@@ -16,7 +16,7 @@ export default function LoginPage() {
         </div>
       }
     >
-      <LoginClient />
+      <LoginForm />
     </Suspense>
   );
 }

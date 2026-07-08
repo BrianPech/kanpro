@@ -59,7 +59,7 @@ export async function getCandidateDashboardData(): Promise<CandidateDashboardDat
 
   // 2. Fetch candidate profile
   const { data: profileData } = await supabase
-    .from("profiles")
+    .from("profiles_view")
     .select("id, full_name, headline, experience_summary, location, skills, avatar_url, is_approved, is_validated, experience, cv_url")
     .eq("id", user.id)
     .single()

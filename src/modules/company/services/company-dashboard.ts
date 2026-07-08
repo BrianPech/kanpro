@@ -125,23 +125,28 @@ export async function getCompanyProfileData() {
   }
 
   if (user) {
-    const { data } = await supabase
-      .from("company_profiles")
-      .select("*")
+    const { data: baseProfile } = await supabase
+      .from("profiles")
+      .select("full_name, location")
       .eq("id", user.id)
-      .single()
+      .single();
+
+    const { data, error } = await supabase
+      .from("profiles_view")
+      .select("company_name, industry, website_or_linkedin, location")
+      .eq("id", user.id)
+      .single();
     
-    if (data) {
+    if (!error && data && data.company_name) {
       profile = {
-        company_name: data.company_name || "",
+        company_name: data.company_name,
         industry: data.industry || "",
         website_or_linkedin: data.website_or_linkedin || "",
-        location: data.location || ""
+        location: data.location || baseProfile?.location || ""
       }
     } else {
-      // Fallback a nombre de usuario si no hay perfil de empresa
-      const { data: baseProfile } = await supabase.from("profiles").select("full_name").eq("id", user.id).single()
-      if (baseProfile?.full_name) profile.company_name = baseProfile.full_name
+      profile.company_name = baseProfile?.full_name || "Empresa";
+      profile.location = baseProfile?.location || "";
     }
 
     return {

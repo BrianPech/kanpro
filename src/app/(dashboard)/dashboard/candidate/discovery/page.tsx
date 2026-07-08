@@ -61,17 +61,28 @@ export default async function CandidateDiscoveryRoute() {
   const { data: vacancies } = await query.order("created_at", { ascending: false });
 
   // 5. Fetch company details for vacancies
-  const companies: Record<string, { name: string; logo: string | null; phone: string | null }> = {};
+  const companies: Record<string, { name: string; logo: string | null; phone: string | null; isValidated: boolean }> = {};
   if (vacancies && vacancies.length > 0) {
     const companyIds = Array.from(
       new Set(vacancies.map((v: any) => v.company_id).filter(Boolean))
     );
 
     if (companyIds.length > 0) {
-      const { data: companyProfiles } = await supabase
-        .from("company_profiles")
-        .select("id, company_name, logo_url, phone")
-        .in("id", companyIds);
+      const [companyProfilesRes, companyStatusRes] = await Promise.all([
+        supabase
+          .from("company_profiles")
+          .select("id, company_name, logo_url, phone")
+          .in("id", companyIds),
+        supabase
+          .from("profiles")
+          .select("id, is_validated")
+          .in("id", companyIds)
+      ]);
+
+      const companyProfiles = companyProfilesRes.data;
+      const companyStatusMap = new Map<string, boolean>(
+        (companyStatusRes.data || []).map((p: any) => [p.id, !!p.is_validated])
+      );
 
       if (companyProfiles) {
         companyProfiles.forEach((comp: any) => {
@@ -79,6 +90,7 @@ export default async function CandidateDiscoveryRoute() {
             name: comp.company_name || "Empresa",
             logo: comp.logo_url || null,
             phone: comp.phone || null,
+            isValidated: companyStatusMap.get(comp.id) || false,
           };
         });
       }
@@ -117,6 +129,7 @@ export default async function CandidateDiscoveryRoute() {
       benefits: vac.benefits || [],
       isFromDb: true,
       companyPhone: companyInfo?.phone || null,
+      isCompanyValidated: companyInfo?.isValidated || false,
     };
   });
 

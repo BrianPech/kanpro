@@ -11,7 +11,7 @@ export function useAdminRegisterForm() {
   const router = useRouter();
 
   const form = useForm<AdminRegisterValues>({
-    resolver: zodResolver(adminRegisterSchema as any),
+    resolver: zodResolver(adminRegisterSchema),
   });
 
   const onSubmit = async (data: AdminRegisterValues) => {

@@ -183,11 +183,11 @@ export function useCandidateProfile() {
 
     setIsSubmitting(true);
     try {
-      const mappedData = {
+      const mappedData: CandidateProfileFormValues = {
         ...values,
         location: `${values.city} - ${values.zone}`
       };
-      await candidateProfileService.updateProfile(userId, mappedData as any);
+      await candidateProfileService.updateProfile(userId, mappedData);
       toast.success("¡Perfil actualizado con éxito!");
     } catch (error: unknown) {
       console.error("Error updating candidate profile:", error);

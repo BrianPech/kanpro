@@ -256,7 +256,7 @@ export function ApplicationsInbox() {
                 <div className="flex flex-wrap gap-2 items-center w-full sm:w-auto">
                   <select
                     value={selectedApplicant.status}
-                    onChange={(e) => handleStatusChangeLocal(selectedApplicant.id, e.target.value as any)}
+                    onChange={(e) => handleStatusChangeLocal(selectedApplicant.id, e.target.value as Applicant["status"])}
                     className="h-10 px-3 bg-card border border-border/60 rounded-xl text-xs font-bold text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 shadow-sm"
                   >
                     <option value="Pendiente">Pendiente</option>

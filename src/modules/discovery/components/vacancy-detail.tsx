@@ -11,6 +11,7 @@ import {
   Loader2,
   MessageCircle,
   ExternalLink,
+  BadgeCheck,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -202,9 +203,14 @@ export function VacancyDetail({
               )}
             </div>
             <div className="min-w-0 flex-1">
-              <span className="text-[11px] font-bold text-muted-foreground tracking-wider uppercase">
-                {job.company}
-              </span>
+              <div className="flex items-center gap-1.5 flex-wrap">
+                <span className="text-[11px] font-bold text-muted-foreground tracking-wider uppercase">
+                  {job.company}
+                </span>
+                {job.isCompanyValidated && (
+                  <BadgeCheck className="h-4 w-4 text-emerald-600 dark:text-emerald-400 shrink-0 animate-in fade-in" />
+                )}
+              </div>
               <h2 className="text-xl md:text-2xl font-bold tracking-tight text-foreground leading-tight mt-0.5">
                 {job.title}
               </h2>

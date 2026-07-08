@@ -23,4 +23,5 @@ export interface Job {
   benefits: string[];
   isFromDb: boolean;
   companyPhone: CompanyProfileRow["phone"];
+  isCompanyValidated?: boolean;
 }
