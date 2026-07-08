@@ -3,7 +3,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
 
-export async function toggleCandidateVerification(profileId: string, isValidated: boolean) {
+export async function toggleProfileVerification(profileId: string, isValidated: boolean) {
   const supabase = await createClient();
 
   // 1. Get current authenticated user session securely on the server
@@ -38,3 +38,6 @@ export async function toggleCandidateVerification(profileId: string, isValidated
 
   return { success: true };
 }
+
+// Export toggleCandidateVerification for backwards compatibility with tests
+export const toggleCandidateVerification = toggleProfileVerification;

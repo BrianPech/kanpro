@@ -34,18 +34,36 @@ function formatSalaryRange(
 export const companyService = {
   async updateProfile(userId: string, profile: any) {
     const supabase = createClient();
-    const { error } = await supabase.from("company_profiles").upsert({
-      id: userId,
-      company_name: profile.company_name,
-      industry: profile.industry,
-      website_or_linkedin: profile.website_or_linkedin,
-      location: profile.location,
-      logo_url: profile.logo_url || null,
-      description: profile.description || null,
-      phone: profile.phone || null,
-      company_size: profile.company_size || null,
-      updated_at: new Date().toISOString(),
-    });
+
+    // 1. Retrieve the current location from profiles view to ensure it is not overwritten
+    const { data: currentProfile } = await supabase
+      .from("profiles")
+      .select("location")
+      .eq("id", userId)
+      .single();
+
+    const currentLoc = currentProfile?.location || "";
+
+    // Use current location if the incoming location is empty/invalid
+    const finalLocation = (profile.location && profile.location.includes(" - "))
+      ? profile.location
+      : (currentLoc || null);
+
+    // 2. Perform strictly an update filtered by the userId
+    const { error } = await supabase
+      .from("company_profiles")
+      .update({
+        company_name: profile.company_name,
+        industry: profile.industry,
+        website_or_linkedin: profile.website_or_linkedin,
+        location: finalLocation,
+        logo_url: profile.logo_url || null,
+        description: profile.description || null,
+        phone: profile.phone || null,
+        company_size: profile.company_size || null,
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", userId);
 
     if (error) throw error;
   },

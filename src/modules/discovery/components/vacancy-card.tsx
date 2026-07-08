@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { MapPin, Clock, Sparkles, CheckCircle } from "lucide-react";
+import { MapPin, Clock, Sparkles, CheckCircle, BadgeCheck } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 import type { Job } from "../types";
@@ -72,9 +72,14 @@ export function VacancyCard({
         </div>
         <div className="min-w-0 flex-1">
           <div className="flex items-center justify-between gap-2">
-            <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider truncate">
-              {job.company}
-            </span>
+            <div className="flex items-center gap-1 min-w-0">
+              <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider truncate">
+                {job.company}
+              </span>
+              {job.isCompanyValidated && (
+                <BadgeCheck className="h-3.5 w-3.5 text-emerald-600 dark:text-emerald-400 shrink-0 animate-in fade-in" />
+              )}
+            </div>
             {isAlreadyApplied && (
               <span className="inline-flex items-center gap-1 text-[10px] font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 px-1.5 py-0.5 rounded-md shrink-0">
                 <CheckCircle className="size-3" />

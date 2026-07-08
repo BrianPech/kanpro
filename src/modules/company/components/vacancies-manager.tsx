@@ -86,13 +86,25 @@ export function VacanciesManager({ userId }: { userId: string }) {
     try {
       setLoadingProfile(true);
       const supabase = createClient();
-      const { data, error } = await supabase
-        .from("company_profiles")
-        .select("company_name, phone, logo_url, location")
-        .eq("id", userId)
-        .single();
-      if (!error && data) {
-        setProfile(data);
+      
+      const [compRes, profRes] = await Promise.all([
+        supabase
+          .from("company_profiles")
+          .select("company_name, phone, logo_url, location")
+          .eq("id", userId)
+          .single(),
+        supabase
+          .from("profiles")
+          .select("is_validated")
+          .eq("id", userId)
+          .single()
+      ]);
+
+      if (!compRes.error && compRes.data) {
+        setProfile({
+          ...compRes.data,
+          is_validated: profRes.data?.is_validated ?? false
+        });
       }
     } catch (err) {
       console.error("Error loading company profile:", err);
@@ -232,9 +244,22 @@ export function VacanciesManager({ userId }: { userId: string }) {
       {/* HEADER BARS */}
       <div className="flex items-center justify-between gap-4 shrink-0">
         <div>
-          <h2 className="text-2xl font-extrabold text-foreground tracking-tight md:text-3xl">
-            Gestionar Vacantes
-          </h2>
+          <div className="flex flex-col sm:flex-row sm:items-center gap-2">
+            <h2 className="text-2xl font-extrabold text-foreground tracking-tight md:text-3xl">
+              Gestionar Vacantes
+            </h2>
+            {!isProfileIncomplete && !loadingProfile && profile && !profile.is_validated && (
+              <Badge variant="outline" className="bg-amber-500/10 border-amber-500/30 text-amber-600 dark:text-amber-400 font-bold px-3 py-1 text-xs rounded-full w-fit animate-pulse">
+                ✨ Perfil Completo • Verificación en Proceso
+              </Badge>
+            )}
+            {!isProfileIncomplete && !loadingProfile && profile && profile.is_validated && (
+              <Badge variant="outline" className="bg-emerald-500/10 border-emerald-500/30 text-emerald-600 dark:text-emerald-400 font-bold px-3 py-1 text-xs rounded-full w-fit flex items-center gap-1">
+                <CheckCircle2 className="size-3.5" />
+                <span>Empresa Verificada</span>
+              </Badge>
+            )}
+          </div>
           <p className="text-xs md:text-sm text-muted-foreground mt-1 font-semibold">
             Controla las ofertas activas y marca las plazas cubiertas.
           </p>

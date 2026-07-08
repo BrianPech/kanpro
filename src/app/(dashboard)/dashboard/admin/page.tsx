@@ -28,13 +28,45 @@ export default async function AdminDashboard() {
     redirect("/login");
   }
 
-  // 3. Query all registered candidate and company profiles from Supabase
-  const { data: dbProfiles } = await supabase
-    .from("profiles")
-    .select("id, full_name, role, location, skills, is_validated, avatar_url")
-    .order("created_at", { ascending: false });
+  // 3. Query candidates and companies from consolidated Supabase tables/views
+  const [candidatesResult, companyProfilesResult, companyProfilesStatusResult] = await Promise.all([
+    supabase
+      .from("profiles")
+      .select("id, full_name, role, location, skills, is_validated, avatar_url")
+      .eq("role", "candidate")
+      .order("created_at", { ascending: false }),
+    supabase
+      .from("company_profiles")
+      .select("id, company_name, logo_url, location")
+      .order("created_at", { ascending: false }),
+    supabase
+      .from("profiles")
+      .select("id, is_validated")
+      .eq("role", "company")
+  ]);
 
-  const profiles = dbProfiles || [];
+  const candidates = (candidatesResult.data || []).map((c: any) => ({
+    id: c.id,
+    full_name: c.full_name,
+    role: "candidate" as const,
+    location: c.location,
+    skills: c.skills,
+    is_validated: c.is_validated,
+    avatar_url: c.avatar_url,
+  }));
+
+  const companyStatusMap = new Map(
+    (companyProfilesStatusResult.data || []).map((p: any) => [p.id, p.is_validated])
+  );
+
+  const companies = (companyProfilesResult.data || []).map((c: any) => ({
+    id: c.id,
+    company_name: c.company_name,
+    logo_url: c.logo_url,
+    location: c.location,
+    is_validated: companyStatusMap.get(c.id) || false,
+    role: "company" as const
+  }));
 
   return (
     <div className="flex-1 overflow-y-auto w-full p-6 md:p-10 lg:p-12 max-w-[1440px] mx-auto space-y-10 animate-in fade-in slide-in-from-bottom-4 duration-700">
@@ -71,7 +103,7 @@ export default async function AdminDashboard() {
         </div>
 
         <Card className="bg-white/70 dark:bg-zinc-900/50 backdrop-blur-xl border border-black/5 dark:border-white/5 rounded-[24px] p-6 shadow-xs">
-          <AdminProfilesManager initialProfiles={profiles} />
+          <AdminProfilesManager initialCandidates={candidates} initialCompanies={companies} />
         </Card>
       </section>
 
