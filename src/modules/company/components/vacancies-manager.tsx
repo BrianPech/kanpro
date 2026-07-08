@@ -25,6 +25,9 @@ import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { GEO_CONFIG } from "@/config/geo";
+import { createClient } from "@/lib/supabase/client";
+import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
+import Link from "next/link";
 
 // Custom Switch component for local use (avoiding external install of shadcn switch)
 function Switch({
@@ -74,6 +77,45 @@ export function VacanciesManager({ userId }: { userId: string }) {
   const [isCreating, setIsCreating] = React.useState(false);
   const [vacancies, setVacancies] = React.useState<VacancyRow[]>([]);
   const [searchQuery, setSearchQuery] = React.useState("");
+
+  // States for company profile checking
+  const [profile, setProfile] = React.useState<any>(null);
+  const [loadingProfile, setLoadingProfile] = React.useState(true);
+
+  const loadProfile = React.useCallback(async () => {
+    try {
+      setLoadingProfile(true);
+      const supabase = createClient();
+      const { data, error } = await supabase
+        .from("company_profiles")
+        .select("company_name, phone, logo_url, location")
+        .eq("id", userId)
+        .single();
+      if (!error && data) {
+        setProfile(data);
+      }
+    } catch (err) {
+      console.error("Error loading company profile:", err);
+    } finally {
+      setLoadingProfile(false);
+    }
+  }, [userId]);
+
+  React.useEffect(() => {
+    loadProfile();
+  }, [loadProfile]);
+
+  const isProfileIncomplete = React.useMemo(() => {
+    if (loadingProfile) return false;
+    if (!profile) return true;
+
+    const name = profile.company_name?.trim() || "";
+    const wp = profile.whatsapp_number?.trim() || profile.phone?.trim() || "";
+    const logo = profile.logo_url?.trim() || "";
+    const addr = profile.address?.trim() || profile.location?.trim() || "";
+
+    return !name || !wp || !logo || !addr;
+  }, [profile, loadingProfile]);
 
   const {
     createExpressVacancy,
@@ -201,6 +243,7 @@ export function VacanciesManager({ userId }: { userId: string }) {
         {!isCreating && (
           <Button
             onClick={() => setIsCreating(true)}
+            disabled={isProfileIncomplete}
             className="bg-primary hover:bg-primary/90 text-white font-extrabold px-5 h-12 rounded-xl flex items-center gap-2 active:scale-95 transition-all text-xs uppercase tracking-wider"
           >
             <Plus className="size-4" />
@@ -208,6 +251,30 @@ export function VacanciesManager({ userId }: { userId: string }) {
           </Button>
         )}
       </div>
+
+      {isProfileIncomplete && !loadingProfile && (
+        <Alert variant="destructive" className="bg-amber-500/10 border-amber-500/20 text-amber-700 dark:text-amber-400 p-5 rounded-2xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 animate-in fade-in duration-300">
+          <div className="flex items-start gap-3">
+            <span className="text-xl shrink-0 mt-0.5">⚠️</span>
+            <div className="space-y-1">
+              <AlertTitle className="text-xs font-bold uppercase tracking-wider text-amber-700 dark:text-amber-400">
+                Perfil de Empresa Incompleto
+              </AlertTitle>
+              <AlertDescription className="text-xs font-semibold leading-relaxed text-amber-600 dark:text-amber-300/90">
+                Para comenzar a publicar ofertas express y activar tu radar, primero completa la información esencial de tu negocio (Nombre, Logo, WhatsApp y Dirección) en la sección de Mi Perfil.
+              </AlertDescription>
+            </div>
+          </div>
+          <Button
+            asChild
+            className="w-full sm:w-fit h-12 rounded-xl bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs uppercase tracking-wider shrink-0"
+          >
+            <Link href="/dashboard/company/profile">
+              Completar Perfil
+            </Link>
+          </Button>
+        </Alert>
+      )}
 
       {isCreating ? (
         /* ================= VISTA C: FORMULARIO EXPRESS DE PUBLICACIÓN ================= */
@@ -340,7 +407,7 @@ export function VacanciesManager({ userId }: { userId: string }) {
               <div className="flex flex-col sm:flex-row gap-3 pt-4">
                 <Button
                   type="submit"
-                  disabled={publishing}
+                  disabled={publishing || isProfileIncomplete}
                   className="flex-grow bg-primary hover:bg-primary/95 text-white font-extrabold h-12 rounded-xl text-xs uppercase tracking-wider"
                 >
                   {publishing ? (
