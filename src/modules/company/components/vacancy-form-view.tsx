@@ -96,17 +96,8 @@ export function VacancyFormView({ userId }: { userId: string }) {
       return;
     }
 
-    // Format salary range
-    let salaryRangeText: string | null = null;
     const minVal = minSalary.trim();
     const maxVal = maxSalary.trim();
-    if (minVal && maxVal) {
-      salaryRangeText = `MXN ${Number(minVal).toLocaleString()} - ${Number(maxVal).toLocaleString()}`;
-    } else if (minVal) {
-      salaryRangeText = `Desde MXN ${Number(minVal).toLocaleString()}`;
-    } else if (maxVal) {
-      salaryRangeText = `Hasta MXN ${Number(maxVal).toLocaleString()}`;
-    }
 
     try {
       await createExpressVacancy({
@@ -114,7 +105,6 @@ export function VacancyFormView({ userId }: { userId: string }) {
         zone: profile?.location || "Mérida - Centro Mérida",
         category,
         requirements,
-        salary_range: salaryRangeText,
         salary_min: minVal ? Number(minVal) : null,
         salary_max: maxVal ? Number(maxVal) : null,
         modality: "Presencial",

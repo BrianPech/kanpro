@@ -336,9 +336,15 @@ export function VacanciesManager({ userId }: { userId: string }) {
                       </span>
                     </div>
 
-                    {vacancy.salary_range && (
+                    {(vacancy.salary_min != null || vacancy.salary_max != null) && (
                       <span className="text-xs font-extrabold text-foreground px-3 py-1 bg-muted/60 dark:bg-muted/20 rounded-md">
-                        {vacancy.salary_range}
+                        {vacancy.salary_min != null && vacancy.salary_max != null
+                          ? `MXN ${vacancy.salary_min.toLocaleString()} - ${vacancy.salary_max.toLocaleString()}`
+                          : vacancy.salary_min != null
+                          ? `Desde MXN ${vacancy.salary_min.toLocaleString()}`
+                          : vacancy.salary_max != null
+                          ? `Hasta MXN ${vacancy.salary_max.toLocaleString()}`
+                          : ""}
                       </span>
                     )}
                   </div>

@@ -9,7 +9,6 @@ export interface CreateExpressVacancyParams {
   zone: string;
   category: string;
   requirements: string;
-  salary_range?: string | null;
   salary_min?: number | null;
   salary_max?: number | null;
   modality?: string;
@@ -69,8 +68,6 @@ export function useVacancyManager() {
           category: params.category,
           requirements: params.requirements,
           description: params.requirements, // Requerido en base de datos
-          salary: params.salary_range || null, // Sincronización textual para compatibilidad legacy
-          salary_range: params.salary_range || null,
           salary_min: params.salary_min !== undefined ? params.salary_min : null,
           salary_max: params.salary_max !== undefined ? params.salary_max : null,
           modality: params.modality || "Presencial",

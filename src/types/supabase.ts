@@ -508,10 +508,8 @@ export type Database = {
           modality: string
           recruiter_id: string
           requirements: string | null
-          salary: string | null
           salary_max: number | null
           salary_min: number | null
-          salary_range: string | null
           seniority: string | null
           skills: string[] | null
           status: string
@@ -534,10 +532,8 @@ export type Database = {
           modality: string
           recruiter_id: string
           requirements?: string | null
-          salary?: string | null
           salary_max?: number | null
           salary_min?: number | null
-          salary_range?: string | null
           seniority?: string | null
           skills?: string[] | null
           status?: string
@@ -560,10 +556,8 @@ export type Database = {
           modality?: string
           recruiter_id?: string
           requirements?: string | null
-          salary?: string | null
           salary_max?: number | null
           salary_min?: number | null
-          salary_range?: string | null
           seniority?: string | null
           skills?: string[] | null
           status?: string

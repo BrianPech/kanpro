@@ -113,16 +113,6 @@ export const companyService = {
       salary_min: vacancy.salary_min ?? null,
       salary_max: vacancy.salary_max ?? null,
       currency: vacancy.currency || "USD",
-      salary: vacancy.salary_range || formatSalaryRange(
-        vacancy.salary_min,
-        vacancy.salary_max,
-        vacancy.currency,
-      ),
-      salary_range: vacancy.salary_range || formatSalaryRange(
-        vacancy.salary_min,
-        vacancy.salary_max,
-        vacancy.currency,
-      ),
       skills: splitCsv(vacancy.skills),
       status: "Activa",
       is_active: true,

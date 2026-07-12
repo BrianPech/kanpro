@@ -38,7 +38,6 @@ export const vacancySchema = z.object({
     return Number.isNaN(parsedValue) ? undefined : parsedValue;
   }, z.number().positive().optional()),
   currency: z.enum(["USD", "EUR", "MXN", "ARS", "COP"]),
-  salary_range: z.string().optional(),
   skills: z.string().min(1, "Ingresa al menos una habilidad (separadas por comas)"),
   benefits: z.string().optional(),
 });

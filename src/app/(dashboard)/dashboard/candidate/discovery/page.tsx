@@ -104,8 +104,8 @@ export default async function CandidateDiscoveryRoute() {
     const logoUrl = companyInfo?.logo || null;
     const companyInitials = companyName.substring(0, 2).toUpperCase();
 
-    let formattedSalary = vac.salary || "";
-    if (!formattedSalary && (vac.salary_min || vac.salary_max)) {
+    let formattedSalary = "";
+    if (vac.salary_min || vac.salary_max) {
       const min = Number(vac.salary_min);
       const max = Number(vac.salary_max);
       if (min && max) {
