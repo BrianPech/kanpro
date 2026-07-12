@@ -7,76 +7,50 @@ import {
   Briefcase,
   MapPin,
   CheckCircle2,
-  PauseCircle,
-  Loader2,
+  MoreHorizontal,
+  Eye,
+  Edit2,
   Trash2,
-  X,
-  FileCheck,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
-import { Label } from "@/components/ui/label";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useVacancyManager, type VacancyRow } from "@/hooks/use-vacancy-manager";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { GEO_CONFIG } from "@/config/geo";
 import { createClient } from "@/lib/supabase/client";
 import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import Link from "next/link";
 
-// Custom Switch component for local use (avoiding external install of shadcn switch)
-function Switch({
-  checked,
-  onCheckedChange,
-  disabled,
-}: {
-  checked: boolean;
-  onCheckedChange: (checked: boolean) => void;
-  disabled?: boolean;
-}) {
-  return (
-    <button
-      type="button"
-      role="switch"
-      aria-checked={checked}
-      disabled={disabled}
-      onClick={() => onCheckedChange(!checked)}
-      className={cn(
-        "relative inline-flex h-6 w-11 shrink-0 cursor-pointer items-center rounded-full border-2 border-transparent transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:cursor-not-allowed disabled:opacity-50",
-        checked ? "bg-primary" : "bg-slate-200 dark:bg-slate-800"
-      )}
-    >
-      <span
-        className={cn(
-          "pointer-events-none block h-5 w-5 rounded-full bg-background shadow-lg ring-0 transition-transform duration-200",
-          checked ? "translate-x-5" : "translate-x-0"
-        )}
-      />
-    </button>
-  );
-}
-
-
-
-const categories = [
-  "Restaurantes / Alimentos",
-  "Hotelería / Hospedaje",
-  "Atención al Cliente",
-  "Administración / Oficina",
-  "Mantenimiento / Limpieza",
-  "Ventas / Comercio",
-  "Tecnología",
-] as const;
-
 export function VacanciesManager({ userId }: { userId: string }) {
-  const [isCreating, setIsCreating] = React.useState(false);
   const [vacancies, setVacancies] = React.useState<VacancyRow[]>([]);
   const [searchQuery, setSearchQuery] = React.useState("");
+  const [deletingVacancyId, setDeletingVacancyId] = React.useState<string | null>(null);
 
   // States for company profile checking
   const [profile, setProfile] = React.useState<any>(null);
@@ -118,28 +92,18 @@ export function VacanciesManager({ userId }: { userId: string }) {
     if (!profile) return true;
 
     const name = profile.company_name?.trim() || "";
-    const wp = profile.whatsapp_number?.trim() || profile.phone?.trim() || "";
-    const logo = profile.logo_url?.trim() || "";
-    const addr = profile.address?.trim() || profile.location?.trim() || "";
+    const wp = profile.phone?.trim() || "";
+    const addr = profile.location?.trim() || "";
 
-    return !name || !wp || !logo || !addr;
+    return !name || !wp || !addr;
   }, [profile, loadingProfile]);
 
   const {
-    createExpressVacancy,
     toggleVacancyStatus,
     fetchCompanyVacancies,
+    deleteVacancy,
     loading: isLoading,
   } = useVacancyManager();
-
-  // Form states for express vacancy creation (exactly 4 core fields + 1 optional)
-  const [title, setTitle] = React.useState("");
-  const [city, setCity] = React.useState<string>("Mérida");
-  const [zone, setZone] = React.useState<string>("Centro Mérida");
-  const [category, setCategory] = React.useState<string>(categories[0]);
-  const [requirements, setRequirements] = React.useState("");
-  const [salaryRange, setSalaryRange] = React.useState("");
-  const [publishing, setPublishing] = React.useState(false);
 
   const loadVacancies = React.useCallback(async () => {
     try {
@@ -182,45 +146,19 @@ export function VacanciesManager({ userId }: { userId: string }) {
     }
   };
 
-  const handleCreateVacancy = async (e: React.FormEvent) => {
-    e.preventDefault();
-
-    if (!title.trim() || !requirements.trim()) {
-      toast.error("Campos incompletos", {
-        description: "Por favor rellena el título y los requisitos obligatorios.",
-      });
-      return;
-    }
-
-    setPublishing(true);
+  const confirmDeleteVacancy = async (id: string) => {
     try {
-      const newVac = await createExpressVacancy({
-        title,
-        zone: `${city} - ${zone}`,
-        category,
-        requirements,
-        salary_range: salaryRange || null,
-        modality: "Presencial", // Default local
-      });
-
-      setVacancies((prev) => [newVac, ...prev]);
-      toast.success("¡Vacante publicada!", {
-        description: `Se registró "${title}" en tus puestos activos.`,
-      });
-
-      // Reset form and return to list
-      setTitle("");
-      setCity("Mérida");
-      setZone("Centro Mérida");
-      setRequirements("");
-      setSalaryRange("");
-      setIsCreating(false);
+      const success = await deleteVacancy(id);
+      if (success) {
+        setVacancies((prev) => prev.filter((v) => v.id !== id));
+        toast.success("Vacante eliminada con éxito");
+      }
     } catch (err: any) {
-      toast.error("Error al publicar vacante", {
+      toast.error("Error al eliminar la vacante", {
         description: err.message,
       });
     } finally {
-      setPublishing(false);
+      setDeletingVacancyId(null);
     }
   };
 
@@ -230,9 +168,39 @@ export function VacanciesManager({ userId }: { userId: string }) {
       (v) =>
         v.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
         v.category?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        v.zone?.toLowerCase().includes(searchQuery.toLowerCase())
+        v.zone?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        v.location?.toLowerCase().includes(searchQuery.toLowerCase())
     );
   }, [vacancies, searchQuery]);
+
+  // Formatter helpers
+  const formatSalary = (min: number | null, max: number | null) => {
+    const formatter = new Intl.NumberFormat("es-MX", {
+      style: "currency",
+      currency: "MXN",
+      maximumFractionDigits: 0,
+    });
+
+    if (min != null && max != null) {
+      return `${formatter.format(min)} - ${formatter.format(max)}`;
+    } else if (min != null) {
+      return `Desde ${formatter.format(min)}`;
+    } else if (max != null) {
+      return `Hasta ${formatter.format(max)}`;
+    }
+    return "No especificado";
+  };
+
+  const formatDate = (dateStr: string) => {
+    const date = new Date(dateStr);
+    return date
+      .toLocaleDateString("es-MX", {
+        day: "2-digit",
+        month: "short",
+        year: "numeric",
+      })
+      .replace(".", "");
+  };
 
   return (
     <div className="flex-grow min-h-screen bg-slate-50/50 dark:bg-slate-950/20 px-4 py-8 md:px-10 lg:px-12 space-y-8 animate-in fade-in duration-300">
@@ -257,20 +225,24 @@ export function VacanciesManager({ userId }: { userId: string }) {
             )}
           </div>
           <p className="text-xs md:text-sm text-muted-foreground mt-1 font-semibold">
-            Controla las ofertas activas y marca las plazas cubiertas.
+            Controla las ofertas activas y marca las plazas cubiertas desde tu panel.
           </p>
         </div>
 
-        {!isCreating && (
-          <Button
-            onClick={() => setIsCreating(true)}
-            disabled={isProfileIncomplete}
-            className="bg-primary hover:bg-primary/90 text-white font-extrabold px-5 h-12 rounded-xl flex items-center gap-2 active:scale-95 transition-all text-xs uppercase tracking-wider"
-          >
-            <Plus className="size-4" />
+        <Button
+          asChild
+          disabled={isProfileIncomplete}
+          className="bg-primary hover:bg-primary/90 text-white font-extrabold px-5 h-12 rounded-xl flex items-center gap-2 active:scale-95 transition-all text-xs uppercase tracking-wider disabled:opacity-50 disabled:pointer-events-none"
+        >
+          {isProfileIncomplete ? (
             <span>Nueva Vacante</span>
-          </Button>
-        )}
+          ) : (
+            <Link href="/dashboard/company/vacancies/new" className="flex items-center gap-2">
+              <Plus className="size-4" />
+              <span>Nueva Vacante</span>
+            </Link>
+          )}
+        </Button>
       </div>
 
       {isProfileIncomplete && !loadingProfile && (
@@ -282,7 +254,7 @@ export function VacanciesManager({ userId }: { userId: string }) {
                 Perfil de Empresa Incompleto
               </AlertTitle>
               <AlertDescription className="text-xs font-semibold leading-relaxed text-amber-600 dark:text-amber-300/90">
-                Para comenzar a publicar ofertas express y activar tu radar, primero completa la información esencial de tu negocio (Nombre, Logo, WhatsApp y Dirección) en la sección de Mi Perfil.
+                Para comenzar a publicar ofertas express y activar tu radar, primero completa la información esencial de tu negocio (Nombre, WhatsApp y Dirección) en la sección de Mi Perfil.
               </AlertDescription>
             </div>
           </div>
@@ -297,284 +269,177 @@ export function VacanciesManager({ userId }: { userId: string }) {
         </Alert>
       )}
 
-      {isCreating ? (
-        /* ================= VISTA C: FORMULARIO EXPRESS DE PUBLICACIÓN ================= */
-        <Card className="max-w-2xl mx-auto rounded-3xl border-border/50 shadow-sm animate-in zoom-in-95 duration-200">
-          <CardHeader className="p-6 md:p-8">
-            <CardTitle className="text-xl font-extrabold text-foreground">
-              Publicar Vacante Exprés
-            </CardTitle>
-            <CardDescription className="text-xs font-semibold">
-              Publica tu oferta de empleo local en la Riviera Maya en 30 segundos.
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="p-6 md:p-8 pt-0">
-            <form onSubmit={handleCreateVacancy} className="space-y-6">
-              
-              {/* Field 1: Título de la Vacante */}
-              <div className="space-y-2">
-                <Label htmlFor="title" className="text-xs font-bold text-foreground uppercase tracking-wider">
-                  Título del Puesto *
-                </Label>
-                <Input
-                  id="title"
-                  value={title}
-                  onChange={(e) => setTitle(e.target.value)}
-                  placeholder="Ej: Ayudante de Cocina B, Recepcionista de Noche"
-                  className="h-12 rounded-xl text-sm font-semibold border-border/60 focus-visible:ring-primary/20"
-                  required
-                />
-              </div>
+      {/* ================= GESTOR DE VACANTES: DATA TABLE ================= */}
+      <div className="space-y-6">
+        {/* Search bar controller */}
+        <div className="relative max-w-md">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground size-4" />
+          <Input
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="pl-10 pr-4 h-12 bg-card border-border/60 rounded-xl text-sm font-semibold focus-visible:ring-primary/20"
+            placeholder="Buscar por título, categoría o ubicación..."
+          />
+        </div>
 
-              {/* Field 2 & 3: Ciudad, Zona y Categoría (3 columnas en pantallas medianas) */}
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
-                <div className="space-y-2 flex flex-col justify-end">
-                  <Label htmlFor="city" className="text-xs font-bold text-foreground uppercase tracking-wider mb-1.5">
-                    Ciudad *
-                  </Label>
-                  <Select
-                    value={city}
-                    onValueChange={(val) => {
-                      setCity(val);
-                      const firstZone = Object.keys(GEO_CONFIG[val]?.zones || {})[0] || "";
-                      setZone(firstZone);
-                    }}
-                  >
-                    <SelectTrigger id="city" className="w-full h-12 bg-card border border-border/60 rounded-xl px-3 text-sm font-semibold text-foreground focus:ring-2 focus:ring-primary/20 cursor-pointer text-left">
-                      <SelectValue placeholder="Seleccionar Ciudad" />
-                    </SelectTrigger>
-                    <SelectContent className="rounded-xl bg-card border-border/40">
-                      {Object.keys(GEO_CONFIG).map((cityKey) => (
-                        <SelectItem key={cityKey} value={cityKey}>
-                          {cityKey}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div className="space-y-2 flex flex-col justify-end">
-                  <Label htmlFor="zone" className="text-xs font-bold text-foreground uppercase tracking-wider mb-1.5">
-                    Zona de Trabajo *
-                  </Label>
-                  <Select
-                    value={zone}
-                    onValueChange={setZone}
-                    disabled={!city}
-                  >
-                    <SelectTrigger id="zone" className="w-full h-12 bg-card border border-border/60 rounded-xl px-3 text-sm font-semibold text-foreground focus:ring-2 focus:ring-primary/20 cursor-pointer text-left">
-                      <SelectValue placeholder="Seleccionar Zona" />
-                    </SelectTrigger>
-                    <SelectContent className="rounded-xl bg-card border-border/40">
-                      {city &&
-                        Object.keys(GEO_CONFIG[city]?.zones || {}).map((zoneKey) => (
-                          <SelectItem key={zoneKey} value={zoneKey}>
-                            {GEO_CONFIG[city].zones[zoneKey].name}
-                          </SelectItem>
-                        ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="category" className="text-xs font-bold text-foreground uppercase tracking-wider">
-                    Categoría *
-                  </Label>
-                  <select
-                    id="category"
-                    value={category}
-                    onChange={(e) => setCategory(e.target.value)}
-                    className="w-full h-12 px-3 bg-card border border-border/60 rounded-xl text-sm font-semibold text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 cursor-pointer"
-                  >
-                    {categories.map((c, idx) => (
-                      <option key={idx} value={c}>
-                        {c}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              </div>
-
-              {/* Field 4: Requisitos / Descripción */}
-              <div className="space-y-2">
-                <Label htmlFor="requirements" className="text-xs font-bold text-foreground uppercase tracking-wider">
-                  Requisitos / Descripción Breve *
-                </Label>
-                <Textarea
-                  id="requirements"
-                  value={requirements}
-                  onChange={(e) => setRequirements(e.target.value)}
-                  placeholder="Ej: Experiencia de 6 meses en hoteles, disponibilidad de horario rotativo, manejo de cuchillos..."
-                  className="min-h-28 rounded-xl text-sm font-semibold border-border/60 focus-visible:ring-primary/20"
-                  required
-                />
-              </div>
-
-              {/* Optional Field: Salario mensual o rango */}
-              <div className="space-y-2">
-                <Label htmlFor="salary" className="text-xs font-bold text-foreground uppercase tracking-wider">
-                  Salario Mensual o Rango (Opcional)
-                </Label>
-                <Input
-                  id="salary"
-                  value={salaryRange}
-                  onChange={(e) => setSalaryRange(e.target.value)}
-                  placeholder="Ej: MXN 12,000 + Propinas, Competitivo"
-                  className="h-12 rounded-xl text-sm font-semibold border-border/60 focus-visible:ring-primary/20"
-                />
-              </div>
-
-              {/* Action Buttons (Touch friendly size minimum 44px / h-12) */}
-              <div className="flex flex-col sm:flex-row gap-3 pt-4">
-                <Button
-                  type="submit"
-                  disabled={publishing || isProfileIncomplete}
-                  className="flex-grow bg-primary hover:bg-primary/95 text-white font-extrabold h-12 rounded-xl text-xs uppercase tracking-wider"
-                >
-                  {publishing ? (
-                    <>
-                      <Loader2 className="size-4 animate-spin mr-2" />
-                      <span>Publicando...</span>
-                    </>
-                  ) : (
-                    <span>Publicar en 30s</span>
-                  )}
-                </Button>
-                <Button
-                  type="button"
-                  onClick={() => setIsCreating(false)}
-                  variant="ghost"
-                  className="border border-border h-12 rounded-xl font-bold text-xs uppercase tracking-wider"
-                >
-                  Cancelar
-                </Button>
-              </div>
-            </form>
-          </CardContent>
-        </Card>
-      ) : (
-        /* ================= VISTA B: EL GESTOR DE VACANTES EXPRESS ================= */
-        <div className="space-y-6">
-          {/* Search bar list controller */}
-          <div className="relative max-w-md">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground size-4" />
-            <Input
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-10 pr-4 h-12 bg-card border-border/60 rounded-xl text-sm font-semibold focus-visible:ring-primary/20"
-              placeholder="Buscar por título, categoría o zona..."
-            />
+        {/* Data Table */}
+        {isLoading ? (
+          <div className="border border-zinc-200 dark:border-zinc-800 rounded-2xl bg-white dark:bg-zinc-950 overflow-hidden shadow-sm">
+            <div className="p-6 space-y-4">
+              <Skeleton className="h-10 w-full rounded-lg" />
+              <Skeleton className="h-16 w-full rounded-lg" />
+              <Skeleton className="h-16 w-full rounded-lg" />
+              <Skeleton className="h-16 w-full rounded-lg" />
+            </div>
           </div>
+        ) : filteredVacancies.length === 0 ? (
+          <div className="text-center py-20 text-muted-foreground border-2 border-dashed border-border/40 rounded-3xl bg-card/20">
+            <Briefcase className="size-12 stroke-[1.5] mx-auto mb-2 text-slate-300" />
+            <p className="text-sm font-semibold">Aún no tienes vacantes publicadas</p>
+            <p className="text-xs mt-1">Presiona "Nueva Vacante" para iniciar en 30 segundos.</p>
+          </div>
+        ) : (
+          <div className="border border-zinc-200 dark:border-zinc-800 rounded-2xl bg-white dark:bg-zinc-950 overflow-hidden shadow-sm">
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader className="bg-zinc-50/70 dark:bg-zinc-900/50">
+                  <TableRow className="border-b border-zinc-200 dark:border-zinc-800 hover:bg-transparent">
+                    <TableHead className="font-bold text-xs uppercase tracking-wider text-muted-foreground py-4">Puesto</TableHead>
+                    <TableHead className="font-bold text-xs uppercase tracking-wider text-muted-foreground py-4">Ubicación</TableHead>
+                    <TableHead className="font-bold text-xs uppercase tracking-wider text-muted-foreground py-4">Sueldo</TableHead>
+                    <TableHead className="font-bold text-xs uppercase tracking-wider text-muted-foreground py-4">Estado</TableHead>
+                    <TableHead className="font-bold text-xs uppercase tracking-wider text-muted-foreground py-4">Fecha</TableHead>
+                    <TableHead className="font-bold text-xs uppercase tracking-wider text-muted-foreground py-4 text-right w-[80px]">Acciones</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {filteredVacancies.map((vacancy) => (
+                    <TableRow
+                      key={vacancy.id}
+                      className={cn(
+                        "border-b border-zinc-100 dark:border-zinc-800/60 transition-colors hover:bg-zinc-50/50 dark:hover:bg-zinc-900/20",
+                        !vacancy.is_active && "opacity-75"
+                      )}
+                    >
+                      {/* Puesto Column */}
+                      <TableCell className="py-4">
+                        <div className="flex flex-col gap-0.5">
+                          <span className="font-semibold text-sm text-zinc-900 dark:text-zinc-50">
+                            {vacancy.title}
+                          </span>
+                          <span className="text-xs text-muted-foreground">
+                            {vacancy.category}
+                          </span>
+                        </div>
+                      </TableCell>
 
-          {/* Vacancies Feed / List */}
-          {isLoading ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-              {[1, 2, 3].map((n) => (
-                <Card key={n} className="border border-border/40 p-6 bg-card">
-                  <div className="space-y-4">
-                    <div className="flex items-center justify-between">
-                      <Skeleton className="h-5 w-24 animate-pulse" />
-                      <Skeleton className="h-5 w-16 animate-pulse" />
-                    </div>
-                    <div className="space-y-2">
-                      <Skeleton className="h-5 w-40 animate-pulse" />
-                      <Skeleton className="h-3 w-28 animate-pulse" />
-                    </div>
-                    <Skeleton className="h-4 w-32 animate-pulse" />
-                    <Skeleton className="h-10 w-full animate-pulse" />
-                    <div className="pt-4 border-t border-border/20 flex items-center justify-between">
-                      <Skeleton className="h-6 w-16 animate-pulse" />
-                      <Skeleton className="h-5 w-20 animate-pulse" />
-                    </div>
-                  </div>
-                </Card>
-              ))}
-            </div>
-          ) : filteredVacancies.length === 0 ? (
-            <div className="text-center py-20 text-muted-foreground border-2 border-dashed border-border/40 rounded-3xl bg-card/20">
-              <Briefcase className="size-12 stroke-[1.5] mx-auto mb-2 text-slate-300" />
-              <p className="text-sm font-semibold">Aún no tienes vacantes publicadas</p>
-              <p className="text-xs mt-1">Presiona "Nueva Vacante" para iniciar en 30 segundos.</p>
-            </div>
-          ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-              {filteredVacancies.map((vacancy) => (
-                <Card
-                  key={vacancy.id}
-                  className={cn(
-                    "border border-border/50 rounded-3xl overflow-hidden transition-all duration-300 shadow-sm",
-                    !vacancy.is_active ? "opacity-75 bg-slate-50/50 dark:bg-slate-900/10" : "bg-card"
-                  )}
-                >
-                  <CardContent className="p-6 flex flex-col justify-between h-full gap-5">
-                    <div className="space-y-3">
-                      {/* Badge / Status Tag */}
-                      <div className="flex items-center justify-between gap-3">
+                      {/* Ubicación Column */}
+                      <TableCell className="py-4">
+                        <div className="flex items-center gap-1.5 text-xs text-muted-foreground font-semibold">
+                          <MapPin className="size-3.5 text-zinc-400 shrink-0" />
+                          <span>{vacancy.zone || vacancy.location}</span>
+                        </div>
+                      </TableCell>
+
+                      {/* Sueldo Column */}
+                      <TableCell className="py-4 font-bold text-xs text-zinc-800 dark:text-zinc-200">
+                        {formatSalary(vacancy.salary_min, vacancy.salary_max)}
+                      </TableCell>
+
+                      {/* Estado Column */}
+                      <TableCell className="py-4">
                         <Badge
                           variant="secondary"
+                          onClick={() => handleToggleActive(vacancy.id, vacancy.is_active)}
                           className={cn(
-                            "text-[9px] font-bold tracking-wider uppercase px-2 h-5 flex items-center border",
+                            "text-[10px] font-bold tracking-wider uppercase px-2.5 h-6 flex items-center w-fit border cursor-pointer hover:opacity-85 select-none",
                             vacancy.is_active
                               ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20"
-                              : "bg-slate-100 text-slate-600 border-slate-200 dark:bg-slate-800 dark:text-slate-300 dark:border-slate-700"
+                              : "bg-zinc-100 text-zinc-600 border-zinc-200 dark:bg-zinc-800 dark:text-zinc-300 dark:border-zinc-700"
                           )}
                         >
-                          {vacancy.is_active ? "Activa / Buscando" : "Vacante Cubierta"}
+                          {vacancy.is_active ? "Activa" : "Pausada"}
                         </Badge>
-                        
-                        {!vacancy.is_active && (
-                          <Badge className="bg-emerald-600/15 hover:bg-emerald-600/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 font-extrabold text-[9px] uppercase tracking-wider px-2 h-5 flex items-center gap-1">
-                            <FileCheck className="size-3" />
-                            <span>Colocación Exitosa</span>
-                          </Badge>
-                        )}
-                      </div>
+                      </TableCell>
 
-                      {/* Info principal */}
-                      <div className="space-y-1">
-                        <h3 className="font-extrabold text-base md:text-lg text-foreground line-clamp-1">
-                          {vacancy.title}
-                        </h3>
-                        <p className="text-xs font-semibold text-primary">{vacancy.category}</p>
-                      </div>
+                      {/* Fecha Column */}
+                      <TableCell className="py-4 text-xs text-muted-foreground font-semibold">
+                        {formatDate(vacancy.created_at)}
+                      </TableCell>
 
-                      {/* Locación */}
-                      <div className="flex items-center gap-1.5 text-xs text-muted-foreground font-semibold">
-                        <MapPin className="size-3.5 text-slate-400 shrink-0" />
-                        <span className="truncate">{vacancy.zone || vacancy.location}</span>
-                      </div>
-
-                      {/* Requisitos extracto */}
-                      <p className="text-xs text-slate-600 dark:text-slate-400 font-medium line-clamp-3 leading-relaxed">
-                        {vacancy.requirements || vacancy.description}
-                      </p>
-                    </div>
-
-                    {/* Footer Actions (Toggles and Metrics) */}
-                    <div className="pt-4 border-t border-border/40 flex items-center justify-between gap-4">
-                      <div className="flex items-center gap-2">
-                        <Switch
-                          checked={vacancy.is_active}
-                          onCheckedChange={() => handleToggleActive(vacancy.id, vacancy.is_active)}
-                        />
-                        <span className="text-xs font-bold text-slate-700 dark:text-slate-300">
-                          {vacancy.is_active ? "Activa" : "Cubierta"}
-                        </span>
-                      </div>
-
-                      {vacancy.salary_range && (
-                        <span className="text-xs font-extrabold text-foreground px-3 py-1 bg-muted/60 dark:bg-muted/20 rounded-md">
-                          {vacancy.salary_range}
-                        </span>
-                      )}
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
+                      {/* Acciones Column */}
+                      <TableCell className="py-4 text-right">
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-8 w-8 p-0 rounded-lg border border-border/10 hover:bg-muted"
+                            >
+                              <MoreHorizontal className="h-4 w-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end" className="rounded-xl border border-border/40 bg-popover min-w-[140px] shadow-md">
+                            <DropdownMenuItem asChild className="cursor-pointer text-xs font-semibold text-zinc-700 dark:text-zinc-300 rounded-lg hover:bg-muted py-2 gap-2">
+                              <Link href={`/dashboard/company/vacancies/${vacancy.id}`}>
+                                <Eye className="size-3.5 text-zinc-400" />
+                                <span>Ver detalles</span>
+                              </Link>
+                            </DropdownMenuItem>
+                            <DropdownMenuItem asChild className="cursor-pointer text-xs font-semibold text-zinc-700 dark:text-zinc-300 rounded-lg hover:bg-muted py-2 gap-2">
+                              <Link href={`/dashboard/company/vacancies/${vacancy.id}/edit`}>
+                                <Edit2 className="size-3.5 text-zinc-400" />
+                                <span>Editar</span>
+                              </Link>
+                            </DropdownMenuItem>
+                            <DropdownMenuItem
+                              onSelect={() => setDeletingVacancyId(vacancy.id)}
+                              className="cursor-pointer text-xs font-semibold text-red-600 focus:text-red-700 rounded-lg hover:bg-red-500/5 focus:bg-red-500/5 py-2 gap-2"
+                            >
+                              <Trash2 className="size-3.5 text-red-500" />
+                              <span>Eliminar</span>
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
             </div>
-          )}
-        </div>
-      )}
+          </div>
+        )}
+      </div>
+
+      {/* Alert Dialog for Confirming Deletion */}
+      <AlertDialog
+        open={deletingVacancyId !== null}
+        onOpenChange={(open) => !open && setDeletingVacancyId(null)}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>¿Estás seguro de que deseas eliminar esta vacante?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Esta acción es permanente y no se podrá deshacer. Los candidatos ya no podrán postularse ni ver esta oferta.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setDeletingVacancyId(null)}>
+              Cancelar
+            </AlertDialogCancel>
+            <AlertDialogAction
+              variant="destructive"
+              onClick={() => {
+                if (deletingVacancyId) {
+                  confirmDeleteVacancy(deletingVacancyId);
+                }
+              }}
+            >
+              Eliminar
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

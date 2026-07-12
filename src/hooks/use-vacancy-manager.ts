@@ -9,8 +9,10 @@ export interface CreateExpressVacancyParams {
   zone: string;
   category: string;
   requirements: string;
-  salary_range?: string | null;
+  salary_min?: number | null;
+  salary_max?: number | null;
   modality?: string;
+  employment_type?: string | null;
 }
 
 export function useVacancyManager() {
@@ -32,6 +34,28 @@ export function useVacancyManager() {
         throw new Error("Debe iniciar sesión como empresa para publicar ofertas.");
       }
 
+      // Fetch company profile location
+      const { data: companyProfile, error: profileError } = await supabase
+        .from("company_profiles")
+        .select("location")
+        .eq("id", user.id)
+        .single();
+
+      let companyLocation = companyProfile?.location || null;
+
+      if (profileError || !companyLocation) {
+        const { data: generalProfile } = await supabase
+          .from("profiles")
+          .select("location")
+          .eq("id", user.id)
+          .single();
+        companyLocation = generalProfile?.location || null;
+      }
+
+      if (!companyLocation) {
+        companyLocation = "Mérida - Centro";
+      }
+
       // Insertar en la tabla vacancies. Los triggers de base de datos se encargan de
       // sincronizar las columnas duplicadas de compatibilidad (location, requirements, etc).
       const { data, error: insertError } = await supabase
@@ -44,10 +68,13 @@ export function useVacancyManager() {
           category: params.category,
           requirements: params.requirements,
           description: params.requirements, // Requerido en base de datos
-          salary_range: params.salary_range || null,
+          salary_min: params.salary_min !== undefined ? params.salary_min : null,
+          salary_max: params.salary_max !== undefined ? params.salary_max : null,
           modality: params.modality || "Presencial",
           status: "Activa",
           is_active: true,
+          location: companyLocation, // Inyección automática para evitar el not-null constraint
+          employment_type: params.employment_type || null, // Tipo de Jornada
         })
         .select()
         .single();
@@ -129,10 +156,66 @@ export function useVacancyManager() {
     }
   }, [supabase]);
 
+  /**
+   * Elimina una vacante por ID.
+   */
+  const deleteVacancy = useCallback(async (vacancyId: string): Promise<boolean> => {
+    setLoading(true);
+    setError(null);
+
+    try {
+      const { error: deleteError } = await supabase
+        .from("vacancies")
+        .delete()
+        .eq("id", vacancyId);
+
+      if (deleteError) {
+        throw new Error(deleteError.message);
+      }
+
+      return true;
+    } catch (err: any) {
+      console.error(err);
+      setError(err.message || "Error al eliminar la vacante.");
+      throw err;
+    } finally {
+      setLoading(false);
+    }
+  }, [supabase]);
+
+  /**
+   * Actualiza una vacante por ID.
+   */
+  const updateVacancy = useCallback(async (vacancyId: string, payload: Partial<VacancyRow>): Promise<boolean> => {
+    setLoading(true);
+    setError(null);
+
+    try {
+      const { error: updateError } = await supabase
+        .from("vacancies")
+        .update(payload)
+        .eq("id", vacancyId);
+
+      if (updateError) {
+        throw new Error(updateError.message);
+      }
+
+      return true;
+    } catch (err: any) {
+      console.error(err);
+      setError(err.message || "Error al actualizar la vacante.");
+      throw err;
+    } finally {
+      setLoading(false);
+    }
+  }, [supabase]);
+
   return {
     createExpressVacancy,
     toggleVacancyStatus,
     fetchCompanyVacancies,
+    deleteVacancy,
+    updateVacancy,
     loading,
     error,
   };

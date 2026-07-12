@@ -74,7 +74,12 @@ export function SearchFilters({
         {/* Sector / Industria */}
         <div className="flex flex-col gap-1 min-w-[130px] flex-1 md:flex-initial">
           <Select value={category || "todos"} onValueChange={(val) => onCategoryChange(val === "todos" ? "" : val)}>
-            <SelectTrigger className="h-10 px-3 py-2 text-xs font-semibold rounded-xl border-border/60 bg-white/60 dark:bg-zinc-800/40 text-muted-foreground hover:text-foreground hover:bg-white dark:hover:bg-zinc-800 transition-all duration-200 w-full md:w-[150px]">
+            <SelectTrigger className={cn(
+              "h-10 px-3 py-2 text-xs font-semibold rounded-xl border border-border/60 bg-white/60 dark:bg-zinc-800/40 hover:bg-white dark:hover:bg-zinc-800 transition-all duration-200 w-full md:w-[150px]",
+              category
+                ? "text-zinc-900 dark:text-zinc-50 font-bold border-blue-500/30"
+                : "text-zinc-400 dark:text-zinc-500 hover:text-zinc-600 dark:hover:text-zinc-300"
+            )}>
               <SelectValue placeholder="Sector" />
             </SelectTrigger>
             <SelectContent className="bg-white/95 dark:bg-zinc-900/95 border-border/40 rounded-xl">
@@ -95,7 +100,12 @@ export function SearchFilters({
         {/* Modalidad */}
         <div className="flex flex-col gap-1 min-w-[130px] flex-1 md:flex-initial">
           <Select value={modality || "todos"} onValueChange={(val) => onModalityChange(val === "todos" ? "" : val)}>
-            <SelectTrigger className="h-10 px-3 py-2 text-xs font-semibold rounded-xl border-border/60 bg-white/60 dark:bg-zinc-800/40 text-muted-foreground hover:text-foreground hover:bg-white dark:hover:bg-zinc-800 transition-all duration-200 w-full md:w-[140px]">
+            <SelectTrigger className={cn(
+              "h-10 px-3 py-2 text-xs font-semibold rounded-xl border border-border/60 bg-white/60 dark:bg-zinc-800/40 hover:bg-white dark:hover:bg-zinc-800 transition-all duration-200 w-full md:w-[140px]",
+              modality
+                ? "text-zinc-900 dark:text-zinc-50 font-bold border-blue-500/30"
+                : "text-zinc-400 dark:text-zinc-500 hover:text-zinc-600 dark:hover:text-zinc-300"
+            )}>
               <SelectValue placeholder="Modalidad" />
             </SelectTrigger>
             <SelectContent className="bg-white/95 dark:bg-zinc-900/95 border-border/40 rounded-xl">

@@ -19,6 +19,13 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { useConnection } from "@/hooks/use-connection";
 import { createClient } from "@/lib/supabase/client";
 import { toast } from "sonner";
@@ -93,10 +100,9 @@ export function CandidateRadar() {
 
     const name = profile.company_name?.trim() || "";
     const wp = profile.whatsapp_number?.trim() || profile.phone?.trim() || "";
-    const logo = profile.logo_url?.trim() || "";
     const addr = profile.address?.trim() || profile.location?.trim() || "";
 
-    return !name || !wp || !logo || !addr;
+    return !name || !wp || !addr;
   }, [profile, loadingProfile]);
 
   React.useEffect(() => {
@@ -303,27 +309,38 @@ export function CandidateRadar() {
 
           {/* Filtros de Ubicación */}
           <div className="w-full">
-            <select
+            <Select
               value={selectedZone}
-              onChange={(e) => setSelectedZone(e.target.value)}
-              className="w-full h-11 px-3 bg-muted/40 border border-border/40 rounded-xl text-xs font-bold text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 cursor-pointer"
+              onValueChange={setSelectedZone}
             >
-              <option value="all">Todas las zonas ({companyCity || "Riviera Maya"})</option>
-              {companyCity && GEO_CONFIG[companyCity] &&
-                Object.keys(GEO_CONFIG[companyCity].zones).map((zoneKey) => (
-                  <option key={zoneKey} value={zoneKey}>
-                    {GEO_CONFIG[companyCity].zones[zoneKey].name}
-                  </option>
-                ))
-              }
-              {!companyCity &&
-                Object.keys(GEO_CONFIG["Mérida"].zones).map((zoneKey) => (
-                  <option key={zoneKey} value={zoneKey}>
-                    {GEO_CONFIG["Mérida"].zones[zoneKey].name}
-                  </option>
-                ))
-              }
-            </select>
+              <SelectTrigger className={cn(
+                "w-full h-11 px-3 bg-muted/40 border border-border/40 rounded-xl text-xs font-bold transition-all duration-200 cursor-pointer text-left",
+                selectedZone !== "all"
+                  ? "text-zinc-900 dark:text-zinc-50 font-extrabold border-blue-500/30"
+                  : "text-zinc-400 dark:text-zinc-500 hover:text-zinc-600 dark:hover:text-zinc-300"
+              )}>
+                <SelectValue placeholder="Selecciona Zona" />
+              </SelectTrigger>
+              <SelectContent className="bg-white/95 dark:bg-zinc-900/95 border-border/40 rounded-xl">
+                <SelectItem value="all" className="text-xs font-medium cursor-pointer rounded-lg">
+                  Todas las zonas ({companyCity || "Riviera Maya"})
+                </SelectItem>
+                {companyCity && GEO_CONFIG[companyCity] &&
+                  Object.keys(GEO_CONFIG[companyCity].zones).map((zoneKey) => (
+                    <SelectItem key={zoneKey} value={zoneKey} className="text-xs font-medium cursor-pointer rounded-lg">
+                      {GEO_CONFIG[companyCity].zones[zoneKey].name}
+                    </SelectItem>
+                  ))
+                }
+                {!companyCity &&
+                  Object.keys(GEO_CONFIG["Mérida"].zones).map((zoneKey) => (
+                    <SelectItem key={zoneKey} value={zoneKey} className="text-xs font-medium cursor-pointer rounded-lg">
+                      {GEO_CONFIG["Mérida"].zones[zoneKey].name}
+                    </SelectItem>
+                  ))
+                }
+              </SelectContent>
+            </Select>
           </div>
 
           {/* Buscador de Candidato */}

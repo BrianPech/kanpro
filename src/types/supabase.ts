@@ -225,7 +225,9 @@ export type Database = {
         Row: {
           company_name: string
           company_size: string | null
+          contact_channel: string
           created_at: string
+          credits_available: number
           description: string | null
           id: string
           industry: string | null
@@ -238,7 +240,9 @@ export type Database = {
         Insert: {
           company_name: string
           company_size?: string | null
+          contact_channel?: string
           created_at?: string
+          credits_available?: number
           description?: string | null
           id: string
           industry?: string | null
@@ -251,7 +255,9 @@ export type Database = {
         Update: {
           company_name?: string
           company_size?: string | null
+          contact_channel?: string
           created_at?: string
+          credits_available?: number
           description?: string | null
           id?: string
           industry?: string | null
@@ -502,10 +508,8 @@ export type Database = {
           modality: string
           recruiter_id: string
           requirements: string | null
-          salary: string | null
           salary_max: number | null
           salary_min: number | null
-          salary_range: string | null
           seniority: string | null
           skills: string[] | null
           status: string
@@ -528,10 +532,8 @@ export type Database = {
           modality: string
           recruiter_id: string
           requirements?: string | null
-          salary?: string | null
           salary_max?: number | null
           salary_min?: number | null
-          salary_range?: string | null
           seniority?: string | null
           skills?: string[] | null
           status?: string
@@ -554,10 +556,8 @@ export type Database = {
           modality?: string
           recruiter_id?: string
           requirements?: string | null
-          salary?: string | null
           salary_max?: number | null
           salary_min?: number | null
-          salary_range?: string | null
           seniority?: string | null
           skills?: string[] | null
           status?: string

@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { MapPin, Clock, Sparkles, Star, CheckCircle } from "lucide-react";
+import { MapPin, Clock, Star, CheckCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -70,19 +70,7 @@ export function JobCard({
     return candidateSkills.map((s) => s.toLowerCase().trim());
   }, [candidateSkills]);
 
-  // Calculate Match Score based on candidate skills vs job requirements
-  const matchScore = React.useMemo(() => {
-    if (job.skills && job.skills.length > 0 && candidateSkillsLower.length > 0) {
-      const jobSkills = job.skills;
-      
-      const matching = jobSkills.filter((vs: string) =>
-        candidateSkillsLower.some((cs: string) => cs.includes(vs.toLowerCase().trim()) || vs.toLowerCase().trim().includes(cs))
-      );
-      const computed = Math.round((matching.length / jobSkills.length) * 100);
-      return Math.max(50, Math.min(100, computed));
-    }
-    return 70; // default baseline
-  }, [job.skills, candidateSkillsLower]);
+
 
   return (
     <div
@@ -149,19 +137,7 @@ export function JobCard({
 
       {/* Badges / Tech tags */}
       <div className="mt-5 flex flex-wrap gap-1.5">
-        {/* IA Match Indicator Badge */}
-        <Badge
-          variant="secondary"
-          className={cn(
-            "h-7 rounded-lg border-0 px-2.5 text-[11px] font-bold gap-1 shadow-xs",
-            matchScore >= 75
-              ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
-              : "bg-amber-500/10 text-amber-600 dark:text-amber-400"
-          )}
-        >
-          <Sparkles className="size-3 shrink-0" />
-          {matchScore}% Match
-        </Badge>
+
 
         {job.skills.slice(0, 3).map((skill: string) => {
           const isMatched = candidateSkillsLower.some(

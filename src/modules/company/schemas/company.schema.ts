@@ -3,7 +3,7 @@ import { z } from "zod";
 export const companyProfileSchema = z.object({
   company_name: z.string().min(2, "El nombre comercial debe tener al menos 2 caracteres"),
   industry: z.string().min(1, "El sector industrial es requerido"),
-  website_or_linkedin: z.string().url("Por favor ingrese una URL válida (ej. https://empresa.com)").or(z.literal("")).optional(),
+  website: z.string().url("Introduce una URL válida").optional().or(z.literal("")),
   location: z.string().min(2, "La ubicación es requerida"),
   logo_url: z.string().optional(),
   description: z.string().max(300, "La bio comercial no puede exceder los 300 caracteres").optional(),
@@ -38,7 +38,6 @@ export const vacancySchema = z.object({
     return Number.isNaN(parsedValue) ? undefined : parsedValue;
   }, z.number().positive().optional()),
   currency: z.enum(["USD", "EUR", "MXN", "ARS", "COP"]),
-  salary_range: z.string().optional(),
   skills: z.string().min(1, "Ingresa al menos una habilidad (separadas por comas)"),
   benefits: z.string().optional(),
 });

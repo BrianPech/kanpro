@@ -10,7 +10,6 @@ import {
   MapPin,
   Briefcase,
   DollarSign,
-  Sparkles,
   CheckCircle,
   Send,
   Loader2,
@@ -81,21 +80,7 @@ export function JobDetailSheet({
 
   if (!job) return null;
 
-  // Calculate skill match breakdown
-  const jobSkills = job.skills || [];
-  const candidateSkillsLower = candidateSkills.map((s) => s.toLowerCase().trim());
-  
-  const matchedSkills = jobSkills.filter((vs: string) =>
-    candidateSkillsLower.some((cs: string) => cs.includes(vs.toLowerCase().trim()) || vs.toLowerCase().trim().includes(cs))
-  );
-
-  const missingSkills = jobSkills.filter((vs: string) =>
-    !candidateSkillsLower.some((cs: string) => cs.includes(vs.toLowerCase().trim()) || vs.toLowerCase().trim().includes(cs))
-  );
-
-  const matchPercentage = jobSkills.length > 0 
-    ? Math.round((matchedSkills.length / jobSkills.length) * 100)
-    : 70; // default baseline
+  // Removed AI Match calculations
 
   const handleApply = async () => {
     if (!candidateId) {
@@ -190,46 +175,7 @@ export function JobDetailSheet({
 
         <hr className="border-border/40" />
 
-        {/* Dynamic IA Match Showcase */}
-        <div className="bg-gradient-to-br from-primary/[0.04] to-primary/[0.01] border border-primary/15 rounded-2xl p-5 flex flex-col gap-4">
-          <div className="flex items-center gap-2">
-            <Sparkles className="h-4.5 w-4.5 text-primary shrink-0" />
-            <h4 className="text-sm font-bold text-foreground">Compatibilidad con IA</h4>
-            <span className={`ml-auto text-xs font-bold px-2 py-0.5 rounded-full ${
-              matchPercentage >= 75
-                ? "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400"
-                : "bg-amber-500/15 text-amber-600 dark:text-amber-400"
-            }`}>
-              {matchPercentage}% Coincidencia
-            </span>
-          </div>
 
-          <div className="space-y-3">
-            <p className="text-xs text-muted-foreground leading-relaxed">
-              Comparamos las tecnologías requeridas por la empresa con las habilidades de tu perfil:
-            </p>
-
-            {/* Skills breakdown tags */}
-            <div className="flex flex-wrap gap-1.5 mt-1">
-              {matchedSkills.map((skill: string, idx: number) => (
-                <span key={idx} className="inline-flex items-center gap-1 px-2.5 py-1 bg-emerald-500/10 border border-emerald-500/15 text-[11px] font-bold text-emerald-600 dark:text-emerald-400 rounded-md">
-                  ✓ {skill}
-                </span>
-              ))}
-              {missingSkills.map((skill: string, idx: number) => (
-                <span key={idx} className="inline-flex items-center gap-1 px-2.5 py-1 bg-muted dark:bg-zinc-800 text-[11px] font-semibold text-muted-foreground rounded-md">
-                  • {skill}
-                </span>
-              ))}
-            </div>
-
-            {missingSkills.length > 0 && (
-              <p className="text-[10px] text-muted-foreground/80 font-medium">
-                Tip: Considera añadir {missingSkills.slice(0, 2).join(", ")} a tu perfil si tienes experiencia en ellos.
-              </p>
-            )}
-          </div>
-        </div>
 
         {/* Job Description */}
         <div className="flex flex-col gap-2">

@@ -70,6 +70,63 @@ export default function RootLayout({
       className={cn("h-full", "antialiased", geistSans.variable, geistMono.variable, "font-sans", manrope.variable)}
     >
       <body className="min-h-full flex flex-col">
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `
+              function showBanner(titleText, messageText, isWarn) {
+                var errorDiv = document.getElementById('global-error-banner');
+                if (!errorDiv) {
+                  errorDiv = document.createElement('div');
+                  errorDiv.id = 'global-error-banner';
+                  errorDiv.style.cssText = 'position: fixed; top: 0; left: 0; right: 0; background: ' + (isWarn ? '#f59e0b' : '#dc2626') + '; color: white; padding: 16px; z-index: 99999; font-family: monospace; font-size: 11px; max-height: 60vh; overflow-y: auto; box-shadow: 0 4px 15px rgba(0,0,0,0.5); word-break: break-all;';
+                  var closeBtn = document.createElement('button');
+                  closeBtn.innerText = 'Cerrar';
+                  closeBtn.style.cssText = 'float: right; background: white; color: black; border: none; padding: 4px 8px; font-weight: bold; cursor: pointer; border-radius: 4px;';
+                  closeBtn.onclick = function() { errorDiv.style.display = 'none'; };
+                  errorDiv.appendChild(closeBtn);
+                  var title = document.createElement('h3');
+                  title.id = 'global-error-title';
+                  title.style.margin = '0 0 8px 0';
+                  title.style.fontSize = '13px';
+                  errorDiv.appendChild(title);
+                  var msg = document.createElement('pre');
+                  msg.id = 'global-error-msg';
+                  msg.style.margin = '0';
+                  msg.style.whiteSpace = 'pre-wrap';
+                  errorDiv.appendChild(msg);
+                  document.body.appendChild(errorDiv);
+                }
+                document.getElementById('global-error-title').innerText = titleText;
+                var msgPre = document.getElementById('global-error-msg');
+                if (msgPre) {
+                  msgPre.innerText += '\\n' + messageText + '\\n';
+                }
+              }
+
+              // Catch runtime errors
+              window.addEventListener('error', function(event) {
+                if (event.filename) {
+                  showBanner('❌ Error de JavaScript:', event.message + '\\nArchivo: ' + event.filename + '\\nLínea: ' + event.lineno + ':' + event.colno);
+                } else if (event.target && (event.target.tagName === 'SCRIPT' || event.target.tagName === 'LINK')) {
+                  showBanner('❌ Error de Recurso (Script/CSS):', 'Fallo al cargar: ' + (event.target.src || event.target.href), false);
+                }
+              }, true); // useCapture = true to catch resource load errors
+
+              // Catch unhandled promise rejections
+              window.addEventListener('unhandledrejection', function(event) {
+                showBanner('⚠️ Promesa Rechazada:', 'Reason: ' + event.reason, false);
+              });
+
+              // Intercept console.error to catch React hydration warnings
+              var originalConsoleError = console.error;
+              console.error = function() {
+                var args = Array.prototype.slice.call(arguments);
+                originalConsoleError.apply(console, args);
+                showBanner('❌ console.error detectado:', args.join(' '), false);
+              };
+            `
+          }}
+        />
         <TooltipProvider delayDuration={0}>
           <ThemeProvider
             attribute="class"

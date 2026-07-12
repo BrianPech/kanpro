@@ -91,7 +91,7 @@ export function CompanyProfileForm({ initialProfile, userId }: { initialProfile:
               </div>
 
               {/* Float edit button */}
-              <div className="absolute -bottom-1 -right-1 bg-primary text-on-primary p-2 rounded-full shadow-md cursor-pointer active:scale-95 transition-transform">
+              <div className="absolute -bottom-1 -right-1 bg-blue-600 text-white p-2 rounded-full shadow-md cursor-pointer active:scale-95 transition-transform">
                 <Edit3 className="size-3 text-white" />
                 <input 
                   type="file" 
@@ -105,7 +105,7 @@ export function CompanyProfileForm({ initialProfile, userId }: { initialProfile:
             {/* Logo details and specs */}
             <div className="flex-grow pt-2 space-y-2">
               <h3 className="text-xl font-extrabold text-foreground tracking-tight flex items-center gap-2 justify-center md:justify-start">
-                <Sparkles className="size-5 text-indigo-600" />
+                <Sparkles className="size-5 text-blue-600" />
                 Identidad Corporativa
               </h3>
               <p className="text-sm text-muted-foreground font-medium max-w-md leading-relaxed">
@@ -132,7 +132,7 @@ export function CompanyProfileForm({ initialProfile, userId }: { initialProfile:
                   type="text"
                   placeholder="Ej. Soluciones Tech S.A." 
                   {...register("company_name")}
-                  className="w-full h-12 bg-muted/30 border-none rounded-xl pl-12 pr-4 focus-visible:ring-2 focus-visible:ring-primary focus-visible:bg-background text-sm font-semibold transition-all outline-none"
+                  className="w-full h-12 bg-muted/30 border-none rounded-xl pl-12 pr-4 focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:bg-background text-sm font-semibold transition-all outline-none"
                 />
               </div>
               {errors.company_name && (
@@ -149,7 +149,7 @@ export function CompanyProfileForm({ initialProfile, userId }: { initialProfile:
                 value={watch("industry") || ""} 
                 onValueChange={(value) => setValue("industry", value, { shouldValidate: true })}
               >
-                <SelectTrigger className="w-full h-12 bg-muted/30 border-none rounded-xl px-4 text-sm font-semibold focus:ring-2 focus:ring-primary focus:bg-background transition-all outline-none shadow-none">
+                <SelectTrigger className="w-full h-12 bg-muted/30 border-none rounded-xl px-4 text-sm font-semibold focus:ring-2 focus:ring-blue-500 focus:bg-background transition-all outline-none shadow-none">
                   <SelectValue placeholder="Selecciona un sector" />
                 </SelectTrigger>
                 <SelectContent className="rounded-xl border-border/60">
@@ -185,12 +185,12 @@ export function CompanyProfileForm({ initialProfile, userId }: { initialProfile:
                 <Input 
                   type="text"
                   placeholder="https://miempresa.com" 
-                  {...register("website_or_linkedin")}
-                  className="w-full h-12 bg-muted/30 border-none rounded-xl pl-12 pr-4 focus-visible:ring-2 focus-visible:ring-primary focus-visible:bg-background text-sm font-semibold transition-all outline-none"
+                  {...register("website")}
+                  className="w-full h-12 bg-muted/30 border-none rounded-xl pl-12 pr-4 focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:bg-background text-sm font-semibold transition-all outline-none"
                 />
               </div>
-              {errors.website_or_linkedin && (
-                <p className="text-xs font-semibold text-destructive px-1">{errors.website_or_linkedin.message}</p>
+              {errors.website && (
+                <p className="text-xs font-semibold text-destructive px-1">{errors.website.message}</p>
               )}
             </div>
 
@@ -205,7 +205,7 @@ export function CompanyProfileForm({ initialProfile, userId }: { initialProfile:
                   type="text"
                   placeholder="Ciudad, País" 
                   {...register("location")}
-                  className="w-full h-12 bg-muted/30 border-none rounded-xl pl-12 pr-4 focus-visible:ring-2 focus-visible:ring-primary focus-visible:bg-background text-sm font-semibold transition-all outline-none"
+                  className="w-full h-12 bg-muted/30 border-none rounded-xl pl-12 pr-4 focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:bg-background text-sm font-semibold transition-all outline-none"
                 />
               </div>
               {errors.location && (
@@ -230,7 +230,7 @@ export function CompanyProfileForm({ initialProfile, userId }: { initialProfile:
                   type="tel"
                   placeholder="Ej. +52 55 1234 5678" 
                   {...register("phone")}
-                  className="w-full h-12 bg-muted/30 border-none rounded-xl pl-12 pr-4 focus-visible:ring-2 focus-visible:ring-primary focus-visible:bg-background text-sm font-semibold transition-all outline-none"
+                  className="w-full h-12 bg-muted/30 border-none rounded-xl pl-12 pr-4 focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:bg-background text-sm font-semibold transition-all outline-none"
                 />
               </div>
             </div>
@@ -244,7 +244,7 @@ export function CompanyProfileForm({ initialProfile, userId }: { initialProfile:
                 value={watch("company_size") || ""} 
                 onValueChange={(value) => setValue("company_size", value)}
               >
-                <SelectTrigger className="w-full h-12 bg-muted/30 border-none rounded-xl px-4 text-sm font-semibold focus:ring-2 focus:ring-primary focus:bg-background transition-all outline-none shadow-none">
+                <SelectTrigger className="w-full h-12 bg-muted/30 border-none rounded-xl px-4 text-sm font-semibold focus:ring-2 focus:ring-blue-500 focus:bg-background transition-all outline-none shadow-none">
                   <SelectValue placeholder="Selecciona el tamaño" />
                 </SelectTrigger>
                 <SelectContent className="rounded-xl border-border/60">
@@ -287,7 +287,7 @@ export function CompanyProfileForm({ initialProfile, userId }: { initialProfile:
             maxLength={300}
             placeholder="Describe brevemente tu organización..."
             {...register("description")}
-            className="w-full h-32 bg-muted/30 border-none rounded-xl px-6 py-4 focus-visible:ring-2 focus-visible:ring-primary focus-visible:bg-background text-sm font-semibold transition-all resize-none shadow-none"
+            className="w-full h-32 bg-muted/30 border-none rounded-xl px-6 py-4 focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:bg-background text-sm font-semibold transition-all resize-none shadow-none"
           />
           {errors.description && (
             <p className="text-xs font-semibold text-destructive px-1">{errors.description.message}</p>
@@ -308,7 +308,7 @@ export function CompanyProfileForm({ initialProfile, userId }: { initialProfile:
           <Button 
             type="submit"
             disabled={isSaving}
-            className="px-8 py-5 h-auto rounded-xl font-bold bg-primary hover:bg-primary/95 text-on-primary text-xs md:text-sm active:scale-95 transition-all shadow-lg shadow-primary/10 hover:shadow-primary/25"
+            className="px-8 py-5 h-auto rounded-xl font-bold bg-blue-600 hover:bg-blue-700 text-white text-xs md:text-sm active:scale-95 transition-all shadow-lg shadow-blue-500/10 hover:shadow-blue-500/25"
           >
             {isSaving ? (
               <Loader2 className="size-4 animate-spin mr-2" />

@@ -28,10 +28,9 @@ export async function getVacanciesByLocation(
     }
   }
 
-  // 1. Query vacancies from Supabase
   let query = supabase
     .from("vacancies")
-    .select("id, title, location, modality, salary, salary_min, salary_max, employment_type, category, seniority, skills, created_at, description, benefits, status, company_id")
+    .select("id, title, location, modality, salary_min, salary_max, employment_type, category, seniority, skills, created_at, description, benefits, status, company_id")
     .eq("status", "Activa");
 
   if (searchQuery) {
@@ -89,6 +88,22 @@ export async function getVacanciesByLocation(
     const logoUrl = companyInfo?.logo || null;
     const companyInitials = companyName.substring(0, 2).toUpperCase();
 
+    let formattedSalary = "";
+    if (vac.salary_min || vac.salary_max) {
+      const min = Number(vac.salary_min);
+      const max = Number(vac.salary_max);
+      if (min && max) {
+        formattedSalary = `MXN ${min.toLocaleString()} - ${max.toLocaleString()}`;
+      } else if (min) {
+        formattedSalary = `Desde MXN ${min.toLocaleString()}`;
+      } else if (max) {
+        formattedSalary = `Hasta MXN ${max.toLocaleString()}`;
+      }
+    }
+    if (!formattedSalary) {
+      formattedSalary = "Sueldo no especificado";
+    }
+
     return {
       id: vac.id,
       title: vac.title,
@@ -98,7 +113,7 @@ export async function getVacanciesByLocation(
       location: vac.location || vac.modality || "Remoto",
       salaryMin: Number(vac.salary_min) || 0,
       salaryMax: Number(vac.salary_max) || 0,
-      salaryFormatted: vac.salary || "Sueldo no especificado",
+      salaryFormatted: formattedSalary,
       type: vac.employment_type || vac.modality || "Full-time",
       category: vac.category || "Development",
       experience: vac.seniority || "Senior",

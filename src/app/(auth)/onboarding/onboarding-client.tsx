@@ -164,7 +164,7 @@ export function OnboardingClient() {
                 setZone(firstZone);
               }}
             >
-              <SelectTrigger id="city" className="w-full h-12 bg-slate-50 dark:bg-zinc-950/40 border border-border/60 rounded-xl px-4 text-sm font-semibold text-foreground text-left">
+              <SelectTrigger id="city" className="w-full h-12 bg-slate-50 dark:bg-zinc-950/40 border border-border/60 rounded-xl px-4 text-sm font-semibold text-left">
                 <SelectValue placeholder="Selecciona Ciudad" />
               </SelectTrigger>
               <SelectContent className="rounded-xl bg-card border-border/40">
@@ -187,7 +187,7 @@ export function OnboardingClient() {
               onValueChange={setZone}
               disabled={!city}
             >
-              <SelectTrigger id="zone" className="w-full h-12 bg-slate-50 dark:bg-zinc-950/40 border border-border/60 rounded-xl px-4 text-sm font-semibold text-foreground text-left">
+              <SelectTrigger id="zone" className="w-full h-12 bg-slate-50 dark:bg-zinc-950/40 border border-border/60 rounded-xl px-4 text-sm font-semibold text-left">
                 <SelectValue placeholder="Selecciona Zona" />
               </SelectTrigger>
               <SelectContent className="rounded-xl bg-card border-border/40">
