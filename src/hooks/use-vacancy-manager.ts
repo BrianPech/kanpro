@@ -11,6 +11,7 @@ export interface CreateExpressVacancyParams {
   requirements: string;
   salary_range?: string | null;
   modality?: string;
+  employment_type?: string | null;
 }
 
 export function useVacancyManager() {
@@ -71,6 +72,7 @@ export function useVacancyManager() {
           status: "Activa",
           is_active: true,
           location: companyLocation, // Inyección automática para evitar el not-null constraint
+          employment_type: params.employment_type || null, // Tipo de Jornada
         })
         .select()
         .single();
