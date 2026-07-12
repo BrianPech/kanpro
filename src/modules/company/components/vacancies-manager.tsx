@@ -35,11 +35,22 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import Link from "next/link";
 
 export function VacanciesManager({ userId }: { userId: string }) {
   const [vacancies, setVacancies] = React.useState<VacancyRow[]>([]);
   const [searchQuery, setSearchQuery] = React.useState("");
+  const [deletingVacancyId, setDeletingVacancyId] = React.useState<string | null>(null);
 
   // States for company profile checking
   const [profile, setProfile] = React.useState<any>(null);
@@ -135,19 +146,19 @@ export function VacanciesManager({ userId }: { userId: string }) {
     }
   };
 
-  const handleDeleteVacancy = async (id: string) => {
-    if (confirm("¿Estás seguro de que deseas eliminar esta vacante?")) {
-      try {
-        const success = await deleteVacancy(id);
-        if (success) {
-          setVacancies((prev) => prev.filter((v) => v.id !== id));
-          toast.success("Vacante eliminada con éxito");
-        }
-      } catch (err: any) {
-        toast.error("Error al eliminar la vacante", {
-          description: err.message,
-        });
+  const confirmDeleteVacancy = async (id: string) => {
+    try {
+      const success = await deleteVacancy(id);
+      if (success) {
+        setVacancies((prev) => prev.filter((v) => v.id !== id));
+        toast.success("Vacante eliminada con éxito");
       }
+    } catch (err: any) {
+      toast.error("Error al eliminar la vacante", {
+        description: err.message,
+      });
+    } finally {
+      setDeletingVacancyId(null);
     }
   };
 
@@ -382,7 +393,7 @@ export function VacanciesManager({ userId }: { userId: string }) {
                               </Link>
                             </DropdownMenuItem>
                             <DropdownMenuItem
-                              onClick={() => handleDeleteVacancy(vacancy.id)}
+                              onSelect={() => setDeletingVacancyId(vacancy.id)}
                               className="cursor-pointer text-xs font-semibold text-red-600 focus:text-red-700 rounded-lg hover:bg-red-500/5 focus:bg-red-500/5 py-2 gap-2"
                             >
                               <Trash2 className="size-3.5 text-red-500" />
@@ -399,6 +410,36 @@ export function VacanciesManager({ userId }: { userId: string }) {
           </div>
         )}
       </div>
+
+      {/* Alert Dialog for Confirming Deletion */}
+      <AlertDialog
+        open={deletingVacancyId !== null}
+        onOpenChange={(open) => !open && setDeletingVacancyId(null)}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>¿Estás seguro de que deseas eliminar esta vacante?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Esta acción es permanente y no se podrá deshacer. Los candidatos ya no podrán postularse ni ver esta oferta.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setDeletingVacancyId(null)}>
+              Cancelar
+            </AlertDialogCancel>
+            <AlertDialogAction
+              variant="destructive"
+              onClick={() => {
+                if (deletingVacancyId) {
+                  confirmDeleteVacancy(deletingVacancyId);
+                }
+              }}
+            >
+              Eliminar
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
