@@ -5,7 +5,6 @@ import {
   MapPin,
   Briefcase,
   DollarSign,
-  Sparkles,
   CheckCircle,
   Send,
   Loader2,
@@ -94,30 +93,7 @@ export function VacancyDetail({
     );
   }
 
-  // Calculate skill match breakdown
-  const jobSkills = job.skills || [];
-  const candidateSkillsLower = candidateSkills.map((s) => s.toLowerCase().trim());
-
-  const matchedSkills = jobSkills.filter((vs: string) =>
-    candidateSkillsLower.some(
-      (cs: string) =>
-        cs.includes(vs.toLowerCase().trim()) ||
-        vs.toLowerCase().trim().includes(cs)
-    )
-  );
-
-  const missingSkills = jobSkills.filter((vs: string) =>
-    !candidateSkillsLower.some(
-      (cs: string) =>
-        cs.includes(vs.toLowerCase().trim()) ||
-        vs.toLowerCase().trim().includes(cs)
-    )
-  );
-
-  const matchPercentage =
-    jobSkills.length > 0
-      ? Math.round((matchedSkills.length / jobSkills.length) * 100)
-      : 70; // default baseline
+  // Removed AI Match calculations
 
   const handleApply = async () => {
     if (!candidateId) {
@@ -239,58 +215,7 @@ export function VacancyDetail({
           </div>
         </div>
 
-        {/* Dynamic IA Match Showcase */}
-        <div className="bg-gradient-to-br from-indigo-500/[0.04] to-indigo-500/[0.01] border border-indigo-500/15 rounded-xl p-5 flex flex-col gap-4">
-          <div className="flex items-center justify-between gap-4">
-            <div className="flex items-center gap-2">
-              <Sparkles className="h-4 w-4 text-indigo-500 shrink-0" />
-              <h4 className="text-xs font-bold text-foreground uppercase tracking-wider">
-                Compatibilidad con IA
-              </h4>
-            </div>
-            <span
-              className={cn(
-                "text-[10px] font-bold px-2 py-0.5 rounded-full",
-                matchPercentage >= 75
-                  ? "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400"
-                  : "bg-amber-500/15 text-amber-600 dark:text-amber-400"
-              )}
-            >
-              {matchPercentage}% Match
-            </span>
-          </div>
 
-          <div className="space-y-3">
-            <p className="text-xs text-muted-foreground leading-relaxed">
-              Análisis comparativo de tecnologías requeridas vs. tus habilidades:
-            </p>
-
-            <div className="flex flex-wrap gap-1.5 mt-1">
-              {matchedSkills.map((skill: string, idx: number) => (
-                <span
-                  key={idx}
-                  className="inline-flex items-center gap-1 px-2.5 py-1 bg-emerald-500/10 border border-emerald-500/15 text-[10px] font-bold text-emerald-600 dark:text-emerald-400 rounded-lg"
-                >
-                  ✓ {skill}
-                </span>
-              ))}
-              {missingSkills.map((skill: string, idx: number) => (
-                <span
-                  key={idx}
-                  className="inline-flex items-center gap-1 px-2.5 py-1 bg-muted dark:bg-zinc-800 text-[10px] font-semibold text-muted-foreground rounded-lg"
-                >
-                  • {skill}
-                </span>
-              ))}
-            </div>
-
-            {missingSkills.length > 0 && (
-              <p className="text-[10px] text-muted-foreground/80 font-medium italic">
-                Tip: Resalta tu experiencia en {missingSkills.slice(0, 2).join(" y ")} en tu presentación.
-              </p>
-            )}
-          </div>
-        </div>
 
         {/* Job Description */}
         <div className="flex flex-col gap-2.5">

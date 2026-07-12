@@ -1,9 +1,8 @@
 "use client";
 
 import * as React from "react";
-import { MapPin, Clock, Sparkles, CheckCircle, BadgeCheck } from "lucide-react";
+import { MapPin, Clock, CheckCircle, BadgeCheck } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { Badge } from "@/components/ui/badge";
 import type { Job } from "../types";
 
 interface VacancyCardProps {
@@ -21,25 +20,7 @@ export function VacancyCard({
   candidateSkills = [],
   isAlreadyApplied = false,
 }: VacancyCardProps) {
-  const candidateSkillsLower = React.useMemo(() => {
-    return candidateSkills.map((s) => s.toLowerCase().trim());
-  }, [candidateSkills]);
 
-  // Calculate Match Score based on candidate skills vs job requirements
-  const matchScore = React.useMemo(() => {
-    if (job.skills && job.skills.length > 0 && candidateSkillsLower.length > 0) {
-      const matching = job.skills.filter((vs: string) =>
-        candidateSkillsLower.some(
-          (cs: string) =>
-            cs.includes(vs.toLowerCase().trim()) ||
-            vs.toLowerCase().trim().includes(cs)
-        )
-      );
-      const computed = Math.round((matching.length / job.skills.length) * 100);
-      return Math.max(50, Math.min(100, computed));
-    }
-    return 70; // default baseline
-  }, [job.skills, candidateSkillsLower]);
 
   return (
     <div
@@ -123,31 +104,14 @@ export function VacancyCard({
         </span>
       </div>
 
-      {/* Bottom info: Skills match indicator */}
-      <div className="mt-4 pt-3 border-t border-border/20 flex items-center justify-between gap-4">
-        {/* IA match score indicator */}
-        <div className="flex items-center gap-1.5">
-          <Badge
-            variant="secondary"
-            className={cn(
-              "h-6 rounded-lg border-none px-2 text-[10px] font-bold gap-1 shadow-none",
-              matchScore >= 75
-                ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
-                : "bg-amber-500/10 text-amber-600 dark:text-amber-400"
-            )}
-          >
-            <Sparkles className="size-3" />
-            {matchScore}% Match
-          </Badge>
-        </div>
-
-        {/* Selected indicator */}
-        {isSelected && (
+      {/* Bottom info: Status indicator */}
+      {isSelected && (
+        <div className="mt-4 pt-3 border-t border-border/20 flex items-center justify-end">
           <span className="text-[10px] font-bold text-primary uppercase tracking-widest animate-pulse">
             Activa
           </span>
-        )}
-      </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -8,15 +8,12 @@ import {
   MapPin, 
   Building2, 
   ChevronRight,
-  TrendingUp,
   Compass,
   ArrowRight,
-  Sparkles,
   User,
   AlertCircle,
   Search,
   Check,
-  Zap,
   MessageCircle,
   ExternalLink,
   Calendar
@@ -43,7 +40,6 @@ export function CandidateDashboardView({ initialData }: CandidateDashboardViewPr
   // States for interactive filters and search
   const [selectedFilter, setSelectedFilter] = React.useState<string>("Todas");
   const [searchQuery, setSearchQuery] = React.useState<string>("");
-  const [showOnlyHighMatch, setShowOnlyHighMatch] = React.useState<boolean>(false);
 
   // Sheet State for Application Details
   const [selectedApp, setSelectedApp] = React.useState<CandidateApplication | null>(null);
@@ -65,12 +61,9 @@ export function CandidateDashboardView({ initialData }: CandidateDashboardViewPr
         app.position.toLowerCase().includes(searchQuery.toLowerCase()) ||
         app.company.toLowerCase().includes(searchQuery.toLowerCase());
 
-      // Filter by high match score (> 75%)
-      const matchesHighScore = !showOnlyHighMatch || app.matchScore >= 75;
-
-      return matchesStatus && matchesSearch && matchesHighScore;
+      return matchesStatus && matchesSearch;
     });
-  }, [applications, selectedFilter, searchQuery, showOnlyHighMatch]);
+  }, [applications, selectedFilter, searchQuery]);
 
   const candidateName = profile?.full_name || "Candidato";
 
@@ -191,7 +184,7 @@ export function CandidateDashboardView({ initialData }: CandidateDashboardViewPr
               <Link href="/dashboard/candidate/settings" className="mt-6 block w-full">
                 <Button variant="outline" className="w-full h-11 rounded-full text-xs font-bold border-[#494fdf]/20 hover:border-[#494fdf]/40 text-[#494fdf] hover:bg-[#494fdf]/5 gap-2">
                   <User className="h-4 w-4" />
-                  Completar Perfil para Match IA
+                  Completar Perfil
                 </Button>
               </Link>
             )}
@@ -202,7 +195,7 @@ export function CandidateDashboardView({ initialData }: CandidateDashboardViewPr
       {/* Activity Summary Metrics */}
       <section className="flex flex-col gap-4">
         <h2 className="text-lg font-bold tracking-tight text-foreground">Resumen de Actividad</h2>
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           
           {/* Metrics Card 1 */}
           <Card className="bg-white/50 dark:bg-zinc-900/40 backdrop-blur-md border border-black/5 dark:border-white/5 p-5 rounded-2xl flex flex-col justify-between shadow-xs">
@@ -247,22 +240,6 @@ export function CandidateDashboardView({ initialData }: CandidateDashboardViewPr
               </p>
             </div>
           </Card>
-
-          {/* Metrics Card 4 */}
-          <Card className="bg-white/50 dark:bg-zinc-900/40 backdrop-blur-md border border-black/5 dark:border-white/5 p-5 rounded-2xl flex flex-col justify-between shadow-xs">
-            <div className="flex justify-between items-start">
-              <span className="text-xs font-bold text-muted-foreground uppercase tracking-wide">Match IA Promedio</span>
-              <div className="h-8 w-8 rounded-lg bg-[#007bc2]/10 text-[#007bc2] flex items-center justify-center">
-                <TrendingUp className="h-4 w-4" />
-              </div>
-            </div>
-            <div className="mt-4">
-              <h3 className="text-2xl font-extrabold tracking-tight mt-1 text-foreground">
-                {stats.averageMatch > 0 ? `${stats.averageMatch}%` : "--"}
-              </h3>
-              <p className="text-[11px] text-muted-foreground mt-0.5">Alineación con vacantes</p>
-            </div>
-          </Card>
         </div>
       </section>
 
@@ -300,7 +277,7 @@ export function CandidateDashboardView({ initialData }: CandidateDashboardViewPr
             ))}
           </div>
 
-          {/* Search Box & High Match Toggle */}
+          {/* Search Box */}
           <div className="flex flex-wrap sm:flex-nowrap items-center gap-3 order-1 lg:order-2 w-full lg:w-auto">
             <div className="relative w-full sm:w-64">
               <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground/60" />
@@ -312,18 +289,6 @@ export function CandidateDashboardView({ initialData }: CandidateDashboardViewPr
                 className="w-full h-10 pl-10 pr-4 rounded-full bg-white dark:bg-zinc-900 border border-black/5 dark:border-white/5 text-xs text-foreground placeholder-muted-foreground/60 focus:outline-hidden focus:ring-1 focus:ring-[#494fdf]/45 transition-all"
               />
             </div>
-
-            <button
-              onClick={() => setShowOnlyHighMatch(!showOnlyHighMatch)}
-              className={`h-10 px-4 rounded-full text-xs font-bold border transition-all flex items-center gap-1.5 shrink-0 ${
-                showOnlyHighMatch
-                  ? "bg-amber-500/10 border-amber-500/20 text-amber-600 dark:text-amber-400"
-                  : "bg-white dark:bg-zinc-900 border-black/5 dark:border-white/5 text-muted-foreground hover:bg-muted/50"
-              }`}
-            >
-              <Zap className="h-3.5 w-3.5" />
-              Match Alto (75%+)
-            </button>
           </div>
         </div>
 
@@ -364,22 +329,8 @@ export function CandidateDashboardView({ initialData }: CandidateDashboardViewPr
                     </div>
                   </div>
 
-                  {/* Right block: Match Score, Progress & Status */}
+                  {/* Right block: Progress & Status */}
                   <div className="flex flex-wrap sm:flex-nowrap items-center gap-6 lg:self-auto shrink-0 w-full lg:w-auto">
-                    {/* IA Match Badge */}
-                    <div className="flex flex-col gap-1 items-start sm:items-end w-24">
-                      <span className="text-[10px] uppercase font-bold text-muted-foreground/60 tracking-wider">Alineación</span>
-                      <span className={`inline-flex items-center gap-1 text-[11px] font-bold px-2 py-0.5 rounded-md ${
-                        app.matchScore >= 80 
-                          ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
-                          : app.matchScore >= 65
-                            ? "bg-amber-500/10 text-amber-600 dark:text-amber-400"
-                            : "bg-zinc-500/10 text-zinc-500"
-                      }`}>
-                        <Sparkles className="h-3 w-3 shrink-0" />
-                        {app.matchScore}% Match
-                      </span>
-                    </div>
 
                     {/* Progress slider */}
                     <div className="flex flex-col gap-1.5 w-full sm:w-40">
@@ -417,16 +368,16 @@ export function CandidateDashboardView({ initialData }: CandidateDashboardViewPr
             </div>
             <h3 className="text-lg font-bold text-foreground">No encontramos postulaciones</h3>
             <p className="text-xs text-muted-foreground mt-2.5 max-w-md leading-relaxed">
-              {searchQuery || showOnlyHighMatch || selectedFilter !== "Todas"
+              {searchQuery || selectedFilter !== "Todas"
                 ? "No hay postulaciones que coincidan con los criterios de búsqueda o filtros seleccionados."
-                : "Aún no has aplicado a ninguna vacante. Completa tu perfil y explora las vacantes que nuestro motor de IA recomienda para ti."}
+                : "Aún no has aplicado a ninguna vacante. Completa tu perfil y explora las vacantes disponibles."}
             </p>
             <div className="mt-6 flex gap-4">
-              {(searchQuery || showOnlyHighMatch || selectedFilter !== "Todas") ? (
+              {(searchQuery || selectedFilter !== "Todas") ? (
                 <Button 
                   onClick={() => {
                     setSearchQuery("");
-                    setShowOnlyHighMatch(false);
+                    setSelectedFilter("Todas");
                     setSelectedFilter("Todas");
                   }}
                   variant="outline" 
@@ -437,7 +388,7 @@ export function CandidateDashboardView({ initialData }: CandidateDashboardViewPr
               ) : (
                 <Link href="/dashboard/candidate/discovery">
                   <Button className="rounded-full text-xs font-bold px-6 h-10 bg-[#494fdf] text-white hover:bg-[#494fdf]/90 border-none">
-                    Buscar Empleos con IA
+                    Buscar Empleos
                   </Button>
                 </Link>
               )}
@@ -446,16 +397,16 @@ export function CandidateDashboardView({ initialData }: CandidateDashboardViewPr
         )}
       </section>
 
-      {/* AI Skills Spotlights Section */}
+      {/* Habilidades Section */}
       {profile?.skills && profile.skills.length > 0 && (
         <section className="bg-white dark:bg-zinc-900 border border-black/5 dark:border-white/5 rounded-[28px] p-6 md:p-8 shadow-xs">
           <div className="flex items-center gap-2.5 mb-6">
             <div className="h-8 w-8 rounded-lg bg-emerald-500/10 text-emerald-500 flex items-center justify-center">
-              <Sparkles className="h-4.5 w-4.5" />
+              <Briefcase className="h-4.5 w-4.5" />
             </div>
             <div>
-              <h3 className="text-base font-bold text-foreground">Tu Perfil Tecnológico (IA Tags)</h3>
-              <p className="text-xs text-muted-foreground mt-0.5">Habilidades analizadas por el motor de recomendación.</p>
+              <h3 className="text-base font-bold text-foreground">Tus Habilidades</h3>
+              <p className="text-xs text-muted-foreground mt-0.5">Habilidades cargadas en tu perfil profesional.</p>
             </div>
           </div>
 
@@ -500,21 +451,7 @@ export function CandidateDashboardView({ initialData }: CandidateDashboardViewPr
               </SheetDescription>
             </SheetHeader>
 
-            <hr className="border-border/40" />
 
-            {/* Recruiter Evaluation Alert / Status Info */}
-            <div className="bg-[#494fdf]/[0.03] border border-[#494fdf]/15 rounded-2xl p-5 flex flex-col gap-3">
-              <div className="flex items-center gap-2">
-                <Sparkles className="w-4 h-4 text-[#494fdf]" />
-                <h4 className="text-xs font-bold text-foreground">Estado de Compatibilidad IA</h4>
-                <span className="ml-auto text-[11px] font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-md">
-                  {selectedApp.matchScore}% Match
-                </span>
-              </div>
-              <p className="text-xs text-muted-foreground leading-relaxed">
-                Tu perfil se alinea fuertemente con los requerimientos técnicos y habilidades locales de esta vacante.
-              </p>
-            </div>
 
             {/* Recruitment Stage Timeline */}
             <div className="flex flex-col gap-4">

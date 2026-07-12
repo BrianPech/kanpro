@@ -11,7 +11,6 @@ export interface CandidateApplication {
   statusLabel: string
   statusColor: string
   progress: number
-  matchScore: number
   appliedDate: string
   companyPhone: string | null
 }
@@ -34,7 +33,6 @@ export interface CandidateDashboardData {
     total: number
     reviewing: number
     hired: number
-    averageMatch: number
   }
 }
 
@@ -51,8 +49,7 @@ export async function getCandidateDashboardData(): Promise<CandidateDashboardDat
       stats: {
         total: 0,
         reviewing: 0,
-        hired: 0,
-        averageMatch: 0
+        hired: 0
       }
     }
   }
@@ -141,7 +138,7 @@ export async function getCandidateDashboardData(): Promise<CandidateDashboardDat
     }
   }
 
-  // 5. Format applications and calculate matches
+  // 5. Format applications
   const formattedApplications: CandidateApplication[] = typedApplications.map((app) => {
     const vacancy = app.vacancy
     const companyInfo = vacancy ? companies[vacancy.company_id] : null
@@ -181,20 +178,6 @@ export async function getCandidateDashboardData(): Promise<CandidateDashboardDat
         break
     }
 
-    let matchScore = 70 // default fallback
-    if (profileData?.skills && vacancy?.skills) {
-      const candidateSkills = profileData.skills.map((s: string) => s.toLowerCase().trim())
-      const vacancySkills = vacancy.skills.map((s: string) => s.toLowerCase().trim())
-
-      if (vacancySkills.length > 0) {
-        const matching = vacancySkills.filter((vs: string) =>
-          candidateSkills.some((cs: string) => cs.includes(vs) || vs.includes(cs))
-        )
-        const computed = Math.round((matching.length / vacancySkills.length) * 100)
-        matchScore = Math.max(45, Math.min(100, computed))
-      }
-    }
-
     const appliedDate = app.created_at
       ? new Date(app.created_at).toLocaleDateString("es-ES", {
           day: "numeric",
@@ -214,7 +197,6 @@ export async function getCandidateDashboardData(): Promise<CandidateDashboardDat
       statusLabel,
       statusColor,
       progress,
-      matchScore,
       appliedDate,
       companyPhone: companyInfo?.phone || null
     }
@@ -225,9 +207,6 @@ export async function getCandidateDashboardData(): Promise<CandidateDashboardDat
     (app) => app.status === "En revisión" || app.status === "Preseleccionado"
   ).length
   const hired = formattedApplications.filter((app) => app.status === "Contratado").length
-
-  const totalMatchScore = formattedApplications.reduce((acc, app) => acc + app.matchScore, 0)
-  const averageMatch = total > 0 ? Math.round(totalMatchScore / total) : 0
 
   return {
     profile: profileData
@@ -248,8 +227,7 @@ export async function getCandidateDashboardData(): Promise<CandidateDashboardDat
     stats: {
       total,
       reviewing,
-      hired,
-      averageMatch
+      hired
     }
   }
 }
