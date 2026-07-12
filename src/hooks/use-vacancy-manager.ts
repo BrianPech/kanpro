@@ -32,6 +32,28 @@ export function useVacancyManager() {
         throw new Error("Debe iniciar sesión como empresa para publicar ofertas.");
       }
 
+      // Fetch company profile location
+      const { data: companyProfile, error: profileError } = await supabase
+        .from("company_profiles")
+        .select("location")
+        .eq("id", user.id)
+        .single();
+
+      let companyLocation = companyProfile?.location || null;
+
+      if (profileError || !companyLocation) {
+        const { data: generalProfile } = await supabase
+          .from("profiles")
+          .select("location")
+          .eq("id", user.id)
+          .single();
+        companyLocation = generalProfile?.location || null;
+      }
+
+      if (!companyLocation) {
+        companyLocation = "Mérida - Centro";
+      }
+
       // Insertar en la tabla vacancies. Los triggers de base de datos se encargan de
       // sincronizar las columnas duplicadas de compatibilidad (location, requirements, etc).
       const { data, error: insertError } = await supabase
@@ -48,6 +70,7 @@ export function useVacancyManager() {
           modality: params.modality || "Presencial",
           status: "Activa",
           is_active: true,
+          location: companyLocation, // Inyección automática para evitar el not-null constraint
         })
         .select()
         .single();

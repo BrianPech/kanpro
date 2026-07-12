@@ -100,10 +100,9 @@ export function CandidateRadar() {
 
     const name = profile.company_name?.trim() || "";
     const wp = profile.whatsapp_number?.trim() || profile.phone?.trim() || "";
-    const logo = profile.logo_url?.trim() || "";
     const addr = profile.address?.trim() || profile.location?.trim() || "";
 
-    return !name || !wp || !logo || !addr;
+    return !name || !wp || !addr;
   }, [profile, loadingProfile]);
 
   React.useEffect(() => {
