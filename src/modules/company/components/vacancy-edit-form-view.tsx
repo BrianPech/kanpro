@@ -138,6 +138,13 @@ export function VacancyEditFormView({ userId, vacancyId }: VacancyEditFormViewPr
     const minVal = minSalary.trim();
     const maxVal = maxSalary.trim();
 
+    if (minVal && maxVal && Number(minVal) > Number(maxVal)) {
+      toast.error("Rango de salarios inválido", {
+        description: "El salario máximo no puede ser menor al salario mínimo.",
+      });
+      return;
+    }
+
     try {
       await updateVacancy(vacancyId, {
         title,
