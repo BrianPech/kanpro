@@ -15,7 +15,7 @@ export function useCompanyProfileForm(initialProfile: any, userId: string) {
     defaultValues: {
       company_name: initialProfile?.company_name || "",
       industry: initialProfile?.industry || "",
-      website_or_linkedin: initialProfile?.website_or_linkedin || "",
+      website: initialProfile?.website_or_linkedin || initialProfile?.website || "",
       location: initialProfile?.location || "",
       logo_url: initialProfile?.logo_url || "",
       description: initialProfile?.description || "",

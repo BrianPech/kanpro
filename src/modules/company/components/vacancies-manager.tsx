@@ -340,7 +340,7 @@ export function VacanciesManager({ userId }: { userId: string }) {
                       setZone(firstZone);
                     }}
                   >
-                    <SelectTrigger id="city" className="w-full h-12 bg-card border border-border/60 rounded-xl px-3 text-sm font-semibold text-foreground focus:ring-2 focus:ring-primary/20 cursor-pointer text-left">
+                    <SelectTrigger id="city" className="w-full h-12 bg-card border border-border/60 rounded-xl px-3 text-sm font-semibold cursor-pointer text-left">
                       <SelectValue placeholder="Seleccionar Ciudad" />
                     </SelectTrigger>
                     <SelectContent className="rounded-xl bg-card border-border/40">
@@ -362,7 +362,7 @@ export function VacanciesManager({ userId }: { userId: string }) {
                     onValueChange={setZone}
                     disabled={!city}
                   >
-                    <SelectTrigger id="zone" className="w-full h-12 bg-card border border-border/60 rounded-xl px-3 text-sm font-semibold text-foreground focus:ring-2 focus:ring-primary/20 cursor-pointer text-left">
+                    <SelectTrigger id="zone" className="w-full h-12 bg-card border border-border/60 rounded-xl px-3 text-sm font-semibold cursor-pointer text-left">
                       <SelectValue placeholder="Seleccionar Zona" />
                     </SelectTrigger>
                     <SelectContent className="rounded-xl bg-card border-border/40">

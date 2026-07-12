@@ -56,7 +56,7 @@ export const authService = {
       options: {
         data: {
           role: "company",
-          full_name: data.companyName,
+          full_name: data.full_name,
         }
       }
     });

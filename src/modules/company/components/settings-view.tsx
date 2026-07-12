@@ -274,7 +274,7 @@ export function CompanySettingsView({ user, initialProfile, initialPauseState }:
       {/* 1. Navigation Shell: Left Sidebar (Desktop) or Horizontal Scrollable Bar (Mobile) */}
       <div className="w-full lg:w-[280px] flex-shrink-0 border-b lg:border-b-0 lg:border-r border-border/40 flex flex-col bg-background/50 backdrop-blur-sm p-4 lg:p-6 lg:h-auto gap-4">
         <div className="hidden lg:flex items-center gap-3 px-2 mb-6">
-          <div className="w-8 h-8 rounded-xl bg-primary/10 flex items-center justify-center text-primary">
+          <div className="w-8 h-8 rounded-xl bg-blue-50/50 dark:bg-blue-950/20 flex items-center justify-center text-blue-600 dark:text-blue-400">
             <Settings className="size-4 animate-spin-slow" />
           </div>
           <div>
@@ -294,8 +294,8 @@ export function CompanySettingsView({ user, initialProfile, initialPauseState }:
                 className={cn(
                   "flex items-center gap-2.5 px-4 py-2.5 rounded-2xl text-xs font-semibold whitespace-nowrap transition-all duration-300 relative select-none",
                   isTabActive
-                    ? "bg-primary text-primary-foreground shadow-sm shadow-primary/10"
-                    : "text-muted-foreground hover:text-foreground hover:bg-muted/40"
+                    ? "bg-blue-600 text-white shadow-sm shadow-blue-500/10"
+                    : "text-muted-foreground hover:text-blue-600 dark:hover:text-blue-400 hover:bg-muted/40"
                 )}
               >
                 {tab.icon}
@@ -326,7 +326,7 @@ export function CompanySettingsView({ user, initialProfile, initialPauseState }:
               {/* Theme Settings (Premium visual selection Cards) */}
               <div className="space-y-4">
                 <div className="flex items-center gap-2">
-                  <div className="w-1.5 h-3 rounded-full bg-primary" />
+                  <div className="w-1.5 h-3 rounded-full bg-blue-600" />
                   <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Apariencia visual</Label>
                 </div>
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
@@ -336,8 +336,8 @@ export function CompanySettingsView({ user, initialProfile, initialPauseState }:
                     className={cn(
                       "group relative flex flex-col justify-between overflow-hidden border rounded-3xl p-4 cursor-pointer transition-all duration-300 bg-card select-none",
                       mounted && theme === "light"
-                        ? "border-primary shadow-sm shadow-primary/5 bg-primary/[0.01]"
-                        : "border-border/60 hover:border-primary/50"
+                        ? "border-blue-500 shadow-sm shadow-blue-500/5 bg-blue-500/[0.01]"
+                        : "border-border/60 hover:border-blue-500/50"
                     )}
                   >
                     <div className="flex justify-between items-center mb-6">
@@ -348,7 +348,7 @@ export function CompanySettingsView({ user, initialProfile, initialPauseState }:
                     <div className="h-20 w-full bg-slate-100/80 dark:bg-zinc-900 rounded-2xl p-2 flex flex-col gap-1.5 border border-border/20">
                       <div className="h-2 w-1/3 bg-slate-200 rounded-full" />
                       <div className="flex gap-2">
-                        <div className="h-8 w-8 bg-white rounded-lg border border-slate-200 flex items-center justify-center text-[8px] font-bold text-primary shadow-sm">K&apos;</div>
+                        <div className="h-8 w-8 bg-white rounded-lg border border-slate-200 flex items-center justify-center text-[8px] font-bold text-blue-600 shadow-sm">K&apos;</div>
                         <div className="flex-1 flex flex-col gap-1">
                           <div className="h-2 w-full bg-slate-200 rounded-full" />
                           <div className="h-1.5 w-2/3 bg-slate-200 rounded-full" />
@@ -356,7 +356,7 @@ export function CompanySettingsView({ user, initialProfile, initialPauseState }:
                       </div>
                     </div>
                     {mounted && theme === "light" && (
-                      <div className="absolute top-2 right-2 bg-primary text-primary-foreground rounded-full p-0.5">
+                      <div className="absolute top-2 right-2 bg-blue-600 text-white rounded-full p-0.5">
                         <Check className="size-3" />
                       </div>
                     )}
@@ -368,8 +368,8 @@ export function CompanySettingsView({ user, initialProfile, initialPauseState }:
                     className={cn(
                       "group relative flex flex-col justify-between overflow-hidden border rounded-3xl p-4 cursor-pointer transition-all duration-300 bg-card select-none",
                       mounted && theme === "dark"
-                        ? "border-primary shadow-sm shadow-primary/5 bg-primary/[0.01]"
-                        : "border-border/60 hover:border-primary/50"
+                        ? "border-blue-500 shadow-sm shadow-blue-500/5 bg-blue-500/[0.01]"
+                        : "border-border/60 hover:border-blue-500/50"
                     )}
                   >
                     <div className="flex justify-between items-center mb-6">
@@ -380,7 +380,7 @@ export function CompanySettingsView({ user, initialProfile, initialPauseState }:
                     <div className="h-20 w-full bg-zinc-950 rounded-2xl p-2 flex flex-col gap-1.5 border border-border/10">
                       <div className="h-2 w-1/3 bg-zinc-800 rounded-full" />
                       <div className="flex gap-2">
-                        <div className="h-8 w-8 bg-zinc-900 rounded-lg border border-zinc-800 flex items-center justify-center text-[8px] font-bold text-primary shadow-sm">K&apos;</div>
+                        <div className="h-8 w-8 bg-zinc-900 rounded-lg border border-zinc-800 flex items-center justify-center text-[8px] font-bold text-blue-600 shadow-sm">K&apos;</div>
                         <div className="flex-1 flex flex-col gap-1">
                           <div className="h-2 w-full bg-zinc-800 rounded-full" />
                           <div className="h-1.5 w-2/3 bg-zinc-800 rounded-full" />
@@ -388,7 +388,7 @@ export function CompanySettingsView({ user, initialProfile, initialPauseState }:
                       </div>
                     </div>
                     {mounted && theme === "dark" && (
-                      <div className="absolute top-2 right-2 bg-primary text-primary-foreground rounded-full p-0.5">
+                      <div className="absolute top-2 right-2 bg-blue-600 text-white rounded-full p-0.5">
                         <Check className="size-3" />
                       </div>
                     )}
@@ -400,8 +400,8 @@ export function CompanySettingsView({ user, initialProfile, initialPauseState }:
                     className={cn(
                       "group relative flex flex-col justify-between overflow-hidden border rounded-3xl p-4 cursor-pointer transition-all duration-300 bg-card select-none",
                       mounted && theme === "system"
-                        ? "border-primary shadow-sm shadow-primary/5 bg-primary/[0.01]"
-                        : "border-border/60 hover:border-primary/50"
+                        ? "border-blue-500 shadow-sm shadow-blue-500/5 bg-blue-500/[0.01]"
+                        : "border-border/60 hover:border-blue-500/50"
                     )}
                   >
                     <div className="flex justify-between items-center mb-6">
@@ -412,7 +412,7 @@ export function CompanySettingsView({ user, initialProfile, initialPauseState }:
                     <div className="h-20 w-full bg-gradient-to-r from-slate-100/80 to-zinc-950 rounded-2xl p-2 flex flex-col gap-1.5 border border-border/20">
                       <div className="h-2 w-1/3 bg-slate-300 dark:bg-zinc-800 rounded-full" />
                       <div className="flex gap-2">
-                        <div className="h-8 w-8 bg-slate-200/50 dark:bg-zinc-900 rounded-lg border border-slate-300 flex items-center justify-center text-[8px] font-bold text-primary shadow-sm">K&apos;</div>
+                        <div className="h-8 w-8 bg-slate-200/50 dark:bg-zinc-900 rounded-lg border border-slate-300 flex items-center justify-center text-[8px] font-bold text-blue-600 shadow-sm">K&apos;</div>
                         <div className="flex-1 flex flex-col gap-1">
                           <div className="h-2 w-full bg-slate-300 dark:bg-zinc-800 rounded-full" />
                           <div className="h-1.5 w-2/3 bg-slate-300 dark:bg-zinc-800 rounded-full" />
@@ -420,7 +420,7 @@ export function CompanySettingsView({ user, initialProfile, initialPauseState }:
                       </div>
                     </div>
                     {mounted && theme === "system" && (
-                      <div className="absolute top-2 right-2 bg-primary text-primary-foreground rounded-full p-0.5">
+                      <div className="absolute top-2 right-2 bg-blue-600 text-white rounded-full p-0.5">
                         <Check className="size-3" />
                       </div>
                     )}
@@ -431,7 +431,7 @@ export function CompanySettingsView({ user, initialProfile, initialPauseState }:
               {/* Language selection */}
               <div className="space-y-4 pt-4 border-t border-border/40">
                 <div className="flex items-center gap-2">
-                  <div className="w-1.5 h-3 rounded-full bg-primary" />
+                  <div className="w-1.5 h-3 rounded-full bg-blue-600" />
                   <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Idioma de visualización</Label>
                 </div>
                 <div className="flex items-center gap-4">
@@ -451,7 +451,7 @@ export function CompanySettingsView({ user, initialProfile, initialPauseState }:
               {/* Basic Security / Password Reset */}
               <div className="space-y-4 pt-6 border-t border-border/40">
                 <div className="flex items-center gap-2">
-                  <div className="w-1.5 h-3 rounded-full bg-primary" />
+                  <div className="w-1.5 h-3 rounded-full bg-blue-600" />
                   <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Seguridad de la cuenta</Label>
                 </div>
 
@@ -481,7 +481,7 @@ export function CompanySettingsView({ user, initialProfile, initialPauseState }:
 
                   <div className="flex flex-col sm:flex-row items-center justify-between gap-4 p-4 rounded-2xl bg-muted/20 border border-border/20">
                     <div className="flex items-center gap-3">
-                      <div className="p-2 rounded-xl bg-primary/10 text-primary">
+                      <div className="p-2 rounded-xl bg-blue-50/50 dark:bg-blue-950/20 text-blue-600 dark:text-blue-400">
                         <KeyRound className="size-4" />
                       </div>
                       <div>
@@ -554,7 +554,7 @@ export function CompanySettingsView({ user, initialProfile, initialPauseState }:
               {/* Canal de Contacto Preferido */}
               <div className="space-y-4">
                 <div className="flex items-center gap-2">
-                  <div className="w-1.5 h-3 rounded-full bg-primary" />
+                  <div className="w-1.5 h-3 rounded-full bg-blue-600" />
                   <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Canal de contacto preferido</Label>
                 </div>
 
@@ -621,16 +621,16 @@ export function CompanySettingsView({ user, initialProfile, initialPauseState }:
                     className={cn(
                       "group relative flex flex-col justify-between overflow-hidden border rounded-3xl p-5 cursor-pointer transition-all duration-300 bg-card select-none",
                       contactChannel === "inbox"
-                        ? "border-primary shadow-sm bg-primary/[0.02]"
-                        : "border-border/60 hover:border-primary/50"
+                        ? "border-blue-500 shadow-sm bg-blue-500/[0.02]"
+                        : "border-border/60 hover:border-blue-500/50"
                     )}
                   >
                     <div className="flex justify-between items-center mb-4">
-                      <div className="p-2 rounded-xl bg-primary/10 text-primary group-hover:scale-105 transition-transform">
+                      <div className="p-2 rounded-xl bg-blue-50/50 dark:bg-blue-950/20 text-blue-600 dark:text-blue-400 group-hover:scale-105 transition-transform">
                         <MessageSquare className="size-4" />
                       </div>
                       {contactChannel === "inbox" && (
-                        <div className="bg-primary text-primary-foreground rounded-full p-0.5">
+                        <div className="bg-blue-600 text-white rounded-full p-0.5">
                           <Check className="size-3" />
                         </div>
                       )}
@@ -759,7 +759,7 @@ export function CompanySettingsView({ user, initialProfile, initialPauseState }:
 
                     {/* Progress Bar */}
                     <div className="space-y-1.5 mt-4">
-                      <Progress value={credits} max={10} className="bg-primary/10 h-2" />
+                      <Progress value={credits} max={10} className="bg-blue-100 dark:bg-blue-950/40 h-2" />
                       <div className="flex justify-between text-[10px] text-muted-foreground">
                         <span>{credits} créditos</span>
                         <span>Límite de 10 mensuales</span>
@@ -851,15 +851,15 @@ export function CompanySettingsView({ user, initialProfile, initialPauseState }:
               className={cn(
                 "flex items-center justify-between p-3.5 rounded-2xl border cursor-pointer transition-all duration-200 bg-card select-none",
                 selectedCreditsPackage?.credits === 1
-                  ? "border-primary bg-primary/[0.01]"
-                  : "border-border hover:border-primary/50"
+                  ? "border-blue-500 bg-blue-500/[0.01]"
+                  : "border-border hover:border-blue-500/50"
               )}
             >
               <div>
                 <h4 className="text-xs font-bold text-foreground">1 Crédito Básico</h4>
                 <p className="text-[9px] text-muted-foreground mt-0.5">Ideal para una publicación esporádica.</p>
               </div>
-              <span className="text-xs font-bold text-primary font-mono">$99 MXN</span>
+              <span className="text-xs font-bold text-blue-600 dark:text-blue-400 font-mono">$99 MXN</span>
             </div>
 
             {/* Package 2 */}
@@ -868,8 +868,8 @@ export function CompanySettingsView({ user, initialProfile, initialPauseState }:
               className={cn(
                 "flex items-center justify-between p-3.5 rounded-2xl border cursor-pointer transition-all duration-200 bg-card select-none relative",
                 selectedCreditsPackage?.credits === 5
-                  ? "border-primary bg-primary/[0.01]"
-                  : "border-border hover:border-primary/50"
+                  ? "border-blue-500 bg-blue-500/[0.01]"
+                  : "border-border hover:border-blue-500/50"
               )}
             >
               <div>
@@ -881,7 +881,7 @@ export function CompanySettingsView({ user, initialProfile, initialPauseState }:
                 </h4>
                 <p className="text-[9px] text-muted-foreground mt-0.5">Recomendado para reclutadores activos.</p>
               </div>
-              <span className="text-xs font-bold text-primary font-mono">$399 MXN</span>
+              <span className="text-xs font-bold text-blue-600 dark:text-blue-400 font-mono">$399 MXN</span>
             </div>
 
             {/* Package 3 */}
@@ -890,15 +890,15 @@ export function CompanySettingsView({ user, initialProfile, initialPauseState }:
               className={cn(
                 "flex items-center justify-between p-3.5 rounded-2xl border cursor-pointer transition-all duration-200 bg-card select-none",
                 selectedCreditsPackage?.credits === 10
-                  ? "border-primary bg-primary/[0.01]"
-                  : "border-border hover:border-primary/50"
+                  ? "border-blue-500 bg-blue-500/[0.01]"
+                  : "border-border hover:border-blue-500/50"
               )}
             >
               <div>
                 <h4 className="text-xs font-bold text-foreground">10 Créditos Pro</h4>
                 <p className="text-[9px] text-muted-foreground mt-0.5">Para agencias de empleo y reclutadores recurrentes.</p>
               </div>
-              <span className="text-xs font-bold text-primary font-mono">$699 MXN</span>
+              <span className="text-xs font-bold text-blue-600 dark:text-blue-400 font-mono">$699 MXN</span>
             </div>
           </div>
 
@@ -916,7 +916,7 @@ export function CompanySettingsView({ user, initialProfile, initialPauseState }:
             <Button
               disabled={!selectedCreditsPackage}
               onClick={handleConfirmPurchase}
-              className="rounded-2xl text-xs font-semibold h-8 select-none bg-primary text-primary-foreground hover:bg-primary/90"
+              className="rounded-2xl text-xs font-semibold h-8 select-none bg-blue-600 text-white hover:bg-blue-700"
             >
               Confirmar Pago
             </Button>
@@ -939,7 +939,7 @@ export function CompanySettingsView({ user, initialProfile, initialPauseState }:
             <div
               className={cn(
                 "flex flex-col justify-between p-4 rounded-2xl border bg-card text-center gap-4 relative",
-                currentPlan === "Gratis" ? "border-primary/50" : "border-border/60"
+                currentPlan === "Gratis" ? "border-blue-500/50" : "border-border/60"
               )}
             >
               <div>

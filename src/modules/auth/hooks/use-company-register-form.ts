@@ -13,12 +13,9 @@ export function useCompanyRegisterForm() {
   const form = useForm<CompanyRegisterValues>({
     resolver: zodResolver(companyRegisterSchema),
     defaultValues: {
-      companyName: "",
+      full_name: "",
       email: "",
       password: "",
-      industry: "",
-      websiteOrLinkedin: "",
-      location: "",
     }
   });
 

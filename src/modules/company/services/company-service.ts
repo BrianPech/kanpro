@@ -70,7 +70,7 @@ export const companyService = {
         id: userId,
         company_name: profile.company_name,
         industry: profile.industry,
-        website_or_linkedin: profile.website_or_linkedin || null,
+        website_or_linkedin: profile.website || null,
         logo_url: profile.logo_url || null,
         description: profile.description || null,
         phone: profile.phone || null,
