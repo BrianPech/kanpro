@@ -156,10 +156,38 @@ export function useVacancyManager() {
     }
   }, [supabase]);
 
+  /**
+   * Elimina una vacante por ID.
+   */
+  const deleteVacancy = useCallback(async (vacancyId: string): Promise<boolean> => {
+    setLoading(true);
+    setError(null);
+
+    try {
+      const { error: deleteError } = await supabase
+        .from("vacancies")
+        .delete()
+        .eq("id", vacancyId);
+
+      if (deleteError) {
+        throw new Error(deleteError.message);
+      }
+
+      return true;
+    } catch (err: any) {
+      console.error(err);
+      setError(err.message || "Error al eliminar la vacante.");
+      throw err;
+    } finally {
+      setLoading(false);
+    }
+  }, [supabase]);
+
   return {
     createExpressVacancy,
     toggleVacancyStatus,
     fetchCompanyVacancies,
+    deleteVacancy,
     loading,
     error,
   };

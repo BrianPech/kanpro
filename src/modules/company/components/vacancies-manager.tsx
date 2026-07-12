@@ -7,11 +7,13 @@ import {
   Briefcase,
   MapPin,
   CheckCircle2,
-  FileCheck,
+  MoreHorizontal,
+  Eye,
+  Edit2,
+  Trash2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useVacancyManager, type VacancyRow } from "@/hooks/use-vacancy-manager";
@@ -19,39 +21,21 @@ import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { createClient } from "@/lib/supabase/client";
 import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import Link from "next/link";
-
-// Custom Switch component for local use
-function Switch({
-  checked,
-  onCheckedChange,
-  disabled,
-}: {
-  checked: boolean;
-  onCheckedChange: (checked: boolean) => void;
-  disabled?: boolean;
-}) {
-  return (
-    <button
-      type="button"
-      role="switch"
-      aria-checked={checked}
-      disabled={disabled}
-      onClick={() => onCheckedChange(!checked)}
-      className={cn(
-        "relative inline-flex h-6 w-11 shrink-0 cursor-pointer items-center rounded-full border-2 border-transparent transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:cursor-not-allowed disabled:opacity-50",
-        checked ? "bg-primary" : "bg-slate-200 dark:bg-slate-800"
-      )}
-    >
-      <span
-        className={cn(
-          "pointer-events-none block h-5 w-5 rounded-full bg-background shadow-lg ring-0 transition-transform duration-200",
-          checked ? "translate-x-5" : "translate-x-0"
-        )}
-      />
-    </button>
-  );
-}
 
 export function VacanciesManager({ userId }: { userId: string }) {
   const [vacancies, setVacancies] = React.useState<VacancyRow[]>([]);
@@ -106,6 +90,7 @@ export function VacanciesManager({ userId }: { userId: string }) {
   const {
     toggleVacancyStatus,
     fetchCompanyVacancies,
+    deleteVacancy,
     loading: isLoading,
   } = useVacancyManager();
 
@@ -150,15 +135,61 @@ export function VacanciesManager({ userId }: { userId: string }) {
     }
   };
 
+  const handleDeleteVacancy = async (id: string) => {
+    if (confirm("¿Estás seguro de que deseas eliminar esta vacante?")) {
+      try {
+        const success = await deleteVacancy(id);
+        if (success) {
+          setVacancies((prev) => prev.filter((v) => v.id !== id));
+          toast.success("Vacante eliminada con éxito");
+        }
+      } catch (err: any) {
+        toast.error("Error al eliminar la vacante", {
+          description: err.message,
+        });
+      }
+    }
+  };
+
   // Filtered vacancies for list view
   const filteredVacancies = React.useMemo(() => {
     return vacancies.filter(
       (v) =>
         v.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
         v.category?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        v.zone?.toLowerCase().includes(searchQuery.toLowerCase())
+        v.zone?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        v.location?.toLowerCase().includes(searchQuery.toLowerCase())
     );
   }, [vacancies, searchQuery]);
+
+  // Formatter helpers
+  const formatSalary = (min: number | null, max: number | null) => {
+    const formatter = new Intl.NumberFormat("es-MX", {
+      style: "currency",
+      currency: "MXN",
+      maximumFractionDigits: 0,
+    });
+
+    if (min != null && max != null) {
+      return `${formatter.format(min)} - ${formatter.format(max)}`;
+    } else if (min != null) {
+      return `Desde ${formatter.format(min)}`;
+    } else if (max != null) {
+      return `Hasta ${formatter.format(max)}`;
+    }
+    return "No especificado";
+  };
+
+  const formatDate = (dateStr: string) => {
+    const date = new Date(dateStr);
+    return date
+      .toLocaleDateString("es-MX", {
+        day: "2-digit",
+        month: "short",
+        year: "numeric",
+      })
+      .replace(".", "");
+  };
 
   return (
     <div className="flex-grow min-h-screen bg-slate-50/50 dark:bg-slate-950/20 px-4 py-8 md:px-10 lg:px-12 space-y-8 animate-in fade-in duration-300">
@@ -183,7 +214,7 @@ export function VacanciesManager({ userId }: { userId: string }) {
             )}
           </div>
           <p className="text-xs md:text-sm text-muted-foreground mt-1 font-semibold">
-            Controla las ofertas activas y marca las plazas cubiertas.
+            Controla las ofertas activas y marca las plazas cubiertas desde tu panel.
           </p>
         </div>
 
@@ -227,42 +258,28 @@ export function VacanciesManager({ userId }: { userId: string }) {
         </Alert>
       )}
 
-      {/* ================= VISTA B: EL GESTOR DE VACANTES EXPRESS ================= */}
+      {/* ================= GESTOR DE VACANTES: DATA TABLE ================= */}
       <div className="space-y-6">
-        {/* Search bar list controller */}
+        {/* Search bar controller */}
         <div className="relative max-w-md">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground size-4" />
           <Input
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="pl-10 pr-4 h-12 bg-card border-border/60 rounded-xl text-sm font-semibold focus-visible:ring-primary/20"
-            placeholder="Buscar por título, categoría o zona..."
+            placeholder="Buscar por título, categoría o ubicación..."
           />
         </div>
 
-        {/* Vacancies Feed / List */}
+        {/* Data Table */}
         {isLoading ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-            {[1, 2, 3].map((n) => (
-              <Card key={n} className="border border-border/40 p-6 bg-card">
-                <div className="space-y-4">
-                  <div className="flex items-center justify-between">
-                    <Skeleton className="h-5 w-24 animate-pulse" />
-                    <Skeleton className="h-5 w-16 animate-pulse" />
-                  </div>
-                  <div className="space-y-2">
-                    <Skeleton className="h-5 w-40 animate-pulse" />
-                    <Skeleton className="h-3 w-28 animate-pulse" />
-                  </div>
-                  <Skeleton className="h-4 w-32 animate-pulse" />
-                  <Skeleton className="h-10 w-full animate-pulse" />
-                  <div className="pt-4 border-t border-border/20 flex items-center justify-between">
-                    <Skeleton className="h-6 w-16 animate-pulse" />
-                    <Skeleton className="h-5 w-20 animate-pulse" />
-                  </div>
-                </div>
-              </Card>
-            ))}
+          <div className="border border-zinc-200 dark:border-zinc-800 rounded-2xl bg-white dark:bg-zinc-950 overflow-hidden shadow-sm">
+            <div className="p-6 space-y-4">
+              <Skeleton className="h-10 w-full rounded-lg" />
+              <Skeleton className="h-16 w-full rounded-lg" />
+              <Skeleton className="h-16 w-full rounded-lg" />
+              <Skeleton className="h-16 w-full rounded-lg" />
+            </div>
           </div>
         ) : filteredVacancies.length === 0 ? (
           <div className="text-center py-20 text-muted-foreground border-2 border-dashed border-border/40 rounded-3xl bg-card/20">
@@ -271,86 +288,114 @@ export function VacanciesManager({ userId }: { userId: string }) {
             <p className="text-xs mt-1">Presiona "Nueva Vacante" para iniciar en 30 segundos.</p>
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-            {filteredVacancies.map((vacancy) => (
-              <Card
-                key={vacancy.id}
-                className={cn(
-                  "border border-border/50 rounded-3xl overflow-hidden transition-all duration-300 shadow-sm",
-                  !vacancy.is_active ? "opacity-75 bg-slate-50/50 dark:bg-slate-900/10" : "bg-card"
-                )}
-              >
-                <CardContent className="p-6 flex flex-col justify-between h-full gap-5">
-                  <div className="space-y-3">
-                    {/* Badge / Status Tag */}
-                    <div className="flex items-center justify-between gap-3">
-                      <Badge
-                        variant="secondary"
-                        className={cn(
-                          "text-[9px] font-bold tracking-wider uppercase px-2 h-5 flex items-center border",
-                          vacancy.is_active
-                            ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20"
-                            : "bg-slate-100 text-slate-600 border-slate-200 dark:bg-slate-800 dark:text-slate-300 dark:border-slate-700"
-                        )}
-                      >
-                        {vacancy.is_active ? "Activa / Buscando" : "Vacante Cubierta"}
-                      </Badge>
-                      
-                      {!vacancy.is_active && (
-                        <Badge className="bg-emerald-600/15 hover:bg-emerald-600/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 font-extrabold text-[9px] uppercase tracking-wider px-2 h-5 flex items-center gap-1">
-                          <FileCheck className="size-3" />
-                          <span>Colocación Exitosa</span>
-                        </Badge>
+          <div className="border border-zinc-200 dark:border-zinc-800 rounded-2xl bg-white dark:bg-zinc-950 overflow-hidden shadow-sm">
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader className="bg-zinc-50/70 dark:bg-zinc-900/50">
+                  <TableRow className="border-b border-zinc-200 dark:border-zinc-800 hover:bg-transparent">
+                    <TableHead className="font-bold text-xs uppercase tracking-wider text-muted-foreground py-4">Puesto</TableHead>
+                    <TableHead className="font-bold text-xs uppercase tracking-wider text-muted-foreground py-4">Ubicación</TableHead>
+                    <TableHead className="font-bold text-xs uppercase tracking-wider text-muted-foreground py-4">Sueldo</TableHead>
+                    <TableHead className="font-bold text-xs uppercase tracking-wider text-muted-foreground py-4">Estado</TableHead>
+                    <TableHead className="font-bold text-xs uppercase tracking-wider text-muted-foreground py-4">Fecha</TableHead>
+                    <TableHead className="font-bold text-xs uppercase tracking-wider text-muted-foreground py-4 text-right w-[80px]">Acciones</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {filteredVacancies.map((vacancy) => (
+                    <TableRow
+                      key={vacancy.id}
+                      className={cn(
+                        "border-b border-zinc-100 dark:border-zinc-800/60 transition-colors hover:bg-zinc-50/50 dark:hover:bg-zinc-900/20",
+                        !vacancy.is_active && "opacity-75"
                       )}
-                    </div>
+                    >
+                      {/* Puesto Column */}
+                      <TableCell className="py-4">
+                        <div className="flex flex-col gap-0.5">
+                          <span className="font-semibold text-sm text-zinc-900 dark:text-zinc-50">
+                            {vacancy.title}
+                          </span>
+                          <span className="text-xs text-muted-foreground">
+                            {vacancy.category}
+                          </span>
+                        </div>
+                      </TableCell>
 
-                    {/* Info principal */}
-                    <div className="space-y-1">
-                      <h3 className="font-extrabold text-base md:text-lg text-foreground line-clamp-1">
-                        {vacancy.title}
-                      </h3>
-                      <p className="text-xs font-semibold text-primary">{vacancy.category}</p>
-                    </div>
+                      {/* Ubicación Column */}
+                      <TableCell className="py-4">
+                        <div className="flex items-center gap-1.5 text-xs text-muted-foreground font-semibold">
+                          <MapPin className="size-3.5 text-zinc-400 shrink-0" />
+                          <span>{vacancy.zone || vacancy.location}</span>
+                        </div>
+                      </TableCell>
 
-                    {/* Locación */}
-                    <div className="flex items-center gap-1.5 text-xs text-muted-foreground font-semibold">
-                      <MapPin className="size-3.5 text-slate-400 shrink-0" />
-                      <span className="truncate">{vacancy.zone || vacancy.location}</span>
-                    </div>
+                      {/* Sueldo Column */}
+                      <TableCell className="py-4 font-bold text-xs text-zinc-800 dark:text-zinc-200">
+                        {formatSalary(vacancy.salary_min, vacancy.salary_max)}
+                      </TableCell>
 
-                    {/* Requisitos extracto */}
-                    <p className="text-xs text-slate-600 dark:text-slate-400 font-medium line-clamp-3 leading-relaxed">
-                      {vacancy.requirements || vacancy.description}
-                    </p>
-                  </div>
+                      {/* Estado Column */}
+                      <TableCell className="py-4">
+                        <Badge
+                          variant="secondary"
+                          onClick={() => handleToggleActive(vacancy.id, vacancy.is_active)}
+                          className={cn(
+                            "text-[10px] font-bold tracking-wider uppercase px-2.5 h-6 flex items-center w-fit border cursor-pointer hover:opacity-85 select-none",
+                            vacancy.is_active
+                              ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20"
+                              : "bg-zinc-100 text-zinc-600 border-zinc-200 dark:bg-zinc-800 dark:text-zinc-300 dark:border-zinc-700"
+                          )}
+                        >
+                          {vacancy.is_active ? "Activa" : "Pausada"}
+                        </Badge>
+                      </TableCell>
 
-                  {/* Footer Actions (Toggles and Metrics) */}
-                  <div className="pt-4 border-t border-border/40 flex items-center justify-between gap-4">
-                    <div className="flex items-center gap-2">
-                      <Switch
-                        checked={vacancy.is_active}
-                        onCheckedChange={() => handleToggleActive(vacancy.id, vacancy.is_active)}
-                      />
-                      <span className="text-xs font-bold text-slate-700 dark:text-slate-300">
-                        {vacancy.is_active ? "Activa" : "Cubierta"}
-                      </span>
-                    </div>
+                      {/* Fecha Column */}
+                      <TableCell className="py-4 text-xs text-muted-foreground font-semibold">
+                        {formatDate(vacancy.created_at)}
+                      </TableCell>
 
-                    {(vacancy.salary_min != null || vacancy.salary_max != null) && (
-                      <span className="text-xs font-extrabold text-foreground px-3 py-1 bg-muted/60 dark:bg-muted/20 rounded-md">
-                        {vacancy.salary_min != null && vacancy.salary_max != null
-                          ? `MXN ${vacancy.salary_min.toLocaleString()} - ${vacancy.salary_max.toLocaleString()}`
-                          : vacancy.salary_min != null
-                          ? `Desde MXN ${vacancy.salary_min.toLocaleString()}`
-                          : vacancy.salary_max != null
-                          ? `Hasta MXN ${vacancy.salary_max.toLocaleString()}`
-                          : ""}
-                      </span>
-                    )}
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
+                      {/* Acciones Column */}
+                      <TableCell className="py-4 text-right">
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-8 w-8 p-0 rounded-lg border border-border/10 hover:bg-muted"
+                            >
+                              <MoreHorizontal className="h-4 w-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end" className="rounded-xl border border-border/40 bg-popover min-w-[140px] shadow-md">
+                            <DropdownMenuItem asChild className="cursor-pointer text-xs font-semibold text-zinc-700 dark:text-zinc-300 rounded-lg hover:bg-muted py-2 gap-2">
+                              <Link href={`/dashboard/candidate/discovery?jobId=${vacancy.id}`}>
+                                <Eye className="size-3.5 text-zinc-400" />
+                                <span>Ver detalles</span>
+                              </Link>
+                            </DropdownMenuItem>
+                            <DropdownMenuItem asChild className="cursor-pointer text-xs font-semibold text-zinc-700 dark:text-zinc-300 rounded-lg hover:bg-muted py-2 gap-2">
+                              <Link href={`/dashboard/company/vacancies/${vacancy.id}/edit`}>
+                                <Edit2 className="size-3.5 text-zinc-400" />
+                                <span>Editar</span>
+                              </Link>
+                            </DropdownMenuItem>
+                            <DropdownMenuItem
+                              onClick={() => handleDeleteVacancy(vacancy.id)}
+                              className="cursor-pointer text-xs font-semibold text-red-600 focus:text-red-700 rounded-lg hover:bg-red-500/5 focus:bg-red-500/5 py-2 gap-2"
+                            >
+                              <Trash2 className="size-3.5 text-red-500" />
+                              <span>Eliminar</span>
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
           </div>
         )}
       </div>
