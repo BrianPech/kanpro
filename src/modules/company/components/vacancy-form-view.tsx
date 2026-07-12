@@ -115,6 +115,8 @@ export function VacancyFormView({ userId }: { userId: string }) {
         category,
         requirements,
         salary_range: salaryRangeText,
+        salary_min: minVal ? Number(minVal) : null,
+        salary_max: maxVal ? Number(maxVal) : null,
         modality: "Presencial",
         employment_type: employmentType,
       });
