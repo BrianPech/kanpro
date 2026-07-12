@@ -183,11 +183,39 @@ export function useVacancyManager() {
     }
   }, [supabase]);
 
+  /**
+   * Actualiza una vacante por ID.
+   */
+  const updateVacancy = useCallback(async (vacancyId: string, payload: Partial<VacancyRow>): Promise<boolean> => {
+    setLoading(true);
+    setError(null);
+
+    try {
+      const { error: updateError } = await supabase
+        .from("vacancies")
+        .update(payload)
+        .eq("id", vacancyId);
+
+      if (updateError) {
+        throw new Error(updateError.message);
+      }
+
+      return true;
+    } catch (err: any) {
+      console.error(err);
+      setError(err.message || "Error al actualizar la vacante.");
+      throw err;
+    } finally {
+      setLoading(false);
+    }
+  }, [supabase]);
+
   return {
     createExpressVacancy,
     toggleVacancyStatus,
     fetchCompanyVacancies,
     deleteVacancy,
+    updateVacancy,
     loading,
     error,
   };
