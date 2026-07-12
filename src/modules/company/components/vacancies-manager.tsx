@@ -370,7 +370,7 @@ export function VacanciesManager({ userId }: { userId: string }) {
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="end" className="rounded-xl border border-border/40 bg-popover min-w-[140px] shadow-md">
                             <DropdownMenuItem asChild className="cursor-pointer text-xs font-semibold text-zinc-700 dark:text-zinc-300 rounded-lg hover:bg-muted py-2 gap-2">
-                              <Link href={`/dashboard/candidate/discovery?jobId=${vacancy.id}`}>
+                              <Link href={`/dashboard/company/vacancies/${vacancy.id}`}>
                                 <Eye className="size-3.5 text-zinc-400" />
                                 <span>Ver detalles</span>
                               </Link>
