@@ -56,7 +56,10 @@ export function useCandidateRegisterForm() {
 
   return {
     register: form.register,
-    handleSubmit: form.handleSubmit,
+    handleSubmit: (onValid: any) => form.handleSubmit(onValid, (errors) => {
+      console.error("❌ Errores de validación ocultos de Zod:", errors);
+      toast.error("Por favor rellena todos los campos requeridos.");
+    }),
     errors: form.formState.errors,
     isSubmitting: form.formState.isSubmitting,
     showPassword,

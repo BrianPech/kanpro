@@ -5,7 +5,7 @@ export const companyRegisterSchema = z.object({
   email: z.string().email("Correo electrónico inválido"),
   password: z.string().min(8, "Mínimo 8 caracteres"),
   industry: z.string().min(2, "Por favor, ingrese su industria"),
-  websiteOrLinkedin: z.string().url("Por favor ingrese una URL válida"),
+  websiteOrLinkedin: z.string().optional().or(z.literal("")),
   location: z.string().min(2, "Por favor, ingrese su ubicación"),
 });
 

@@ -225,7 +225,9 @@ export type Database = {
         Row: {
           company_name: string
           company_size: string | null
+          contact_channel: string
           created_at: string
+          credits_available: number
           description: string | null
           id: string
           industry: string | null
@@ -238,7 +240,9 @@ export type Database = {
         Insert: {
           company_name: string
           company_size?: string | null
+          contact_channel?: string
           created_at?: string
+          credits_available?: number
           description?: string | null
           id: string
           industry?: string | null
@@ -251,7 +255,9 @@ export type Database = {
         Update: {
           company_name?: string
           company_size?: string | null
+          contact_channel?: string
           created_at?: string
+          credits_available?: number
           description?: string | null
           id?: string
           industry?: string | null

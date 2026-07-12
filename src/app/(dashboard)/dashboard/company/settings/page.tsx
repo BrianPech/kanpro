@@ -1,5 +1,53 @@
-import { SettingsView } from "@/components/dashboard/settings-view";
+import { CompanySettingsView } from "@/modules/company/components/settings-view";
+import { createClient } from "@/lib/supabase/server";
+import { redirect } from "next/navigation";
 
-export default function CompanySettingsPage() {
-  return <SettingsView />;
+export default async function CompanySettingsPage() {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+
+  if (!user) {
+    redirect("/login");
+  }
+
+  // Fetch the company profile details
+  const { data: profile } = await supabase
+    .from("company_profiles")
+    .select("*")
+    .eq("id", user.id)
+    .single();
+
+  // Fetch vacancies to determine the initial global pause status
+  const { data: vacancies } = await supabase
+    .from("vacancies")
+    .select("id, is_active")
+    .eq("company_id", user.id);
+
+  // If there are vacancies, recruitment is paused if ALL vacancies are inactive.
+  // If there are no vacancies, we default to active (false).
+  const hasVacancies = vacancies && vacancies.length > 0;
+  const hasActiveVacancies = vacancies && vacancies.some((v: { is_active: boolean }) => v.is_active);
+  const initialPauseState = hasVacancies ? !hasActiveVacancies : false;
+
+  const defaultProfile = {
+    id: user.id,
+    company_name: profile?.company_name || "Mi Empresa",
+    credits_available: profile?.credits_available ?? 3,
+    contact_channel: profile?.contact_channel || "whatsapp",
+    logo_url: profile?.logo_url || null,
+    description: profile?.description || null,
+    phone: profile?.phone || null,
+    company_size: profile?.company_size || null,
+    industry: profile?.industry || null,
+    website_or_linkedin: profile?.website_or_linkedin || null,
+    whatsapp_number: profile?.whatsapp_number || ""
+  };
+
+  return (
+    <CompanySettingsView
+      user={{ id: user.id, email: user.email || "" }}
+      initialProfile={defaultProfile}
+      initialPauseState={initialPauseState}
+    />
+  );
 }
