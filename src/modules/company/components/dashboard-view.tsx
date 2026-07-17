@@ -74,27 +74,17 @@ export function DashboardView({
     }, 1500)
   }
 
-  // Mouse move interactive shine glow handler for glassmorphism bento cards
-  const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
-    const card = e.currentTarget
-    const rect = card.getBoundingClientRect()
-    const x = e.clientX - rect.left
-    const y = e.clientY - rect.top
-    card.style.setProperty("--mouse-x", `${x}px`)
-    card.style.setProperty("--mouse-y", `${y}px`)
-  }
-
   return (
-    <div className="flex-grow min-h-screen bg-background/50 dark:bg-background/20 px-4 md:px-10 lg:px-12 py-10 space-y-12 animate-in fade-in duration-500">
+    <div className="flex-grow min-h-screen bg-[#fafafa] dark:bg-zinc-950/20 px-4 md:px-10 lg:px-12 py-10 space-y-10 max-w-[1400px] mx-auto w-full animate-in fade-in duration-300">
       
       {/* Dashboard Header Banner */}
-      <section className="flex flex-col md:flex-row md:items-end justify-between gap-6">
+      <section className="flex flex-col md:flex-row md:items-end justify-between gap-6 pb-2 border-b border-border/10">
         <div>
-          <h2 className="text-3xl font-extrabold tracking-tight text-slate-900 dark:text-slate-100 md:text-4xl">
+          <h2 className="text-2xl font-bold tracking-tight text-zinc-900 dark:text-zinc-50 md:text-3xl">
             Dashboard Empresarial
           </h2>
-          <p className="text-sm md:text-base text-slate-600 dark:text-slate-300 mt-2 font-medium">
-            Bienvenido de nuevo, <span className="text-indigo-600 dark:text-indigo-300 font-bold">{companyName}</span>. Aquí tienes el resumen de tu actividad de reclutamiento.
+          <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-1.5 font-medium">
+            Bienvenido de nuevo, <span className="text-zinc-900 dark:text-zinc-50 font-bold">{companyName}</span>. Resumen de tu actividad de reclutamiento.
           </p>
         </div>
         
@@ -102,12 +92,12 @@ export function DashboardView({
           <Button 
             onClick={handleDownloadReport}
             disabled={isDownloading}
-            className="flex items-center gap-2 border border-indigo-500/20 dark:border-indigo-500/40 bg-card hover:bg-indigo-500/5 text-indigo-600 dark:text-indigo-300 font-semibold px-6 py-5 rounded-xl h-auto active:scale-95 transition-all shadow-sm"
+            className="flex items-center gap-2 border border-border/10 bg-white dark:bg-zinc-900 hover:bg-zinc-50 dark:hover:bg-zinc-800 text-zinc-900 dark:text-zinc-100 text-xs font-semibold px-4 py-3 rounded-lg h-9 active:scale-[0.98] transition-all shadow-none"
           >
             {isDownloading ? (
-              <Loader2 className="size-4 animate-spin text-indigo-600 dark:text-indigo-300" />
+              <Loader2 className="size-3.5 animate-spin text-zinc-500" />
             ) : (
-              <Download className="size-4 text-indigo-600 dark:text-indigo-300" />
+              <Download className="size-3.5 text-zinc-500" />
             )}
             <span>{isDownloading ? "Descargando..." : "Descargar Reporte"}</span>
           </Button>
@@ -123,95 +113,73 @@ export function DashboardView({
           className="no-underline block"
         >
           <div 
-            onMouseMove={handleMouseMove}
-            className="glass-card p-6 md:p-8 rounded-[24px] flex flex-col gap-4 group cursor-pointer relative overflow-hidden h-full"
+            className="bg-white dark:bg-zinc-900 border border-border/10 p-6 md:p-8 rounded-xl flex flex-col gap-4 group cursor-pointer relative overflow-hidden h-full shadow-none hover:border-zinc-350 dark:hover:border-zinc-700 transition-all duration-200"
           >
-            {/* Shine glowing radial effect */}
-            <div 
-              className="absolute inset-0 pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-[24px]"
-              style={{
-                background: "radial-gradient(300px circle at var(--mouse-x, 0px) var(--mouse-y, 0px), rgba(99, 102, 241, 0.08), transparent 80%)"
-              }}
-            />
-            <div className="w-12 h-12 bg-indigo-500/10 dark:bg-indigo-500/20 rounded-2xl flex items-center justify-center text-indigo-600 dark:text-indigo-300 relative z-10">
-              <Briefcase className="size-6 fill-indigo-500/20 dark:fill-indigo-500/30" />
+            <div className="w-10 h-10 bg-zinc-50 dark:bg-zinc-800 rounded-lg flex items-center justify-center text-zinc-650 dark:text-zinc-400">
+              <Briefcase className="size-5" />
             </div>
-            <div className="relative z-10">
-              <p className="text-[12px] font-bold text-slate-600 dark:text-slate-300 uppercase tracking-wider">
+            <div>
+              <p className="text-[11px] font-bold text-zinc-400 uppercase tracking-wider">
                 Vacantes activas
               </p>
-              <h3 className="text-4xl font-extrabold text-slate-900 dark:text-slate-100 mt-1 tracking-tight font-sans">
+              <h3 className="text-3xl font-semibold text-zinc-900 dark:text-zinc-50 mt-1 tracking-tight font-mono">
                 {metrics.activeVacancies}
               </h3>
             </div>
-            <div className="flex items-center text-indigo-600 dark:text-indigo-300 gap-1 mt-auto relative z-10 font-semibold text-xs">
+            <div className="flex items-center text-zinc-500 dark:text-zinc-400 gap-1 mt-auto font-semibold text-xs transition-colors group-hover:text-zinc-950 dark:group-hover:text-zinc-100">
               <span>Gestionar puestos</span>
-              <ArrowRight className="size-3 group-hover:translate-x-1 transition-transform" />
+              <ArrowRight className="size-3.5 group-hover:translate-x-0.5 transition-transform" />
             </div>
           </div>
         </Link>
 
         {/* Metric 2 - Postulaciones totales */}
         <Link 
-          href="/dashboard/company/inbox"
+          href="/dashboard/company/applications"
           className="no-underline block"
         >
           <div 
-            onMouseMove={handleMouseMove}
-            className="glass-card p-6 md:p-8 rounded-[24px] flex flex-col gap-4 group cursor-pointer relative overflow-hidden h-full"
+            className="bg-white dark:bg-zinc-900 border border-border/10 p-6 md:p-8 rounded-xl flex flex-col gap-4 group cursor-pointer relative overflow-hidden h-full shadow-none hover:border-zinc-350 dark:hover:border-zinc-700 transition-all duration-200"
           >
-            <div 
-              className="absolute inset-0 pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-[24px]"
-              style={{
-                background: "radial-gradient(300px circle at var(--mouse-x, 0px) var(--mouse-y, 0px), rgba(99, 102, 241, 0.08), transparent 80%)"
-              }}
-            />
-            <div className="w-12 h-12 bg-blue-500/10 dark:bg-blue-500/20 rounded-2xl flex items-center justify-center text-blue-600 dark:text-blue-300 relative z-10">
-              <Users className="size-6 fill-blue-500/20 dark:fill-blue-500/30" />
+            <div className="w-10 h-10 bg-zinc-50 dark:bg-zinc-800 rounded-lg flex items-center justify-center text-zinc-650 dark:text-zinc-400">
+              <Users className="size-5" />
             </div>
-            <div className="relative z-10">
-              <p className="text-[12px] font-bold text-slate-600 dark:text-slate-300 uppercase tracking-wider">
+            <div>
+              <p className="text-[11px] font-bold text-zinc-400 uppercase tracking-wider">
                 Postulaciones totales
               </p>
-              <h3 className="text-4xl font-extrabold text-slate-900 dark:text-slate-100 mt-1 tracking-tight font-sans">
+              <h3 className="text-3xl font-semibold text-zinc-900 dark:text-zinc-50 mt-1 tracking-tight font-mono">
                 {metrics.totalApplications}
               </h3>
             </div>
-            <div className="flex items-center text-blue-600 dark:text-blue-300 gap-1 mt-auto relative z-10 font-semibold text-xs">
+            <div className="flex items-center text-zinc-500 dark:text-zinc-400 gap-1 mt-auto font-semibold text-xs transition-colors group-hover:text-zinc-950 dark:group-hover:text-zinc-100">
               <span>Ver bandeja de entrada</span>
-              <ArrowRight className="size-3 group-hover:translate-x-1 transition-transform" />
+              <ArrowRight className="size-3.5 group-hover:translate-x-0.5 transition-transform" />
             </div>
           </div>
         </Link>
 
         {/* Metric 3 - Perfiles en revisión */}
         <Link 
-          href="/dashboard/company/inbox"
+          href="/dashboard/company/applications"
           className="no-underline block"
         >
           <div 
-            onMouseMove={handleMouseMove}
-            className="glass-card p-6 md:p-8 rounded-[24px] flex flex-col gap-4 group cursor-pointer relative overflow-hidden h-full"
+            className="bg-white dark:bg-zinc-900 border border-border/10 p-6 md:p-8 rounded-xl flex flex-col gap-4 group cursor-pointer relative overflow-hidden h-full shadow-none hover:border-zinc-350 dark:hover:border-zinc-700 transition-all duration-200"
           >
-            <div 
-              className="absolute inset-0 pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-[24px]"
-              style={{
-                background: "radial-gradient(300px circle at var(--mouse-x, 0px) var(--mouse-y, 0px), rgba(99, 102, 241, 0.08), transparent 80%)"
-              }}
-            />
-            <div className="w-12 h-12 bg-amber-500/10 dark:bg-amber-500/20 rounded-2xl flex items-center justify-center text-amber-600 dark:text-amber-400 relative z-10">
-              <Clock className="size-6 fill-amber-500/20 dark:fill-amber-500/30" />
+            <div className="w-10 h-10 bg-zinc-50 dark:bg-zinc-800 rounded-lg flex items-center justify-center text-zinc-650 dark:text-zinc-400">
+              <Clock className="size-5" />
             </div>
-            <div className="relative z-10">
-              <p className="text-[12px] font-bold text-slate-600 dark:text-slate-300 uppercase tracking-wider">
+            <div>
+              <p className="text-[11px] font-bold text-zinc-400 uppercase tracking-wider">
                 Postulaciones pendientes
               </p>
-              <h3 className="text-4xl font-extrabold text-slate-900 dark:text-slate-100 mt-1 tracking-tight font-sans">
+              <h3 className="text-3xl font-semibold text-zinc-900 dark:text-zinc-50 mt-1 tracking-tight font-mono">
                 {metrics.reviewingApplications}
               </h3>
             </div>
-            <div className="flex items-center text-amber-700 dark:text-amber-400 gap-1 mt-auto relative z-10 font-semibold text-xs">
-              <Clock className="size-4 animate-pulse text-amber-500" />
+            <div className="flex items-center text-amber-600 dark:text-amber-400 gap-1 mt-auto font-semibold text-xs">
+              <Clock className="size-3.5 text-amber-500" />
               <span>Requieren revisión</span>
             </div>
           </div>
@@ -223,29 +191,22 @@ export function DashboardView({
           className="no-underline block"
         >
           <div 
-            onMouseMove={handleMouseMove}
-            className="glass-card p-6 md:p-8 rounded-[24px] flex flex-col gap-4 group cursor-pointer relative overflow-hidden h-full"
+            className="bg-white dark:bg-zinc-900 border border-border/10 p-6 md:p-8 rounded-xl flex flex-col gap-4 group cursor-pointer relative overflow-hidden h-full shadow-none hover:border-zinc-350 dark:hover:border-zinc-700 transition-all duration-200"
           >
-            <div 
-              className="absolute inset-0 pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-[24px]"
-              style={{
-                background: "radial-gradient(300px circle at var(--mouse-x, 0px) var(--mouse-y, 0px), rgba(99, 102, 241, 0.08), transparent 80%)"
-              }}
-            />
-            <div className="w-12 h-12 bg-emerald-500/10 dark:bg-emerald-500/20 rounded-2xl flex items-center justify-center text-emerald-600 dark:text-emerald-300 relative z-10">
-              <CalendarDays className="size-6 fill-emerald-500/20 dark:fill-emerald-500/30" />
+            <div className="w-10 h-10 bg-zinc-50 dark:bg-zinc-800 rounded-lg flex items-center justify-center text-zinc-650 dark:text-zinc-400">
+              <CalendarDays className="size-5" />
             </div>
-            <div className="relative z-10">
-              <p className="text-[12px] font-bold text-slate-600 dark:text-slate-300 uppercase tracking-wider">
+            <div>
+              <p className="text-[11px] font-bold text-zinc-400 uppercase tracking-wider">
                 Contactos Directos
               </p>
-              <h3 className="text-4xl font-extrabold text-slate-900 dark:text-slate-100 mt-1 tracking-tight font-sans">
+              <h3 className="text-3xl font-semibold text-zinc-900 dark:text-zinc-50 mt-1 tracking-tight font-mono">
                 {metrics.totalConnections}
               </h3>
             </div>
-            <div className="flex items-center text-emerald-600 dark:text-emerald-300 font-bold gap-1 mt-auto hover:text-emerald-700 transition-colors relative z-10 text-xs">
+            <div className="flex items-center text-zinc-500 dark:text-zinc-400 gap-1 mt-auto font-semibold text-xs transition-colors group-hover:text-zinc-950 dark:group-hover:text-zinc-100">
               <span>Buscar talento local</span>
-              <ArrowRight className="size-4 text-emerald-600 dark:text-emerald-300 group-hover:translate-x-1 transition-transform duration-300" />
+              <ArrowRight className="size-3.5 group-hover:translate-x-0.5 transition-transform" />
             </div>
           </div>
         </Link>
@@ -255,74 +216,74 @@ export function DashboardView({
       {/* Activity Feed Section */}
       <section className="space-y-6">
         <div className="flex items-center justify-between">
-          <h3 className="text-xl font-extrabold text-slate-900 dark:text-slate-100 tracking-tight md:text-2xl">
+          <h3 className="text-base font-bold text-zinc-900 dark:text-zinc-50 tracking-tight md:text-lg">
             Feed de Actividad Reciente
           </h3>
-          <Link href="/dashboard/company/inbox">
+          <Link href="/dashboard/company/applications">
             <Button 
               variant="ghost" 
-              className="text-indigo-600 dark:text-indigo-300 hover:text-indigo-700 dark:hover:text-indigo-200 font-bold text-sm hover:bg-indigo-500/5 active:scale-95 transition-all"
+              className="text-zinc-550 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 font-bold text-xs hover:bg-zinc-50 dark:hover:bg-zinc-900 active:scale-[0.98] transition-all h-8 rounded-lg"
             >
               Ver todo
             </Button>
           </Link>
         </div>
 
-        <div className="glass-card rounded-[24px] overflow-hidden shadow-sm">
+        <div className="bg-white dark:bg-zinc-900 border border-border/10 rounded-xl overflow-hidden shadow-none">
           {recentActivities.length === 0 ? (
-            <div className="text-center py-16 px-4 text-muted-foreground bg-card">
-              <Users className="size-12 stroke-[1.2] mx-auto mb-4 text-slate-300 dark:text-slate-700" />
+            <div className="text-center py-16 px-4 text-zinc-400 bg-white dark:bg-zinc-900">
+              <Users className="size-12 stroke-[1.2] mx-auto mb-4 text-zinc-200 dark:text-zinc-800" />
               <p className="text-sm font-semibold">No hay postulaciones recientes</p>
-              <p className="text-xs mt-1 max-w-sm mx-auto">
+              <p className="text-xs mt-1 max-w-sm mx-auto text-zinc-400">
                 Tus vacantes activas no han recibido postulaciones en los últimos días. ¡Usa el botón flotante para publicar otra oferta exprés!
               </p>
             </div>
           ) : (
             <>
               {/* Feed Header */}
-              <div className="hidden sm:grid grid-cols-12 px-8 py-4 bg-muted/20 dark:bg-muted/10 border-b border-border/40">
-                <div className="col-span-6 text-xs font-bold text-slate-600 dark:text-slate-400 uppercase tracking-wider">CANDIDATO</div>
-                <div className="col-span-4 text-xs font-bold text-slate-600 dark:text-slate-400 uppercase tracking-wider">HABILIDADES</div>
-                <div className="col-span-2 text-xs font-bold text-slate-600 dark:text-slate-400 uppercase tracking-wider text-right">TIEMPO</div>
+              <div className="hidden sm:grid grid-cols-12 px-8 py-3 bg-zinc-50/50 dark:bg-zinc-850/50 border-b border-border/10">
+                <div className="col-span-6 text-[10px] font-bold text-zinc-400 uppercase tracking-wider">CANDIDATO</div>
+                <div className="col-span-4 text-[10px] font-bold text-zinc-400 uppercase tracking-wider">HABILIDADES</div>
+                <div className="col-span-2 text-[10px] font-bold text-zinc-400 uppercase tracking-wider text-right">TIEMPO</div>
               </div>
 
               {/* List Items */}
-              <div className="divide-y divide-border/40">
+              <div className="divide-y divide-border/10">
                 {recentActivities.map((act) => (
                   <Link 
                     key={act.id}
-                    href="/dashboard/company/inbox"
+                    href="/dashboard/company/applications"
                     className="no-underline block"
                   >
-                    <div className="grid grid-cols-1 sm:grid-cols-12 px-6 sm:px-8 py-6 items-center hover:bg-muted/20 dark:hover:bg-muted/10 transition-colors cursor-pointer group gap-4 sm:gap-0">
+                    <div className="grid grid-cols-1 sm:grid-cols-12 px-6 sm:px-8 py-5 items-center hover:bg-zinc-50/50 dark:hover:bg-zinc-850/10 transition-colors cursor-pointer group gap-4 sm:gap-0">
                       <div className="col-span-12 sm:col-span-6 flex items-center gap-4">
                         <img 
                           alt={act.candidateName} 
-                          className="w-12 h-12 rounded-full object-cover border-2 border-indigo-500/10 dark:border-indigo-500/30 group-hover:scale-105 transition-transform duration-300 shadow-sm" 
+                          className="w-10 h-10 rounded-full object-cover border border-border/10 shadow-none" 
                           src={act.candidateAvatar || "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=100&h=100&fit=crop"} 
                         />
                         <div>
-                          <h4 className="text-sm md:text-base font-bold text-slate-900 dark:text-slate-100 group-hover:text-indigo-600 dark:group-hover:text-indigo-300 transition-colors">
+                          <h4 className="text-sm font-bold text-zinc-900 dark:text-zinc-50 transition-colors">
                             {act.candidateName}
                           </h4>
-                          <p className="text-xs md:text-sm text-slate-600 dark:text-slate-300 font-medium">
-                            {act.candidateHeadline} <span className="text-indigo-500/80 dark:text-indigo-400 font-semibold">• Postuló a {act.vacancyTitle}</span>
+                          <p className="text-xs text-zinc-500 dark:text-zinc-400 font-medium">
+                            {act.candidateHeadline} <span className="text-zinc-400 dark:text-zinc-500 font-semibold">• Postuló a {act.vacancyTitle}</span>
                           </p>
                         </div>
                       </div>
-                      <div className="col-span-12 sm:col-span-4 flex flex-wrap gap-2">
+                      <div className="col-span-12 sm:col-span-4 flex flex-wrap gap-1.5">
                         {act.skills.length === 0 ? (
-                          <span className="text-xs text-muted-foreground italic">Sin habilidades registradas</span>
+                          <span className="text-xs text-zinc-450 italic">Sin habilidades registradas</span>
                         ) : (
                           act.skills.map((skill: string) => (
-                            <span key={skill} className="px-3 py-1 bg-indigo-500/10 dark:bg-indigo-500/20 text-indigo-600 dark:text-indigo-300 text-[10px] font-bold rounded-full uppercase tracking-wider">
+                            <span key={skill} className="px-2 py-0.5 bg-zinc-50 dark:bg-zinc-800 text-zinc-550 dark:text-zinc-350 text-[9px] font-bold rounded-md uppercase tracking-wider border border-border/10">
                               {skill}
                             </span>
                           ))
                         )}
                       </div>
-                      <div className="col-span-12 sm:col-span-2 text-left sm:text-right">
-                        <p className="text-xs text-slate-600 dark:text-slate-400 font-semibold">
+                      <div className="col-span-12 sm:col-span-2 text-left sm:text-right font-mono text-xs text-zinc-400 dark:text-zinc-500">
+                        <p className="font-semibold">
                           {formatRelativeTime(act.createdAt)}
                         </p>
                       </div>
@@ -338,13 +299,12 @@ export function DashboardView({
       {/* Floating Action Button (FAB) persistent */}
       <Link 
         href="/dashboard/company/vacancies?create=true" 
-        className="fixed bottom-20 md:bottom-10 right-10 z-50 animate-bounce group"
+        className="fixed bottom-20 md:bottom-10 right-10 z-50 group"
         onClick={() => toast.info("Abriendo publicador...", { description: "Preparando formulario de nueva vacante." })}
-        style={{ animationDuration: "3s" }}
       >
-        <Button className="bg-primary hover:bg-secondary-container text-white px-6 py-6 rounded-full shadow-2xl flex items-center gap-3 transition-all duration-300 active:scale-95 h-auto md:px-8">
-          <Plus className="size-6 group-hover:rotate-90 transition-transform duration-300" />
-          <span className="font-extrabold tracking-wide text-xs md:text-sm">Publicar Nueva Vacante</span>
+        <Button className="bg-primary hover:bg-primary/95 text-primary-foreground px-5 py-5 rounded-lg shadow-lg flex items-center gap-2 transition-all duration-200 active:scale-[0.98] h-auto border-none">
+          <Plus className="size-5" />
+          <span className="font-bold tracking-tight text-xs md:text-sm">Publicar Nueva Vacante</span>
         </Button>
       </Link>
 

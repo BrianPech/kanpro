@@ -36,7 +36,10 @@ export default async function DashboardTopLayout({
   }
 
   return (
-    <div className="min-h-screen bg-background font-sans">
+    <div 
+      className="min-h-screen bg-background font-sans" 
+      style={{ "--font-sans": "var(--font-geist-sans)" } as React.CSSProperties}
+    >
       {children}
     </div>
   );

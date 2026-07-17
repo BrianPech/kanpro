@@ -66,114 +66,109 @@ export function CandidateDashboardView({ initialData }: CandidateDashboardViewPr
   }, [applications, selectedFilter, searchQuery]);
 
   const candidateName = profile?.full_name || "Candidato";
-
   const handleOpenAppDetails = (app: CandidateApplication) => {
     setSelectedApp(app);
     setIsAppSheetOpen(true);
   };
 
   return (
-    <div className="flex flex-col gap-8 p-4 md:p-10 lg:p-12 max-w-[1400px] mx-auto w-full animate-in fade-in slide-in-from-bottom-4 duration-500 bg-[#fafafc] dark:bg-zinc-950">
+    <div className="flex-grow min-h-screen bg-[#fafafa] dark:bg-zinc-950/20 px-4 md:px-10 lg:px-12 py-10 space-y-10 max-w-[1400px] mx-auto w-full animate-in fade-in duration-300">
       
       {/* Welcome & Profile Status Banner */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         
-        {/* Welcome Card (Revolut primary colors) */}
-        <section className="lg:col-span-2 bg-gradient-to-br from-[#494fdf] via-[#4f55f1] to-[#3a40c4] text-white rounded-[28px] p-6 md:p-10 relative overflow-hidden shadow-xl flex flex-col justify-between min-h-[280px]">
+        {/* Welcome Card (Clean off-black / dark slate) */}
+        <section className="lg:col-span-2 bg-zinc-900 dark:bg-zinc-900 text-white rounded-xl p-6 md:p-10 relative overflow-hidden flex flex-col justify-between min-h-[260px] border border-zinc-850">
           <div className="relative z-10">
-            <div className="flex items-center gap-2 mb-4 md:mb-6">
-              <span className="h-2 w-2 rounded-full bg-emerald-400 animate-ping"></span>
-              <span className="text-[11px] uppercase tracking-wider font-semibold text-white/80">Panel de Candidato Activo</span>
+            <div className="flex items-center gap-2 mb-4 md:mb-5">
+              <span className="h-1.5 w-1.5 rounded-full bg-primary animate-pulse"></span>
+              <span className="text-[10px] uppercase tracking-wider font-semibold text-zinc-400">Panel de Candidato Activo</span>
             </div>
-            <h1 className="text-[32px] md:text-[44px] font-bold tracking-tight leading-tight mb-3">
+            <h1 className="text-[28px] md:text-[38px] font-bold tracking-tight leading-tight mb-2">
               Hola, {candidateName}.
             </h1>
-            <p className="text-[14px] md:text-[16px] text-white/95 leading-relaxed max-w-[480px]">
-              Tu perfil está activo en nuestra plataforma de emparejamiento con IA. Hay nuevas empresas buscando tus habilidades hoy.
+            <p className="text-[13px] md:text-[14px] text-zinc-400 leading-relaxed max-w-[480px]">
+              Tu perfil profesional está activo y visible. El algoritmo de vinculación está buscando vacantes compatibles con tus habilidades hoy.
             </p>
           </div>
 
-          <div className="relative z-10 flex flex-wrap gap-3 mt-6">
+          <div className="relative z-10 flex flex-wrap items-center gap-3 mt-6">
             <Link href="/dashboard/candidate/discovery">
-              <Button className="h-[44px] rounded-full bg-white text-[#494fdf] hover:bg-white/95 text-[14px] font-bold px-6 shadow-xs transition-all duration-300 gap-2 group border-none">
-                Explorar Empleos
-                <ArrowRight className="h-4 w-4 transition-transform duration-300 group-hover:translate-x-1" />
+              <Button className="h-[40px] rounded-lg bg-zinc-100 text-zinc-900 hover:bg-zinc-200 text-xs font-bold px-5 transition-all duration-200 gap-1.5 group border-none">
+                Explorar empleos
+                <ArrowRight className="h-3.5 w-3.5 transition-transform duration-200 group-hover:translate-x-0.5" />
               </Button>
             </Link>
             {profile?.is_validated ? (
-              <div className="flex items-center gap-1.5 px-4 py-2 bg-white/10 backdrop-blur-md border border-white/20 rounded-full text-xs font-semibold text-white">
-                <CheckCircle2 className="h-3.5 w-3.5 text-emerald-300" />
+              <div className="flex items-center gap-1.5 px-3 py-1.5 bg-primary/10 border border-primary/20 rounded-lg text-[11px] font-semibold text-primary">
+                <CheckCircle2 className="h-3.5 w-3.5 text-primary" />
                 Perfil Validado y Visible
               </div>
             ) : (
-              <div className="flex items-center gap-1.5 px-4 py-2 bg-amber-500/20 backdrop-blur-md border border-amber-400/30 rounded-full text-xs font-semibold text-amber-200">
-                <AlertCircle className="h-3.5 w-3.5 text-amber-300 animate-pulse" />
-                Perfil en Proceso de Validación
+              <div className="flex items-center gap-1.5 px-3 py-1.5 bg-amber-500/10 border border-amber-500/20 rounded-lg text-[11px] font-semibold text-amber-400">
+                <AlertCircle className="h-3.5 w-3.5 text-amber-400" />
+                Verificación en Proceso
               </div>
             )}
           </div>
-
-          {/* Decorative blur elements */}
-          <div className="absolute -right-12 -top-12 w-48 h-48 bg-white/10 rounded-full blur-3xl pointer-events-none"></div>
-          <div className="absolute -left-12 -bottom-12 w-48 h-48 bg-black/20 rounded-full blur-3xl pointer-events-none"></div>
         </section>
 
         {/* Profile Completion Card */}
         {profile && (
-          <section className="bg-white dark:bg-zinc-900 border border-black/5 dark:border-white/5 rounded-[28px] p-6 md:p-8 shadow-xs flex flex-col justify-between">
+          <section className="bg-white dark:bg-zinc-900 border border-border/10 rounded-xl p-6 md:p-8 flex flex-col justify-between">
             <div>
               <div className="flex items-center justify-between mb-4">
-                <h3 className="text-base font-bold text-foreground">Tu Perfil</h3>
-                <span className="text-[10px] font-bold px-2.5 py-1 bg-[#494fdf]/10 text-[#494fdf] rounded-full uppercase tracking-wider">
-                  Fase {profile.completionScore === 100 ? "Completada" : "Inicial"}
+                <h3 className="text-xs uppercase tracking-wider font-bold text-zinc-400">Tu Perfil</h3>
+                <span className="text-[9px] font-bold px-2 py-0.5 bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-300 rounded-md uppercase tracking-wider">
+                  Fase {profile.completionScore === 100 ? "Completa" : "Inicial"}
                 </span>
               </div>
               
-              <div className="flex items-baseline gap-1 mt-2">
-                <span className="text-4xl font-extrabold tracking-tight text-foreground">{profile.completionScore}%</span>
-                <span className="text-xs font-medium text-muted-foreground">completado</span>
+              <div className="flex items-baseline gap-1 mt-2 font-mono">
+                <span className="text-4xl font-semibold tracking-tight text-zinc-900 dark:text-zinc-50">{profile.completionScore}%</span>
+                <span className="text-xs font-medium text-zinc-400 dark:text-zinc-500 font-sans ml-1">completado</span>
               </div>
 
               {/* Custom Progress Bar */}
-              <div className="w-full bg-muted dark:bg-zinc-800 h-2 rounded-full overflow-hidden mt-4">
+              <div className="w-full bg-zinc-100 dark:bg-zinc-800 h-1.5 rounded-full overflow-hidden mt-4">
                 <div 
-                  className="bg-[#494fdf] h-full rounded-full transition-all duration-700 ease-out" 
+                  className="bg-primary h-full rounded-full transition-all duration-700 ease-out" 
                   style={{ width: `${profile.completionScore}%` }}
                 ></div>
               </div>
 
-              <div className="mt-5 space-y-2 text-xs text-muted-foreground">
+              <div className="mt-5 space-y-2 text-xs text-zinc-500">
                 <div className="flex items-center gap-2">
-                  <span className="flex h-5.5 w-5.5 shrink-0 items-center justify-center rounded-full bg-emerald-500/10 text-emerald-500">
-                    <Check className="h-3.5 w-3.5" />
+                  <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary">
+                    <Check className="h-3 w-3" />
                   </span>
                   <span>Información básica añadida</span>
                 </div>
                 <div className="flex items-center gap-2">
                   {profile.skills && profile.skills.length > 0 ? (
-                    <span className="flex h-5.5 w-5.5 shrink-0 items-center justify-center rounded-full bg-emerald-500/10 text-emerald-500">
-                      <Check className="h-3.5 w-3.5" />
+                    <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary">
+                      <Check className="h-3 w-3" />
                     </span>
                   ) : (
-                    <span className="flex h-5.5 w-5.5 shrink-0 items-center justify-center rounded-full bg-muted dark:bg-zinc-800 text-muted-foreground">
-                      <Clock className="h-3.5 w-3.5" />
+                    <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-zinc-100 dark:bg-zinc-800 text-zinc-400">
+                      <Clock className="h-3 w-3" />
                     </span>
                   )}
-                  <span className={profile.skills && profile.skills.length > 0 ? "" : "text-foreground font-semibold"}>
+                  <span className={profile.skills && profile.skills.length > 0 ? "" : "text-zinc-800 dark:text-zinc-200 font-medium"}>
                     Habilidades e IA Tags
                   </span>
                 </div>
                 <div className="flex items-center gap-2">
                   {profile.completionScore >= 80 ? (
-                    <span className="flex h-5.5 w-5.5 shrink-0 items-center justify-center rounded-full bg-emerald-500/10 text-emerald-500">
-                      <Check className="h-3.5 w-3.5" />
+                    <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary">
+                      <Check className="h-3 w-3" />
                     </span>
                   ) : (
-                    <span className="flex h-5.5 w-5.5 shrink-0 items-center justify-center rounded-full bg-muted dark:bg-zinc-800 text-muted-foreground">
-                      <Clock className="h-3.5 w-3.5" />
+                    <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-zinc-100 dark:bg-zinc-800 text-zinc-400">
+                      <Clock className="h-3 w-3" />
                     </span>
                   )}
-                  <span className={profile.completionScore >= 80 ? "" : "text-foreground font-semibold"}>
+                  <span className={profile.completionScore >= 80 ? "" : "text-zinc-800 dark:text-zinc-200 font-medium"}>
                     Historial de Experiencia y CV
                   </span>
                 </div>
@@ -182,8 +177,8 @@ export function CandidateDashboardView({ initialData }: CandidateDashboardViewPr
 
             {profile.completionScore < 100 && (
               <Link href="/dashboard/candidate/settings" className="mt-6 block w-full">
-                <Button variant="outline" className="w-full h-11 rounded-full text-xs font-bold border-[#494fdf]/20 hover:border-[#494fdf]/40 text-[#494fdf] hover:bg-[#494fdf]/5 gap-2">
-                  <User className="h-4 w-4" />
+                <Button variant="outline" className="w-full h-10 rounded-lg text-xs font-bold border-border/20 hover:border-zinc-300 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-800/30 gap-2">
+                  <User className="h-3.5 w-3.5" />
                   Completar Perfil
                 </Button>
               </Link>
@@ -194,49 +189,49 @@ export function CandidateDashboardView({ initialData }: CandidateDashboardViewPr
 
       {/* Activity Summary Metrics */}
       <section className="flex flex-col gap-4">
-        <h2 className="text-lg font-bold tracking-tight text-foreground">Resumen de Actividad</h2>
+        <h2 className="text-xs uppercase tracking-wider font-bold text-zinc-400">Resumen de Actividad</h2>
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           
           {/* Metrics Card 1 */}
-          <Card className="bg-white/50 dark:bg-zinc-900/40 backdrop-blur-md border border-black/5 dark:border-white/5 p-5 rounded-2xl flex flex-col justify-between shadow-xs">
+          <Card className="bg-white dark:bg-zinc-900 border border-border/10 p-5 rounded-xl flex flex-col justify-between shadow-none hover:border-zinc-350 dark:hover:border-zinc-700 transition-all duration-200">
             <div className="flex justify-between items-start">
-              <span className="text-xs font-bold text-muted-foreground uppercase tracking-wide">Postulaciones</span>
-              <div className="h-8 w-8 rounded-lg bg-[#494fdf]/10 text-[#494fdf] flex items-center justify-center">
-                <Briefcase className="h-4 w-4" />
+              <span className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider">Postulaciones</span>
+              <div className="h-7 w-7 rounded-lg bg-zinc-100 dark:bg-zinc-850 text-zinc-600 dark:text-zinc-400 flex items-center justify-center">
+                <Briefcase className="h-3.5 w-3.5" />
               </div>
             </div>
-            <div className="mt-4">
-              <h3 className="text-2xl font-extrabold tracking-tight mt-1 text-foreground">{stats.total}</h3>
-              <p className="text-[11px] text-muted-foreground mt-0.5">Enviadas a empresas</p>
+            <div className="mt-4 font-mono">
+              <h3 className="text-3xl font-semibold tracking-tight text-zinc-900 dark:text-zinc-50">{stats.total}</h3>
+              <p className="text-[10px] text-zinc-400 mt-0.5 font-sans">Enviadas a empresas</p>
             </div>
           </Card>
 
           {/* Metrics Card 2 */}
-          <Card className="bg-white/50 dark:bg-zinc-900/40 backdrop-blur-md border border-black/5 dark:border-white/5 p-5 rounded-2xl flex flex-col justify-between shadow-xs">
+          <Card className="bg-white dark:bg-zinc-900 border border-border/10 p-5 rounded-xl flex flex-col justify-between shadow-none hover:border-zinc-350 dark:hover:border-zinc-700 transition-all duration-200">
             <div className="flex justify-between items-start">
-              <span className="text-xs font-bold text-muted-foreground uppercase tracking-wide">En Revisión</span>
-              <div className="h-8 w-8 rounded-lg bg-amber-500/10 text-amber-500 flex items-center justify-center">
-                <Clock className="h-4 w-4" />
+              <span className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider">En Revisión</span>
+              <div className="h-7 w-7 rounded-lg bg-zinc-100 dark:bg-zinc-850 text-zinc-600 dark:text-zinc-400 flex items-center justify-center">
+                <Clock className="h-3.5 w-3.5" />
               </div>
             </div>
-            <div className="mt-4">
-              <h3 className="text-2xl font-extrabold tracking-tight mt-1 text-foreground">{stats.reviewing}</h3>
-              <p className="text-[11px] text-muted-foreground mt-0.5">Evaluadas actualmente</p>
+            <div className="mt-4 font-mono">
+              <h3 className="text-3xl font-semibold tracking-tight text-zinc-900 dark:text-zinc-50">{stats.reviewing}</h3>
+              <p className="text-[10px] text-zinc-400 mt-0.5 font-sans">Evaluadas actualmente</p>
             </div>
           </Card>
 
           {/* Metrics Card 3 */}
-          <Card className="bg-white/50 dark:bg-zinc-900/40 backdrop-blur-md border border-black/5 dark:border-white/5 p-5 rounded-2xl flex flex-col justify-between shadow-xs">
+          <Card className="bg-white dark:bg-zinc-900 border border-border/10 p-5 rounded-xl flex flex-col justify-between shadow-none hover:border-zinc-350 dark:hover:border-zinc-700 transition-all duration-200">
             <div className="flex justify-between items-start">
-              <span className="text-xs font-bold text-muted-foreground uppercase tracking-wide">Contratado</span>
-              <div className="h-8 w-8 rounded-lg bg-emerald-500/10 text-emerald-500 flex items-center justify-center">
-                <CheckCircle2 className="h-4 w-4" />
+              <span className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider">Contratado</span>
+              <div className="h-7 w-7 rounded-lg bg-zinc-100 dark:bg-zinc-850 text-zinc-600 dark:text-zinc-400 flex items-center justify-center">
+                <CheckCircle2 className="h-3.5 w-3.5" />
               </div>
             </div>
-            <div className="mt-4">
-              <h3 className="text-2xl font-extrabold tracking-tight mt-1 text-foreground">{stats.hired}</h3>
-              <p className="text-[11px] text-emerald-500 font-semibold mt-0.5">
-                {stats.hired > 0 ? "¡Felicidades!" : "Buscando contratación"}
+            <div className="mt-4 font-mono">
+              <h3 className="text-3xl font-semibold tracking-tight text-zinc-900 dark:text-zinc-50">{stats.hired}</h3>
+              <p className="text-[10px] text-zinc-400 mt-0.5 font-sans">
+                {stats.hired > 0 ? "¡Felicidades!" : "Buscando vacantes"}
               </p>
             </div>
           </Card>
@@ -245,13 +240,13 @@ export function CandidateDashboardView({ initialData }: CandidateDashboardViewPr
 
       {/* Main Content Area: Applications */}
       <section className="flex flex-col gap-6">
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-border/40 pb-4">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-border/10 pb-4">
           <div>
-            <h2 className="text-xl font-bold tracking-tight text-foreground">Historial de Aplicaciones</h2>
-            <p className="text-xs text-muted-foreground mt-1">Monitorea el estado y haz seguimiento directo con las empresas.</p>
+            <h2 className="text-lg font-bold tracking-tight text-zinc-900 dark:text-zinc-50">Historial de Aplicaciones</h2>
+            <p className="text-xs text-zinc-400 mt-0.5">Monitorea el estado y haz seguimiento directo con las empresas.</p>
           </div>
           <Link href="/dashboard/candidate/discovery">
-            <Button variant="ghost" className="h-9 rounded-full text-xs font-bold text-[#494fdf] hover:bg-[#494fdf]/5 hover:text-[#494fdf] gap-1 px-4">
+            <Button variant="ghost" className="h-9 rounded-lg text-xs font-semibold text-zinc-600 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-900 hover:text-zinc-900 dark:hover:text-zinc-100 gap-1 px-3">
               <Compass className="h-4 w-4" />
               Explorar nuevos empleos
             </Button>
@@ -266,10 +261,10 @@ export function CandidateDashboardView({ initialData }: CandidateDashboardViewPr
               <button
                 key={filterName}
                 onClick={() => setSelectedFilter(filterName)}
-                className={`px-4 py-2 rounded-full text-xs font-bold tracking-wide transition-all duration-300 ${
+                className={`px-3.5 py-1.5 rounded-lg text-xs font-semibold tracking-wide transition-all duration-200 ${
                   selectedFilter === filterName
-                    ? "bg-[#494fdf] text-white shadow-xs"
-                    : "bg-white dark:bg-zinc-900 text-muted-foreground border border-black/5 dark:border-white/5 hover:bg-muted/50 hover:text-foreground"
+                    ? "bg-primary text-primary-foreground shadow-none font-bold"
+                    : "bg-white dark:bg-zinc-900 text-zinc-500 dark:text-zinc-400 border border-border/10 hover:bg-zinc-50 dark:hover:bg-zinc-800/30 hover:text-zinc-900 dark:hover:text-zinc-100"
                 }`}
               >
                 {filterName}
@@ -280,13 +275,13 @@ export function CandidateDashboardView({ initialData }: CandidateDashboardViewPr
           {/* Search Box */}
           <div className="flex flex-wrap sm:flex-nowrap items-center gap-3 order-1 lg:order-2 w-full lg:w-auto">
             <div className="relative w-full sm:w-64">
-              <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground/60" />
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-zinc-400" />
               <input
                 type="text"
                 placeholder="Buscar empleo o empresa..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full h-10 pl-10 pr-4 rounded-full bg-white dark:bg-zinc-900 border border-black/5 dark:border-white/5 text-xs text-foreground placeholder-muted-foreground/60 focus:outline-hidden focus:ring-1 focus:ring-[#494fdf]/45 transition-all"
+                className="w-full h-9 pl-9 pr-4 rounded-lg bg-white dark:bg-zinc-900 border border-border/10 text-xs text-zinc-900 dark:text-zinc-100 placeholder-zinc-400 focus:outline-none focus:ring-1 focus:ring-zinc-400/30 transition-all"
               />
             </div>
           </div>
@@ -294,37 +289,37 @@ export function CandidateDashboardView({ initialData }: CandidateDashboardViewPr
 
         {/* Applications List */}
         {filteredApplications.length > 0 ? (
-          <Card className="bg-white/70 dark:bg-zinc-900/50 backdrop-blur-xl border border-black/5 dark:border-white/5 rounded-[24px] overflow-hidden shadow-xs">
-            <div className="divide-y divide-border/30">
+          <Card className="bg-white dark:bg-zinc-900 border border-border/10 rounded-xl overflow-hidden shadow-none">
+            <div className="divide-y divide-border/10">
               {filteredApplications.map((app) => (
                 <div 
                   key={app.id} 
                   onClick={() => handleOpenAppDetails(app)}
-                  className="p-6 md:p-8 hover:bg-muted/10 transition-colors flex flex-col lg:flex-row lg:items-center justify-between gap-6 cursor-pointer group"
+                  className="p-5 md:p-6 hover:bg-zinc-50/50 dark:hover:bg-zinc-800/10 transition-colors flex flex-col lg:flex-row lg:items-center justify-between gap-6 cursor-pointer group"
                 >
                   {/* Left block: Company details & position */}
                   <div className="flex items-center gap-4 min-w-0">
-                    <div className="w-12 h-12 rounded-xl bg-gradient-to-tr from-[#494fdf]/10 to-[#494fdf]/5 dark:from-zinc-800 dark:to-zinc-900 flex items-center justify-center font-extrabold text-[12px] text-[#494fdf] border border-border/40 shrink-0 shadow-xs">
+                    <div className="w-10 h-10 rounded-lg bg-zinc-50 dark:bg-zinc-800 flex items-center justify-center font-bold text-[11px] text-zinc-600 dark:text-zinc-400 border border-border/10 shrink-0 shadow-none">
                       {app.logoUrl ? (
-                        <img src={app.logoUrl} alt={app.company} className="w-full h-full object-cover rounded-xl" />
+                        <img src={app.logoUrl} alt={app.company} className="w-full h-full object-cover rounded-lg" />
                       ) : (
                         app.companyInitials
                       )}
                     </div>
                     <div className="min-w-0">
-                      <h4 className="text-base font-bold text-foreground group-hover:text-[#494fdf] transition-colors truncate">{app.position}</h4>
-                      <div className="flex items-center gap-2 mt-1.5 text-xs text-muted-foreground font-semibold flex-wrap">
-                        <span className="flex items-center gap-1 font-bold text-foreground/75">
-                          <Building2 className="h-3.5 w-3.5" />
+                      <h4 className="text-sm font-semibold text-zinc-900 dark:text-zinc-100 group-hover:text-zinc-650 dark:group-hover:text-zinc-200 transition-colors truncate">{app.position}</h4>
+                      <div className="flex items-center gap-2 mt-1 text-xs text-zinc-400 font-medium flex-wrap">
+                        <span className="flex items-center gap-1 font-semibold text-zinc-700 dark:text-zinc-300">
+                          <Building2 className="h-3 w-3" />
                           {app.company}
                         </span>
                         <span>·</span>
                         <span className="flex items-center gap-1">
-                          <MapPin className="h-3.5 w-3.5" />
+                          <MapPin className="h-3 w-3" />
                           {app.location}
                         </span>
                         <span>·</span>
-                        <span>Postulado {app.appliedDate}</span>
+                        <span>Postulado el {app.appliedDate}</span>
                       </div>
                     </div>
                   </div>
@@ -333,27 +328,27 @@ export function CandidateDashboardView({ initialData }: CandidateDashboardViewPr
                   <div className="flex flex-wrap sm:flex-nowrap items-center gap-6 lg:self-auto shrink-0 w-full lg:w-auto">
 
                     {/* Progress slider */}
-                    <div className="flex flex-col gap-1.5 w-full sm:w-40">
-                      <div className="flex justify-between items-center text-xs font-bold text-muted-foreground">
-                        <span>Reclutamiento</span>
+                    <div className="flex flex-col gap-1 w-full sm:w-36">
+                      <div className="flex justify-between items-center text-[10px] font-bold text-zinc-400 font-mono">
+                        <span className="font-sans">Reclutamiento</span>
                         <span>{app.progress}%</span>
                       </div>
-                      <div className="w-full bg-muted dark:bg-zinc-800 h-1.5 rounded-full overflow-hidden">
+                      <div className="w-full bg-zinc-150 dark:bg-zinc-800 h-1 rounded-full overflow-hidden">
                         <div 
-                          className="bg-[#494fdf] h-full rounded-full transition-all duration-700 ease-out" 
+                          className="bg-primary h-full rounded-full transition-all duration-700 ease-out" 
                           style={{ width: `${app.progress}%` }}
                         ></div>
                       </div>
                     </div>
 
                     {/* Status Pill */}
-                    <span className={`text-[10px] font-extrabold px-3 py-1.5 rounded-full border tracking-wider uppercase shrink-0 ${app.statusColor}`}>
+                    <span className={`text-[9px] font-bold px-2.5 py-1 rounded-md border tracking-wider uppercase shrink-0 ${app.statusColor.replace("rounded-full", "rounded-md")}`}>
                       {app.statusLabel}
                     </span>
 
                     {/* Desktop Action */}
-                    <Button variant="ghost" size="icon" className="rounded-full hidden lg:flex shrink-0 group-hover:translate-x-1 transition-transform">
-                      <ChevronRight className="h-5 w-5 text-muted-foreground" />
+                    <Button variant="ghost" size="icon" className="rounded-full hidden lg:flex shrink-0 group-hover:translate-x-0.5 transition-transform">
+                      <ChevronRight className="h-4 w-4 text-zinc-400" />
                     </Button>
                   </div>
                 </div>
@@ -362,12 +357,12 @@ export function CandidateDashboardView({ initialData }: CandidateDashboardViewPr
           </Card>
         ) : (
           /* Empty state */
-          <Card className="bg-white/50 dark:bg-zinc-900/30 border border-dashed border-border/80 rounded-[28px] p-12 text-center flex flex-col items-center justify-center max-w-2xl mx-auto w-full shadow-xs animate-in fade-in duration-300">
-            <div className="h-14 w-14 rounded-full bg-[#494fdf]/10 text-[#494fdf] flex items-center justify-center mb-6">
-              <Compass className="h-7 w-7" />
+          <Card className="bg-zinc-50/20 dark:bg-zinc-900/10 border border-dashed border-border/10 rounded-xl p-12 text-center flex flex-col items-center justify-center max-w-2xl mx-auto w-full shadow-none animate-in fade-in duration-300">
+            <div className="h-12 w-12 rounded-lg bg-zinc-100 dark:bg-zinc-800 text-zinc-400 flex items-center justify-center mb-6">
+              <Compass className="h-6 w-6" />
             </div>
-            <h3 className="text-lg font-bold text-foreground">No encontramos postulaciones</h3>
-            <p className="text-xs text-muted-foreground mt-2.5 max-w-md leading-relaxed">
+            <h3 className="text-sm font-bold text-zinc-900 dark:text-zinc-50">No encontramos postulaciones</h3>
+            <p className="text-xs text-zinc-400 mt-2 max-w-md leading-relaxed">
               {searchQuery || selectedFilter !== "Todas"
                 ? "No hay postulaciones que coincidan con los criterios de búsqueda o filtros seleccionados."
                 : "Aún no has aplicado a ninguna vacante. Completa tu perfil y explora las vacantes disponibles."}
@@ -378,17 +373,16 @@ export function CandidateDashboardView({ initialData }: CandidateDashboardViewPr
                   onClick={() => {
                     setSearchQuery("");
                     setSelectedFilter("Todas");
-                    setSelectedFilter("Todas");
                   }}
                   variant="outline" 
-                  className="rounded-full text-xs font-bold px-6 h-10"
+                  className="rounded-lg text-xs font-bold px-5 h-9"
                 >
                   Limpiar Filtros
                 </Button>
               ) : (
                 <Link href="/dashboard/candidate/discovery">
-                  <Button className="rounded-full text-xs font-bold px-6 h-10 bg-[#494fdf] text-white hover:bg-[#494fdf]/90 border-none">
-                    Buscar Empleos
+                  <Button className="rounded-lg text-xs font-bold px-5 h-9 bg-zinc-900 dark:bg-zinc-100 text-white dark:text-zinc-900 hover:bg-zinc-800 dark:hover:bg-zinc-200 border-none">
+                    Buscar empleos
                   </Button>
                 </Link>
               )}
@@ -399,24 +393,24 @@ export function CandidateDashboardView({ initialData }: CandidateDashboardViewPr
 
       {/* Habilidades Section */}
       {profile?.skills && profile.skills.length > 0 && (
-        <section className="bg-white dark:bg-zinc-900 border border-black/5 dark:border-white/5 rounded-[28px] p-6 md:p-8 shadow-xs">
+        <section className="bg-white dark:bg-zinc-900 border border-border/10 rounded-2xl p-6 md:p-8">
           <div className="flex items-center gap-2.5 mb-6">
-            <div className="h-8 w-8 rounded-lg bg-emerald-500/10 text-emerald-500 flex items-center justify-center">
-              <Briefcase className="h-4.5 w-4.5" />
+            <div className="h-7 w-7 rounded-lg bg-zinc-100 dark:bg-zinc-800 text-zinc-500 dark:text-zinc-400 flex items-center justify-center">
+              <Briefcase className="h-4 w-4" />
             </div>
             <div>
-              <h3 className="text-base font-bold text-foreground">Tus Habilidades</h3>
-              <p className="text-xs text-muted-foreground mt-0.5">Habilidades cargadas en tu perfil profesional.</p>
+              <h3 className="text-sm font-bold text-zinc-900 dark:text-zinc-50">Tus Habilidades</h3>
+              <p className="text-xs text-zinc-400 mt-0.5">Habilidades cargadas en tu perfil profesional.</p>
             </div>
           </div>
 
-          <div className="flex flex-wrap gap-2">
+          <div className="flex flex-wrap gap-1.5">
             {profile.skills.map((skill, idx) => (
               <span 
                 key={idx} 
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-muted dark:bg-zinc-800 text-foreground text-xs font-semibold rounded-lg border border-border/40 hover:bg-primary/5 hover:border-primary/20 hover:text-primary transition-all duration-200 cursor-default"
+                className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-zinc-50 dark:bg-zinc-800/60 text-zinc-600 dark:text-zinc-300 text-xs font-medium rounded-md border border-border/10 cursor-default"
               >
-                <span className="w-1.5 h-1.5 rounded-full bg-primary/60"></span>
+                <span className="w-1 h-1 rounded-full bg-zinc-400"></span>
                 {skill}
               </span>
             ))}
@@ -427,26 +421,26 @@ export function CandidateDashboardView({ initialData }: CandidateDashboardViewPr
       {/* Postulation Details Drawer / Sheet */}
       <Sheet open={isAppSheetOpen} onOpenChange={setIsAppSheetOpen}>
         {selectedApp && (
-          <SheetContent className="w-full sm:max-w-[500px] overflow-y-auto px-6 py-8 flex flex-col gap-6 bg-card border-l border-border/40 shadow-xl">
+          <SheetContent className="w-full sm:max-w-[480px] overflow-y-auto px-6 py-8 flex flex-col gap-6 bg-white dark:bg-zinc-900 border-l border-border/10 shadow-xl rounded-l-2xl">
             <SheetHeader className="gap-2">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-[#494fdf]/10 to-[#494fdf]/5 text-[#494fdf] flex items-center justify-center font-extrabold text-xs border border-border/30 shadow-xs">
+                <div className="w-10 h-10 rounded-lg bg-zinc-100 dark:bg-zinc-800 text-zinc-650 flex items-center justify-center font-bold text-xs border border-border/10 shadow-none">
                   {selectedApp.logoUrl ? (
-                    <img src={selectedApp.logoUrl} alt={selectedApp.company} className="w-full h-full object-cover rounded-xl" />
+                    <img src={selectedApp.logoUrl} alt={selectedApp.company} className="w-full h-full object-cover rounded-lg" />
                   ) : (
                     selectedApp.companyInitials
                   )}
                 </div>
                 <div>
-                  <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">{selectedApp.company}</p>
-                  <SheetTitle className="text-lg font-bold text-foreground leading-tight mt-0.5">{selectedApp.position}</SheetTitle>
+                  <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider">{selectedApp.company}</p>
+                  <SheetTitle className="text-base font-bold text-zinc-900 dark:text-zinc-50 leading-tight mt-0.5">{selectedApp.position}</SheetTitle>
                 </div>
               </div>
-              <SheetDescription className="text-xs text-muted-foreground flex items-center gap-2 mt-1">
-                <MapPin className="w-3.5 h-3.5 text-primary/70 shrink-0" />
+              <SheetDescription className="text-xs text-zinc-400 flex items-center gap-2 mt-1 font-medium">
+                <MapPin className="w-3.5 h-3.5 text-zinc-400 shrink-0" />
                 <span>{selectedApp.location}</span>
                 <span>·</span>
-                <Calendar className="w-3.5 h-3.5 text-primary/70 shrink-0" />
+                <Calendar className="w-3.5 h-3.5 text-zinc-400 shrink-0" />
                 <span>Postulado el {selectedApp.appliedDate}</span>
               </SheetDescription>
             </SheetHeader>
@@ -539,9 +533,9 @@ export function CandidateDashboardView({ initialData }: CandidateDashboardViewPr
                   rel="noopener noreferrer"
                   className="w-full"
                 >
-                  <Button className="w-full h-11 rounded-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold transition-all gap-2 border-none">
+                  <Button className="w-full h-10 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold transition-all gap-2 border-none">
                     Escribir a la Empresa
-                    <ExternalLink className="w-4 h-4" />
+                    <ExternalLink className="w-3.5 h-3.5" />
                   </Button>
                 </a>
               </div>
@@ -551,7 +545,7 @@ export function CandidateDashboardView({ initialData }: CandidateDashboardViewPr
             <Button 
               variant="outline" 
               onClick={() => setIsAppSheetOpen(false)} 
-              className="w-full h-11 rounded-full text-xs font-bold"
+              className="w-full h-10 rounded-lg text-xs font-bold"
             >
               Cerrar Detalles
             </Button>
