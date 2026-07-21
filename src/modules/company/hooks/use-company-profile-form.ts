@@ -21,6 +21,18 @@ export function useCompanyProfileForm(initialProfile: any, userId: string) {
       description: initialProfile?.description || "",
       phone: initialProfile?.phone || "",
       company_size: initialProfile?.company_size || "",
+      // New fields
+      banner_url: initialProfile?.banner_url || "",
+      instagram_url: initialProfile?.instagram_url || "",
+      facebook_url: initialProfile?.facebook_url || "",
+      address_details: initialProfile?.address_details || "",
+      has_transport: !!initialProfile?.has_transport,
+      benefit_canteen: !!initialProfile?.benefit_canteen,
+      benefit_tips: !!initialProfile?.benefit_tips,
+      benefit_imss: !!initialProfile?.benefit_imss,
+      benefit_uniforms: !!initialProfile?.benefit_uniforms,
+      benefit_growth: !!initialProfile?.benefit_growth,
+      operation_hours: initialProfile?.operation_hours || "",
     },
   });
 

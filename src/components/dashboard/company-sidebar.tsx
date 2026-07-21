@@ -9,6 +9,8 @@ import {
   Briefcase,
   Users,
   Sparkles,
+  MapPin,
+  CalendarCheck2,
 } from "lucide-react";
 import {
   Sidebar,
@@ -20,6 +22,7 @@ import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
+  SidebarFooter,
 } from "@/components/ui/sidebar";
 import { usePathname } from "next/navigation";
 import Link from "next/link";
@@ -27,100 +30,150 @@ import Link from "next/link";
 export function CompanySidebar() {
   const pathname = usePathname();
 
-  const navigation = [
+  const sections = [
     {
-      title: "Dashboard",
-      url: "/dashboard/company",
-      icon: LayoutDashboard,
+      label: "General",
+      items: [
+        {
+          title: "Dashboard",
+          url: "/dashboard/company",
+          icon: LayoutDashboard,
+        },
+      ],
     },
     {
-      title: "Radar de Talentos",
-      url: "/dashboard/company/radar",
-      icon: Sparkles,
+      label: "Reclutamiento",
+      items: [
+        {
+          title: "Vacantes",
+          url: "/dashboard/company/vacancies",
+          icon: Briefcase,
+        },
+        {
+          title: "Candidatos",
+          url: "/dashboard/company/radar",
+          icon: Sparkles,
+        },
+        {
+          title: "Entrevistas",
+          url: "/dashboard/company/applications",
+          icon: CalendarCheck2,
+        },
+      ],
     },
     {
-      title: "Perfil Empresa",
-      url: "/dashboard/company/profile",
-      icon: Building2,
-    },
-    {
-      title: "Gestionar Vacantes",
-      url: "/dashboard/company/vacancies",
-      icon: Briefcase,
-    },
-    {
-      title: "Bandeja Postulantes",
-      url: "/dashboard/company/applications",
-      icon: Users,
-    },
-    {
-      title: "Configuración",
-      url: "/dashboard/company/settings",
-      icon: Settings,
+      label: "Empresa",
+      items: [
+        {
+          title: "Perfil",
+          url: "/dashboard/company/profile",
+          icon: Building2,
+        },
+      ],
     },
   ];
 
   return (
     <Sidebar
-      variant="inset"
-      collapsible="none"
-      className="hidden md:flex border-r border-border/20 bg-zinc-50/50 dark:bg-zinc-950/40 peer"
-      data-variant="inset"
-      data-state="expanded"
+      variant="floating"
+      className="hidden md:flex p-3 bg-transparent border-none"
     >
-      <SidebarHeader className="h-20 px-6 flex items-center justify-center border-b border-border/10">
-        <div className="flex w-full items-center gap-2.5 transition-all duration-300">
-          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-zinc-900 dark:bg-zinc-100 transition-all duration-300">
-            <Kanban className="h-4.5 w-4.5 text-zinc-100 dark:text-zinc-900" />
+      <SidebarHeader className="h-20 px-6 flex items-center justify-start">
+        <div className="flex items-center gap-2.5">
+          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-fiord-950 dark:bg-fiord-50 text-white dark:text-fiord-950 shadow-sm">
+            <Kanban className="h-4.5 w-4.5" />
           </div>
-          <span className="text-[18px] font-bold text-zinc-900 dark:text-zinc-50 tracking-[-0.03em]">
-            K&apos;anPro
+          <span className="text-[18px] font-bold text-fiord-900 dark:text-fiord-50 tracking-[-0.03em]">
+            K&apos;an<span className="text-fiord-550">Pro</span>
           </span>
         </div>
       </SidebarHeader>
 
-      <SidebarContent className="px-3 py-4">
-        <SidebarGroup>
-          <SidebarGroupLabel className="text-[11px] uppercase tracking-[0.18em] font-semibold text-zinc-400 dark:text-zinc-500 mb-4 px-2">
-            Workspace
-          </SidebarGroupLabel>
-          <SidebarGroupContent>
-            <SidebarMenu className="gap-1">
-              {navigation.map((item) => {
-                const isActive =
-                  pathname === item.url ||
-                  (pathname.startsWith(item.url) &&
-                    !["/dashboard/company"].includes(item.url));
+      <SidebarContent className="px-3 py-4 space-y-5">
+        {sections.map((section) => (
+          <SidebarGroup key={section.label} className="p-0">
+            <SidebarGroupLabel className="text-[10px] uppercase tracking-[0.2em] font-bold text-fiord-500 dark:text-fiord-400 mb-2 px-3">
+              {section.label}
+            </SidebarGroupLabel>
+            <SidebarGroupContent>
+              <SidebarMenu className="gap-1">
+                {section.items.map((item) => {
+                  const isActive =
+                    pathname === item.url ||
+                    (pathname.startsWith(item.url) &&
+                      !["/dashboard/company"].includes(item.url));
 
-                return (
-                  <SidebarMenuItem key={item.title}>
-                    <SidebarMenuButton
-                      asChild
-                      isActive={isActive}
-                      tooltip={item.title}
-                      className="h-10 rounded-lg px-3 gap-3 hover:bg-zinc-100 dark:hover:bg-zinc-900/60 text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 data-[active=true]:bg-primary/10 dark:data-[active=true]:bg-primary/20 data-[active=true]:text-primary dark:data-[active=true]:text-primary-foreground transition-all duration-200 border border-transparent data-[active=true]:border-primary/10"
-                    >
-                      <Link
-                        href={item.url}
-                        className="flex w-full items-center gap-3"
+                  return (
+                    <SidebarMenuItem key={item.title}>
+                      <SidebarMenuButton
+                        asChild
+                        isActive={isActive}
+                        tooltip={item.title}
+                        className="h-10 rounded-xl px-3 gap-3 transition-all duration-200 border border-transparent 
+                          text-fiord-700 dark:text-fiord-300 hover:text-fiord-950 dark:hover:text-fiord-50 hover:bg-fiord-50 dark:hover:bg-fiord-900/40
+                          data-[active=true]:bg-fiord-950 dark:data-[active=true]:bg-fiord-50 
+                          data-[active=true]:text-white dark:data-[active=true]:text-fiord-950 
+                          data-[active=true]:shadow-sm"
                       >
-                        <item.icon
-                          className={`size-4 shrink-0 transition-colors ${isActive ? "text-primary dark:text-primary-foreground" : "text-zinc-400 group-hover:text-zinc-900 dark:group-hover:text-zinc-100"}`}
-                        />
-                        <span
-                          className={`text-[13px] tracking-tight ${isActive ? "font-semibold" : "font-medium"}`}
+                        <Link
+                          href={item.url}
+                          className="flex w-full items-center gap-3"
                         >
-                          {item.title}
-                        </span>
-                      </Link>
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
-                );
-              })}
-            </SidebarMenu>
-          </SidebarGroupContent>
-        </SidebarGroup>
+                          <item.icon
+                            className={`size-4 shrink-0 transition-colors ${isActive ? "text-white dark:text-fiord-950" : "text-fiord-500 dark:text-fiord-400"}`}
+                          />
+                          <span
+                            className={`text-[13px] tracking-tight ${isActive ? "font-semibold" : "font-medium"}`}
+                          >
+                            {item.title}
+                          </span>
+                        </Link>
+                      </SidebarMenuButton>
+                    </SidebarMenuItem>
+                  );
+                })}
+              </SidebarMenu>
+            </SidebarGroupContent>
+          </SidebarGroup>
+        ))}
       </SidebarContent>
+
+      <SidebarFooter className="p-4 dark:border-fiord-800/40">
+        <SidebarMenu>
+          <SidebarMenuItem>
+            <SidebarMenuButton
+              asChild
+              isActive={pathname === "/dashboard/company/settings"}
+              tooltip="Configuración"
+              className="h-10 rounded-xl px-3 gap-3 transition-all duration-200 border border-transparent 
+                text-fiord-700 dark:text-fiord-300 hover:text-fiord-950 dark:hover:text-fiord-50 hover:bg-fiord-50 dark:hover:bg-fiord-900/40
+                data-[active=true]:bg-fiord-950 dark:data-[active=true]:bg-fiord-50 
+                data-[active=true]:text-white dark:data-[active=true]:text-fiord-950 
+                data-[active=true]:shadow-sm"
+            >
+              <Link
+                href="/dashboard/company/settings"
+                className="flex w-full items-center gap-3"
+              >
+                <Settings
+                  className={`size-4 shrink-0 transition-colors ${pathname === "/dashboard/company/settings"
+                      ? "text-white dark:text-fiord-950"
+                      : "text-fiord-500 dark:text-fiord-400"
+                    }`}
+                />
+                <span
+                  className={`text-[13px] tracking-tight ${pathname === "/dashboard/company/settings"
+                      ? "font-semibold"
+                      : "font-medium"
+                    }`}
+                >
+                  Configuración
+                </span>
+              </Link>
+            </SidebarMenuButton>
+          </SidebarMenuItem>
+        </SidebarMenu>
+      </SidebarFooter>
     </Sidebar>
   );
 }

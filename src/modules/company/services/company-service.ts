@@ -75,6 +75,17 @@ export const companyService = {
         description: profile.description || null,
         phone: profile.phone || null,
         company_size: profile.company_size || null,
+        banner_url: profile.banner_url || null,
+        instagram_url: profile.instagram_url || null,
+        facebook_url: profile.facebook_url || null,
+        address_details: profile.address_details || null,
+        has_transport: profile.has_transport,
+        benefit_canteen: profile.benefit_canteen,
+        benefit_tips: profile.benefit_tips,
+        benefit_imss: profile.benefit_imss,
+        benefit_uniforms: profile.benefit_uniforms,
+        benefit_growth: profile.benefit_growth,
+        operation_hours: profile.operation_hours || null,
         updated_at: new Date().toISOString(),
       });
 
