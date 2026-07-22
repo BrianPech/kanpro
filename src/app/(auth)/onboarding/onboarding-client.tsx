@@ -47,7 +47,7 @@ export function OnboardingClient() {
           // Check if onboarding is already complete to avoid re-onboarding loop
           const location = profile.location || "";
           if (location.includes(" - ")) {
-            router.push(profile.role === "company" ? "/dashboard/company/radar" : "/dashboard/candidate/discovery");
+            router.push(profile.role === "company" ? "/dashboard/company" : "/dashboard/candidate/discovery");
             return;
           }
         }
@@ -91,7 +91,7 @@ export function OnboardingClient() {
       });
 
       // Redirect to correct dashboard
-      router.push(role === "company" ? "/dashboard/company/radar" : "/dashboard/candidate/discovery");
+      router.push(role === "company" ? "/dashboard/company" : "/dashboard/candidate/discovery");
       router.refresh();
     } catch (err: any) {
       console.error(err);

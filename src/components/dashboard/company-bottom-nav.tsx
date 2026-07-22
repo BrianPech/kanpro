@@ -3,7 +3,7 @@
 import * as React from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Search, Briefcase, LayoutDashboard } from "lucide-react";
+import { Users, Briefcase, LayoutDashboard } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 export function CompanyBottomNav() {
@@ -16,9 +16,9 @@ export function CompanyBottomNav() {
       href: "/dashboard/company",
     },
     {
-      label: "Radar",
-      icon: Search,
-      href: "/dashboard/company/radar",
+      label: "Postulantes",
+      icon: Users,
+      href: "/dashboard/company/applications",
     },
     {
       label: "Mis Puestos",

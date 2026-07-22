@@ -62,7 +62,7 @@ export function LoginClient() {
           toast.success("¡Sesión iniciada con éxito!");
           
           // Let redirect middleware/layout guide user, or force dashboard push
-          router.push(role === "company" ? "/dashboard/company/radar" : "/dashboard/candidate/discovery");
+          router.push(role === "company" ? "/dashboard/company" : "/dashboard/candidate/discovery");
           router.refresh();
         }
       } else {

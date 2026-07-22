@@ -58,7 +58,7 @@ export function useLoginForm() {
       } else if (role === "candidate" && hasLocation) {
         router.push("/dashboard/candidate/discovery");
       } else if (role === "company" && hasLocation) {
-        router.push("/dashboard/company/radar");
+        router.push("/dashboard/company");
       } else {
         router.push(`/dashboard/${role}`);
       }

@@ -8,9 +8,6 @@ import {
   Building2,
   Briefcase,
   Users,
-  Sparkles,
-  MapPin,
-  CalendarCheck2,
 } from "lucide-react";
 import {
   Sidebar,
@@ -50,14 +47,9 @@ export function CompanySidebar() {
           icon: Briefcase,
         },
         {
-          title: "Candidatos",
-          url: "/dashboard/company/radar",
-          icon: Sparkles,
-        },
-        {
-          title: "Entrevistas",
+          title: "Postulantes",
           url: "/dashboard/company/applications",
-          icon: CalendarCheck2,
+          icon: Users,
         },
       ],
     },

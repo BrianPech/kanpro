@@ -170,7 +170,7 @@ describe("K'anPro Integration and Functional Test Suite", () => {
           return { shouldRedirect: true, destination: "/onboarding" };
         }
         // Determinar a qué dashboard debe ser enviado
-        const destination = role === "company" ? "/dashboard/company/radar" : "/dashboard/candidate/discovery";
+        const destination = role === "company" ? "/dashboard/company" : "/dashboard/candidate/discovery";
         return { shouldRedirect: false, destination };
       };
 
