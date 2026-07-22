@@ -69,7 +69,7 @@ export default function RootLayout({
       suppressHydrationWarning
       className={cn("h-full", "antialiased", geistSans.variable, geistMono.variable, "font-sans", manrope.variable)}
     >
-      <body className="min-h-full flex flex-col">
+      <body className="min-h-full flex flex-col" suppressHydrationWarning>
         <script
           dangerouslySetInnerHTML={{
             __html: `
