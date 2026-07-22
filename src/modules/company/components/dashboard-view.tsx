@@ -38,11 +38,33 @@ import {
   Pie,
   Cell
 } from "recharts"
+import { cn } from "@/lib/utils"
+
+export interface VacancyDashboardItem {
+  id: string
+  title: string
+  location?: string | null
+  zone?: string | null
+  salary_min?: number | null
+  salary_max?: number | null
+  category?: string | null
+  employment_type?: string | null
+  created_at?: string | null
+  is_active?: boolean
+  applicationsCount?: number
+}
+
+export interface PendingTaskItem {
+  id: string
+  text: string
+  completed: boolean
+}
 
 interface DashboardViewProps {
   companyName: string
   metrics?: {
     activeVacancies: number
+    pausedVacancies: number
     totalApplications: number
     reviewingApplications: number
     totalConnections: number
@@ -56,48 +78,78 @@ interface DashboardViewProps {
     vacancyTitle: string
     createdAt: string
   }[]
+  latestVacancies?: VacancyDashboardItem[]
+  publishedVacancies?: VacancyDashboardItem[]
+  pendingTasks?: PendingTaskItem[]
+  weeklyAnalytics?: {
+    flowData: { day: string; candidatos: number }[]
+    average: number
+    growthPercent: number
+  }
+  monthlyAnalytics?: {
+    pieData: { name: string; value: number; color: string }[]
+    goalPercent: number
+  }
 }
-
-// Recharts Weekly Candidate Flow Data
-const weeklyFlowData = [
-  { day: "Lunes", candidatos: 12 },
-  { day: "Martes", candidatos: 19 },
-  { day: "Miércoles", candidatos: 15 },
-  { day: "Jueves", candidatos: 28 },
-  { day: "Viernes", candidatos: 22 },
-  { day: "Sábado", candidatos: 34 },
-  { day: "Domingo", candidatos: 30 }
-]
-
-// Recharts Monthly Donut Effectiveness Data
-const pieData = [
-  { name: "Operativo", value: 60, color: "#3e546d" }, // Fiord 700
-  { name: "Comercial", value: 30, color: "#5c7c9b" }, // Fiord 500
-  { name: "Servicio", value: 30, color: "#aabccf" }   // Fiord 300
-]
 
 export function DashboardView({ 
   companyName, 
   metrics = {
-    activeVacancies: 28,
-    totalApplications: 43,
-    reviewingApplications: 14,
-    totalConnections: 11
+    activeVacancies: 0,
+    pausedVacancies: 0,
+    totalApplications: 0,
+    reviewingApplications: 0,
+    totalConnections: 0
   },
-  recentActivities = []
+  recentActivities = [],
+  latestVacancies = [],
+  publishedVacancies = [],
+  pendingTasks = [],
+  weeklyAnalytics = {
+    flowData: [
+      { day: "Lunes", candidatos: 0 },
+      { day: "Martes", candidatos: 0 },
+      { day: "Miércoles", candidatos: 0 },
+      { day: "Jueves", candidatos: 0 },
+      { day: "Viernes", candidatos: 0 },
+      { day: "Sábado", candidatos: 0 },
+      { day: "Domingo", candidatos: 0 }
+    ],
+    average: 0,
+    growthPercent: 0
+  },
+  monthlyAnalytics = {
+    pieData: [
+      { name: "Operativo", value: 60, color: "#3e546d" },
+      { name: "Comercial", value: 30, color: "#5c7c9b" },
+      { name: "Servicio", value: 10, color: "#aabccf" }
+    ],
+    goalPercent: 100
+  }
 }: DashboardViewProps) {
   const [mounted, setMounted] = React.useState(false)
   const [isDownloading, setIsDownloading] = React.useState(false)
-  const [todos, setTodos] = React.useState([
-    { id: "todo-1", text: "Entrevista con Mesero para Playa del Carmen", completed: true },
-    { id: "todo-2", text: "Confirmar vacante Recepcionista", completed: false },
-    { id: "todo-3", text: "Revisar CVs para vacante de Hostess", completed: false },
-    { id: "todo-4", text: "Enviar feedback a postulantes de Mérida", completed: false },
-  ])
+
+  const initialTodos = React.useMemo(() => {
+    if (pendingTasks && pendingTasks.length > 0) {
+      return pendingTasks
+    }
+    return [
+      { id: "todo-1", text: `Verificar perfil de ${companyName}`, completed: true },
+      { id: "todo-2", text: "Revisar postulaciones activas", completed: false },
+      { id: "todo-3", text: "Publicar oferta laboral en el sureste", completed: false },
+    ]
+  }, [pendingTasks, companyName])
+
+  const [todos, setTodos] = React.useState(initialTodos)
 
   React.useEffect(() => {
     setMounted(true)
   }, [])
+
+  React.useEffect(() => {
+    setTodos(initialTodos)
+  }, [initialTodos])
 
   const handleToggleTodo = (id: string) => {
     setTodos(prev => prev.map(todo => 
@@ -108,15 +160,78 @@ export function DashboardView({
   const handleDownloadReport = () => {
     setIsDownloading(true)
     toast.info("Generando reporte...", {
-      description: "Estamos preparando tu resumen de actividad empresarial.",
+      description: "Preparando el informe de reclutamiento en formato CSV.",
     })
-    
-    setTimeout(() => {
+
+    try {
+      const dateStr = new Date().toISOString().split("T")[0]
+      const sanitizedCompany = (companyName || "Empresa").replace(/[^a-zA-Z0-9_-]/g, "_")
+      const filename = `Reporte_Reclutamiento_${sanitizedCompany}_${dateStr}.csv`
+
+      const csvRows: string[] = []
+
+      // Section 1: Header & Key Metrics
+      csvRows.push(`REPORTE DE RECLUTAMIENTO - K'ANPRO`)
+      csvRows.push(`Empresa:,"${(companyName || "Empresa").replace(/"/g, '""')}"`)
+      csvRows.push(`Fecha de Emision:,${dateStr}`)
+      csvRows.push(``)
+      csvRows.push(`METRICAS GENERALES`)
+      csvRows.push(`Postulaciones Totales:,${metrics.totalApplications ?? 0}`)
+      csvRows.push(`Vacantes Activas:,${metrics.activeVacancies ?? 0}`)
+      csvRows.push(`Vacantes Pausadas:,${metrics.pausedVacancies ?? 0}`)
+      csvRows.push(`En Revision:,${metrics.reviewingApplications ?? 0}`)
+      csvRows.push(`Contratados:,${metrics.totalConnections ?? 0}`)
+      csvRows.push(``)
+
+      // Section 2: Published Vacancies List
+      csvRows.push(`VACANTES PUBLICADAS Y RECIENTES`)
+      csvRows.push(`Titulo,Estado,Categoria,Zona,Sueldo Min,Sueldo Max,Postulaciones`)
+
+      const reportVacs = publishedVacancies.length > 0 ? publishedVacancies : latestVacancies
+      if (reportVacs.length > 0) {
+        reportVacs.forEach((vac) => {
+          const title = `"${(vac.title || "").replace(/"/g, '""')}"`
+          const status = vac.is_active !== false ? "Activa" : "Pausada"
+          const category = `"${(vac.category || "General").replace(/"/g, '""')}"`
+          const zone = `"${(vac.zone || vac.location || "Mérida").replace(/"/g, '""')}"`
+          const sMin = vac.salary_min || 0
+          const sMax = vac.salary_max || 0
+          const apps = vac.applicationsCount || 0
+          csvRows.push(`${title},${status},${category},${zone},${sMin},${sMax},${apps}`)
+        })
+      } else {
+        csvRows.push(`"Sin vacantes registradas",-,-,-,0,0,0`)
+      }
+      csvRows.push(``)
+
+      // Section 3: Weekly Activity Breakdown
+      csvRows.push(`FLUJO SEMANAL DE CANDIDATOS`)
+      csvRows.push(`Dia,Nuevos Candidatos`)
+      weeklyAnalytics.flowData.forEach((item) => {
+        csvRows.push(`${item.day},${item.candidatos}`)
+      })
+
+      const csvContent = "\uFEFF" + csvRows.join("\n")
+      const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" })
+      const url = URL.createObjectURL(blob)
+      const link = document.createElement("a")
+      link.setAttribute("href", url)
+      link.setAttribute("download", filename)
+      document.body.appendChild(link)
+      link.click()
+      document.body.removeChild(link)
+      URL.revokeObjectURL(url)
+
       setIsDownloading(false)
       toast.success("¡Reporte descargado con éxito!", {
-        description: `El informe de reclutamiento para ${companyName} ha sido guardado.`,
+        description: `Se guardó el archivo ${filename} en tu equipo.`,
       })
-    }, 1500)
+    } catch (error) {
+      setIsDownloading(false)
+      toast.error("Error al generar el reporte", {
+        description: "No se pudo crear el archivo de reporte.",
+      })
+    }
   }
 
   // Animation variants
@@ -169,14 +284,14 @@ export function DashboardView({
               <div className="mt-8 flex gap-8">
                 <div>
                   <h3 className="text-5xl font-bold tracking-tight text-white font-sans">
-                    {metrics.totalApplications || 43}
+                    {metrics.totalApplications ?? 0}
                   </h3>
                   <p className="text-[12px] text-fiord-300 font-medium mt-1">Postulaciones Totales</p>
                 </div>
                 <div className="border-l border-fiord-800 h-14 my-auto" />
                 <div>
                   <h3 className="text-5xl font-bold tracking-tight text-white font-sans">
-                    2
+                    {metrics.pausedVacancies ?? 0}
                   </h3>
                   <p className="text-[12px] text-fiord-300 font-medium mt-1">Vacantes Pausadas</p>
                 </div>
@@ -186,15 +301,15 @@ export function DashboardView({
             {/* Bottom floating cards */}
             <div className="grid grid-cols-3 gap-2.5 mt-auto relative z-10">
               <div className="bg-white text-fiord-950 rounded-2xl p-3 border border-fiord-100 flex flex-col justify-between">
-                <span className="text-[16px] font-bold leading-none font-sans text-fiord-950">{metrics.activeVacancies || 28}</span>
+                <span className="text-[16px] font-bold leading-none font-sans text-fiord-950">{metrics.activeVacancies ?? 0}</span>
                 <span className="text-[9px] font-semibold text-fiord-500 mt-2 leading-tight">Activas</span>
               </div>
               <div className="bg-white text-fiord-950 rounded-2xl p-3 border border-fiord-100 flex flex-col justify-between">
-                <span className="text-[16px] font-bold leading-none font-sans text-fiord-950">{metrics.reviewingApplications || 14}</span>
+                <span className="text-[16px] font-bold leading-none font-sans text-fiord-950">{metrics.reviewingApplications ?? 0}</span>
                 <span className="text-[9px] font-semibold text-fiord-500 mt-2 leading-tight">En Revisión</span>
               </div>
               <div className="bg-white text-fiord-950 rounded-2xl p-3 border border-fiord-100 flex flex-col justify-between">
-                <span className="text-[16px] font-bold leading-none font-sans text-fiord-950">{metrics.totalConnections || 11}</span>
+                <span className="text-[16px] font-bold leading-none font-sans text-fiord-950">{metrics.totalConnections ?? 0}</span>
                 <span className="text-[9px] font-semibold text-fiord-500 mt-2 leading-tight">Contratados</span>
               </div>
             </div>
@@ -213,7 +328,11 @@ export function DashboardView({
                 <p className="text-[11px] text-fiord-400 dark:text-fiord-400 font-semibold uppercase tracking-wider">Nuevos Candidatos</p>
               </div>
               <Badge className="bg-emerald-50 dark:bg-emerald-950/30 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-50 border-none font-bold text-xs px-2.5 py-1 rounded-full flex items-center gap-0.5">
-                <span>+24%</span>
+                <span>
+                  {weeklyAnalytics.growthPercent >= 0
+                    ? `+${weeklyAnalytics.growthPercent}%`
+                    : `${weeklyAnalytics.growthPercent}%`}
+                </span>
               </Badge>
             </div>
 
@@ -221,7 +340,7 @@ export function DashboardView({
             <div className="h-44 w-full mt-4 flex items-end">
               {mounted ? (
                 <ResponsiveContainer width="100%" height="100%">
-                  <AreaChart data={weeklyFlowData} margin={{ top: 10, right: 5, left: -25, bottom: 0 }}>
+                  <AreaChart data={weeklyAnalytics.flowData} margin={{ top: 10, right: 5, left: -25, bottom: 0 }}>
                     <defs>
                       <linearGradient id="colorCandidatos" x1="0" y1="0" x2="0" y2="1">
                         <stop offset="5%" stopColor="#5c7c9b" stopOpacity={0.25} />
@@ -263,7 +382,9 @@ export function DashboardView({
 
             <div className="flex justify-between items-center mt-3 text-[11px] text-fiord-400 dark:text-fiord-400 font-semibold px-1">
               <span>Lun - Dom</span>
-              <span className="text-fiord-800 dark:text-fiord-200">Promedio: 22 candidatos/día</span>
+              <span className="text-fiord-800 dark:text-fiord-200">
+                Promedio: {weeklyAnalytics.average} candidatos/día
+              </span>
             </div>
           </Card>
         </motion.div>
@@ -288,7 +409,7 @@ export function DashboardView({
                   <ResponsiveContainer width="100%" height="100%">
                     <PieChart>
                       <Pie
-                        data={pieData}
+                        data={monthlyAnalytics.pieData}
                         cx="50%"
                         cy="50%"
                         innerRadius={36}
@@ -296,7 +417,7 @@ export function DashboardView({
                         paddingAngle={4}
                         dataKey="value"
                       >
-                        {pieData.map((entry, index) => (
+                        {monthlyAnalytics.pieData.map((entry, index) => (
                           <Cell key={`cell-${index}`} fill={entry.color} />
                         ))}
                       </Pie>
@@ -304,14 +425,16 @@ export function DashboardView({
                   </ResponsiveContainer>
                 ) : null}
                 <div className="absolute inset-0 flex flex-col items-center justify-center text-center">
-                  <span className="text-lg font-bold text-fiord-900 dark:text-fiord-555 font-mono leading-none">120%</span>
-                  <span className="text-[8px] text-fiord-400 uppercase tracking-widest mt-1 font-bold">Meta</span>
+                  <span className="text-lg font-bold text-fiord-900 dark:text-fiord-555 font-mono leading-none">
+                    {monthlyAnalytics.goalPercent}%
+                  </span>
+                  <span className="text-[8px] text-fiord-400 uppercase tracking-widest font-bold">Meta</span>
                 </div>
               </div>
 
               {/* Legends list */}
               <div className="flex-1 space-y-2 px-1">
-                {pieData.map((item) => (
+                {monthlyAnalytics.pieData.map((item) => (
                   <div key={item.name} className="flex items-center justify-between text-[11px]">
                     <div className="flex items-center gap-1.5">
                       <span className="size-2 rounded-full shrink-0" style={{ backgroundColor: item.color }} />
@@ -383,7 +506,11 @@ export function DashboardView({
             </div>
 
             <div className="flex items-center justify-between text-[11px] text-fiord-400 dark:text-fiord-400 font-semibold border-t border-fiord-100/50 dark:border-fiord-800/50 pt-3">
-              <span>{Math.round((todos.filter(t => t.completed).length / todos.length) * 100)}% Completado</span>
+              <span>
+                {todos.length > 0
+                  ? `${Math.round((todos.filter(t => t.completed).length / todos.length) * 100)}% Completado`
+                  : "100% Completado"}
+              </span>
               <button 
                 onClick={() => {
                   setTodos(prev => prev.map(t => ({ ...t, completed: true })))
@@ -410,78 +537,82 @@ export function DashboardView({
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
-            
-            {/* Vacancy Card 1 */}
-            <Card className="bg-white dark:bg-fiord-900 border-fiord-100 dark:border-fiord-800 rounded-[24px] p-5 flex flex-col justify-between h-[300px] shadow-sm relative group hover:border-fiord-200 dark:hover:border-fiord-700 transition-all duration-200">
-              <div>
-                <div className="flex justify-between items-start">
-                  <div className="size-10 rounded-xl bg-fiord-50 dark:bg-fiord-800 text-fiord-900 dark:text-fiord-100 flex items-center justify-center group-hover:scale-105 transition-transform">
-                    <Briefcase className="size-5" />
-                  </div>
-                  <button className="text-fiord-350 hover:text-fiord-900 dark:hover:text-fiord-100 p-1">
-                    <MoreVertical className="size-4" />
-                  </button>
-                </div>
+            {/* Render up to 2 latest vacancies from database */}
+            {latestVacancies.slice(0, 2).map((vac) => {
+              const formattedSalary =
+                vac.salary_min && vac.salary_max
+                  ? `$${vac.salary_min.toLocaleString("es-MX")} - $${vac.salary_max.toLocaleString("es-MX")}`
+                  : vac.salary_min
+                  ? `Desde $${vac.salary_min.toLocaleString("es-MX")}`
+                  : vac.salary_max
+                  ? `Hasta $${vac.salary_max.toLocaleString("es-MX")}`
+                  : "A convenir";
 
-                <div className="mt-5 space-y-1">
-                  <h5 className="text-[14px] font-bold text-fiord-900 dark:text-fiord-50 line-clamp-1 leading-snug">Mesero de Playa</h5>
-                  <p className="text-[11px] text-fiord-400 dark:text-fiord-400 font-semibold uppercase tracking-wider">Hotel Marina Riviera</p>
-                </div>
+              return (
+                <Link key={vac.id} href={`/dashboard/company/vacancies/${vac.id}`} className="block h-[300px]">
+                  <Card className="bg-white dark:bg-fiord-900 border-fiord-100 dark:border-fiord-800 rounded-[24px] p-5 flex flex-col justify-between h-full shadow-sm relative group hover:border-fiord-200 dark:hover:border-fiord-700 transition-all duration-200">
+                    <div>
+                      <div className="flex justify-between items-start">
+                        <div className="size-10 rounded-xl bg-fiord-50 dark:bg-fiord-800 text-fiord-900 dark:text-fiord-100 flex items-center justify-center group-hover:scale-105 transition-transform">
+                          <Briefcase className="size-5" />
+                        </div>
+                        <Badge
+                          className={cn(
+                            "font-extrabold text-[9px] px-2 py-0.5 rounded-full border-none",
+                            vac.is_active !== false
+                              ? "bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-400"
+                              : "bg-fiord-100 text-fiord-600 dark:bg-fiord-800 dark:text-fiord-400"
+                          )}
+                        >
+                          {vac.is_active !== false ? "● Activa" : "○ Pausada"}
+                        </Badge>
+                      </div>
 
-                <div className="mt-4 flex flex-wrap gap-1.5">
-                  <Badge className="bg-fiord-50 dark:bg-fiord-800 text-fiord-700 dark:text-fiord-300 hover:bg-fiord-100 border-none font-bold text-[9px] px-2.5 py-0.5 rounded-full flex items-center gap-0.5">
-                    <MapPin className="size-2.5" />
-                    <span>Playa del Carmen</span>
-                  </Badge>
-                  <Badge className="bg-fiord-950 dark:bg-fiord-50 text-white dark:text-fiord-950 hover:bg-fiord-950 border-none font-bold text-[9px] px-2.5 py-0.5 rounded-full">
-                    Sueldo Base + Propinas
-                  </Badge>
-                </div>
-              </div>
+                      <div className="mt-5 space-y-1">
+                        <h5 className="text-[14px] font-bold text-fiord-900 dark:text-fiord-50 line-clamp-1 leading-snug">
+                          {vac.title}
+                        </h5>
+                        <p className="text-[11px] text-fiord-400 dark:text-fiord-400 font-semibold uppercase tracking-wider">
+                          {companyName}
+                        </p>
+                      </div>
 
-              <div className="flex items-center justify-between border-t border-fiord-100/50 dark:border-fiord-800/50 pt-4">
-                <span className="text-[10px] text-fiord-400 dark:text-fiord-500 font-bold uppercase tracking-wider">Sueldo: $12,500 MXN</span>
-                <button className="size-8 rounded-full bg-fiord-950 dark:bg-fiord-50 hover:bg-fiord-900 dark:hover:bg-fiord-100 text-white dark:text-fiord-950 flex items-center justify-center shadow-sm active:scale-95 transition-all">
-                  <Bell className="size-3.5" />
-                </button>
-              </div>
-            </Card>
+                      <div className="mt-4 flex flex-wrap gap-1.5">
+                        <Badge className="bg-fiord-50 dark:bg-fiord-800 text-fiord-700 dark:text-fiord-300 hover:bg-fiord-100 border-none font-bold text-[9px] px-2.5 py-0.5 rounded-full flex items-center gap-0.5">
+                          <MapPin className="size-2.5" />
+                          <span>{vac.zone || vac.location || "Mérida"}</span>
+                        </Badge>
+                        {vac.employment_type && (
+                          <Badge className="bg-fiord-950 dark:bg-fiord-50 text-white dark:text-fiord-950 border-none font-bold text-[9px] px-2.5 py-0.5 rounded-full">
+                            {vac.employment_type}
+                          </Badge>
+                        )}
+                      </div>
+                    </div>
 
-            {/* Vacancy Card 2 */}
-            <Card className="bg-white dark:bg-fiord-900 border-fiord-100 dark:border-fiord-800 rounded-[24px] p-5 flex flex-col justify-between h-[300px] shadow-sm relative group hover:border-fiord-200 dark:hover:border-fiord-700 transition-all duration-200">
-              <div>
-                <div className="flex justify-between items-start">
-                  <div className="size-10 rounded-xl bg-fiord-50 dark:bg-fiord-800 text-fiord-900 dark:text-fiord-100 flex items-center justify-center group-hover:scale-105 transition-transform">
-                    <Briefcase className="size-5" />
-                  </div>
-                  <button className="text-fiord-350 hover:text-fiord-900 dark:hover:text-fiord-100 p-1">
-                    <MoreVertical className="size-4" />
-                  </button>
-                </div>
+                    <div className="flex items-center justify-between border-t border-fiord-100/50 dark:border-fiord-800/50 pt-4">
+                      <span className="text-[10px] text-fiord-400 dark:text-fiord-500 font-bold uppercase tracking-wider">
+                        SUELDO: {formattedSalary} MXN
+                      </span>
+                      <div className="size-8 rounded-full bg-fiord-950 dark:bg-fiord-50 hover:bg-fiord-900 dark:hover:bg-fiord-100 text-white dark:text-fiord-950 flex items-center justify-center shadow-sm active:scale-95 transition-all">
+                        <ArrowRight className="size-3.5" />
+                      </div>
+                    </div>
+                  </Card>
+                </Link>
+              );
+            })}
 
-                <div className="mt-5 space-y-1">
-                  <h5 className="text-[14px] font-bold text-fiord-900 dark:text-fiord-50 line-clamp-1 leading-snug">Recepcionista Bilingüe</h5>
-                  <p className="text-[11px] text-fiord-400 dark:text-fiord-400 font-semibold uppercase tracking-wider">Corporate Hub Mérida</p>
-                </div>
-
-                <div className="mt-4 flex flex-wrap gap-1.5">
-                  <Badge className="bg-fiord-50 dark:bg-fiord-800 text-fiord-700 dark:text-fiord-300 hover:bg-fiord-100 border-none font-bold text-[9px] px-2.5 py-0.5 rounded-full flex items-center gap-0.5">
-                    <MapPin className="size-2.5" />
-                    <span>Mérida</span>
-                  </Badge>
-                  <Badge className="bg-fiord-50 dark:bg-fiord-800 text-fiord-700 dark:text-fiord-300 hover:bg-fiord-100 border-none font-bold text-[9px] px-2.5 py-0.5 rounded-full">
-                    Completo
-                  </Badge>
-                </div>
-              </div>
-
-              <div className="flex items-center justify-between border-t border-fiord-100/50 dark:border-fiord-800/50 pt-4">
-                <span className="text-[10px] text-fiord-400 dark:text-fiord-500 font-bold uppercase tracking-wider">Sueldo: $14,000 MXN</span>
-                <button className="size-8 rounded-full bg-fiord-950 dark:bg-fiord-50 hover:bg-fiord-900 dark:hover:bg-fiord-100 text-white dark:text-fiord-950 flex items-center justify-center shadow-sm active:scale-95 transition-all">
-                  <Bell className="size-3.5" />
-                </button>
-              </div>
-            </Card>
+            {/* Empty state card if user has 0 vacancies */}
+            {latestVacancies.length === 0 && (
+              <Card className="bg-white dark:bg-fiord-900 border-fiord-100 dark:border-fiord-800 rounded-[24px] p-5 flex flex-col items-center justify-center h-[300px] shadow-sm text-center">
+                <Briefcase className="size-8 text-fiord-300 dark:text-fiord-700 mb-2" />
+                <h5 className="text-xs font-bold text-fiord-900 dark:text-fiord-100">Sin vacantes aún</h5>
+                <p className="text-[11px] text-fiord-400 dark:text-fiord-500 font-semibold mt-1 max-w-[160px]">
+                  Publica tu primera oferta para empezar a recibir candidatos.
+                </p>
+              </Card>
+            )}
 
             {/* Dashed Action Card - Crear Vacante */}
             <Link href="/dashboard/company/vacancies/new" className="h-[300px]">
@@ -490,7 +621,9 @@ export function DashboardView({
                   <Plus className="size-6" />
                 </div>
                 <h5 className="text-[13.5px] font-bold text-fiord-900 dark:text-fiord-100 mt-4">Crear Vacante</h5>
-                <p className="text-[11px] text-fiord-400 dark:text-fiord-500 mt-1 max-w-[160px] mx-auto leading-relaxed">Publica una nueva oferta exprés en la Riviera Maya</p>
+                <p className="text-[11px] text-fiord-400 dark:text-fiord-500 mt-1 max-w-[160px] mx-auto leading-relaxed">
+                  Publica una nueva oferta exprés en el sureste
+                </p>
               </Card>
             </Link>
           </div>
@@ -515,79 +648,113 @@ export function DashboardView({
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
-            
-            {/* Bottom Card 1 - Darker Theme */}
-            <div className="bg-fiord-900 text-white rounded-[24px] p-5 flex items-center justify-between gap-4 shadow-sm relative overflow-hidden group hover:bg-fiord-950 transition-all duration-300">
-              <div className="space-y-2 flex-1 min-w-0">
-                <div className="flex items-center gap-2">
-                  <Badge className="bg-fiord-800 text-fiord-200 border-none font-bold text-[9px] px-2 py-0.5 rounded-md">Ventas</Badge>
-                  <span className="text-[10px] text-fiord-300 font-bold uppercase tracking-wider">Mérida</span>
-                </div>
-                <h5 className="text-[14.5px] font-bold tracking-tight text-white line-clamp-1">Ejecutivo Comercial</h5>
-                <p className="text-[11px] text-fiord-300 font-bold">$15,000 - $18,000 MXN</p>
-              </div>
+            {publishedVacancies.slice(0, 3).map((vac, idx) => {
+              const formattedSalary =
+                vac.salary_min && vac.salary_max
+                  ? `$${vac.salary_min.toLocaleString("es-MX")} - $${vac.salary_max.toLocaleString("es-MX")}`
+                  : vac.salary_min
+                  ? `Desde $${vac.salary_min.toLocaleString("es-MX")}`
+                  : vac.salary_max
+                  ? `Hasta $${vac.salary_max.toLocaleString("es-MX")}`
+                  : "A convenir";
 
-              {/* Progress wheel SVG */}
-              <div className="relative size-16 shrink-0 flex items-center justify-center">
-                <svg className="size-full transform -rotate-90">
-                  <circle cx="32" cy="32" r="24" stroke="rgba(255,255,255,0.06)" strokeWidth="6" fill="transparent" />
-                  <circle cx="32" cy="32" r="24" stroke="#aabccf" strokeWidth="6" fill="transparent" strokeDasharray="150" strokeDashoffset="50" strokeLinecap="round" />
-                </svg>
-                <div className="absolute inset-0 flex flex-col items-center justify-center">
-                  <span className="text-[11px] font-bold font-mono">2/3</span>
-                  <span className="text-[6.5px] text-fiord-300 uppercase tracking-widest font-semibold">Vacantes</span>
-                </div>
-              </div>
-            </div>
+              const appCount = vac.applicationsCount ?? 0;
+              const isDarkCard = idx === 0;
 
-            {/* Bottom Card 2 - Light Theme */}
-            <Card className="bg-white dark:bg-fiord-900 border-fiord-100 dark:border-fiord-800 rounded-[24px] p-5 flex items-center justify-between gap-4 shadow-sm hover:border-fiord-200 dark:hover:border-fiord-700 transition-all duration-300">
-              <div className="space-y-2 flex-1 min-w-0">
-                <div className="flex items-center gap-2">
-                  <Badge className="bg-fiord-50 dark:bg-fiord-800 text-fiord-700 dark:text-fiord-300 border-none font-bold text-[9px] px-2 py-0.5 rounded-md">Servicios</Badge>
-                  <span className="text-[10px] text-fiord-400 dark:text-fiord-500 font-bold uppercase tracking-wider">Playa del Carmen</span>
-                </div>
-                <h5 className="text-[14.5px] font-bold tracking-tight text-fiord-900 dark:text-fiord-50 line-clamp-1">Recepcionista Spa</h5>
-                <p className="text-[11px] text-fiord-500 dark:text-fiord-400 font-bold">$12,000 - $14,000 MXN</p>
-              </div>
+              if (isDarkCard) {
+                return (
+                  <Link key={vac.id} href={`/dashboard/company/vacancies/${vac.id}`} className="block">
+                    <div className="bg-fiord-900 text-white rounded-[24px] p-5 flex items-center justify-between gap-4 shadow-sm relative overflow-hidden group hover:bg-fiord-950 transition-all duration-300 h-full">
+                      <div className="space-y-2 flex-1 min-w-0">
+                        <div className="flex items-center gap-2">
+                          <Badge className="bg-fiord-800 text-fiord-200 border-none font-bold text-[9px] px-2 py-0.5 rounded-md">
+                            {vac.category || "General"}
+                          </Badge>
+                          <span className="text-[10px] text-fiord-300 font-bold uppercase tracking-wider">
+                            {vac.zone || vac.location || "Mérida"}
+                          </span>
+                        </div>
+                        <h5 className="text-[14.5px] font-bold tracking-tight text-white line-clamp-1">
+                          {vac.title}
+                        </h5>
+                        <p className="text-[11px] text-fiord-300 font-bold">{formattedSalary} MXN</p>
+                      </div>
 
-              {/* Progress wheel SVG */}
-              <div className="relative size-16 shrink-0 flex items-center justify-center">
-                <svg className="size-full transform -rotate-90">
-                  <circle cx="32" cy="32" r="24" stroke="#ebeef3" strokeWidth="6" fill="transparent" className="dark:stroke-fiord-800" />
-                  <circle cx="32" cy="32" r="24" stroke="#5c7c9b" strokeWidth="6" fill="transparent" strokeDasharray="150" strokeDashoffset="100" strokeLinecap="round" />
-                </svg>
-                <div className="absolute inset-0 flex flex-col items-center justify-center">
-                  <span className="text-[11px] font-bold font-mono text-fiord-900 dark:text-fiord-100">1/3</span>
-                  <span className="text-[6.5px] text-fiord-400 dark:text-fiord-500 uppercase tracking-widest font-semibold">Vacantes</span>
-                </div>
-              </div>
-            </Card>
+                      {/* Progress wheel SVG */}
+                      <div className="relative size-16 shrink-0 flex items-center justify-center">
+                        <svg className="size-full transform -rotate-90">
+                          <circle cx="32" cy="32" r="24" stroke="rgba(255,255,255,0.06)" strokeWidth="6" fill="transparent" />
+                          <circle
+                            cx="32"
+                            cy="32"
+                            r="24"
+                            stroke="#aabccf"
+                            strokeWidth="6"
+                            fill="transparent"
+                            strokeDasharray="150"
+                            strokeDashoffset={Math.max(0, 150 - Math.min(appCount, 10) * 15)}
+                            strokeLinecap="round"
+                          />
+                        </svg>
+                        <div className="absolute inset-0 flex flex-col items-center justify-center">
+                          <span className="text-[11px] font-bold font-mono">{appCount}</span>
+                          <span className="text-[6.5px] text-fiord-300 uppercase tracking-widest font-semibold">Postulantes</span>
+                        </div>
+                      </div>
+                    </div>
+                  </Link>
+                );
+              }
 
-            {/* Bottom Card 3 - Light Theme */}
-            <Card className="bg-white dark:bg-fiord-900 border-fiord-100 dark:border-fiord-800 rounded-[24px] p-5 flex items-center justify-between gap-4 shadow-sm hover:border-fiord-200 dark:hover:border-fiord-700 transition-all duration-300">
-              <div className="space-y-2 flex-1 min-w-0">
-                <div className="flex items-center gap-2">
-                  <Badge className="bg-fiord-50 dark:bg-fiord-800 text-fiord-700 dark:text-fiord-300 border-none font-bold text-[9px] px-2 py-0.5 rounded-md">Logística</Badge>
-                  <span className="text-[10px] text-fiord-400 dark:text-fiord-500 font-bold uppercase tracking-wider">Mérida</span>
-                </div>
-                <h5 className="text-[14.5px] font-bold tracking-tight text-fiord-900 dark:text-fiord-50 line-clamp-1">Auxiliar de Almacén</h5>
-                <p className="text-[11px] text-fiord-500 dark:text-fiord-400 font-bold">$10,000 - $12,000 MXN</p>
-              </div>
+              return (
+                <Link key={vac.id} href={`/dashboard/company/vacancies/${vac.id}`} className="block">
+                  <Card className="bg-white dark:bg-fiord-900 border-fiord-100 dark:border-fiord-800 rounded-[24px] p-5 flex items-center justify-between gap-4 shadow-sm hover:border-fiord-200 dark:hover:border-fiord-700 transition-all duration-300 h-full">
+                    <div className="space-y-2 flex-1 min-w-0">
+                      <div className="flex items-center gap-2">
+                        <Badge className="bg-fiord-50 dark:bg-fiord-800 text-fiord-700 dark:text-fiord-300 border-none font-bold text-[9px] px-2 py-0.5 rounded-md">
+                          {vac.category || "General"}
+                        </Badge>
+                        <span className="text-[10px] text-fiord-400 dark:text-fiord-500 font-bold uppercase tracking-wider">
+                          {vac.zone || vac.location || "Mérida"}
+                        </span>
+                      </div>
+                      <h5 className="text-[14.5px] font-bold tracking-tight text-fiord-900 dark:text-fiord-50 line-clamp-1">
+                        {vac.title}
+                      </h5>
+                      <p className="text-[11px] text-fiord-500 dark:text-fiord-400 font-bold">{formattedSalary} MXN</p>
+                    </div>
 
-              {/* Progress wheel SVG */}
-              <div className="relative size-16 shrink-0 flex items-center justify-center">
-                <svg className="size-full transform -rotate-90">
-                  <circle cx="32" cy="32" r="24" stroke="#ebeef3" strokeWidth="6" fill="transparent" className="dark:stroke-fiord-800" />
-                  <circle cx="32" cy="32" r="24" stroke="#3e546d" strokeWidth="6" fill="transparent" strokeDasharray="150" strokeDashoffset="0" strokeLinecap="round" />
-                </svg>
-                <div className="absolute inset-0 flex flex-col items-center justify-center">
-                  <span className="text-[11px] font-bold font-mono text-fiord-900 dark:text-fiord-100">3/3</span>
-                  <span className="text-[6.5px] text-fiord-400 dark:text-fiord-500 uppercase tracking-widest font-semibold">Vacantes</span>
-                </div>
-              </div>
-            </Card>
+                    {/* Progress wheel SVG */}
+                    <div className="relative size-16 shrink-0 flex items-center justify-center">
+                      <svg className="size-full transform -rotate-90">
+                        <circle cx="32" cy="32" r="24" stroke="#ebeef3" strokeWidth="6" fill="transparent" className="dark:stroke-fiord-800" />
+                        <circle
+                          cx="32"
+                          cy="32"
+                          r="24"
+                          stroke="#5c7c9b"
+                          strokeWidth="6"
+                          fill="transparent"
+                          strokeDasharray="150"
+                          strokeDashoffset={Math.max(0, 150 - Math.min(appCount, 10) * 15)}
+                          strokeLinecap="round"
+                        />
+                      </svg>
+                      <div className="absolute inset-0 flex flex-col items-center justify-center">
+                        <span className="text-[11px] font-bold font-mono text-fiord-900 dark:text-fiord-100">{appCount}</span>
+                        <span className="text-[6.5px] text-fiord-400 dark:text-fiord-500 uppercase tracking-widest font-semibold">Postulantes</span>
+                      </div>
+                    </div>
+                  </Card>
+                </Link>
+              );
+            })}
 
+            {publishedVacancies.length === 0 && (
+              <div className="col-span-3 text-center py-6 text-fiord-400 dark:text-fiord-500 text-xs font-semibold">
+                Aún no has publicado vacantes. Tus vacantes más recientes se mostrarán aquí.
+              </div>
+            )}
           </div>
         </motion.div>
         
