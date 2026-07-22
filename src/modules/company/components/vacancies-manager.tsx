@@ -337,21 +337,6 @@ export function VacanciesManager({ userId }: { userId: string }) {
             Controla las ofertas activas y marca las plazas cubiertas desde tu panel.
           </p>
         </div>
-
-        <Button
-          asChild
-          disabled={isProfileIncomplete}
-          className="bg-fiord-950 dark:bg-fiord-50 hover:bg-fiord-900 dark:hover:bg-fiord-100 text-white dark:text-fiord-950 font-bold px-5 h-10 rounded-xl flex items-center gap-2 active:scale-95 transition-all text-xs tracking-wider disabled:opacity-50 disabled:pointer-events-none"
-        >
-          {isProfileIncomplete ? (
-            <span>Nueva Vacante</span>
-          ) : (
-            <Link href="/dashboard/company/vacancies/new" className="flex items-center gap-2">
-              <Plus className="size-4" />
-              <span>Nueva Vacante</span>
-            </Link>
-          )}
-        </Button>
       </div>
 
       {isProfileIncomplete && !loadingProfile && (

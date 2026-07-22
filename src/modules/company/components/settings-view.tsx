@@ -21,7 +21,8 @@ import {
   RefreshCw,
   ArrowRight,
   KeyRound,
-  ShieldCheck
+  ShieldCheck,
+  UserCheck
 } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
@@ -29,6 +30,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Switch } from "@/components/ui/switch"
 import { Progress } from "@/components/ui/progress"
+import { Badge } from "@/components/ui/badge"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import {
   Select,
@@ -86,21 +88,21 @@ interface CompanySettingsViewProps {
 export function CompanySettingsView({ user, initialProfile, initialPauseState }: CompanySettingsViewProps) {
   const { theme, setTheme } = useTheme()
   const [mounted, setMounted] = React.useState(false)
-  const [activeTab, setActiveTab] = React.useState<"general" | "recruitment" | "credits">("general")
+  const [activeTab, setActiveTab] = React.useState<"appearance" | "account" | "recruitment" | "credits">("appearance")
   
-  // Tab 1: General State
+  // Tab 1: Appearance State
   const [language, setLanguage] = React.useState("es")
   const [isResettingPassword, setIsResettingPassword] = React.useState(false)
 
-  // Tab 2: Recruitment State (Bound to props and updated via Server Actions)
+  // Tab 3: Recruitment State (Bound to props and updated via Server Actions)
   const [pauseGlobal, setPauseGlobal] = React.useState(initialPauseState)
   const [contactChannel, setContactChannel] = React.useState(initialProfile.contact_channel)
 
-  // Tab 3: Subscription & Credits State
+  // Tab 4: Subscription & Credits State
   const credits = initialProfile.credits_available
   const [currentPlan, setCurrentPlan] = React.useState<"Gratis" | "Destacado" | "Enterprise">("Gratis")
   
-  // Mock transaction list with user profile updates appended
+  // Mock transaction list
   const [history, setHistory] = React.useState<Transaction[]>([
     {
       id: "tx-1",
@@ -132,11 +134,10 @@ export function CompanySettingsView({ user, initialProfile, initialPauseState }:
   const [selectedCreditsPackage, setSelectedCreditsPackage] = React.useState<{credits: number, price: string} | null>(null)
 
   React.useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
     setMounted(true)
   }, [])
 
-  // 1. Password Reset connected to Supabase Auth
+  // Password Reset
   const handleResetPassword = async () => {
     setIsResettingPassword(true)
     const supabase = createClient()
@@ -164,7 +165,7 @@ export function CompanySettingsView({ user, initialProfile, initialPauseState }:
     }
   }
 
-  // 2. Switch Pausa Global connected to Server Action
+  // Toggle Global Pause Action
   const handleTogglePause = async (checked: boolean) => {
     const previousState = pauseGlobal
     setPauseGlobal(checked)
@@ -174,7 +175,7 @@ export function CompanySettingsView({ user, initialProfile, initialPauseState }:
       
       if (checked) {
         toast.warning("Reclutamiento Pausado", {
-          description: "Tus vacantes se ocultarán del feed público de K&apos;anPro temporalmente.",
+          description: "Tus vacantes se ocultarán del feed público de K'anPro temporalmente.",
         })
       } else {
         toast.success("Reclutamiento Activo", {
@@ -183,15 +184,14 @@ export function CompanySettingsView({ user, initialProfile, initialPauseState }:
       }
     } catch (error) {
       const err = error as Error
-      // Revert status on failure
       setPauseGlobal(previousState)
       toast.error("Error de red", {
-        description: err.message || "No se pudo actualizar el estado de reclutamiento. Inténtalo más tarde.",
+        description: err.message || "No se pudo actualizar el estado de reclutamiento.",
       })
     }
   }
 
-  // 3. Contact Channel connected to Server Action
+  // Update Contact Channel Action
   const handleContactChannelChange = async (channel: string) => {
     const previousChannel = contactChannel
     setContactChannel(channel)
@@ -199,18 +199,17 @@ export function CompanySettingsView({ user, initialProfile, initialPauseState }:
     const channelNames: Record<string, string> = {
       whatsapp: "WhatsApp Directo",
       phone: "Llamada Telefónica",
-      inbox: "Inbox K&apos;anPro",
+      inbox: "Inbox K'anPro",
     }
     
     try {
       await updateContactChannel(initialProfile.id, channel)
       
       toast.success("Canal de contacto actualizado", {
-        description: `Los candidatos ahora te contactarán preferentemente vía ${channelNames[channel]}.`,
+        description: `Los candidatos te contactarán preferentemente vía ${channelNames[channel]}.`,
       })
     } catch (error) {
       const err = error as Error
-      // Revert status on failure
       setContactChannel(previousChannel)
       toast.error("Error al guardar cambios", {
         description: err.message || "No se pudo actualizar el canal de contacto preferido.",
@@ -218,18 +217,14 @@ export function CompanySettingsView({ user, initialProfile, initialPauseState }:
     }
   }
 
-  // 4. Buy Credits (Lean redirection flow via WhatsApp link)
   const handleConfirmPurchase = () => {
     if (!selectedCreditsPackage) return
     
     const { credits: pkgCredits, price } = selectedCreditsPackage
-    
-    // Construct pre-filled message for verification
     const message = `Hola K'anPro, quiero comprar el paquete de ${pkgCredits} créditos (${price}) para mi empresa: ${initialProfile.company_name} (ID: ${initialProfile.id}).`
-    const whatsappNumber = "529841390637" // Riviera Maya Support Phone Number
+    const whatsappNumber = "529841390637"
     const whatsappUrl = `https://wa.me/${whatsappNumber}?text=${encodeURIComponent(message)}`
     
-    // Add to history list as a pending transaction
     const newTx: Transaction = {
       id: `tx-${Date.now()}`,
       type: "purchase",
@@ -246,8 +241,6 @@ export function CompanySettingsView({ user, initialProfile, initialPauseState }:
     setHistory(prev => [newTx, ...prev])
     setIsBuyModalOpen(false)
     setSelectedCreditsPackage(null)
-    
-    // Open redirection link in a new tab
     window.open(whatsappUrl, "_blank")
     
     toast.info("Redireccionando a Soporte", {
@@ -255,19 +248,11 @@ export function CompanySettingsView({ user, initialProfile, initialPauseState }:
     })
   }
 
-  // Simulate local plan update visually (in production this would redirect to Stripe/Billing page)
-  const handleSelectPlan = (plan: "Gratis" | "Destacado" | "Enterprise") => {
-    setCurrentPlan(plan)
-    setIsPlanModalOpen(false)
-    toast.success("Plan actualizado", {
-      description: `Tu cuenta ha cambiado al Plan ${plan} de forma exitosa.`,
-    })
-  }
-
-  // Navigation tabs list
+  // Navigation tabs list cleanly separated into focused categories
   const tabsList = [
-    { id: "general", label: "General", icon: <Settings className="size-4" /> },
-    { id: "recruitment", label: "Reclutamiento", icon: <Briefcase className="size-4" /> },
+    { id: "appearance", label: "Apariencia y Tema", icon: <Sun className="size-4" /> },
+    { id: "account", label: "Cuenta y Seguridad", icon: <ShieldCheck className="size-4" /> },
+    { id: "recruitment", label: "Control de Reclutamiento", icon: <Briefcase className="size-4" /> },
     { id: "credits", label: "Suscripción y Créditos", icon: <CreditCard className="size-4" /> },
   ] as const
 
@@ -277,12 +262,12 @@ export function CompanySettingsView({ user, initialProfile, initialPauseState }:
       {/* 1. Navigation Shell: Left Sidebar (Desktop) or Horizontal Scrollable Bar (Mobile) */}
       <div className="w-full lg:w-[280px] flex-shrink-0 border-b lg:border-b-0 lg:border-r border-border/40 flex flex-col bg-background/50 backdrop-blur-sm p-4 lg:p-6 lg:h-auto gap-4">
         <div className="hidden lg:flex items-center gap-3 px-2 mb-6">
-          <div className="w-8 h-8 rounded-xl bg-primary/5 dark:bg-primary/20 flex items-center justify-center text-primary">
-            <Settings className="size-4 animate-spin-slow" />
+          <div className="w-8 h-8 rounded-xl bg-fiord-950 dark:bg-fiord-50 text-white dark:text-fiord-950 flex items-center justify-center">
+            <Settings className="size-4" />
           </div>
           <div>
-            <h2 className="text-sm font-semibold text-foreground leading-none">Ajustes Corporativos</h2>
-            <span className="text-[10px] text-muted-foreground">K&apos;anPro Mérida y Riviera Maya</span>
+            <h2 className="text-sm font-bold text-fiord-900 dark:text-fiord-50 leading-none">Ajustes Corporativos</h2>
+            <span className="text-[10px] text-fiord-400 dark:text-fiord-400 font-medium">K&apos;anPro Mérida y Riviera Maya</span>
           </div>
         </div>
 
@@ -293,18 +278,18 @@ export function CompanySettingsView({ user, initialProfile, initialPauseState }:
             return (
               <button
                 key={tab.id}
-                onClick={() => setActiveTab(tab.id)}
+                onClick={() => setActiveTab(tab.id as any)}
                 className={cn(
-                  "flex items-center gap-2.5 px-4 py-2.5 rounded-lg text-xs font-semibold whitespace-nowrap transition-all duration-300 relative select-none",
+                  "flex items-center gap-2.5 px-4 py-2.5 rounded-xl text-xs font-bold whitespace-nowrap transition-all duration-200 relative select-none cursor-pointer",
                   isTabActive
-                    ? "bg-primary text-primary-foreground shadow-sm shadow-primary/10"
-                    : "text-muted-foreground hover:text-primary dark:hover:text-primary-foreground hover:bg-muted/40"
+                    ? "bg-fiord-950 dark:bg-fiord-50 text-white dark:text-fiord-950 shadow-sm"
+                    : "text-fiord-600 dark:text-fiord-400 hover:text-fiord-900 dark:hover:text-fiord-100 hover:bg-fiord-50 dark:hover:bg-fiord-900/60"
                 )}
               >
                 {tab.icon}
                 <span>{tab.label}</span>
                 {tab.id === "credits" && credits <= 3 && (
-                  <span className="ml-auto w-1.5 h-1.5 rounded-full bg-destructive animate-pulse hidden lg:block" />
+                  <span className="ml-auto size-2 rounded-full bg-amber-500 animate-pulse hidden lg:block" />
                 )}
               </button>
             )
@@ -316,225 +301,289 @@ export function CompanySettingsView({ user, initialProfile, initialPauseState }:
       <div className="flex-1 overflow-y-auto bg-card/10 p-6 md:p-10 lg:p-12">
         <div className="max-w-4xl mx-auto space-y-8 animate-in fade-in duration-300">
           
-          {/* Active View renders here based on selected activeTab */}
-          
-          {/* TAB 1: GENERAL SETTINGS */}
-          {activeTab === "general" && (
-            <div className="space-y-8">
-              <div className="flex flex-col gap-1 border-b border-border/40 pb-4">
-                <h1 className="text-xl font-bold tracking-tight text-foreground">Configuración General</h1>
-                <p className="text-xs text-muted-foreground">Ajusta tus preferencias operativas de idioma y tema de la aplicación K&apos;anPro.</p>
+          {/* TAB 1: APARIENCIA Y TEMA */}
+          {activeTab === "appearance" && (
+            <div className="space-y-6">
+              <div className="flex flex-col gap-1 pb-2">
+                <h1 className="text-xl font-bold tracking-tight text-fiord-900 dark:text-fiord-50">
+                  Apariencia y Preferencias
+                </h1>
+                <p className="text-xs text-fiord-500 dark:text-fiord-400 font-medium">
+                  Personaliza el estilo visual e idioma de la plataforma K&apos;anPro.
+                </p>
               </div>
 
-              {/* Theme Settings (Premium visual selection Cards) */}
-              <div className="space-y-4">
-                <div className="flex items-center gap-2">
-                  <div className="w-1.5 h-3 rounded-full bg-primary" />
-                  <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Apariencia visual</Label>
+              {/* SECCIÓN 1: APARIENCIA VISUAL */}
+              <Card className="border-fiord-100 dark:border-fiord-800 bg-white dark:bg-fiord-900 rounded-2xl p-6 shadow-sm space-y-4">
+                <div className="flex items-center justify-between">
+                  <div className="space-y-0.5">
+                    <h3 className="text-sm font-bold text-fiord-900 dark:text-fiord-50 flex items-center gap-2">
+                      <Sun className="size-4 text-fiord-500" />
+                      Apariencia Visual
+                    </h3>
+                    <p className="text-[11px] text-fiord-400 dark:text-fiord-400 font-medium">
+                      Elige la paleta cromática con la que deseas trabajar.
+                    </p>
+                  </div>
+                  <Badge variant="outline" className="text-[10px] font-bold border-fiord-200 dark:border-fiord-700 text-fiord-600 dark:text-fiord-300">
+                    Tema
+                  </Badge>
                 </div>
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                  {/* Claro (Light) card */}
-                  <div
+
+                {/* Minimalist & Modern Theme Selector */}
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-2">
+                  <button
+                    type="button"
                     onClick={() => setTheme("light")}
                     className={cn(
-                      "group relative flex flex-col justify-between overflow-hidden border rounded-xl p-4 cursor-pointer transition-all duration-300 bg-card select-none",
+                      "flex items-center justify-between p-4 rounded-xl border text-left transition-all duration-200 group select-none cursor-pointer",
                       mounted && theme === "light"
-                        ? "border-primary shadow-sm shadow-primary/5 bg-primary/[0.01]"
-                        : "border-border/60 hover:border-primary/50"
+                        ? "border-fiord-900 dark:border-fiord-100 bg-fiord-50/70 dark:bg-fiord-800/80 shadow-xs"
+                        : "border-fiord-100 dark:border-fiord-800 bg-white dark:bg-fiord-900/50 hover:border-fiord-300 dark:hover:border-fiord-700"
                     )}
                   >
-                    <div className="flex justify-between items-center mb-6">
-                      <span className="text-xs font-bold text-foreground">Claro</span>
-                      <Sun className={cn("size-4 text-amber-500", mounted && theme === "light" && "animate-spin-slow")} />
-                    </div>
-                    {/* Mockup */}
-                    <div className="h-20 w-full bg-slate-100/80 dark:bg-zinc-900 rounded-lg p-2 flex flex-col gap-1.5 border border-border/20">
-                      <div className="h-2 w-1/3 bg-slate-200 rounded-full" />
-                      <div className="flex gap-2">
-                        <div className="h-8 w-8 bg-white rounded-lg border border-slate-200 flex items-center justify-center text-[8px] font-bold text-primary shadow-sm">K&apos;</div>
-                        <div className="flex-1 flex flex-col gap-1">
-                          <div className="h-2 w-full bg-slate-200 rounded-full" />
-                          <div className="h-1.5 w-2/3 bg-slate-200 rounded-full" />
-                        </div>
+                    <div className="flex items-center gap-3">
+                      <div className={cn(
+                        "size-9 rounded-lg flex items-center justify-center transition-colors",
+                        mounted && theme === "light"
+                          ? "bg-fiord-900 text-white dark:bg-fiord-100 dark:text-fiord-950"
+                          : "bg-fiord-50 dark:bg-fiord-800 text-fiord-600 dark:text-fiord-400"
+                      )}>
+                        <Sun className="size-4" />
+                      </div>
+                      <div>
+                        <span className="text-xs font-bold block text-fiord-900 dark:text-fiord-50">Claro</span>
+                        <span className="text-[10px] text-fiord-400 dark:text-fiord-400 font-medium">Estándar diurno</span>
                       </div>
                     </div>
                     {mounted && theme === "light" && (
-                      <div className="absolute top-2 right-2 bg-primary text-white rounded-full p-0.5">
-                        <Check className="size-3" />
-                      </div>
+                      <Check className="size-4 text-fiord-900 dark:text-fiord-50 shrink-0" />
                     )}
-                  </div>
+                  </button>
 
-                  {/* Oscuro (Dark) card */}
-                  <div
+                  <button
+                    type="button"
                     onClick={() => setTheme("dark")}
                     className={cn(
-                      "group relative flex flex-col justify-between overflow-hidden border rounded-xl p-4 cursor-pointer transition-all duration-300 bg-card select-none",
+                      "flex items-center justify-between p-4 rounded-xl border text-left transition-all duration-200 group select-none cursor-pointer",
                       mounted && theme === "dark"
-                        ? "border-primary shadow-sm shadow-primary/5 bg-primary/[0.01]"
-                        : "border-border/60 hover:border-primary/50"
+                        ? "border-fiord-900 dark:border-fiord-100 bg-fiord-50/70 dark:bg-fiord-800/80 shadow-xs"
+                        : "border-fiord-100 dark:border-fiord-800 bg-white dark:bg-fiord-900/50 hover:border-fiord-300 dark:hover:border-fiord-700"
                     )}
                   >
-                    <div className="flex justify-between items-center mb-6">
-                      <span className="text-xs font-bold text-foreground">Oscuro</span>
-                      <Moon className={cn("size-4 text-primary group-hover:rotate-12 transition-transform")} />
-                    </div>
-                    {/* Mockup */}
-                    <div className="h-20 w-full bg-zinc-950 rounded-lg p-2 flex flex-col gap-1.5 border border-border/10">
-                      <div className="h-2 w-1/3 bg-zinc-800 rounded-full" />
-                      <div className="flex gap-2">
-                        <div className="h-8 w-8 bg-zinc-900 rounded-lg border border-zinc-800 flex items-center justify-center text-[8px] font-bold text-primary shadow-sm">K&apos;</div>
-                        <div className="flex-1 flex flex-col gap-1">
-                          <div className="h-2 w-full bg-zinc-800 rounded-full" />
-                          <div className="h-1.5 w-2/3 bg-zinc-800 rounded-full" />
-                        </div>
+                    <div className="flex items-center gap-3">
+                      <div className={cn(
+                        "size-9 rounded-lg flex items-center justify-center transition-colors",
+                        mounted && theme === "dark"
+                          ? "bg-fiord-900 text-white dark:bg-fiord-100 dark:text-fiord-950"
+                          : "bg-fiord-50 dark:bg-fiord-800 text-fiord-600 dark:text-fiord-400"
+                      )}>
+                        <Moon className="size-4" />
+                      </div>
+                      <div>
+                        <span className="text-xs font-bold block text-fiord-900 dark:text-fiord-50">Oscuro</span>
+                        <span className="text-[10px] text-fiord-400 dark:text-fiord-400 font-medium">Para poca luz</span>
                       </div>
                     </div>
                     {mounted && theme === "dark" && (
-                      <div className="absolute top-2 right-2 bg-primary text-white rounded-full p-0.5">
-                        <Check className="size-3" />
-                      </div>
+                      <Check className="size-4 text-fiord-900 dark:text-fiord-50 shrink-0" />
                     )}
-                  </div>
+                  </button>
 
-                  {/* Sistema (System) card */}
-                  <div
+                  <button
+                    type="button"
                     onClick={() => setTheme("system")}
                     className={cn(
-                      "group relative flex flex-col justify-between overflow-hidden border rounded-xl p-4 cursor-pointer transition-all duration-300 bg-card select-none",
+                      "flex items-center justify-between p-4 rounded-xl border text-left transition-all duration-200 group select-none cursor-pointer",
                       mounted && theme === "system"
-                        ? "border-primary shadow-sm shadow-primary/5 bg-primary/[0.01]"
-                        : "border-border/60 hover:border-primary/50"
+                        ? "border-fiord-900 dark:border-fiord-100 bg-fiord-50/70 dark:bg-fiord-800/80 shadow-xs"
+                        : "border-fiord-100 dark:border-fiord-800 bg-white dark:bg-fiord-900/50 hover:border-fiord-300 dark:hover:border-fiord-700"
                     )}
                   >
-                    <div className="flex justify-between items-center mb-6">
-                      <span className="text-xs font-bold text-foreground">Sistema</span>
-                      <Laptop className="size-4 text-muted-foreground" />
-                    </div>
-                    {/* Mockup */}
-                    <div className="h-20 w-full bg-gradient-to-r from-slate-100/80 to-zinc-950 rounded-lg p-2 flex flex-col gap-1.5 border border-border/20">
-                      <div className="h-2 w-1/3 bg-slate-300 dark:bg-zinc-800 rounded-full" />
-                      <div className="flex gap-2">
-                        <div className="h-8 w-8 bg-slate-200/50 dark:bg-zinc-900 rounded-lg border border-slate-300 flex items-center justify-center text-[8px] font-bold text-primary shadow-sm">K&apos;</div>
-                        <div className="flex-1 flex flex-col gap-1">
-                          <div className="h-2 w-full bg-slate-300 dark:bg-zinc-800 rounded-full" />
-                          <div className="h-1.5 w-2/3 bg-slate-300 dark:bg-zinc-800 rounded-full" />
-                        </div>
+                    <div className="flex items-center gap-3">
+                      <div className={cn(
+                        "size-9 rounded-lg flex items-center justify-center transition-colors",
+                        mounted && theme === "system"
+                          ? "bg-fiord-900 text-white dark:bg-fiord-100 dark:text-fiord-950"
+                          : "bg-fiord-50 dark:bg-fiord-800 text-fiord-600 dark:text-fiord-400"
+                      )}>
+                        <Laptop className="size-4" />
+                      </div>
+                      <div>
+                        <span className="text-xs font-bold block text-fiord-900 dark:text-fiord-50">Sistema</span>
+                        <span className="text-[10px] text-fiord-400 dark:text-fiord-400 font-medium">Automático</span>
                       </div>
                     </div>
                     {mounted && theme === "system" && (
-                      <div className="absolute top-2 right-2 bg-primary text-white rounded-full p-0.5">
-                        <Check className="size-3" />
-                      </div>
+                      <Check className="size-4 text-fiord-900 dark:text-fiord-50 shrink-0" />
                     )}
+                  </button>
+                </div>
+              </Card>
+
+              {/* SECCIÓN 2: IDIOMA Y REGIÓN */}
+              <Card className="border-fiord-100 dark:border-fiord-800 bg-white dark:bg-fiord-900 rounded-2xl p-6 shadow-sm space-y-4">
+                <div className="flex items-center justify-between">
+                  <div className="space-y-0.5">
+                    <h3 className="text-sm font-bold text-fiord-900 dark:text-fiord-50 flex items-center gap-2">
+                      <Languages className="size-4 text-fiord-500" />
+                      Idioma de Visualización
+                    </h3>
+                    <p className="text-[11px] text-fiord-400 dark:text-fiord-400 font-medium">
+                      Selecciona el idioma para el panel y notificaciones de tu empresa.
+                    </p>
                   </div>
                 </div>
-              </div>
 
-              {/* Language selection */}
-              <div className="space-y-4 pt-4 border-t border-border/40">
-                <div className="flex items-center gap-2">
-                  <div className="w-1.5 h-3 rounded-full bg-primary" />
-                  <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Idioma de visualización</Label>
-                </div>
-                <div className="flex items-center gap-4">
-                  <Languages className="size-4 text-muted-foreground" />
-                  <Select value={language} onValueChange={setLanguage}>
-                    <SelectTrigger className="w-full sm:w-[240px] rounded-lg border-border bg-input/20 h-9 px-4">
-                      <SelectValue placeholder="Selecciona idioma" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="es">Español (México)</SelectItem>
-                      <SelectItem value="en">English (US)</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-
-              {/* Basic Security / Password Reset */}
-              <div className="space-y-4 pt-6 border-t border-border/40">
-                <div className="flex items-center gap-2">
-                  <div className="w-1.5 h-3 rounded-full bg-primary" />
-                  <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Seguridad de la cuenta</Label>
-                </div>
-
-                <div className="glass-card rounded-xl p-6 border border-border/40 space-y-6">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="space-y-1.5">
-                      <Label htmlFor="email-input" className="text-xs text-muted-foreground">Correo de la Empresa</Label>
-                      <Input
-                        id="email-input"
-                        type="email"
-                        value={user.email}
-                        disabled
-                        className="rounded-lg border-border h-9 px-4 bg-muted/30 text-muted-foreground text-xs"
-                      />
-                    </div>
-                    <div className="space-y-1.5">
-                      <Label htmlFor="rol-input" className="text-xs text-muted-foreground">Rol Comercial</Label>
-                      <Input
-                        id="rol-input"
-                        type="text"
-                        value="Reclutador Administrador"
-                        disabled
-                        className="rounded-lg border-border h-9 px-4 bg-muted/30 text-muted-foreground text-xs"
-                      />
-                    </div>
-                  </div>
-
-                  <div className="flex flex-col sm:flex-row items-center justify-between gap-4 p-4 rounded-xl bg-muted/20 border border-border/20">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
+                  <button
+                    type="button"
+                    onClick={() => setLanguage("es")}
+                    className={cn(
+                      "flex items-center justify-between p-4 rounded-xl border text-left transition-all duration-200 select-none cursor-pointer",
+                      language === "es"
+                        ? "border-fiord-900 dark:border-fiord-100 bg-fiord-50/70 dark:bg-fiord-800/80 shadow-xs"
+                        : "border-fiord-100 dark:border-fiord-800 bg-white dark:bg-fiord-900/50 hover:border-fiord-300 dark:hover:border-fiord-700"
+                    )}
+                  >
                     <div className="flex items-center gap-3">
-                      <div className="p-2 rounded-lg bg-primary/5 dark:bg-primary/20 text-primary">
-                        <KeyRound className="size-4" />
-                      </div>
+                      <span className="text-lg">🇲🇽</span>
                       <div>
-                        <h4 className="text-xs font-bold text-foreground">Contraseña de acceso</h4>
-                        <span className="text-[10px] text-muted-foreground">Reconfiguración de contraseña vía Supabase Auth</span>
+                        <span className="text-xs font-bold block text-fiord-900 dark:text-fiord-50">Español (México)</span>
+                        <span className="text-[10px] text-fiord-400 dark:text-fiord-400 font-medium">Predeterminado</span>
                       </div>
                     </div>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={handleResetPassword}
-                      disabled={isResettingPassword}
-                      className="rounded-lg px-4 text-xs font-semibold h-8 select-none border-border"
-                    >
-                      {isResettingPassword ? (
-                        <>
-                          <RefreshCw className="mr-2 size-3 animate-spin" />
-                          Procesando...
-                        </>
-                      ) : (
-                        "Restablecer Contraseña"
-                      )}
-                    </Button>
-                  </div>
+                    {language === "es" && <Check className="size-4 text-fiord-900 dark:text-fiord-50 shrink-0" />}
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setLanguage("en")}
+                    className={cn(
+                      "flex items-center justify-between p-4 rounded-xl border text-left transition-all duration-200 select-none cursor-pointer",
+                      language === "en"
+                        ? "border-fiord-900 dark:border-fiord-100 bg-fiord-50/70 dark:bg-fiord-800/80 shadow-xs"
+                        : "border-fiord-100 dark:border-fiord-800 bg-white dark:bg-fiord-900/50 hover:border-fiord-300 dark:hover:border-fiord-700"
+                    )}
+                  >
+                    <div className="flex items-center gap-3">
+                      <span className="text-lg">🇺🇸</span>
+                      <div>
+                        <span className="text-xs font-bold block text-fiord-900 dark:text-fiord-50">English (US)</span>
+                        <span className="text-[10px] text-fiord-400 dark:text-fiord-400 font-medium">Disponible</span>
+                      </div>
+                    </div>
+                    {language === "en" && <Check className="size-4 text-fiord-900 dark:text-fiord-50 shrink-0" />}
+                  </button>
                 </div>
-              </div>
+              </Card>
             </div>
           )}
 
-          {/* TAB 2: RECRUITMENT CONTROLS */}
-          {activeTab === "recruitment" && (
-            <div className="space-y-8">
-              <div className="flex flex-col gap-1 border-b border-border/40 pb-4">
-                <h1 className="text-xl font-bold tracking-tight text-foreground">Control de Reclutamiento</h1>
-                <p className="text-xs text-muted-foreground">Gestiona la disponibilidad operativa de tu cuenta y los canales de comunicación oficiales.</p>
+          {/* TAB 2: CUENTA Y SEGURIDAD */}
+          {activeTab === "account" && (
+            <div className="space-y-6">
+              <div className="flex flex-col gap-1 pb-2">
+                <h1 className="text-xl font-bold tracking-tight text-fiord-900 dark:text-fiord-50">
+                  Cuenta y Seguridad
+                </h1>
+                <p className="text-xs text-fiord-500 dark:text-fiord-400 font-medium">
+                  Administra las credenciales corporativas y la clave de acceso de tu usuario.
+                </p>
               </div>
 
-              {/* Switch de Pausa Global */}
-              <div className="glass-card rounded-xl p-6 border border-border/40 space-y-4">
+              <Card className="border-fiord-100 dark:border-fiord-800 bg-white dark:bg-fiord-900 rounded-2xl p-6 shadow-sm space-y-6">
+                <div className="space-y-0.5">
+                  <h3 className="text-sm font-bold text-fiord-900 dark:text-fiord-50 flex items-center gap-2">
+                    <UserCheck className="size-4 text-fiord-500" />
+                    Datos de Autenticación
+                  </h3>
+                  <p className="text-[11px] text-fiord-400 dark:text-fiord-400 font-medium">
+                    Información técnica y permisos de la cuenta.
+                  </p>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-1.5">
+                    <Label htmlFor="email-input" className="text-xs font-semibold text-fiord-700 dark:text-fiord-300">
+                      Correo de la Empresa
+                    </Label>
+                    <Input
+                      id="email-input"
+                      type="email"
+                      value={user.email}
+                      disabled
+                      className="rounded-xl border-fiord-100 dark:border-fiord-800 h-10 px-4 bg-fiord-50/50 dark:bg-fiord-950/40 text-fiord-600 dark:text-fiord-400 text-xs font-medium"
+                    />
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label htmlFor="rol-input" className="text-xs font-semibold text-fiord-700 dark:text-fiord-300">
+                      Rol Comercial
+                    </Label>
+                    <Input
+                      id="rol-input"
+                      type="text"
+                      value="Reclutador Administrador"
+                      disabled
+                      className="rounded-xl border-fiord-100 dark:border-fiord-800 h-10 px-4 bg-fiord-50/50 dark:bg-fiord-950/40 text-fiord-600 dark:text-fiord-400 text-xs font-medium"
+                    />
+                  </div>
+                </div>
+
+                <div className="flex flex-col sm:flex-row items-center justify-between gap-4 p-4 rounded-xl bg-fiord-50/50 dark:bg-fiord-800/30 border border-fiord-100/60 dark:border-fiord-800">
+                  <div className="flex items-center gap-3">
+                    <div className="size-8 rounded-lg bg-fiord-950 dark:bg-fiord-50 text-white dark:text-fiord-950 flex items-center justify-center shrink-0">
+                      <KeyRound className="size-4" />
+                    </div>
+                    <div>
+                      <h4 className="text-xs font-bold text-fiord-900 dark:text-fiord-50">Contraseña de acceso</h4>
+                      <span className="text-[10px] text-fiord-400 dark:text-fiord-400 font-medium">
+                        Reconfiguración segura vía Supabase Auth
+                      </span>
+                    </div>
+                  </div>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={handleResetPassword}
+                    disabled={isResettingPassword}
+                    className="rounded-xl px-4 text-xs font-bold h-9 select-none border-fiord-200 dark:border-fiord-700 hover:bg-fiord-100 dark:hover:bg-fiord-800"
+                  >
+                    {isResettingPassword ? (
+                      <>
+                        <RefreshCw className="mr-2 size-3.5 animate-spin" />
+                        Procesando...
+                      </>
+                    ) : (
+                      "Restablecer Contraseña"
+                    )}
+                  </Button>
+                </div>
+              </Card>
+            </div>
+          )}
+
+          {/* TAB 3: CONTROL DE RECLUTAMIENTO */}
+          {activeTab === "recruitment" && (
+            <div className="space-y-6">
+              <div className="flex flex-col gap-1 pb-2">
+                <h1 className="text-xl font-bold tracking-tight text-fiord-900 dark:text-fiord-50">Control de Reclutamiento</h1>
+                <p className="text-xs text-fiord-500 dark:text-fiord-400 font-medium">Gestiona la disponibilidad operativa de tu cuenta y los canales de comunicación oficiales.</p>
+              </div>
+
+              {/* SECCIÓN 1: PAUSA GLOBAL */}
+              <Card className="border-fiord-100 dark:border-fiord-800 bg-white dark:bg-fiord-900 rounded-2xl p-6 shadow-sm space-y-4">
                 <div className="flex items-center justify-between gap-4">
                   <div className="flex items-start gap-3">
                     <div className={cn(
-                      "p-2 rounded-lg text-white mt-0.5",
-                      pauseGlobal ? "bg-amber-500" : "bg-emerald-500"
+                      "p-2 rounded-xl text-white mt-0.5 shrink-0",
+                      pauseGlobal ? "bg-amber-500" : "bg-emerald-600"
                     )}>
-                      <ShieldCheck className="size-4" />
+                      <ShieldCheck className="size-5" />
                     </div>
                     <div>
-                      <h3 className="text-sm font-semibold text-foreground">Pausar Reclutamiento Temporalmente</h3>
-                      <p className="text-xs text-muted-foreground mt-0.5">Al activarlo, todas tus vacantes activas se ocultarán del feed de los candidatos.</p>
+                      <h3 className="text-sm font-bold text-fiord-900 dark:text-fiord-50">Pausar Reclutamiento Temporalmente</h3>
+                      <p className="text-xs text-fiord-400 dark:text-fiord-400 font-medium mt-0.5">Al activarlo, todas tus vacantes activas se ocultarán del feed público de los candidatos.</p>
                     </div>
                   </div>
                   <Switch
@@ -543,49 +592,51 @@ export function CompanySettingsView({ user, initialProfile, initialPauseState }:
                   />
                 </div>
 
-                {/* Warning message on Pause active */}
                 {pauseGlobal && (
-                  <div className="flex items-start gap-2.5 p-3 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-600 dark:text-amber-400 text-xs animate-in slide-in-from-top-2 duration-300">
-                    <AlertCircle className="size-4 mt-0.5 flex-shrink-0" />
+                  <div className="flex items-start gap-2.5 p-3.5 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-700 dark:text-amber-400 text-xs animate-in slide-in-from-top-2 duration-300">
+                    <AlertCircle className="size-4 mt-0.5 shrink-0" />
                     <div>
-                      <span className="font-bold">Efecto Inmediato:</span> Tus anuncios de empleo en Playa del Carmen, Mérida, Cancún, Tulum y otras locaciones han sido retirados temporalmente del feed público. No recibirás nuevos contactos hasta reanudar.
+                      <span className="font-bold">Efecto Inmediato:</span> Tus anuncios de empleo en Mérida, Playa del Carmen y Riviera Maya han sido pausados temporalmente.
                     </div>
                   </div>
                 )}
-              </div>
+              </Card>
 
-              {/* Canal de Contacto Preferido */}
-              <div className="space-y-4">
-                <div className="flex items-center gap-2">
-                  <div className="w-1.5 h-3 rounded-full bg-primary" />
-                  <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Canal de contacto preferido</Label>
+              {/* SECCIÓN 2: CANAL DE CONTACTO PREFERIDO */}
+              <Card className="border-fiord-100 dark:border-fiord-800 bg-white dark:bg-fiord-900 rounded-2xl p-6 shadow-sm space-y-4">
+                <div className="space-y-0.5">
+                  <h3 className="text-sm font-bold text-fiord-900 dark:text-fiord-50 flex items-center gap-2">
+                    <MessageCircle className="size-4 text-fiord-500" />
+                    Canal de Contacto Preferido
+                  </h3>
+                  <p className="text-[11px] text-fiord-400 dark:text-fiord-400 font-medium">
+                    Forma en la que los candidatos se comunicarán principalmente con tu equipo.
+                  </p>
                 </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-2">
                   {/* WhatsApp Directo */}
                   <div
                     onClick={() => handleContactChannelChange("whatsapp")}
                     className={cn(
-                      "group relative flex flex-col justify-between overflow-hidden border rounded-xl p-5 cursor-pointer transition-all duration-300 bg-card select-none",
+                      "flex flex-col justify-between p-4 rounded-xl border cursor-pointer transition-all duration-200 select-none",
                       contactChannel === "whatsapp"
-                        ? "border-emerald-500 shadow-sm bg-emerald-500/[0.02]"
-                        : "border-border/60 hover:border-primary/50"
+                        ? "border-emerald-600 dark:border-emerald-500 bg-emerald-50/60 dark:bg-emerald-950/30 shadow-xs"
+                        : "border-fiord-100 dark:border-fiord-800 bg-white dark:bg-fiord-900/50 hover:border-fiord-300 dark:hover:border-fiord-700"
                     )}
                   >
-                    <div className="flex justify-between items-center mb-4">
-                      <div className="p-2 rounded-lg bg-emerald-500/10 text-emerald-500 group-hover:scale-105 transition-transform">
-                        <MessageCircle className="size-4 fill-emerald-500/10" />
+                    <div className="flex justify-between items-center mb-3">
+                      <div className="p-2 rounded-lg bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">
+                        <MessageCircle className="size-4" />
                       </div>
                       {contactChannel === "whatsapp" && (
-                        <div className="bg-emerald-500 text-white rounded-full p-0.5">
-                          <Check className="size-3" />
-                        </div>
+                        <Check className="size-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
                       )}
                     </div>
                     <div>
-                      <h4 className="text-xs font-bold text-foreground">WhatsApp Directo</h4>
-                      <p className="text-[10px] text-muted-foreground mt-1 leading-normal">
-                        Conexión express. Recomendado en Mérida y Playa para perfiles operativos.
+                      <h4 className="text-xs font-bold text-fiord-900 dark:text-fiord-50">WhatsApp Directo</h4>
+                      <p className="text-[10px] text-fiord-400 dark:text-fiord-400 font-medium mt-1 leading-normal">
+                        Conexión exprés directa al número de WhatsApp de tu empresa.
                       </p>
                     </div>
                   </div>
@@ -594,26 +645,24 @@ export function CompanySettingsView({ user, initialProfile, initialPauseState }:
                   <div
                     onClick={() => handleContactChannelChange("phone")}
                     className={cn(
-                      "group relative flex flex-col justify-between overflow-hidden border rounded-xl p-5 cursor-pointer transition-all duration-300 bg-card select-none",
+                      "flex flex-col justify-between p-4 rounded-xl border cursor-pointer transition-all duration-200 select-none",
                       contactChannel === "phone"
-                        ? "border-primary shadow-sm bg-primary/[0.02]"
-                        : "border-border/60 hover:border-primary/50"
+                        ? "border-fiord-900 dark:border-fiord-100 bg-fiord-50/70 dark:bg-fiord-800/80 shadow-xs"
+                        : "border-fiord-100 dark:border-fiord-800 bg-white dark:bg-fiord-900/50 hover:border-fiord-300 dark:hover:border-fiord-700"
                     )}
                   >
-                    <div className="flex justify-between items-center mb-4">
-                      <div className="p-2 rounded-lg bg-primary/10 text-primary group-hover:scale-105 transition-transform">
+                    <div className="flex justify-between items-center mb-3">
+                      <div className="p-2 rounded-lg bg-fiord-50 dark:bg-fiord-800 text-fiord-900 dark:text-fiord-100">
                         <Phone className="size-4" />
                       </div>
                       {contactChannel === "phone" && (
-                        <div className="bg-primary text-primary-foreground rounded-full p-0.5">
-                          <Check className="size-3" />
-                        </div>
+                        <Check className="size-4 text-fiord-900 dark:text-fiord-50 shrink-0" />
                       )}
                     </div>
                     <div>
-                      <h4 className="text-xs font-bold text-foreground">Llamada Telefónica</h4>
-                      <p className="text-[10px] text-muted-foreground mt-1 leading-normal">
-                        Entrevistas rápidas directas. Ideal para contactar de forma directa.
+                      <h4 className="text-xs font-bold text-fiord-900 dark:text-fiord-50">Llamada Telefónica</h4>
+                      <p className="text-[10px] text-fiord-400 dark:text-fiord-400 font-medium mt-1 leading-normal">
+                        Contacto directo vía llamadas de voz tradicionales.
                       </p>
                     </div>
                   </div>
@@ -622,40 +671,38 @@ export function CompanySettingsView({ user, initialProfile, initialPauseState }:
                   <div
                     onClick={() => handleContactChannelChange("inbox")}
                     className={cn(
-                      "group relative flex flex-col justify-between overflow-hidden border rounded-xl p-5 cursor-pointer transition-all duration-300 bg-card select-none",
+                      "flex flex-col justify-between p-4 rounded-xl border cursor-pointer transition-all duration-200 select-none",
                       contactChannel === "inbox"
-                        ? "border-primary shadow-sm bg-primary/[0.02]"
-                        : "border-border/60 hover:border-primary/50"
+                        ? "border-fiord-900 dark:border-fiord-100 bg-fiord-50/70 dark:bg-fiord-800/80 shadow-xs"
+                        : "border-fiord-100 dark:border-fiord-800 bg-white dark:bg-fiord-900/50 hover:border-fiord-300 dark:hover:border-fiord-700"
                     )}
                   >
-                    <div className="flex justify-between items-center mb-4">
-                      <div className="p-2 rounded-lg bg-primary/5 dark:bg-primary/20 text-primary group-hover:scale-105 transition-transform">
+                    <div className="flex justify-between items-center mb-3">
+                      <div className="p-2 rounded-lg bg-fiord-50 dark:bg-fiord-800 text-fiord-900 dark:text-fiord-100">
                         <MessageSquare className="size-4" />
                       </div>
                       {contactChannel === "inbox" && (
-                        <div className="bg-primary text-primary-foreground rounded-full p-0.5">
-                          <Check className="size-3" />
-                        </div>
+                        <Check className="size-4 text-fiord-900 dark:text-fiord-50 shrink-0" />
                       )}
                     </div>
                     <div>
-                      <h4 className="text-xs font-bold text-foreground">Inbox K&apos;anPro</h4>
-                      <p className="text-[10px] text-muted-foreground mt-1 leading-normal">
-                        Mensajes integrados. Mantiene la privacidad de tu número y correo comercial.
+                      <h4 className="text-xs font-bold text-fiord-900 dark:text-fiord-50">Inbox K&apos;anPro</h4>
+                      <p className="text-[10px] text-fiord-400 dark:text-fiord-400 font-medium mt-1 leading-normal">
+                        Mensajería interna protegida para privacidad.
                       </p>
                     </div>
                   </div>
                 </div>
-              </div>
+              </Card>
             </div>
           )}
 
-          {/* TAB 3: SUBSCRIPTION & CREDITS (BENTO GRID) */}
+          {/* TAB 4: SUSCRIPCIÓN Y CRÉDITOS */}
           {activeTab === "credits" && (
-            <div className="space-y-8">
-              <div className="flex flex-col gap-1 border-b border-border/40 pb-4">
-                <h1 className="text-xl font-bold tracking-tight text-foreground">Suscripción y Créditos</h1>
-                <p className="text-xs text-muted-foreground">Controla tus gastos de publicación, recarga créditos y visualiza tu historial.</p>
+            <div className="space-y-6">
+              <div className="flex flex-col gap-1 pb-2">
+                <h1 className="text-xl font-bold tracking-tight text-fiord-900 dark:text-fiord-50">Suscripción y Créditos</h1>
+                <p className="text-xs text-fiord-500 dark:text-fiord-400 font-medium">Controla tus gastos de publicación, recarga créditos y visualiza tu historial.</p>
               </div>
 
               {/* Bento Grid Layout */}
@@ -663,7 +710,6 @@ export function CompanySettingsView({ user, initialProfile, initialPauseState }:
                 
                 {/* Bento Card 1: Plan Actual (Span 3) */}
                 <Card className="md:col-span-3 flex flex-col justify-between rounded-xl border border-border/10 bg-white dark:bg-zinc-900 relative overflow-hidden group/card shadow-none hover:border-zinc-350 dark:hover:border-zinc-700 transition-all duration-200">
-                  {/* Subtle decorative color dot on corner */}
                   <div className={cn(
                     "absolute -top-12 -right-12 w-24 h-24 rounded-full blur-2xl opacity-20 transition-all duration-300",
                     currentPlan === "Gratis" && "bg-emerald-500",
@@ -692,9 +738,9 @@ export function CompanySettingsView({ user, initialProfile, initialPauseState }:
                       )}
                     </div>
                     <CardTitle className="text-base font-bold text-foreground mt-2">
-                      {currentPlan === "Gratis" && "K&apos;anPro Free"}
-                      {currentPlan === "Destacado" && "K&apos;anPro Destacado"}
-                      {currentPlan === "Enterprise" && "K&apos;anPro Enterprise"}
+                      {currentPlan === "Gratis" && "K'anPro Free"}
+                      {currentPlan === "Destacado" && "K'anPro Destacado"}
+                      {currentPlan === "Enterprise" && "K'anPro Enterprise"}
                     </CardTitle>
                     <CardDescription className="text-xs text-muted-foreground mt-1">
                       {currentPlan === "Gratis" && "Acceso inicial para pequeños negocios en Mérida y Riviera Maya."}
@@ -760,7 +806,6 @@ export function CompanySettingsView({ user, initialProfile, initialPauseState }:
                       <span className="text-xs font-semibold text-muted-foreground">Disponibles</span>
                     </div>
 
-                    {/* Progress Bar */}
                     <div className="space-y-1.5 mt-4">
                       <Progress value={credits} max={10} className="bg-zinc-100 dark:bg-zinc-800 h-2" />
                       <div className="flex justify-between text-[10px] text-muted-foreground">
@@ -798,233 +843,32 @@ export function CompanySettingsView({ user, initialProfile, initialPauseState }:
                         <div key={tx.id} className="flex items-center justify-between p-4 hover:bg-muted/10 transition-colors">
                           <div className="flex items-start gap-3">
                             <div className={cn(
-                              "w-6 h-6 rounded-lg flex items-center justify-center text-[10px] font-bold",
+                              "p-1.5 rounded-lg text-xs font-bold font-mono mt-0.5",
                               tx.type === "purchase" 
                                 ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400" 
-                                : "bg-neutral-500/10 text-neutral-600 dark:text-neutral-400"
+                                : "bg-amber-500/10 text-amber-600 dark:text-amber-400"
                             )}>
-                              {tx.type === "purchase" ? "+" : "-"}
+                              {tx.credits > 0 ? `+${tx.credits}` : tx.credits}
                             </div>
                             <div>
-                              <h4 className="text-xs font-medium text-foreground">{tx.description}</h4>
-                              <span className="text-[9px] text-muted-foreground block mt-0.5">{tx.date}</span>
+                              <h5 className="text-xs font-bold text-foreground">{tx.description}</h5>
+                              <span className="text-[10px] text-muted-foreground">{tx.date}</span>
                             </div>
                           </div>
-
-                          <div className="text-right flex flex-col items-end">
-                            <span className={cn(
-                              "text-xs font-bold font-mono",
-                              tx.type === "purchase" ? "text-emerald-500" : "text-foreground"
-                            )}>
-                              {tx.type === "purchase" ? `+${tx.credits}` : tx.credits} creds
-                            </span>
-                            {tx.amount && (
-                              <span className="text-[9px] text-muted-foreground font-mono mt-0.5">{tx.amount}</span>
-                            )}
-                          </div>
+                          {tx.amount && (
+                            <span className="text-xs font-bold font-mono text-foreground">{tx.amount}</span>
+                          )}
                         </div>
                       ))}
                     </div>
                   </CardContent>
                 </Card>
-
               </div>
             </div>
           )}
 
         </div>
       </div>
-
-      {/* 3. MODALS / DIALOGS (INTERACTIVE ACTIONS) */}
-      
-      {/* Credits Purchase Modal */}
-      <Dialog open={isBuyModalOpen} onOpenChange={setIsBuyModalOpen}>
-        <DialogContent className="max-w-md rounded-xl border-border bg-popover/90 backdrop-blur-md">
-          <DialogHeader>
-            <DialogTitle className="text-sm font-bold text-foreground">Comprar Paquete de Créditos</DialogTitle>
-            <DialogDescription className="text-xs text-muted-foreground mt-1">
-              Selecciona el paquete que mejor se adapte al volumen de contratación de tu empresa en Riviera Maya.
-            </DialogDescription>
-          </DialogHeader>
-
-          <div className="grid gap-3.5 my-4">
-            {/* Package 1 */}
-            <div
-              onClick={() => setSelectedCreditsPackage({ credits: 1, price: "$99 MXN" })}
-              className={cn(
-                "flex items-center justify-between p-3.5 rounded-xl border cursor-pointer transition-all duration-200 bg-card select-none",
-                selectedCreditsPackage?.credits === 1
-                  ? "border-primary bg-primary/[0.01]"
-                  : "border-border hover:border-primary/50"
-              )}
-            >
-              <div>
-                <h4 className="text-xs font-bold text-foreground">1 Crédito Básico</h4>
-                <p className="text-[9px] text-muted-foreground mt-0.5">Ideal para una publicación esporádica.</p>
-              </div>
-              <span className="text-xs font-bold text-primary font-mono">$99 MXN</span>
-            </div>
-
-            {/* Package 2 */}
-            <div
-              onClick={() => setSelectedCreditsPackage({ credits: 5, price: "$399 MXN" })}
-              className={cn(
-                "flex items-center justify-between p-3.5 rounded-xl border cursor-pointer transition-all duration-200 bg-card select-none relative",
-                selectedCreditsPackage?.credits === 5
-                  ? "border-primary bg-primary/[0.01]"
-                  : "border-border hover:border-primary/50"
-              )}
-            >
-              <div>
-                <h4 className="text-xs font-bold text-foreground flex items-center gap-1.5">
-                  5 Créditos Pack
-                  <span className="bg-emerald-500 text-white text-[8px] font-bold px-1.5 py-0.5 rounded-full uppercase">
-                    Ahorro 20%
-                  </span>
-                </h4>
-                <p className="text-[9px] text-muted-foreground mt-0.5">Recomendado para reclutadores activos.</p>
-              </div>
-              <span className="text-xs font-bold text-primary font-mono">$399 MXN</span>
-            </div>
-
-            {/* Package 3 */}
-            <div
-              onClick={() => setSelectedCreditsPackage({ credits: 10, price: "$699 MXN" })}
-              className={cn(
-                "flex items-center justify-between p-3.5 rounded-xl border cursor-pointer transition-all duration-200 bg-card select-none",
-                selectedCreditsPackage?.credits === 10
-                  ? "border-primary bg-primary/[0.01]"
-                  : "border-border hover:border-primary/50"
-              )}
-            >
-              <div>
-                <h4 className="text-xs font-bold text-foreground">10 Créditos Pro</h4>
-                <p className="text-[9px] text-muted-foreground mt-0.5">Para agencias de empleo y reclutadores recurrentes.</p>
-              </div>
-              <span className="text-xs font-bold text-primary font-mono">$699 MXN</span>
-            </div>
-          </div>
-
-          <DialogFooter className="gap-2 sm:gap-0">
-            <Button
-              variant="outline"
-              onClick={() => {
-                setIsBuyModalOpen(false)
-                setSelectedCreditsPackage(null)
-              }}
-              className="rounded-lg text-xs font-semibold h-8 select-none border-border"
-            >
-              Cancelar
-            </Button>
-            <Button
-              disabled={!selectedCreditsPackage}
-              onClick={handleConfirmPurchase}
-              className="rounded-lg text-xs font-semibold h-8 select-none bg-primary text-primary-foreground hover:bg-primary/95 border-none"
-            >
-              Confirmar Pago
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      {/* Plan Selection Modal */}
-      <Dialog open={isPlanModalOpen} onOpenChange={setIsPlanModalOpen}>
-        <DialogContent className="max-w-xl rounded-xl border-border bg-popover/90 backdrop-blur-md">
-          <DialogHeader>
-            <DialogTitle className="text-sm font-bold text-foreground">Actualizar Plan de Suscripción</DialogTitle>
-            <DialogDescription className="text-xs text-muted-foreground mt-1">
-              Lleva la visibilidad de tu marca empleadora al siguiente nivel en el Caribe Mexicano.
-            </DialogDescription>
-          </DialogHeader>
-
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5 my-4">
-            {/* Tier 1: Gratis */}
-            <div
-              className={cn(
-                "flex flex-col justify-between p-4 rounded-xl border bg-card text-center gap-4 relative",
-                currentPlan === "Gratis" ? "border-primary/50 bg-primary/[0.01]" : "border-border/60"
-              )}
-            >
-              <div>
-                <h4 className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider">Free</h4>
-                <span className="text-lg font-bold text-foreground block mt-1.5 font-mono">$0 MXN</span>
-                <p className="text-[9px] text-muted-foreground mt-1 leading-normal">Vacantes básicas y limitadas sin costo.</p>
-              </div>
-              <Button
-                variant={currentPlan === "Gratis" ? "outline" : "default"}
-                size="xs"
-                disabled={currentPlan === "Gratis"}
-                onClick={() => handleSelectPlan("Gratis")}
-                className="w-full rounded-lg select-none"
-              >
-                {currentPlan === "Gratis" ? "Activo" : "Seleccionar"}
-              </Button>
-            </div>
-
-            {/* Tier 2: Destacado */}
-            <div
-              className={cn(
-                "flex flex-col justify-between p-4 rounded-xl border bg-card text-center gap-4 relative overflow-hidden",
-                currentPlan === "Destacado" ? "border-primary bg-primary/[0.01]" : "border-border/60"
-              )}
-            >
-              <div className="absolute top-0 right-0 left-0 bg-primary text-primary-foreground text-[7px] font-extrabold py-0.5 uppercase tracking-wide">
-                Recomendado
-              </div>
-              <div className="pt-2">
-                <h4 className="text-[11px] font-bold text-primary uppercase tracking-wider">Premium</h4>
-                <span className="text-lg font-bold text-foreground block mt-1.5 font-mono">$499 MXN</span>
-                <span className="text-[8px] text-muted-foreground -mt-1 block">al mes</span>
-                <p className="text-[9px] text-muted-foreground mt-1 leading-normal">Incluye 10 créditos mensuales y visibilidad VIP.</p>
-              </div>
-              <Button
-                variant={currentPlan === "Destacado" ? "outline" : "default"}
-                size="xs"
-                disabled={currentPlan === "Destacado"}
-                onClick={() => handleSelectPlan("Destacado")}
-                className="w-full rounded-lg select-none bg-primary text-primary-foreground hover:bg-primary/95 border-none"
-              >
-                {currentPlan === "Destacado" ? "Activo" : "Actualizar"}
-              </Button>
-            </div>
-
-            {/* Tier 3: Enterprise */}
-            <div
-              className={cn(
-                "flex flex-col justify-between p-4 rounded-xl border bg-card text-center gap-4",
-                currentPlan === "Enterprise" ? "border-amber-500 bg-amber-500/[0.01]" : "border-border/60"
-              )}
-            >
-              <div>
-                <h4 className="text-[11px] font-bold text-amber-600 dark:text-amber-400 uppercase tracking-wider font-semibold">Enterprise</h4>
-                <span className="text-lg font-bold text-foreground block mt-1.5 font-mono">$1,499 MXN</span>
-                <span className="text-[8px] text-muted-foreground -mt-1 block">al mes</span>
-                <p className="text-[9px] text-muted-foreground mt-1 leading-normal">Créditos ilimitados y soporte premium.</p>
-              </div>
-              <Button
-                variant={currentPlan === "Enterprise" ? "outline" : "default"}
-                size="xs"
-                disabled={currentPlan === "Enterprise"}
-                onClick={() => handleSelectPlan("Enterprise")}
-                className="w-full rounded-lg select-none bg-amber-500 text-white hover:bg-amber-600 border-none"
-              >
-                {currentPlan === "Enterprise" ? "Activo" : "Actualizar"}
-              </Button>
-            </div>
-          </div>
-          
-          <div className="flex justify-end pt-2">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setIsPlanModalOpen(false)}
-              className="rounded-lg text-xs font-semibold h-8 select-none border-border"
-            >
-              Cerrar
-            </Button>
-          </div>
-        </DialogContent>
-      </Dialog>
     </div>
   )
 }
