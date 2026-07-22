@@ -11,7 +11,6 @@ import {
   MessageSquareText,
   User,
   Users,
-  Search,
   Plus,
 } from "lucide-react";
 import * as React from "react";
@@ -105,25 +104,13 @@ export function DashboardTopbar({
       <div className="flex items-center gap-4">
         
         {role === "company" && (
-          <>
-            {/* Global Search Bar */}
-            <div className="relative hidden lg:block w-56 xl:w-64">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-fiord-400 dark:text-fiord-500 pointer-events-none" />
-              <input
-                type="text"
-                placeholder="Buscar candidatos..."
-                className="w-full h-9 pl-9 pr-4 rounded-xl border border-fiord-100 dark:border-fiord-800/80 bg-fiord-50/30 dark:bg-fiord-900/30 text-[13px] outline-none text-fiord-900 dark:text-fiord-100 placeholder-fiord-400 dark:placeholder-fiord-500 focus:border-fiord-300 dark:focus:border-fiord-700 focus:ring-1 focus:ring-fiord-300/35 transition-all"
-              />
-            </div>
- 
-            {/* CTA + Nueva Vacante Button */}
-            <Link href="/dashboard/company/vacancies/new" className="shrink-0">
-              <Button className="bg-fiord-950 dark:bg-fiord-50 hover:bg-fiord-900 dark:hover:bg-fiord-100 text-white dark:text-fiord-950 font-semibold px-3 sm:px-4 py-2 text-xs rounded-xl h-9 flex items-center gap-2 border-none transition-all active:scale-[0.98] shadow-sm">
-                <Plus className="size-4" />
-                <span className="hidden sm:inline">Nueva Vacante</span>
-              </Button>
-            </Link>
-          </>
+          /* CTA + Nueva Vacante Button */
+          <Link href="/dashboard/company/vacancies/new" className="shrink-0">
+            <Button className="bg-fiord-950 dark:bg-fiord-50 hover:bg-fiord-900 dark:hover:bg-fiord-100 text-white dark:text-fiord-950 font-semibold px-3 sm:px-4 py-2 text-xs rounded-xl h-9 flex items-center gap-2 border-none transition-all active:scale-[0.98] shadow-sm">
+              <Plus className="size-4" />
+              <span className="hidden sm:inline">Nueva Vacante</span>
+            </Button>
+          </Link>
         )}
  
         {/* Notifications & Avatar */}
