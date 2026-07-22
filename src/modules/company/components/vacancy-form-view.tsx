@@ -17,6 +17,9 @@ import {
   X,
   PlusCircle,
   Building,
+  Edit2,
+  Save,
+  RotateCcw,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -31,6 +34,7 @@ import {
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Skeleton } from "@/components/ui/skeleton";
 import {
   Select,
   SelectContent,
@@ -57,7 +61,7 @@ const categories = [
 ] as const;
 
 // Zod Schema matching requirements
-const newVacancySchema = z
+const vacancySchema = z
   .object({
     title: z.string().min(3, "El título del puesto debe tener al menos 3 caracteres"),
     category: z.string().min(1, "Selecciona una categoría para el puesto"),
@@ -84,10 +88,8 @@ const newVacancySchema = z
     description: z
       .string()
       .min(10, "Describe las funciones y requisitos (mínimo 10 caracteres)"),
-    // Alternative branch/location toggle
     use_alternative_location: z.boolean(),
     alternative_location: z.string().optional(),
-    // Toggleable benefits array
     benefits: z.array(z.string()),
   })
   .refine(
@@ -118,23 +120,37 @@ const newVacancySchema = z
     }
   );
 
-type NewVacancyFormValues = z.infer<typeof newVacancySchema>;
+export type VacancyFormValues = z.infer<typeof vacancySchema>;
 
-export function VacancyFormView({ userId }: { userId: string }) {
+export interface VacancyFormViewProps {
+  userId: string;
+  vacancyId?: string; // If provided, mode is EDITing an existing vacancy; otherwise CREATE
+}
+
+export function VacancyFormView({ userId, vacancyId }: VacancyFormViewProps) {
   const router = useRouter();
+  const isEditMode = Boolean(vacancyId);
+
+  const DRAFT_KEY = `kanpro_vacancy_draft_${userId}`;
+  const isSubmittingRef = React.useRef(false);
+
+  const [draftLoaded, setDraftLoaded] = React.useState(false);
   const [publishing, setPublishing] = React.useState(false);
+  const [loadingVacancy, setLoadingVacancy] = React.useState(isEditMode);
   const [profile, setProfile] = React.useState<any>(null);
   const [loadingProfile, setLoadingProfile] = React.useState(true);
   const [customBenefitText, setCustomBenefitText] = React.useState("");
 
   // Initialize React Hook Form
-  const form = useForm<NewVacancyFormValues>({
-    resolver: zodResolver(newVacancySchema),
+  const form = useForm<VacancyFormValues>({
+    resolver: zodResolver(vacancySchema),
     defaultValues: {
       title: "",
       category: "",
       employment_type: "Tiempo Completo",
       description: "",
+      salary_min: "",
+      salary_max: "",
       use_alternative_location: false,
       alternative_location: "",
       benefits: [],
@@ -146,14 +162,40 @@ export function VacancyFormView({ userId }: { userId: string }) {
     handleSubmit,
     setValue,
     watch,
-    formState: { errors },
+    reset,
+    formState: { errors, isDirty },
   } = form;
 
   const useAlternativeLocation = watch("use_alternative_location");
-  const selectedBenefits = watch("benefits");
+  const selectedBenefits = watch("benefits") || [];
   const currentEmploymentType = watch("employment_type");
 
-  // Load profile values
+  // Helper to clear draft and reset form completely
+  const handleClearDraft = React.useCallback(() => {
+    isSubmittingRef.current = true;
+    if (typeof window !== "undefined") {
+      localStorage.removeItem(DRAFT_KEY);
+    }
+    reset({
+      title: "",
+      category: "",
+      employment_type: "Tiempo Completo",
+      description: "",
+      salary_min: "",
+      salary_max: "",
+      use_alternative_location: false,
+      alternative_location: "",
+      benefits: [],
+    });
+    setTimeout(() => {
+      isSubmittingRef.current = false;
+    }, 100);
+    toast.info("Formulario limpiado", {
+      description: "Se ha descartado el borrador anterior.",
+    });
+  }, [DRAFT_KEY, reset]);
+
+  // Load company profile values
   const loadProfile = React.useCallback(async () => {
     try {
       setLoadingProfile(true);
@@ -189,25 +231,138 @@ export function VacancyFormView({ userId }: { userId: string }) {
     }
   }, [userId]);
 
+  // Load existing vacancy in EDIT mode
+  const loadVacancy = React.useCallback(async () => {
+    if (!vacancyId) return;
+    try {
+      setLoadingVacancy(true);
+      const supabase = createClient();
+
+      // Ensure create draft is cleared in EDIT mode
+      if (typeof window !== "undefined") {
+        localStorage.removeItem(DRAFT_KEY);
+      }
+
+      const { data, error } = await supabase
+        .from("vacancies")
+        .select("*")
+        .eq("id", vacancyId)
+        .single();
+
+      if (error) throw error;
+      if (data) {
+        const perks: string[] = Array.isArray(data.benefits)
+          ? data.benefits
+          : typeof data.benefits === "string"
+          ? data.benefits.split(",").map((b: string) => b.trim()).filter(Boolean)
+          : [];
+
+        const isAltLoc = Boolean(data.zone && data.location && data.zone !== data.location);
+
+        reset({
+          title: data.title || "",
+          category: data.category || "",
+          employment_type: (data.employment_type as any) || "Tiempo Completo",
+          description: data.description || data.requirements || "",
+          salary_min: data.salary_min != null ? String(data.salary_min) : "",
+          salary_max: data.salary_max != null ? String(data.salary_max) : "",
+          use_alternative_location: isAltLoc,
+          alternative_location: isAltLoc ? data.zone || "" : "",
+          benefits: perks,
+        });
+      }
+    } catch (err: any) {
+      console.error("Error loading vacancy:", err);
+      toast.error("Error al cargar datos de la vacante", {
+        description: err.message,
+      });
+    } finally {
+      setLoadingVacancy(false);
+    }
+  }, [vacancyId, reset, DRAFT_KEY]);
+
   React.useEffect(() => {
     loadProfile();
-  }, [loadProfile]);
+    if (isEditMode) {
+      loadVacancy();
+    } else {
+      // In CREATE mode: reset form first
+      reset({
+        title: "",
+        category: "",
+        employment_type: "Tiempo Completo",
+        description: "",
+        salary_min: "",
+        salary_max: "",
+        use_alternative_location: false,
+        alternative_location: "",
+        benefits: [],
+      });
 
-  // Load default benefits once profile is ready
-  React.useEffect(() => {
-    if (profile) {
-      const defaultPerks: string[] = [];
-      if (profile.benefit_imss) defaultPerks.push("Prestaciones de Ley");
-      if (profile.benefit_tips) defaultPerks.push("Propinas");
-      if (profile.benefit_canteen) defaultPerks.push("Comedor de empleados");
-      if (profile.benefit_uniforms) defaultPerks.push("Uniformes");
-      if (profile.benefit_growth) defaultPerks.push("Capacitación / Crecimiento");
-      if (profile.has_transport) defaultPerks.push("Transporte de personal");
-      setValue("benefits", defaultPerks);
+      // Restore draft if present
+      if (typeof window !== "undefined") {
+        try {
+          const saved = localStorage.getItem(DRAFT_KEY);
+          if (saved) {
+            const parsed = JSON.parse(saved);
+            if (parsed && typeof parsed === "object" && (parsed.title || parsed.description)) {
+              reset({
+                title: parsed.title || "",
+                category: parsed.category || "",
+                employment_type: parsed.employment_type || "Tiempo Completo",
+                description: parsed.description || "",
+                salary_min: parsed.salary_min || "",
+                salary_max: parsed.salary_max || "",
+                use_alternative_location: Boolean(parsed.use_alternative_location),
+                alternative_location: parsed.alternative_location || "",
+                benefits: Array.isArray(parsed.benefits) ? parsed.benefits : [],
+              });
+            }
+          }
+        } catch (e) {
+          console.error("Error restoring vacancy draft:", e);
+        }
+      }
+      setDraftLoaded(true);
     }
-  }, [profile, setValue]);
+  }, [loadProfile, isEditMode, loadVacancy, reset, DRAFT_KEY]);
 
-  // Toggle standard perk checkbox in pills list
+  // Load default benefits for CREATE mode IF no draft existed
+  React.useEffect(() => {
+    if (!isEditMode && profile && draftLoaded) {
+      const saved = typeof window !== "undefined" ? localStorage.getItem(DRAFT_KEY) : null;
+      if (!saved) {
+        const defaultPerks: string[] = [];
+        if (profile.benefit_imss) defaultPerks.push("Prestaciones de Ley");
+        if (profile.benefit_tips) defaultPerks.push("Propinas");
+        if (profile.benefit_canteen) defaultPerks.push("Comedor de empleados");
+        if (profile.benefit_uniforms) defaultPerks.push("Uniformes");
+        if (profile.benefit_growth) defaultPerks.push("Capacitación / Crecimiento");
+        if (profile.has_transport) defaultPerks.push("Transporte de personal");
+        setValue("benefits", defaultPerks);
+      }
+    }
+  }, [profile, draftLoaded, setValue, DRAFT_KEY, isEditMode]);
+
+  // Auto-save draft ONLY in CREATE mode, when NOT submitting, and when form has actual title/description
+  const allValues = watch();
+  React.useEffect(() => {
+    if (isEditMode || !draftLoaded || isSubmittingRef.current || typeof window === "undefined") return;
+
+    const hasContent = Boolean(allValues.title?.trim() || allValues.description?.trim());
+    if (!hasContent) {
+      localStorage.removeItem(DRAFT_KEY);
+      return;
+    }
+
+    try {
+      localStorage.setItem(DRAFT_KEY, JSON.stringify(allValues));
+    } catch (e) {
+      console.error("Error saving vacancy draft:", e);
+    }
+  }, [allValues, draftLoaded, DRAFT_KEY, isEditMode]);
+
+  // Toggle benefit pill
   const handleToggleBenefit = (perk: string) => {
     const active = selectedBenefits.includes(perk);
     if (active) {
@@ -220,7 +375,7 @@ export function VacancyFormView({ userId }: { userId: string }) {
     }
   };
 
-  // Add custom benefit item to list
+  // Add custom benefit item
   const handleAddCustomBenefit = () => {
     const text = customBenefitText.trim();
     if (!text) return;
@@ -235,47 +390,93 @@ export function VacancyFormView({ userId }: { userId: string }) {
     toast.success("Beneficio adicional agregado");
   };
 
-  const onSubmit = async (values: NewVacancyFormValues) => {
+  const onSubmit = async (values: VacancyFormValues) => {
     setPublishing(true);
+    isSubmittingRef.current = true;
     try {
       const supabase = createClient();
 
-      // Resolve final zone/location based on alternative address toggle
       const resolvedZone = values.use_alternative_location
         ? values.alternative_location
         : `${profile?.location || ""}${
             profile?.address_details ? ` (${profile.address_details})` : ""
           }`;
 
-      const { error } = await supabase.from("vacancies").insert({
-        company_id: userId,
-        recruiter_id: userId,
-        title: values.title,
-        category: values.category,
-        employment_type: values.employment_type,
-        salary_min: values.salary_min ?? null,
-        salary_max: values.salary_max ?? null,
-        requirements: values.description,
-        description: values.description,
-        modality: "Presencial",
-        status: "Activa",
-        is_active: true,
-        zone: resolvedZone,
-        location: profile?.location || "Mérida - Centro",
-        benefits: values.benefits,
-      });
+      const numMin = values.salary_min && !isNaN(Number(values.salary_min)) ? Number(values.salary_min) : null;
+      const numMax = values.salary_max && !isNaN(Number(values.salary_max)) ? Number(values.salary_max) : null;
 
-      if (error) throw error;
+      if (isEditMode && vacancyId) {
+        // Update Mode
+        const { error } = await supabase
+          .from("vacancies")
+          .update({
+            title: values.title,
+            category: values.category,
+            employment_type: values.employment_type,
+            salary_min: numMin,
+            salary_max: numMax,
+            requirements: values.description,
+            description: values.description,
+            zone: resolvedZone,
+            benefits: values.benefits,
+            updated_at: new Date().toISOString(),
+          })
+          .eq("id", vacancyId);
 
-      toast.success("¡Vacante publicada!", {
-        description: `Se registró "${values.title}" en tus puestos activos.`,
-      });
+        if (error) {
+          console.error("Database update error:", error);
+          throw error;
+        }
+
+        if (typeof window !== "undefined") {
+          localStorage.removeItem(DRAFT_KEY);
+        }
+
+        toast.success("¡Vacante actualizada!", {
+          description: `Se guardaron los cambios para "${values.title}".`,
+        });
+      } else {
+        // Insert Mode
+        const { error } = await supabase.from("vacancies").insert({
+          company_id: userId,
+          recruiter_id: userId,
+          title: values.title,
+          category: values.category,
+          employment_type: values.employment_type,
+          salary_min: numMin,
+          salary_max: numMax,
+          currency: "MXN",
+          requirements: values.description,
+          description: values.description,
+          modality: "Presencial",
+          status: "Activa",
+          is_active: true,
+          zone: resolvedZone,
+          location: profile?.location || "Mérida - Centro",
+          benefits: values.benefits,
+        });
+
+        if (error) {
+          console.error("Database insert error:", error);
+          throw error;
+        }
+
+        // Purge draft from localStorage irrevocably
+        if (typeof window !== "undefined") {
+          localStorage.removeItem(DRAFT_KEY);
+        }
+
+        toast.success("¡Vacante publicada!", {
+          description: `Se registró "${values.title}" en tus puestos activos.`,
+        });
+      }
 
       await revalidateVacancies();
       router.push("/dashboard/company/vacancies");
     } catch (err: any) {
-      toast.error("Error al publicar la vacante", {
-        description: err.message,
+      isSubmittingRef.current = false;
+      toast.error(isEditMode ? "Error al actualizar la vacante" : "Error al publicar la vacante", {
+        description: err.message || "No se pudieron guardar los cambios",
       });
     } finally {
       setPublishing(false);
@@ -293,6 +494,15 @@ export function VacancyFormView({ userId }: { userId: string }) {
     return !name || !wp || !addr;
   }, [profile, loadingProfile]);
 
+  if (loadingVacancy) {
+    return (
+      <div className="max-w-4xl mx-auto px-4 py-8 space-y-6 animate-in fade-in duration-300">
+        <Skeleton className="h-10 w-48 rounded-xl" />
+        <Skeleton className="h-96 w-full rounded-3xl" />
+      </div>
+    );
+  }
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 15 }}
@@ -301,25 +511,41 @@ export function VacancyFormView({ userId }: { userId: string }) {
       className="max-w-4xl mx-auto px-4 py-8 space-y-8"
     >
       {/* Header back button row */}
-      <div className="flex items-center gap-3">
-        <Button
-          variant="ghost"
-          size="icon"
-          asChild
-          className="rounded-xl border border-fiord-100/80 dark:border-fiord-800/80 bg-white dark:bg-fiord-900/10 hover:bg-fiord-50 dark:hover:bg-fiord-900/40"
-        >
-          <Link href="/dashboard/company/vacancies">
-            <ArrowLeft className="size-4 text-fiord-700 dark:text-fiord-350" />
-          </Link>
-        </Button>
-        <div>
-          <h1 className="text-xl font-bold text-fiord-900 dark:text-fiord-50 tracking-tight">
-            Crear Nueva Vacante
-          </h1>
-          <p className="text-xs text-fiord-450 dark:text-fiord-500 font-semibold mt-0.5">
-            Publica puestos activos heredando la información de la sucursal.
-          </p>
+      <div className="flex items-center justify-between gap-3 flex-wrap">
+        <div className="flex items-center gap-3">
+          <Button
+            variant="ghost"
+            size="icon"
+            asChild
+            className="rounded-xl border border-fiord-100/80 dark:border-fiord-800/80 bg-white dark:bg-fiord-900/10 hover:bg-fiord-50 dark:hover:bg-fiord-900/40"
+          >
+            <Link href="/dashboard/company/vacancies">
+              <ArrowLeft className="size-4 text-fiord-700 dark:text-fiord-350" />
+            </Link>
+          </Button>
+          <div>
+            <h1 className="text-xl font-bold text-fiord-900 dark:text-fiord-50 tracking-tight">
+              {isEditMode ? "Editar Vacante" : "Crear Nueva Vacante"}
+            </h1>
+            <p className="text-xs text-fiord-450 dark:text-fiord-500 font-semibold mt-0.5">
+              {isEditMode
+                ? "Modifica los detalles y compensación de tu oferta de empleo."
+                : "Publica puestos activos heredando la información de la sucursal."}
+            </p>
+          </div>
         </div>
+
+        {!isEditMode && (
+          <Button
+            type="button"
+            variant="outline"
+            onClick={handleClearDraft}
+            className="rounded-xl h-9 px-3.5 text-xs font-bold border-fiord-200 dark:border-fiord-800 text-fiord-700 dark:text-fiord-300 hover:bg-fiord-50 gap-1.5"
+          >
+            <RotateCcw className="size-3.5 text-fiord-500" />
+            Limpiar borrador
+          </Button>
+        )}
       </div>
 
       {isProfileIncomplete && !loadingProfile && (
@@ -331,7 +557,7 @@ export function VacancyFormView({ userId }: { userId: string }) {
                 Perfil de Empresa Incompleto
               </h4>
               <p className="text-xs font-semibold leading-relaxed text-amber-600 dark:text-amber-350">
-                Para comenzar a publicar ofertas express, completa la información de tu negocio (Nombre, WhatsApp y Dirección) en la sección de Mi Perfil.
+                Para gestionar ofertas express, completa la información de tu negocio (Nombre, WhatsApp y Dirección) en Mi Perfil.
               </p>
             </div>
           </div>
@@ -344,9 +570,7 @@ export function VacancyFormView({ userId }: { userId: string }) {
         </div>
       )}
 
-      {/* ========================================== */}
-      {/* FORM CONTENT CONTAINER                     */}
-      {/* ========================================== */}
+      {/* FORM CONTENT CONTAINER */}
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-8">
         
         {/* BLOCK 1: DETALLES DE LA VACANTE */}
@@ -354,14 +578,14 @@ export function VacancyFormView({ userId }: { userId: string }) {
           <CardHeader className="p-6 md:p-8 border-b border-fiord-100/40 dark:border-fiord-800/30">
             <div className="flex items-center gap-3">
               <div className="size-9 rounded-xl bg-fiord-50 dark:bg-fiord-900/40 text-fiord-950 dark:text-fiord-50 flex items-center justify-center shrink-0">
-                <Briefcase className="size-4.5" />
+                {isEditMode ? <Edit2 className="size-4.5" /> : <Briefcase className="size-4.5" />}
               </div>
               <div>
                 <CardTitle className="text-[15px] font-bold text-fiord-900 dark:text-fiord-50">
-                  Información de la Vacante
+                  {isEditMode ? "Editar Detalles de Vacante" : "Información de la Vacante"}
                 </CardTitle>
                 <CardDescription className="text-xs font-semibold text-fiord-450 dark:text-fiord-500 mt-0.5">
-                  Campos obligatorios relativos a la oferta de trabajo actual.
+                  Campos obligatorios relativos a la oferta de trabajo.
                 </CardDescription>
               </div>
             </div>
@@ -375,10 +599,10 @@ export function VacancyFormView({ userId }: { userId: string }) {
               </Label>
               <Input
                 id="title"
-                placeholder="Ej. Mesero / Mesera - Turno Matutino"
+                placeholder="Ej. Ayudante de Cocina, Recepcionista, Mesero(a)"
                 {...register("title")}
                 disabled={isProfileIncomplete}
-                className="h-12 rounded-xl text-xs font-semibold border-fiord-100 dark:border-fiord-800 bg-fiord-50/20 dark:bg-fiord-950/20 text-fiord-900 dark:text-fiord-100 focus-visible:ring-1 focus-visible:ring-fiord-300 dark:focus-visible:ring-fiord-700 focus-visible:border-fiord-300 dark:focus-visible:border-fiord-750 transition-all outline-none"
+                className="h-12 rounded-xl text-xs font-semibold border-fiord-100 dark:border-fiord-800 bg-fiord-50/20 dark:bg-fiord-950/20 text-fiord-900 dark:text-fiord-100 placeholder-fiord-400 dark:placeholder-fiord-500 focus-visible:ring-1 focus-visible:ring-fiord-300 dark:focus-visible:ring-fiord-700 focus-visible:border-fiord-300 dark:focus-visible:border-fiord-750 transition-all px-4"
               />
               {errors.title && (
                 <p className="text-[11px] font-semibold text-red-500 dark:text-red-400 px-1">
@@ -387,61 +611,64 @@ export function VacancyFormView({ userId }: { userId: string }) {
               )}
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {/* Category Select */}
-              <div className="space-y-2">
-                <Label htmlFor="category" className="text-[11px] font-bold uppercase tracking-wider text-fiord-400 dark:text-fiord-500 px-1">
-                  Categoría / Sector *
-                </Label>
-                <Select
-                  value={watch("category") || ""}
-                  onValueChange={(val) => setValue("category", val, { shouldValidate: true })}
-                  disabled={isProfileIncomplete}
-                >
-                  <SelectTrigger id="category" className="w-full h-11 bg-fiord-50/20 dark:bg-fiord-950/20 border border-fiord-100 dark:border-fiord-800 rounded-xl px-4 text-xs font-semibold text-fiord-900 dark:text-fiord-100 focus:ring-1 focus:ring-fiord-300 dark:focus:ring-fiord-700 focus:border-fiord-300 transition-all outline-none shadow-none">
-                    <SelectValue placeholder="Selecciona el sector" />
-                  </SelectTrigger>
-                  <SelectContent className="rounded-xl border-fiord-100 dark:border-fiord-800 bg-popover text-xs">
-                    {categories.map((c) => (
-                      <SelectItem key={c} value={c}>
-                        {c}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                {errors.category && (
-                  <p className="text-[11px] font-semibold text-red-500 dark:text-red-400 px-1">
-                    {errors.category.message}
-                  </p>
-                )}
-              </div>
+            {/* Category Select */}
+            <div className="space-y-2">
+              <Label htmlFor="category" className="text-[11px] font-bold uppercase tracking-wider text-fiord-400 dark:text-fiord-500 px-1">
+                Categoría *
+              </Label>
+              <Select
+                value={watch("category")}
+                onValueChange={(val) => setValue("category", val)}
+                disabled={isProfileIncomplete}
+              >
+                <SelectTrigger id="category" className="w-full h-12 rounded-xl text-xs font-semibold border-fiord-100 dark:border-fiord-800 bg-fiord-50/20 dark:bg-fiord-950/20 text-fiord-900 dark:text-fiord-100 focus:ring-1 focus:ring-fiord-300 dark:focus:ring-fiord-700 transition-all px-4">
+                  <SelectValue placeholder="Selecciona una categoría comercial" />
+                </SelectTrigger>
+                <SelectContent className="rounded-xl border-fiord-100 dark:border-fiord-800 bg-white dark:bg-fiord-950">
+                  {categories.map((cat, i) => (
+                    <SelectItem key={i} value={cat} className="text-xs font-semibold">
+                      {cat}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              {errors.category && (
+                <p className="text-[11px] font-semibold text-red-500 dark:text-red-400 px-1">
+                  {errors.category.message}
+                </p>
+              )}
+            </div>
 
-              {/* Employment Type Selector (Pills) */}
-              <div className="space-y-2">
-                <Label className="text-[11px] font-bold uppercase tracking-wider text-fiord-400 dark:text-fiord-500 px-1">
-                  Tipo de Jornada *
-                </Label>
-                <div className="flex flex-wrap gap-2 pt-0.5">
-                  {["Tiempo Completo", "Medio Tiempo", "Turno Rotativo", "Eventual"].map((type) => {
-                    const isActive = currentEmploymentType === type;
-                    return (
-                      <button
-                        key={type}
-                        type="button"
-                        onClick={() => setValue("employment_type", type as any)}
-                        disabled={isProfileIncomplete}
-                        className={cn(
-                          "px-4.5 py-2.5 text-[11px] font-bold rounded-full transition-all duration-200 cursor-pointer select-none border-none outline-none",
-                          isActive
-                            ? "bg-fiord-950 text-white dark:bg-fiord-50 dark:text-fiord-950 shadow-xs"
-                            : "bg-fiord-50/50 hover:bg-fiord-100/70 text-fiord-700 dark:bg-fiord-900/40 dark:text-fiord-300 dark:hover:bg-fiord-900/70"
-                        )}
-                      >
-                        {type}
-                      </button>
-                    );
-                  })}
-                </div>
+            {/* Employment Type Radio/Pills */}
+            <div className="space-y-2.5">
+              <Label className="text-[11px] font-bold uppercase tracking-wider text-fiord-400 dark:text-fiord-500 px-1">
+                Tipo de Jornada *
+              </Label>
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
+                {[
+                  "Tiempo Completo",
+                  "Medio Tiempo",
+                  "Turno Rotativo",
+                  "Eventual",
+                ].map((type) => {
+                  const active = currentEmploymentType === type;
+                  return (
+                    <button
+                      key={type}
+                      type="button"
+                      disabled={isProfileIncomplete}
+                      onClick={() => setValue("employment_type", type as any)}
+                      className={cn(
+                        "h-11 rounded-xl text-xs font-bold transition-all border flex items-center justify-center px-3",
+                        active
+                          ? "bg-fiord-950 dark:bg-fiord-50 text-white dark:text-fiord-950 border-fiord-950 dark:border-fiord-50 shadow-xs"
+                          : "bg-fiord-50/20 dark:bg-fiord-950/20 text-fiord-700 dark:text-fiord-300 border-fiord-100 dark:border-fiord-800 hover:bg-fiord-50 dark:hover:bg-fiord-900/40"
+                      )}
+                    >
+                      {type}
+                    </button>
+                  );
+                })}
               </div>
             </div>
 
@@ -519,107 +746,76 @@ export function VacancyFormView({ userId }: { userId: string }) {
           </CardContent>
         </Card>
 
-        {/* BLOCK 2: HERENCIA DE DATOS DE LA EMPRESA */}
+        {/* BLOCK 2: SUBCONSULTA / UBICACIÓN */}
         <Card className="bg-white dark:bg-[#202023] border-fiord-100/60 dark:border-fiord-800/40 rounded-[24px] overflow-hidden shadow-xs">
-          <CardHeader className="p-6 md:p-8 border-b border-fiord-100/40 dark:border-fiord-800/30 flex flex-row items-center justify-between gap-4 flex-wrap">
+          <CardHeader className="p-6 md:p-8 border-b border-fiord-100/40 dark:border-fiord-800/30">
             <div className="flex items-center gap-3">
               <div className="size-9 rounded-xl bg-fiord-50 dark:bg-fiord-900/40 text-fiord-950 dark:text-fiord-50 flex items-center justify-center shrink-0">
-                <Building className="size-4.5" />
+                <MapPin className="size-4.5 text-red-500" />
               </div>
               <div>
                 <CardTitle className="text-[15px] font-bold text-fiord-900 dark:text-fiord-50">
-                  Ubicación y Beneficios
+                  Ubicación de Trabajo
                 </CardTitle>
                 <CardDescription className="text-xs font-semibold text-fiord-450 dark:text-fiord-500 mt-0.5">
-                  Datos cargados automáticamente desde tu perfil de empresa.
+                  Lugar donde se prestarán las funciones laborales.
                 </CardDescription>
               </div>
             </div>
-            
-            <Badge className="bg-emerald-500/10 hover:bg-emerald-500/10 text-emerald-600 dark:text-emerald-450 border border-emerald-500/20 font-bold text-[9.5px] uppercase tracking-wider rounded-md py-1 px-2.5">
-              Heredado del perfil
-            </Badge>
           </CardHeader>
 
-          <CardContent className="p-6 md:p-8 space-y-6">
-            
-            {/* Main Location Info Block */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              
-              {/* Inherited Location Block */}
-              <div className="space-y-2">
-                <Label className="text-[11px] font-bold uppercase tracking-wider text-fiord-400 dark:text-fiord-500 px-1">
-                  Ubicación Predeterminada
-                </Label>
-                <div className="flex items-start gap-3 p-4 rounded-xl bg-fiord-50/30 dark:bg-fiord-950/10 border border-fiord-100/50 dark:border-fiord-800/40">
-                  <MapPin className="size-4.5 text-fiord-500 shrink-0 mt-0.5" />
-                  <div className="text-xs text-fiord-800 dark:text-fiord-200">
-                    <p className="font-bold">{profile?.location || "Mérida, Yucatán"}</p>
-                    {profile?.address_details && (
-                      <p className="text-[11px] text-fiord-450 dark:text-fiord-500 font-semibold mt-1">
-                        Ref: {profile.address_details}
-                      </p>
-                    )}
-                  </div>
-                </div>
+          <CardContent className="p-6 md:p-8 space-y-4">
+            <div className="p-4 rounded-xl bg-fiord-50/40 dark:bg-fiord-950/20 border border-fiord-100 dark:border-fiord-800 space-y-2">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-bold text-fiord-900 dark:text-fiord-100">
+                  📍 Ubicación de la Empresa Registrada:
+                </span>
               </div>
-
-              {/* Inherited Phone Block */}
-              <div className="space-y-2">
-                <Label className="text-[11px] font-bold uppercase tracking-wider text-fiord-400 dark:text-fiord-500 px-1">
-                  WhatsApp de Contacto
-                </Label>
-                <div className="flex items-start gap-3 p-4 rounded-xl bg-fiord-50/30 dark:bg-fiord-950/10 border border-fiord-100/50 dark:border-fiord-800/40">
-                  <Phone className="size-4.5 text-fiord-500 shrink-0 mt-0.5" />
-                  <div className="text-xs text-fiord-800 dark:text-fiord-200">
-                    <p className="font-bold">{profile?.phone || "No registrado"}</p>
-                    <p className="text-[11px] text-fiord-450 dark:text-fiord-500 font-semibold mt-1">
-                      Los candidatos conectarán a este número al postularse.
-                    </p>
-                  </div>
-                </div>
-              </div>
-
+              <p className="text-xs font-semibold text-fiord-600 dark:text-fiord-400">
+                {profile?.location || "Mérida - Centro"}{" "}
+                {profile?.address_details ? `(${profile.address_details})` : ""}
+              </p>
             </div>
 
-            {/* Switch for alternative location */}
-            <div className="flex items-start gap-3 p-4 bg-fiord-50/20 dark:bg-fiord-950/20 rounded-2xl border border-fiord-100/30 dark:border-fiord-850/10 mt-2">
+            {/* Checkbox para dirección alternativa */}
+            <div className="flex items-start gap-3 pt-2">
               <Checkbox
                 id="use_alternative_location"
                 checked={useAlternativeLocation}
-                onCheckedChange={(checked) =>
-                  setValue("use_alternative_location", !!checked, { shouldValidate: true })
+                onCheckedChange={(checked: boolean | "indeterminate") =>
+                  setValue("use_alternative_location", Boolean(checked))
                 }
-                className="mt-0.5 border-fiord-300 dark:border-fiord-700 data-[state=checked]:bg-fiord-950 dark:data-[state=checked]:bg-fiord-50"
+                disabled={isProfileIncomplete}
+                className="mt-0.5 rounded-md border-fiord-300 dark:border-fiord-700 data-[state=checked]:bg-fiord-950 dark:data-[state=checked]:bg-fiord-50"
               />
               <div className="space-y-1">
-                <label
+                <Label
                   htmlFor="use_alternative_location"
-                  className="text-xs font-bold text-fiord-900 dark:text-fiord-50 cursor-pointer select-none"
+                  className="text-xs font-bold text-fiord-900 dark:text-fiord-100 cursor-pointer"
                 >
-                  ¿Esta vacante es en otra sucursal u ubicación alternativa?
-                </label>
-                <p className="text-[11px] text-fiord-450 dark:text-fiord-500 font-semibold leading-relaxed">
-                  Activa esta opción si el lugar de trabajo difiere de tu dirección comercial predeterminada.
+                  Especificar una sucursal o dirección diferente
+                </Label>
+                <p className="text-[11px] font-semibold text-fiord-450 dark:text-fiord-500 leading-snug">
+                  Activa esta casilla si la vacante es para una sucursal o lugar distinto a tu dirección principal.
                 </p>
               </div>
             </div>
 
-            {/* Alternative Location input */}
             {useAlternativeLocation && (
-              <div className="space-y-2 pt-2">
-                <Label htmlFor="alternative_location" className="text-[11px] font-bold uppercase tracking-wider text-fiord-400 dark:text-fiord-500 px-1">
-                  Ubicación / Dirección Específica de esta Vacante *
+              <div className="pt-2 space-y-2 animate-in fade-in duration-200">
+                <Label
+                  htmlFor="alternative_location"
+                  className="text-[11px] font-bold uppercase tracking-wider text-fiord-400 dark:text-fiord-500 px-1"
+                >
+                  Dirección o Sucursal Alternativa *
                 </Label>
-                <div className="relative">
-                  <MapPin className="absolute left-4 top-1/2 -translate-y-1/2 w-4.5 h-4.5 text-fiord-400 dark:text-fiord-500" />
-                  <Input
-                    id="alternative_location"
-                    placeholder="Ej. Sucursal Quinta Avenida, entre Calle 10 y 12, Playa del Carmen"
-                    {...register("alternative_location")}
-                    className="h-11 rounded-xl text-xs font-semibold border-fiord-100 dark:border-fiord-800 bg-fiord-50/20 dark:bg-fiord-950/20 text-fiord-900 dark:text-fiord-100 placeholder-fiord-400 dark:placeholder-fiord-500 focus-visible:ring-1 focus-visible:ring-fiord-300 dark:focus-visible:ring-fiord-700 focus-visible:border-fiord-300 dark:focus-visible:border-fiord-750 transition-all outline-none pl-11 pr-4"
-                  />
-                </div>
+                <Input
+                  id="alternative_location"
+                  placeholder="Ej. Sucursal Altabrisa, Calle 7 #123 x 24 y 26"
+                  {...register("alternative_location")}
+                  disabled={isProfileIncomplete}
+                  className="h-12 rounded-xl text-xs font-semibold border-fiord-100 dark:border-fiord-800 bg-fiord-50/20 dark:bg-fiord-950/20 text-fiord-900 dark:text-fiord-100 placeholder-fiord-400 dark:placeholder-fiord-500 focus-visible:ring-1 focus-visible:ring-fiord-300 dark:focus-visible:ring-fiord-700 focus-visible:border-fiord-300 transition-all px-4"
+                />
                 {errors.alternative_location && (
                   <p className="text-[11px] font-semibold text-red-500 dark:text-red-400 px-1">
                     {errors.alternative_location.message}
@@ -627,21 +823,33 @@ export function VacancyFormView({ userId }: { userId: string }) {
                 )}
               </div>
             )}
+          </CardContent>
+        </Card>
 
-            <div className="h-px bg-fiord-100/50 dark:bg-fiord-800/40 w-full"></div>
-
-            {/* Toggleable Benefits Section */}
-            <div className="space-y-4">
-              <div className="space-y-1">
-                <Label className="text-[11px] font-bold uppercase tracking-wider text-fiord-400 dark:text-fiord-500 px-1">
-                  Prestaciones y Beneficios para esta Oferta
-                </Label>
-                <p className="text-[11.5px] text-fiord-450 dark:text-fiord-500 font-semibold leading-relaxed px-1">
-                  Selecciona qué beneficios heredados de tu perfil aplican a este puesto específico, o agrega prestaciones adicionales.
-                </p>
+        {/* BLOCK 3: BENEFICIOS Y PRESTACIONES */}
+        <Card className="bg-white dark:bg-[#202023] border-fiord-100/60 dark:border-fiord-800/40 rounded-[24px] overflow-hidden shadow-xs">
+          <CardHeader className="p-6 md:p-8 border-b border-fiord-100/40 dark:border-fiord-800/30">
+            <div className="flex items-center gap-3">
+              <div className="size-9 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0">
+                <Sparkles className="size-4.5" />
               </div>
+              <div>
+                <CardTitle className="text-[15px] font-bold text-fiord-900 dark:text-fiord-50">
+                  Beneficios e Incentivos de la Oferta
+                </CardTitle>
+                <CardDescription className="text-xs font-semibold text-fiord-450 dark:text-fiord-500 mt-0.5">
+                  Incentiva la postulación destacando los beneficios del puesto.
+                </CardDescription>
+              </div>
+            </div>
+          </CardHeader>
 
-              {/* Standard pills to toggle */}
+          <CardContent className="p-6 md:p-8 space-y-6">
+            {/* Standard Benefits Pills */}
+            <div className="space-y-3">
+              <Label className="text-[11px] font-bold uppercase tracking-wider text-fiord-400 dark:text-fiord-500 px-1">
+                Selecciona los beneficios incluidos
+              </Label>
               <div className="flex flex-wrap gap-2.5">
                 {[
                   "Prestaciones de Ley",
@@ -650,87 +858,126 @@ export function VacancyFormView({ userId }: { userId: string }) {
                   "Uniformes",
                   "Capacitación / Crecimiento",
                   "Transporte de personal",
+                  "Seguro de Vida",
+                  "Bono de Puntualidad",
                 ].map((perk) => {
-                  const isActive = selectedBenefits.includes(perk);
+                  const active = selectedBenefits.includes(perk);
                   return (
                     <button
                       key={perk}
                       type="button"
+                      disabled={isProfileIncomplete}
                       onClick={() => handleToggleBenefit(perk)}
                       className={cn(
-                        "px-4 py-2 text-[11px] font-bold rounded-full transition-all duration-200 cursor-pointer select-none border flex items-center gap-1.5",
-                        isActive
-                          ? "bg-fiord-50 border-fiord-300 text-fiord-950 dark:bg-fiord-900/60 dark:border-fiord-700 dark:text-fiord-100"
-                          : "bg-transparent border-fiord-100 text-fiord-450 hover:bg-fiord-50/50 dark:border-fiord-800/50 dark:text-fiord-400 dark:hover:bg-fiord-900/20"
+                        "h-10 px-4 rounded-xl text-xs font-bold transition-all border flex items-center gap-2",
+                        active
+                          ? "bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border-emerald-500/30"
+                          : "bg-fiord-50/20 dark:bg-fiord-950/20 text-fiord-700 dark:text-fiord-300 border-fiord-100 dark:border-fiord-800 hover:bg-fiord-50"
                       )}
                     >
-                      {isActive ? (
-                        <Check className="size-3.5 text-fiord-550 shrink-0" />
-                      ) : (
-                        <Plus className="size-3.5 text-fiord-400 shrink-0" />
-                      )}
+                      <Check
+                        className={cn(
+                          "size-3.5 transition-opacity",
+                          active ? "opacity-100 text-emerald-600" : "opacity-0"
+                        )}
+                      />
                       <span>{perk}</span>
                     </button>
                   );
                 })}
               </div>
+            </div>
 
-              {/* Add custom perks input */}
-              <div className="flex gap-2 max-w-md pt-2">
-                <div className="relative flex-grow">
-                  <Input
-                    type="text"
-                    value={customBenefitText}
-                    onChange={(e) => setCustomBenefitText(e.target.value)}
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter") {
-                        e.preventDefault();
-                        handleAddCustomBenefit();
-                      }
-                    }}
-                    placeholder="Agregar otra prestación..."
-                    className="h-10 rounded-xl text-xs font-semibold border-fiord-100 dark:border-fiord-800 bg-fiord-50/20 dark:bg-fiord-950/20 text-fiord-900 dark:text-fiord-100 placeholder-fiord-400 dark:placeholder-fiord-500 focus-visible:ring-1 focus-visible:ring-fiord-300 dark:focus-visible:ring-fiord-700 focus-visible:border-fiord-300 dark:focus-visible:border-fiord-750 transition-all outline-none pr-4"
-                  />
-                </div>
+            {/* Custom Benefit Input */}
+            <div className="space-y-2 pt-2">
+              <Label htmlFor="custom_benefit" className="text-[11px] font-bold uppercase tracking-wider text-fiord-400 dark:text-fiord-500 px-1">
+                Agregar otro beneficio personalizado
+              </Label>
+              <div className="flex items-center gap-2">
+                <Input
+                  id="custom_benefit"
+                  value={customBenefitText}
+                  onChange={(e) => setCustomBenefitText(e.target.value)}
+                  placeholder="Ej. Descuento en productos de la tienda"
+                  disabled={isProfileIncomplete}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") {
+                      e.preventDefault();
+                      handleAddCustomBenefit();
+                    }
+                  }}
+                  className="h-11 rounded-xl text-xs font-semibold border-fiord-100 dark:border-fiord-800 bg-fiord-50/20 dark:bg-fiord-950/20 text-fiord-900 dark:text-fiord-100 placeholder-fiord-400 dark:placeholder-fiord-500"
+                />
                 <Button
                   type="button"
                   onClick={handleAddCustomBenefit}
-                  variant="outline"
-                  className="h-10 rounded-xl font-bold bg-white dark:bg-fiord-900/10 hover:bg-fiord-50 dark:hover:bg-fiord-900/40 text-fiord-700 dark:text-fiord-300 border border-fiord-100/80 dark:border-fiord-800/80 text-xs px-4 flex items-center gap-1.5 transition-all shadow-none"
+                  disabled={isProfileIncomplete || !customBenefitText.trim()}
+                  className="h-11 rounded-xl px-4 bg-fiord-950 dark:bg-fiord-50 text-white dark:text-fiord-950 font-bold text-xs shrink-0"
                 >
-                  <PlusCircle className="size-4" />
-                  <span>Añadir</span>
+                  <Plus className="size-4 mr-1" />
+                  Agregar
                 </Button>
               </div>
             </div>
 
+            {/* Active Benefits List */}
+            {selectedBenefits.length > 0 && (
+              <div className="p-4 rounded-xl bg-fiord-50/30 dark:bg-fiord-950/20 border border-fiord-100 dark:border-fiord-800 space-y-2">
+                <p className="text-[11px] font-bold uppercase tracking-wider text-fiord-400">
+                  Beneficios seleccionados ({selectedBenefits.length}):
+                </p>
+                <div className="flex flex-wrap gap-2">
+                  {selectedBenefits.map((item, idx) => (
+                    <Badge
+                      key={idx}
+                      className="bg-white dark:bg-fiord-900 text-fiord-900 dark:text-fiord-100 border border-fiord-200 dark:border-fiord-700 px-3 py-1 text-xs font-bold flex items-center gap-1.5 shadow-2xs"
+                    >
+                      <span>{item}</span>
+                      <button
+                        type="button"
+                        onClick={() => handleToggleBenefit(item)}
+                        className="hover:text-red-500 transition-colors"
+                      >
+                        <X className="size-3" />
+                      </button>
+                    </Badge>
+                  ))}
+                </div>
+              </div>
+            )}
           </CardContent>
         </Card>
 
-        {/* FOOTER ACTIONS BAR */}
-        <div className="flex items-center justify-end gap-3 pt-2">
+        {/* SUBMIT BUTTON ROW */}
+        <div className="flex items-center justify-end gap-4 pt-4">
           <Button
             type="button"
-            variant="outline"
+            variant="ghost"
             asChild
-            className="h-10 rounded-xl font-bold bg-white dark:bg-fiord-900/10 hover:bg-fiord-50 dark:hover:bg-fiord-900/40 text-fiord-700 dark:text-fiord-300 border border-fiord-100/80 dark:border-fiord-800/80 text-xs px-5 transition-all shadow-none"
+            className="h-12 rounded-xl px-6 text-xs font-bold text-fiord-600 dark:text-fiord-400 hover:text-fiord-950 dark:hover:text-fiord-50"
           >
             <Link href="/dashboard/company/vacancies">Cancelar</Link>
           </Button>
+
           <Button
             type="submit"
             disabled={publishing || isProfileIncomplete}
-            className="h-10 rounded-xl font-bold bg-fiord-950 dark:bg-fiord-50 hover:bg-fiord-900 dark:hover:bg-fiord-100 text-white dark:text-fiord-950 text-xs px-6 transition-all border-none"
+            className="h-12 rounded-xl px-8 bg-fiord-950 hover:bg-fiord-900 dark:bg-fiord-50 dark:hover:bg-fiord-100 text-white dark:text-fiord-950 font-bold text-xs uppercase tracking-wider shadow-sm transition-all active:scale-95 disabled:opacity-50 disabled:pointer-events-none"
           >
             {publishing ? (
               <>
-                <Loader2 className="size-3.5 animate-spin mr-1.5" />
-                <span>Publicando...</span>
+                <Loader2 className="size-4 animate-spin mr-2" />
+                {isEditMode ? "Guardando cambios..." : "Publicando vacante..."}
+              </>
+            ) : isEditMode ? (
+              <>
+                <Save className="size-4 mr-2" />
+                Guardar Cambios
               </>
             ) : (
               <>
-                <Plus className="size-3.5 mr-1.5" />
-                <span>Publicar Vacante</span>
+                <PlusCircle className="size-4 mr-2" />
+                Publicar Vacante
               </>
             )}
           </Button>
