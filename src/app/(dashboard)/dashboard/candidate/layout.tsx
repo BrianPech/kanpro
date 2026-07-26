@@ -21,7 +21,7 @@ export default async function CandidateDashboardLayout({
           userInitials={userInitials}
           plan={plan}
         />
-        <div className="flex-1 overflow-y-auto min-h-0 bg-background pb-16 md:pb-0" style={{ WebkitOverflowScrolling: "touch" }}>{children}</div>
+        <div className="flex-1 overflow-y-auto min-h-0 bg-fiord-50 dark:bg-zinc-950 pb-24 md:pb-8" style={{ WebkitOverflowScrolling: "touch" }}>{children}</div>
         <CandidateBottomNav />
       </SidebarInset>
     </SidebarProvider>
