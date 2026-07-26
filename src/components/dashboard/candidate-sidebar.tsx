@@ -86,17 +86,29 @@ export function CandidateSidebar() {
                       asChild
                       isActive={isActive}
                       tooltip={item.title}
-                      className="h-10 rounded-lg px-3 gap-3 hover:bg-zinc-100 dark:hover:bg-zinc-900/60 text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 data-[active=true]:bg-primary/10 dark:data-[active=true]:bg-primary/20 data-[active=true]:text-primary dark:data-[active=true]:text-primary-foreground transition-all duration-200 border border-transparent data-[active=true]:border-primary/10"
+                      className={`h-11 rounded-[16px] px-4 gap-3.5 transition-all duration-200 ${
+                        isActive
+                          ? "!bg-[#1f2732] dark:!bg-zinc-100 !text-white dark:!text-zinc-900 font-bold shadow-sm hover:!bg-[#253240] dark:hover:!bg-zinc-200"
+                          : "!text-[#5c7c9b] dark:!text-zinc-400 hover:!bg-[#ebeef3] dark:hover:!bg-zinc-900/80 hover:!text-[#1f2732] dark:hover:!text-zinc-100 font-medium"
+                      }`}
                     >
                       <Link
                         href={item.url}
-                        className="flex w-full items-center gap-3"
+                        className="flex w-full items-center gap-3.5"
                       >
                         <item.icon
-                          className={`size-4 shrink-0 transition-colors ${isActive ? "text-primary dark:text-primary-foreground" : "text-zinc-400 group-hover:text-zinc-900 dark:group-hover:text-zinc-100"}`}
+                          className={`size-[20px] shrink-0 transition-colors ${
+                            isActive
+                              ? "!text-white dark:!text-zinc-900"
+                              : "!text-[#5c7c9b] dark:!text-zinc-400 group-hover/menu-button:!text-[#1f2732] dark:group-hover/menu-button:!text-zinc-100"
+                          }`}
                         />
                         <span
-                          className={`text-[13px] tracking-tight ${isActive ? "font-semibold" : "font-medium"}`}
+                          className={`text-[14px] tracking-tight ${
+                            isActive
+                              ? "font-bold !text-white dark:!text-zinc-900"
+                              : "font-medium !text-[#5c7c9b] dark:!text-zinc-400 group-hover/menu-button:!text-[#1f2732] dark:group-hover/menu-button:!text-zinc-100"
+                          }`}
                         >
                           {item.title}
                         </span>

@@ -62,7 +62,7 @@ export function CandidateTopbar({
   return (
     <header className="hidden md:flex sticky top-0 z-40 h-20 shrink-0 items-center justify-between bg-background/80 backdrop-blur-md px-6 md:px-10 border-b border-border/10 transition-all duration-300">
       
-      {/* Left Area: Greeting & Status Pill */}
+      {/* Left Area: Greeting */}
       <div className="flex items-center gap-4">
         <SidebarTrigger className="-ml-2 text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 md:hidden" />
         
@@ -73,12 +73,6 @@ export function CandidateTopbar({
           <p className="text-[12px] font-medium text-[#5c7c9b] dark:text-zinc-400">
             Descubre nuevas oportunidades hoy
           </p>
-        </div>
-
-        {/* Quick Candidate Job Status Pill */}
-        <div className="hidden lg:flex items-center gap-2 ml-2 px-3 py-1 bg-zinc-50 dark:bg-zinc-900 border border-border/10 rounded-full text-[11px] font-medium text-zinc-600 dark:text-zinc-400">
-          <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
-          Buscando empleo
         </div>
       </div>
 
