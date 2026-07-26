@@ -124,7 +124,7 @@ export function CandidateSettingsView() {
         <button
           onClick={() => router.push("/dashboard/candidate/discovery")}
           aria-label="Buscar"
-          className="w-[44px] h-[44px] bg-white dark:bg-zinc-900 rounded-full flex items-center justify-center text-[#344558] dark:text-zinc-200 hover:bg-[#ebeef3] dark:hover:bg-zinc-800 transition-all cursor-pointer active:scale-95 shadow-2xs"
+          className="md:hidden w-[44px] h-[44px] bg-white dark:bg-zinc-900 rounded-full flex items-center justify-center text-[#344558] dark:text-zinc-200 hover:bg-[#ebeef3] dark:hover:bg-zinc-800 transition-all cursor-pointer active:scale-95 shadow-2xs"
         >
           <Search className="w-5 h-5 stroke-[2]" />
         </button>
@@ -185,13 +185,13 @@ export function CandidateSettingsView() {
         <SettingsRow
           icon={<FileText className="w-[22px] h-[22px] text-[#3e546d] dark:text-zinc-300 stroke-[1.75]" />}
           title="Mi CV"
-          onClick={() => router.push("/dashboard/candidate/cv")}
+          onClick={() => router.push("/dashboard/candidate/profile/cv")}
         />
         <SettingsRow
           icon={<Bookmark className="w-[22px] h-[22px] text-[#3e546d] dark:text-zinc-300 stroke-[1.75]" />}
           title="Mis postulaciones guardadas"
           badgeCount={savedCount > 0 ? savedCount : undefined}
-          onClick={() => router.push("/dashboard/candidate/saved")}
+          onClick={() => router.push("/dashboard/candidate/profile/saved")}
         />
       </div>
 
@@ -200,7 +200,7 @@ export function CandidateSettingsView() {
         <SettingsRow
           icon={<Bell className="w-[22px] h-[22px] text-[#3e546d] dark:text-zinc-300 stroke-[1.75]" />}
           title="Alertas de empleo"
-          onClick={() => router.push("/dashboard/candidate/notifications/preferences")}
+          onClick={() => router.push("/dashboard/candidate/profile/preferences")}
         />
         <SettingsRow
           icon={<Lock className="w-[22px] h-[22px] text-[#3e546d] dark:text-zinc-300 stroke-[1.75]" />}

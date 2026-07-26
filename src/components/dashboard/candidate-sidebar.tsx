@@ -2,10 +2,11 @@
 
 import * as React from "react";
 import {
-  Settings,
+  User,
   LayoutDashboard,
   Kanban,
   Compass,
+  FileText,
 } from "lucide-react";
 import {
   Sidebar,
@@ -35,10 +36,15 @@ export function CandidateSidebar() {
       url: "/dashboard/candidate/discovery", 
       icon: Compass 
     },
+    {
+      title: "Mis Postulaciones",
+      url: "/dashboard/candidate/applications",
+      icon: FileText,
+    },
     { 
-      title: "Configuración", 
-      url: "/dashboard/candidate/settings", 
-      icon: Settings 
+      title: "Mi Perfil", 
+      url: "/dashboard/candidate/profile", 
+      icon: User 
     },
   ];
 

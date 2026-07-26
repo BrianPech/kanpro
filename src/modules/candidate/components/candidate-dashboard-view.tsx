@@ -54,8 +54,8 @@ export function CandidateDashboardView({ initialData }: CandidateDashboardViewPr
             </p>
           </div>
 
-          {/* Circular Notification Button (44x44, Border #ebeef3, Icon #344558) */}
-          <Link href="/dashboard/candidate/notifications" className="shrink-0">
+          {/* Circular Notification Button (Only visible on mobile, since Topbar handles it on desktop) */}
+          <Link href="/dashboard/candidate/notifications" className="shrink-0 md:hidden">
             <div aria-label="Notificaciones" className="relative cursor-pointer group">
               <div className="w-[44px] h-[44px] bg-white dark:bg-zinc-900 rounded-full border-[1.5px] border-[#ebeef3] dark:border-zinc-800 flex items-center justify-center transition-all group-active:scale-95 shadow-2xs">
                 <svg viewBox="0 0 24 24" className="w-[20px] h-[20px] fill-none stroke-[#344558] dark:stroke-fiord-200 stroke-[1.8]" aria-hidden="true">
