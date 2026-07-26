@@ -15,6 +15,18 @@ export interface CandidateApplication {
   companyPhone: string | null
 }
 
+export interface VacancyItem {
+  id: string
+  title: string
+  companyName: string
+  companyLogo: string | null
+  location: string
+  employmentType: string
+  formattedSalary: string
+  isFeatured: boolean
+  category: string
+}
+
 export interface CandidateDashboardData {
   profile: {
     id: string
@@ -34,6 +46,8 @@ export interface CandidateDashboardData {
     reviewing: number
     hired: number
   }
+  featuredVacancies: VacancyItem[]
+  nearbyVacancies: VacancyItem[]
 }
 
 export async function getCandidateDashboardData(): Promise<CandidateDashboardData> {
@@ -50,7 +64,9 @@ export async function getCandidateDashboardData(): Promise<CandidateDashboardDat
         total: 0,
         reviewing: 0,
         hired: 0
-      }
+      },
+      featuredVacancies: [],
+      nearbyVacancies: []
     }
   }
 
@@ -208,6 +224,60 @@ export async function getCandidateDashboardData(): Promise<CandidateDashboardDat
   ).length
   const hired = formattedApplications.filter((app) => app.status === "Contratado").length
 
+  // 6. Fetch active vacancies for feed
+  const { data: dbVacancies } = await supabase
+    .from("vacancies")
+    .select(`
+      id,
+      title,
+      location,
+      modality,
+      employment_type,
+      salary_min,
+      salary_max,
+      is_featured,
+      category,
+      company_id,
+      created_at
+    `)
+    .eq("status", "Activa")
+    .order("created_at", { ascending: false })
+    .limit(10)
+
+  const vacanciesList: VacancyItem[] = (dbVacancies || []).map((vac: any) => {
+    const compInfo = companies[vac.company_id]
+    const compName = compInfo?.company_name || "Empresa"
+    const compLogo = compInfo?.logo_url || null
+
+    let formattedSalary = ""
+    const min = Number(vac.salary_min)
+    const max = Number(vac.salary_max)
+    if (min && max) {
+      formattedSalary = `$${min.toLocaleString()} - $${max.toLocaleString()}`
+    } else if (min) {
+      formattedSalary = `Desde $${min.toLocaleString()}`
+    } else if (max) {
+      formattedSalary = `Hasta $${max.toLocaleString()}`
+    } else {
+      formattedSalary = "Sueldo competitivo"
+    }
+
+    return {
+      id: vac.id,
+      title: vac.title,
+      companyName: compName,
+      companyLogo: compLogo,
+      location: vac.location || vac.modality || "Remoto",
+      employmentType: vac.employment_type || vac.modality || "Full-time",
+      formattedSalary,
+      isFeatured: !!vac.is_featured,
+      category: vac.category || "General"
+    }
+  })
+
+  const featuredVacancies = vacanciesList.filter((v) => v.isFeatured)
+  const nearbyVacancies = vacanciesList
+
   return {
     profile: profileData
       ? {
@@ -228,6 +298,8 @@ export async function getCandidateDashboardData(): Promise<CandidateDashboardDat
       total,
       reviewing,
       hired
-    }
+    },
+    featuredVacancies,
+    nearbyVacancies
   }
 }

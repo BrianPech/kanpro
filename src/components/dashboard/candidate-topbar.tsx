@@ -58,7 +58,7 @@ export function CandidateTopbar({
   };
 
   return (
-    <header className="sticky top-0 z-40 flex h-20 shrink-0 items-center justify-between bg-background/80 backdrop-blur-md px-6 md:px-10 border-b border-border/10 transition-all duration-300">
+    <header className="hidden md:flex sticky top-0 z-40 h-20 shrink-0 items-center justify-between bg-background/80 backdrop-blur-md px-6 md:px-10 border-b border-border/10 transition-all duration-300">
       
       {/* Left Area: Sidebar Trigger (mostly for mobile/tablet) */}
       <div className="flex items-center gap-4">
