@@ -176,7 +176,7 @@ export function EditPublicProfileView({ onBack }: EditPublicProfileViewProps) {
   const initialLetter = name.trim().length > 0 ? name.trim()[0].toUpperCase() : "C";
 
   return (
-    <div className="flex-grow min-h-screen bg-white dark:bg-zinc-950 px-5 sm:px-8 lg:px-12 pt-3 pb-24 md:pb-10 max-w-2xl mx-auto w-full animate-in fade-in duration-300 relative">
+    <div className="flex-grow min-h-full bg-transparent dark:bg-zinc-950 px-5 sm:px-8 lg:px-12 pt-3 pb-24 md:pb-4 max-w-2xl mx-auto w-full animate-in fade-in duration-300 relative">
       
       {/* Toast Notification */}
       {toastMessage && (

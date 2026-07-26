@@ -114,7 +114,7 @@ export function CandidateSettingsView() {
   };
 
   return (
-    <div className="flex-grow min-h-screen bg-[#f5f7fa] dark:bg-zinc-950 px-5 sm:px-8 lg:px-12 pt-4 pb-24 md:pb-10 space-y-5 max-w-4xl mx-auto w-full animate-in fade-in duration-300">
+    <div className="flex-grow min-h-full bg-transparent dark:bg-zinc-950 px-5 sm:px-8 lg:px-12 pt-4 pb-24 md:pb-4 space-y-5 max-w-4xl mx-auto w-full animate-in fade-in duration-300">
       
       {/* 1. Top Custom Header */}
       <div className="flex items-center justify-between">

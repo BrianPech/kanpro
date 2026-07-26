@@ -153,21 +153,21 @@ export function JobSearchView({ initialVacancies = [], onBack }: JobSearchViewPr
   }, [initialVacancies, debouncedQuery, activeFilters]);
 
   return (
-    <div className="flex-grow min-h-screen bg-white dark:bg-zinc-950 px-5 sm:px-8 lg:px-12 pt-3 pb-24 md:pb-10 max-w-4xl mx-auto w-full animate-in fade-in duration-300">
+    <div className="flex-grow min-h-full bg-transparent dark:bg-zinc-950 px-5 sm:px-8 lg:px-12 pt-3 pb-24 md:pb-4 max-w-4xl mx-auto w-full animate-in fade-in duration-300">
       
       {/* 1. Header Search Bar Row */}
       <div className="flex items-center gap-3 py-2">
-        {/* Back Button Container (48x48, radius 16px, bg #f5f7fa) */}
+        {/* Back Button Container (48x48, radius 16px, bg white) */}
         <button
           onClick={handleBack}
           aria-label="Regresar"
-          className="w-[48px] h-[48px] bg-[#f5f7fa] dark:bg-zinc-900 rounded-[16px] flex items-center justify-center text-[#344558] dark:text-zinc-200 hover:bg-[#ebeef3] dark:hover:bg-zinc-800 transition-all cursor-pointer active:scale-95 shrink-0"
+          className="w-[48px] h-[48px] bg-white dark:bg-zinc-900 border border-[#ebeef3] dark:border-zinc-800 rounded-[16px] flex items-center justify-center text-[#344558] dark:text-zinc-200 hover:bg-[#ebeef3] dark:hover:bg-zinc-800 transition-all cursor-pointer active:scale-95 shrink-0 shadow-2xs"
         >
           <ArrowLeft className="w-[20px] h-[20px] stroke-[2.2]" />
         </button>
 
-        {/* Search Input Bar (h-48px, radius 24px, bg #f5f7fa) */}
-        <div className="flex-1 h-[48px] bg-[#f5f7fa] dark:bg-zinc-900 rounded-[24px] px-4 flex items-center gap-2 border border-transparent focus-within:border-[#ebeef3] dark:focus-within:border-zinc-800 transition-all">
+        {/* Search Input Bar (h-48px, radius 24px, bg white) */}
+        <div className="flex-1 h-[48px] bg-white dark:bg-zinc-900 rounded-[24px] px-4 flex items-center gap-2 border border-[#ebeef3] dark:border-zinc-800 shadow-2xs focus-within:border-[#344558] transition-all">
           <input
             type="text"
             value={searchQuery}
@@ -186,11 +186,11 @@ export function JobSearchView({ initialVacancies = [], onBack }: JobSearchViewPr
           )}
         </div>
 
-        {/* Filter Tune Button (48x48, radius 16px, bg #f5f7fa) */}
+        {/* Filter Tune Button (48x48, radius 16px, bg white) */}
         <button
           onClick={() => setIsFilterOpen(true)}
           aria-label="Filtros"
-          className="w-[48px] h-[48px] bg-[#f5f7fa] dark:bg-zinc-900 rounded-[16px] flex items-center justify-center text-[#344558] dark:text-zinc-200 hover:bg-[#ebeef3] dark:hover:bg-zinc-800 transition-all cursor-pointer active:scale-95 shrink-0 relative"
+          className="w-[48px] h-[48px] bg-white dark:bg-zinc-900 border border-[#ebeef3] dark:border-zinc-800 rounded-[16px] flex items-center justify-center text-[#344558] dark:text-zinc-200 hover:bg-[#ebeef3] dark:hover:bg-zinc-800 transition-all cursor-pointer active:scale-95 shrink-0 relative shadow-2xs"
         >
           <SlidersHorizontal className="w-[22px] h-[22px] stroke-[2]" />
           {activeFilters.length > 0 && (
@@ -244,7 +244,7 @@ export function JobSearchView({ initialVacancies = [], onBack }: JobSearchViewPr
                   setSearchQuery(tag);
                   addFilter(tag);
                 }}
-                className="px-4 py-[10px] bg-[#f5f7fa] dark:bg-zinc-900 rounded-[20px] border border-[#ebeef3] dark:border-zinc-800 text-[13px] font-[600] text-[#344558] dark:text-zinc-200 hover:bg-[#ebeef3] dark:hover:bg-zinc-800 transition-all cursor-pointer active:scale-95"
+                className="px-4 py-[10px] bg-white dark:bg-zinc-900 rounded-[20px] border border-[#ebeef3] dark:border-zinc-800 text-[13px] font-[600] text-[#344558] dark:text-zinc-200 hover:bg-[#ebeef3] dark:hover:bg-zinc-800 transition-all cursor-pointer active:scale-95 shadow-2xs"
               >
                 {tag}
               </button>

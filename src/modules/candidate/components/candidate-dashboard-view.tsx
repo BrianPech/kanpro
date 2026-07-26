@@ -40,10 +40,10 @@ export function CandidateDashboardView({ initialData }: CandidateDashboardViewPr
   };
 
   return (
-    <div className="flex-grow min-h-screen bg-fiord-50 dark:bg-zinc-950 px-5 sm:px-8 lg:px-12 pb-6 md:pb-10 space-y-7 max-w-4xl mx-auto w-full animate-in fade-in duration-300">
+    <div className="flex-grow min-h-full bg-fiord-50 dark:bg-zinc-950 px-5 sm:px-8 lg:px-12 pt-3 md:pt-6 pb-6 md:pb-4 space-y-7 max-w-4xl mx-auto w-full animate-in fade-in duration-300">
       
-      {/* 1. Top Greeting Header (Fixed / Sticky Mobile Topbar) */}
-      <header className="sticky top-0 z-30 bg-fiord-50/95 dark:bg-zinc-950/95 backdrop-blur-md pt-4 sm:pt-6 pb-3 -mx-5 sm:-mx-8 lg:-mx-12 px-5 sm:px-8 lg:px-12 transition-all">
+      {/* 1. Top Greeting Header (Only on mobile, handled by Topbar on desktop) */}
+      <header className="md:hidden sticky top-0 z-30 bg-fiord-50/95 dark:bg-zinc-950/95 backdrop-blur-md pt-4 sm:pt-6 pb-3 -mx-5 sm:-mx-8 lg:-mx-12 px-5 sm:px-8 lg:px-12 transition-all">
         <div className="flex items-center justify-between">
           <div className="flex flex-col items-start">
             <h1 className="text-[24px] sm:text-[28px] font-[800] text-[#1f2732] dark:text-fiord-50 tracking-[-0.6px] leading-tight">
