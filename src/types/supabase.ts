@@ -82,26 +82,32 @@ export type Database = {
       }
       applications: {
         Row: {
+          applied_at: string
           candidate_id: string
           created_at: string
           id: string
           status: string
+          step_index: number
           updated_at: string
           vacancy_id: string
         }
         Insert: {
+          applied_at?: string
           candidate_id: string
           created_at?: string
           id?: string
           status?: string
+          step_index?: number
           updated_at?: string
           vacancy_id: string
         }
         Update: {
+          applied_at?: string
           candidate_id?: string
           created_at?: string
           id?: string
           status?: string
+          step_index?: number
           updated_at?: string
           vacancy_id?: string
         }
@@ -143,12 +149,16 @@ export type Database = {
           category: string | null
           constancia_url: string | null
           created_at: string
+          cv_file_size: string | null
+          cv_filename: string | null
+          cv_updated_at: string | null
           cv_url: string | null
           education: Json | null
           experience: Json | null
           experience_summary: string
           headline: string | null
           id: string
+          job_alerts_enabled: boolean
           phone: string | null
           portfolio_links: Json | null
           show_email: boolean
@@ -163,12 +173,16 @@ export type Database = {
           category?: string | null
           constancia_url?: string | null
           created_at?: string
+          cv_file_size?: string | null
+          cv_filename?: string | null
+          cv_updated_at?: string | null
           cv_url?: string | null
           education?: Json | null
           experience?: Json | null
           experience_summary?: string
           headline?: string | null
           id: string
+          job_alerts_enabled?: boolean
           phone?: string | null
           portfolio_links?: Json | null
           show_email?: boolean
@@ -183,12 +197,16 @@ export type Database = {
           category?: string | null
           constancia_url?: string | null
           created_at?: string
+          cv_file_size?: string | null
+          cv_filename?: string | null
+          cv_updated_at?: string | null
           cv_url?: string | null
           education?: Json | null
           experience?: Json | null
           experience_summary?: string
           headline?: string | null
           id?: string
+          job_alerts_enabled?: boolean
           phone?: string | null
           portfolio_links?: Json | null
           show_email?: boolean
@@ -223,46 +241,85 @@ export type Database = {
       }
       company_profiles: {
         Row: {
+          address_details: string | null
+          banner_url: string | null
+          benefit_canteen: boolean | null
+          benefit_growth: boolean | null
+          benefit_imss: boolean | null
+          benefit_tips: boolean | null
+          benefit_uniforms: boolean | null
           company_name: string
           company_size: string | null
           contact_channel: string
           created_at: string
           credits_available: number
           description: string | null
+          facebook_url: string | null
+          has_transport: boolean | null
           id: string
           industry: string | null
+          instagram_url: string | null
+          is_verified: boolean
           logo_url: string | null
+          operation_hours: string | null
           phone: string | null
+          rating: number
           updated_at: string
           website_or_linkedin: string | null
           whatsapp_number: string
         }
         Insert: {
+          address_details?: string | null
+          banner_url?: string | null
+          benefit_canteen?: boolean | null
+          benefit_growth?: boolean | null
+          benefit_imss?: boolean | null
+          benefit_tips?: boolean | null
+          benefit_uniforms?: boolean | null
           company_name: string
           company_size?: string | null
           contact_channel?: string
           created_at?: string
           credits_available?: number
           description?: string | null
+          facebook_url?: string | null
+          has_transport?: boolean | null
           id: string
           industry?: string | null
+          instagram_url?: string | null
+          is_verified?: boolean
           logo_url?: string | null
+          operation_hours?: string | null
           phone?: string | null
+          rating?: number
           updated_at?: string
           website_or_linkedin?: string | null
           whatsapp_number?: string
         }
         Update: {
+          address_details?: string | null
+          banner_url?: string | null
+          benefit_canteen?: boolean | null
+          benefit_growth?: boolean | null
+          benefit_imss?: boolean | null
+          benefit_tips?: boolean | null
+          benefit_uniforms?: boolean | null
           company_name?: string
           company_size?: string | null
           contact_channel?: string
           created_at?: string
           credits_available?: number
           description?: string | null
+          facebook_url?: string | null
+          has_transport?: boolean | null
           id?: string
           industry?: string | null
+          instagram_url?: string | null
+          is_verified?: boolean
           logo_url?: string | null
+          operation_hours?: string | null
           phone?: string | null
+          rating?: number
           updated_at?: string
           website_or_linkedin?: string | null
           whatsapp_number?: string
@@ -404,6 +461,7 @@ export type Database = {
           description: string
           id: string
           is_read: boolean
+          target_vacancy_id: string | null
           title: string
           type: string
           user_id: string
@@ -413,6 +471,7 @@ export type Database = {
           description: string
           id?: string
           is_read?: boolean
+          target_vacancy_id?: string | null
           title: string
           type: string
           user_id: string
@@ -422,11 +481,19 @@ export type Database = {
           description?: string
           id?: string
           is_read?: boolean
+          target_vacancy_id?: string | null
           title?: string
           type?: string
           user_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "notifications_target_vacancy_id_fkey"
+            columns: ["target_vacancy_id"]
+            isOneToOne: false
+            referencedRelation: "vacancies"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "notifications_user_id_fkey"
             columns: ["user_id"]
@@ -492,10 +559,61 @@ export type Database = {
         }
         Relationships: []
       }
+      saved_vacancies: {
+        Row: {
+          candidate_id: string
+          created_at: string
+          id: string
+          vacancy_id: string
+        }
+        Insert: {
+          candidate_id: string
+          created_at?: string
+          id?: string
+          vacancy_id: string
+        }
+        Update: {
+          candidate_id?: string
+          created_at?: string
+          id?: string
+          vacancy_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "saved_vacancies_candidate_id_fkey"
+            columns: ["candidate_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "saved_vacancies_candidate_id_fkey"
+            columns: ["candidate_id"]
+            isOneToOne: false
+            referencedRelation: "profiles_private"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "saved_vacancies_candidate_id_fkey"
+            columns: ["candidate_id"]
+            isOneToOne: false
+            referencedRelation: "profiles_view"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "saved_vacancies_vacancy_id_fkey"
+            columns: ["vacancy_id"]
+            isOneToOne: false
+            referencedRelation: "vacancies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       vacancies: {
         Row: {
           benefits: string[] | null
           category: string | null
+          category_icon: string
           company_id: string
           contract_type: string | null
           created_at: string
@@ -504,6 +622,7 @@ export type Database = {
           employment_type: string | null
           id: string
           is_active: boolean
+          is_promoted: boolean
           location: string
           modality: string
           recruiter_id: string
@@ -513,6 +632,7 @@ export type Database = {
           seniority: string | null
           skills: string[] | null
           status: string
+          tags: string[]
           title: string
           updated_at: string
           zone: string | null
@@ -520,6 +640,7 @@ export type Database = {
         Insert: {
           benefits?: string[] | null
           category?: string | null
+          category_icon?: string
           company_id: string
           contract_type?: string | null
           created_at?: string
@@ -528,6 +649,7 @@ export type Database = {
           employment_type?: string | null
           id?: string
           is_active?: boolean
+          is_promoted?: boolean
           location: string
           modality: string
           recruiter_id: string
@@ -537,6 +659,7 @@ export type Database = {
           seniority?: string | null
           skills?: string[] | null
           status?: string
+          tags?: string[]
           title: string
           updated_at?: string
           zone?: string | null
@@ -544,6 +667,7 @@ export type Database = {
         Update: {
           benefits?: string[] | null
           category?: string | null
+          category_icon?: string
           company_id?: string
           contract_type?: string | null
           created_at?: string
@@ -552,6 +676,7 @@ export type Database = {
           employment_type?: string | null
           id?: string
           is_active?: boolean
+          is_promoted?: boolean
           location?: string
           modality?: string
           recruiter_id?: string
@@ -561,11 +686,19 @@ export type Database = {
           seniority?: string | null
           skills?: string[] | null
           status?: string
+          tags?: string[]
           title?: string
           updated_at?: string
           zone?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "vacancies_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "vacancies_company_id_fkey"
             columns: ["company_id"]
@@ -598,9 +731,57 @@ export type Database = {
       }
     }
     Views: {
+      companies: {
+        Row: {
+          active_vacancies_count: number | null
+          address: string | null
+          banner_url: string | null
+          created_at: string | null
+          description: string | null
+          employee_count_range: string | null
+          id: string | null
+          industry: string | null
+          is_verified: boolean | null
+          location: string | null
+          logo_url: string | null
+          name: string | null
+          rating: number | null
+          website_url: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "company_profiles_id_fkey"
+            columns: ["id"]
+            isOneToOne: true
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "company_profiles_id_fkey"
+            columns: ["id"]
+            isOneToOne: true
+            referencedRelation: "profiles_private"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "company_profiles_id_fkey"
+            columns: ["id"]
+            isOneToOne: true
+            referencedRelation: "profiles_view"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles_private: {
         Row: {
+          address_details: string | null
           avatar_url: string | null
+          banner_url: string | null
+          benefit_canteen: boolean | null
+          benefit_growth: boolean | null
+          benefit_imss: boolean | null
+          benefit_tips: boolean | null
+          benefit_uniforms: boolean | null
           bio: string | null
           birth_date: string | null
           category: string | null
@@ -614,15 +795,19 @@ export type Database = {
           email: string | null
           experience: Json | null
           experience_summary: string | null
+          facebook_url: string | null
           full_name: string | null
+          has_transport: boolean | null
           headline: string | null
           id: string | null
           industry: string | null
+          instagram_url: string | null
           is_approved: boolean | null
           is_featured: boolean | null
           is_validated: boolean | null
           location: string | null
           logo_url: string | null
+          operation_hours: string | null
           phone: string | null
           portfolio_links: Json | null
           role: string | null
@@ -637,7 +822,14 @@ export type Database = {
       }
       profiles_view: {
         Row: {
+          address_details: string | null
           avatar_url: string | null
+          banner_url: string | null
+          benefit_canteen: boolean | null
+          benefit_growth: boolean | null
+          benefit_imss: boolean | null
+          benefit_tips: boolean | null
+          benefit_uniforms: boolean | null
           bio: string | null
           birth_date: string | null
           category: string | null
@@ -651,15 +843,19 @@ export type Database = {
           email: string | null
           experience: Json | null
           experience_summary: string | null
+          facebook_url: string | null
           full_name: string | null
+          has_transport: boolean | null
           headline: string | null
           id: string | null
           industry: string | null
+          instagram_url: string | null
           is_approved: boolean | null
           is_featured: boolean | null
           is_validated: boolean | null
           location: string | null
           logo_url: string | null
+          operation_hours: string | null
           phone: string | null
           portfolio_links: Json | null
           role: string | null
