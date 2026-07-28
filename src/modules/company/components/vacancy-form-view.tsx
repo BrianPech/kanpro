@@ -515,24 +515,14 @@ export function VacancyFormView({ userId, vacancyId }: VacancyFormViewProps) {
         <div className="flex items-center gap-3">
           <Button
             variant="ghost"
-            size="icon"
             asChild
-            className="rounded-xl border border-fiord-100/80 dark:border-fiord-800/80 bg-white dark:bg-fiord-900/10 hover:bg-fiord-50 dark:hover:bg-fiord-900/40"
+            className="rounded-xl border border-fiord-100/80 dark:border-fiord-800/80 bg-white dark:bg-fiord-900/10 hover:bg-fiord-50 dark:hover:bg-fiord-900/40 text-xs sm:text-sm font-bold flex items-center gap-2 px-4 h-10"
           >
             <Link href="/dashboard/company/vacancies">
               <ArrowLeft className="size-4 text-fiord-700 dark:text-fiord-350" />
+              <span>Volver a Vacantes</span>
             </Link>
           </Button>
-          <div>
-            <h1 className="text-xl font-bold text-fiord-900 dark:text-fiord-50 tracking-tight">
-              {isEditMode ? "Editar Vacante" : "Crear Nueva Vacante"}
-            </h1>
-            <p className="text-xs text-fiord-450 dark:text-fiord-500 font-semibold mt-0.5">
-              {isEditMode
-                ? "Modifica los detalles y compensación de tu oferta de empleo."
-                : "Publica puestos activos heredando la información de la sucursal."}
-            </p>
-          </div>
         </div>
 
         {!isEditMode && (

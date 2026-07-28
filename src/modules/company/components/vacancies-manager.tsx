@@ -310,51 +310,40 @@ export function VacanciesManager({ userId }: { userId: string }) {
   const hasActiveFilters = categoryFilter !== "all" || locationFilter !== "all" || statusFilter !== "all" || searchQuery !== "";
 
   return (
-    <div className="flex-grow min-h-screen bg-fiord-50/20 dark:bg-[#18181B] px-4 py-8 md:px-10 lg:px-12 space-y-8 animate-in fade-in duration-300">
+    <div className="flex-grow min-h-screen bg-fiord-50/20 dark:bg-[#18181B] px-6 sm:px-10 lg:px-14 py-8 pb-28 md:pb-8 max-w-6xl mx-auto w-full space-y-8 animate-in fade-in duration-300">
       
-      {/* ========================================== */}
-      {/* HEADER SECTION                             */}
-      {/* ========================================== */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 shrink-0 pb-2 border-b border-fiord-100/50 dark:border-fiord-800/40">
-        <div>
-          <div className="flex flex-col sm:flex-row sm:items-center gap-2.5">
-            <h2 className="text-2xl font-bold text-fiord-900 dark:text-fiord-50 tracking-tight md:text-3xl">
-              Gestionar Vacantes
-            </h2>
-            {!isProfileIncomplete && !loadingProfile && profile && !profile.is_validated && (
-              <Badge variant="outline" className="bg-amber-500/10 border-amber-500/30 text-amber-600 dark:text-amber-400 font-bold px-3 py-0.5 text-xs rounded-full w-fit animate-pulse">
-                ✨ Perfil Completo • Verificación en Proceso
-              </Badge>
-            )}
-            {!isProfileIncomplete && !loadingProfile && profile && profile.is_validated && (
-              <Badge variant="outline" className="bg-emerald-500/10 border-emerald-500/30 text-emerald-600 dark:text-emerald-400 font-bold px-3 py-0.5 text-xs rounded-full w-fit flex items-center gap-1">
-                <CheckCircle2 className="size-3.5" />
-                <span>Empresa Verificada</span>
-              </Badge>
-            )}
-          </div>
-          <p className="text-xs md:text-sm text-fiord-400 dark:text-fiord-500 mt-1 font-semibold">
-            Controla las ofertas activas y marca las plazas cubiertas desde tu panel.
-          </p>
+      {/* Verification status pill banner (if applicable) */}
+      {!isProfileIncomplete && !loadingProfile && profile && (
+        <div className="-mb-4">
+          {!profile.is_validated ? (
+            <Badge variant="outline" className="bg-amber-500/10 border-amber-500/30 text-amber-600 dark:text-amber-400 font-bold px-3.5 py-1 text-xs rounded-full w-fit animate-pulse">
+              ✨ Perfil Completo • Verificación de Empresa en Proceso
+            </Badge>
+          ) : (
+            <Badge variant="outline" className="bg-emerald-500/10 border-emerald-500/30 text-emerald-600 dark:text-emerald-400 font-bold px-3.5 py-1 text-xs rounded-full w-fit flex items-center gap-1.5">
+              <CheckCircle2 className="size-4" />
+              <span>Empresa Verificada</span>
+            </Badge>
+          )}
         </div>
-      </div>
+      )}
 
       {isProfileIncomplete && !loadingProfile && (
-        <Alert variant="destructive" className="bg-amber-500/10 border-amber-500/20 text-amber-700 dark:text-amber-400 p-5 rounded-2xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-          <div className="flex items-start gap-3">
-            <span className="text-xl shrink-0 mt-0.5">⚠️</span>
+        <Alert variant="destructive" className="bg-amber-500/10 border-amber-500/20 text-amber-700 dark:text-amber-400 p-6 rounded-[22px] flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+          <div className="flex items-start gap-3.5">
+            <span className="text-2xl shrink-0 mt-0.5">⚠️</span>
             <div className="space-y-1">
-              <AlertTitle className="text-xs font-bold uppercase tracking-wider text-amber-700 dark:text-amber-400">
+              <AlertTitle className="text-xs sm:text-sm font-bold uppercase tracking-wider text-amber-700 dark:text-amber-400">
                 Perfil de Empresa Incompleto
               </AlertTitle>
-              <AlertDescription className="text-xs font-semibold leading-relaxed text-amber-600 dark:text-amber-300/90">
+              <AlertDescription className="text-xs sm:text-sm font-semibold leading-relaxed text-amber-600 dark:text-amber-300/90">
                 Para comenzar a publicar ofertas express y activar tu radar, primero completa la información esencial de tu negocio (Nombre, WhatsApp y Dirección) en la sección de Mi Perfil.
               </AlertDescription>
             </div>
           </div>
           <Button
             asChild
-            className="w-full sm:w-fit h-10 rounded-xl bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs uppercase tracking-wider shrink-0 border-none"
+            className="w-full sm:w-fit h-11 rounded-[14px] bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs uppercase tracking-wider shrink-0 border-none cursor-pointer"
           >
             <Link href="/dashboard/company/profile">
               Completar Perfil
@@ -366,54 +355,54 @@ export function VacanciesManager({ userId }: { userId: string }) {
       {/* ========================================== */}
       {/* FILTER & VIEW TOGGLE CONTROLLER BAR        */}
       {/* ========================================== */}
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-white dark:bg-[#202023] p-3 rounded-2xl border border-fiord-100/60 dark:border-fiord-800/40 shadow-xs shrink-0">
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-white dark:bg-[#202023] p-4 rounded-[22px] border border-fiord-100/60 dark:border-fiord-800/40 shadow-xs shrink-0">
         
         {/* Toggle List/Grid (Left side) */}
-        <div className="inline-flex p-1 rounded-xl bg-fiord-50/50 dark:bg-fiord-900/30 border border-fiord-100/30 dark:border-fiord-800/20 shrink-0">
+        <div className="inline-flex p-1 rounded-[14px] bg-fiord-50/50 dark:bg-fiord-900/30 border border-fiord-100/30 dark:border-fiord-800/20 shrink-0">
           <button
             onClick={() => setViewMode("list")}
             className={cn(
-              "px-3.5 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1.5 transition-all",
+              "px-4 py-2 rounded-xl text-xs sm:text-sm font-bold flex items-center gap-2 transition-all cursor-pointer",
               viewMode === "list"
-                ? "bg-white dark:bg-fiord-950 text-fiord-950 dark:text-fiord-50 shadow-xs"
+                ? "bg-[#1f2732] dark:bg-zinc-100 text-white dark:text-zinc-900 shadow-xs"
                 : "text-fiord-500 hover:text-fiord-900 dark:text-fiord-400 dark:hover:text-fiord-200"
             )}
           >
-            <List className="size-3.5" />
-            <span>List</span>
+            <List className="size-4" />
+            <span>Lista</span>
           </button>
           <button
             onClick={() => setViewMode("grid")}
             className={cn(
-              "px-3.5 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1.5 transition-all",
+              "px-4 py-2 rounded-xl text-xs sm:text-sm font-bold flex items-center gap-2 transition-all cursor-pointer",
               viewMode === "grid"
-                ? "bg-white dark:bg-fiord-950 text-fiord-950 dark:text-fiord-50 shadow-xs"
+                ? "bg-[#1f2732] dark:bg-zinc-100 text-white dark:text-zinc-900 shadow-xs"
                 : "text-fiord-500 hover:text-fiord-900 dark:text-fiord-400 dark:hover:text-fiord-200"
             )}
           >
-            <LayoutGrid className="size-3.5" />
-            <span>Grid</span>
+            <LayoutGrid className="size-4" />
+            <span>Cuadrícula</span>
           </button>
         </div>
 
         {/* Global Search & Actions Buttons (Right side) */}
         <div className="flex flex-wrap items-center gap-3 w-full md:w-auto">
           {/* Search input in control bar */}
-          <div className="relative flex-grow md:max-w-xs min-w-[200px]">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-fiord-400 dark:text-fiord-500 size-4 pointer-events-none" />
+          <div className="relative flex-grow md:max-w-xs min-w-[220px]">
+            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-fiord-400 dark:text-fiord-500 size-4.5 pointer-events-none" />
             <input
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-9 pr-4 h-9 bg-fiord-50/20 dark:bg-fiord-950/20 border border-fiord-100 dark:border-fiord-800 rounded-xl text-xs font-semibold placeholder-fiord-400 dark:placeholder-fiord-500 text-fiord-900 dark:text-fiord-100 outline-none focus:border-fiord-300 dark:focus:border-fiord-700 focus:ring-1 focus:ring-fiord-300/35 transition-all"
+              className="w-full pl-10 pr-4 h-11 bg-fiord-50/20 dark:bg-fiord-950/20 border border-fiord-100 dark:border-fiord-800 rounded-[14px] text-sm font-semibold placeholder-fiord-400 dark:placeholder-fiord-500 text-fiord-900 dark:text-fiord-100 outline-none focus:border-fiord-300 dark:focus:border-fiord-700 focus:ring-1 focus:ring-fiord-300/35 transition-all"
               placeholder="Buscar puesto o categoría..."
             />
             {searchQuery && (
               <button 
                 onClick={() => setSearchQuery("")}
-                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-fiord-400 hover:text-fiord-900"
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-fiord-400 hover:text-fiord-900 cursor-pointer"
               >
-                <X className="size-3" />
+                <X className="size-4" />
               </button>
             )}
           </div>
@@ -423,16 +412,16 @@ export function VacanciesManager({ userId }: { userId: string }) {
             onClick={() => setShowFilters(!showFilters)}
             variant="outline"
             className={cn(
-              "h-9 rounded-xl text-xs font-bold px-4 flex items-center gap-2 border border-fiord-100/80 dark:border-fiord-800/80 transition-all",
+              "h-11 rounded-[14px] text-xs sm:text-sm font-bold px-4 flex items-center gap-2 border border-fiord-100/80 dark:border-fiord-800/80 transition-all cursor-pointer",
               showFilters || hasActiveFilters
-                ? "bg-fiord-950 dark:bg-fiord-50 text-white dark:text-fiord-950 hover:bg-fiord-900 dark:hover:bg-fiord-100"
+                ? "bg-[#1f2732] dark:bg-zinc-100 text-white dark:text-zinc-900 hover:bg-[#253240] dark:hover:bg-zinc-200"
                 : "bg-white dark:bg-fiord-900/10 text-fiord-700 dark:text-fiord-300 hover:bg-fiord-50 dark:hover:bg-fiord-900/40"
             )}
           >
-            <SlidersHorizontal className="size-3.5" />
+            <SlidersHorizontal className="size-4" />
             <span>Filtros</span>
             {hasActiveFilters && (
-              <span className="size-1.5 rounded-full bg-red-500 animate-ping" />
+              <span className="size-2 rounded-full bg-rose-500 animate-ping" />
             )}
           </Button>
 
@@ -440,9 +429,9 @@ export function VacanciesManager({ userId }: { userId: string }) {
           <Button
             onClick={handleExportCSV}
             variant="outline"
-            className="h-9 bg-white dark:bg-fiord-900/10 hover:bg-fiord-50 dark:hover:bg-fiord-900/40 text-fiord-700 dark:text-fiord-300 font-bold text-xs rounded-xl px-4 flex items-center gap-2 border border-fiord-100/80 dark:border-fiord-800/80"
+            className="h-11 bg-white dark:bg-fiord-900/10 hover:bg-fiord-50 dark:hover:bg-fiord-900/40 text-fiord-700 dark:text-fiord-300 font-bold text-xs sm:text-sm rounded-[14px] px-4 flex items-center gap-2 border border-fiord-100/80 dark:border-fiord-800/80 cursor-pointer"
           >
-            <FileDown className="size-3.5" />
+            <FileDown className="size-4" />
             <span>Exportar</span>
           </Button>
         </div>

@@ -257,22 +257,22 @@ export function CompanySettingsView({ user, initialProfile, initialPauseState }:
   ] as const
 
   return (
-    <div className="flex flex-col lg:flex-row h-full min-h-[calc(100vh-80px)] bg-background">
+    <div className="flex flex-col lg:flex-row h-full min-h-[calc(100vh-80px)] bg-background pb-28 md:pb-0">
       
       {/* 1. Navigation Shell: Left Sidebar (Desktop) or Horizontal Scrollable Bar (Mobile) */}
-      <div className="w-full lg:w-[280px] flex-shrink-0 border-b lg:border-b-0 lg:border-r border-border/40 flex flex-col bg-background/50 backdrop-blur-sm p-4 lg:p-6 lg:h-auto gap-4">
+      <div className="w-full lg:w-[300px] flex-shrink-0 border-b lg:border-b-0 lg:border-r border-border/40 flex flex-col bg-background/50 backdrop-blur-sm p-4 lg:p-6 lg:h-auto gap-4">
         <div className="hidden lg:flex items-center gap-3 px-2 mb-6">
-          <div className="w-8 h-8 rounded-xl bg-fiord-950 dark:bg-fiord-50 text-white dark:text-fiord-950 flex items-center justify-center">
-            <Settings className="size-4" />
+          <div className="w-9 h-9 rounded-xl bg-[#1f2732] dark:bg-zinc-100 text-white dark:text-zinc-900 flex items-center justify-center">
+            <Settings className="size-5" />
           </div>
           <div>
-            <h2 className="text-sm font-bold text-fiord-900 dark:text-fiord-50 leading-none">Ajustes Corporativos</h2>
-            <span className="text-[10px] text-fiord-400 dark:text-fiord-400 font-medium">K&apos;anPro Mérida y Riviera Maya</span>
+            <h2 className="text-base font-[800] text-fiord-900 dark:text-fiord-50 leading-none">Ajustes Corporativos</h2>
+            <span className="text-[11px] text-fiord-400 dark:text-fiord-400 font-semibold mt-0.5 block">K&apos;anPro Mérida y Riviera Maya</span>
           </div>
         </div>
 
         {/* Tab triggers */}
-        <nav className="flex lg:flex-col overflow-x-auto lg:overflow-x-visible -mx-4 px-4 lg:mx-0 lg:px-0 gap-1.5 hide-scrollbar scroll-smooth">
+        <nav className="flex lg:flex-col overflow-x-auto lg:overflow-x-visible -mx-4 px-4 lg:mx-0 lg:px-0 gap-2 hide-scrollbar scroll-smooth">
           {tabsList.map(tab => {
             const isTabActive = activeTab === tab.id
             return (
@@ -280,16 +280,16 @@ export function CompanySettingsView({ user, initialProfile, initialPauseState }:
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id as any)}
                 className={cn(
-                  "flex items-center gap-2.5 px-4 py-2.5 rounded-xl text-xs font-bold whitespace-nowrap transition-all duration-200 relative select-none cursor-pointer",
+                  "flex items-center gap-3 px-4.5 py-3 rounded-[14px] text-xs sm:text-sm font-bold whitespace-nowrap transition-all duration-200 relative select-none cursor-pointer",
                   isTabActive
-                    ? "bg-fiord-950 dark:bg-fiord-50 text-white dark:text-fiord-950 shadow-sm"
+                    ? "bg-[#1f2732] dark:bg-zinc-100 text-white dark:text-zinc-900 shadow-sm"
                     : "text-fiord-600 dark:text-fiord-400 hover:text-fiord-900 dark:hover:text-fiord-100 hover:bg-fiord-50 dark:hover:bg-fiord-900/60"
                 )}
               >
                 {tab.icon}
                 <span>{tab.label}</span>
                 {tab.id === "credits" && credits <= 3 && (
-                  <span className="ml-auto size-2 rounded-full bg-amber-500 animate-pulse hidden lg:block" />
+                  <span className="ml-auto size-2.5 rounded-full bg-amber-500 animate-pulse hidden lg:block" />
                 )}
               </button>
             )
@@ -305,10 +305,10 @@ export function CompanySettingsView({ user, initialProfile, initialPauseState }:
           {activeTab === "appearance" && (
             <div className="space-y-6">
               <div className="flex flex-col gap-1 pb-2">
-                <h1 className="text-xl font-bold tracking-tight text-fiord-900 dark:text-fiord-50">
+                <h1 className="text-[22px] sm:text-[26px] font-[800] tracking-tight text-fiord-900 dark:text-fiord-50">
                   Apariencia y Preferencias
                 </h1>
-                <p className="text-xs text-fiord-500 dark:text-fiord-400 font-medium">
+                <p className="text-xs sm:text-sm text-fiord-500 dark:text-fiord-400 font-semibold">
                   Personaliza el estilo visual e idioma de la plataforma K&apos;anPro.
                 </p>
               </div>

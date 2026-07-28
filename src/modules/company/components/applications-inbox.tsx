@@ -71,7 +71,7 @@ export function ApplicationsInbox() {
   }
 
   return (
-    <div className="flex-grow flex h-[calc(100vh-65px)] overflow-hidden bg-background selection:bg-primary/20 animate-in fade-in duration-300">
+    <div className="flex-grow flex h-[calc(100vh-80px)] overflow-hidden bg-background selection:bg-primary/20 animate-in fade-in duration-300">
       
       {/* ================= LEFT COLUMN: APPLICANTS ROSTER (40% width, hidden on mobile if detail is open) ================= */}
       <div className={`w-full md:w-[40%] flex flex-col border-r border-border/40 bg-card/10 relative h-full ${
@@ -79,12 +79,10 @@ export function ApplicationsInbox() {
       }`}>
         
         {/* Roster Header */}
-        <div className="p-6 border-b border-border/40 flex flex-col gap-4 bg-background/50 backdrop-blur-sm shrink-0">
-          <div className="flex justify-between items-center">
-            <h2 className="text-xl font-extrabold text-foreground tracking-tight md:text-2xl">
-              Postulantes
-            </h2>
-            <span className="bg-primary/10 text-primary px-3 py-1 rounded-full font-bold text-xs font-sans tracking-wide">
+        <div className="p-4 sm:p-5 border-b border-border/40 flex flex-col gap-3 bg-background/50 backdrop-blur-sm shrink-0">
+          <div className="flex justify-between items-center gap-2">
+            <span className="text-xs sm:text-sm font-bold text-muted-foreground">Filtrar por Vacante:</span>
+            <span className="bg-[#1f2732] dark:bg-zinc-100 text-white dark:text-zinc-900 px-3 py-1 rounded-full font-bold text-xs tracking-wide">
               {filteredApplicants.length} Encontrados
             </span>
           </div>
@@ -94,7 +92,7 @@ export function ApplicationsInbox() {
             <select
               value={selectedVacancyId}
               onChange={(e) => setSelectedVacancyId(e.target.value)}
-              className="w-full h-10 px-3 bg-muted/40 border border-border/40 rounded-xl text-xs font-bold text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20"
+              className="w-full h-11 px-3.5 bg-muted/40 border border-border/40 rounded-[14px] text-xs sm:text-sm font-bold text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 cursor-pointer"
             >
               <option value="all">Todas las vacantes</option>
               {vacancies.map((vac) => (
@@ -107,13 +105,13 @@ export function ApplicationsInbox() {
         </div>
 
         {/* Search & Filter Mini Pane inside roster */}
-        <div className="px-6 py-4 border-b border-border/30 shrink-0 bg-background/20 flex gap-2">
+        <div className="px-6 py-4 border-b border-border/30 shrink-0 bg-background/20 flex gap-2.5">
           <div className="relative flex-grow">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground size-3.5" />
+            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-muted-foreground size-4 pointer-events-none" />
             <Input 
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-9 pr-3 py-4 h-9 bg-card border-border/60 rounded-full text-xs font-semibold focus-visible:ring-primary/20"
+              className="w-full pl-10 pr-3 py-4 h-11 bg-card border-border/60 rounded-[14px] text-sm font-semibold focus-visible:ring-primary/20"
               placeholder="Buscar por nombre, puesto o habilidad..."
             />
           </div>
