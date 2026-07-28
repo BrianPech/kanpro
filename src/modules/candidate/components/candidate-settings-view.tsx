@@ -114,54 +114,54 @@ export function CandidateSettingsView() {
   };
 
   return (
-    <div className="flex-grow min-h-full bg-transparent dark:bg-zinc-950 px-5 sm:px-8 lg:px-12 pt-4 pb-24 md:pb-4 space-y-5 max-w-4xl mx-auto w-full animate-in fade-in duration-300">
+    <div className="flex-grow min-h-full bg-transparent dark:bg-zinc-950 px-6 sm:px-10 lg:px-14 pt-4 pb-28 md:pb-8 space-y-6 max-w-5xl mx-auto w-full animate-in fade-in duration-300">
       
       {/* 1. Top Custom Header */}
       <div className="flex items-center justify-between">
-        <h1 className="text-[20px] sm:text-[24px] font-[800] text-[#1f2732] dark:text-fiord-50 tracking-[-0.5px]">
+        <h1 className="text-[24px] sm:text-[30px] font-[800] text-[#1f2732] dark:text-fiord-50 tracking-[-0.5px]">
           Perfil
         </h1>
         <button
           onClick={() => router.push("/dashboard/candidate/discovery")}
           aria-label="Buscar"
-          className="md:hidden w-[44px] h-[44px] bg-white dark:bg-zinc-900 rounded-full flex items-center justify-center text-[#344558] dark:text-zinc-200 hover:bg-[#ebeef3] dark:hover:bg-zinc-800 transition-all cursor-pointer active:scale-95 shadow-2xs"
+          className="md:hidden w-[50px] h-[50px] bg-white dark:bg-zinc-900 rounded-full flex items-center justify-center text-[#344558] dark:text-zinc-200 hover:bg-[#ebeef3] dark:hover:bg-zinc-800 transition-all cursor-pointer active:scale-95 shadow-2xs"
         >
-          <Search className="w-5 h-5 stroke-[2]" />
+          <Search className="w-6 h-6 stroke-[2]" />
         </button>
       </div>
 
       {/* 2. Card 1: User Summary (Public Profile Box) */}
-      <div className="p-4 bg-white dark:bg-zinc-900 rounded-[20px] border border-[#ebeef3] dark:border-zinc-800 flex items-center gap-4 shadow-2xs">
-        <div className="w-[56px] h-[56px] rounded-full bg-[#ebeef3] dark:bg-zinc-800 flex items-center justify-center shrink-0">
-          <span className="text-[22px] font-[800] text-[#1f2732] dark:text-zinc-100">
+      <div className="p-5 sm:p-6 bg-white dark:bg-zinc-900 rounded-[22px] border border-[#ebeef3] dark:border-zinc-800 flex items-center gap-5 shadow-2xs">
+        <div className="w-[64px] h-[64px] rounded-full bg-[#ebeef3] dark:bg-zinc-800 flex items-center justify-center shrink-0">
+          <span className="text-[26px] font-[800] text-[#1f2732] dark:text-zinc-100">
             {initialLetter}
           </span>
         </div>
         <div className="flex-1 min-w-0">
-          <h2 className="text-[16px] font-bold text-[#1f2732] dark:text-zinc-100 tracking-[-0.3px] truncate">
+          <h2 className="text-[18px] sm:text-[20px] font-bold text-[#1f2732] dark:text-zinc-100 tracking-[-0.3px] truncate">
             {candidateName}
           </h2>
-          <p className="text-[13px] text-[#5c7c9b] dark:text-zinc-400 font-medium truncate mt-0.5">
+          <p className="text-[14px] sm:text-[15px] text-[#5c7c9b] dark:text-zinc-400 font-medium truncate mt-0.5">
             {candidateEmail}
           </p>
         </div>
       </div>
 
       {/* 3. Card 2: Dynamic Profile Completion Callout Card */}
-      <div className="p-5 bg-[#1f2732] dark:bg-fiord-950 rounded-[20px] text-white flex items-center justify-between gap-3 shadow-md">
-        <div className="flex items-center gap-3.5 min-w-0">
-          <div className="w-[44px] h-[44px] rounded-full bg-[#2f3c4b] flex items-center justify-center shrink-0">
+      <div className="p-6 bg-[#1f2732] dark:bg-fiord-950 rounded-[24px] text-white flex items-center justify-between gap-4 shadow-md">
+        <div className="flex items-center gap-4 min-w-0">
+          <div className="w-[50px] h-[50px] rounded-full bg-[#2f3c4b] flex items-center justify-center shrink-0">
             {completionPercentage === 100 ? (
-              <CheckCircle2 className="w-6 h-6 text-emerald-400" />
+              <CheckCircle2 className="w-7 h-7 text-emerald-400" />
             ) : (
-              <Star className="w-6 h-6 fill-[#aabccf] text-[#aabccf]" />
+              <Star className="w-7 h-7 fill-[#aabccf] text-[#aabccf]" />
             )}
           </div>
           <div className="min-w-0">
-            <h3 className="text-[15px] font-bold text-white leading-tight">
+            <h3 className="text-[17px] font-bold text-white leading-tight">
               {completionPercentage === 100 ? "¡Perfil al 100%!" : `Perfil al ${completionPercentage}%`}
             </h3>
-            <p className="text-[12px] text-[#d2dbe5]/90 leading-[1.3] mt-1 line-clamp-2">
+            <p className="text-[13px] sm:text-[14px] text-[#d2dbe5]/90 leading-[1.35] mt-1 line-clamp-2">
               {completionSubtitle}
             </p>
           </div>
@@ -169,26 +169,26 @@ export function CandidateSettingsView() {
 
         <button
           onClick={() => router.push("/dashboard/candidate/profile/edit")}
-          className="shrink-0 px-3 py-2 bg-[#2f3c4b] hover:bg-[#344558] rounded-[12px] border border-white/20 text-white text-[11px] font-bold transition-all cursor-pointer active:scale-95"
+          className="shrink-0 px-4 py-2.5 bg-[#2f3c4b] hover:bg-[#344558] rounded-[14px] border border-white/20 text-white text-[12px] sm:text-[13px] font-bold transition-all cursor-pointer active:scale-95"
         >
           {completionPercentage === 100 ? "Editar >" : "Completar >"}
         </button>
       </div>
 
       {/* 4. Grouped Settings Section 1 (Work Info & CV) */}
-      <div className="bg-white dark:bg-zinc-900 rounded-[20px] border border-[#ebeef3] dark:border-zinc-800 divide-y divide-[#ebeef3] dark:divide-zinc-800 shadow-2xs overflow-hidden">
+      <div className="bg-white dark:bg-zinc-900 rounded-[24px] border border-[#ebeef3] dark:border-zinc-800 divide-y divide-[#ebeef3] dark:divide-zinc-800 shadow-2xs overflow-hidden">
         <SettingsRow
-          icon={<BadgeCheck className="w-[22px] h-[22px] text-[#3e546d] dark:text-zinc-300 stroke-[1.75]" />}
+          icon={<BadgeCheck className="w-[25px] h-[25px] text-[#3e546d] dark:text-zinc-300 stroke-[1.8]" />}
           title="Información laboral pública"
           onClick={() => router.push("/dashboard/candidate/profile/edit")}
         />
         <SettingsRow
-          icon={<FileText className="w-[22px] h-[22px] text-[#3e546d] dark:text-zinc-300 stroke-[1.75]" />}
+          icon={<FileText className="w-[25px] h-[25px] text-[#3e546d] dark:text-zinc-300 stroke-[1.8]" />}
           title="Mi CV"
           onClick={() => router.push("/dashboard/candidate/profile/cv")}
         />
         <SettingsRow
-          icon={<Bookmark className="w-[22px] h-[22px] text-[#3e546d] dark:text-zinc-300 stroke-[1.75]" />}
+          icon={<Bookmark className="w-[25px] h-[25px] text-[#3e546d] dark:text-zinc-300 stroke-[1.8]" />}
           title="Mis postulaciones guardadas"
           badgeCount={savedCount > 0 ? savedCount : undefined}
           onClick={() => router.push("/dashboard/candidate/profile/saved")}
@@ -196,35 +196,35 @@ export function CandidateSettingsView() {
       </div>
 
       {/* 5. Grouped Settings Section 2 (Preferences) */}
-      <div className="bg-white dark:bg-zinc-900 rounded-[20px] border border-[#ebeef3] dark:border-zinc-800 divide-y divide-[#ebeef3] dark:divide-zinc-800 shadow-2xs overflow-hidden">
+      <div className="bg-white dark:bg-zinc-900 rounded-[24px] border border-[#ebeef3] dark:border-zinc-800 divide-y divide-[#ebeef3] dark:divide-zinc-800 shadow-2xs overflow-hidden">
         <SettingsRow
-          icon={<Bell className="w-[22px] h-[22px] text-[#3e546d] dark:text-zinc-300 stroke-[1.75]" />}
+          icon={<Bell className="w-[25px] h-[25px] text-[#3e546d] dark:text-zinc-300 stroke-[1.8]" />}
           title="Alertas de empleo"
           onClick={() => router.push("/dashboard/candidate/profile/preferences")}
         />
         <SettingsRow
-          icon={<Lock className="w-[22px] h-[22px] text-[#3e546d] dark:text-zinc-300 stroke-[1.75]" />}
+          icon={<Lock className="w-[25px] h-[25px] text-[#3e546d] dark:text-zinc-300 stroke-[1.8]" />}
           title="Privacidad y Seguridad"
           onClick={() => {}}
         />
         <SettingsRow
-          icon={<HelpCircle className="w-[22px] h-[22px] text-[#3e546d] dark:text-zinc-300 stroke-[1.75]" />}
+          icon={<HelpCircle className="w-[25px] h-[25px] text-[#3e546d] dark:text-zinc-300 stroke-[1.8]" />}
           title="Centro de Ayuda y Soporte"
           onClick={() => {}}
         />
       </div>
 
       {/* 6. Grouped Settings Section 3 (System settings) */}
-      <div className="bg-white dark:bg-zinc-900 rounded-[20px] border border-[#ebeef3] dark:border-zinc-800 divide-y divide-[#ebeef3] dark:divide-zinc-800 shadow-2xs overflow-hidden">
+      <div className="bg-white dark:bg-zinc-900 rounded-[24px] border border-[#ebeef3] dark:border-zinc-800 divide-y divide-[#ebeef3] dark:divide-zinc-800 shadow-2xs overflow-hidden">
         <SettingsRow
-          icon={<Globe className="w-[22px] h-[22px] text-[#3e546d] dark:text-zinc-300 stroke-[1.75]" />}
+          icon={<Globe className="w-[25px] h-[25px] text-[#3e546d] dark:text-zinc-300 stroke-[1.8]" />}
           title="Idioma"
           trailingText="Español"
           showChevron={false}
           onClick={() => {}}
         />
         <SettingsRow
-          icon={<LogOut className="w-[22px] h-[22px] text-rose-500 stroke-[1.75]" />}
+          icon={<LogOut className="w-[25px] h-[25px] text-rose-500 stroke-[1.8]" />}
           title="Cerrar Sesión"
           titleColor="text-rose-500"
           showChevron={false}
@@ -234,12 +234,12 @@ export function CandidateSettingsView() {
 
       {/* 7. Logout Confirmation Dialog */}
       <Dialog open={isLogoutOpen} onOpenChange={setIsLogoutOpen}>
-        <DialogContent className="sm:max-w-[400px] rounded-[24px] bg-white dark:bg-zinc-900 border border-[#ebeef3] dark:border-zinc-800 p-6">
+        <DialogContent className="sm:max-w-[440px] rounded-[28px] bg-white dark:bg-zinc-900 border border-[#ebeef3] dark:border-zinc-800 p-6 sm:p-8">
           <DialogHeader className="space-y-2">
-            <DialogTitle className="text-[18px] font-bold text-[#1f2732] dark:text-zinc-50">
+            <DialogTitle className="text-[20px] font-bold text-[#1f2732] dark:text-zinc-50">
               Cerrar Sesión
             </DialogTitle>
-            <DialogDescription className="text-[14px] text-[#3e546d] dark:text-zinc-400 leading-relaxed">
+            <DialogDescription className="text-[15px] text-[#3e546d] dark:text-zinc-400 leading-relaxed">
               ¿Estás seguro de que deseas cerrar sesión en K'anPro Candidatos?
             </DialogDescription>
           </DialogHeader>
@@ -248,14 +248,14 @@ export function CandidateSettingsView() {
             <Button
               variant="ghost"
               onClick={() => setIsLogoutOpen(false)}
-              className="text-[#5c7c9b] font-bold text-xs hover:bg-[#f5f7fa]"
+              className="text-[#5c7c9b] font-bold text-sm h-11 px-5 hover:bg-[#f5f7fa]"
             >
               Cancelar
             </Button>
             <Button
               onClick={handleSignOut}
               disabled={isLoggingOut}
-              className="bg-rose-500 hover:bg-rose-600 text-white font-bold text-xs rounded-[12px] px-4 py-2"
+              className="bg-rose-500 hover:bg-rose-600 text-white font-bold text-sm rounded-[14px] px-6 h-11"
             >
               {isLoggingOut ? "Cerrando..." : "Cerrar Sesión"}
             </Button>
@@ -288,28 +288,28 @@ function SettingsRow({
   return (
     <div
       onClick={onClick}
-      className="p-4 flex items-center justify-between hover:bg-[#f5f7fa]/60 dark:hover:bg-zinc-800/40 transition-colors cursor-pointer group"
+      className="p-5 flex items-center justify-between hover:bg-[#f5f7fa]/80 dark:hover:bg-zinc-800/60 transition-colors cursor-pointer group"
     >
-      <div className="flex items-center gap-3.5 min-w-0">
+      <div className="flex items-center gap-4 min-w-0">
         <div className="shrink-0">{icon}</div>
-        <span className={`text-[14.5px] font-[600] tracking-[-0.2px] truncate ${titleColor}`}>
+        <span className={`text-[16px] sm:text-[17px] font-bold tracking-[-0.2px] truncate ${titleColor}`}>
           {title}
         </span>
       </div>
 
-      <div className="flex items-center gap-2 shrink-0">
+      <div className="flex items-center gap-3 shrink-0">
         {badgeCount !== undefined && (
-          <span className="px-2 py-0.5 bg-[#1f2732] dark:bg-zinc-100 text-white dark:text-zinc-900 text-[11px] font-bold rounded-[10px]">
+          <span className="px-2.5 py-1 bg-[#1f2732] dark:bg-zinc-100 text-white dark:text-zinc-900 text-[12px] font-extrabold rounded-[12px]">
             {badgeCount}
           </span>
         )}
         {trailingText && (
-          <span className="text-[13px] font-bold text-[#5c7c9b] dark:text-zinc-400">
+          <span className="text-[14px] font-bold text-[#5c7c9b] dark:text-zinc-400">
             {trailingText}
           </span>
         )}
         {showChevron && (
-          <ChevronRight className="w-5 h-5 text-[#7d99b3] group-hover:translate-x-0.5 transition-transform" />
+          <ChevronRight className="w-5.5 h-5.5 text-[#7d99b3] group-hover:translate-x-0.5 transition-transform" />
         )}
       </div>
     </div>

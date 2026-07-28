@@ -154,47 +154,47 @@ export function JobAlertPreferencesView({ onBack }: JobAlertPreferencesViewProps
   };
 
   return (
-    <div className="flex-grow min-h-full bg-transparent dark:bg-zinc-950 px-5 sm:px-8 lg:px-12 pt-3 pb-24 md:pb-4 max-w-2xl mx-auto w-full animate-in fade-in duration-300 relative">
+    <div className="flex-grow min-h-full bg-transparent dark:bg-zinc-950 px-6 sm:px-10 lg:px-14 pt-4 pb-28 md:pb-8 max-w-3xl mx-auto w-full animate-in fade-in duration-300 relative">
       
       {/* Toast Notification */}
       {toastMessage && (
-        <div className="fixed top-6 left-1/2 -translate-x-1/2 z-50 px-4 py-3 bg-[#1f2732] dark:bg-zinc-100 text-white dark:text-zinc-900 rounded-[12px] text-xs font-bold shadow-lg flex items-center gap-2 animate-in fade-in slide-in-from-top-2">
-          <CheckCircle2 className="w-4 h-4 text-emerald-400 dark:text-emerald-600" />
+        <div className="fixed top-6 left-1/2 -translate-x-1/2 z-50 px-5 py-3.5 bg-[#1f2732] dark:bg-zinc-100 text-white dark:text-zinc-900 rounded-[14px] text-sm font-bold shadow-lg flex items-center gap-2.5 animate-in fade-in slide-in-from-top-2">
+          <CheckCircle2 className="w-5 h-5 text-emerald-400 dark:text-emerald-600" />
           <span>{toastMessage}</span>
         </div>
       )}
 
       {/* AppBar */}
-      <div className="flex items-center justify-between py-3 border-b border-transparent">
+      <div className="flex items-center justify-between py-4 border-b border-transparent">
         <button
           onClick={handleBack}
           aria-label="Regresar"
-          className="w-[36px] h-[36px] bg-[#f5f7fa] dark:bg-zinc-900 rounded-full flex items-center justify-center text-[#344558] dark:text-zinc-200 hover:bg-[#ebeef3] dark:hover:bg-zinc-800 transition-all cursor-pointer"
+          className="w-[44px] h-[44px] bg-[#f5f7fa] dark:bg-zinc-900 rounded-full flex items-center justify-center text-[#344558] dark:text-zinc-200 hover:bg-[#ebeef3] dark:hover:bg-zinc-800 transition-all cursor-pointer shadow-2xs"
         >
-          <ArrowLeft className="w-4 h-4 stroke-[2.2]" />
+          <ArrowLeft className="w-5 h-5 stroke-[2.4]" />
         </button>
 
-        <h1 className="text-[17px] font-[800] text-[#1f2732] dark:text-zinc-100 text-center tracking-[-0.4px]">
+        <h1 className="text-[20px] sm:text-[24px] font-[800] text-[#1f2732] dark:text-zinc-100 text-center tracking-[-0.4px]">
           Configuración de Alertas
         </h1>
 
-        <div className="w-9" />
+        <div className="w-11" />
       </div>
 
       {/* Form Area */}
-      <div className="pt-4 space-y-7">
+      <div className="pt-5 space-y-8">
         
         {/* 1. Master Switch Card */}
-        <div className="p-[18px] bg-[#2f3c4b] dark:bg-fiord-950 rounded-[20px] text-white flex items-center justify-between gap-3 shadow-md">
-          <div className="flex items-center gap-3.5 min-w-0">
-            <div className="w-[44px] h-[44px] rounded-full bg-[#344558] flex items-center justify-center text-white shrink-0">
-              <BellRing className="w-5 h-5 stroke-[2]" />
+        <div className="p-5 sm:p-6 bg-[#2f3c4b] dark:bg-fiord-950 rounded-[24px] text-white flex items-center justify-between gap-4 shadow-md">
+          <div className="flex items-center gap-4 min-w-0">
+            <div className="w-[50px] h-[50px] rounded-full bg-[#344558] flex items-center justify-center text-white shrink-0">
+              <BellRing className="w-6 h-6 stroke-[2]" />
             </div>
             <div className="min-w-0">
-              <h3 className="text-[15px] font-bold text-white leading-tight">
+              <h3 className="text-[17px] font-bold text-white leading-tight">
                 Notificaciones de Alertas
               </h3>
-              <p className="text-[12px] text-[#aabccf] font-medium leading-tight mt-0.5">
+              <p className="text-[13px] sm:text-[14px] text-[#aabccf] font-medium leading-normal mt-1">
                 Recibe avisos cuando se publiquen vacantes acordes a tu perfil
               </p>
             </div>
@@ -206,13 +206,13 @@ export function JobAlertPreferencesView({ onBack }: JobAlertPreferencesViewProps
             role="switch"
             aria-checked={alertsEnabled}
             onClick={() => setAlertsEnabled(!alertsEnabled)}
-            className={`w-[48px] h-[28px] rounded-full p-1 transition-colors cursor-pointer shrink-0 ${
+            className={`w-[54px] h-[32px] rounded-full p-1 transition-colors cursor-pointer shrink-0 ${
               alertsEnabled ? "bg-emerald-400" : "bg-[#344558]"
             }`}
           >
             <div
-              className={`w-[20px] h-[20px] rounded-full bg-white transition-transform ${
-                alertsEnabled ? "translate-x-5" : "translate-x-0"
+              className={`w-[24px] h-[24px] rounded-full bg-white transition-transform ${
+                alertsEnabled ? "translate-x-[22px]" : "translate-x-0"
               }`}
             />
           </button>
@@ -220,20 +220,20 @@ export function JobAlertPreferencesView({ onBack }: JobAlertPreferencesViewProps
 
         {/* 2. Options (if alertsEnabled is true) */}
         {alertsEnabled && (
-          <div className="space-y-7 animate-in fade-in duration-200">
+          <div className="space-y-8 animate-in fade-in duration-200">
             
             {/* Categories Section */}
-            <div className="space-y-3">
+            <div className="space-y-3.5">
               <div>
-                <h2 className="text-[16px] font-[800] text-[#1f2732] dark:text-zinc-100 tracking-[-0.3px]">
+                <h2 className="text-[18px] sm:text-[20px] font-[800] text-[#1f2732] dark:text-zinc-100 tracking-[-0.3px]">
                   Categorías de Interés
                 </h2>
-                <p className="text-[13px] text-[#5c7c9b] dark:text-zinc-400 mt-1">
+                <p className="text-[14px] sm:text-[15px] text-[#5c7c9b] dark:text-zinc-400 font-medium mt-1">
                   Selecciona los sectores donde deseas recibir ofertas laborales:
                 </p>
               </div>
 
-              <div className="flex flex-wrap gap-2 pt-1">
+              <div className="flex flex-wrap gap-2.5 pt-1">
                 {ALL_CATEGORIES.map((cat) => {
                   const isSel = selectedCategories.includes(cat);
                   return (
@@ -241,9 +241,9 @@ export function JobAlertPreferencesView({ onBack }: JobAlertPreferencesViewProps
                       key={cat}
                       type="button"
                       onClick={() => toggleCategory(cat)}
-                      className={`px-3.5 py-2 rounded-[16px] text-[13px] tracking-[-0.2px] transition-all cursor-pointer ${
+                      className={`px-4 py-2.5 rounded-[18px] text-[14px] tracking-[-0.2px] transition-all cursor-pointer ${
                         isSel
-                          ? "bg-[#1f2732] dark:bg-zinc-100 text-white dark:text-zinc-900 font-bold border border-transparent"
+                          ? "bg-[#1f2732] dark:bg-zinc-100 text-white dark:text-zinc-900 font-bold border border-transparent shadow-xs"
                           : "bg-[#f5f7fa] dark:bg-zinc-900 text-[#344558] dark:text-zinc-300 font-semibold border border-[#ebeef3] dark:border-zinc-800 hover:bg-[#ebeef3]"
                       }`}
                     >
@@ -255,17 +255,17 @@ export function JobAlertPreferencesView({ onBack }: JobAlertPreferencesViewProps
             </div>
 
             {/* Locations Section */}
-            <div className="space-y-3">
+            <div className="space-y-3.5">
               <div>
-                <h2 className="text-[16px] font-[800] text-[#1f2732] dark:text-zinc-100 tracking-[-0.3px]">
+                <h2 className="text-[18px] sm:text-[20px] font-[800] text-[#1f2732] dark:text-zinc-100 tracking-[-0.3px]">
                   Zonas y Ciudades Preferidas
                 </h2>
-                <p className="text-[13px] text-[#5c7c9b] dark:text-zinc-400 mt-1">
+                <p className="text-[14px] sm:text-[15px] text-[#5c7c9b] dark:text-zinc-400 font-medium mt-1">
                   Recibirás notificaciones de vacantes publicadas en estas zonas:
                 </p>
               </div>
 
-              <div className="flex flex-wrap gap-2 pt-1">
+              <div className="flex flex-wrap gap-2.5 pt-1">
                 {ALL_LOCATIONS.map((loc) => {
                   const isSel = selectedLocations.includes(loc);
                   return (
@@ -273,9 +273,9 @@ export function JobAlertPreferencesView({ onBack }: JobAlertPreferencesViewProps
                       key={loc}
                       type="button"
                       onClick={() => toggleLocation(loc)}
-                      className={`px-3.5 py-2 rounded-[16px] text-[13px] tracking-[-0.2px] transition-all cursor-pointer ${
+                      className={`px-4 py-2.5 rounded-[18px] text-[14px] tracking-[-0.2px] transition-all cursor-pointer ${
                         isSel
-                          ? "bg-[#1f2732] dark:bg-zinc-100 text-white dark:text-zinc-900 font-bold border border-transparent"
+                          ? "bg-[#1f2732] dark:bg-zinc-100 text-white dark:text-zinc-900 font-bold border border-transparent shadow-xs"
                           : "bg-[#f5f7fa] dark:bg-zinc-900 text-[#344558] dark:text-zinc-300 font-semibold border border-[#ebeef3] dark:border-zinc-800 hover:bg-[#ebeef3]"
                       }`}
                     >
@@ -287,13 +287,13 @@ export function JobAlertPreferencesView({ onBack }: JobAlertPreferencesViewProps
             </div>
 
             {/* Minimum Salary Slider Section */}
-            <div className="space-y-3">
+            <div className="space-y-4">
               <div className="flex items-center justify-between">
-                <h2 className="text-[16px] font-[800] text-[#1f2732] dark:text-zinc-100 tracking-[-0.3px]">
+                <h2 className="text-[18px] sm:text-[20px] font-[800] text-[#1f2732] dark:text-zinc-100 tracking-[-0.3px]">
                   Sueldo Mínimo Deseado
                 </h2>
-                <div className="px-3 py-1.5 bg-[#f5f7fa] dark:bg-zinc-900 border border-[#ebeef3] dark:border-zinc-800 rounded-[12px]">
-                  <span className="text-[13px] font-bold text-[#1f2732] dark:text-zinc-100">
+                <div className="px-3.5 py-1.5 bg-[#f5f7fa] dark:bg-zinc-900 border border-[#ebeef3] dark:border-zinc-800 rounded-[14px]">
+                  <span className="text-[14px] font-bold text-[#1f2732] dark:text-zinc-100">
                     ${Math.round(minSalaryExpectation / 1000)}k MXN /mes
                   </span>
                 </div>
@@ -306,17 +306,17 @@ export function JobAlertPreferencesView({ onBack }: JobAlertPreferencesViewProps
                 step={1000}
                 value={minSalaryExpectation}
                 onChange={(e) => setMinSalaryExpectation(Number(e.target.value))}
-                className="w-full h-2 bg-[#ebeef3] dark:bg-zinc-800 rounded-lg appearance-none cursor-pointer accent-[#1f2732] dark:accent-zinc-100"
+                className="w-full h-2.5 bg-[#ebeef3] dark:bg-zinc-800 rounded-lg appearance-none cursor-pointer accent-[#1f2732] dark:accent-zinc-100"
               />
             </div>
 
             {/* Frequency Selection Segmented */}
-            <div className="space-y-3">
-              <h2 className="text-[16px] font-[800] text-[#1f2732] dark:text-zinc-100 tracking-[-0.3px]">
+            <div className="space-y-3.5">
+              <h2 className="text-[18px] sm:text-[20px] font-[800] text-[#1f2732] dark:text-zinc-100 tracking-[-0.3px]">
                 Frecuencia de Notificación
               </h2>
               
-              <div className="grid grid-cols-3 gap-2">
+              <div className="grid grid-cols-3 gap-2.5">
                 {["Instantánea", "Resumen Diario", "Semanal"].map((freq) => {
                   const isSel = alertFrequency === freq;
                   return (
@@ -324,7 +324,7 @@ export function JobAlertPreferencesView({ onBack }: JobAlertPreferencesViewProps
                       key={freq}
                       type="button"
                       onClick={() => setAlertFrequency(freq)}
-                      className={`h-[44px] rounded-[14px] text-[12px] font-bold transition-all cursor-pointer ${
+                      className={`h-[50px] rounded-[16px] text-[13px] sm:text-[14px] font-bold transition-all cursor-pointer ${
                         isSel
                           ? "bg-[#1f2732] dark:bg-zinc-100 text-white dark:text-zinc-900 shadow-xs"
                           : "bg-[#f5f7fa] dark:bg-zinc-900 text-[#344558] dark:text-zinc-300 border border-[#ebeef3] dark:border-zinc-800 hover:bg-[#ebeef3]"
@@ -346,7 +346,7 @@ export function JobAlertPreferencesView({ onBack }: JobAlertPreferencesViewProps
             type="button"
             onClick={handleSavePreferences}
             disabled={isSaving}
-            className="w-full h-[52px] bg-[#1f2732] dark:bg-zinc-100 text-white dark:text-zinc-900 hover:bg-[#2f3c4b] dark:hover:bg-zinc-200 rounded-[16px] text-[16px] font-bold transition-all shadow-sm cursor-pointer active:scale-95 border-none"
+            className="w-full h-[54px] bg-[#1f2732] dark:bg-zinc-100 text-white dark:text-zinc-900 hover:bg-[#2f3c4b] dark:hover:bg-zinc-200 rounded-[18px] text-[16px] font-bold transition-all shadow-sm cursor-pointer active:scale-95 border-none"
           >
             {isSaving ? "Guardando..." : "Guardar Preferencias de Alertas"}
           </Button>

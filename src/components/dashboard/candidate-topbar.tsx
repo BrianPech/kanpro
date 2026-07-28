@@ -67,10 +67,10 @@ export function CandidateTopbar({
         <SidebarTrigger className="-ml-2 text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 md:hidden" />
         
         <div className="flex flex-col">
-          <h2 className="text-[17px] font-[800] text-[#1f2732] dark:text-zinc-100 tracking-[-0.4px] leading-tight">
+          <h2 className="text-[20px] font-[800] text-[#1f2732] dark:text-zinc-100 tracking-[-0.4px] leading-tight">
             Hola, {firstName}
           </h2>
-          <p className="text-[12px] font-medium text-[#5c7c9b] dark:text-zinc-400">
+          <p className="text-[14px] font-medium text-[#5c7c9b] dark:text-zinc-400 mt-0.5">
             Descubre nuevas oportunidades hoy
           </p>
         </div>
@@ -86,9 +86,9 @@ export function CandidateTopbar({
           <Button
             variant="ghost"
             size="icon"
-            className="relative rounded-full text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-900 hover:text-zinc-900 dark:hover:text-zinc-100 transition-all duration-200"
+            className="relative h-11 w-11 rounded-full text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-900 hover:text-zinc-900 dark:hover:text-zinc-100 transition-all duration-200"
           >
-            <Bell className="h-5 w-5" />
+            <Bell className="h-6 w-6" />
           </Button>
         )}
 
@@ -97,20 +97,20 @@ export function CandidateTopbar({
           <DropdownMenuTrigger asChild>
             <Button
               variant="ghost"
-              className="h-auto rounded-full p-1.5 text-left hover:bg-zinc-100 dark:hover:bg-zinc-900 flex items-center gap-2 border border-border/10 transition-all"
+              className="h-auto rounded-full p-2 text-left hover:bg-zinc-100 dark:hover:bg-zinc-900 flex items-center gap-2.5 border border-border/10 transition-all cursor-pointer"
             >
               <div className="hidden md:flex md:flex-col md:items-end pl-2.5 pr-1">
-                <span className="text-[12px] font-semibold tracking-tight text-zinc-900 dark:text-zinc-100">
+                <span className="text-[14px] font-bold tracking-tight text-zinc-900 dark:text-zinc-100">
                   {userName}
                 </span>
-                <span className="text-[9px] text-zinc-400 dark:text-zinc-500 font-semibold mt-1">
+                <span className="text-[11px] text-zinc-400 dark:text-zinc-500 font-semibold mt-0.5">
                   {plan}
                 </span>
               </div>
-              <div className="flex h-8 w-8 items-center justify-center rounded-full bg-zinc-900 dark:bg-zinc-100 text-[12px] font-bold text-zinc-100 dark:text-zinc-900 border border-border/10 shrink-0">
+              <div className="flex h-10 w-10 items-center justify-center rounded-full bg-zinc-900 dark:bg-zinc-100 text-[14px] font-bold text-zinc-100 dark:text-zinc-900 border border-border/10 shrink-0 shadow-2xs">
                 {userInitials}
               </div>
-              <ChevronDown className="mr-1 size-3 text-zinc-400 dark:text-zinc-500 shrink-0" />
+              <ChevronDown className="mr-1 size-4 text-zinc-400 dark:text-zinc-500 shrink-0" />
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent

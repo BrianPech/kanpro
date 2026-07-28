@@ -69,11 +69,11 @@ export function CandidateSidebar() {
 
       <SidebarContent className="px-3 py-4">
         <SidebarGroup>
-          <SidebarGroupLabel className="text-[11px] uppercase tracking-[0.18em] font-semibold text-zinc-400 dark:text-zinc-500 mb-4 px-2">
+          <SidebarGroupLabel className="text-[12px] uppercase tracking-[0.18em] font-bold text-zinc-400 dark:text-zinc-500 mb-4 px-2">
             Workspace
           </SidebarGroupLabel>
           <SidebarGroupContent>
-            <SidebarMenu className="gap-1">
+            <SidebarMenu className="gap-1.5">
               {navigation.map((item) => {
                 const isActive =
                   pathname === item.url ||
@@ -86,28 +86,28 @@ export function CandidateSidebar() {
                       asChild
                       isActive={isActive}
                       tooltip={item.title}
-                      className={`h-11 rounded-[16px] px-4 gap-3.5 transition-all duration-200 ${
+                      className={`h-12 sm:h-13 rounded-[16px] px-4 gap-4 transition-all duration-200 ${
                         isActive
                           ? "!bg-[#1f2732] dark:!bg-zinc-100 !text-white dark:!text-zinc-900 font-bold shadow-sm hover:!bg-[#253240] dark:hover:!bg-zinc-200"
-                          : "!text-[#5c7c9b] dark:!text-zinc-400 hover:!bg-[#ebeef3] dark:hover:!bg-zinc-900/80 hover:!text-[#1f2732] dark:hover:!text-zinc-100 font-medium"
+                          : "!text-[#5c7c9b] dark:!text-zinc-400 hover:!bg-[#ebeef3] dark:hover:!bg-zinc-900/80 hover:!text-[#1f2732] dark:hover:!text-zinc-100 font-semibold"
                       }`}
                     >
                       <Link
                         href={item.url}
-                        className="flex w-full items-center gap-3.5"
+                        className="flex w-full items-center gap-4"
                       >
                         <item.icon
-                          className={`size-[20px] shrink-0 transition-colors ${
+                          className={`size-[22px] shrink-0 transition-colors ${
                             isActive
                               ? "!text-white dark:!text-zinc-900"
                               : "!text-[#5c7c9b] dark:!text-zinc-400 group-hover/menu-button:!text-[#1f2732] dark:group-hover/menu-button:!text-zinc-100"
                           }`}
                         />
                         <span
-                          className={`text-[14px] tracking-tight ${
+                          className={`text-[15px] sm:text-[16px] tracking-tight ${
                             isActive
                               ? "font-bold !text-white dark:!text-zinc-900"
-                              : "font-medium !text-[#5c7c9b] dark:!text-zinc-400 group-hover/menu-button:!text-[#1f2732] dark:group-hover/menu-button:!text-zinc-100"
+                              : "font-semibold !text-[#5c7c9b] dark:!text-zinc-400 group-hover/menu-button:!text-[#1f2732] dark:group-hover/menu-button:!text-zinc-100"
                           }`}
                         >
                           {item.title}

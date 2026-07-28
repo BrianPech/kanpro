@@ -176,35 +176,35 @@ export function EditPublicProfileView({ onBack }: EditPublicProfileViewProps) {
   const initialLetter = name.trim().length > 0 ? name.trim()[0].toUpperCase() : "C";
 
   return (
-    <div className="flex-grow min-h-full bg-transparent dark:bg-zinc-950 px-5 sm:px-8 lg:px-12 pt-3 pb-24 md:pb-4 max-w-2xl mx-auto w-full animate-in fade-in duration-300 relative">
+    <div className="flex-grow min-h-full bg-transparent dark:bg-zinc-950 px-6 sm:px-10 lg:px-14 pt-4 pb-28 md:pb-8 max-w-3xl mx-auto w-full animate-in fade-in duration-300 relative">
       
       {/* Toast Notification */}
       {toastMessage && (
-        <div className="fixed top-6 left-1/2 -translate-x-1/2 z-50 px-4 py-3 bg-[#1f2732] dark:bg-zinc-100 text-white dark:text-zinc-900 rounded-[12px] text-xs font-bold shadow-lg flex items-center gap-2 animate-in fade-in slide-in-from-top-2">
-          <CheckCircle2 className="w-4 h-4 text-emerald-400 dark:text-emerald-600" />
+        <div className="fixed top-6 left-1/2 -translate-x-1/2 z-50 px-5 py-3.5 bg-[#1f2732] dark:bg-zinc-100 text-white dark:text-zinc-900 rounded-[14px] text-sm font-bold shadow-lg flex items-center gap-2.5 animate-in fade-in slide-in-from-top-2">
+          <CheckCircle2 className="w-5 h-5 text-emerald-400 dark:text-emerald-600" />
           <span>{toastMessage}</span>
         </div>
       )}
 
       {/* AppBar */}
-      <div className="flex items-center justify-between py-3 border-b border-transparent">
+      <div className="flex items-center justify-between py-4 border-b border-transparent">
         <button
           onClick={handleBack}
           aria-label="Regresar"
-          className="w-10 h-10 rounded-full flex items-center justify-center text-[#1f2732] dark:text-zinc-100 hover:bg-[#f5f7fa] dark:hover:bg-zinc-900 transition-all cursor-pointer"
+          className="w-11 h-11 bg-[#f5f7fa] dark:bg-zinc-900 rounded-full flex items-center justify-center text-[#1f2732] dark:text-zinc-100 hover:bg-[#ebeef3] dark:hover:bg-zinc-800 transition-all cursor-pointer shadow-2xs"
         >
-          <ArrowLeft className="w-5 h-5 stroke-[2.2]" />
+          <ArrowLeft className="w-5 h-5 stroke-[2.4]" />
         </button>
 
-        <h1 className="text-[17px] font-bold text-[#1f2732] dark:text-zinc-100 text-center">
+        <h1 className="text-[20px] sm:text-[24px] font-[800] text-[#1f2732] dark:text-zinc-100 text-center">
           Editar Perfil Público
         </h1>
 
-        <div className="w-10" />
+        <div className="w-11" />
       </div>
 
       {/* Form Area */}
-      <div className="pt-5 space-y-7">
+      <div className="pt-6 space-y-8">
         
         {/* 0. Profile Photo Section */}
         <div className="flex flex-col items-center justify-center text-center">
@@ -212,8 +212,8 @@ export function EditPublicProfileView({ onBack }: EditPublicProfileViewProps) {
             onClick={() => setIsPhotoModalOpen(true)}
             className="relative cursor-pointer group"
           >
-            <div className="p-[4px] rounded-full border-2 border-[#d2dbe5] dark:border-zinc-700">
-              <div className="w-[96px] h-[96px] rounded-full bg-[#ebeef3] dark:bg-zinc-800 flex items-center justify-center text-[#1f2732] dark:text-zinc-100 text-[36px] font-[800]">
+            <div className="p-1 rounded-full border-2 border-[#d2dbe5] dark:border-zinc-700">
+              <div className="w-[110px] h-[110px] rounded-full bg-[#ebeef3] dark:bg-zinc-800 flex items-center justify-center text-[#1f2732] dark:text-zinc-100 text-[42px] font-[800]">
                 {avatarUrl ? (
                   <img src={avatarUrl} alt={name} className="w-full h-full object-cover rounded-full" />
                 ) : (
@@ -223,23 +223,23 @@ export function EditPublicProfileView({ onBack }: EditPublicProfileViewProps) {
             </div>
 
             {/* Camera Icon Badge */}
-            <div className="absolute bottom-0.5 right-0.5 w-[34px] h-[34px] bg-[#1f2732] dark:bg-zinc-100 text-white dark:text-zinc-900 rounded-full border-[2.5px] border-white dark:border-zinc-950 flex items-center justify-center shadow-md">
-              <Camera className="w-[16px] h-[16px] stroke-[2.2]" />
+            <div className="absolute bottom-1 right-1 w-[38px] h-[38px] bg-[#1f2732] dark:bg-zinc-100 text-white dark:text-zinc-900 rounded-full border-[2.5px] border-white dark:border-zinc-950 flex items-center justify-center shadow-md">
+              <Camera className="w-[18px] h-[18px] stroke-[2.2]" />
             </div>
           </div>
 
           <button
             type="button"
             onClick={() => setIsPhotoModalOpen(true)}
-            className="mt-2.5 text-[13px] font-bold text-[#344558] dark:text-zinc-300 hover:text-[#1f2732] transition-colors cursor-pointer"
+            className="mt-3 text-[14px] sm:text-[15px] font-extrabold text-[#344558] dark:text-zinc-300 hover:text-[#1f2732] transition-colors cursor-pointer py-1 px-2"
           >
             Cambiar foto de perfil
           </button>
         </div>
 
         {/* 1. Nombre Completo input */}
-        <div className="space-y-2">
-          <label className="block text-[13px] font-bold text-[#3e546d] dark:text-zinc-300">
+        <div className="space-y-2.5">
+          <label className="block text-[14px] sm:text-[15px] font-extrabold text-[#3e546d] dark:text-zinc-200">
             Nombre Completo
           </label>
           <Input
@@ -250,16 +250,16 @@ export function EditPublicProfileView({ onBack }: EditPublicProfileViewProps) {
               if (e.target.value.trim()) setNameError("");
             }}
             placeholder="Ingresa tu nombre"
-            className="h-12 bg-white dark:bg-zinc-900 border-[#ebeef3] dark:border-zinc-800 rounded-[14px] text-[14px] font-[600] text-[#1f2732] dark:text-zinc-100 focus-visible:ring-1 focus-visible:ring-[#1f2732]"
+            className="h-14 bg-white dark:bg-zinc-900 border-[#ebeef3] dark:border-zinc-800 rounded-[16px] px-4 text-[15px] sm:text-[16px] font-[600] text-[#1f2732] dark:text-zinc-100 focus-visible:ring-2 focus-visible:ring-[#1f2732]"
           />
           {nameError && (
-            <p className="text-xs font-semibold text-rose-500">{nameError}</p>
+            <p className="text-xs sm:text-sm font-semibold text-rose-500">{nameError}</p>
           )}
         </div>
 
         {/* 2. Teléfono / WhatsApp input */}
-        <div className="space-y-2">
-          <label className="block text-[13px] font-bold text-[#3e546d] dark:text-zinc-300">
+        <div className="space-y-2.5">
+          <label className="block text-[14px] sm:text-[15px] font-extrabold text-[#3e546d] dark:text-zinc-200">
             Teléfono / WhatsApp de contacto
           </label>
           <Input
@@ -270,16 +270,16 @@ export function EditPublicProfileView({ onBack }: EditPublicProfileViewProps) {
               if (e.target.value.trim()) setPhoneError("");
             }}
             placeholder="Ej. +52 998 123 4567"
-            className="h-12 bg-white dark:bg-zinc-900 border-[#ebeef3] dark:border-zinc-800 rounded-[14px] text-[14px] font-[600] text-[#1f2732] dark:text-zinc-100 focus-visible:ring-1 focus-visible:ring-[#1f2732]"
+            className="h-14 bg-white dark:bg-zinc-900 border-[#ebeef3] dark:border-zinc-800 rounded-[16px] px-4 text-[15px] sm:text-[16px] font-[600] text-[#1f2732] dark:text-zinc-100 focus-visible:ring-2 focus-visible:ring-[#1f2732]"
           />
           {phoneError && (
-            <p className="text-xs font-semibold text-rose-500">{phoneError}</p>
+            <p className="text-xs sm:text-sm font-semibold text-rose-500">{phoneError}</p>
           )}
         </div>
 
         {/* 3. Extracto / Biografía profesional input */}
-        <div className="space-y-2">
-          <label className="block text-[13px] font-bold text-[#3e546d] dark:text-zinc-300">
+        <div className="space-y-2.5">
+          <label className="block text-[14px] sm:text-[15px] font-extrabold text-[#3e546d] dark:text-zinc-200">
             Extracto / Biografía profesional
           </label>
           <Textarea
@@ -287,49 +287,49 @@ export function EditPublicProfileView({ onBack }: EditPublicProfileViewProps) {
             value={bio}
             onChange={(e) => setBio(e.target.value)}
             placeholder="Escribe un breve resumen de tu experiencia o aptitudes..."
-            className="bg-white dark:bg-zinc-900 border-[#ebeef3] dark:border-zinc-800 rounded-[14px] text-[14px] font-[600] leading-relaxed text-[#1f2732] dark:text-zinc-100 focus-visible:ring-1 focus-visible:ring-[#1f2732] resize-none"
+            className="bg-white dark:bg-zinc-900 border-[#ebeef3] dark:border-zinc-800 rounded-[16px] p-4 text-[15px] sm:text-[16px] font-[600] leading-relaxed text-[#1f2732] dark:text-zinc-100 focus-visible:ring-2 focus-visible:ring-[#1f2732] resize-none"
           />
         </div>
 
         {/* 4. Skills tags area */}
-        <div className="space-y-3">
+        <div className="space-y-3.5">
           <div className="flex items-center justify-between">
-            <label className="block text-[13px] font-bold text-[#3e546d] dark:text-zinc-300">
+            <label className="block text-[14px] sm:text-[15px] font-extrabold text-[#3e546d] dark:text-zinc-200">
               Habilidades
             </label>
             <button
               type="button"
               onClick={() => setIsAddSkillOpen(true)}
-              className="flex items-center gap-1 text-[13px] font-bold text-[#344558] dark:text-zinc-200 hover:text-[#1f2732] transition-colors cursor-pointer"
+              className="flex items-center gap-1.5 text-[14px] font-extrabold text-[#344558] dark:text-zinc-200 hover:text-[#1f2732] transition-colors cursor-pointer py-1 px-2"
             >
-              <Plus className="w-4 h-4 stroke-[2.5]" />
+              <Plus className="w-4.5 h-4.5 stroke-[2.5]" />
               <span>Añadir</span>
             </button>
           </div>
 
           {skills.length === 0 ? (
-            <div className="w-full p-4 bg-[#f5f7fa] dark:bg-zinc-900 rounded-[12px] border border-[#ebeef3] dark:border-zinc-800 flex items-center gap-2.5">
-              <Lightbulb className="w-5 h-5 text-[#5c7c9b] shrink-0" />
-              <p className="text-[13px] text-[#5c7c9b] dark:text-zinc-400">
+            <div className="w-full p-5 bg-[#f5f7fa] dark:bg-zinc-900 rounded-[16px] border border-[#ebeef3] dark:border-zinc-800 flex items-center gap-3">
+              <Lightbulb className="w-6 h-6 text-[#5c7c9b] shrink-0" />
+              <p className="text-[14px] text-[#5c7c9b] dark:text-zinc-400 font-medium">
                 No has agregado habilidades aún. Toca "Añadir" para registrar tus conocimientos.
               </p>
             </div>
           ) : (
-            <div className="flex flex-wrap gap-2">
+            <div className="flex flex-wrap gap-2.5">
               {skills.map((skill) => (
                 <div
                   key={skill}
-                  className="px-3.5 py-2 bg-[#f5f7fa] dark:bg-zinc-900 border border-[#ebeef3] dark:border-zinc-800 rounded-[10px] flex items-center gap-1.5"
+                  className="px-4 py-2.5 bg-[#f5f7fa] dark:bg-zinc-900 border border-[#ebeef3] dark:border-zinc-800 rounded-[14px] flex items-center gap-2"
                 >
-                  <span className="text-[12px] font-bold text-[#344558] dark:text-zinc-200">
+                  <span className="text-[13px] sm:text-[14px] font-bold text-[#344558] dark:text-zinc-200">
                     {skill}
                   </span>
                   <button
                     type="button"
                     onClick={() => handleRemoveSkill(skill)}
-                    className="p-0.5 text-[#7d99b3] hover:text-[#1f2732] dark:hover:text-zinc-100 transition-colors cursor-pointer"
+                    className="p-1 text-[#7d99b3] hover:text-[#1f2732] dark:hover:text-zinc-100 transition-colors cursor-pointer"
                   >
-                    <X className="w-3.5 h-3.5 stroke-[2.5]" />
+                    <X className="w-4 h-4 stroke-[2.5]" />
                   </button>
                 </div>
               ))}
@@ -343,7 +343,7 @@ export function EditPublicProfileView({ onBack }: EditPublicProfileViewProps) {
             type="button"
             onClick={handleSave}
             disabled={isSaving}
-            className="w-full h-[50px] bg-[#1f2732] dark:bg-zinc-100 text-white dark:text-zinc-900 hover:bg-[#2f3c4b] dark:hover:bg-zinc-200 rounded-[16px] text-[15px] font-bold transition-all shadow-sm cursor-pointer active:scale-95 border-none"
+            className="w-full h-[54px] bg-[#1f2732] dark:bg-zinc-100 text-white dark:text-zinc-900 hover:bg-[#2f3c4b] dark:hover:bg-zinc-200 rounded-[18px] text-[16px] font-bold transition-all shadow-sm cursor-pointer active:scale-95 border-none"
           >
             {isSaving ? "Guardando..." : "Guardar Perfil"}
           </Button>
@@ -353,34 +353,34 @@ export function EditPublicProfileView({ onBack }: EditPublicProfileViewProps) {
 
       {/* Photo Picker Modal Bottom Sheet */}
       <Dialog open={isPhotoModalOpen} onOpenChange={setIsPhotoModalOpen}>
-        <DialogContent className="sm:max-w-[420px] rounded-t-[28px] sm:rounded-3xl bg-white dark:bg-zinc-900 border border-[#ebeef3] dark:border-zinc-800 p-6">
-          <DialogHeader className="flex flex-row items-center justify-between pb-2 border-b border-[#ebeef3] dark:border-zinc-800">
-            <DialogTitle className="text-[18px] font-bold text-[#1f2732] dark:text-zinc-50">
+        <DialogContent className="sm:max-w-[440px] rounded-t-[32px] sm:rounded-3xl bg-white dark:bg-zinc-900 border border-[#ebeef3] dark:border-zinc-800 p-6 sm:p-8">
+          <DialogHeader className="flex flex-row items-center justify-between pb-3 border-b border-[#ebeef3] dark:border-zinc-800">
+            <DialogTitle className="text-[20px] font-bold text-[#1f2732] dark:text-zinc-50">
               Foto de Perfil
             </DialogTitle>
           </DialogHeader>
 
-          <div className="py-3 space-y-2">
+          <div className="py-4 space-y-3">
             <button
               onClick={() => handleSimulatePhotoSelect(true)}
-              className="w-full p-3.5 rounded-[16px] flex items-center gap-3.5 hover:bg-[#f5f7fa] dark:hover:bg-zinc-800 transition-colors text-left cursor-pointer"
+              className="w-full p-4 rounded-[18px] flex items-center gap-4 hover:bg-[#f5f7fa] dark:hover:bg-zinc-800 transition-colors text-left cursor-pointer"
             >
-              <div className="w-10 h-10 rounded-full bg-[#f5f7fa] dark:bg-zinc-800 flex items-center justify-center text-[#1f2732] dark:text-zinc-100 shrink-0">
-                <CameraIcon className="w-5 h-5 stroke-[2]" />
+              <div className="w-12 h-12 rounded-full bg-[#f5f7fa] dark:bg-zinc-800 flex items-center justify-center text-[#1f2732] dark:text-zinc-100 shrink-0">
+                <CameraIcon className="w-6 h-6 stroke-[2]" />
               </div>
-              <span className="text-[14px] font-bold text-[#1f2732] dark:text-zinc-100">
+              <span className="text-[15px] font-bold text-[#1f2732] dark:text-zinc-100">
                 Tomar foto con la cámara
               </span>
             </button>
 
             <button
               onClick={() => handleSimulatePhotoSelect(false)}
-              className="w-full p-3.5 rounded-[16px] flex items-center gap-3.5 hover:bg-[#f5f7fa] dark:hover:bg-zinc-800 transition-colors text-left cursor-pointer"
+              className="w-full p-4 rounded-[18px] flex items-center gap-4 hover:bg-[#f5f7fa] dark:hover:bg-zinc-800 transition-colors text-left cursor-pointer"
             >
-              <div className="w-10 h-10 rounded-full bg-[#f5f7fa] dark:bg-zinc-800 flex items-center justify-center text-[#1f2732] dark:text-zinc-100 shrink-0">
-                <GalleryIcon className="w-5 h-5 stroke-[2]" />
+              <div className="w-12 h-12 rounded-full bg-[#f5f7fa] dark:bg-zinc-800 flex items-center justify-center text-[#1f2732] dark:text-zinc-100 shrink-0">
+                <GalleryIcon className="w-6 h-6 stroke-[2]" />
               </div>
-              <span className="text-[14px] font-bold text-[#1f2732] dark:text-zinc-100">
+              <span className="text-[15px] font-bold text-[#1f2732] dark:text-zinc-100">
                 Elegir de la galería
               </span>
             </button>
@@ -388,12 +388,12 @@ export function EditPublicProfileView({ onBack }: EditPublicProfileViewProps) {
             {hasCustomAvatar && (
               <button
                 onClick={handleDeletePhoto}
-                className="w-full p-3.5 rounded-[16px] flex items-center gap-3.5 hover:bg-rose-50 dark:hover:bg-rose-950/30 transition-colors text-left cursor-pointer"
+                className="w-full p-4 rounded-[18px] flex items-center gap-4 hover:bg-rose-50 dark:hover:bg-rose-950/30 transition-colors text-left cursor-pointer"
               >
-                <div className="w-10 h-10 rounded-full bg-[#FEE4E2] dark:bg-rose-900/30 flex items-center justify-center text-rose-600 shrink-0">
-                  <Trash2 className="w-5 h-5 stroke-[2]" />
+                <div className="w-12 h-12 rounded-full bg-[#FEE4E2] dark:bg-rose-900/30 flex items-center justify-center text-rose-600 shrink-0">
+                  <Trash2 className="w-6 h-6 stroke-[2]" />
                 </div>
-                <span className="text-[14px] font-bold text-rose-600">
+                <span className="text-[15px] font-bold text-rose-600">
                   Eliminar foto actual
                 </span>
               </button>
@@ -404,9 +404,9 @@ export function EditPublicProfileView({ onBack }: EditPublicProfileViewProps) {
 
       {/* Add Skill Modal Dialog */}
       <Dialog open={isAddSkillOpen} onOpenChange={setIsAddSkillOpen}>
-        <DialogContent className="sm:max-w-[400px] rounded-[24px] bg-white dark:bg-zinc-900 border border-[#ebeef3] dark:border-zinc-800 p-6 space-y-4">
+        <DialogContent className="sm:max-w-[440px] rounded-[28px] bg-white dark:bg-zinc-900 border border-[#ebeef3] dark:border-zinc-800 p-6 sm:p-8 space-y-5">
           <DialogHeader>
-            <DialogTitle className="text-[18px] font-bold text-[#1f2732] dark:text-zinc-50">
+            <DialogTitle className="text-[20px] font-bold text-[#1f2732] dark:text-zinc-50">
               Agregar Habilidad
             </DialogTitle>
           </DialogHeader>
@@ -424,21 +424,21 @@ export function EditPublicProfileView({ onBack }: EditPublicProfileViewProps) {
                 }
               }}
               placeholder="Ej. Cocina Caliente, Proactivo, Inglés..."
-              className="h-11 bg-white dark:bg-zinc-900 border-[#ebeef3] dark:border-zinc-800 rounded-[12px] text-[14px]"
+              className="h-13 bg-white dark:bg-zinc-900 border-[#ebeef3] dark:border-zinc-800 rounded-[14px] px-4 text-[15px]"
             />
           </div>
 
-          <DialogFooter className="flex items-center justify-end gap-2">
+          <DialogFooter className="flex items-center justify-end gap-3">
             <Button
               variant="ghost"
               onClick={() => setIsAddSkillOpen(false)}
-              className="text-[#5c7c9b] font-bold text-xs"
+              className="text-[#5c7c9b] font-bold text-sm h-11 px-5 cursor-pointer"
             >
               Cancelar
             </Button>
             <Button
               onClick={handleAddSkill}
-              className="bg-[#1f2732] dark:bg-zinc-100 text-white dark:text-zinc-900 font-bold text-xs rounded-[12px] px-5 py-2"
+              className="bg-[#1f2732] dark:bg-zinc-100 text-white dark:text-zinc-900 font-bold text-sm rounded-[14px] px-6 h-11 cursor-pointer"
             >
               Agregar
             </Button>
