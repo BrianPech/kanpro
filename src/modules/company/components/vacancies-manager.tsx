@@ -24,6 +24,7 @@ import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Card } from "@/components/ui/card";
 import { useVacancyManager, type VacancyRow } from "@/hooks/use-vacancy-manager";
+import { VacanciesTable } from "./vacancies-table";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { createClient } from "@/lib/supabase/client";
@@ -578,115 +579,14 @@ export function VacanciesManager({ userId }: { userId: string }) {
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -15 }}
                 transition={{ duration: 0.2 }}
-                className="border border-fiord-100 dark:border-fiord-800/80 rounded-[24px] bg-white dark:bg-[#202023] overflow-hidden shadow-xs"
               >
-                <div className="overflow-x-auto">
-                  <Table>
-                    <TableHeader className="bg-fiord-50/40 dark:bg-[#202023]/60 border-b border-fiord-100 dark:border-fiord-800/80">
-                      <TableRow className="hover:bg-transparent border-none">
-                        <TableHead className="font-bold text-xs uppercase tracking-wider text-fiord-500 dark:text-fiord-400 py-4.5 px-6">Puesto</TableHead>
-                        <TableHead className="font-bold text-xs uppercase tracking-wider text-fiord-500 dark:text-fiord-400 py-4.5">Ubicación / Zona</TableHead>
-                        <TableHead className="font-bold text-xs uppercase tracking-wider text-fiord-500 dark:text-fiord-400 py-4.5">Sueldo Ofrecido</TableHead>
-                        <TableHead className="font-bold text-xs uppercase tracking-wider text-fiord-500 dark:text-fiord-400 py-4.5">Estado</TableHead>
-                        <TableHead className="font-bold text-xs uppercase tracking-wider text-fiord-500 dark:text-fiord-400 py-4.5">Fecha</TableHead>
-                        <TableHead className="font-bold text-xs uppercase tracking-wider text-fiord-500 dark:text-fiord-400 py-4.5 text-right w-[80px] px-6">Acciones</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {filteredVacancies.map((vacancy) => (
-                        <TableRow
-                          key={vacancy.id}
-                          className={cn(
-                            "border-b border-fiord-100/50 dark:border-fiord-800/30 transition-colors hover:bg-fiord-50/20 dark:hover:bg-fiord-900/10 border-none",
-                            !vacancy.is_active && "opacity-75"
-                          )}
-                        >
-                          {/* Puesto Column */}
-                          <TableCell className="py-4.5 px-6">
-                            <div className="flex flex-col gap-0.5">
-                              <span className="font-bold text-[13.5px] text-fiord-900 dark:text-fiord-50">
-                                {vacancy.title}
-                              </span>
-                              <span className="text-[11px] text-fiord-450 dark:text-fiord-500 font-semibold uppercase tracking-wider">
-                                {vacancy.category}
-                              </span>
-                            </div>
-                          </TableCell>
-
-                          {/* Ubicación Column */}
-                          <TableCell className="py-4.5">
-                            <div className="flex items-center gap-1.5 text-xs text-fiord-600 dark:text-fiord-300 font-semibold">
-                              <MapPin className="size-3.5 text-fiord-400 shrink-0" />
-                              <span>{vacancy.zone || vacancy.location}</span>
-                            </div>
-                          </TableCell>
-
-                          {/* Sueldo Column */}
-                          <TableCell className="py-4.5 font-bold text-xs text-fiord-800 dark:text-fiord-200">
-                            {formatSalary(vacancy.salary_min, vacancy.salary_max)}
-                          </TableCell>
-
-                          {/* Estado Column */}
-                          <TableCell className="py-4.5">
-                            <Badge
-                              variant="secondary"
-                              onClick={() => handleToggleActive(vacancy.id, vacancy.is_active)}
-                              className={cn(
-                                "text-[9.5px] font-bold tracking-wider uppercase px-2.5 h-6 flex items-center w-fit border cursor-pointer hover:opacity-85 select-none rounded-full",
-                                vacancy.is_active
-                                  ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-450 border-emerald-500/20"
-                                  : "bg-fiord-50 text-fiord-500 border-fiord-100 dark:bg-fiord-800 dark:text-fiord-400 dark:border-fiord-700"
-                              )}
-                            >
-                              {vacancy.is_active ? "Activa" : "Pausada"}
-                            </Badge>
-                          </TableCell>
-
-                          {/* Fecha Column */}
-                          <TableCell className="py-4.5 text-xs text-fiord-450 dark:text-fiord-500 font-semibold">
-                            {formatDate(vacancy.created_at)}
-                          </TableCell>
-
-                          {/* Acciones Column */}
-                          <TableCell className="py-4.5 text-right px-6">
-                            <DropdownMenu>
-                              <DropdownMenuTrigger asChild>
-                                <Button
-                                  variant="ghost"
-                                  size="icon"
-                                  className="h-8 w-8 p-0 rounded-lg border border-fiord-100/50 dark:border-fiord-800/40 hover:bg-fiord-50 dark:hover:bg-fiord-900/60"
-                                >
-                                  <MoreHorizontal className="h-4 w-4 text-fiord-400" />
-                                </Button>
-                              </DropdownMenuTrigger>
-                              <DropdownMenuContent align="end" className="rounded-xl border border-fiord-100/80 dark:border-fiord-800 bg-popover min-w-[140px] shadow-sm">
-                                <DropdownMenuItem asChild className="cursor-pointer text-xs font-semibold text-fiord-700 dark:text-fiord-350 rounded-lg hover:bg-muted py-2 gap-2">
-                                  <Link href={`/dashboard/company/vacancies/${vacancy.id}`}>
-                                    <Eye className="size-3.5 text-fiord-400" />
-                                    <span>Ver detalles</span>
-                                  </Link>
-                                </DropdownMenuItem>
-                                <DropdownMenuItem asChild className="cursor-pointer text-xs font-semibold text-fiord-700 dark:text-fiord-350 rounded-lg hover:bg-muted py-2 gap-2">
-                                  <Link href={`/dashboard/company/vacancies/${vacancy.id}/edit`}>
-                                    <Edit2 className="size-3.5 text-fiord-400" />
-                                    <span>Editar</span>
-                                  </Link>
-                                </DropdownMenuItem>
-                                <DropdownMenuItem
-                                  onSelect={() => setDeletingVacancyId(vacancy.id)}
-                                  className="cursor-pointer text-xs font-semibold text-red-650 focus:text-red-750 dark:text-red-400 dark:focus:text-red-400 rounded-lg hover:bg-red-500/5 focus:bg-red-500/5 py-2 gap-2"
-                                >
-                                  <Trash2 className="size-3.5 text-red-500" />
-                                  <span>Eliminar</span>
-                                </DropdownMenuItem>
-                              </DropdownMenuContent>
-                            </DropdownMenu>
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                </div>
+                <VacanciesTable
+                  data={filteredVacancies}
+                  onToggleActive={handleToggleActive}
+                  onDeleteVacancy={(id) => setDeletingVacancyId(id)}
+                  formatSalary={formatSalary}
+                  formatDate={formatDate}
+                />
               </motion.div>
             ) : (
               // ==========================================
