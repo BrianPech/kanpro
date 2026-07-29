@@ -45,6 +45,13 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
   AlertDialog,
   AlertDialogAction,
   AlertDialogCancel,
@@ -65,7 +72,6 @@ export function VacanciesManager({ userId }: { userId: string }) {
   const [viewMode, setViewMode] = React.useState<"list" | "grid">("list");
   
   // Advanced filters state
-  const [showFilters, setShowFilters] = React.useState(false);
   const [categoryFilter, setCategoryFilter] = React.useState<string>("all");
   const [locationFilter, setLocationFilter] = React.useState<string>("all");
   const [statusFilter, setStatusFilter] = React.useState<string>("all");
@@ -180,18 +186,40 @@ export function VacanciesManager({ userId }: { userId: string }) {
     }
   };
 
-  // Categories extracted from loaded vacancies
+  // Standard default categories and zones for pre-populating filter dropdowns
+  const DEFAULT_CATEGORIES = [
+    "Alimentos y Bebidas",
+    "Hotelería y Turismo",
+    "Mantenimiento y Limpieza",
+    "Ventas y Comercio",
+    "Administración y Operaciones",
+    "Atención al Cliente",
+    "Otro",
+  ];
+
+  const DEFAULT_ZONES = [
+    "Centro Mérida",
+    "Altabrisa",
+    "Caucel",
+    "Las Américas",
+    "Francisco de Montejo",
+    "Kanasín",
+    "Paseo de Montejo",
+    "Playa del Carmen",
+  ];
+
+  // Categories extracted from loaded vacancies + defaults
   const categoriesList = React.useMemo(() => {
-    const cats = new Set<string>();
+    const cats = new Set<string>(DEFAULT_CATEGORIES);
     vacancies.forEach(v => {
       if (v.category) cats.add(v.category);
     });
     return Array.from(cats);
   }, [vacancies]);
 
-  // Locations / Zones extracted from loaded vacancies
+  // Locations / Zones extracted from loaded vacancies + defaults
   const locationsList = React.useMemo(() => {
-    const locs = new Set<string>();
+    const locs = new Set<string>(DEFAULT_ZONES);
     vacancies.forEach(v => {
       const displayLoc = v.zone || v.location;
       if (displayLoc) locs.add(displayLoc);
@@ -311,18 +339,18 @@ export function VacanciesManager({ userId }: { userId: string }) {
   const hasActiveFilters = categoryFilter !== "all" || locationFilter !== "all" || statusFilter !== "all" || searchQuery !== "";
 
   return (
-    <div className="flex-grow min-h-screen bg-fiord-50/20 dark:bg-[#18181B] px-6 sm:px-10 lg:px-14 py-8 pb-28 md:pb-8 max-w-6xl mx-auto w-full space-y-8 animate-in fade-in duration-300">
+    <div className="flex-grow bg-[#f5f7fa]/60 dark:bg-[#18181B] px-6 sm:px-10 lg:px-14 py-6 sm:py-8 max-w-6xl mx-auto w-full space-y-6 animate-in fade-in duration-300">
       
       {/* Verification status pill banner (if applicable) */}
       {!isProfileIncomplete && !loadingProfile && profile && (
-        <div className="-mb-4">
+        <div>
           {!profile.is_validated ? (
-            <Badge variant="outline" className="bg-amber-500/10 border-amber-500/30 text-amber-600 dark:text-amber-400 font-bold px-3.5 py-1 text-xs rounded-full w-fit animate-pulse">
+            <Badge variant="outline" className="bg-amber-500/10 border-amber-500/30 text-amber-700 dark:text-amber-400 font-extrabold px-4 py-1.5 text-xs sm:text-sm rounded-full w-fit animate-pulse">
               ✨ Perfil Completo • Verificación de Empresa en Proceso
             </Badge>
           ) : (
-            <Badge variant="outline" className="bg-emerald-500/10 border-emerald-500/30 text-emerald-600 dark:text-emerald-400 font-bold px-3.5 py-1 text-xs rounded-full w-fit flex items-center gap-1.5">
-              <CheckCircle2 className="size-4" />
+            <Badge variant="outline" className="bg-emerald-500/10 border-emerald-500/30 text-emerald-700 dark:text-emerald-400 font-extrabold px-4 py-1.5 text-xs sm:text-sm rounded-full w-fit flex items-center gap-2">
+              <CheckCircle2 className="size-4.5" />
               <span>Empresa Verificada</span>
             </Badge>
           )}
@@ -330,21 +358,21 @@ export function VacanciesManager({ userId }: { userId: string }) {
       )}
 
       {isProfileIncomplete && !loadingProfile && (
-        <Alert variant="destructive" className="bg-amber-500/10 border-amber-500/20 text-amber-700 dark:text-amber-400 p-6 rounded-[22px] flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-          <div className="flex items-start gap-3.5">
-            <span className="text-2xl shrink-0 mt-0.5">⚠️</span>
+        <Alert variant="destructive" className="bg-amber-500/10 border-amber-500/30 text-amber-800 dark:text-amber-300 p-6 sm:p-7 rounded-[26px] flex flex-col sm:flex-row items-start sm:items-center justify-between gap-5 shadow-xs">
+          <div className="flex items-start gap-4">
+            <span className="text-3xl shrink-0">⚠️</span>
             <div className="space-y-1">
-              <AlertTitle className="text-xs sm:text-sm font-bold uppercase tracking-wider text-amber-700 dark:text-amber-400">
+              <AlertTitle className="text-sm sm:text-base font-extrabold uppercase tracking-wider text-amber-800 dark:text-amber-300">
                 Perfil de Empresa Incompleto
               </AlertTitle>
-              <AlertDescription className="text-xs sm:text-sm font-semibold leading-relaxed text-amber-600 dark:text-amber-300/90">
+              <AlertDescription className="text-xs sm:text-sm font-semibold leading-relaxed text-amber-700 dark:text-amber-300/90">
                 Para comenzar a publicar ofertas express y activar tu radar, primero completa la información esencial de tu negocio (Nombre, WhatsApp y Dirección) en la sección de Mi Perfil.
               </AlertDescription>
             </div>
           </div>
           <Button
             asChild
-            className="w-full sm:w-fit h-11 rounded-[14px] bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs uppercase tracking-wider shrink-0 border-none cursor-pointer"
+            className="w-full sm:w-fit h-12 rounded-[16px] bg-amber-600 hover:bg-amber-700 text-white font-extrabold text-xs sm:text-sm uppercase tracking-wider shrink-0 border-none cursor-pointer px-6 shadow-sm"
           >
             <Link href="/dashboard/company/profile">
               Completar Perfil
@@ -354,214 +382,194 @@ export function VacanciesManager({ userId }: { userId: string }) {
       )}
 
       {/* ========================================== */}
-      {/* FILTER & VIEW TOGGLE CONTROLLER BAR        */}
+      {/* ALWAYS VISIBLE UNIFIED FILTER CARD          */}
       {/* ========================================== */}
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-white dark:bg-[#202023] p-4 rounded-[22px] border border-fiord-100/60 dark:border-fiord-800/40 shadow-xs shrink-0">
+      <Card className="bg-white dark:bg-[#18181b] border border-[#ebeef3] dark:border-zinc-800 rounded-[28px] p-5 sm:p-6 shadow-xs space-y-5 shrink-0">
         
-        {/* Toggle List/Grid (Left side) */}
-        <div className="inline-flex p-1 rounded-[14px] bg-fiord-50/50 dark:bg-fiord-900/30 border border-fiord-100/30 dark:border-fiord-800/20 shrink-0">
-          <button
-            onClick={() => setViewMode("list")}
-            className={cn(
-              "px-4 py-2 rounded-xl text-xs sm:text-sm font-bold flex items-center gap-2 transition-all cursor-pointer",
-              viewMode === "list"
-                ? "bg-[#1f2732] dark:bg-zinc-100 text-white dark:text-zinc-900 shadow-xs"
-                : "text-fiord-500 hover:text-fiord-900 dark:text-fiord-400 dark:hover:text-fiord-200"
-            )}
-          >
-            <List className="size-4" />
-            <span>Lista</span>
-          </button>
-          <button
-            onClick={() => setViewMode("grid")}
-            className={cn(
-              "px-4 py-2 rounded-xl text-xs sm:text-sm font-bold flex items-center gap-2 transition-all cursor-pointer",
-              viewMode === "grid"
-                ? "bg-[#1f2732] dark:bg-zinc-100 text-white dark:text-zinc-900 shadow-xs"
-                : "text-fiord-500 hover:text-fiord-900 dark:text-fiord-400 dark:hover:text-fiord-200"
-            )}
-          >
-            <LayoutGrid className="size-4" />
-            <span>Cuadrícula</span>
-          </button>
-        </div>
-
-        {/* Global Search & Actions Buttons (Right side) */}
-        <div className="flex flex-wrap items-center gap-3 w-full md:w-auto">
-          {/* Search input in control bar */}
-          <div className="relative flex-grow md:max-w-xs min-w-[220px]">
-            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-fiord-400 dark:text-fiord-500 size-4.5 pointer-events-none" />
+        {/* Top Control Bar: Search Input, View Mode Switcher, Actions */}
+        <div className="flex flex-col md:flex-row justify-between items-stretch md:items-center gap-4 border-b border-[#ebeef3] dark:border-zinc-800/80 pb-5">
+          
+          {/* Global Search Input */}
+          <div className="relative flex-grow md:max-w-md">
+            <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-[#5c7c9b] size-4.5 pointer-events-none" />
             <input
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-10 pr-4 h-11 bg-fiord-50/20 dark:bg-fiord-950/20 border border-fiord-100 dark:border-fiord-800 rounded-[14px] text-sm font-semibold placeholder-fiord-400 dark:placeholder-fiord-500 text-fiord-900 dark:text-fiord-100 outline-none focus:border-fiord-300 dark:focus:border-fiord-700 focus:ring-1 focus:ring-fiord-300/35 transition-all"
+              className="w-full pl-11 pr-10 h-12 bg-[#f5f7fa]/60 dark:bg-zinc-900/40 border border-[#d2dbe5] dark:border-zinc-800 rounded-[16px] text-sm font-semibold placeholder-[#5c7c9b] text-[#1f2732] dark:text-zinc-100 outline-none focus:border-[#1f2732] dark:focus:border-zinc-700 transition-all"
               placeholder="Buscar puesto o categoría..."
             />
             {searchQuery && (
               <button 
                 onClick={() => setSearchQuery("")}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-fiord-400 hover:text-fiord-900 cursor-pointer"
+                className="absolute right-3.5 top-1/2 -translate-y-1/2 text-[#5c7c9b] hover:text-[#1f2732] cursor-pointer"
               >
                 <X className="size-4" />
               </button>
             )}
           </div>
 
-          {/* Filter Trigger Button */}
-          <Button
-            onClick={() => setShowFilters(!showFilters)}
-            variant="outline"
-            className={cn(
-              "h-11 rounded-[14px] text-xs sm:text-sm font-bold px-4 flex items-center gap-2 border border-fiord-100/80 dark:border-fiord-800/80 transition-all cursor-pointer",
-              showFilters || hasActiveFilters
-                ? "bg-[#1f2732] dark:bg-zinc-100 text-white dark:text-zinc-900 hover:bg-[#253240] dark:hover:bg-zinc-200"
-                : "bg-white dark:bg-fiord-900/10 text-fiord-700 dark:text-fiord-300 hover:bg-fiord-50 dark:hover:bg-fiord-900/40"
-            )}
-          >
-            <SlidersHorizontal className="size-4" />
-            <span>Filtros</span>
-            {hasActiveFilters && (
-              <span className="size-2 rounded-full bg-rose-500 animate-ping" />
-            )}
-          </Button>
-
-          {/* Export CSV Button */}
-          <Button
-            onClick={handleExportCSV}
-            variant="outline"
-            className="h-11 bg-white dark:bg-fiord-900/10 hover:bg-fiord-50 dark:hover:bg-fiord-900/40 text-fiord-700 dark:text-fiord-300 font-bold text-xs sm:text-sm rounded-[14px] px-4 flex items-center gap-2 border border-fiord-100/80 dark:border-fiord-800/80 cursor-pointer"
-          >
-            <FileDown className="size-4" />
-            <span>Exportar</span>
-          </Button>
-        </div>
-      </div>
-
-      {/* ========================================== */}
-      {/* COLLAPSIBLE ADVANCED FILTER PANEL          */}
-      {/* ========================================== */}
-      <AnimatePresence>
-        {showFilters && (
-          <motion.div
-            initial={{ height: 0, opacity: 0 }}
-            animate={{ height: "auto", opacity: 1, transition: { duration: 0.25 } }}
-            exit={{ height: 0, opacity: 0, transition: { duration: 0.2 } }}
-            className="overflow-hidden"
-          >
-            <Card className="bg-white dark:bg-[#202023] border-fiord-100/60 dark:border-fiord-800/40 rounded-2xl p-5 shadow-xs space-y-4">
-              <div className="flex items-center justify-between">
-                <span className="text-xs font-bold uppercase tracking-wider text-fiord-900 dark:text-fiord-100">Filtros Avanzados</span>
-                {hasActiveFilters && (
-                  <button
-                    onClick={handleClearFilters}
-                    className="text-xs font-semibold text-fiord-500 hover:text-fiord-950 dark:hover:text-fiord-50 flex items-center gap-1 transition-colors"
-                  >
-                    <span>Limpiar todo</span>
-                    <X className="size-3" />
-                  </button>
+          {/* Right Action Group: View Mode Switcher & Export */}
+          <div className="flex items-center gap-3 justify-between sm:justify-end">
+            {/* Toggle List/Grid */}
+            <div className="inline-flex p-1 rounded-[16px] bg-[#f5f7fa]/80 dark:bg-zinc-900 border border-[#ebeef3] dark:border-zinc-800 shrink-0">
+              <button
+                onClick={() => setViewMode("list")}
+                className={cn(
+                  "px-4 py-2 rounded-[12px] text-xs sm:text-sm font-extrabold flex items-center gap-2 transition-all cursor-pointer",
+                  viewMode === "list"
+                    ? "bg-[#1f2732] dark:bg-zinc-100 text-white dark:text-zinc-900 shadow-xs"
+                    : "text-[#5c7c9b] hover:text-[#1f2732] dark:hover:text-zinc-200"
                 )}
-              </div>
+              >
+                <List className="size-4" />
+                <span>Lista</span>
+              </button>
+              <button
+                onClick={() => setViewMode("grid")}
+                className={cn(
+                  "px-4 py-2 rounded-[12px] text-xs sm:text-sm font-extrabold flex items-center gap-2 transition-all cursor-pointer",
+                  viewMode === "grid"
+                    ? "bg-[#1f2732] dark:bg-zinc-100 text-white dark:text-zinc-900 shadow-xs"
+                    : "text-[#5c7c9b] hover:text-[#1f2732] dark:hover:text-zinc-200"
+                )}
+              >
+                <LayoutGrid className="size-4" />
+                <span>Cuadrícula</span>
+              </button>
+            </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
-                {/* Filter 1: Category */}
-                <div className="space-y-1.5">
-                  <label className="text-[11px] font-bold uppercase tracking-wider text-fiord-400 dark:text-fiord-500">Categoría</label>
-                  <select
-                    value={categoryFilter}
-                    onChange={(e) => setCategoryFilter(e.target.value)}
-                    className="w-full h-9 rounded-xl border border-fiord-100 dark:border-fiord-800 bg-fiord-50/20 dark:bg-fiord-950/20 text-xs px-3 font-semibold text-fiord-700 dark:text-fiord-300 outline-none focus:border-fiord-300 transition-all"
-                  >
-                    <option value="all">Todas las categorías</option>
-                    {categoriesList.map(cat => (
-                      <option key={cat} value={cat}>{cat}</option>
-                    ))}
-                  </select>
-                </div>
+            {/* Clear All Filters button (if active) */}
+            {hasActiveFilters && (
+              <Button
+                variant="ghost"
+                onClick={handleClearFilters}
+                className="h-12 px-4 rounded-[16px] text-xs sm:text-sm font-bold text-[#5c7c9b] hover:text-[#1f2732] dark:hover:text-zinc-100 hover:bg-[#f5f7fa] dark:hover:bg-zinc-800 cursor-pointer flex items-center gap-1.5"
+              >
+                <span>Limpiar todo</span>
+                <X className="size-4" />
+              </Button>
+            )}
 
-                {/* Filter 2: Location / Zone */}
-                <div className="space-y-1.5">
-                  <label className="text-[11px] font-bold uppercase tracking-wider text-fiord-400 dark:text-fiord-500">Zona / Ubicación</label>
-                  <select
-                    value={locationFilter}
-                    onChange={(e) => setLocationFilter(e.target.value)}
-                    className="w-full h-9 rounded-xl border border-fiord-100 dark:border-fiord-800 bg-fiord-50/20 dark:bg-fiord-950/20 text-xs px-3 font-semibold text-fiord-700 dark:text-fiord-300 outline-none focus:border-fiord-300 transition-all"
-                  >
-                    <option value="all">Todas las zonas</option>
-                    {locationsList.map(loc => (
-                      <option key={loc} value={loc}>{loc}</option>
-                    ))}
-                  </select>
-                </div>
+            {/* Export CSV Button */}
+            <Button
+              onClick={handleExportCSV}
+              variant="outline"
+              className="h-12 bg-white dark:bg-zinc-900 hover:bg-[#f5f7fa] dark:hover:bg-zinc-800 text-[#1f2732] dark:text-zinc-200 font-extrabold text-xs sm:text-sm rounded-[16px] px-4 flex items-center gap-2 border border-[#d2dbe5] dark:border-zinc-800 cursor-pointer"
+            >
+              <FileDown className="size-4.5" />
+              <span>Exportar</span>
+            </Button>
+          </div>
+        </div>
 
-                {/* Filter 3: Status */}
-                <div className="space-y-1.5">
-                  <label className="text-[11px] font-bold uppercase tracking-wider text-fiord-400 dark:text-fiord-500">Estado de Publicación</label>
-                  <div className="grid grid-cols-3 gap-1.5 p-0.5 rounded-xl bg-fiord-50/30 dark:bg-fiord-950/30 border border-fiord-100/50 dark:border-fiord-800/40">
-                    <button
-                      onClick={() => setStatusFilter("all")}
-                      className={cn(
-                        "py-1 rounded-lg text-[10.5px] font-bold transition-all",
-                        statusFilter === "all"
-                          ? "bg-white dark:bg-fiord-950 text-fiord-950 dark:text-fiord-50 shadow-xs"
-                          : "text-fiord-500 hover:text-fiord-800 dark:text-fiord-400"
-                      )}
-                    >
-                      Todos
-                    </button>
-                    <button
-                      onClick={() => setStatusFilter("active")}
-                      className={cn(
-                        "py-1 rounded-lg text-[10.5px] font-bold transition-all",
-                        statusFilter === "active"
-                          ? "bg-white dark:bg-fiord-950 text-fiord-950 dark:text-fiord-50 shadow-xs"
-                          : "text-fiord-500 hover:text-fiord-800 dark:text-fiord-400"
-                      )}
-                    >
-                      Activas
-                    </button>
-                    <button
-                      onClick={() => setStatusFilter("paused")}
-                      className={cn(
-                        "py-1 rounded-lg text-[10.5px] font-bold transition-all",
-                        statusFilter === "paused"
-                          ? "bg-white dark:bg-fiord-950 text-fiord-950 dark:text-fiord-50 shadow-xs"
-                          : "text-fiord-500 hover:text-fiord-800 dark:text-fiord-400"
-                      )}
-                    >
-                      Pausadas
-                    </button>
-                  </div>
-                </div>
-              </div>
-            </Card>
-          </motion.div>
-        )}
-      </AnimatePresence>
+        {/* Always Visible Filters Grid Row (Using shadcnui Select) */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-5 pt-1">
+          
+          {/* Filter 1: Category with shadcnui Select */}
+          <div className="space-y-2">
+            <label className="text-xs font-extrabold uppercase tracking-wider text-[#5c7c9b] dark:text-zinc-400">Categoría</label>
+            <Select value={categoryFilter} onValueChange={setCategoryFilter}>
+              <SelectTrigger className="w-full h-12 rounded-[16px] border border-[#d2dbe5] dark:border-zinc-800 bg-[#f5f7fa]/60 dark:bg-zinc-900/40 text-xs sm:text-sm font-semibold text-[#1f2732] dark:text-zinc-100 cursor-pointer px-4">
+                <SelectValue placeholder="Todas las categorías" />
+              </SelectTrigger>
+              <SelectContent className="rounded-[18px] border border-[#ebeef3] dark:border-zinc-800 bg-popover shadow-lg">
+                <SelectItem value="all" className="font-semibold text-xs sm:text-sm cursor-pointer rounded-[12px]">
+                  Todas las categorías
+                </SelectItem>
+                {categoriesList.map((cat) => (
+                  <SelectItem key={cat} value={cat} className="font-semibold text-xs sm:text-sm cursor-pointer rounded-[12px]">
+                    {cat}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          {/* Filter 2: Location / Zone with shadcnui Select */}
+          <div className="space-y-2">
+            <label className="text-xs font-extrabold uppercase tracking-wider text-[#5c7c9b] dark:text-zinc-400">Zona / Ubicación</label>
+            <Select value={locationFilter} onValueChange={setLocationFilter}>
+              <SelectTrigger className="w-full h-12 rounded-[16px] border border-[#d2dbe5] dark:border-zinc-800 bg-[#f5f7fa]/60 dark:bg-zinc-900/40 text-xs sm:text-sm font-semibold text-[#1f2732] dark:text-zinc-100 cursor-pointer px-4">
+                <SelectValue placeholder="Todas las zonas" />
+              </SelectTrigger>
+              <SelectContent className="rounded-[18px] border border-[#ebeef3] dark:border-zinc-800 bg-popover shadow-lg">
+                <SelectItem value="all" className="font-semibold text-xs sm:text-sm cursor-pointer rounded-[12px]">
+                  Todas las zonas
+                </SelectItem>
+                {locationsList.map((loc) => (
+                  <SelectItem key={loc} value={loc} className="font-semibold text-xs sm:text-sm cursor-pointer rounded-[12px]">
+                    {loc}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          {/* Filter 3: Status Toggle Buttons */}
+          <div className="space-y-2">
+            <label className="text-xs font-extrabold uppercase tracking-wider text-[#5c7c9b] dark:text-zinc-400">Estado de Publicación</label>
+            <div className="grid grid-cols-3 gap-2 p-1 rounded-[16px] bg-[#f5f7fa]/80 dark:bg-zinc-900 border border-[#ebeef3] dark:border-zinc-800 h-12 items-center">
+              <button
+                onClick={() => setStatusFilter("all")}
+                className={cn(
+                  "h-10 rounded-[12px] text-xs sm:text-sm font-extrabold transition-all cursor-pointer flex items-center justify-center",
+                  statusFilter === "all"
+                    ? "bg-[#1f2732] dark:bg-zinc-100 text-white dark:text-zinc-900 shadow-xs"
+                    : "text-[#5c7c9b] hover:text-[#1f2732] dark:hover:text-zinc-200"
+                )}
+              >
+                Todos
+              </button>
+              <button
+                onClick={() => setStatusFilter("active")}
+                className={cn(
+                  "h-10 rounded-[12px] text-xs sm:text-sm font-extrabold transition-all cursor-pointer flex items-center justify-center",
+                  statusFilter === "active"
+                    ? "bg-[#1f2732] dark:bg-zinc-100 text-white dark:text-zinc-900 shadow-xs"
+                    : "text-[#5c7c9b] hover:text-[#1f2732] dark:hover:text-zinc-200"
+                )}
+              >
+                Activas
+              </button>
+              <button
+                onClick={() => setStatusFilter("paused")}
+                className={cn(
+                  "h-10 rounded-[12px] text-xs sm:text-sm font-extrabold transition-all cursor-pointer flex items-center justify-center",
+                  statusFilter === "paused"
+                    ? "bg-[#1f2732] dark:bg-zinc-100 text-white dark:text-zinc-900 shadow-xs"
+                    : "text-[#5c7c9b] hover:text-[#1f2732] dark:hover:text-zinc-200"
+                )}
+              >
+                Pausadas
+              </button>
+            </div>
+          </div>
+
+        </div>
+      </Card>
 
       {/* ========================================== */}
       {/* DATA AREA: TABLE OR GRID VIEW              */}
       {/* ========================================== */}
       <div className="space-y-6">
         {isLoading ? (
-          <div className="border border-fiord-100 dark:border-fiord-800 rounded-[24px] bg-white dark:bg-[#202023] overflow-hidden shadow-xs">
-            <div className="p-6 space-y-4">
-              <Skeleton className="h-10 w-full rounded-lg" />
-              <Skeleton className="h-16 w-full rounded-lg" />
-              <Skeleton className="h-16 w-full rounded-lg" />
-            </div>
+          <div className="border border-[#ebeef3] dark:border-zinc-800 rounded-[28px] bg-white dark:bg-[#18181b] overflow-hidden shadow-xs p-8 space-y-4">
+            <Skeleton className="h-12 w-full rounded-[16px]" />
+            <Skeleton className="h-16 w-full rounded-[16px]" />
+            <Skeleton className="h-16 w-full rounded-[16px]" />
           </div>
         ) : filteredVacancies.length === 0 ? (
-          <div className="text-center py-20 text-fiord-400 dark:text-fiord-500 border border-dashed border-fiord-200 dark:border-fiord-800 rounded-[28px] bg-white dark:bg-[#202023]/20 shadow-xs">
-            <Briefcase className="size-12 stroke-[1.2] mx-auto mb-3 text-fiord-300 dark:text-fiord-600" />
-            <p className="text-sm font-bold text-fiord-900 dark:text-fiord-100">No se encontraron vacantes</p>
-            <p className="text-xs mt-1 max-w-[280px] mx-auto leading-relaxed text-fiord-400">
-              No hay ofertas que coincidan con los filtros de búsqueda aplicados actualmente.
+          <div className="text-center py-10 sm:py-12 px-6 border-2 border-dashed border-[#d2dbe5] dark:border-zinc-800 rounded-[28px] bg-white dark:bg-[#18181b]/50 shadow-xs">
+            <Briefcase className="size-12 stroke-[1.4] mx-auto mb-3 text-[#5c7c9b]/60 dark:text-zinc-600" />
+            <p className="text-base sm:text-lg font-extrabold text-[#1f2732] dark:text-zinc-100">No se encontraron vacantes</p>
+            <p className="text-xs sm:text-sm font-medium mt-1 max-w-sm mx-auto leading-relaxed text-[#5c7c9b] dark:text-zinc-400">
+              No hay ofertas de empleo que coincidan con los filtros o la búsqueda aplicada actualmente.
             </p>
             {hasActiveFilters && (
               <Button
                 onClick={handleClearFilters}
-                className="mt-4 bg-fiord-950 dark:bg-fiord-50 hover:bg-fiord-900 dark:hover:bg-fiord-100 text-white dark:text-fiord-950 font-semibold text-xs px-4 py-2 rounded-xl border-none"
+                className="mt-5 bg-[#1f2732] dark:bg-zinc-100 hover:bg-[#253240] dark:hover:bg-zinc-200 text-white dark:text-zinc-900 font-extrabold text-xs sm:text-sm px-6 h-11 rounded-[14px] border-none cursor-pointer shadow-xs"
               >
                 Limpiar Filtros
               </Button>
@@ -604,41 +612,41 @@ export function VacanciesManager({ userId }: { userId: string }) {
                   <Card
                     key={vacancy.id}
                     className={cn(
-                      "bg-white dark:bg-[#202023] border-fiord-100/60 dark:border-fiord-800/40 rounded-[24px] p-5 flex flex-col justify-between h-[250px] shadow-sm relative group hover:border-fiord-200 dark:hover:border-fiord-700 transition-all duration-200",
+                      "bg-white dark:bg-[#18181b] border border-[#ebeef3] dark:border-zinc-800 rounded-[28px] p-6 flex flex-col justify-between h-[280px] shadow-xs relative group hover:border-[#1f2732]/30 dark:hover:border-zinc-700 transition-all duration-200",
                       !vacancy.is_active && "opacity-75"
                     )}
                   >
                     <div>
                       {/* Top Header Row of Card */}
                       <div className="flex justify-between items-start">
-                        <div className="size-10 rounded-xl bg-fiord-50 dark:bg-fiord-900/40 text-fiord-900 dark:text-fiord-100 flex items-center justify-center group-hover:scale-105 transition-transform">
-                          <Briefcase className="size-5" />
+                        <div className="size-12 rounded-[16px] bg-[#f5f7fa] dark:bg-zinc-900 text-[#1f2732] dark:text-zinc-100 flex items-center justify-center group-hover:scale-105 transition-transform">
+                          <Briefcase className="size-6 text-[#1f2732] dark:text-zinc-100" />
                         </div>
                         
                         <DropdownMenu>
                           <DropdownMenuTrigger asChild>
-                            <button className="text-fiord-400 hover:text-fiord-900 dark:hover:text-fiord-100 p-1">
-                              <MoreHorizontal className="size-4" />
+                            <button className="text-[#5c7c9b] hover:text-[#1f2732] dark:hover:text-zinc-100 p-2 cursor-pointer rounded-xl hover:bg-[#f5f7fa] dark:hover:bg-zinc-800">
+                              <MoreHorizontal className="size-5" />
                             </button>
                           </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end" className="rounded-xl border border-fiord-100/80 dark:border-fiord-800 bg-popover min-w-[140px] shadow-sm">
-                            <DropdownMenuItem asChild className="cursor-pointer text-xs font-semibold text-fiord-700 dark:text-fiord-350 rounded-lg hover:bg-muted py-2 gap-2">
+                          <DropdownMenuContent align="end" className="rounded-[18px] border border-[#ebeef3] dark:border-zinc-800 bg-popover min-w-[170px] shadow-lg p-2">
+                            <DropdownMenuItem asChild className="cursor-pointer text-xs sm:text-sm font-bold text-[#1f2732] dark:text-zinc-200 rounded-[12px] hover:bg-muted py-3 px-3 gap-3">
                               <Link href={`/dashboard/company/vacancies/${vacancy.id}`}>
-                                <Eye className="size-3.5 text-fiord-400" />
+                                <Eye className="size-4 text-[#5c7c9b]" />
                                 <span>Ver detalles</span>
                               </Link>
                             </DropdownMenuItem>
-                            <DropdownMenuItem asChild className="cursor-pointer text-xs font-semibold text-fiord-700 dark:text-fiord-350 rounded-lg hover:bg-muted py-2 gap-2">
+                            <DropdownMenuItem asChild className="cursor-pointer text-xs sm:text-sm font-bold text-[#1f2732] dark:text-zinc-200 rounded-[12px] hover:bg-muted py-3 px-3 gap-3">
                               <Link href={`/dashboard/company/vacancies/${vacancy.id}/edit`}>
-                                <Edit2 className="size-3.5 text-fiord-400" />
+                                <Edit2 className="size-4 text-[#5c7c9b]" />
                                 <span>Editar</span>
                               </Link>
                             </DropdownMenuItem>
                             <DropdownMenuItem
                               onSelect={() => setDeletingVacancyId(vacancy.id)}
-                              className="cursor-pointer text-xs font-semibold text-red-650 focus:text-red-750 dark:text-red-400 dark:focus:text-red-400 rounded-lg hover:bg-red-500/5 focus:bg-red-500/5 py-2 gap-2"
+                              className="cursor-pointer text-xs sm:text-sm font-bold text-rose-600 dark:text-rose-400 rounded-[12px] hover:bg-rose-500/10 focus:bg-rose-500/10 py-3 px-3 gap-3"
                             >
-                              <Trash2 className="size-3.5 text-red-500" />
+                              <Trash2 className="size-4 text-rose-500" />
                               <span>Eliminar</span>
                             </DropdownMenuItem>
                           </DropdownMenuContent>
@@ -647,27 +655,27 @@ export function VacanciesManager({ userId }: { userId: string }) {
 
                       {/* Title & Category info */}
                       <div className="mt-4 space-y-1">
-                        <h4 className="text-[14.5px] font-bold text-fiord-900 dark:text-fiord-50 line-clamp-1 leading-snug">
+                        <h4 className="text-[16px] sm:text-[17px] font-[800] text-[#1f2732] dark:text-zinc-100 line-clamp-1 leading-snug">
                           {vacancy.title}
                         </h4>
-                        <p className="text-[10px] text-fiord-450 dark:text-fiord-500 font-bold uppercase tracking-wider">
+                        <p className="text-[11px] text-[#5c7c9b] dark:text-zinc-400 font-extrabold uppercase tracking-wider">
                           {vacancy.category}
                         </p>
                       </div>
 
                       {/* Location badges */}
-                      <div className="mt-3.5 flex flex-wrap gap-1.5">
-                        <Badge className="bg-fiord-50 dark:bg-fiord-900/30 text-fiord-700 dark:text-fiord-300 hover:bg-fiord-100 border-none font-bold text-[9px] px-2.5 py-0.5 rounded-full flex items-center gap-0.5">
-                          <MapPin className="size-2.5" />
+                      <div className="mt-4 flex flex-wrap gap-2">
+                        <Badge className="bg-[#f5f7fa] dark:bg-zinc-900 text-[#1f2732] dark:text-zinc-200 hover:bg-[#eef2f6] border-none font-bold text-xs px-3 py-1 rounded-full flex items-center gap-1.5">
+                          <MapPin className="size-3.5 text-[#5c7c9b]" />
                           <span>{vacancy.zone || vacancy.location}</span>
                         </Badge>
                         <Badge 
                           onClick={() => handleToggleActive(vacancy.id, vacancy.is_active)}
                           className={cn(
-                            "border-none font-bold text-[9px] px-2.5 py-0.5 rounded-full cursor-pointer transition-opacity select-none",
+                            "border-none font-extrabold text-xs px-3 py-1 rounded-full cursor-pointer transition-opacity select-none",
                             vacancy.is_active
-                              ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/20"
-                              : "bg-fiord-50 text-fiord-500 dark:bg-fiord-900/40 dark:text-fiord-400 hover:opacity-80"
+                              ? "bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 hover:bg-emerald-500/20"
+                              : "bg-zinc-100 text-zinc-600 dark:bg-zinc-800 dark:text-zinc-400 hover:opacity-80"
                           )}
                         >
                           {vacancy.is_active ? "Activa" : "Pausada"}
@@ -676,15 +684,15 @@ export function VacanciesManager({ userId }: { userId: string }) {
                     </div>
 
                     {/* Bottom row of card */}
-                    <div className="flex items-center justify-between border-t border-fiord-100/50 dark:border-fiord-800/40 pt-3.5">
+                    <div className="flex items-center justify-between border-t border-[#ebeef3] dark:border-zinc-800 pt-4">
                       <div className="flex flex-col">
-                        <span className="text-[8px] uppercase tracking-wider font-bold text-fiord-400 dark:text-fiord-500">Sueldo</span>
-                        <span className="text-xs font-bold text-fiord-800 dark:text-fiord-200">
+                        <span className="text-[10px] uppercase tracking-wider font-extrabold text-[#5c7c9b]">Sueldo</span>
+                        <span className="text-sm sm:text-base font-[800] text-[#1f2732] dark:text-zinc-100">
                           {formatSalary(vacancy.salary_min, vacancy.salary_max)}
                         </span>
                       </div>
-                      <div className="flex items-center gap-1 text-[10px] text-fiord-400 dark:text-fiord-500 font-bold uppercase tracking-wider">
-                        <Calendar className="size-3" />
+                      <div className="flex items-center gap-1.5 text-xs text-[#5c7c9b] dark:text-zinc-400 font-semibold">
+                        <Calendar className="size-3.5" />
                         <span>{formatDate(vacancy.created_at)}</span>
                       </div>
                     </div>
@@ -701,19 +709,19 @@ export function VacanciesManager({ userId }: { userId: string }) {
         open={deletingVacancyId !== null}
         onOpenChange={(open) => !open && setDeletingVacancyId(null)}
       >
-        <AlertDialogContent className="rounded-2xl border-fiord-100 dark:border-fiord-800">
+        <AlertDialogContent className="rounded-[28px] border border-[#ebeef3] dark:border-zinc-800 p-7">
           <AlertDialogHeader>
-            <AlertDialogTitle className="text-base font-bold text-fiord-900 dark:text-fiord-50">
+            <AlertDialogTitle className="text-lg font-extrabold text-[#1f2732] dark:text-zinc-100">
               ¿Estás seguro de que deseas eliminar esta vacante?
             </AlertDialogTitle>
-            <AlertDialogDescription className="text-xs font-semibold text-fiord-500 dark:text-fiord-400 leading-relaxed">
+            <AlertDialogDescription className="text-xs sm:text-sm font-semibold text-[#5c7c9b] dark:text-zinc-400 leading-relaxed mt-2">
               Esta acción es permanente y no se podrá deshacer. Los candidatos ya no podrán postularse ni ver esta oferta.
             </AlertDialogDescription>
           </AlertDialogHeader>
-          <AlertDialogFooter className="gap-2">
+          <AlertDialogFooter className="gap-3 mt-4">
             <AlertDialogCancel 
               onClick={() => setDeletingVacancyId(null)}
-              className="rounded-xl font-bold text-xs h-10"
+              className="rounded-[16px] font-bold text-xs sm:text-sm h-12 px-6"
             >
               Cancelar
             </AlertDialogCancel>
@@ -723,7 +731,7 @@ export function VacanciesManager({ userId }: { userId: string }) {
                   confirmDeleteVacancy(deletingVacancyId);
                 }
               }}
-              className="rounded-xl font-bold text-xs h-10 bg-red-600 hover:bg-red-700 text-white border-none"
+              className="rounded-[16px] font-extrabold text-xs sm:text-sm h-12 px-6 bg-rose-600 hover:bg-rose-700 text-white border-none"
             >
               Eliminar
             </AlertDialogAction>

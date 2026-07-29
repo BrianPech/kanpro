@@ -77,27 +77,27 @@ export function VacanciesTable({
         header: ({ column }) => (
           <button
             type="button"
-            className="flex items-center gap-1.5 font-extrabold text-xs uppercase tracking-wider text-fiord-600 dark:text-fiord-300 hover:text-fiord-900 dark:hover:text-fiord-100 transition-colors cursor-pointer select-none"
+            className="flex items-center gap-2 font-[800] text-xs sm:text-[13px] uppercase tracking-wider text-[#1f2732] dark:text-zinc-200 hover:text-black dark:hover:text-white transition-colors cursor-pointer select-none"
             onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
           >
             <span>Puesto / Categoría</span>
             {column.getIsSorted() === "asc" ? (
-              <ArrowUp className="size-3.5 text-fiord-900 dark:text-fiord-100" />
+              <ArrowUp className="size-4 text-[#1f2732] dark:text-zinc-100" />
             ) : column.getIsSorted() === "desc" ? (
-              <ArrowDown className="size-3.5 text-fiord-900 dark:text-fiord-100" />
+              <ArrowDown className="size-4 text-[#1f2732] dark:text-zinc-100" />
             ) : (
-              <ArrowUpDown className="size-3.5 opacity-40" />
+              <ArrowUpDown className="size-4 text-[#5c7c9b]/60" />
             )}
           </button>
         ),
         cell: ({ row }) => {
           const vacancy = row.original;
           return (
-            <div className="flex flex-col gap-0.5 py-1">
-              <span className="font-bold text-[14px] sm:text-[15px] text-fiord-900 dark:text-fiord-50">
+            <div className="flex flex-col gap-1 py-1">
+              <span className="font-[800] text-[15px] sm:text-[16px] text-[#1f2732] dark:text-zinc-100 leading-snug">
                 {vacancy.title}
               </span>
-              <span className="text-[11px] text-[#5c7c9b] dark:text-fiord-400 font-bold uppercase tracking-wider">
+              <span className="text-[11px] sm:text-[12px] text-[#5c7c9b] dark:text-zinc-400 font-extrabold uppercase tracking-wider">
                 {vacancy.category || "General"}
               </span>
             </div>
@@ -109,23 +109,23 @@ export function VacanciesTable({
         header: ({ column }) => (
           <button
             type="button"
-            className="flex items-center gap-1.5 font-extrabold text-xs uppercase tracking-wider text-fiord-600 dark:text-fiord-300 hover:text-fiord-900 dark:hover:text-fiord-100 transition-colors cursor-pointer select-none"
+            className="flex items-center gap-2 font-[800] text-xs sm:text-[13px] uppercase tracking-wider text-[#1f2732] dark:text-zinc-200 hover:text-black dark:hover:text-white transition-colors cursor-pointer select-none"
             onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
           >
             <span>Ubicación / Zona</span>
             {column.getIsSorted() === "asc" ? (
-              <ArrowUp className="size-3.5 text-fiord-900 dark:text-fiord-100" />
+              <ArrowUp className="size-4 text-[#1f2732] dark:text-zinc-100" />
             ) : column.getIsSorted() === "desc" ? (
-              <ArrowDown className="size-3.5 text-fiord-900 dark:text-fiord-100" />
+              <ArrowDown className="size-4 text-[#1f2732] dark:text-zinc-100" />
             ) : (
-              <ArrowUpDown className="size-3.5 opacity-40" />
+              <ArrowUpDown className="size-4 text-[#5c7c9b]/60" />
             )}
           </button>
         ),
         cell: ({ row }) => {
           const vacancy = row.original;
           return (
-            <div className="flex items-center gap-1.5 text-xs sm:text-sm font-semibold text-fiord-700 dark:text-fiord-300 py-1">
+            <div className="flex items-center gap-2 text-xs sm:text-sm font-semibold text-[#1f2732] dark:text-zinc-200 py-1">
               <MapPin className="size-4 text-[#5c7c9b] shrink-0" />
               <span>{vacancy.zone || vacancy.location || "No especificada"}</span>
             </div>
@@ -137,23 +137,23 @@ export function VacanciesTable({
         header: ({ column }) => (
           <button
             type="button"
-            className="flex items-center gap-1.5 font-extrabold text-xs uppercase tracking-wider text-fiord-600 dark:text-fiord-300 hover:text-fiord-900 dark:hover:text-fiord-100 transition-colors cursor-pointer select-none"
+            className="flex items-center gap-2 font-[800] text-xs sm:text-[13px] uppercase tracking-wider text-[#1f2732] dark:text-zinc-200 hover:text-black dark:hover:text-white transition-colors cursor-pointer select-none"
             onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
           >
             <span>Sueldo Ofrecido</span>
             {column.getIsSorted() === "asc" ? (
-              <ArrowUp className="size-3.5 text-fiord-900 dark:text-fiord-100" />
+              <ArrowUp className="size-4 text-[#1f2732] dark:text-zinc-100" />
             ) : column.getIsSorted() === "desc" ? (
-              <ArrowDown className="size-3.5 text-fiord-900 dark:text-fiord-100" />
+              <ArrowDown className="size-4 text-[#1f2732] dark:text-zinc-100" />
             ) : (
-              <ArrowUpDown className="size-3.5 opacity-40" />
+              <ArrowUpDown className="size-4 text-[#5c7c9b]/60" />
             )}
           </button>
         ),
         cell: ({ row }) => {
           const vacancy = row.original;
           return (
-            <span className="font-extrabold text-xs sm:text-sm text-fiord-900 dark:text-fiord-100 py-1 block">
+            <span className="font-[800] text-xs sm:text-sm text-[#1f2732] dark:text-zinc-100 py-1 block">
               {formatSalary(vacancy.salary_min, vacancy.salary_max)}
             </span>
           );
@@ -164,16 +164,16 @@ export function VacanciesTable({
         header: ({ column }) => (
           <button
             type="button"
-            className="flex items-center gap-1.5 font-extrabold text-xs uppercase tracking-wider text-fiord-600 dark:text-fiord-300 hover:text-fiord-900 dark:hover:text-fiord-100 transition-colors cursor-pointer select-none"
+            className="flex items-center gap-2 font-[800] text-xs sm:text-[13px] uppercase tracking-wider text-[#1f2732] dark:text-zinc-200 hover:text-black dark:hover:text-white transition-colors cursor-pointer select-none"
             onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
           >
             <span>Estado</span>
             {column.getIsSorted() === "asc" ? (
-              <ArrowUp className="size-3.5 text-fiord-900 dark:text-fiord-100" />
+              <ArrowUp className="size-4 text-[#1f2732] dark:text-zinc-100" />
             ) : column.getIsSorted() === "desc" ? (
-              <ArrowDown className="size-3.5 text-fiord-900 dark:text-fiord-100" />
+              <ArrowDown className="size-4 text-[#1f2732] dark:text-zinc-100" />
             ) : (
-              <ArrowUpDown className="size-3.5 opacity-40" />
+              <ArrowUpDown className="size-4 text-[#5c7c9b]/60" />
             )}
           </button>
         ),
@@ -184,10 +184,10 @@ export function VacanciesTable({
               variant="secondary"
               onClick={() => onToggleActive(vacancy.id, vacancy.is_active)}
               className={cn(
-                "text-[10px] sm:text-[11px] font-extrabold tracking-wider uppercase px-3 py-1 flex items-center w-fit border cursor-pointer hover:opacity-85 select-none rounded-full transition-all",
+                "text-[11px] sm:text-[12px] font-extrabold tracking-wider uppercase px-3.5 py-1.5 flex items-center w-fit border cursor-pointer hover:opacity-85 select-none rounded-full transition-all",
                 vacancy.is_active
-                  ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/30"
-                  : "bg-fiord-50 text-fiord-500 border-fiord-100 dark:bg-fiord-900/40 dark:text-fiord-400 dark:border-fiord-800"
+                  ? "bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border-emerald-500/30"
+                  : "bg-zinc-100 text-zinc-600 border-zinc-200 dark:bg-zinc-800 dark:text-zinc-400 dark:border-zinc-700"
               )}
             >
               {vacancy.is_active ? "Activa" : "Pausada"}
@@ -200,23 +200,23 @@ export function VacanciesTable({
         header: ({ column }) => (
           <button
             type="button"
-            className="flex items-center gap-1.5 font-extrabold text-xs uppercase tracking-wider text-fiord-600 dark:text-fiord-300 hover:text-fiord-900 dark:hover:text-fiord-100 transition-colors cursor-pointer select-none"
+            className="flex items-center gap-2 font-[800] text-xs sm:text-[13px] uppercase tracking-wider text-[#1f2732] dark:text-zinc-200 hover:text-black dark:hover:text-white transition-colors cursor-pointer select-none"
             onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
           >
             <span>Fecha</span>
             {column.getIsSorted() === "asc" ? (
-              <ArrowUp className="size-3.5 text-fiord-900 dark:text-fiord-100" />
+              <ArrowUp className="size-4 text-[#1f2732] dark:text-zinc-100" />
             ) : column.getIsSorted() === "desc" ? (
-              <ArrowDown className="size-3.5 text-fiord-900 dark:text-fiord-100" />
+              <ArrowDown className="size-4 text-[#1f2732] dark:text-zinc-100" />
             ) : (
-              <ArrowUpDown className="size-3.5 opacity-40" />
+              <ArrowUpDown className="size-4 text-[#5c7c9b]/60" />
             )}
           </button>
         ),
         cell: ({ row }) => {
           const vacancy = row.original;
           return (
-            <span className="text-xs sm:text-sm text-[#5c7c9b] dark:text-fiord-400 font-semibold py-1 block">
+            <span className="text-xs sm:text-sm text-[#5c7c9b] dark:text-zinc-400 font-semibold py-1 block">
               {formatDate(vacancy.created_at)}
             </span>
           );
@@ -234,19 +234,19 @@ export function VacanciesTable({
                   <Button
                     variant="ghost"
                     size="icon"
-                    className="h-10 w-10 p-0 rounded-xl border border-fiord-100/80 dark:border-fiord-800/80 hover:bg-fiord-50 dark:hover:bg-fiord-900/60 cursor-pointer"
+                    className="h-11 w-11 p-0 rounded-[14px] border border-[#d2dbe5] dark:border-zinc-800 bg-white dark:bg-zinc-900 hover:bg-[#f5f7fa] dark:hover:bg-zinc-800 transition-all cursor-pointer shadow-xs"
                   >
-                    <MoreHorizontal className="h-5 w-5 text-fiord-500" />
+                    <MoreHorizontal className="h-5 w-5 text-[#5c7c9b]" />
                   </Button>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="rounded-xl border border-fiord-100/80 dark:border-fiord-800 bg-popover min-w-[160px] shadow-md p-1.5">
-                  <DropdownMenuItem asChild className="cursor-pointer text-xs sm:text-sm font-bold text-fiord-700 dark:text-fiord-300 rounded-lg hover:bg-muted py-2.5 gap-2.5">
+                <DropdownMenuContent align="end" className="rounded-[18px] border border-[#ebeef3] dark:border-zinc-800 bg-popover min-w-[170px] shadow-lg p-2">
+                  <DropdownMenuItem asChild className="cursor-pointer text-xs sm:text-sm font-bold text-[#1f2732] dark:text-zinc-200 rounded-[12px] hover:bg-muted py-3 px-3 gap-3">
                     <Link href={`/dashboard/company/vacancies/${vacancy.id}`}>
                       <Eye className="size-4 text-[#5c7c9b]" />
                       <span>Ver detalles</span>
                     </Link>
                   </DropdownMenuItem>
-                  <DropdownMenuItem asChild className="cursor-pointer text-xs sm:text-sm font-bold text-fiord-700 dark:text-fiord-300 rounded-lg hover:bg-muted py-2.5 gap-2.5">
+                  <DropdownMenuItem asChild className="cursor-pointer text-xs sm:text-sm font-bold text-[#1f2732] dark:text-zinc-200 rounded-[12px] hover:bg-muted py-3 px-3 gap-3">
                     <Link href={`/dashboard/company/vacancies/${vacancy.id}/edit`}>
                       <Edit2 className="size-4 text-[#5c7c9b]" />
                       <span>Editar</span>
@@ -254,7 +254,7 @@ export function VacanciesTable({
                   </DropdownMenuItem>
                   <DropdownMenuItem
                     onSelect={() => onDeleteVacancy(vacancy.id)}
-                    className="cursor-pointer text-xs sm:text-sm font-bold text-rose-600 dark:text-rose-400 rounded-lg hover:bg-rose-500/10 focus:bg-rose-500/10 py-2.5 gap-2.5"
+                    className="cursor-pointer text-xs sm:text-sm font-bold text-rose-600 dark:text-rose-400 rounded-[12px] hover:bg-rose-500/10 focus:bg-rose-500/10 py-3 px-3 gap-3"
                   >
                     <Trash2 className="size-4 text-rose-500" />
                     <span>Eliminar</span>
@@ -287,16 +287,16 @@ export function VacanciesTable({
   });
 
   return (
-    <div className="border border-fiord-100 dark:border-fiord-800/80 rounded-[28px] bg-white dark:bg-[#202023] overflow-hidden shadow-xs space-y-0">
+    <div className="border border-[#ebeef3] dark:border-zinc-800 rounded-[28px] bg-white dark:bg-[#18181b] overflow-hidden shadow-xs">
       
       {/* Table Container */}
       <div className="overflow-x-auto">
         <Table>
-          <TableHeader className="bg-fiord-50/40 dark:bg-[#202023]/60 border-b border-fiord-100 dark:border-fiord-800/80">
+          <TableHeader className="bg-[#f5f7fa]/80 dark:bg-zinc-900/60 border-b border-[#ebeef3] dark:border-zinc-800">
             {table.getHeaderGroups().map((headerGroup) => (
               <TableRow key={headerGroup.id} className="hover:bg-transparent border-none">
                 {headerGroup.headers.map((header) => (
-                  <TableHead key={header.id} className="py-4.5 px-6">
+                  <TableHead key={header.id} className="py-5 px-6">
                     {header.isPlaceholder
                       ? null
                       : flexRender(header.column.columnDef.header, header.getContext())}
@@ -312,12 +312,12 @@ export function VacanciesTable({
                   key={row.id}
                   data-state={row.getIsSelected() && "selected"}
                   className={cn(
-                    "border-b border-fiord-100/50 dark:border-fiord-800/30 transition-colors hover:bg-fiord-50/20 dark:hover:bg-fiord-900/10 border-none",
+                    "border-b border-[#ebeef3]/60 dark:border-zinc-800/50 transition-colors hover:bg-[#f5f7fa]/60 dark:hover:bg-zinc-900/40",
                     !row.original.is_active && "opacity-75"
                   )}
                 >
                   {row.getVisibleCells().map((cell) => (
-                    <TableCell key={cell.id} className="px-6 py-3.5">
+                    <TableCell key={cell.id} className="px-6 py-4.5">
                       {flexRender(cell.column.columnDef.cell, cell.getContext())}
                     </TableCell>
                   ))}
@@ -325,8 +325,8 @@ export function VacanciesTable({
               ))
             ) : (
               <TableRow>
-                <TableCell colSpan={columns.length} className="h-24 text-center text-xs font-semibold text-fiord-400">
-                  No hay datos disponibles.
+                <TableCell colSpan={columns.length} className="h-32 text-center text-sm font-semibold text-[#5c7c9b]">
+                  No hay vacantes disponibles en esta lista.
                 </TableCell>
               </TableRow>
             )}
@@ -334,29 +334,29 @@ export function VacanciesTable({
         </Table>
       </div>
 
-      {/* TanStack Table Senior-Friendly Pagination Footer */}
-      <div className="flex flex-col sm:flex-row items-center justify-between gap-4 p-5 border-t border-fiord-100/60 dark:border-fiord-800/40 bg-fiord-50/30 dark:bg-fiord-900/10">
+      {/* Senior-Friendly Pagination Footer */}
+      <div className="flex flex-col sm:flex-row items-center justify-between gap-4 p-5 sm:p-6 border-t border-[#ebeef3] dark:border-zinc-800 bg-[#f5f7fa]/60 dark:bg-zinc-900/30">
         
         {/* Total info & Rows per page selector */}
         <div className="flex items-center gap-4">
-          <span className="text-xs sm:text-sm font-semibold text-fiord-600 dark:text-fiord-400">
-            Mostrando <span className="font-extrabold text-fiord-900 dark:text-fiord-100">{table.getRowModel().rows.length}</span> de <span className="font-extrabold text-fiord-900 dark:text-fiord-100">{data.length}</span> vacantes
+          <span className="text-xs sm:text-sm font-semibold text-[#1f2732] dark:text-zinc-200">
+            Mostrando <span className="font-[800] text-[#1f2732] dark:text-zinc-100">{table.getRowModel().rows.length}</span> de <span className="font-[800] text-[#1f2732] dark:text-zinc-100">{data.length}</span> vacantes
           </span>
 
           <div className="hidden sm:flex items-center gap-2">
-            <span className="text-xs font-semibold text-fiord-400">Por página:</span>
+            <span className="text-xs font-semibold text-[#5c7c9b]">Por página:</span>
             <Select
               value={`${table.getState().pagination.pageSize}`}
               onValueChange={(value) => {
                 table.setPageSize(Number(value));
               }}
             >
-              <SelectTrigger className="h-9 w-[70px] rounded-xl text-xs font-bold bg-white dark:bg-zinc-900 border-fiord-100 dark:border-fiord-800 cursor-pointer">
+              <SelectTrigger className="h-11 w-[80px] rounded-[14px] text-xs sm:text-sm font-bold bg-white dark:bg-zinc-900 border border-[#d2dbe5] dark:border-zinc-800 text-[#1f2732] dark:text-zinc-100 cursor-pointer">
                 <SelectValue placeholder={table.getState().pagination.pageSize} />
               </SelectTrigger>
-              <SelectContent className="rounded-xl border-fiord-100 dark:border-fiord-800">
+              <SelectContent className="rounded-[16px] border border-[#ebeef3] dark:border-zinc-800">
                 {[10, 20, 50].map((pageSize) => (
-                  <SelectItem key={pageSize} value={`${pageSize}`} className="text-xs font-bold cursor-pointer">
+                  <SelectItem key={pageSize} value={`${pageSize}`} className="text-xs sm:text-sm font-bold cursor-pointer">
                     {pageSize}
                   </SelectItem>
                 ))}
@@ -367,7 +367,7 @@ export function VacanciesTable({
 
         {/* Pagination Navigation Buttons */}
         <div className="flex items-center gap-2">
-          <span className="text-xs sm:text-sm font-bold text-fiord-700 dark:text-fiord-300 mr-2">
+          <span className="text-xs sm:text-sm font-extrabold text-[#1f2732] dark:text-zinc-200 mr-2">
             Página {table.getState().pagination.pageIndex + 1} de {table.getPageCount() || 1}
           </span>
 
@@ -376,9 +376,9 @@ export function VacanciesTable({
             size="icon"
             onClick={() => table.setPageIndex(0)}
             disabled={!table.getCanPreviousPage()}
-            className="h-10 w-10 rounded-xl border-fiord-100 dark:border-fiord-800 bg-white dark:bg-zinc-900 hover:bg-fiord-50 dark:hover:bg-fiord-800 text-fiord-700 dark:text-fiord-200 cursor-pointer disabled:opacity-40"
+            className="h-11 w-11 rounded-[14px] border border-[#d2dbe5] dark:border-zinc-800 bg-white dark:bg-zinc-900 hover:bg-[#f5f7fa] dark:hover:bg-zinc-800 text-[#1f2732] dark:text-zinc-100 cursor-pointer disabled:opacity-40"
           >
-            <ChevronsLeft className="size-4" />
+            <ChevronsLeft className="size-4.5" />
           </Button>
 
           <Button
@@ -386,9 +386,9 @@ export function VacanciesTable({
             size="icon"
             onClick={() => table.previousPage()}
             disabled={!table.getCanPreviousPage()}
-            className="h-10 w-10 rounded-xl border-fiord-100 dark:border-fiord-800 bg-white dark:bg-zinc-900 hover:bg-fiord-50 dark:hover:bg-fiord-800 text-fiord-700 dark:text-fiord-200 cursor-pointer disabled:opacity-40"
+            className="h-11 w-11 rounded-[14px] border border-[#d2dbe5] dark:border-zinc-800 bg-white dark:bg-zinc-900 hover:bg-[#f5f7fa] dark:hover:bg-zinc-800 text-[#1f2732] dark:text-zinc-100 cursor-pointer disabled:opacity-40"
           >
-            <ChevronLeft className="size-4" />
+            <ChevronLeft className="size-4.5" />
           </Button>
 
           <Button
@@ -396,9 +396,9 @@ export function VacanciesTable({
             size="icon"
             onClick={() => table.nextPage()}
             disabled={!table.getCanNextPage()}
-            className="h-10 w-10 rounded-xl border-fiord-100 dark:border-fiord-800 bg-white dark:bg-zinc-900 hover:bg-fiord-50 dark:hover:bg-fiord-800 text-fiord-700 dark:text-fiord-200 cursor-pointer disabled:opacity-40"
+            className="h-11 w-11 rounded-[14px] border border-[#d2dbe5] dark:border-zinc-800 bg-white dark:bg-zinc-900 hover:bg-[#f5f7fa] dark:hover:bg-zinc-800 text-[#1f2732] dark:text-zinc-100 cursor-pointer disabled:opacity-40"
           >
-            <ChevronRight className="size-4" />
+            <ChevronRight className="size-4.5" />
           </Button>
 
           <Button
@@ -406,9 +406,9 @@ export function VacanciesTable({
             size="icon"
             onClick={() => table.setPageIndex(table.getPageCount() - 1)}
             disabled={!table.getCanNextPage()}
-            className="h-10 w-10 rounded-xl border-fiord-100 dark:border-fiord-800 bg-white dark:bg-zinc-900 hover:bg-fiord-50 dark:hover:bg-fiord-800 text-fiord-700 dark:text-fiord-200 cursor-pointer disabled:opacity-40"
+            className="h-11 w-11 rounded-[14px] border border-[#d2dbe5] dark:border-zinc-800 bg-white dark:bg-zinc-900 hover:bg-[#f5f7fa] dark:hover:bg-zinc-800 text-[#1f2732] dark:text-zinc-100 cursor-pointer disabled:opacity-40"
           >
-            <ChevronsRight className="size-4" />
+            <ChevronsRight className="size-4.5" />
           </Button>
         </div>
 
