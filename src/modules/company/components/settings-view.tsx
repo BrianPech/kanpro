@@ -91,9 +91,8 @@ interface CompanySettingsViewProps {
 }
 
 export function CompanySettingsView({ user, initialProfile, initialPauseState }: CompanySettingsViewProps) {
-  const { theme, setTheme } = useTheme()
   const [mounted, setMounted] = React.useState(false)
-  const [activeTab, setActiveTab] = React.useState<"appearance" | "account" | "location" | "recruitment" | "credits">("appearance")
+  const [activeTab, setActiveTab] = React.useState<"account" | "location" | "recruitment" | "credits">("account")
   
   // Location & Radar State for Company
   const [companyCity, setCompanyCity] = React.useState<string>("Mérida")
@@ -354,7 +353,6 @@ export function CompanySettingsView({ user, initialProfile, initialPauseState }:
 
   // Navigation tabs list cleanly separated into focused categories
   const tabsList = [
-    { id: "appearance", label: "Apariencia y Tema", icon: <Sun className="size-4" /> },
     { id: "account", label: "Cuenta y Seguridad", icon: <ShieldCheck className="size-4" /> },
     { id: "location", label: "Sede Corporativa (GPS)", icon: <MapPin className="size-4" /> },
     { id: "recruitment", label: "Control de Reclutamiento", icon: <Briefcase className="size-4" /> },
@@ -405,185 +403,6 @@ export function CompanySettingsView({ user, initialProfile, initialPauseState }:
       {/* 2. Main Content View Area */}
       <div className="flex-1 overflow-y-auto bg-card/10 p-6 md:p-10 lg:p-12">
         <div className="max-w-4xl mx-auto space-y-8 animate-in fade-in duration-300">
-          
-          {/* TAB 1: APARIENCIA Y TEMA */}
-          {activeTab === "appearance" && (
-            <div className="space-y-6">
-              <div className="flex flex-col gap-1 pb-2">
-                <h1 className="text-[22px] sm:text-[26px] font-[800] tracking-tight text-fiord-900 dark:text-fiord-50">
-                  Apariencia y Preferencias
-                </h1>
-                <p className="text-xs sm:text-sm text-fiord-500 dark:text-fiord-400 font-semibold">
-                  Personaliza el estilo visual e idioma de la plataforma K&apos;anPro.
-                </p>
-              </div>
-
-              {/* SECCIÓN 1: APARIENCIA VISUAL */}
-              <Card className="border-fiord-100 dark:border-fiord-800 bg-white dark:bg-fiord-900 rounded-2xl p-6 shadow-sm space-y-4">
-                <div className="flex items-center justify-between">
-                  <div className="space-y-0.5">
-                    <h3 className="text-sm font-bold text-fiord-900 dark:text-fiord-50 flex items-center gap-2">
-                      <Sun className="size-4 text-fiord-500" />
-                      Apariencia Visual
-                    </h3>
-                    <p className="text-[11px] text-fiord-400 dark:text-fiord-400 font-medium">
-                      Elige la paleta cromática con la que deseas trabajar.
-                    </p>
-                  </div>
-                  <Badge variant="outline" className="text-[10px] font-bold border-fiord-200 dark:border-fiord-700 text-fiord-600 dark:text-fiord-300">
-                    Tema
-                  </Badge>
-                </div>
-
-                {/* Minimalist & Modern Theme Selector */}
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-2">
-                  <button
-                    type="button"
-                    onClick={() => setTheme("light")}
-                    className={cn(
-                      "flex items-center justify-between p-4 rounded-xl border text-left transition-all duration-200 group select-none cursor-pointer",
-                      mounted && theme === "light"
-                        ? "border-fiord-900 dark:border-fiord-100 bg-fiord-50/70 dark:bg-fiord-800/80 shadow-xs"
-                        : "border-fiord-100 dark:border-fiord-800 bg-white dark:bg-fiord-900/50 hover:border-fiord-300 dark:hover:border-fiord-700"
-                    )}
-                  >
-                    <div className="flex items-center gap-3">
-                      <div className={cn(
-                        "size-9 rounded-lg flex items-center justify-center transition-colors",
-                        mounted && theme === "light"
-                          ? "bg-fiord-900 text-white dark:bg-fiord-100 dark:text-fiord-950"
-                          : "bg-fiord-50 dark:bg-fiord-800 text-fiord-600 dark:text-fiord-400"
-                      )}>
-                        <Sun className="size-4" />
-                      </div>
-                      <div>
-                        <span className="text-xs font-bold block text-fiord-900 dark:text-fiord-50">Claro</span>
-                        <span className="text-[10px] text-fiord-400 dark:text-fiord-400 font-medium">Estándar diurno</span>
-                      </div>
-                    </div>
-                    {mounted && theme === "light" && (
-                      <Check className="size-4 text-fiord-900 dark:text-fiord-50 shrink-0" />
-                    )}
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={() => setTheme("dark")}
-                    className={cn(
-                      "flex items-center justify-between p-4 rounded-xl border text-left transition-all duration-200 group select-none cursor-pointer",
-                      mounted && theme === "dark"
-                        ? "border-fiord-900 dark:border-fiord-100 bg-fiord-50/70 dark:bg-fiord-800/80 shadow-xs"
-                        : "border-fiord-100 dark:border-fiord-800 bg-white dark:bg-fiord-900/50 hover:border-fiord-300 dark:hover:border-fiord-700"
-                    )}
-                  >
-                    <div className="flex items-center gap-3">
-                      <div className={cn(
-                        "size-9 rounded-lg flex items-center justify-center transition-colors",
-                        mounted && theme === "dark"
-                          ? "bg-fiord-900 text-white dark:bg-fiord-100 dark:text-fiord-950"
-                          : "bg-fiord-50 dark:bg-fiord-800 text-fiord-600 dark:text-fiord-400"
-                      )}>
-                        <Moon className="size-4" />
-                      </div>
-                      <div>
-                        <span className="text-xs font-bold block text-fiord-900 dark:text-fiord-50">Oscuro</span>
-                        <span className="text-[10px] text-fiord-400 dark:text-fiord-400 font-medium">Para poca luz</span>
-                      </div>
-                    </div>
-                    {mounted && theme === "dark" && (
-                      <Check className="size-4 text-fiord-900 dark:text-fiord-50 shrink-0" />
-                    )}
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={() => setTheme("system")}
-                    className={cn(
-                      "flex items-center justify-between p-4 rounded-xl border text-left transition-all duration-200 group select-none cursor-pointer",
-                      mounted && theme === "system"
-                        ? "border-fiord-900 dark:border-fiord-100 bg-fiord-50/70 dark:bg-fiord-800/80 shadow-xs"
-                        : "border-fiord-100 dark:border-fiord-800 bg-white dark:bg-fiord-900/50 hover:border-fiord-300 dark:hover:border-fiord-700"
-                    )}
-                  >
-                    <div className="flex items-center gap-3">
-                      <div className={cn(
-                        "size-9 rounded-lg flex items-center justify-center transition-colors",
-                        mounted && theme === "system"
-                          ? "bg-fiord-900 text-white dark:bg-fiord-100 dark:text-fiord-950"
-                          : "bg-fiord-50 dark:bg-fiord-800 text-fiord-600 dark:text-fiord-400"
-                      )}>
-                        <Laptop className="size-4" />
-                      </div>
-                      <div>
-                        <span className="text-xs font-bold block text-fiord-900 dark:text-fiord-50">Sistema</span>
-                        <span className="text-[10px] text-fiord-400 dark:text-fiord-400 font-medium">Automático</span>
-                      </div>
-                    </div>
-                    {mounted && theme === "system" && (
-                      <Check className="size-4 text-fiord-900 dark:text-fiord-50 shrink-0" />
-                    )}
-                  </button>
-                </div>
-              </Card>
-
-              {/* SECCIÓN 2: IDIOMA Y REGIÓN */}
-              <Card className="border-fiord-100 dark:border-fiord-800 bg-white dark:bg-fiord-900 rounded-2xl p-6 shadow-sm space-y-4">
-                <div className="flex items-center justify-between">
-                  <div className="space-y-0.5">
-                    <h3 className="text-sm font-bold text-fiord-900 dark:text-fiord-50 flex items-center gap-2">
-                      <Languages className="size-4 text-fiord-500" />
-                      Idioma de Visualización
-                    </h3>
-                    <p className="text-[11px] text-fiord-400 dark:text-fiord-400 font-medium">
-                      Selecciona el idioma para el panel y notificaciones de tu empresa.
-                    </p>
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
-                  <button
-                    type="button"
-                    onClick={() => setLanguage("es")}
-                    className={cn(
-                      "flex items-center justify-between p-4 rounded-xl border text-left transition-all duration-200 select-none cursor-pointer",
-                      language === "es"
-                        ? "border-fiord-900 dark:border-fiord-100 bg-fiord-50/70 dark:bg-fiord-800/80 shadow-xs"
-                        : "border-fiord-100 dark:border-fiord-800 bg-white dark:bg-fiord-900/50 hover:border-fiord-300 dark:hover:border-fiord-700"
-                    )}
-                  >
-                    <div className="flex items-center gap-3">
-                      <span className="text-lg">🇲🇽</span>
-                      <div>
-                        <span className="text-xs font-bold block text-fiord-900 dark:text-fiord-50">Español (México)</span>
-                        <span className="text-[10px] text-fiord-400 dark:text-fiord-400 font-medium">Predeterminado</span>
-                      </div>
-                    </div>
-                    {language === "es" && <Check className="size-4 text-fiord-900 dark:text-fiord-50 shrink-0" />}
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={() => setLanguage("en")}
-                    className={cn(
-                      "flex items-center justify-between p-4 rounded-xl border text-left transition-all duration-200 select-none cursor-pointer",
-                      language === "en"
-                        ? "border-fiord-900 dark:border-fiord-100 bg-fiord-50/70 dark:bg-fiord-800/80 shadow-xs"
-                        : "border-fiord-100 dark:border-fiord-800 bg-white dark:bg-fiord-900/50 hover:border-fiord-300 dark:hover:border-fiord-700"
-                    )}
-                  >
-                    <div className="flex items-center gap-3">
-                      <span className="text-lg">🇺🇸</span>
-                      <div>
-                        <span className="text-xs font-bold block text-fiord-900 dark:text-fiord-50">English (US)</span>
-                        <span className="text-[10px] text-fiord-400 dark:text-fiord-400 font-medium">Disponible</span>
-                      </div>
-                    </div>
-                    {language === "en" && <Check className="size-4 text-fiord-900 dark:text-fiord-50 shrink-0" />}
-                  </button>
-                </div>
-              </Card>
-            </div>
-          )}
 
           {/* TAB 2: CUENTA Y SEGURIDAD */}
           {activeTab === "account" && (

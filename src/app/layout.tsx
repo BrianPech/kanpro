@@ -130,8 +130,9 @@ export default function RootLayout({
         <TooltipProvider delayDuration={0}>
           <ThemeProvider
             attribute="class"
-            defaultTheme="system"
-            enableSystem
+            defaultTheme="light"
+            forcedTheme="light"
+            enableSystem={false}
             disableTransitionOnChange
           >
             {children}

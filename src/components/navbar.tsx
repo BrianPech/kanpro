@@ -40,7 +40,6 @@ import {
 import { cn } from "@/lib/utils";
 
 export function Navbar() {
-  const { theme, setTheme } = useTheme();
   const [mounted, setMounted] = useState(false);
   const [openMobile, setOpenMobile] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
@@ -234,21 +233,8 @@ export function Navbar() {
           </nav>
         </div>
 
-        {/* Right Side: Theme, Auth Actions, Mobile Menu */}
+        {/* Right Side: Auth Actions, Mobile Menu */}
         <div className="flex items-center gap-3">
-
-          {/* Theme Switcher */}
-          {mounted && (
-            <Button
-              variant="ghost"
-              size="icon"
-              className="rounded-xl hover:bg-muted/50 shrink-0 text-muted-foreground hover:text-foreground cursor-pointer"
-              onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
-              aria-label="Alternar tema oscuro"
-            >
-              {theme === "dark" ? <Sun className="size-4.5" /> : <Moon className="size-4.5" />}
-            </Button>
-          )}
 
           {/* Desktop Auth Actions */}
           <div className="hidden lg:flex items-center gap-3">
@@ -334,20 +320,6 @@ export function Navbar() {
 
               {/* Mobile Auth actions */}
               <div className="space-y-3 pt-6 border-t border-border/50">
-                {mounted && (
-                  <div className="flex items-center justify-between px-3 py-2 rounded-xl bg-muted/40">
-                    <span className="text-xs font-medium text-muted-foreground">Modo Oscuro</span>
-                    <Button
-                      variant="ghost"
-                      size="icon-sm"
-                      className="rounded-lg hover:bg-muted/80 text-muted-foreground hover:text-foreground"
-                      onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
-                      aria-label="Alternar tema oscuro"
-                    >
-                      {theme === "dark" ? <Sun className="size-4" /> : <Moon className="size-4" />}
-                    </Button>
-                  </div>
-                )}
 
                 <Button variant="outline" className="w-full h-12 rounded-full justify-center font-semibold text-sm tracking-[0.24px]" asChild>
                   <Link href="/login" onClick={() => setOpenMobile(false)}>Iniciar Sesión</Link>
