@@ -363,36 +363,60 @@ export async function getCompanyProfileData() {
     phone: "",
     company_size: "",
     description: "",
-    logo_url: ""
+    logo_url: "",
+    banner_url: "",
+    instagram_url: "",
+    facebook_url: "",
+    address_details: "",
+    has_transport: false,
+    benefit_canteen: false,
+    benefit_tips: false,
+    benefit_imss: false,
+    benefit_uniforms: false,
+    benefit_growth: false,
+    operation_hours: ""
   }
 
   if (user) {
     const { data: baseProfile } = await supabase
       .from("profiles")
-      .select("full_name, location")
+      .select("full_name, location, avatar_url")
       .eq("id", user.id)
       .single();
 
-    const { data, error } = await supabase
-      .from("profiles_view")
-      .select("company_name, industry, website_or_linkedin, location, phone, company_size, company_description, logo_url")
+    const { data: companyData } = await supabase
+      .from("company_profiles")
+      .select("company_name, industry, website_url, contact_phone, company_size, description, logo_url, banner_url, fiscal_address, address_details, operation_hours, social_links")
       .eq("id", user.id)
-      .single();
+      .maybeSingle();
 
-    if (!error && data && data.company_name) {
+    if (companyData) {
+      const social = (companyData.social_links as any) || {};
       profile = {
-        company_name: data.company_name,
-        industry: data.industry || "",
-        website_or_linkedin: data.website_or_linkedin || "",
-        location: data.location || baseProfile?.location || "",
-        phone: data.phone || "",
-        company_size: data.company_size || "",
-        description: data.company_description || "",
-        logo_url: data.logo_url || ""
+        company_name: companyData.company_name || baseProfile?.full_name || "Empresa",
+        industry: companyData.industry || "",
+        website_or_linkedin: companyData.website_url || "",
+        location: companyData.fiscal_address || baseProfile?.location || "",
+        phone: companyData.contact_phone || "",
+        company_size: companyData.company_size || "",
+        description: companyData.description || "",
+        logo_url: companyData.logo_url || baseProfile?.avatar_url || "",
+        banner_url: companyData.banner_url || "",
+        instagram_url: social.instagram || "",
+        facebook_url: social.facebook || "",
+        address_details: companyData.address_details || "",
+        has_transport: !!social.has_transport,
+        benefit_canteen: !!social.benefit_canteen,
+        benefit_tips: !!social.benefit_tips,
+        benefit_imss: !!social.benefit_imss,
+        benefit_uniforms: !!social.benefit_uniforms,
+        benefit_growth: !!social.benefit_growth,
+        operation_hours: companyData.operation_hours || ""
       }
     } else {
       profile.company_name = baseProfile?.full_name || "Empresa";
       profile.location = baseProfile?.location || "";
+      profile.logo_url = baseProfile?.avatar_url || "";
     }
 
     return {

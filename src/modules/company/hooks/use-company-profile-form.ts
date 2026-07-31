@@ -46,9 +46,10 @@ export function useCompanyProfileForm(initialProfile: any, userId: string) {
       form.reset(values);
       router.refresh();
     } catch (error: any) {
-      console.error(error);
+      console.error("Error updating company profile:", error);
+      const errMsg = error?.message || error?.details || "No se pudo guardar el perfil de la empresa.";
       toast.error("Error al guardar el perfil", {
-        description: "No se pudo guardar el perfil de la empresa."
+        description: errMsg
       });
     } finally {
       setIsSaving(false);

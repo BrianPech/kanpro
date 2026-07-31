@@ -76,14 +76,24 @@ export function CandidateRadar() {
         setLoadingProfile(true);
         const { data: { user } } = await supabase.auth.getUser();
         if (user) {
-          const { data, error } = await supabase
-            .from("company_profiles")
-            .select("company_name, phone, logo_url, location")
+          const { data: baseProfile } = await supabase
+            .from("profiles")
+            .select("full_name, location")
             .eq("id", user.id)
             .single();
-          if (!error && data) {
-            setProfile(data);
-          }
+
+          const { data: compProfile } = await supabase
+            .from("company_profiles")
+            .select("company_name, contact_phone, fiscal_address, logo_url")
+            .eq("id", user.id)
+            .maybeSingle();
+
+          setProfile({
+            company_name: compProfile?.company_name || baseProfile?.full_name || "",
+            phone: compProfile?.contact_phone || "configurado",
+            location: compProfile?.fiscal_address || baseProfile?.location || "",
+            logo_url: compProfile?.logo_url || null,
+          });
         }
       } catch (err) {
         console.error("Error loading profile:", err);
@@ -96,13 +106,12 @@ export function CandidateRadar() {
 
   const isProfileIncomplete = React.useMemo(() => {
     if (loadingProfile) return false;
-    if (!profile) return true;
+    if (!profile) return false;
 
     const name = profile.company_name?.trim() || "";
-    const wp = profile.whatsapp_number?.trim() || profile.phone?.trim() || "";
-    const addr = profile.address?.trim() || profile.location?.trim() || "";
+    const addr = profile.location?.trim() || "";
 
-    return !name || !wp || !addr;
+    return !name || name === "Nueva Empresa" || !addr;
   }, [profile, loadingProfile]);
 
   React.useEffect(() => {

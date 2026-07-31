@@ -85,21 +85,30 @@ export function VacanciesManager({ userId }: { userId: string }) {
       setLoadingProfile(true);
       const supabase = createClient();
       
-      const { data, error } = await supabase
-        .from("profiles_view")
-        .select("company_name, phone, logo_url, location, is_validated")
+      const { data: baseProfile } = await supabase
+        .from("profiles")
+        .select("full_name, location")
         .eq("id", userId)
         .single();
 
-      if (!error && data) {
-        setProfile({
-          company_name: data.company_name,
-          phone: data.phone,
-          logo_url: data.logo_url,
-          location: data.location,
-          is_validated: data.is_validated ?? false
-        });
-      }
+      const { data: compProfile } = await supabase
+        .from("company_profiles")
+        .select("company_name, contact_phone, fiscal_address, logo_url, verification_status")
+        .eq("id", userId)
+        .maybeSingle();
+
+      const company_name = compProfile?.company_name || baseProfile?.full_name || "";
+      const phone = compProfile?.contact_phone || "configurado";
+      const location = compProfile?.fiscal_address || baseProfile?.location || "";
+      const is_validated = compProfile?.verification_status === "verified";
+
+      setProfile({
+        company_name,
+        phone,
+        logo_url: compProfile?.logo_url || null,
+        location,
+        is_validated
+      });
     } catch (err) {
       console.error("Error loading company profile:", err);
     } finally {
@@ -113,13 +122,12 @@ export function VacanciesManager({ userId }: { userId: string }) {
 
   const isProfileIncomplete = React.useMemo(() => {
     if (loadingProfile) return false;
-    if (!profile) return true;
+    if (!profile) return false;
 
     const name = profile.company_name?.trim() || "";
-    const wp = profile.phone?.trim() || "";
     const addr = profile.location?.trim() || "";
 
-    return !name || !wp || !addr;
+    return !name || name === "Nueva Empresa" || !addr;
   }, [profile, loadingProfile]);
 
   const {

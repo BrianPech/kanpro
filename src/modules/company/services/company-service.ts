@@ -63,33 +63,51 @@ export const companyService = {
 
     if (baseError) throw baseError;
 
-    // 3. Upsert into company_profiles extension table second (respecting FK constraints)
-    const { error: companyError } = await supabase
-      .from("company_profiles")
-      .upsert({
-        id: userId,
-        company_name: profile.company_name,
-        industry: profile.industry,
-        website_or_linkedin: profile.website || null,
-        logo_url: profile.logo_url || null,
-        description: profile.description || null,
-        phone: profile.phone || null,
-        company_size: profile.company_size || null,
-        banner_url: profile.banner_url || null,
-        instagram_url: profile.instagram_url || null,
-        facebook_url: profile.facebook_url || null,
-        address_details: profile.address_details || null,
+    // 3. Update company_profiles extension table (using update first, fallback to upsert)
+    const companyPayload = {
+      company_name: profile.company_name,
+      industry: profile.industry || "General",
+      fiscal_address: finalLocation || profile.address_details || "Mérida, Yucatán",
+      website_url: profile.website || null,
+      logo_url: profile.logo_url || null,
+      banner_url: profile.banner_url || null,
+      description: profile.description || null,
+      contact_phone: profile.phone || null,
+      company_size: profile.company_size || null,
+      address_details: profile.address_details || null,
+      operation_hours: profile.operation_hours || null,
+      social_links: {
+        instagram: profile.instagram_url || null,
+        facebook: profile.facebook_url || null,
         has_transport: profile.has_transport,
         benefit_canteen: profile.benefit_canteen,
         benefit_tips: profile.benefit_tips,
         benefit_imss: profile.benefit_imss,
         benefit_uniforms: profile.benefit_uniforms,
         benefit_growth: profile.benefit_growth,
-        operation_hours: profile.operation_hours || null,
-        updated_at: new Date().toISOString(),
-      });
+      },
+      updated_at: new Date().toISOString(),
+    };
 
-    if (companyError) throw companyError;
+    const { data: updatedRows, error: updateErr } = await supabase
+      .from("company_profiles")
+      .update(companyPayload)
+      .eq("id", userId)
+      .select("id");
+
+    if (updateErr) throw updateErr;
+
+    if (!updatedRows || updatedRows.length === 0) {
+      const { error: upsertErr } = await supabase
+        .from("company_profiles")
+        .upsert({
+          id: userId,
+          rfc: "XAXX010101000",
+          ...companyPayload,
+        });
+
+      if (upsertErr) throw upsertErr;
+    }
   },
 
   async getVacancies(companyId: string) {
