@@ -12,7 +12,7 @@ import {
   RotateCw, 
   SearchX, 
   WifiOff, 
-  Check, 
+  CheckCircle2, 
   ListX 
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -22,6 +22,9 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { createClient } from "@/lib/supabase/client";
+import { jobSearchService, matchFuzzy } from "../services/job-search";
+import { toast } from "sonner";
 
 export interface SearchVacancy {
   id: string;
@@ -33,6 +36,9 @@ export interface SearchVacancy {
   formattedSalary: string;
   isFeatured: boolean;
   category: string;
+  description?: string;
+  skills?: string[];
+  zone?: string;
 }
 
 interface JobSearchViewProps {
@@ -54,11 +60,15 @@ const RECOMMENDED_TAGS = [
 export function JobSearchView({ initialVacancies = [], onBack }: JobSearchViewProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const supabase = createClient();
 
   // Search input & filter state
   const [searchQuery, setSearchQuery] = React.useState<string>("");
   const [activeFilters, setActiveFilters] = React.useState<string[]>([]);
   const [savedJobIds, setSavedJobIds] = React.useState<Set<string>>(new Set());
+
+  // Dynamic vacancies state
+  const [vacancies, setVacancies] = React.useState<SearchVacancy[]>(initialVacancies);
 
   // UI state
   const [isLoading, setIsLoading] = React.useState<boolean>(false);
@@ -71,29 +81,144 @@ export function JobSearchView({ initialVacancies = [], onBack }: JobSearchViewPr
   React.useEffect(() => {
     const handler = setTimeout(() => {
       setDebouncedQuery(searchQuery);
-    }, 350);
+    }, 300);
     return () => clearTimeout(handler);
   }, [searchQuery]);
 
-  // Handle URL param default search
+  // Load saved vacancies from Supabase on mount
   React.useEffect(() => {
-    const initialJobId = searchParams.get("jobId");
-    if (initialJobId) {
-      // scroll or highlight logic if needed
-    }
-  }, [searchParams]);
+    async function loadSaved() {
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (user) {
+          const { data } = await supabase
+            .from("saved_vacancies")
+            .select("vacancy_id")
+            .eq("candidate_id", user.id);
 
-  // Toggle saved vacancy
-  const toggleBookmark = (id: string) => {
-    setSavedJobIds((prev) => {
-      const next = new Set(prev);
-      if (next.has(id)) {
-        next.delete(id);
-      } else {
-        next.add(id);
+          if (data) {
+            setSavedJobIds(new Set(data.map((r: any) => r.vacancy_id)));
+          }
+        }
+      } catch (err) {
+        console.error("Error loading saved vacancies:", err);
       }
-      return next;
+    }
+    loadSaved();
+  }, [supabase]);
+
+  // Perform dynamic search on Supabase whenever debouncedQuery or activeFilters change
+  React.useEffect(() => {
+    let active = true;
+
+    async function performSearch() {
+      // If search query and active filters are empty, reset to initialVacancies
+      if (!debouncedQuery.trim() && activeFilters.length === 0) {
+        if (active) {
+          setVacancies(initialVacancies);
+          setHasError(false);
+          setIsLoading(false);
+        }
+        return;
+      }
+
+      setIsLoading(true);
+      setHasError(false);
+
+      try {
+        const results = await jobSearchService.searchVacancies({
+          query: debouncedQuery,
+          activeFilters: activeFilters,
+        });
+
+        if (active) {
+          setVacancies(results);
+        }
+      } catch (err) {
+        console.error("Error performing live job search:", err);
+        if (active) setHasError(true);
+      } finally {
+        if (active) setIsLoading(false);
+      }
+    }
+
+    performSearch();
+
+    return () => {
+      active = false;
+    };
+  }, [debouncedQuery, activeFilters, initialVacancies]);
+
+  // Instant in-memory filter for current search query & active filters
+  const filteredVacancies = React.useMemo(() => {
+    return vacancies.filter((vac: any) => {
+      const searchableContent = [
+        vac.title,
+        vac.companyName,
+        vac.category,
+        vac.location,
+        vac.zone || "",
+        vac.employmentType,
+        vac.description || "",
+        ...(Array.isArray(vac.skills) ? vac.skills : [])
+      ].join(" ");
+
+      // Check text search input query
+      if (searchQuery.trim() && !matchFuzzy(searchableContent, searchQuery.trim())) {
+        return false;
+      }
+
+      // Check every active filter chip
+      for (const filterChip of activeFilters) {
+        if (filterChip.trim() && !matchFuzzy(searchableContent, filterChip.trim())) {
+          return false;
+        }
+      }
+
+      return true;
     });
+  }, [vacancies, searchQuery, activeFilters]);
+
+  // Toggle bookmark with database persistence
+  const toggleBookmark = async (vacancyId: string) => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        toast.error("Inicia sesión para guardar vacantes.");
+        return;
+      }
+
+      const isCurrentlySaved = savedJobIds.has(vacancyId);
+
+      setSavedJobIds((prev) => {
+        const next = new Set(prev);
+        if (isCurrentlySaved) next.delete(vacancyId);
+        else next.add(vacancyId);
+        return next;
+      });
+
+      if (isCurrentlySaved) {
+        await supabase
+          .from("saved_vacancies")
+          .delete()
+          .eq("candidate_id", user.id)
+          .eq("vacancy_id", vacancyId);
+
+        toast.info("Vacante eliminada de tus guardados");
+      } else {
+        await supabase
+          .from("saved_vacancies")
+          .insert({
+            candidate_id: user.id,
+            vacancy_id: vacancyId,
+          });
+
+        toast.success("¡Vacante guardada en tus favoritos!");
+      }
+    } catch (err) {
+      console.error("Error toggling bookmark:", err);
+      toast.error("Error al actualizar la lista de guardados");
+    }
   };
 
   // Add / remove filter chips
@@ -113,6 +238,7 @@ export function JobSearchView({ initialVacancies = [], onBack }: JobSearchViewPr
     setSearchQuery("");
     setDebouncedQuery("");
     setActiveFilters([]);
+    setVacancies(initialVacancies);
   };
 
   const handleBack = () => {
@@ -124,40 +250,15 @@ export function JobSearchView({ initialVacancies = [], onBack }: JobSearchViewPr
   };
 
   const hasSearched = React.useMemo(() => {
-    return debouncedQuery.trim().length > 0 || activeFilters.length > 0;
-  }, [debouncedQuery, activeFilters]);
-
-  // Filter vacancies matching query and active filters
-  const filteredVacancies = React.useMemo(() => {
-    return initialVacancies.filter((vac) => {
-      const q = debouncedQuery.toLowerCase().trim();
-      const matchesQuery = 
-        !q || 
-        vac.title.toLowerCase().includes(q) ||
-        vac.companyName.toLowerCase().includes(q) ||
-        vac.location.toLowerCase().includes(q) ||
-        vac.category.toLowerCase().includes(q);
-
-      const matchesFilters = activeFilters.every((filter) => {
-        const f = filter.toLowerCase();
-        return (
-          vac.location.toLowerCase().includes(f) ||
-          vac.employmentType.toLowerCase().includes(f) ||
-          vac.title.toLowerCase().includes(f) ||
-          vac.category.toLowerCase().includes(f)
-        );
-      });
-
-      return matchesQuery && matchesFilters;
-    });
-  }, [initialVacancies, debouncedQuery, activeFilters]);
+    return searchQuery.trim().length > 0 || activeFilters.length > 0;
+  }, [searchQuery, activeFilters]);
 
   return (
     <div className="flex-grow min-h-full bg-transparent dark:bg-zinc-950 px-6 sm:px-10 lg:px-14 pt-4 pb-28 md:pb-8 max-w-5xl mx-auto w-full animate-in fade-in duration-300">
       
       {/* 1. Header Search Bar Row */}
       <div className="flex items-center gap-3.5 py-2">
-        {/* Back Button Container (54x54, radius 18px, bg white) */}
+        {/* Back Button Container */}
         <button
           onClick={handleBack}
           aria-label="Regresar"
@@ -166,7 +267,7 @@ export function JobSearchView({ initialVacancies = [], onBack }: JobSearchViewPr
           <ArrowLeft className="w-[22px] h-[22px] stroke-[2.4]" />
         </button>
 
-        {/* Search Input Bar (h-54px, radius 27px, bg white) */}
+        {/* Search Input Bar */}
         <div className="flex-1 h-[54px] bg-white dark:bg-zinc-900 rounded-[27px] px-5 flex items-center gap-3 border border-[#ebeef3] dark:border-zinc-800 shadow-2xs focus-within:border-[#344558] dark:focus-within:border-zinc-400 transition-all">
           <Search className="w-5 h-5 text-[#7d99b3] dark:text-zinc-400 shrink-0" />
           <input
@@ -187,7 +288,7 @@ export function JobSearchView({ initialVacancies = [], onBack }: JobSearchViewPr
           )}
         </div>
 
-        {/* Filter Tune Button (54x54, radius 18px, bg white) */}
+        {/* Filter Tune Button */}
         <button
           onClick={() => setIsFilterOpen(true)}
           aria-label="Filtros"
@@ -242,7 +343,6 @@ export function JobSearchView({ initialVacancies = [], onBack }: JobSearchViewPr
               <button
                 key={tag}
                 onClick={() => {
-                  setSearchQuery(tag);
                   addFilter(tag);
                 }}
                 className="px-5 py-3 bg-white dark:bg-zinc-900 rounded-[22px] border border-[#ebeef3] dark:border-zinc-800 text-[14px] font-[700] text-[#344558] dark:text-zinc-200 hover:bg-[#ebeef3] dark:hover:bg-zinc-800 transition-all cursor-pointer active:scale-95 shadow-2xs"
@@ -255,10 +355,10 @@ export function JobSearchView({ initialVacancies = [], onBack }: JobSearchViewPr
       )}
 
       {/* 4. Results Counter Label */}
-      {!isLoading && !hasError && hasSearched && (
+      {!isLoading && !hasError && (
         <div className="pt-6 pb-2">
           <p className="text-[18px] sm:text-[20px] font-[800] tracking-[-0.3px] text-[#2f3c4b] dark:text-fiord-50">
-            {filteredVacancies.length} empleos encontrados
+            {filteredVacancies.length} {filteredVacancies.length === 1 ? "empleo encontrado" : "empleos encontrados"}
           </p>
         </div>
       )}
@@ -292,24 +392,26 @@ export function JobSearchView({ initialVacancies = [], onBack }: JobSearchViewPr
               Revisa tu conexión a internet o intenta nuevamente.
             </p>
             <Button
-              onClick={() => setIsLoading(false)}
+              onClick={() => {
+                setDebouncedQuery(searchQuery);
+              }}
               className="mt-2 bg-[#1f2732] hover:bg-[#2f3c4b] text-white rounded-[14px] text-sm font-bold px-6 py-3 flex items-center gap-2"
             >
               <RotateCw className="w-5 h-5" />
               Reintentar
             </Button>
           </div>
-        ) : filteredVacancies.length === 0 && hasSearched ? (
-          /* Empty Search Results Card matching exact Flutter Spec & Screenshot */
+        ) : filteredVacancies.length === 0 ? (
+          /* Empty Search Results Card */
           <div className="py-14 px-6 flex flex-col items-center justify-center text-center space-y-4">
             <div className="w-18 h-18 rounded-full bg-[#f5f7fa] dark:bg-zinc-900 flex items-center justify-center text-[#7d99b3] shrink-0">
               <SearchX className="w-9 h-9 stroke-[1.75]" />
             </div>
             
             <h3 className="text-[18px] font-bold text-[#1f2732] dark:text-zinc-100 max-w-sm leading-snug">
-              {debouncedQuery.trim()
-                ? `No encontramos vacantes para "${debouncedQuery}"`
-                : "No se encontraron vacantes"}
+              {searchQuery.trim()
+                ? `No encontramos vacantes para "${searchQuery}"`
+                : "No se encontraron vacantes que coincidan con los filtros"}
             </h3>
             <p className="text-[15px] text-[#5c7c9b] dark:text-zinc-400 max-w-sm leading-relaxed">
               Intenta buscar con palabras más generales o elimina algunos filtros aplicados.
@@ -338,7 +440,7 @@ export function JobSearchView({ initialVacancies = [], onBack }: JobSearchViewPr
                     className="p-5 sm:p-6 bg-[#2f3c4b] dark:bg-fiord-950 text-white rounded-[22px] flex items-center justify-between gap-4 shadow-[0_8px_16px_rgba(31,39,50,0.12)] hover:bg-[#253240] transition-all cursor-pointer"
                   >
                     {/* Left: Icon box */}
-                    <div className="w-14 h-14 rounded-[14px] bg-[#344558] flex items-center justify-center text-white shrink-0 font-bold text-sm">
+                    <div className="w-14 h-14 rounded-[14px] bg-[#344558] flex items-center justify-center text-white shrink-0 font-bold text-sm overflow-hidden">
                       {job.companyLogo ? (
                         <img src={job.companyLogo} alt={job.companyName} className="w-full h-full object-cover rounded-[14px]" />
                       ) : (
@@ -381,7 +483,7 @@ export function JobSearchView({ initialVacancies = [], onBack }: JobSearchViewPr
                   className="p-5 sm:p-6 bg-[#f5f7fa] dark:bg-zinc-900 border border-[#ebeef3] dark:border-zinc-800 rounded-[20px] flex items-center justify-between gap-4 shadow-2xs hover:bg-[#ebeef3]/60 dark:hover:bg-zinc-800/60 transition-all cursor-pointer"
                 >
                   {/* Left: Icon box */}
-                  <div className="w-14 h-14 rounded-[14px] bg-[#ebeef3] dark:bg-zinc-800 text-[#3e546d] dark:text-zinc-300 flex items-center justify-center shrink-0 font-bold text-sm">
+                  <div className="w-14 h-14 rounded-[14px] bg-[#ebeef3] dark:bg-zinc-800 text-[#3e546d] dark:text-zinc-300 flex items-center justify-center shrink-0 font-bold text-sm overflow-hidden">
                     {job.companyLogo ? (
                       <img src={job.companyLogo} alt={job.companyName} className="w-full h-full object-cover rounded-[14px]" />
                     ) : (

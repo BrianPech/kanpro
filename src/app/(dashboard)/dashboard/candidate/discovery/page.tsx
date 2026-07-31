@@ -23,7 +23,7 @@ export default async function CandidateDiscoveryRoute() {
       company_id,
       created_at
     `)
-    .eq("status", "Activa")
+    .or("status.eq.Activa,status.eq.activa,status.eq.published,is_active.eq.true")
     .order("created_at", { ascending: false });
 
   // 2. Fetch company profiles

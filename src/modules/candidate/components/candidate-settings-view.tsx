@@ -1,3 +1,5 @@
+"use client";
+
 import * as React from "react";
 import { useRouter } from "next/navigation";
 import { 
@@ -33,6 +35,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { createClient } from "@/lib/supabase/client";
 import { GEO_CONFIG, findNearestCityAndZone } from "@/config/geo";
+import { candidateProfileService } from "../services/candidate-profile";
 import { toast } from "sonner";
 
 export function CandidateSettingsView() {
@@ -46,7 +49,9 @@ export function CandidateSettingsView() {
   const [candidateBio, setCandidateBio] = React.useState<string>("");
   const [candidateSkills, setCandidateSkills] = React.useState<string[]>([]);
   const [hasAvatar, setHasAvatar] = React.useState<boolean>(false);
+  const [avatarUrl, setAvatarUrl] = React.useState<string | null>(null);
   const [savedCount, setSavedCount] = React.useState<number>(0);
+  const [isLoadingProfile, setIsLoadingProfile] = React.useState<boolean>(true);
 
   // Location & Radar States
   const [city, setCity] = React.useState<string>("Mérida");
@@ -59,26 +64,32 @@ export function CandidateSettingsView() {
   const [isLogoutOpen, setIsLogoutOpen] = React.useState<boolean>(false);
   const [isLoggingOut, setIsLoggingOut] = React.useState<boolean>(false);
 
-  // Fetch candidate profile from Supabase on mount
+  // Fetch candidate profile and saved jobs count securely & concurrently from Supabase on mount
   React.useEffect(() => {
     async function loadProfile() {
+      setIsLoadingProfile(true);
       try {
         const { data: { user } } = await supabase.auth.getUser();
         if (user) {
           setCandidateEmail(user.email || "candidato@kanpro.mx");
           
-          const { data: profile } = await supabase
-            .from("profiles")
-            .select("full_name, whatsapp_number, experience_summary, skills, avatar_url, location")
-            .eq("id", user.id)
-            .single();
+          // Optimized parallel query to database
+          const [profile, count] = await Promise.all([
+            candidateProfileService.getProfile(user.id),
+            candidateProfileService.getSavedVacanciesCount(user.id)
+          ]);
+
+          setSavedCount(count);
 
           if (profile) {
             if (profile.full_name) setCandidateName(profile.full_name);
             if (profile.whatsapp_number) setCandidatePhone(profile.whatsapp_number);
             if (profile.experience_summary) setCandidateBio(profile.experience_summary);
             if (profile.skills) setCandidateSkills(profile.skills);
-            if (profile.avatar_url) setHasAvatar(true);
+            if (profile.avatar_url) {
+              setHasAvatar(true);
+              setAvatarUrl(profile.avatar_url);
+            }
 
             if (profile.location && profile.location.includes(" - ")) {
               setLocationStatus(profile.location);
@@ -87,11 +98,16 @@ export function CandidateSettingsView() {
                 setCity(locCity);
                 setZone(locZone);
               }
+            } else if (profile.location) {
+              setLocationStatus(profile.location);
             }
           }
         }
       } catch (err) {
         console.error("Error loading candidate profile:", err);
+        toast.error("No se pudo cargar tu perfil desde la base de datos");
+      } finally {
+        setIsLoadingProfile(false);
       }
     }
 
@@ -141,27 +157,7 @@ export function CandidateSettingsView() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("Sesión no encontrada.");
 
-      const locationStr = `${city} - ${zone}`;
-
-      // Update Auth metadata
-      await supabase.auth.updateUser({
-        data: { location: locationStr, city, zone }
-      });
-
-      // Update base profiles
-      try {
-        await supabase
-          .from("profiles")
-          .update({ location: locationStr, updated_at: new Date().toISOString() })
-          .eq("id", user.id);
-      } catch (e) {}
-
-      // Update candidate profiles
-      try {
-        await supabase
-          .from("candidate_profiles")
-          .upsert({ id: user.id, preferred_zone: zone, updated_at: new Date().toISOString() });
-      } catch (e) {}
+      const locationStr = await candidateProfileService.updateLocation(user.id, city, zone);
 
       setLocationStatus(locationStr);
       toast.success("¡Ubicación guardada con éxito!", {
@@ -228,22 +224,37 @@ export function CandidateSettingsView() {
         </button>
       </div>
 
-      {/* 2. Card 1: User Summary (Public Profile Box) */}
-      <div className="p-5 sm:p-6 bg-white dark:bg-zinc-900 rounded-[22px] border border-[#ebeef3] dark:border-zinc-800 flex items-center gap-5 shadow-2xs">
-        <div className="w-[64px] h-[64px] rounded-full bg-[#ebeef3] dark:bg-zinc-800 flex items-center justify-center shrink-0">
-          <span className="text-[26px] font-[800] text-[#1f2732] dark:text-zinc-100">
-            {initialLetter}
-          </span>
+      {/* Loading Skeleton */}
+      {isLoadingProfile ? (
+        <div className="p-6 bg-white dark:bg-zinc-900 rounded-[22px] border border-[#ebeef3] dark:border-zinc-800 flex items-center gap-5 shadow-2xs animate-pulse">
+          <div className="w-[64px] h-[64px] rounded-full bg-zinc-200 dark:bg-zinc-800 shrink-0" />
+          <div className="flex-1 space-y-2">
+            <div className="h-5 w-44 bg-zinc-200 dark:bg-zinc-800 rounded-md" />
+            <div className="h-4 w-60 bg-zinc-200 dark:bg-zinc-800 rounded-md" />
+          </div>
         </div>
-        <div className="flex-1 min-w-0">
-          <h2 className="text-[18px] sm:text-[20px] font-bold text-[#1f2732] dark:text-zinc-100 tracking-[-0.3px] truncate">
-            {candidateName}
-          </h2>
-          <p className="text-[14px] sm:text-[15px] text-[#5c7c9b] dark:text-zinc-400 font-medium truncate mt-0.5">
-            {candidateEmail}
-          </p>
+      ) : (
+        /* 2. Card 1: User Summary (Public Profile Box) */
+        <div className="p-5 sm:p-6 bg-white dark:bg-zinc-900 rounded-[22px] border border-[#ebeef3] dark:border-zinc-800 flex items-center gap-5 shadow-2xs">
+          <div className="w-[64px] h-[64px] rounded-full bg-[#ebeef3] dark:bg-zinc-800 flex items-center justify-center shrink-0 overflow-hidden">
+            {avatarUrl ? (
+              <img src={avatarUrl} alt={candidateName} className="w-full h-full object-cover" />
+            ) : (
+              <span className="text-[26px] font-[800] text-[#1f2732] dark:text-zinc-100">
+                {initialLetter}
+              </span>
+            )}
+          </div>
+          <div className="flex-1 min-w-0">
+            <h2 className="text-[18px] sm:text-[20px] font-bold text-[#1f2732] dark:text-zinc-100 tracking-[-0.3px] truncate">
+              {candidateName}
+            </h2>
+            <p className="text-[14px] sm:text-[15px] text-[#5c7c9b] dark:text-zinc-400 font-medium truncate mt-0.5">
+              {candidateEmail}
+            </p>
+          </div>
         </div>
-      </div>
+      )}
 
       {/* 3. Card 2: Dynamic Profile Completion Callout Card */}
       <div className="p-6 bg-[#1f2732] dark:bg-fiord-950 rounded-[24px] text-white flex items-center justify-between gap-4 shadow-md">

@@ -8,6 +8,8 @@ import {
   Building2,
   Briefcase,
   Users,
+  UserCheck,
+  ShieldCheck,
 } from "lucide-react";
 import {
   Sidebar,
@@ -51,6 +53,11 @@ export function CompanySidebar() {
           url: "/dashboard/company/applications",
           icon: Users,
         },
+        {
+          title: "Empleados",
+          url: "/dashboard/company/employees",
+          icon: UserCheck,
+        },
       ],
     },
     {
@@ -60,6 +67,11 @@ export function CompanySidebar() {
           title: "Perfil",
           url: "/dashboard/company/profile",
           icon: Building2,
+        },
+        {
+          title: "Verificación",
+          url: "/dashboard/company/verification",
+          icon: ShieldCheck,
         },
       ],
     },

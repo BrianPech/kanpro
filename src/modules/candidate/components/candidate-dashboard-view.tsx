@@ -9,6 +9,8 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { CandidateDashboardData } from "../services/candidate-dashboard";
+import { createClient } from "@/lib/supabase/client";
+import { toast } from "sonner";
 
 interface CandidateDashboardViewProps {
   initialData: CandidateDashboardData;
@@ -16,21 +18,74 @@ interface CandidateDashboardViewProps {
 
 export function CandidateDashboardView({ initialData }: CandidateDashboardViewProps) {
   const { profile, featuredVacancies = [], nearbyVacancies = [] } = initialData;
-  
-  // Saved Job IDs State
+  const supabase = createClient();
+
+  // Saved Job IDs State with Supabase sync
   const [savedJobIds, setSavedJobIds] = React.useState<Set<string>>(new Set());
 
-  // Toggle bookmark / saved job
-  const toggleBookmark = (id: string) => {
-    setSavedJobIds((prev) => {
-      const next = new Set(prev);
-      if (next.has(id)) {
-        next.delete(id);
-      } else {
-        next.add(id);
+  // Fetch initial saved jobs on mount
+  React.useEffect(() => {
+    async function loadSavedJobs() {
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (user) {
+          const { data } = await supabase
+            .from("saved_vacancies")
+            .select("vacancy_id")
+            .eq("candidate_id", user.id);
+          
+          if (data) {
+            setSavedJobIds(new Set(data.map((row: any) => row.vacancy_id)));
+          }
+        }
+      } catch (err) {
+        console.error("Error loading candidate saved vacancies:", err);
       }
-      return next;
-    });
+    }
+    loadSavedJobs();
+  }, [supabase]);
+
+  // Toggle bookmark / saved job with database persistence
+  const toggleBookmark = async (vacancyId: string) => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        toast.error("Inicia sesión para guardar vacantes.");
+        return;
+      }
+
+      const isCurrentlySaved = savedJobIds.has(vacancyId);
+
+      // Optimistic state update
+      setSavedJobIds((prev) => {
+        const next = new Set(prev);
+        if (isCurrentlySaved) next.delete(vacancyId);
+        else next.add(vacancyId);
+        return next;
+      });
+
+      if (isCurrentlySaved) {
+        await supabase
+          .from("saved_vacancies")
+          .delete()
+          .eq("candidate_id", user.id)
+          .eq("vacancy_id", vacancyId);
+
+        toast.info("Vacante eliminada de guardados");
+      } else {
+        await supabase
+          .from("saved_vacancies")
+          .insert({
+            candidate_id: user.id,
+            vacancy_id: vacancyId
+          });
+
+        toast.success("¡Vacante guardada en tus favoritos!");
+      }
+    } catch (err) {
+      console.error("Error toggling bookmark:", err);
+      toast.error("Error al actualizar la lista de guardados");
+    }
   };
 
   const firstName = profile?.full_name ? profile.full_name.trim().split(" ")[0] : "Candidato";
@@ -54,7 +109,7 @@ export function CandidateDashboardView({ initialData }: CandidateDashboardViewPr
             </p>
           </div>
 
-          {/* Circular Notification Button (Only visible on mobile, since Topbar handles it on desktop) */}
+          {/* Circular Notification Button (Only visible on mobile) */}
           <Link href="/dashboard/candidate/notifications" className="shrink-0 md:hidden">
             <div aria-label="Notificaciones" className="relative cursor-pointer group">
               <div className="w-[50px] h-[50px] bg-white dark:bg-zinc-900 rounded-full border-[1.5px] border-[#ebeef3] dark:border-zinc-800 flex items-center justify-center transition-all group-active:scale-95 shadow-2xs">
@@ -93,7 +148,7 @@ export function CandidateDashboardView({ initialData }: CandidateDashboardViewPr
                 {/* Top Row: Company logo/icon, details and bookmark icon */}
                 <div className="flex items-start justify-between gap-3">
                   <div className="flex items-start gap-3.5 min-w-0">
-                    <div className="w-12 h-12 rounded-[14px] bg-[#344558] flex items-center justify-center text-white shrink-0 font-bold text-sm">
+                    <div className="w-12 h-12 rounded-[14px] bg-[#344558] flex items-center justify-center text-white shrink-0 font-bold text-sm overflow-hidden">
                       {job.companyLogo ? (
                         <img src={job.companyLogo} alt={job.companyName} className="w-full h-full object-cover rounded-[14px]" />
                       ) : (
@@ -130,7 +185,7 @@ export function CandidateDashboardView({ initialData }: CandidateDashboardViewPr
             ))}
           </div>
         ) : (
-          /* Empty Featured Card matching Flutter Spec */
+          /* Empty Featured Card */
           <div className="w-full bg-[#2f3c4b] dark:bg-fiord-950 text-white rounded-[24px] p-8 flex flex-col items-center justify-center text-center min-h-[180px] shadow-sm">
             <div className="w-12 h-12 rounded-full bg-white/10 flex items-center justify-center mb-3">
               <svg viewBox="0 0 24 24" className="w-7 h-7 fill-[#aabccf] text-[#aabccf]">
@@ -159,7 +214,7 @@ export function CandidateDashboardView({ initialData }: CandidateDashboardViewPr
                 className="bg-[#f5f7fa] dark:bg-zinc-900 border border-[#ebeef3] dark:border-zinc-800 rounded-[20px] p-5 flex items-center justify-between gap-4 shadow-2xs hover:bg-[#ebeef3]/60 dark:hover:bg-zinc-800/60 transition-all cursor-pointer"
               >
                 {/* Left: Company Icon container */}
-                <div className="w-14 h-14 rounded-[14px] bg-[#ebeef3] dark:bg-zinc-800 text-[#3e546d] dark:text-zinc-300 flex items-center justify-center shrink-0 font-bold text-sm">
+                <div className="w-14 h-14 rounded-[14px] bg-[#ebeef3] dark:bg-zinc-800 text-[#3e546d] dark:text-zinc-300 flex items-center justify-center shrink-0 font-bold text-sm overflow-hidden">
                   {job.companyLogo ? (
                     <img src={job.companyLogo} alt={job.companyName} className="w-full h-full object-cover rounded-[14px]" />
                   ) : (
@@ -189,7 +244,7 @@ export function CandidateDashboardView({ initialData }: CandidateDashboardViewPr
               </div>
             ))}
 
-            {/* End of list indicator matching Flutter */}
+            {/* End of list indicator */}
             <div className="py-8 flex flex-col items-center justify-center text-center space-y-2">
               <CheckCircle2 className="w-6 h-6 text-[#aabccf]" />
               <span className="text-[14px] sm:text-[15px] font-bold text-[#7d99b3] tracking-[-0.2px]">
@@ -198,7 +253,7 @@ export function CandidateDashboardView({ initialData }: CandidateDashboardViewPr
             </div>
           </div>
         ) : (
-          /* Empty Nearby Card matching Flutter Spec */
+          /* Empty Nearby Card */
           <div className="w-full bg-[#f5f7fa] dark:bg-zinc-900 border border-[#ebeef3] dark:border-zinc-800 rounded-[24px] p-8 sm:p-10 flex flex-col items-center justify-center text-center shadow-2xs">
             <div className="mb-4 text-[#7d99b3]">
               <svg viewBox="0 0 24 24" className="w-11 h-11 stroke-current fill-none stroke-[1.75]">

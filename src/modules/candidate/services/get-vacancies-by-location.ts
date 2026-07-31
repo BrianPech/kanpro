@@ -31,7 +31,7 @@ export async function getVacanciesByLocation(
   let query = supabase
     .from("vacancies")
     .select("id, title, location, modality, salary_min, salary_max, employment_type, category, seniority, skills, created_at, description, benefits, status, company_id")
-    .eq("status", "Activa");
+    .or("status.eq.Activa,status.eq.activa,status.eq.published,is_active.eq.true");
 
   if (searchQuery) {
     const term = `%${searchQuery}%`;
@@ -67,7 +67,7 @@ export async function getVacanciesByLocation(
   if (companyIds.length > 0) {
     const { data: companyProfiles } = await supabase
       .from("company_profiles")
-      .select("id, company_name, logo_url, phone")
+      .select("id, company_name, logo_url, contact_phone")
       .in("id", companyIds);
 
     if (companyProfiles) {
@@ -75,7 +75,7 @@ export async function getVacanciesByLocation(
         companies[comp.id] = {
           name: comp.company_name || "Empresa",
           logo: comp.logo_url || null,
-          phone: comp.phone || null,
+          phone: comp.contact_phone || null,
         };
       });
     }

@@ -17,6 +17,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { createClient } from "@/lib/supabase/client";
+import { candidateProfileService } from "../services/candidate-profile";
 import {
   Dialog,
   DialogContent,
@@ -24,6 +25,7 @@ import {
   DialogTitle,
   DialogFooter,
 } from "@/components/ui/dialog";
+import { toast } from "sonner";
 
 interface EditPublicProfileViewProps {
   onBack?: () => void;
@@ -41,9 +43,10 @@ export function EditPublicProfileView({ onBack }: EditPublicProfileViewProps) {
   const [hasCustomAvatar, setHasCustomAvatar] = React.useState<boolean>(false);
   const [avatarUrl, setAvatarUrl] = React.useState<string | null>(null);
 
-  // Error messages
+  // Error messages & Loading
   const [nameError, setNameError] = React.useState<string>("");
   const [phoneError, setPhoneError] = React.useState<string>("");
+  const [isLoading, setIsLoading] = React.useState<boolean>(true);
   const [isSaving, setIsSaving] = React.useState<boolean>(false);
   const [toastMessage, setToastMessage] = React.useState<string | null>(null);
 
@@ -52,17 +55,14 @@ export function EditPublicProfileView({ onBack }: EditPublicProfileViewProps) {
   const [isAddSkillOpen, setIsAddSkillOpen] = React.useState<boolean>(false);
   const [newSkillText, setNewSkillText] = React.useState<string>("");
 
-  // Load existing candidate profile from Supabase
+  // Load existing candidate profile securely from Supabase using candidateProfileService
   React.useEffect(() => {
     async function loadData() {
+      setIsLoading(true);
       try {
         const { data: { user } } = await supabase.auth.getUser();
         if (user) {
-          const { data: profile } = await supabase
-            .from("profiles")
-            .select("full_name, whatsapp_number, experience_summary, skills, avatar_url")
-            .eq("id", user.id)
-            .single();
+          const profile = await candidateProfileService.getProfile(user.id);
 
           if (profile) {
             setName(profile.full_name || "");
@@ -76,7 +76,10 @@ export function EditPublicProfileView({ onBack }: EditPublicProfileViewProps) {
           }
         }
       } catch (err) {
-        console.error("Error loading profile:", err);
+        console.error("Error loading candidate profile for edit:", err);
+        toast.error("Error al cargar los datos del perfil");
+      } finally {
+        setIsLoading(false);
       }
     }
     loadData();
@@ -148,18 +151,18 @@ export function EditPublicProfileView({ onBack }: EditPublicProfileViewProps) {
     setIsSaving(true);
     try {
       const { data: { user } } = await supabase.auth.getUser();
-      if (user) {
-        await supabase
-          .from("profiles")
-          .update({
-            full_name: name.trim(),
-            whatsapp_number: phone.trim(),
-            experience_summary: bio.trim(),
-            skills: skills,
-            updated_at: new Date().toISOString(),
-          })
-          .eq("id", user.id);
+      if (!user) {
+        toast.error("Sesión no válida");
+        return;
       }
+
+      await candidateProfileService.updateProfile(user.id, {
+        full_name: name.trim(),
+        whatsapp_number: phone.trim(),
+        experience_summary: bio.trim(),
+        skills: skills,
+        avatar_url: avatarUrl,
+      });
 
       showToast("¡Perfil guardado exitosamente!");
       setTimeout(() => {
@@ -167,7 +170,7 @@ export function EditPublicProfileView({ onBack }: EditPublicProfileViewProps) {
       }, 700);
     } catch (err) {
       console.error("Error saving profile:", err);
-      showToast("Error al guardar en la base de datos");
+      toast.error("Error al guardar los datos en la base de datos");
     } finally {
       setIsSaving(false);
     }
@@ -203,153 +206,159 @@ export function EditPublicProfileView({ onBack }: EditPublicProfileViewProps) {
         <div className="w-11" />
       </div>
 
-      {/* Form Area */}
-      <div className="pt-6 space-y-8">
-        
-        {/* 0. Profile Photo Section */}
-        <div className="flex flex-col items-center justify-center text-center">
-          <div
-            onClick={() => setIsPhotoModalOpen(true)}
-            className="relative cursor-pointer group"
-          >
-            <div className="p-1 rounded-full border-2 border-[#d2dbe5] dark:border-zinc-700">
-              <div className="w-[110px] h-[110px] rounded-full bg-[#ebeef3] dark:bg-zinc-800 flex items-center justify-center text-[#1f2732] dark:text-zinc-100 text-[42px] font-[800]">
-                {avatarUrl ? (
-                  <img src={avatarUrl} alt={name} className="w-full h-full object-cover rounded-full" />
-                ) : (
-                  initialLetter
-                )}
+      {isLoading ? (
+        <div className="py-12 flex justify-center items-center">
+          <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin" />
+        </div>
+      ) : (
+        /* Form Area */
+        <div className="pt-6 space-y-8">
+          
+          {/* 0. Profile Photo Section */}
+          <div className="flex flex-col items-center justify-center text-center">
+            <div
+              onClick={() => setIsPhotoModalOpen(true)}
+              className="relative cursor-pointer group"
+            >
+              <div className="p-1 rounded-full border-2 border-[#d2dbe5] dark:border-zinc-700">
+                <div className="w-[110px] h-[110px] rounded-full bg-[#ebeef3] dark:bg-zinc-800 flex items-center justify-center text-[#1f2732] dark:text-zinc-100 text-[42px] font-[800] overflow-hidden">
+                  {avatarUrl ? (
+                    <img src={avatarUrl} alt={name} className="w-full h-full object-cover rounded-full" />
+                  ) : (
+                    initialLetter
+                  )}
+                </div>
+              </div>
+
+              {/* Camera Icon Badge */}
+              <div className="absolute bottom-1 right-1 w-[38px] h-[38px] bg-[#1f2732] dark:bg-zinc-100 text-white dark:text-zinc-900 rounded-full border-[2.5px] border-white dark:border-zinc-950 flex items-center justify-center shadow-md">
+                <Camera className="w-[18px] h-[18px] stroke-[2.2]" />
               </div>
             </div>
 
-            {/* Camera Icon Badge */}
-            <div className="absolute bottom-1 right-1 w-[38px] h-[38px] bg-[#1f2732] dark:bg-zinc-100 text-white dark:text-zinc-900 rounded-full border-[2.5px] border-white dark:border-zinc-950 flex items-center justify-center shadow-md">
-              <Camera className="w-[18px] h-[18px] stroke-[2.2]" />
-            </div>
-          </div>
-
-          <button
-            type="button"
-            onClick={() => setIsPhotoModalOpen(true)}
-            className="mt-3 text-[14px] sm:text-[15px] font-extrabold text-[#344558] dark:text-zinc-300 hover:text-[#1f2732] transition-colors cursor-pointer py-1 px-2"
-          >
-            Cambiar foto de perfil
-          </button>
-        </div>
-
-        {/* 1. Nombre Completo input */}
-        <div className="space-y-2.5">
-          <label className="block text-[14px] sm:text-[15px] font-extrabold text-[#3e546d] dark:text-zinc-200">
-            Nombre Completo
-          </label>
-          <Input
-            type="text"
-            value={name}
-            onChange={(e) => {
-              setName(e.target.value);
-              if (e.target.value.trim()) setNameError("");
-            }}
-            placeholder="Ingresa tu nombre"
-            className="h-14 bg-white dark:bg-zinc-900 border-[#ebeef3] dark:border-zinc-800 rounded-[16px] px-4 text-[15px] sm:text-[16px] font-[600] text-[#1f2732] dark:text-zinc-100 focus-visible:ring-2 focus-visible:ring-[#1f2732]"
-          />
-          {nameError && (
-            <p className="text-xs sm:text-sm font-semibold text-rose-500">{nameError}</p>
-          )}
-        </div>
-
-        {/* 2. Teléfono / WhatsApp input */}
-        <div className="space-y-2.5">
-          <label className="block text-[14px] sm:text-[15px] font-extrabold text-[#3e546d] dark:text-zinc-200">
-            Teléfono / WhatsApp de contacto
-          </label>
-          <Input
-            type="tel"
-            value={phone}
-            onChange={(e) => {
-              setPhone(e.target.value);
-              if (e.target.value.trim()) setPhoneError("");
-            }}
-            placeholder="Ej. +52 998 123 4567"
-            className="h-14 bg-white dark:bg-zinc-900 border-[#ebeef3] dark:border-zinc-800 rounded-[16px] px-4 text-[15px] sm:text-[16px] font-[600] text-[#1f2732] dark:text-zinc-100 focus-visible:ring-2 focus-visible:ring-[#1f2732]"
-          />
-          {phoneError && (
-            <p className="text-xs sm:text-sm font-semibold text-rose-500">{phoneError}</p>
-          )}
-        </div>
-
-        {/* 3. Extracto / Biografía profesional input */}
-        <div className="space-y-2.5">
-          <label className="block text-[14px] sm:text-[15px] font-extrabold text-[#3e546d] dark:text-zinc-200">
-            Extracto / Biografía profesional
-          </label>
-          <Textarea
-            rows={4}
-            value={bio}
-            onChange={(e) => setBio(e.target.value)}
-            placeholder="Escribe un breve resumen de tu experiencia o aptitudes..."
-            className="bg-white dark:bg-zinc-900 border-[#ebeef3] dark:border-zinc-800 rounded-[16px] p-4 text-[15px] sm:text-[16px] font-[600] leading-relaxed text-[#1f2732] dark:text-zinc-100 focus-visible:ring-2 focus-visible:ring-[#1f2732] resize-none"
-          />
-        </div>
-
-        {/* 4. Skills tags area */}
-        <div className="space-y-3.5">
-          <div className="flex items-center justify-between">
-            <label className="block text-[14px] sm:text-[15px] font-extrabold text-[#3e546d] dark:text-zinc-200">
-              Habilidades
-            </label>
             <button
               type="button"
-              onClick={() => setIsAddSkillOpen(true)}
-              className="flex items-center gap-1.5 text-[14px] font-extrabold text-[#344558] dark:text-zinc-200 hover:text-[#1f2732] transition-colors cursor-pointer py-1 px-2"
+              onClick={() => setIsPhotoModalOpen(true)}
+              className="mt-3 text-[14px] sm:text-[15px] font-extrabold text-[#344558] dark:text-zinc-300 hover:text-[#1f2732] transition-colors cursor-pointer py-1 px-2"
             >
-              <Plus className="w-4.5 h-4.5 stroke-[2.5]" />
-              <span>Añadir</span>
+              Cambiar foto de perfil
             </button>
           </div>
 
-          {skills.length === 0 ? (
-            <div className="w-full p-5 bg-[#f5f7fa] dark:bg-zinc-900 rounded-[16px] border border-[#ebeef3] dark:border-zinc-800 flex items-center gap-3">
-              <Lightbulb className="w-6 h-6 text-[#5c7c9b] shrink-0" />
-              <p className="text-[14px] text-[#5c7c9b] dark:text-zinc-400 font-medium">
-                No has agregado habilidades aún. Toca "Añadir" para registrar tus conocimientos.
-              </p>
+          {/* 1. Nombre Completo input */}
+          <div className="space-y-2.5">
+            <label className="block text-[14px] sm:text-[15px] font-extrabold text-[#3e546d] dark:text-zinc-200">
+              Nombre Completo
+            </label>
+            <Input
+              type="text"
+              value={name}
+              onChange={(e) => {
+                setName(e.target.value);
+                if (e.target.value.trim()) setNameError("");
+              }}
+              placeholder="Ingresa tu nombre"
+              className="h-14 bg-white dark:bg-zinc-900 border-[#ebeef3] dark:border-zinc-800 rounded-[16px] px-4 text-[15px] sm:text-[16px] font-[600] text-[#1f2732] dark:text-zinc-100 focus-visible:ring-2 focus-visible:ring-[#1f2732]"
+            />
+            {nameError && (
+              <p className="text-xs sm:text-sm font-semibold text-rose-500">{nameError}</p>
+            )}
+          </div>
+
+          {/* 2. Teléfono / WhatsApp input */}
+          <div className="space-y-2.5">
+            <label className="block text-[14px] sm:text-[15px] font-extrabold text-[#3e546d] dark:text-zinc-200">
+              Teléfono / WhatsApp de contacto
+            </label>
+            <Input
+              type="tel"
+              value={phone}
+              onChange={(e) => {
+                setPhone(e.target.value);
+                if (e.target.value.trim()) setPhoneError("");
+              }}
+              placeholder="Ej. +52 998 123 4567"
+              className="h-14 bg-white dark:bg-zinc-900 border-[#ebeef3] dark:border-zinc-800 rounded-[16px] px-4 text-[15px] sm:text-[16px] font-[600] text-[#1f2732] dark:text-zinc-100 focus-visible:ring-2 focus-visible:ring-[#1f2732]"
+            />
+            {phoneError && (
+              <p className="text-xs sm:text-sm font-semibold text-rose-500">{phoneError}</p>
+            )}
+          </div>
+
+          {/* 3. Extracto / Biografía profesional input */}
+          <div className="space-y-2.5">
+            <label className="block text-[14px] sm:text-[15px] font-extrabold text-[#3e546d] dark:text-zinc-200">
+              Extracto / Biografía profesional
+            </label>
+            <Textarea
+              rows={4}
+              value={bio}
+              onChange={(e) => setBio(e.target.value)}
+              placeholder="Escribe un breve resumen de tu experiencia o aptitudes..."
+              className="bg-white dark:bg-zinc-900 border-[#ebeef3] dark:border-zinc-800 rounded-[16px] p-4 text-[15px] sm:text-[16px] font-[600] leading-relaxed text-[#1f2732] dark:text-zinc-100 focus-visible:ring-2 focus-visible:ring-[#1f2732] resize-none"
+            />
+          </div>
+
+          {/* 4. Skills tags area */}
+          <div className="space-y-3.5">
+            <div className="flex items-center justify-between">
+              <label className="block text-[14px] sm:text-[15px] font-extrabold text-[#3e546d] dark:text-zinc-200">
+                Habilidades
+              </label>
+              <button
+                type="button"
+                onClick={() => setIsAddSkillOpen(true)}
+                className="flex items-center gap-1.5 text-[14px] font-extrabold text-[#344558] dark:text-zinc-200 hover:text-[#1f2732] transition-colors cursor-pointer py-1 px-2"
+              >
+                <Plus className="w-4.5 h-4.5 stroke-[2.5]" />
+                <span>Añadir</span>
+              </button>
             </div>
-          ) : (
-            <div className="flex flex-wrap gap-2.5">
-              {skills.map((skill) => (
-                <div
-                  key={skill}
-                  className="px-4 py-2.5 bg-[#f5f7fa] dark:bg-zinc-900 border border-[#ebeef3] dark:border-zinc-800 rounded-[14px] flex items-center gap-2"
-                >
-                  <span className="text-[13px] sm:text-[14px] font-bold text-[#344558] dark:text-zinc-200">
-                    {skill}
-                  </span>
-                  <button
-                    type="button"
-                    onClick={() => handleRemoveSkill(skill)}
-                    className="p-1 text-[#7d99b3] hover:text-[#1f2732] dark:hover:text-zinc-100 transition-colors cursor-pointer"
+
+            {skills.length === 0 ? (
+              <div className="w-full p-5 bg-[#f5f7fa] dark:bg-zinc-900 rounded-[16px] border border-[#ebeef3] dark:border-zinc-800 flex items-center gap-3">
+                <Lightbulb className="w-6 h-6 text-[#5c7c9b] shrink-0" />
+                <p className="text-[14px] text-[#5c7c9b] dark:text-zinc-400 font-medium">
+                  No has agregado habilidades aún. Toca "Añadir" para registrar tus conocimientos.
+                </p>
+              </div>
+            ) : (
+              <div className="flex flex-wrap gap-2.5">
+                {skills.map((skill) => (
+                  <div
+                    key={skill}
+                    className="px-4 py-2.5 bg-[#f5f7fa] dark:bg-zinc-900 border border-[#ebeef3] dark:border-zinc-800 rounded-[14px] flex items-center gap-2"
                   >
-                    <X className="w-4 h-4 stroke-[2.5]" />
-                  </button>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
+                    <span className="text-[13px] sm:text-[14px] font-bold text-[#344558] dark:text-zinc-200">
+                      {skill}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => handleRemoveSkill(skill)}
+                      className="p-1 text-[#7d99b3] hover:text-[#1f2732] dark:hover:text-zinc-100 transition-colors cursor-pointer"
+                    >
+                      <X className="w-4 h-4 stroke-[2.5]" />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
 
-        {/* 5. Save Button */}
-        <div className="pt-6">
-          <Button
-            type="button"
-            onClick={handleSave}
-            disabled={isSaving}
-            className="w-full h-[54px] bg-[#1f2732] dark:bg-zinc-100 text-white dark:text-zinc-900 hover:bg-[#2f3c4b] dark:hover:bg-zinc-200 rounded-[18px] text-[16px] font-bold transition-all shadow-sm cursor-pointer active:scale-95 border-none"
-          >
-            {isSaving ? "Guardando..." : "Guardar Perfil"}
-          </Button>
-        </div>
+          {/* 5. Save Button */}
+          <div className="pt-6">
+            <Button
+              type="button"
+              onClick={handleSave}
+              disabled={isSaving}
+              className="w-full h-[54px] bg-[#1f2732] dark:bg-zinc-100 text-white dark:text-zinc-900 hover:bg-[#2f3c4b] dark:hover:bg-zinc-200 rounded-[18px] text-[16px] font-bold transition-all shadow-sm cursor-pointer active:scale-95 border-none"
+            >
+              {isSaving ? "Guardando..." : "Guardar Perfil"}
+            </Button>
+          </div>
 
-      </div>
+        </div>
+      )}
 
       {/* Photo Picker Modal Bottom Sheet */}
       <Dialog open={isPhotoModalOpen} onOpenChange={setIsPhotoModalOpen}>

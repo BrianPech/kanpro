@@ -54,6 +54,7 @@ const FacebookIcon = (props: React.SVGProps<SVGSVGElement>) => (
     <path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z" />
   </svg>
 );
+import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -155,6 +156,7 @@ export function CompanyProfileForm({
       <form onSubmit={onSubmit} method="POST" className="space-y-8">
         
         {/* ========================================== */}
+
         {/* TRUST / VALIDATION BADGE BANNER            */}
         {/* ========================================== */}
         {initialProfile?.is_validated ? (
@@ -165,11 +167,21 @@ export function CompanyProfileForm({
             </div>
           </div>
         ) : (
-          <div className="flex items-center gap-3.5 p-5 rounded-[20px] bg-[#f5f7fa] dark:bg-zinc-900/60 border border-[#ebeef3] dark:border-zinc-800 text-[#3e546d] dark:text-zinc-300 shadow-2xs">
-            <ShieldCheck className="size-6 shrink-0 text-[#5c7c9b]" />
-            <div className="text-xs sm:text-sm font-semibold leading-relaxed">
-              <span className="font-extrabold text-[#1f2732] dark:text-zinc-100">Verificación de Cuenta</span>. Completa la información comercial esencial (incluyendo logotipo y dirección física exacta). Una vez guardada, validaremos tu negocio para activar tu insignia de confianza de forma gratuita.
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 p-5 rounded-[20px] bg-[#f5f7fa] dark:bg-zinc-900/60 border border-[#ebeef3] dark:border-zinc-800 text-[#3e546d] dark:text-zinc-300 shadow-2xs">
+            <div className="flex items-center gap-3.5">
+              <ShieldCheck className="size-6 shrink-0 text-[#5c7c9b]" />
+              <div className="text-xs sm:text-sm font-semibold leading-relaxed">
+                <span className="font-extrabold text-[#1f2732] dark:text-zinc-100">Verificación de Cuenta (Persona Moral)</span>. Completa la información legal y sube los 13 documentos obligatorios para obtener la insignia de confianza corporativa.
+              </div>
             </div>
+            <Button
+              asChild
+              className="h-10 px-5 rounded-[14px] bg-[#1f2732] dark:bg-zinc-100 hover:bg-[#253240] dark:hover:bg-zinc-200 text-white dark:text-zinc-900 text-xs font-bold shrink-0 cursor-pointer shadow-sm"
+            >
+              <Link href="/dashboard/company/verification">
+                Ir a Verificación
+              </Link>
+            </Button>
           </div>
         )}
 
