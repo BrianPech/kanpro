@@ -15,9 +15,10 @@ export function useCandidateRegisterForm() {
     resolver: zodResolver(candidateRegisterSchema),
     defaultValues: {
       fullName: "",
+      birthDate: "",
+      whatsappNumber: "",
       email: "",
       password: "",
-      confirmPassword: "",
     }
   });
 
@@ -68,5 +69,7 @@ export function useCandidateRegisterForm() {
     setShowConfirmPassword,
     onSubmit,
     trigger: form.trigger,
+    setValue: form.setValue,
+    watch: form.watch,
   };
 }

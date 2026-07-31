@@ -105,6 +105,8 @@ export const authService = {
         data: {
           role: "candidate",
           full_name: data.fullName,
+          birth_date: data.birthDate,
+          whatsapp_number: data.whatsappNumber,
         }
       }
     });

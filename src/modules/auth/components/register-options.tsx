@@ -1,175 +1,136 @@
-"use client"
+"use client";
 
-import * as React from "react"
-import Link from "next/link"
-import { useRouter } from "next/navigation"
-import { ArrowRight, Kanban } from "lucide-react"
-import { Button } from "@/components/ui/button"
-import { cn } from "@/lib/utils"
+import * as React from "react";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { ArrowRight } from "lucide-react";
+import { cn } from "@/lib/utils";
+import { AuthHeader } from "./auth-header";
 
 export function RegisterOptions() {
-  const router = useRouter()
-  const [selectedRole, setSelectedRole] = React.useState<"candidate" | "company">("candidate")
+  const router = useRouter();
+  const [selectedRole, setSelectedRole] = React.useState<"candidate" | "company">("candidate");
 
   const handleNext = () => {
-    router.push(`/register/${selectedRole}`)
-  }
+    router.push(`/register/${selectedRole}`);
+  };
 
   return (
-    <main className="min-h-screen w-full flex items-center justify-center p-4 relative bg-background overflow-hidden box-border font-sans">
-      
-      {/* Ambient background glows (matching hero section) */}
-      <div className="absolute inset-0 overflow-hidden pointer-events-none z-0">
-        <div className="absolute top-[-10%] left-[-10%] w-[50%] h-[50%] rounded-full bg-primary/10 blur-[120px] dark:bg-primary/5" />
-        <div className="absolute bottom-[20%] right-[-10%] w-[45%] h-[45%] rounded-full bg-amber-500/5 blur-[120px] dark:bg-amber-500/2.5" />
-      </div>
+    <main className="min-h-screen w-full bg-white dark:bg-zinc-950 flex flex-col items-center justify-start pb-12 font-sans selection:bg-[#5c7c9b]/20">
+      <div className="w-full max-w-[560px] flex flex-col items-center">
+        {/* 1. Dark Curved Header */}
+        <AuthHeader
+          title="Crear Cuenta"
+          backHref="/login"
+        />
 
-      {/* Floating Card */}
-      <div className="relative w-full max-w-[680px] bg-card border border-border/80 dark:border-border/10 rounded-[28px] p-6 sm:p-10 md:p-12 shadow-[0_8px_30px_rgb(0,0,0,0.015)] dark:shadow-[0_8px_30px_rgb(0,0,0,0.15)] z-10 flex flex-col gap-6">
-        
-        {/* Header */}
-        <header className="flex flex-col gap-2 items-center text-center">
-          <div className="size-14 rounded-[18px] bg-card border border-border/85 dark:border-border/10 shadow-sm flex items-center justify-center text-primary mb-3 transition-transform hover:scale-105 duration-300">
-            <Kanban className="size-6.5 fill-primary/5" />
+        {/* 2. Content Container */}
+        <div className="w-full px-6 sm:px-8 mt-2 flex flex-col items-center gap-6">
+          <header className="flex flex-col gap-1.5 items-center text-center">
+            <h1 className="text-[28px] font-extrabold text-[#2f3c4b] dark:text-zinc-50 tracking-[-1px]">
+              Selecciona tu perfil
+            </h1>
+            <p className="text-[14px] text-[#5c7c9b] dark:text-zinc-400 font-medium max-w-sm leading-relaxed">
+              Elige si te registras como candidato en búsqueda de empleo o como empresa.
+            </p>
+          </header>
+
+          {/* Roles Selector */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 w-full">
+            {/* Card Candidato */}
+            <button
+              type="button"
+              onClick={() => setSelectedRole("candidate")}
+              className={cn(
+                "flex flex-col items-center gap-4 bg-[#f5f7fa] dark:bg-zinc-900 border-2 rounded-[20px] p-6 shadow-[0_4px_10px_rgba(0,0,0,0.03)] transition-all cursor-pointer select-none text-center",
+                selectedRole === "candidate"
+                  ? "border-[#1f2732] bg-white dark:bg-zinc-800/80 shadow-md"
+                  : "border-transparent hover:border-[#aabccf]/40 opacity-80 hover:opacity-100"
+              )}
+            >
+              <div className="w-24 h-24 flex items-center justify-center rounded-full bg-[#1f2732]/5 p-3">
+                <svg className="w-full h-full text-[#1f2732]" viewBox="0 0 200 200" fill="none">
+                  <circle cx="100" cy="100" r="80" fill="currentColor" fillOpacity="0.05" />
+                  <path d="M85 140C85 125 90 115 100 115C110 115 115 125 115 140H85Z" fill="currentColor" fillOpacity="0.8" />
+                  <circle cx="100" cy="102" r="14" fill="currentColor" fillOpacity="0.8" />
+                </svg>
+              </div>
+
+              <div className="text-center space-y-1">
+                <h3 className="text-[18px] font-bold text-[#1f2732] dark:text-zinc-100">
+                  Candidato
+                </h3>
+                <p className="text-[12px] text-[#5c7c9b] dark:text-zinc-400 font-medium leading-relaxed">
+                  Postula a vacantes y destaca tu perfil profesional.
+                </p>
+              </div>
+            </button>
+
+            {/* Card Empresa */}
+            <button
+              type="button"
+              onClick={() => setSelectedRole("company")}
+              className={cn(
+                "flex flex-col items-center gap-4 bg-[#f5f7fa] dark:bg-zinc-900 border-2 rounded-[20px] p-6 shadow-[0_4px_10px_rgba(0,0,0,0.03)] transition-all cursor-pointer select-none text-center",
+                selectedRole === "company"
+                  ? "border-[#1f2732] bg-white dark:bg-zinc-800/80 shadow-md"
+                  : "border-transparent hover:border-[#aabccf]/40 opacity-80 hover:opacity-100"
+              )}
+            >
+              <div className="w-24 h-24 flex items-center justify-center rounded-full bg-[#1f2732]/5 p-3">
+                <svg className="w-full h-full text-[#1f2732]" viewBox="0 0 200 200" fill="none">
+                  <circle cx="100" cy="100" r="80" fill="currentColor" fillOpacity="0.05" />
+                  <rect x="65" y="60" width="70" height="80" rx="4" fill="currentColor" fillOpacity="0.7" />
+                  <rect x="75" y="75" width="12" height="12" rx="2" fill="white" />
+                  <rect x="113" y="75" width="12" height="12" rx="2" fill="white" />
+                  <rect x="75" y="95" width="12" height="12" rx="2" fill="white" />
+                  <rect x="113" y="95" width="12" height="12" rx="2" fill="white" />
+                </svg>
+              </div>
+
+              <div className="text-center space-y-1">
+                <h3 className="text-[18px] font-bold text-[#1f2732] dark:text-zinc-100">
+                  Empresa
+                </h3>
+                <p className="text-[12px] text-[#5c7c9b] dark:text-zinc-400 font-medium leading-relaxed">
+                  Publica ofertas laborales y contrata el mejor talento.
+                </p>
+              </div>
+            </button>
           </div>
-          <h1 className="text-2xl sm:text-3xl font-bold text-foreground tracking-[-0.03em] leading-tight">
-            Selecciona tu perfil
-          </h1>
-          <p className="text-sm text-muted-foreground max-w-sm font-medium leading-relaxed mt-0.5">
-            Para comenzar, necesitamos saber si eres candidato buscando empleo o una empresa contratando.
-          </p>
-        </header>
 
-        {/* Roles Selector Container (Responsive Grid: Stacked on Mobile, Side-by-Side on Desktop) */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6 w-full py-2">
-          
-          {/* Card Candidato */}
+          {/* Action Button: Siguiente */}
           <button
-            type="button"
-            onClick={() => setSelectedRole("candidate")}
-            className={cn(
-              "flex flex-col items-center gap-4 sm:gap-5 bg-card border-2 rounded-[24px] p-5 sm:p-6 pb-6 sm:pb-8 shadow-sm transition-all focus:outline-none cursor-pointer hover:shadow-md select-none text-center min-h-[48px]",
-              selectedRole === "candidate"
-                ? "border-primary text-primary bg-primary/5 dark:bg-primary/10 shadow-md shadow-primary/5"
-                : "border-border text-card-foreground hover:border-border/80 bg-zinc-50/50 dark:bg-zinc-900/15"
-            )}
-          >
-            {/* Vector Illustration (Candidate) */}
-            <div className="w-32 h-32 sm:w-36 sm:h-36 flex items-center justify-center relative bg-muted/20 rounded-full p-4 overflow-hidden">
-              <svg className="w-full h-full text-foreground/75" viewBox="0 0 200 200" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <circle cx="100" cy="100" r="80" fill="currentColor" fillOpacity="0.03" />
-                <circle cx="100" cy="100" r="65" fill="currentColor" fillOpacity="0.05" />
-                <rect x="40" y="140" width="120" height="6" rx="3" fill="currentColor" fillOpacity="0.2" />
-                <rect x="65" y="110" width="70" height="30" rx="4" fill="#64748b" />
-                <rect x="70" y="115" width="60" height="20" rx="2" fill="#0f172a" />
-                <rect x="55" y="136" width="90" height="4" rx="2" fill="#475569" />
-                <path d="M70 115H130V135H70V115Z" fill="var(--color-primary)" fillOpacity="0.1" />
-                <rect x="35" y="65" width="40" height="20" rx="6" fill="currentColor" fillOpacity="0.1" />
-                <text x="44" y="79" fill="currentColor" fontSize="10" fontWeight="bold">&lt;/&gt;</text>
-                <rect x="125" y="55" width="40" height="20" rx="6" fill="currentColor" fillOpacity="0.1" />
-                <text x="139" y="69" fill="currentColor" fontSize="10" fontWeight="bold">JS</text>
-                <circle cx="50" cy="110" r="6" fill="var(--color-primary)" fillOpacity="0.8" />
-                <circle cx="155" cy="100" r="8" fill="var(--color-primary)" fillOpacity="0.8" />
-                <path d="M85 140C85 125 90 115 100 115C110 115 115 125 115 140H85Z" fill="currentColor" fillOpacity="0.7" />
-                <circle cx="100" cy="102" r="10" fill="currentColor" fillOpacity="0.7" />
-              </svg>
-            </div>
-            
-            <div className="text-center space-y-1">
-              <h3 className={cn("text-[18px] font-bold tracking-tight", selectedRole === "candidate" ? "text-primary" : "text-foreground")}>
-                Candidato
-              </h3>
-              <p className="text-xs text-muted-foreground font-medium leading-relaxed max-w-[200px] mx-auto">
-                Descubre empleos, postula a vacantes y potencia tu carrera.
-              </p>
-            </div>
-          </button>
-
-          {/* Card Empresa */}
-          <button
-            type="button"
-            onClick={() => setSelectedRole("company")}
-            className={cn(
-              "flex flex-col items-center gap-4 sm:gap-5 bg-card border-2 rounded-[24px] p-5 sm:p-6 pb-6 sm:pb-8 shadow-sm transition-all focus:outline-none cursor-pointer hover:shadow-md select-none text-center min-h-[48px]",
-              selectedRole === "company"
-                ? "border-primary text-primary bg-primary/5 dark:bg-primary/10 shadow-md shadow-primary/5"
-                : "border-border text-card-foreground hover:border-border/80 bg-zinc-50/50 dark:bg-zinc-900/15"
-            )}
-          >
-            {/* Vector Illustration (Company) */}
-            <div className="w-32 h-32 sm:w-36 sm:h-36 flex items-center justify-center relative bg-muted/20 rounded-full p-4 overflow-hidden">
-              <svg className="w-full h-full text-foreground/75" viewBox="0 0 200 200" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <circle cx="100" cy="100" r="80" fill="currentColor" fillOpacity="0.03" />
-                <circle cx="100" cy="100" r="65" fill="currentColor" fillOpacity="0.05" />
-                <rect x="55" y="70" width="35" height="75" rx="3" fill="#64748b" />
-                <rect x="95" y="50" width="50" height="95" rx="3" fill="currentColor" fillOpacity="0.7" />
-                <rect x="63" y="80" width="7" height="7" rx="1" fill="#cbd5e1" />
-                <rect x="75" y="80" width="7" height="7" rx="1" fill="#cbd5e1" />
-                <rect x="63" y="95" width="7" height="7" rx="1" fill="#cbd5e1" />
-                <rect x="75" y="95" width="7" height="7" rx="1" fill="#cbd5e1" />
-                <rect x="63" y="110" width="7" height="7" rx="1" fill="#cbd5e1" />
-                <rect x="75" y="110" width="7" height="7" rx="1" fill="#cbd5e1" />
-                <rect x="105" y="60" width="10" height="10" rx="1" fill="#cbd5e1" fillOpacity="0.5" />
-                <rect x="123" y="60" width="10" height="10" rx="1" fill="#cbd5e1" fillOpacity="0.5" />
-                <rect x="105" y="78" width="10" height="10" rx="1" fill="#cbd5e1" fillOpacity="0.5" />
-                <rect x="123" y="78" width="10" height="10" rx="1" fill="#cbd5e1" fillOpacity="0.5" />
-                <rect x="105" y="96" width="10" height="10" rx="1" fill="#cbd5e1" fillOpacity="0.5" />
-                <rect x="123" y="96" width="10" height="10" rx="1" fill="#cbd5e1" fillOpacity="0.5" />
-                <rect x="105" y="114" width="10" height="10" rx="1" fill="#cbd5e1" fillOpacity="0.5" />
-                <rect x="123" y="114" width="10" height="10" rx="1" fill="#cbd5e1" fillOpacity="0.5" />
-                <path d="M35 130L65 105L105 115L155 75" stroke="var(--color-primary)" strokeWidth="4" strokeLinecap="round" />
-                <circle cx="155" cy="75" r="5" fill="var(--color-primary)" />
-                <circle cx="165" cy="120" r="10" fill="currentColor" fillOpacity="0.1" />
-                <path d="M162 120H168M165 117V123" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-              </svg>
-            </div>
-            
-            <div className="text-center space-y-1">
-              <h3 className={cn("text-[18px] font-bold tracking-tight", selectedRole === "company" ? "text-primary" : "text-foreground")}>
-                Empresa
-              </h3>
-              <p className="text-xs text-muted-foreground font-medium leading-relaxed max-w-[200px] mx-auto">
-                Publica vacantes, gestiona candidatos y expande tu organización.
-              </p>
-            </div>
-          </button>
-
-        </div>
-
-        {/* Action Button: Siguiente / Next */}
-        <div className="w-full max-w-[260px] mx-auto">
-          <Button
             onClick={handleNext}
-            className="w-full h-[48px] rounded-full bg-primary hover:bg-primary/95 text-primary-foreground font-bold text-[14px] shadow-md shadow-primary/10 tracking-[0.2px] active:scale-[0.98] transition-all flex items-center justify-center gap-2 cursor-pointer border-0"
+            className="w-full h-[56px] rounded-[16px] bg-[#1f2732] hover:bg-[#2f3c4b] text-white font-bold text-[16px] tracking-[-0.2px] shadow-sm transition-all duration-200 flex items-center justify-center gap-2 cursor-pointer active:scale-[0.99] mt-2"
           >
-            Siguiente
-            <ArrowRight className="h-4.5 w-4.5" />
-          </Button>
-        </div>
+            <span>Siguiente</span>
+            <ArrowRight className="size-5" />
+          </button>
 
-        {/* Back Link */}
-        <div className="flex flex-col items-center gap-3.5 text-center mt-2 border-t border-border/60 dark:border-border/10 pt-5">
-          <p className="text-[13px] text-muted-foreground font-medium">
-            ¿Ya tienes una cuenta?
-            <Link
-              className="text-primary font-bold hover:underline ml-1 transition-colors tracking-[0.1px]"
-              href="/login"
-            >
-              Iniciar Sesión
-            </Link>
-          </p>
-          <p className="text-[11px] text-muted-foreground/60 font-medium">
-            ¿Eres parte del equipo?{" "}
-            <Link
-              className="font-semibold text-amber-500 hover:text-amber-600 hover:underline transition-colors ml-0.5"
-              href="/register/admin"
-            >
-              Registrar Administrador
-            </Link>
-          </p>
+          {/* Navigation Links */}
+          <div className="flex flex-col items-center gap-2 text-center mt-2 pt-4 border-t border-[#d2dbe5]/40 dark:border-zinc-800 w-full">
+            <p className="text-[14px] text-[#5c7c9b] dark:text-zinc-400 font-medium">
+              ¿Ya tienes una cuenta?{" "}
+              <Link
+                href="/login"
+                className="text-[#1f2732] dark:text-zinc-100 font-bold hover:underline"
+              >
+                Inicia Sesión
+              </Link>
+            </p>
+            <p className="text-[12px] text-[#5c7c9b]/80 dark:text-zinc-500 font-medium">
+              ¿Acceso administrativo?{" "}
+              <Link
+                href="/register/admin"
+                className="text-amber-600 font-semibold hover:underline"
+              >
+                Registrar Administrador
+              </Link>
+            </p>
+          </div>
         </div>
-
       </div>
     </main>
-  )
+  );
 }
