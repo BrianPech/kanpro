@@ -1,5 +1,3 @@
-"use client";
-
 import * as React from "react";
 import { useRouter } from "next/navigation";
 import { 
@@ -16,7 +14,11 @@ import {
   LogOut, 
   ChevronRight,
   ShieldCheck,
-  CheckCircle2
+  CheckCircle2,
+  MapPin,
+  Crosshair,
+  Loader2,
+  Sparkles
 } from "lucide-react";
 import {
   Dialog,
@@ -27,7 +29,11 @@ import {
   DialogFooter
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
+import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { createClient } from "@/lib/supabase/client";
+import { GEO_CONFIG, findNearestCityAndZone } from "@/config/geo";
+import { toast } from "sonner";
 
 export function CandidateSettingsView() {
   const router = useRouter();
@@ -41,6 +47,13 @@ export function CandidateSettingsView() {
   const [candidateSkills, setCandidateSkills] = React.useState<string[]>([]);
   const [hasAvatar, setHasAvatar] = React.useState<boolean>(false);
   const [savedCount, setSavedCount] = React.useState<number>(0);
+
+  // Location & Radar States
+  const [city, setCity] = React.useState<string>("Mérida");
+  const [zone, setZone] = React.useState<string>("Centro Mérida");
+  const [locationStatus, setLocationStatus] = React.useState<string>("");
+  const [isLocating, setIsLocating] = React.useState<boolean>(false);
+  const [isSavingLocation, setIsSavingLocation] = React.useState<boolean>(false);
 
   // Logout modal state
   const [isLogoutOpen, setIsLogoutOpen] = React.useState<boolean>(false);
@@ -56,7 +69,7 @@ export function CandidateSettingsView() {
           
           const { data: profile } = await supabase
             .from("profiles")
-            .select("full_name, whatsapp_number, experience_summary, skills, avatar_url")
+            .select("full_name, whatsapp_number, experience_summary, skills, avatar_url, location")
             .eq("id", user.id)
             .single();
 
@@ -66,6 +79,15 @@ export function CandidateSettingsView() {
             if (profile.experience_summary) setCandidateBio(profile.experience_summary);
             if (profile.skills) setCandidateSkills(profile.skills);
             if (profile.avatar_url) setHasAvatar(true);
+
+            if (profile.location && profile.location.includes(" - ")) {
+              setLocationStatus(profile.location);
+              const [locCity, locZone] = profile.location.split(" - ");
+              if (GEO_CONFIG[locCity]) {
+                setCity(locCity);
+                setZone(locZone);
+              }
+            }
           }
         }
       } catch (err) {
@@ -75,6 +97,82 @@ export function CandidateSettingsView() {
 
     loadProfile();
   }, [supabase]);
+
+  // GPS Location Handler
+  const handleDetectLocation = () => {
+    if (!("geolocation" in navigator)) {
+      toast.error("Geolocalización no soportada", {
+        description: "Tu navegador no soporta el servicio de geolocalización."
+      });
+      return;
+    }
+
+    setIsLocating(true);
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        const { latitude, longitude } = position.coords;
+        const { city: detectedCity, zone: detectedZone } = findNearestCityAndZone(latitude, longitude);
+        setCity(detectedCity);
+        setZone(detectedZone);
+        setIsLocating(false);
+        toast.success("Ubicación detectada con éxito", {
+          description: `Se detectó: ${detectedCity} - ${detectedZone}`
+        });
+      },
+      (err) => {
+        setIsLocating(false);
+        toast.error("No se pudo obtener la ubicación", {
+          description: "Por favor otorga permisos de geolocalización a tu navegador o selecciona manualmente."
+        });
+      },
+      { enableHighAccuracy: true, timeout: 10000 }
+    );
+  };
+
+  // Save Location Handler
+  const handleSaveLocation = async () => {
+    if (!city || !zone) {
+      toast.error("Por favor selecciona ciudad y zona.");
+      return;
+    }
+
+    setIsSavingLocation(true);
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error("Sesión no encontrada.");
+
+      const locationStr = `${city} - ${zone}`;
+
+      // Update Auth metadata
+      await supabase.auth.updateUser({
+        data: { location: locationStr, city, zone }
+      });
+
+      // Update base profiles
+      try {
+        await supabase
+          .from("profiles")
+          .update({ location: locationStr, updated_at: new Date().toISOString() })
+          .eq("id", user.id);
+      } catch (e) {}
+
+      // Update candidate profiles
+      try {
+        await supabase
+          .from("candidate_profiles")
+          .upsert({ id: user.id, preferred_zone: zone, updated_at: new Date().toISOString() });
+      } catch (e) {}
+
+      setLocationStatus(locationStr);
+      toast.success("¡Ubicación guardada con éxito!", {
+        description: `Tu Radar K'anPro usará ${locationStr} para conectarte con vacantes cercanas.`
+      });
+    } catch (err: any) {
+      toast.error("Error al guardar ubicación", { description: err.message || "Ocurrió un error inesperado." });
+    } finally {
+      setIsSavingLocation(false);
+    }
+  };
 
   // Calculate dynamic completion percentage (0 - 100%)
   const completionPercentage = React.useMemo(() => {
@@ -119,7 +217,7 @@ export function CandidateSettingsView() {
       {/* 1. Top Custom Header */}
       <div className="flex items-center justify-between">
         <h1 className="text-[24px] sm:text-[30px] font-[800] text-[#1f2732] dark:text-fiord-50 tracking-[-0.5px]">
-          Perfil
+          Perfil y Configuración
         </h1>
         <button
           onClick={() => router.push("/dashboard/candidate/discovery")}
@@ -173,6 +271,115 @@ export function CandidateSettingsView() {
         >
           {completionPercentage === 100 ? "Editar >" : "Completar >"}
         </button>
+      </div>
+
+      {/* 4. Location & Radar Geográfico Section */}
+      <div className="p-6 bg-white dark:bg-zinc-900 rounded-[24px] border border-[#ebeef3] dark:border-zinc-800 shadow-2xs space-y-4">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-primary/10 text-primary flex items-center justify-center">
+              <MapPin className="w-5 h-5" />
+            </div>
+            <div>
+              <h3 className="text-[16px] font-bold text-[#1f2732] dark:text-zinc-100">
+                Ubicación y Radar K'anPro
+              </h3>
+              <p className="text-[12px] text-[#5c7c9b] dark:text-zinc-400 font-medium">
+                {locationStatus ? `Ubicación actual: ${locationStatus}` : "Configura tu ciudad y zona para conectar con vacantes cercanas."}
+              </p>
+            </div>
+          </div>
+          {locationStatus && (
+            <span className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 text-xs font-bold rounded-full border border-emerald-500/20">
+              <Sparkles className="w-3.5 h-3.5" />
+              Radar Activo
+            </span>
+          )}
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
+          {/* City Selector */}
+          <div className="space-y-1.5">
+            <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground/80">
+              Ciudad
+            </Label>
+            <Select
+              value={city}
+              onValueChange={(val) => {
+                setCity(val);
+                const firstZone = Object.keys(GEO_CONFIG[val]?.zones || {})[0] || "";
+                setZone(firstZone);
+              }}
+            >
+              <SelectTrigger className="w-full h-11 bg-slate-50 dark:bg-zinc-950/40 border border-border/60 rounded-xl px-4 text-xs font-semibold">
+                <SelectValue placeholder="Selecciona Ciudad" />
+              </SelectTrigger>
+              <SelectContent className="rounded-xl">
+                {Object.keys(GEO_CONFIG).map((cityKey) => (
+                  <SelectItem key={cityKey} value={cityKey}>
+                    {cityKey}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          {/* Zone Selector */}
+          <div className="space-y-1.5">
+            <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground/80">
+              Zona de Trabajo
+            </Label>
+            <Select
+              value={zone}
+              onValueChange={setZone}
+              disabled={!city}
+            >
+              <SelectTrigger className="w-full h-11 bg-slate-50 dark:bg-zinc-950/40 border border-border/60 rounded-xl px-4 text-xs font-semibold">
+                <SelectValue placeholder="Selecciona Zona" />
+              </SelectTrigger>
+              <SelectContent className="rounded-xl">
+                {city &&
+                  Object.keys(GEO_CONFIG[city]?.zones || {}).map((zoneKey) => (
+                    <SelectItem key={zoneKey} value={zoneKey}>
+                      {GEO_CONFIG[city].zones[zoneKey].name}
+                    </SelectItem>
+                  ))}
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+
+        {/* GPS Detection & Save Buttons */}
+        <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pt-2">
+          <Button
+            type="button"
+            variant="outline"
+            onClick={handleDetectLocation}
+            disabled={isLocating}
+            className="w-full sm:w-auto h-10 rounded-xl border-border text-xs font-bold flex items-center gap-2"
+          >
+            {isLocating ? (
+              <Loader2 className="w-4 h-4 animate-spin text-primary" />
+            ) : (
+              <Crosshair className="w-4 h-4 text-primary" />
+            )}
+            <span>Detectar mi ubicación actual (GPS)</span>
+          </Button>
+
+          <Button
+            type="button"
+            onClick={handleSaveLocation}
+            disabled={isSavingLocation}
+            className="w-full sm:w-auto h-10 rounded-xl bg-primary hover:bg-primary/95 text-white text-xs font-bold px-6 flex items-center gap-2"
+          >
+            {isSavingLocation ? (
+              <Loader2 className="w-4 h-4 animate-spin" />
+            ) : (
+              <Sparkles className="w-4 h-4" />
+            )}
+            <span>Guardar y Activar Radar</span>
+          </Button>
+        </div>
       </div>
 
       {/* 4. Grouped Settings Section 1 (Work Info & CV) */}

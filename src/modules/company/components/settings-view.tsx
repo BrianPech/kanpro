@@ -22,7 +22,11 @@ import {
   ArrowRight,
   KeyRound,
   ShieldCheck,
-  UserCheck
+  UserCheck,
+  MapPin,
+  Crosshair,
+  Loader2,
+  Building2
 } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
@@ -50,6 +54,7 @@ import {
 import { cn } from "@/lib/utils"
 import { createClient } from "@/lib/supabase/client"
 import { toggleGlobalRecruitment, updateContactChannel } from "@/modules/company/actions/settings"
+import { GEO_CONFIG, findNearestCityAndZone } from "@/config/geo"
 
 interface Transaction {
   id: string
@@ -88,7 +93,106 @@ interface CompanySettingsViewProps {
 export function CompanySettingsView({ user, initialProfile, initialPauseState }: CompanySettingsViewProps) {
   const { theme, setTheme } = useTheme()
   const [mounted, setMounted] = React.useState(false)
-  const [activeTab, setActiveTab] = React.useState<"appearance" | "account" | "recruitment" | "credits">("appearance")
+  const [activeTab, setActiveTab] = React.useState<"appearance" | "account" | "location" | "recruitment" | "credits">("appearance")
+  
+  // Location & Radar State for Company
+  const [companyCity, setCompanyCity] = React.useState<string>("Mérida")
+  const [companyZone, setCompanyZone] = React.useState<string>("Centro Mérida")
+  const [companyLocationStatus, setCompanyLocationStatus] = React.useState<string>("")
+  const [isLocatingCompany, setIsLocatingCompany] = React.useState<boolean>(false)
+  const [isSavingCompanyLocation, setIsSavingCompanyLocation] = React.useState<boolean>(false)
+
+  // Fetch company location from Supabase
+  React.useEffect(() => {
+    async function loadCompanyLocation() {
+      if (initialProfile?.id) {
+        const supabase = createClient()
+        const { data } = await supabase
+          .from("profiles")
+          .select("location")
+          .eq("id", initialProfile.id)
+          .single()
+
+        if (data?.location && data.location.includes(" - ")) {
+          setCompanyLocationStatus(data.location)
+          const [cCity, cZone] = data.location.split(" - ")
+          if (GEO_CONFIG[cCity]) {
+            setCompanyCity(cCity)
+            setCompanyZone(cZone)
+          }
+        }
+      }
+    }
+    loadCompanyLocation()
+  }, [initialProfile])
+
+  // GPS Location Handler for Company
+  const handleDetectCompanyLocation = () => {
+    if (!("geolocation" in navigator)) {
+      toast.error("Geolocalización no soportada en navegador")
+      return
+    }
+
+    setIsLocatingCompany(true)
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        const { latitude, longitude } = position.coords
+        const { city: dCity, zone: dZone } = findNearestCityAndZone(latitude, longitude)
+        setCompanyCity(dCity)
+        setCompanyZone(dZone)
+        setIsLocatingCompany(false)
+        toast.success("Ubicación GPS detectada", {
+          description: `Se seleccionó: ${dCity} - ${dZone}`
+        })
+      },
+      (err) => {
+        setIsLocatingCompany(false)
+        toast.error("No se pudo obtener la ubicación GPS", {
+          description: "Otorga permisos de geolocalización a tu navegador."
+        })
+      },
+      { enableHighAccuracy: true, timeout: 10000 }
+    )
+  }
+
+  // Save Location Handler for Company
+  const handleSaveCompanyLocation = async () => {
+    if (!companyCity || !companyZone) {
+      toast.error("Selecciona ciudad y zona")
+      return
+    }
+
+    setIsSavingCompanyLocation(true)
+    const locationStr = `${companyCity} - ${companyZone}`
+    const supabase = createClient()
+
+    try {
+      await supabase.auth.updateUser({
+        data: { location: locationStr, city: companyCity, zone: companyZone }
+      })
+
+      await supabase
+        .from("company_profiles")
+        .update({ fiscal_address: locationStr, updated_at: new Date().toISOString() })
+        .eq("id", initialProfile.id)
+
+      try {
+        await supabase
+          .from("profiles")
+          .update({ location: locationStr, updated_at: new Date().toISOString() })
+          .eq("id", initialProfile.id)
+      } catch (e) {}
+
+      setCompanyLocationStatus(locationStr)
+      toast.success("Ubicación corporativa guardada", {
+        description: `Tu sede se registró como ${locationStr}.`
+      })
+    } catch (err: any) {
+      toast.error("Error al guardar ubicación", { description: err.message || "Error al actualizar." })
+    } finally {
+      setIsSavingCompanyLocation(false)
+    }
+  }
   
   // Tab 1: Appearance State
   const [language, setLanguage] = React.useState("es")
@@ -252,6 +356,7 @@ export function CompanySettingsView({ user, initialProfile, initialPauseState }:
   const tabsList = [
     { id: "appearance", label: "Apariencia y Tema", icon: <Sun className="size-4" /> },
     { id: "account", label: "Cuenta y Seguridad", icon: <ShieldCheck className="size-4" /> },
+    { id: "location", label: "Sede Corporativa (GPS)", icon: <MapPin className="size-4" /> },
     { id: "recruitment", label: "Control de Reclutamiento", icon: <Briefcase className="size-4" /> },
     { id: "credits", label: "Suscripción y Créditos", icon: <CreditCard className="size-4" /> },
   ] as const
@@ -557,6 +662,120 @@ export function CompanySettingsView({ user, initialProfile, initialPauseState }:
                     ) : (
                       "Restablecer Contraseña"
                     )}
+                  </Button>
+                </div>
+              </Card>
+            </div>
+          )}
+
+          {/* TAB: UBICACIÓN Y SEDE CORPORATIVA */}
+          {activeTab === "location" && (
+            <div className="space-y-6">
+              <div className="flex flex-col gap-1 pb-2">
+                <h1 className="text-xl font-bold tracking-tight text-fiord-900 dark:text-fiord-50">
+                  Ubicación y Sede Corporativa
+                </h1>
+                <p className="text-xs text-fiord-500 dark:text-fiord-400 font-medium">
+                  Configura la ubicación geolocalizada de tu empresa para la publicación de vacantes en Mérida y Riviera Maya.
+                </p>
+              </div>
+
+              <Card className="border-fiord-100 dark:border-fiord-800 bg-white dark:bg-fiord-900 rounded-2xl p-6 shadow-sm space-y-6">
+                <div className="flex items-center justify-between">
+                  <div className="space-y-0.5">
+                    <h3 className="text-sm font-bold text-fiord-900 dark:text-fiord-50 flex items-center gap-2">
+                      <Building2 className="size-4 text-fiord-500" />
+                      Ubicación Fiscal y Operativa
+                    </h3>
+                    <p className="text-[11px] text-fiord-400 dark:text-fiord-400 font-medium">
+                      {companyLocationStatus ? `Sede actual: ${companyLocationStatus}` : "Define la ciudad y zona de tu empresa."}
+                    </p>
+                  </div>
+                  {companyLocationStatus && (
+                    <Badge variant="outline" className="text-[10px] font-bold border-emerald-500/20 text-emerald-600 dark:text-emerald-400 bg-emerald-500/10">
+                      Geolocalizado
+                    </Badge>
+                  )}
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="space-y-1.5">
+                    <Label className="text-xs font-semibold text-fiord-700 dark:text-fiord-300">
+                      Ciudad Principal
+                    </Label>
+                    <Select
+                      value={companyCity}
+                      onValueChange={(val) => {
+                        setCompanyCity(val);
+                        const firstZone = Object.keys(GEO_CONFIG[val]?.zones || {})[0] || "";
+                        setCompanyZone(firstZone);
+                      }}
+                    >
+                      <SelectTrigger className="w-full h-10 bg-fiord-50/50 dark:bg-fiord-950/40 border-fiord-100 dark:border-fiord-800 rounded-xl px-4 text-xs font-semibold">
+                        <SelectValue placeholder="Selecciona Ciudad" />
+                      </SelectTrigger>
+                      <SelectContent className="rounded-xl">
+                        {Object.keys(GEO_CONFIG).map((cityKey) => (
+                          <SelectItem key={cityKey} value={cityKey}>
+                            {cityKey}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <Label className="text-xs font-semibold text-fiord-700 dark:text-fiord-300">
+                      Zona / Colonia de la Sede
+                    </Label>
+                    <Select
+                      value={companyZone}
+                      onValueChange={setCompanyZone}
+                      disabled={!companyCity}
+                    >
+                      <SelectTrigger className="w-full h-10 bg-fiord-50/50 dark:bg-fiord-950/40 border-fiord-100 dark:border-fiord-800 rounded-xl px-4 text-xs font-semibold">
+                        <SelectValue placeholder="Selecciona Zona" />
+                      </SelectTrigger>
+                      <SelectContent className="rounded-xl">
+                        {companyCity &&
+                          Object.keys(GEO_CONFIG[companyCity]?.zones || {}).map((zoneKey) => (
+                            <SelectItem key={zoneKey} value={zoneKey}>
+                              {GEO_CONFIG[companyCity].zones[zoneKey].name}
+                            </SelectItem>
+                          ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+
+                <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pt-2">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={handleDetectCompanyLocation}
+                    disabled={isLocatingCompany}
+                    className="w-full sm:w-auto h-10 rounded-xl border-fiord-200 text-xs font-bold flex items-center gap-2"
+                  >
+                    {isLocatingCompany ? (
+                      <Loader2 className="size-4 animate-spin text-primary" />
+                    ) : (
+                      <Crosshair className="size-4 text-primary" />
+                    )}
+                    <span>Detectar por GPS</span>
+                  </Button>
+
+                  <Button
+                    type="button"
+                    onClick={handleSaveCompanyLocation}
+                    disabled={isSavingCompanyLocation}
+                    className="w-full sm:w-auto h-10 rounded-xl bg-primary hover:bg-primary/95 text-white text-xs font-bold px-6 flex items-center gap-2"
+                  >
+                    {isSavingCompanyLocation ? (
+                      <Loader2 className="size-4 animate-spin" />
+                    ) : (
+                      <Sparkles className="size-4" />
+                    )}
+                    <span>Guardar Ubicación</span>
                   </Button>
                 </div>
               </Card>
