@@ -124,10 +124,11 @@ export function VacanciesTable({
         ),
         cell: ({ row }) => {
           const vacancy = row.original;
+          const zoneText = vacancy.zone || vacancy.location || "No especificada";
           return (
-            <div className="flex items-center gap-2 text-xs sm:text-sm font-semibold text-[#1f2732] dark:text-zinc-200 py-1">
-              <MapPin className="size-4 text-[#5c7c9b] shrink-0" />
-              <span>{vacancy.zone || vacancy.location || "No especificada"}</span>
+            <div className="flex items-center gap-1.5 text-xs sm:text-sm font-semibold text-[#1f2732] dark:text-zinc-200 py-1 max-w-[240px] lg:max-w-[320px]" title={zoneText}>
+              <MapPin className="size-3.5 sm:size-4 text-[#5c7c9b] shrink-0" />
+              <span className="truncate">{zoneText}</span>
             </div>
           );
         },
@@ -137,23 +138,23 @@ export function VacanciesTable({
         header: ({ column }) => (
           <button
             type="button"
-            className="flex items-center gap-2 font-[800] text-xs sm:text-[13px] uppercase tracking-wider text-[#1f2732] dark:text-zinc-200 hover:text-black dark:hover:text-white transition-colors cursor-pointer select-none"
+            className="flex items-center gap-1.5 font-[800] text-xs sm:text-[13px] uppercase tracking-wider text-[#1f2732] dark:text-zinc-200 hover:text-black dark:hover:text-white transition-colors cursor-pointer select-none whitespace-nowrap"
             onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
           >
             <span>Sueldo Ofrecido</span>
             {column.getIsSorted() === "asc" ? (
-              <ArrowUp className="size-4 text-[#1f2732] dark:text-zinc-100" />
+              <ArrowUp className="size-3.5 sm:size-4 text-[#1f2732] dark:text-zinc-100" />
             ) : column.getIsSorted() === "desc" ? (
-              <ArrowDown className="size-4 text-[#1f2732] dark:text-zinc-100" />
+              <ArrowDown className="size-3.5 sm:size-4 text-[#1f2732] dark:text-zinc-100" />
             ) : (
-              <ArrowUpDown className="size-4 text-[#5c7c9b]/60" />
+              <ArrowUpDown className="size-3.5 sm:size-4 text-[#5c7c9b]/60" />
             )}
           </button>
         ),
         cell: ({ row }) => {
           const vacancy = row.original;
           return (
-            <span className="font-[800] text-xs sm:text-sm text-[#1f2732] dark:text-zinc-100 py-1 block">
+            <span className="font-[800] text-xs sm:text-sm text-[#1f2732] dark:text-zinc-100 py-1 block whitespace-nowrap">
               {formatSalary(vacancy.salary_min, vacancy.salary_max)}
             </span>
           );
@@ -164,16 +165,16 @@ export function VacanciesTable({
         header: ({ column }) => (
           <button
             type="button"
-            className="flex items-center gap-2 font-[800] text-xs sm:text-[13px] uppercase tracking-wider text-[#1f2732] dark:text-zinc-200 hover:text-black dark:hover:text-white transition-colors cursor-pointer select-none"
+            className="flex items-center gap-1.5 font-[800] text-xs sm:text-[13px] uppercase tracking-wider text-[#1f2732] dark:text-zinc-200 hover:text-black dark:hover:text-white transition-colors cursor-pointer select-none whitespace-nowrap"
             onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
           >
             <span>Estado</span>
             {column.getIsSorted() === "asc" ? (
-              <ArrowUp className="size-4 text-[#1f2732] dark:text-zinc-100" />
+              <ArrowUp className="size-3.5 sm:size-4 text-[#1f2732] dark:text-zinc-100" />
             ) : column.getIsSorted() === "desc" ? (
-              <ArrowDown className="size-4 text-[#1f2732] dark:text-zinc-100" />
+              <ArrowDown className="size-3.5 sm:size-4 text-[#1f2732] dark:text-zinc-100" />
             ) : (
-              <ArrowUpDown className="size-4 text-[#5c7c9b]/60" />
+              <ArrowUpDown className="size-3.5 sm:size-4 text-[#5c7c9b]/60" />
             )}
           </button>
         ),
@@ -184,7 +185,7 @@ export function VacanciesTable({
               variant="secondary"
               onClick={() => onToggleActive(vacancy.id, vacancy.is_active)}
               className={cn(
-                "text-[11px] sm:text-[12px] font-extrabold tracking-wider uppercase px-3.5 py-1.5 flex items-center w-fit border cursor-pointer hover:opacity-85 select-none rounded-full transition-all",
+                "text-[10px] sm:text-[11px] font-extrabold tracking-wider uppercase px-3 py-1 flex items-center w-fit border cursor-pointer hover:opacity-85 select-none rounded-full transition-all whitespace-nowrap",
                 vacancy.is_active
                   ? "bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border-emerald-500/30"
                   : "bg-zinc-100 text-zinc-600 border-zinc-200 dark:bg-zinc-800 dark:text-zinc-400 dark:border-zinc-700"
@@ -200,23 +201,23 @@ export function VacanciesTable({
         header: ({ column }) => (
           <button
             type="button"
-            className="flex items-center gap-2 font-[800] text-xs sm:text-[13px] uppercase tracking-wider text-[#1f2732] dark:text-zinc-200 hover:text-black dark:hover:text-white transition-colors cursor-pointer select-none"
+            className="flex items-center gap-1.5 font-[800] text-xs sm:text-[13px] uppercase tracking-wider text-[#1f2732] dark:text-zinc-200 hover:text-black dark:hover:text-white transition-colors cursor-pointer select-none whitespace-nowrap"
             onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
           >
             <span>Fecha</span>
             {column.getIsSorted() === "asc" ? (
-              <ArrowUp className="size-4 text-[#1f2732] dark:text-zinc-100" />
+              <ArrowUp className="size-3.5 sm:size-4 text-[#1f2732] dark:text-zinc-100" />
             ) : column.getIsSorted() === "desc" ? (
-              <ArrowDown className="size-4 text-[#1f2732] dark:text-zinc-100" />
+              <ArrowDown className="size-3.5 sm:size-4 text-[#1f2732] dark:text-zinc-100" />
             ) : (
-              <ArrowUpDown className="size-4 text-[#5c7c9b]/60" />
+              <ArrowUpDown className="size-3.5 sm:size-4 text-[#5c7c9b]/60" />
             )}
           </button>
         ),
         cell: ({ row }) => {
           const vacancy = row.original;
           return (
-            <span className="text-xs sm:text-sm text-[#5c7c9b] dark:text-zinc-400 font-semibold py-1 block">
+            <span className="text-xs sm:text-sm text-[#5c7c9b] dark:text-zinc-400 font-semibold py-1 block whitespace-nowrap">
               {formatDate(vacancy.created_at)}
             </span>
           );
@@ -234,9 +235,9 @@ export function VacanciesTable({
                   <Button
                     variant="ghost"
                     size="icon"
-                    className="h-11 w-11 p-0 rounded-[14px] border border-[#d2dbe5] dark:border-zinc-800 bg-white dark:bg-zinc-900 hover:bg-[#f5f7fa] dark:hover:bg-zinc-800 transition-all cursor-pointer shadow-xs"
+                    className="h-9 w-9 p-0 rounded-[12px] border border-[#d2dbe5] dark:border-zinc-800 bg-white dark:bg-zinc-900 hover:bg-[#f5f7fa] dark:hover:bg-zinc-800 transition-all cursor-pointer shadow-xs"
                   >
-                    <MoreHorizontal className="h-5 w-5 text-[#5c7c9b]" />
+                    <MoreHorizontal className="h-4 w-4 text-[#5c7c9b]" />
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end" className="rounded-[18px] border border-[#ebeef3] dark:border-zinc-800 bg-popover min-w-[170px] shadow-lg p-2">
@@ -259,7 +260,7 @@ export function VacanciesTable({
                     <Trash2 className="size-4 text-rose-500" />
                     <span>Eliminar</span>
                   </DropdownMenuItem>
-                </DropdownMenuContent>
+                  </DropdownMenuContent>
               </DropdownMenu>
             </div>
           );
@@ -291,12 +292,12 @@ export function VacanciesTable({
       
       {/* Table Container */}
       <div className="overflow-x-auto">
-        <Table>
+        <Table className="w-full">
           <TableHeader className="bg-[#f5f7fa]/80 dark:bg-zinc-900/60 border-b border-[#ebeef3] dark:border-zinc-800">
             {table.getHeaderGroups().map((headerGroup) => (
               <TableRow key={headerGroup.id} className="hover:bg-transparent border-none">
                 {headerGroup.headers.map((header) => (
-                  <TableHead key={header.id} className="py-5 px-6">
+                  <TableHead key={header.id} className="py-4 px-3 sm:px-4">
                     {header.isPlaceholder
                       ? null
                       : flexRender(header.column.columnDef.header, header.getContext())}
@@ -317,7 +318,7 @@ export function VacanciesTable({
                   )}
                 >
                   {row.getVisibleCells().map((cell) => (
-                    <TableCell key={cell.id} className="px-6 py-4.5">
+                    <TableCell key={cell.id} className="px-3 sm:px-4 py-3.5">
                       {flexRender(cell.column.columnDef.cell, cell.getContext())}
                     </TableCell>
                   ))}
