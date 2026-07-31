@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React from "react";
 import { Calendar, Eye, EyeOff, Loader2 } from "lucide-react";
 import Link from "next/link";
 
@@ -20,16 +20,16 @@ export function CandidateRegisterForm() {
   } = useCandidateRegisterForm();
 
   return (
-    <main className="min-h-screen w-full bg-white dark:bg-zinc-950 flex flex-col items-center justify-start pb-12 font-sans selection:bg-[#5c7c9b]/20">
-      <div className="w-full max-w-[480px] flex flex-col items-center">
-        {/* 1. Dark Curved Header Section with "Sign Up" Title & Back Button */}
-        <AuthHeader
-          title="Sign Up"
-          backHref="/register"
-        />
+    <main className="min-h-screen w-full bg-white sm:bg-[#f8fafc] dark:bg-zinc-950 flex flex-col items-center justify-start font-sans selection:bg-[#5c7c9b]/20">
+      {/* 1. Full-Width Dark Curved Header Section */}
+      <AuthHeader
+        title="Sign Up"
+        backHref="/register"
+      />
 
-        {/* 2. Form Area */}
-        <div className="w-full px-7 sm:px-8 mt-2 flex flex-col items-center">
+      {/* 2. Form Area: Direct on white background for Mobile (100% Flutter fidelity), Elevated Card for Desktop */}
+      <div className="w-full max-w-[480px] sm:max-w-[520px] px-7 sm:px-0 sm:-mt-14 z-20 relative pb-16">
+        <div className="w-full bg-white dark:bg-zinc-900 sm:rounded-[28px] sm:shadow-[0_16px_40px_rgba(31,39,50,0.08)] sm:dark:shadow-[0_16px_40px_rgba(0,0,0,0.4)] sm:border sm:border-[#d2dbe5]/50 sm:dark:border-zinc-800/80 sm:p-10 flex flex-col items-center">
           <form
             onSubmit={handleSubmit(onSubmit)}
             className="w-full flex flex-col items-center gap-4"
@@ -108,7 +108,7 @@ export function CandidateRegisterForm() {
             <button
               type="submit"
               disabled={isSubmitting}
-              className="w-full h-[56px] mt-4 rounded-[16px] bg-[#1f2732] hover:bg-[#2f3c4b] text-white font-bold text-[16px] tracking-[-0.2px] shadow-sm transition-all duration-200 flex items-center justify-center gap-2 cursor-pointer active:scale-[0.99] disabled:opacity-50 disabled:pointer-events-none"
+              className="w-full h-[56px] mt-3 rounded-[16px] bg-[#1f2732] hover:bg-[#2f3c4b] text-white font-bold text-[16px] tracking-[-0.2px] shadow-md shadow-[#1f2732]/10 transition-all duration-200 flex items-center justify-center gap-2 cursor-pointer active:scale-[0.99] disabled:opacity-50 disabled:pointer-events-none"
             >
               {isSubmitting ? (
                 <>
@@ -121,7 +121,7 @@ export function CandidateRegisterForm() {
             </button>
 
             {/* Navigation Link to Login */}
-            <div className="mt-5 text-center">
+            <div className="mt-4 text-center">
               <span className="text-[#5c7c9b] dark:text-zinc-400 text-[14px] font-medium">
                 ¿Ya tienes una cuenta?{" "}
               </span>

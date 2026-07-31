@@ -39,7 +39,7 @@ export const authService = {
         }
       }
 
-      role = role || "pro";
+      role = role || "candidate";
       return { user: authData.user, role };
     }
     
@@ -62,6 +62,18 @@ export const authService = {
     });
 
     if (authError) throw authError;
+
+    // Auto sign-in to establish authenticated session if session is not returned immediately
+    if (authData.user && !authData.session) {
+      try {
+        await supabase.auth.signInWithPassword({
+          email: data.email,
+          password: data.password,
+        });
+      } catch (err) {
+        console.warn("Auto sign-in after company registration skipped:", err);
+      }
+    }
 
     if (authData.user) {
       return { user: authData.user };
@@ -86,6 +98,18 @@ export const authService = {
     });
 
     if (authError) throw authError;
+
+    // Auto sign-in to establish authenticated session if session is not returned immediately
+    if (authData.user && !authData.session) {
+      try {
+        await supabase.auth.signInWithPassword({
+          email: data.email,
+          password: data.password,
+        });
+      } catch (err) {
+        console.warn("Auto sign-in after admin registration skipped:", err);
+      }
+    }
 
     if (authData.user) {
       return { user: authData.user };
@@ -113,6 +137,18 @@ export const authService = {
 
     if (authError) throw authError;
 
+    // Auto sign-in to establish authenticated session if session is not returned immediately
+    if (authData.user && !authData.session) {
+      try {
+        await supabase.auth.signInWithPassword({
+          email: data.email,
+          password: data.password,
+        });
+      } catch (err) {
+        console.warn("Auto sign-in after candidate registration skipped:", err);
+      }
+    }
+
     if (authData.user) {
       return { user: authData.user };
     }
@@ -120,4 +156,3 @@ export const authService = {
     throw new Error("No se pudieron obtener los datos del usuario");
   }
 };
-

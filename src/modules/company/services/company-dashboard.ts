@@ -106,38 +106,46 @@ export async function getCompanyDashboardData() {
         .from("applications")
         .select(`
           id,
-          created_at,
+          applied_at,
           status,
           vacancies (
             title
           ),
-          candidate:profiles (
+          candidate:candidate_profiles (
             id,
-            full_name,
             headline,
             skills,
-            avatar_url
+            profiles (
+              id,
+              full_name,
+              avatar_url
+            )
           )
         `)
         .in("vacancy_id", vacIds)
-        .order("created_at", { ascending: false })
+        .order("applied_at", { ascending: false })
         .limit(5)
 
       recentActivities = (recentApps || []).map((app: any) => {
+        const candidateProfile = Array.isArray(app.candidate) ? app.candidate[0] : app.candidate;
+        const baseProfile = candidateProfile?.profiles
+          ? (Array.isArray(candidateProfile.profiles) ? candidateProfile.profiles[0] : candidateProfile.profiles)
+          : {};
+
         let skills: string[] = []
-        if (app.candidate?.skills) {
-          skills = Array.isArray(app.candidate.skills)
-            ? app.candidate.skills
-            : String(app.candidate.skills).split(",")
+        if (candidateProfile?.skills) {
+          skills = Array.isArray(candidateProfile.skills)
+            ? candidateProfile.skills
+            : String(candidateProfile.skills).split(",")
         }
         return {
           id: app.id,
-          candidateName: app.candidate?.full_name || "Profesional K'anPro",
-          candidateHeadline: app.candidate?.headline || "Candidato",
-          candidateAvatar: app.candidate?.avatar_url || null,
+          candidateName: baseProfile?.full_name || "Profesional K'anPro",
+          candidateHeadline: candidateProfile?.headline || "Candidato",
+          candidateAvatar: baseProfile?.avatar_url || null,
           skills: skills.slice(0, 3),
           vacancyTitle: app.vacancies?.title || "Puesto",
-          createdAt: app.created_at
+          createdAt: app.applied_at || app.created_at
         }
       })
 
@@ -147,9 +155,9 @@ export async function getCompanyDashboardData() {
 
       const { data: appDates } = await supabase
         .from("applications")
-        .select("created_at")
+        .select("applied_at")
         .in("vacancy_id", vacIds)
-        .gte("created_at", fourteenDaysAgo.toISOString())
+        .gte("applied_at", fourteenDaysAgo.toISOString())
 
       recentAppDates = appDates || []
     }
@@ -229,7 +237,8 @@ export async function getCompanyDashboardData() {
     sevenDaysAgo.setDate(now.getDate() - 7)
 
     recentAppDates.forEach((app: any) => {
-      const appDate = new Date(app.created_at)
+      const appDateStr = app.applied_at || app.created_at;
+      const appDate = appDateStr ? new Date(appDateStr) : new Date();
       if (appDate >= sevenDaysAgo) {
         thisWeekTotal++
         const dayName = daysMap[appDate.getDay()]

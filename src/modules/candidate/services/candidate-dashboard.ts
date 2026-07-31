@@ -94,7 +94,7 @@ export async function getCandidateDashboardData(): Promise<CandidateDashboardDat
     .select(`
       id,
       status,
-      created_at,
+      applied_at,
       vacancy_id,
       vacancy:vacancies (
         id,
@@ -106,7 +106,7 @@ export async function getCandidateDashboardData(): Promise<CandidateDashboardDat
       )
     `)
     .eq("candidate_id", user.id)
-    .order("created_at", { ascending: false })
+    .order("applied_at", { ascending: false })
 
   // 4. Resolve company names for vacancies
   const companies: Record<string, { company_name: string; logo_url: string | null; phone: string | null }> = {}
@@ -114,7 +114,8 @@ export async function getCandidateDashboardData(): Promise<CandidateDashboardDat
   interface DBApplication {
     id: string
     status: string
-    created_at: string | null
+    applied_at: string | null
+    created_at?: string | null
     vacancy: {
       id: string
       title: string
@@ -194,8 +195,9 @@ export async function getCandidateDashboardData(): Promise<CandidateDashboardDat
         break
     }
 
-    const appliedDate = app.created_at
-      ? new Date(app.created_at).toLocaleDateString("es-ES", {
+    const appDateStr = app.applied_at || app.created_at
+    const appliedDate = appDateStr
+      ? new Date(appDateStr).toLocaleDateString("es-ES", {
           day: "numeric",
           month: "short",
           year: "numeric"

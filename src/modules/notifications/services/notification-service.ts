@@ -21,8 +21,8 @@ export const notificationService = {
       .order("created_at", { ascending: false });
 
     if (error) {
-      console.error("Error fetching notifications in service:", error);
-      throw error;
+      console.warn("Notifications unavailable:", error.message || error);
+      return [];
     }
 
     return (data as Notification[]) || [];

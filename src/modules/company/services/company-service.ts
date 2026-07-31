@@ -149,52 +149,55 @@ export const companyService = {
       .select(`
         id,
         status,
-        created_at,
+        applied_at,
         vacancy_id,
         vacancies (
           id,
           title,
           company_id
         ),
-        candidate:profiles (
+        candidate:candidate_profiles (
           id,
-          full_name,
-          location,
-          avatar_url,
-          email,
-          candidate_profiles (
-            headline,
-            bio,
-            phone,
-            skills,
-            experience,
-            education
+          headline,
+          bio,
+          skills,
+          experience,
+          education,
+          profiles (
+            id,
+            full_name,
+            location,
+            avatar_url,
+            email,
+            whatsapp_number
           )
         )
       `)
-      .order("created_at", { ascending: false });
+      .order("applied_at", { ascending: false });
 
     if (error) throw error;
 
     const flattened = (data || []).map((app: any) => {
-      // Find candidate profiles extension and merge it for backwards compatibility with legacy layout
-      const extension = app.candidate?.candidate_profiles;
-      const extensionObj = Array.isArray(extension) ? extension[0] : extension;
-      
+      const candidateObj = app.candidate;
+      const candidateProfile = Array.isArray(candidateObj) ? candidateObj[0] : candidateObj;
+      const baseProfile = candidateProfile?.profiles
+        ? (Array.isArray(candidateProfile.profiles) ? candidateProfile.profiles[0] : candidateProfile.profiles)
+        : {};
+
       return {
         ...app,
-        candidate: app.candidate ? {
-          id: app.candidate.id,
-          full_name: app.candidate.full_name,
-          location: app.candidate.location,
-          avatar_url: app.candidate.avatar_url,
-          email: app.candidate.email,
-          headline: extensionObj?.headline || null,
-          bio: extensionObj?.bio || null,
-          phone: extensionObj?.phone || null,
-          skills: extensionObj?.skills || null,
-          experience: extensionObj?.experience || null,
-          education: extensionObj?.education || null,
+        candidate: candidateProfile ? {
+          id: candidateProfile.id,
+          full_name: baseProfile.full_name,
+          location: baseProfile.location,
+          avatar_url: baseProfile.avatar_url,
+          email: baseProfile.email,
+          headline: candidateProfile.headline,
+          bio: candidateProfile.bio,
+          phone: baseProfile.whatsapp_number,
+          skills: candidateProfile.skills,
+          experience: candidateProfile.experience,
+          education: candidateProfile.education,
         } : null
       };
     });

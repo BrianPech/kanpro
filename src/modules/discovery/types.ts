@@ -22,6 +22,6 @@ export interface Job {
   description: VacancyRow["description"];
   benefits: string[];
   isFromDb: boolean;
-  companyPhone: CompanyProfileRow["phone"];
+  companyPhone: CompanyProfileRow["contact_phone"];
   isCompanyValidated?: boolean;
 }

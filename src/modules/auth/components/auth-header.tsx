@@ -30,35 +30,40 @@ export function AuthHeader({
   logoIcon,
 }: AuthHeaderProps) {
   return (
-    <div className="relative w-full h-[240px] sm:h-[280px] overflow-hidden select-none">
+    <div className="relative w-full h-[220px] sm:h-[280px] lg:h-[320px] overflow-hidden select-none shrink-0">
       {/* Background Gradient & Geometric Pattern Overlay Container */}
-      <div className="absolute inset-0 bg-gradient-to-b from-[#1f2732] to-[#2f3c4b]">
-        {/* SVG Geometric Tile Pattern Overlay matching _HeaderPatternPainter */}
+      <div className="absolute inset-0 bg-gradient-to-b from-[#1f2732] via-[#242f3d] to-[#2f3c4b]">
+        {/* SVG Geometric Tile Pattern Overlay matching Flutter _HeaderPatternPainter */}
         <svg
-          className="absolute inset-0 w-full h-full opacity-60 pointer-events-none"
+          className="absolute inset-0 w-full h-full opacity-40 pointer-events-none"
           preserveAspectRatio="none"
-          viewBox="0 0 400 300"
+          viewBox="0 0 1200 400"
         >
-          <circle cx="40" cy="60" r="80" fill="white" fillOpacity="0.03" />
-          <circle cx="320" cy="150" r="110" fill="white" fillOpacity="0.03" />
+          <circle cx="120" cy="100" r="180" fill="white" fillOpacity="0.03" />
+          <circle cx="1080" cy="220" r="240" fill="white" fillOpacity="0.03" />
           <polygon
-            points="120,0 240,300 260,300 140,0"
+            points="360,0 720,400 780,400 420,0"
             fill="white"
             fillOpacity="0.024"
+          />
+          <polygon
+            points="800,0 1000,400 1040,400 840,0"
+            fill="white"
+            fillOpacity="0.018"
           />
         </svg>
 
         {/* SVG Curved Clip Path matching Flutter _HeaderClipper */}
         <div className="absolute bottom-0 left-0 right-0 w-full overflow-hidden leading-none z-10">
           <svg
-            className="relative block w-full h-[60px] sm:h-[75px]"
-            viewBox="0 0 100 100"
+            className="relative block w-full h-[55px] sm:h-[70px] lg:h-[85px]"
+            viewBox="0 0 1000 100"
             preserveAspectRatio="none"
           >
-            {/* White inverse fill at bottom to crop dark header in curve */}
+            {/* Soft background fill: pure white on mobile for 100% Flutter fidelity, soft tint on desktop */}
             <path
-              d="M 0 76 C 15 76, 22 98, 100 98 L 100 100 L 0 100 Z"
-              className="fill-white dark:fill-zinc-950"
+              d="M 0 76 C 150 76, 220 98, 1000 98 L 1000 100 L 0 100 Z"
+              className="fill-white sm:fill-[#f8fafc] dark:fill-zinc-950"
             />
           </svg>
         </div>
@@ -66,10 +71,10 @@ export function AuthHeader({
 
       {/* Optional Top Left Back Button */}
       {backHref && (
-        <div className="absolute top-6 left-6 z-20">
+        <div className="absolute top-6 left-6 sm:left-10 z-20">
           <Link
             href={backHref}
-            className="flex items-center justify-center size-10 rounded-full bg-white/10 hover:bg-white/20 backdrop-blur-md text-white transition-all duration-200"
+            className="flex items-center justify-center size-10 rounded-full bg-white/10 hover:bg-white/20 backdrop-blur-md text-white transition-all duration-200 shadow-sm"
             aria-label="Volver"
           >
             <ArrowLeft className="size-5" />
@@ -78,17 +83,17 @@ export function AuthHeader({
       )}
 
       {/* Header Content: Centered Title or Logo Card */}
-      <div className="absolute inset-0 flex items-center justify-center z-20 pb-8">
+      <div className="absolute inset-0 flex items-center justify-center z-20 pb-10 sm:pb-14">
         {showLogoCard && (
-          <div className="w-[76px] h-[76px] bg-white dark:bg-zinc-900 rounded-[20px] shadow-[0_8px_16px_rgba(0,0,0,0.12)] p-3 flex items-center justify-center transition-transform hover:scale-105 duration-300">
-            <div className="w-full h-full bg-[#1f2732] rounded-[12px] flex items-center justify-center text-white">
-              {logoIcon || <Kanban className="size-8 text-white" />}
+          <div className="w-[76px] h-[76px] sm:w-[88px] sm:h-[88px] bg-white dark:bg-zinc-900 rounded-[20px] sm:rounded-[26px] shadow-[0_12px_28px_rgba(0,0,0,0.18)] p-3 flex items-center justify-center transition-transform hover:scale-105 duration-300 border border-white/20">
+            <div className="w-full h-full bg-[#1f2732] rounded-[12px] sm:rounded-[18px] flex items-center justify-center text-white shadow-inner">
+              {logoIcon || <Kanban className="size-8 sm:size-10 text-white" />}
             </div>
           </div>
         )}
 
         {title && (
-          <h1 className="text-white text-2xl sm:text-3xl font-extrabold tracking-[-1px]">
+          <h1 className="text-white text-2xl sm:text-3xl lg:text-4xl font-extrabold tracking-[-1px] text-center drop-shadow-sm">
             {title}
           </h1>
         )}

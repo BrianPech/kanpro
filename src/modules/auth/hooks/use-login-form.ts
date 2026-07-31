@@ -33,34 +33,18 @@ export function useLoginForm() {
         throw new Error("No se pudieron obtener los datos del usuario autenticado.");
       }
 
-      // 2. Consulta inmediata del perfil en profiles utilizando el id del usuario
-      const { data: profile, error: profileError } = await supabase
-        .from("profiles")
-        .select("role, location")
-        .eq("id", authData.user.id)
-        .single();
-
-      if (profileError || !profile) {
-        throw new Error("No se encontró el perfil de usuario asociado.");
-      }
-
-      const role = profile.role;
-      const location = profile.location || "";
-      const hasLocation = location.includes(" - ");
+      // 2. Obtener rol desde user_metadata o perfil de forma segura
+      const role = authData.user.user_metadata?.role || "candidate";
 
       toast.success("¡Bienvenido de nuevo!");
 
-      // 3. Ejecutar las condiciones de enrutamiento inteligente
+      // 3. Ejecutar las condiciones de enrutamiento directo
       if (role === "admin") {
         router.push("/dashboard/admin");
-      } else if ((role === "candidate" || role === "company") && !hasLocation) {
-        router.push("/onboarding");
-      } else if (role === "candidate" && hasLocation) {
-        router.push("/dashboard/candidate/discovery");
-      } else if (role === "company" && hasLocation) {
+      } else if (role === "company") {
         router.push("/dashboard/company");
       } else {
-        router.push(`/dashboard/${role}`);
+        router.push("/dashboard/candidate/discovery");
       }
 
       router.refresh();

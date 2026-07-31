@@ -91,7 +91,8 @@ export function useApplicationsInbox() {
           }
 
           // Determine elapsed time
-          const date = new Date(app.created_at);
+          const appDateStr = app.applied_at || app.created_at;
+          const date = appDateStr ? new Date(appDateStr) : new Date();
           const diffMs = Date.now() - date.getTime();
           const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
           const diffHours = Math.floor(diffMs / (1000 * 60 * 60));

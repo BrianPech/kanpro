@@ -82,13 +82,12 @@ export function LoginClient() {
         if (error) throw error;
 
         if (data.user) {
-
           toast.success("¡Cuenta creada con éxito!", {
-            description: "Comencemos configurando tu ubicación.",
+            description: "Bienvenido a K'anPro.",
           });
           
-          // Force immediate push to onboarding screen
-          router.push("/onboarding");
+          // Direct push to appropriate dashboard
+          router.push(role === "company" ? "/dashboard/company" : "/dashboard/candidate/discovery");
           router.refresh();
         }
       }

@@ -54,9 +54,9 @@ export function PremiumTextField({
             type={type}
             readOnly={readOnly}
             placeholder={hintText}
+            {...(registerProps || {})}
             value={value}
             onChange={onChange}
-            {...(registerProps || {})}
             className="w-full bg-transparent border-none outline-none p-0 text-[16px] font-semibold text-[#1f2732] dark:text-zinc-100 placeholder:text-[#aabccf] dark:placeholder:text-zinc-600 focus:ring-0 focus:outline-none"
           />
           {suffixIcon && (

@@ -110,17 +110,12 @@ describe("K'anPro Integration and Functional Test Suite", () => {
 
       // 3. Simular el Route Guard del layout (DashboardTopLayout)
       const evaluateRouteGuard = (role: string, locationStr: string | null) => {
-        const loc = locationStr || "";
-        const hasLocation = loc.includes(" - ");
-        if ((role === "candidate" || role === "company") && !hasLocation) {
-          return { shouldRedirect: true, destination: "/onboarding" };
-        }
+        // Con el nuevo comportamiento sin onboarding síncrono, no bloquea al usuario
         return { shouldRedirect: false };
       };
 
       const guardResult = evaluateRouteGuard(profile!.role, profile!.location);
-      expect(guardResult.shouldRedirect).toBe(true);
-      expect(guardResult.destination).toBe("/onboarding");
+      expect(guardResult.shouldRedirect).toBe(false);
     });
 
     test("Caso B: En /onboarding se guarda 'Mérida - Altabrisa', se levanta bloqueo y redirige", async () => {
