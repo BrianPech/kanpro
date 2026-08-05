@@ -267,13 +267,18 @@ export function CompanyVerificationView({
     >
       {/* PAGE HEADER */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-2 border-b border-border/40">
-        <div>
-          <h1 className="text-2xl sm:text-3xl font-[800] tracking-tight text-[#1f2732] dark:text-zinc-100 flex items-center gap-3">
-            <Building2 className="size-7 text-[#5c7c9b]" />
-            Verificación de Empresa (Persona Moral)
-          </h1>
-          <p className="text-xs sm:text-sm text-[#5c7c9b] dark:text-zinc-400 font-semibold mt-1">
-            Expediente digital obligatorio para validación de cuenta corporativa e insignia de confianza en K&apos;anPro.
+        <div className="space-y-1">
+          <div className="flex items-center gap-3 flex-wrap">
+            <h1 className="text-2xl sm:text-3xl font-[800] tracking-tight text-[#1f2732] dark:text-zinc-100 flex items-center gap-3">
+              <Building2 className="size-7 text-[#5c7c9b]" />
+              Verificación de Empresa (Persona Moral)
+            </h1>
+            <Badge variant="outline" className="bg-amber-500/10 text-amber-700 dark:text-amber-300 border-amber-500/20 font-bold px-3 py-1 rounded-full text-xs">
+              🔒 Expediente Privado & Confidencial (No visible para candidatos)
+            </Badge>
+          </div>
+          <p className="text-xs sm:text-sm text-[#5c7c9b] dark:text-zinc-400 font-semibold">
+            Expediente digital confidencial para validación de cuenta corporativa e insignia de confianza en K&apos;anPro.
           </p>
         </div>
 

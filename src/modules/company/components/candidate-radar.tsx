@@ -84,7 +84,7 @@ export function CandidateRadar() {
 
           const { data: compProfile } = await supabase
             .from("company_profiles")
-            .select("company_name, contact_phone, fiscal_address, logo_url")
+            .select("company_name, contact_phone, fiscal_address, logo_url, subscription_plan")
             .eq("id", user.id)
             .maybeSingle();
 
@@ -93,6 +93,7 @@ export function CandidateRadar() {
             phone: compProfile?.contact_phone || "configurado",
             location: compProfile?.fiscal_address || baseProfile?.location || "",
             logo_url: compProfile?.logo_url || null,
+            subscription_plan: compProfile?.subscription_plan || "basic",
           });
         }
       } catch (err) {
@@ -283,6 +284,20 @@ export function CandidateRadar() {
   }, [candidates, searchQuery, selectedZone, userCoords, companyCity, companyZone]);
 
   const handleContact = async (candidate: Candidate) => {
+    // If company is on basic plan, suggest upgrading to PRO for proactive Radar outreach
+    if (profile?.subscription_plan === "basic" || !profile?.subscription_plan) {
+      toast.info("Función del Plan PRO", {
+        description: "El contacto proactivo desde el Radar GPS es exclusivo de los Planes PRO y Corporativo. Actualiza tu suscripción en Configuración para escribirle directamente.",
+        action: {
+          label: "Ver Planes",
+          onClick: () => {
+            window.location.href = "/dashboard/company/settings";
+          }
+        }
+      });
+      return;
+    }
+
     try {
       const toastId = toast.loading("Conectando con el candidato...");
       const link = await initiateWhatsAppConnection({

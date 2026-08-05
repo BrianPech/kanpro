@@ -66,14 +66,18 @@ export const companyVerificationService = {
 
     if (companyErr) throw companyErr;
 
-    // 2. Update terms acceptance on base profiles if needed
-    if (data.terms_accepted) {
-      const nowStr = new Date().toISOString();
-      await supabase
-        .from("profiles")
-        .update({ terms_accepted_at: nowStr, updated_at: nowStr })
-        .eq("id", userId);
-    }
+    // 2. Sync base profiles location & contact phone if provided
+    const profilesPayload: any = {
+      updated_at: new Date().toISOString(),
+    };
+    if (data.fiscal_address) profilesPayload.location = data.fiscal_address;
+    if (data.contact_phone) profilesPayload.whatsapp_number = data.contact_phone;
+    if (data.terms_accepted) profilesPayload.terms_accepted_at = new Date().toISOString();
+
+    await supabase
+      .from("profiles")
+      .update(profilesPayload)
+      .eq("id", userId);
   },
 
   async uploadDocument(

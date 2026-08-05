@@ -18,7 +18,7 @@ export async function getCompanyVerificationServerData(): Promise<{
 
   const { data: baseProfile } = await supabase
     .from("profiles")
-    .select("email, full_name, whatsapp_number, terms_accepted_at")
+    .select("email, full_name, location, whatsapp_number, terms_accepted_at")
     .eq("id", user.id)
     .single();
 
@@ -73,7 +73,7 @@ export async function getCompanyVerificationServerData(): Promise<{
     legal_name: companyProfile?.legal_name || "",
     company_name: companyProfile?.company_name || baseProfile?.full_name || "",
     rfc: companyProfile?.rfc || "",
-    fiscal_address: companyProfile?.fiscal_address || "",
+    fiscal_address: companyProfile?.fiscal_address || (baseProfile as any)?.location || "",
     industry: companyProfile?.industry || "",
     legal_rep_name: companyProfile?.legal_rep_name || "",
     corporate_email: companyProfile?.corporate_email || baseProfile?.email || "",

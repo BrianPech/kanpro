@@ -210,8 +210,50 @@ export type Database = {
           },
         ]
       }
+      company_invoices: {
+        Row: {
+          amount: number
+          company_id: string
+          created_at: string
+          currency: string
+          id: string
+          payment_method: string | null
+          plan_name: string
+          status: string
+        }
+        Insert: {
+          amount?: number
+          company_id: string
+          created_at?: string
+          currency?: string
+          id?: string
+          payment_method?: string | null
+          plan_name: string
+          status?: string
+        }
+        Update: {
+          amount?: number
+          company_id?: string
+          created_at?: string
+          currency?: string
+          id?: string
+          payment_method?: string | null
+          plan_name?: string
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "company_invoices_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "company_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       company_profiles: {
         Row: {
+          address_details: string | null
           banner_url: string | null
           branch_addresses: Json | null
           company_name: string
@@ -222,6 +264,8 @@ export type Database = {
           credits_available: number
           description: string | null
           entity_type: Database["public"]["Enums"]["company_entity_type"]
+          featured_vacancies_allowance: number
+          featured_vacancies_used: number
           fiscal_address: string
           id: string
           imss_patronal_registry: string | null
@@ -229,10 +273,14 @@ export type Database = {
           legal_name: string | null
           legal_rep_name: string | null
           logo_url: string | null
+          operation_hours: string | null
           rating: number | null
           repse_registry: string | null
           rfc: string
           social_links: Json | null
+          subscription_period_end: string | null
+          subscription_plan: string
+          subscription_status: string
           updated_at: string
           verification_status:
             | Database["public"]["Enums"]["verification_status"]
@@ -240,6 +288,7 @@ export type Database = {
           website_url: string | null
         }
         Insert: {
+          address_details?: string | null
           banner_url?: string | null
           branch_addresses?: Json | null
           company_name: string
@@ -250,6 +299,8 @@ export type Database = {
           credits_available?: number
           description?: string | null
           entity_type?: Database["public"]["Enums"]["company_entity_type"]
+          featured_vacancies_allowance?: number
+          featured_vacancies_used?: number
           fiscal_address: string
           id: string
           imss_patronal_registry?: string | null
@@ -257,10 +308,14 @@ export type Database = {
           legal_name?: string | null
           legal_rep_name?: string | null
           logo_url?: string | null
+          operation_hours?: string | null
           rating?: number | null
           repse_registry?: string | null
           rfc: string
           social_links?: Json | null
+          subscription_period_end?: string | null
+          subscription_plan?: string
+          subscription_status?: string
           updated_at?: string
           verification_status?:
             | Database["public"]["Enums"]["verification_status"]
@@ -268,6 +323,7 @@ export type Database = {
           website_url?: string | null
         }
         Update: {
+          address_details?: string | null
           banner_url?: string | null
           branch_addresses?: Json | null
           company_name?: string
@@ -278,6 +334,8 @@ export type Database = {
           credits_available?: number
           description?: string | null
           entity_type?: Database["public"]["Enums"]["company_entity_type"]
+          featured_vacancies_allowance?: number
+          featured_vacancies_used?: number
           fiscal_address?: string
           id?: string
           imss_patronal_registry?: string | null
@@ -285,10 +343,14 @@ export type Database = {
           legal_name?: string | null
           legal_rep_name?: string | null
           logo_url?: string | null
+          operation_hours?: string | null
           rating?: number | null
           repse_registry?: string | null
           rfc?: string
           social_links?: Json | null
+          subscription_period_end?: string | null
+          subscription_plan?: string
+          subscription_status?: string
           updated_at?: string
           verification_status?:
             | Database["public"]["Enums"]["verification_status"]
@@ -487,8 +549,10 @@ export type Database = {
           currency: string | null
           description: string
           employment_type: string
+          featured_until: string | null
           id: string
           is_active: boolean
+          is_featured: boolean
           is_promoted: boolean
           location: string
           modality: string
@@ -511,8 +575,10 @@ export type Database = {
           currency?: string | null
           description: string
           employment_type: string
+          featured_until?: string | null
           id?: string
           is_active?: boolean
+          is_featured?: boolean
           is_promoted?: boolean
           location?: string
           modality?: string
@@ -535,8 +601,10 @@ export type Database = {
           currency?: string | null
           description?: string
           employment_type?: string
+          featured_until?: string | null
           id?: string
           is_active?: boolean
+          is_featured?: boolean
           is_promoted?: boolean
           location?: string
           modality?: string

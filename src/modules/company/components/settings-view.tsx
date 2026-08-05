@@ -53,16 +53,18 @@ import {
 } from "@/components/ui/dialog"
 import { cn } from "@/lib/utils"
 import { createClient } from "@/lib/supabase/client"
-import { toggleGlobalRecruitment, updateContactChannel } from "@/modules/company/actions/settings"
+import { toggleGlobalRecruitment, updateContactChannel, updateSubscriptionPlan } from "@/modules/company/actions/settings"
 import { GEO_CONFIG, findNearestCityAndZone } from "@/config/geo"
 
-interface Transaction {
+interface Invoice {
   id: string
-  type: "purchase" | "usage"
-  description: string
-  credits: number
-  date: string
-  amount?: string
+  company_id: string
+  plan_name: string
+  amount: number
+  currency: string
+  status: string
+  payment_method: string | null
+  created_at: string
 }
 
 interface CompanyProfile {
@@ -77,6 +79,11 @@ interface CompanyProfile {
   industry: string | null
   website_or_linkedin: string | null
   whatsapp_number: string
+  subscription_plan?: "basic" | "pro" | "enterprise" | string
+  subscription_status?: string
+  subscription_period_end?: string | null
+  featured_vacancies_allowance?: number
+  featured_vacancies_used?: number
 }
 
 interface SettingsUser {
@@ -88,9 +95,10 @@ interface CompanySettingsViewProps {
   user: SettingsUser
   initialProfile: CompanyProfile
   initialPauseState: boolean
+  initialInvoices?: Invoice[]
 }
 
-export function CompanySettingsView({ user, initialProfile, initialPauseState }: CompanySettingsViewProps) {
+export function CompanySettingsView({ user, initialProfile, initialPauseState, initialInvoices = [] }: CompanySettingsViewProps) {
   const [mounted, setMounted] = React.useState(false)
   const [activeTab, setActiveTab] = React.useState<"account" | "location" | "recruitment" | "credits">("account")
   
@@ -320,7 +328,7 @@ export function CompanySettingsView({ user, initialProfile, initialPauseState }:
     }
   }
 
-  const handleConfirmPurchase = () => {
+  const handleConfirmPurchase = async () => {
     if (!selectedCreditsPackage) return
     
     const { credits: pkgCredits, price } = selectedCreditsPackage
@@ -344,6 +352,19 @@ export function CompanySettingsView({ user, initialProfile, initialPauseState }:
     setHistory(prev => [newTx, ...prev])
     setIsBuyModalOpen(false)
     setSelectedCreditsPackage(null)
+
+    try {
+      const supabase = createClient()
+      await supabase.from("notifications").insert({
+        user_id: user.id,
+        title: "Solicitud de Créditos Registrada",
+        description: `Solicitud de paquete de ${pkgCredits} créditos (${price}). El equipo verificará tu pago.`,
+        type: "credit_purchase",
+      })
+    } catch (e) {
+      console.warn("Could not save credit notification:", e)
+    }
+
     window.open(whatsappUrl, "_blank")
     
     toast.info("Redireccionando a Soporte", {
@@ -735,12 +756,12 @@ export function CompanySettingsView({ user, initialProfile, initialPauseState }:
             </div>
           )}
 
-          {/* TAB 4: SUSCRIPCIÓN Y CRÉDITOS */}
+          {/* TAB 4: SUSCRIPCIÓN Y PLANES */}
           {activeTab === "credits" && (
             <div className="space-y-6">
               <div className="flex flex-col gap-1 pb-2">
-                <h1 className="text-xl font-bold tracking-tight text-fiord-900 dark:text-fiord-50">Suscripción y Créditos</h1>
-                <p className="text-xs text-fiord-500 dark:text-fiord-400 font-medium">Controla tus gastos de publicación, recarga créditos y visualiza tu historial.</p>
+                <h1 className="text-xl font-bold tracking-tight text-fiord-900 dark:text-fiord-50">Suscripción y Plan Mensual</h1>
+                <p className="text-xs text-fiord-500 dark:text-fiord-400 font-medium">Administra tu plan de contratación, cupos de vacantes destacadas y facturación.</p>
               </div>
 
               {/* Bento Grid Layout */}
@@ -750,40 +771,40 @@ export function CompanySettingsView({ user, initialProfile, initialPauseState }:
                 <Card className="md:col-span-3 flex flex-col justify-between rounded-xl border border-border/10 bg-white dark:bg-zinc-900 relative overflow-hidden group/card shadow-none hover:border-zinc-350 dark:hover:border-zinc-700 transition-all duration-200">
                   <div className={cn(
                     "absolute -top-12 -right-12 w-24 h-24 rounded-full blur-2xl opacity-20 transition-all duration-300",
-                    currentPlan === "Gratis" && "bg-emerald-500",
-                    currentPlan === "Destacado" && "bg-primary",
-                    currentPlan === "Enterprise" && "bg-amber-500"
+                    (initialProfile.subscription_plan === "basic" || !initialProfile.subscription_plan) && "bg-emerald-500",
+                    initialProfile.subscription_plan === "pro" && "bg-primary",
+                    initialProfile.subscription_plan === "enterprise" && "bg-amber-500"
                   )} />
 
                   <CardHeader className="pb-3 relative z-10">
                     <div className="flex items-center justify-between gap-2">
-                      <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Tu Membresía</span>
+                      <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Plan Activo</span>
                       
-                      {currentPlan === "Gratis" && (
+                      {(initialProfile.subscription_plan === "basic" || !initialProfile.subscription_plan) && (
                         <span className="inline-flex items-center px-2 py-0.5 text-[9px] font-semibold border rounded-full bg-emerald-50 text-emerald-700 border-emerald-200/50 dark:bg-emerald-950/20 dark:text-emerald-400 dark:border-emerald-900/40">
-                          Plan Gratis
+                          Plan Básico
                         </span>
                       )}
-                      {currentPlan === "Destacado" && (
-                        <span className="inline-flex items-center px-2 py-0.5 text-[9px] font-semibold border rounded-full bg-primary/10 text-primary border-primary/20 dark:bg-primary/20 dark:text-primary-foreground">
-                          Plan Premium
+                      {initialProfile.subscription_plan === "pro" && (
+                        <span className="inline-flex items-center px-2 py-0.5 text-[9px] font-semibold border rounded-full bg-primary/10 text-primary border-primary/20 dark:bg-primary/20 dark:text-primary-foreground font-bold">
+                          Plan PRO ⭐
                         </span>
                       )}
-                      {currentPlan === "Enterprise" && (
-                        <span className="inline-flex items-center px-2 py-0.5 text-[9px] font-semibold border rounded-full bg-amber-50 text-amber-700 border-amber-200/50 dark:bg-amber-950/20 dark:text-emerald-400 dark:border-emerald-900/40">
-                          Plan Enterprise
+                      {initialProfile.subscription_plan === "enterprise" && (
+                        <span className="inline-flex items-center px-2 py-0.5 text-[9px] font-semibold border rounded-full bg-amber-50 text-amber-700 border-amber-200/50 dark:bg-amber-950/20 dark:text-amber-400 dark:border-amber-900/40 font-bold">
+                          Plan Corporativo 👑
                         </span>
                       )}
                     </div>
                     <CardTitle className="text-base font-bold text-foreground mt-2">
-                      {currentPlan === "Gratis" && "K'anPro Free"}
-                      {currentPlan === "Destacado" && "K'anPro Destacado"}
-                      {currentPlan === "Enterprise" && "K'anPro Enterprise"}
+                      {(initialProfile.subscription_plan === "basic" || !initialProfile.subscription_plan) && "K'anPro Básico"}
+                      {initialProfile.subscription_plan === "pro" && "K'anPro PRO"}
+                      {initialProfile.subscription_plan === "enterprise" && "K'anPro Corporativo"}
                     </CardTitle>
                     <CardDescription className="text-xs text-muted-foreground mt-1">
-                      {currentPlan === "Gratis" && "Acceso inicial para pequeños negocios en Mérida y Riviera Maya."}
-                      {currentPlan === "Destacado" && "Posicionamiento premium y créditos de publicación recurrentes."}
-                      {currentPlan === "Enterprise" && "Créditos ilimitados y acompañamiento integral en contratación."}
+                      {(initialProfile.subscription_plan === "basic" || !initialProfile.subscription_plan) && "Acceso ágil para vacantes locales y recepción de postulantes."}
+                      {initialProfile.subscription_plan === "pro" && "Cacería de talento con Radar GPS y vacantes destacadas."}
+                      {initialProfile.subscription_plan === "enterprise" && "Volumen ilimitado y acompañamiento VIP en contratación."}
                     </CardDescription>
                   </CardHeader>
 
@@ -791,26 +812,25 @@ export function CompanySettingsView({ user, initialProfile, initialPauseState }:
                     <ul className="space-y-2 mt-2">
                       <li className="flex items-center gap-2">
                         <Check className="size-3.5 text-emerald-500 flex-shrink-0" />
-                        <span className="text-muted-foreground">Publicación de vacantes básicas</span>
-                      </li>
-                      <li className="flex items-center gap-2">
-                        {currentPlan !== "Gratis" ? (
-                          <Check className="size-3.5 text-emerald-500 flex-shrink-0" />
-                        ) : (
-                          <div className="w-3.5 h-3.5 flex items-center justify-center text-[10px] text-muted-foreground/60 border border-muted-foreground/30 rounded-full font-bold">✕</div>
-                        )}
-                        <span className={cn(currentPlan === "Gratis" && "text-muted-foreground/50 line-through")}>
-                          Filtro geográfico avanzado (Mérida / Playa)
+                        <span className="text-muted-foreground">
+                          Límite de vacantes activas:{" "}
+                          <strong className="text-foreground font-bold">
+                            {initialProfile.subscription_plan === "pro" ? "15 vacantes" : initialProfile.subscription_plan === "enterprise" ? "Ilimitadas" : "5 vacantes"}
+                          </strong>
                         </span>
                       </li>
                       <li className="flex items-center gap-2">
-                        {currentPlan === "Enterprise" ? (
+                        <Check className="size-3.5 text-emerald-500 flex-shrink-0" />
+                        <span className="text-muted-foreground">WhatsApp directo en postulaciones recibidas</span>
+                      </li>
+                      <li className="flex items-center gap-2">
+                        {initialProfile.subscription_plan !== "basic" ? (
                           <Check className="size-3.5 text-emerald-500 flex-shrink-0" />
                         ) : (
                           <div className="w-3.5 h-3.5 flex items-center justify-center text-[10px] text-muted-foreground/60 border border-muted-foreground/30 rounded-full font-bold">✕</div>
                         )}
-                        <span className={cn(currentPlan !== "Enterprise" && "text-muted-foreground/50 line-through")}>
-                          Ejecutivo de contratación dedicado
+                        <span className={cn(initialProfile.subscription_plan === "basic" && "text-muted-foreground/50 line-through")}>
+                          Contacto proactivo vía Radar GPS
                         </span>
                       </li>
                     </ul>
@@ -823,32 +843,37 @@ export function CompanySettingsView({ user, initialProfile, initialPauseState }:
                       onClick={() => setIsPlanModalOpen(true)}
                       className="w-full rounded-lg text-xs font-semibold h-8 select-none border-border"
                     >
-                      <span>Cambiar de Plan</span>
+                      <span>Cambiar o Renovar Plan</span>
                       <ArrowRight className="size-3 ml-1 transition-transform group-hover/button:translate-x-0.5" />
                     </Button>
                   </CardFooter>
                 </Card>
 
-                {/* Bento Card 2: Contador de Créditos (Span 3) */}
+                {/* Bento Card 2: Vacantes Destacadas (Span 3) */}
                 <Card className="md:col-span-3 flex flex-col justify-between rounded-xl border border-border/10 bg-white dark:bg-zinc-900 relative overflow-hidden group/card shadow-none hover:border-zinc-350 dark:hover:border-zinc-700 transition-all duration-200">
                   <CardHeader className="pb-2">
                     <div className="flex items-center justify-between">
-                      <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Créditos de Publicación</span>
+                      <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Vacantes Destacadas</span>
                       <Sparkles className="size-3 text-primary fill-primary/20" />
                     </div>
                   </CardHeader>
 
                   <CardContent className="py-2 flex-1 flex flex-col justify-center">
                     <div className="flex items-baseline gap-1.5">
-                      <span className="text-4xl font-extrabold tracking-tight text-foreground font-mono">{credits}</span>
-                      <span className="text-xs font-semibold text-muted-foreground">Disponibles</span>
+                      <span className="text-4xl font-extrabold tracking-tight text-foreground font-mono">
+                        {(initialProfile.featured_vacancies_allowance || 0) - (initialProfile.featured_vacancies_used || 0)}
+                      </span>
+                      <span className="text-xs font-semibold text-muted-foreground">Destacados Disponibles</span>
                     </div>
 
                     <div className="space-y-1.5 mt-4">
-                      <Progress value={credits} max={10} className="bg-zinc-100 dark:bg-zinc-800 h-2" />
+                      <Progress
+                        value={initialProfile.featured_vacancies_allowance ? ((initialProfile.featured_vacancies_allowance - (initialProfile.featured_vacancies_used || 0)) / initialProfile.featured_vacancies_allowance) * 100 : 0}
+                        className="bg-zinc-100 dark:bg-zinc-800 h-2"
+                      />
                       <div className="flex justify-between text-[10px] text-muted-foreground">
-                        <span>{credits} créditos</span>
-                        <span>Límite de 10 mensuales</span>
+                        <span>{initialProfile.featured_vacancies_used || 0} usados</span>
+                        <span>Cupo de {initialProfile.featured_vacancies_allowance || 0} mensuales</span>
                       </div>
                     </div>
                   </CardContent>
@@ -856,53 +881,166 @@ export function CompanySettingsView({ user, initialProfile, initialPauseState }:
                   <CardFooter className="pt-3 pb-5 border-t border-border/20">
                     <Button
                       size="sm"
-                      onClick={() => setIsBuyModalOpen(true)}
+                      onClick={() => setIsPlanModalOpen(true)}
                       className="w-full rounded-lg h-8 bg-primary hover:bg-primary/95 text-primary-foreground font-semibold shadow-sm select-none border-none"
                     >
-                      Comprar Paquete
+                      Mejorar a Plan PRO / Corporativo
                     </Button>
                   </CardFooter>
                 </Card>
 
-                {/* Bento Card 3: Historial / Facturas (Span 6) */}
+                {/* Bento Card 3: Historial de Facturas (Span 6) */}
                 <Card className="col-span-1 md:col-span-6 rounded-xl border border-border/10 bg-white dark:bg-zinc-900 shadow-none hover:border-zinc-350 dark:hover:border-zinc-700 transition-all duration-200">
                   <CardHeader className="pb-3 flex flex-row items-center justify-between">
                     <div>
                       <CardTitle className="text-xs font-bold text-foreground flex items-center gap-1.5">
                         <History className="size-3.5 text-muted-foreground" />
-                        Historial de Movimientos
+                        Historial de Facturación y Recibos
                       </CardTitle>
-                      <CardDescription className="text-[10px] text-muted-foreground mt-0.5">Últimos movimientos de créditos y cargos de facturación.</CardDescription>
+                      <CardDescription className="text-[10px] text-muted-foreground mt-0.5">Pagos y renovaciones de suscripción registradas.</CardDescription>
                     </div>
                   </CardHeader>
                   <CardContent className="p-0">
-                    <div className="divide-y divide-border/20 max-h-[220px] overflow-y-auto custom-scrollbar">
-                      {history.map((tx) => (
-                        <div key={tx.id} className="flex items-center justify-between p-4 hover:bg-muted/10 transition-colors">
-                          <div className="flex items-start gap-3">
-                            <div className={cn(
-                              "p-1.5 rounded-lg text-xs font-bold font-mono mt-0.5",
-                              tx.type === "purchase" 
-                                ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400" 
-                                : "bg-amber-500/10 text-amber-600 dark:text-amber-400"
-                            )}>
-                              {tx.credits > 0 ? `+${tx.credits}` : tx.credits}
+                    {initialInvoices.length > 0 ? (
+                      <div className="divide-y divide-border/20 max-h-[220px] overflow-y-auto custom-scrollbar">
+                        {initialInvoices.map((inv) => (
+                          <div key={inv.id} className="flex items-center justify-between p-4 hover:bg-muted/10 transition-colors">
+                            <div className="flex items-start gap-3">
+                              <div className="p-1.5 rounded-lg text-xs font-bold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 mt-0.5">
+                                PAGADO
+                              </div>
+                              <div>
+                                <h5 className="text-xs font-bold text-foreground">{inv.plan_name}</h5>
+                                <span className="text-[10px] text-muted-foreground">
+                                  {new Date(inv.created_at).toLocaleDateString("es-MX", { day: "numeric", month: "short", year: "numeric" })}
+                                </span>
+                              </div>
                             </div>
-                            <div>
-                              <h5 className="text-xs font-bold text-foreground">{tx.description}</h5>
-                              <span className="text-[10px] text-muted-foreground">{tx.date}</span>
-                            </div>
+                            <span className="text-xs font-bold font-mono text-foreground">${inv.amount} {inv.currency}</span>
                           </div>
-                          {tx.amount && (
-                            <span className="text-xs font-bold font-mono text-foreground">{tx.amount}</span>
-                          )}
-                        </div>
-                      ))}
-                    </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="p-6 text-center text-xs text-muted-foreground">
+                        No hay facturas registradas aún. El Plan Básico es de acceso libre.
+                      </div>
+                    )}
                   </CardContent>
                 </Card>
               </div>
+
+              {/* Modal de Selección de Plan */}
+              <Dialog open={isPlanModalOpen} onOpenChange={setIsPlanModalOpen}>
+                <DialogContent className="max-w-3xl sm:rounded-[24px]">
+                  <DialogHeader>
+                    <DialogTitle className="text-lg font-bold">Selecciona tu Plan Mensual de K&apos;anPro</DialogTitle>
+                    <DialogDescription className="text-xs text-muted-foreground">
+                      Elige el nivel de aceleración que necesita tu empresa en Mérida y Quintana Roo.
+                    </DialogDescription>
+                  </DialogHeader>
+
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4 py-4">
+                    {/* Básico */}
+                    <div className={cn(
+                      "p-4 rounded-2xl border flex flex-col justify-between transition-all",
+                      initialProfile.subscription_plan === "basic" ? "border-primary bg-primary/5" : "border-border"
+                    )}>
+                      <div>
+                        <Badge variant="outline" className="text-[10px] font-bold">Básico</Badge>
+                        <h3 className="text-lg font-bold mt-2">$399 <span className="text-xs font-normal text-muted-foreground">MXN/mes</span></h3>
+                        <p className="text-[11px] text-muted-foreground mt-1">Para negocios locales con contrataciones puntuales.</p>
+                        <ul className="text-xs space-y-1.5 mt-4">
+                          <li className="flex items-center gap-1.5"><Check className="size-3.5 text-emerald-500" /> 5 Vacantes Activas</li>
+                          <li className="flex items-center gap-1.5"><Check className="size-3.5 text-emerald-500" /> WhatsApp en Postulaciones</li>
+                          <li className="flex items-center gap-1.5"><Check className="size-3.5 text-emerald-500" /> Perfil Comercial Completo</li>
+                        </ul>
+                      </div>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="mt-4 w-full text-xs font-bold"
+                        onClick={async () => {
+                          await updateSubscriptionPlan(initialProfile.id, "basic");
+                          setIsPlanModalOpen(false);
+                          toast.success("Cambiado a Plan Básico");
+                        }}
+                      >
+                        Activar Plan Básico
+                      </Button>
+                    </div>
+
+                    {/* PRO */}
+                    <div className={cn(
+                      "p-4 rounded-2xl border-2 flex flex-col justify-between transition-all relative overflow-hidden",
+                      initialProfile.subscription_plan === "pro" ? "border-primary bg-primary/10" : "border-primary/50 bg-primary/5"
+                    )}>
+                      <div className="absolute top-2 right-2">
+                        <Badge className="bg-primary text-primary-foreground text-[9px] font-bold">MÁS POPULAR ⭐</Badge>
+                      </div>
+                      <div>
+                        <Badge variant="default" className="text-[10px] font-bold">PRO</Badge>
+                        <h3 className="text-lg font-bold mt-2">$1,499 <span className="text-xs font-normal text-muted-foreground">MXN/mes</span></h3>
+                        <p className="text-[11px] text-muted-foreground mt-1">Para hoteles, restaurantes y empresas de rotación continua.</p>
+                        <ul className="text-xs space-y-1.5 mt-4 font-semibold">
+                          <li className="flex items-center gap-1.5"><Check className="size-3.5 text-emerald-500" /> 15 Vacantes Activas</li>
+                          <li className="flex items-center gap-1.5"><Check className="size-3.5 text-emerald-500" /> 3 Vacantes Destacadas/mes</li>
+                          <li className="flex items-center gap-1.5"><Check className="size-3.5 text-emerald-500" /> Radar GPS + Contacto Directo</li>
+                          <li className="flex items-center gap-1.5"><Check className="size-3.5 text-emerald-500" /> Badge Empresa Verificada</li>
+                        </ul>
+                      </div>
+                      <Button
+                        size="sm"
+                        className="mt-4 w-full text-xs font-bold bg-primary hover:bg-primary/90 text-primary-foreground"
+                        onClick={async () => {
+                          await updateSubscriptionPlan(initialProfile.id, "pro");
+                          setIsPlanModalOpen(false);
+                          toast.success("¡Plan PRO Activado con éxito!");
+                        }}
+                      >
+                        Activar Plan PRO
+                      </Button>
+                    </div>
+
+                    {/* Corporativo */}
+                    <div className={cn(
+                      "p-4 rounded-2xl border flex flex-col justify-between transition-all",
+                      initialProfile.subscription_plan === "enterprise" ? "border-amber-500 bg-amber-500/5" : "border-border"
+                    )}>
+                      <div>
+                        <Badge variant="secondary" className="text-[10px] font-bold">Corporativo</Badge>
+                        <h3 className="text-lg font-bold mt-2">$3,999 <span className="text-xs font-normal text-muted-foreground">MXN/mes</span></h3>
+                        <p className="text-[11px] text-muted-foreground mt-1">Para cadenas, grandes grupos y logística regional.</p>
+                        <ul className="text-xs space-y-1.5 mt-4">
+                          <li className="flex items-center gap-1.5"><Check className="size-3.5 text-emerald-500" /> Vacantes ILIMITADAS</li>
+                          <li className="flex items-center gap-1.5"><Check className="size-3.5 text-emerald-500" /> 10 Vacantes Destacadas/mes</li>
+                          <li className="flex items-center gap-1.5"><Check className="size-3.5 text-emerald-500" /> Radar GPS VIP + Cuentas RRHH</li>
+                          <li className="flex items-center gap-1.5"><Check className="size-3.5 text-emerald-500" /> Verificación Prioritaria 12h</li>
+                        </ul>
+                      </div>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="mt-4 w-full text-xs font-bold border-amber-500 text-amber-600 dark:text-amber-400 hover:bg-amber-500/10"
+                        onClick={async () => {
+                          await updateSubscriptionPlan(initialProfile.id, "enterprise");
+                          setIsPlanModalOpen(false);
+                          toast.success("¡Plan Corporativo Activado!");
+                        }}
+                      >
+                        Activar Plan Corporativo
+                      </Button>
+                    </div>
+                  </div>
+                </DialogContent>
+              </Dialog>
             </div>
+          )}
+
+        </div>
+      </div>
+    </div>
+  )
+}
           )}
 
         </div>

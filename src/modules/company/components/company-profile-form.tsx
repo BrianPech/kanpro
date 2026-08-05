@@ -17,6 +17,8 @@ import {
   ShieldCheck,
   CheckSquare,
   Clock,
+  Navigation,
+  CheckCircle2,
 } from "lucide-react";
 
 const InstagramIcon = (props: React.SVGProps<SVGSVGElement>) => (
@@ -61,6 +63,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Card } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Badge } from "@/components/ui/badge";
 import {
   Select,
   SelectContent,
@@ -72,6 +75,7 @@ import { useCompanyProfileForm } from "../hooks/use-company-profile-form";
 import { toast } from "sonner";
 import { motion } from "framer-motion";
 import { cn } from "@/lib/utils";
+import { GEO_CONFIG, findNearestCityAndZone } from "@/config/geo";
 
 export interface InitialProfile {
   company_name?: string | null;
@@ -120,6 +124,79 @@ export function CompanyProfileForm({
   const logoUrl = watch("logo_url");
   const bannerUrl = watch("banner_url");
   const description = watch("description") || "";
+
+  const [isLocating, setIsLocating] = React.useState(false);
+  const [gpsDetectedInfo, setGpsDetectedInfo] = React.useState<{
+    city: string;
+    address?: string;
+  } | null>(null);
+
+  const handleDetectLocation = () => {
+    if (typeof window === "undefined" || !("geolocation" in navigator)) {
+      toast.error("Geolocalización no soportada", { description: "Tu navegador no soporta GPS." });
+      return;
+    }
+
+    setIsLocating(true);
+    navigator.geolocation.getCurrentPosition(
+      async (pos) => {
+        const { latitude, longitude } = pos.coords;
+        const { city: nearestCity, zone: nearestZone } = findNearestCityAndZone(latitude, longitude);
+
+        let detectedStreet = "";
+        let detectedCity = nearestCity;
+
+        try {
+          const res = await fetch(
+            `https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}`
+          );
+          const geoData = await res.json();
+          if (geoData && geoData.address) {
+            const addr = geoData.address;
+            const road = addr.road || addr.pedestrian || addr.street || "";
+            const suburb = addr.suburb || addr.neighbourhood || addr.quarter || addr.city_district || "";
+            const cityName = addr.city || addr.town || addr.county || nearestCity;
+
+            if (road || suburb) {
+              detectedStreet = [road, suburb].filter(Boolean).join(", ");
+            }
+            if (cityName) {
+              const matchedKey = Object.keys(GEO_CONFIG).find((k) =>
+                cityName.toLowerCase().includes(k.toLowerCase()) || k.toLowerCase().includes(cityName.toLowerCase())
+              );
+              if (matchedKey) {
+                detectedCity = matchedKey;
+              }
+            }
+          }
+        } catch (e) {
+          console.warn("Reverse geocoding fetch fallback:", e);
+        }
+
+        setValue("location", detectedCity, { shouldValidate: true, shouldDirty: true });
+        if (detectedStreet) {
+          setValue("address_details", detectedStreet, { shouldValidate: true, shouldDirty: true });
+        }
+
+        setGpsDetectedInfo({
+          city: detectedCity,
+          address: detectedStreet || nearestZone,
+        });
+
+        setIsLocating(false);
+        toast.success("Ubicación GPS confirmada", {
+          description: `Ciudad: ${detectedCity}${detectedStreet ? ` • ${detectedStreet}` : ""}`,
+        });
+      },
+      (err) => {
+        setIsLocating(false);
+        toast.error("Permiso de GPS denegado", {
+          description: "Por favor otorga acceso a la ubicación en las preferencias de tu navegador.",
+        });
+      },
+      { enableHighAccuracy: true, timeout: 10000 }
+    );
+  };
   const charCount = description.length;
 
   const handleLogoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -254,10 +331,15 @@ export function CompanyProfileForm({
 
             {/* Title / Info */}
             <div className="flex-grow pt-16 md:pt-20 space-y-1.5">
-              <h3 className="text-[18px] sm:text-[20px] font-[800] text-[#1f2732] dark:text-zinc-100 tracking-tight flex items-center gap-2 justify-center md:justify-start">
-                <Sparkles className="size-5 text-[#5c7c9b] shrink-0" />
-                Identidad de Marca
-              </h3>
+              <div className="flex items-center gap-2 flex-wrap justify-center md:justify-start">
+                <h3 className="text-[18px] sm:text-[20px] font-[800] text-[#1f2732] dark:text-zinc-100 tracking-tight flex items-center gap-2">
+                  <Sparkles className="size-5 text-[#5c7c9b] shrink-0" />
+                  Identidad de Marca
+                </h3>
+                <Badge variant="outline" className="bg-sky-500/10 text-sky-700 dark:text-sky-300 border-sky-500/20 font-bold px-3 py-0.5 rounded-full text-[11px]">
+                  🌐 Pública (Visible para candidatos)
+                </Badge>
+              </div>
               <p className="text-xs sm:text-sm text-[#5c7c9b] dark:text-zinc-400 font-semibold leading-relaxed max-w-lg">
                 Sube tu logotipo comercial e imagen de portada para destacar en el feed de candidatos.
               </p>
@@ -421,6 +503,7 @@ export function CompanyProfileForm({
                   />
                 </div>
               </div>
+
             </div>
           </div>
         </Card>
@@ -429,25 +512,77 @@ export function CompanyProfileForm({
         {/* SECTION 3: LOGÍSTICA Y MOVILIDAD          */}
         {/* ========================================== */}
         <Card className="bg-white dark:bg-[#18181b] border border-[#ebeef3] dark:border-zinc-800 rounded-[28px] p-6 sm:p-8 space-y-6 shadow-xs">
-          <div className="flex items-center gap-2.5 pb-2 border-b border-[#ebeef3] dark:border-zinc-800">
-            <Bus className="size-5 text-[#5c7c9b]" />
-            <h4 className="text-[16px] sm:text-[18px] font-[800] text-[#1f2732] dark:text-zinc-100 tracking-tight">Logística y Ubicación de la Empresa</h4>
+          <div className="flex items-center gap-3 pb-3 border-b border-[#ebeef3] dark:border-zinc-800">
+            <div className="size-10 rounded-2xl bg-indigo-500/10 dark:bg-indigo-500/20 text-indigo-600 dark:text-indigo-400 flex items-center justify-center shrink-0">
+              <MapPin className="size-5" />
+            </div>
+            <div>
+              <h4 className="text-[16px] sm:text-[18px] font-[800] text-[#1f2732] dark:text-zinc-100 tracking-tight">
+                Logística y Ubicación de la Empresa
+              </h4>
+              <p className="text-xs text-[#5c7c9b] dark:text-zinc-400 font-semibold mt-0.5">
+                Ubicación de la sede principal o sucursal operada en la región.
+              </p>
+            </div>
           </div>
 
+          {gpsDetectedInfo && (
+            <div className="p-4 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-800 dark:text-emerald-300 flex items-center justify-between gap-3 text-xs font-semibold animate-in fade-in duration-300">
+              <div className="flex items-center gap-2.5">
+                <CheckCircle2 className="size-4.5 text-emerald-600 dark:text-emerald-400 shrink-0" />
+                <div>
+                  <span className="font-extrabold">Ubicación GPS Confirmada:</span>{" "}
+                  {gpsDetectedInfo.city} {gpsDetectedInfo.address ? `• ${gpsDetectedInfo.address}` : ""}
+                </div>
+              </div>
+              <Badge className="bg-emerald-600 text-white text-[10px] font-bold px-2.5 py-0.5 rounded-full shrink-0 shadow-none">
+                GPS Activo
+              </Badge>
+            </div>
+          )}
+
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {/* General Zone Selection */}
+            {/* General Zone Selection with Integrated GPS Button */}
             <div className="space-y-2.5">
               <label className="block text-[14px] sm:text-[15px] font-extrabold text-[#3e546d] dark:text-zinc-200">
-                Zona General (Ciudad) *
+                Ciudad Principal / Sede *
               </label>
-              <div className="relative">
-                <MapPin className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-[#5c7c9b] dark:text-zinc-400 pointer-events-none" />
-                <Input
-                  type="text"
-                  placeholder="Ej. Playa del Carmen, Centro"
-                  {...register("location")}
-                  className="w-full h-14 bg-white dark:bg-zinc-900 border border-[#ebeef3] dark:border-zinc-800 rounded-[16px] pl-11 pr-4 text-[15px] sm:text-[16px] font-[600] text-[#1f2732] dark:text-zinc-100 placeholder-[#94a3b8] focus-visible:ring-2 focus-visible:ring-[#1f2732] transition-all outline-none"
-                />
+              <div className="flex gap-2">
+                <div className="flex-grow min-w-0">
+                  <Select
+                    value={watch("location") || ""}
+                    onValueChange={(value) => setValue("location", value, { shouldValidate: true })}
+                  >
+                    <SelectTrigger className="w-full h-14 bg-white dark:bg-zinc-900 border border-[#ebeef3] dark:border-zinc-800 rounded-[16px] px-4 text-[15px] sm:text-[16px] font-[600] text-[#1f2732] dark:text-zinc-100 focus:ring-2 focus:ring-primary/20 transition-all outline-none shadow-none cursor-pointer">
+                      <SelectValue placeholder="Selecciona tu ciudad..." />
+                    </SelectTrigger>
+                    <SelectContent className="rounded-[16px] border border-[#ebeef3] dark:border-zinc-800 bg-popover text-sm font-semibold">
+                      {Object.keys(GEO_CONFIG).map((cityName) => (
+                        <SelectItem key={cityName} value={cityName}>
+                          {cityName} (Mérida & Riviera Maya)
+                        </SelectItem>
+                      ))}
+                      <SelectItem value="Tulum">Tulum, Q. Roo</SelectItem>
+                      <SelectItem value="Cancún">Cancún, Q. Roo</SelectItem>
+                      <SelectItem value="Cozumel">Cozumel, Q. Roo</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={handleDetectLocation}
+                  disabled={isLocating}
+                  title="Detectar ubicación automáticamente por GPS"
+                  className="h-14 px-4 bg-primary/5 hover:bg-primary/10 border-primary/20 text-primary font-bold text-xs rounded-[16px] flex items-center gap-2 shrink-0 transition-all active:scale-95 shadow-none"
+                >
+                  {isLocating ? (
+                    <Loader2 className="size-4 animate-spin" />
+                  ) : (
+                    <Navigation className="size-4 text-primary" />
+                  )}
+                  <span className="hidden sm:inline">{isLocating ? "Buscando..." : "Detectar GPS"}</span>
+                </Button>
               </div>
               {errors.location && (
                 <p className="text-xs sm:text-sm font-semibold text-rose-500">
@@ -463,9 +598,9 @@ export function CompanyProfileForm({
               </label>
               <Input
                 type="text"
-                placeholder="Ej. Calle 10 Norte entre Av. 15 y 20"
+                placeholder="Ej. Calle 10 Norte entre Av. 15 y 20, Col. Centro"
                 {...register("address_details")}
-                className="w-full h-14 bg-white dark:bg-zinc-900 border border-[#ebeef3] dark:border-zinc-800 rounded-[16px] px-4 text-[15px] sm:text-[16px] font-[600] text-[#1f2732] dark:text-zinc-100 placeholder-[#94a3b8] focus-visible:ring-2 focus-visible:ring-[#1f2732] transition-all outline-none"
+                className="w-full h-14 bg-white dark:bg-zinc-900 border border-[#ebeef3] dark:border-zinc-800 rounded-[16px] px-4 text-[15px] sm:text-[16px] font-[600] text-[#1f2732] dark:text-zinc-100 placeholder-[#94a3b8] focus-visible:ring-2 focus-visible:ring-primary/20 transition-all outline-none"
               />
               {errors.address_details && (
                 <p className="text-xs sm:text-sm font-semibold text-rose-500">
@@ -474,8 +609,6 @@ export function CompanyProfileForm({
               )}
             </div>
           </div>
-
-
         </Card>
 
 

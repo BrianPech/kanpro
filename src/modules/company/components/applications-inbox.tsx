@@ -43,10 +43,11 @@ export function ApplicationsInbox() {
   } = useApplicationsInbox() // Fetch logic inside hooks takes care of user sessions
 
   const [mobileDetailOpen, setMobileDetailOpen] = React.useState(false)
+  const [sortBy, setSortBy] = React.useState<"newest" | "rating">("newest")
 
-  // Filter roster based on search text and vacancy selector
+  // Filter and sort roster based on search text, vacancy selector, and sort mode
   const filteredApplicants = React.useMemo(() => {
-    return applicants.filter((app) => {
+    const list = applicants.filter((app) => {
       // Search text filter
       const matchesSearch = searchQuery
         ? app.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -59,7 +60,12 @@ export function ApplicationsInbox() {
 
       return matchesSearch && matchesVacancy
     })
-  }, [applicants, searchQuery, selectedVacancyId])
+
+    if (sortBy === "rating") {
+      return [...list].sort((a, b) => (b.rating || 0) - (a.rating || 0))
+    }
+    return list
+  }, [applicants, searchQuery, selectedVacancyId, sortBy])
 
   const selectApplicantOnMobile = (id: string) => {
     setSelectedId(id)
@@ -68,6 +74,17 @@ export function ApplicationsInbox() {
 
   const handleStatusChangeLocal = async (id: string, status: Applicant["status"]) => {
     await handleUpdateStatus(id, status)
+  }
+
+  const toggleSortMode = () => {
+    const nextMode = sortBy === "newest" ? "rating" : "newest"
+    setSortBy(nextMode)
+    toast.success(
+      nextMode === "rating" ? "Ordenado por Calificación" : "Ordenado por Más Recientes",
+      {
+        description: nextMode === "rating" ? "Postulantes con mayor número de estrellas primero." : "Postulaciones más recientes primero."
+      }
+    )
   }
 
   return (
@@ -118,8 +135,11 @@ export function ApplicationsInbox() {
           <Button 
             variant="outline" 
             size="icon" 
-            onClick={() => toast.info("Filtros avanzados", { description: "Próximamente filtros por afinidad e historial." })}
-            className="size-9 rounded-full border-border/60 text-muted-foreground hover:text-foreground shrink-0 shadow-sm"
+            onClick={toggleSortMode}
+            title={sortBy === "rating" ? "Ordenado por Calificación" : "Ordenado por Fecha"}
+            className={`size-9 rounded-full border-border/60 shrink-0 shadow-sm transition-all ${
+              sortBy === "rating" ? "bg-amber-500/10 text-amber-600 border-amber-500/30" : "text-muted-foreground hover:text-foreground"
+            }`}
           >
             <Filter className="size-3.5" />
           </Button>
