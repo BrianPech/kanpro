@@ -12,6 +12,11 @@ import { revalidatePath } from "next/cache"
 export async function toggleGlobalRecruitment(companyId: string, pause: boolean) {
   const supabase = await createClient()
 
+  const { data: { user }, error: authError } = await supabase.auth.getUser()
+  if (authError || !user) {
+    throw new Error("No autorizado. Inicie sesión para continuar.")
+  }
+
   const { error } = await supabase
     .from("vacancies")
     .update({ is_active: !pause })
@@ -40,6 +45,11 @@ export async function toggleGlobalRecruitment(companyId: string, pause: boolean)
 export async function updateContactChannel(companyId: string, channel: string) {
   const supabase = await createClient()
 
+  const { data: { user }, error: authError } = await supabase.auth.getUser()
+  if (authError || !user) {
+    throw new Error("No autorizado. Inicie sesión para continuar.")
+  }
+
   const { error } = await supabase
     .from("company_profiles")
     .update({ contact_channel: channel })
@@ -54,3 +64,4 @@ export async function updateContactChannel(companyId: string, channel: string) {
 
   return { success: true }
 }
+

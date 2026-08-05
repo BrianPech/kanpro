@@ -17,14 +17,10 @@ export function HeroSection() {
 
   useEffect(() => {
     const interval = setInterval(() => {
-      setFadeCity(false);
-      setTimeout(() => {
-        setCurrentCityIndex((prev) => (prev + 1) % cities.length);
-        setFadeCity(true);
-      }, 300);
+      setCurrentCityIndex((prev) => (prev + 1) % cities.length);
     }, 4000);
     return () => clearInterval(interval);
-  }, []);
+  }, [cities.length]);
 
   const popularTags = {
     hire: [
