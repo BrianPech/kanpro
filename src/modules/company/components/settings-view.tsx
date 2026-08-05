@@ -933,59 +933,61 @@ export function CompanySettingsView({ user, initialProfile, initialPauseState, i
               <Dialog open={isPlanModalOpen} onOpenChange={setIsPlanModalOpen}>
                 <DialogContent className="max-w-3xl sm:rounded-[24px]">
                   <DialogHeader>
-                    <DialogTitle className="text-lg font-bold">Selecciona tu Plan Mensual de K&apos;anPro</DialogTitle>
+                    <DialogTitle className="text-lg font-bold">Planes de Lanzamiento - Fase 1 Beta</DialogTitle>
                     <DialogDescription className="text-xs text-muted-foreground">
-                      Elige el nivel de aceleración que necesita tu empresa en Mérida y Quintana Roo.
+                      Planes especiales de prueba e inicio para las primeras empresas en Mérida y Quintana Roo.
                     </DialogDescription>
                   </DialogHeader>
 
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4 py-4">
-                    {/* Básico */}
+                    {/* Empresa Beta */}
                     <div className={cn(
-                      "p-4 rounded-2xl border flex flex-col justify-between transition-all",
-                      initialProfile.subscription_plan === "basic" ? "border-primary bg-primary/5" : "border-border"
+                      "p-4 rounded-2xl border flex flex-col justify-between transition-all relative overflow-hidden",
+                      (initialProfile.subscription_plan === "basic" || !initialProfile.subscription_plan) ? "border-emerald-500 bg-emerald-500/5" : "border-border"
                     )}>
                       <div>
-                        <Badge variant="outline" className="text-[10px] font-bold">Básico</Badge>
-                        <h3 className="text-lg font-bold mt-2">$399 <span className="text-xs font-normal text-muted-foreground">MXN/mes</span></h3>
-                        <p className="text-[11px] text-muted-foreground mt-1">Para negocios locales con contrataciones puntuales.</p>
+                        <Badge variant="outline" className="text-[10px] font-bold border-emerald-500 text-emerald-600 dark:text-emerald-400">FASE 1 BETA 🟢</Badge>
+                        <h3 className="text-lg font-bold mt-2">Gratis <span className="text-xs font-normal text-muted-foreground">en prueba</span></h3>
+                        <p className="text-[11px] text-muted-foreground mt-1">Objetivo: Conseguir primeros usuarios y aprender de tu operación.</p>
                         <ul className="text-xs space-y-1.5 mt-4">
-                          <li className="flex items-center gap-1.5"><Check className="size-3.5 text-emerald-500" /> 5 Vacantes Activas</li>
-                          <li className="flex items-center gap-1.5"><Check className="size-3.5 text-emerald-500" /> WhatsApp en Postulaciones</li>
-                          <li className="flex items-center gap-1.5"><Check className="size-3.5 text-emerald-500" /> Perfil Comercial Completo</li>
+                          <li className="flex items-center gap-1.5"><Check className="size-3.5 text-emerald-500" /> Perfil Empresarial Completo</li>
+                          <li className="flex items-center gap-1.5"><Check className="size-3.5 text-emerald-500" /> 3 Vacantes Activas</li>
+                          <li className="flex items-center gap-1.5"><Check className="size-3.5 text-emerald-500" /> Candidatos Ilimitados</li>
+                          <li className="flex items-center gap-1.5"><Check className="size-3.5 text-emerald-500" /> Contacto Directo por WhatsApp</li>
+                          <li className="flex items-center gap-1.5"><Check className="size-3.5 text-emerald-500" /> Verificación Manual</li>
                         </ul>
                       </div>
                       <Button
                         size="sm"
                         variant="outline"
-                        className="mt-4 w-full text-xs font-bold"
+                        className="mt-4 w-full text-xs font-bold border-emerald-500 text-emerald-700 dark:text-emerald-400 hover:bg-emerald-500/10"
                         onClick={async () => {
                           await updateSubscriptionPlan(initialProfile.id, "basic");
                           setIsPlanModalOpen(false);
-                          toast.success("Cambiado a Plan Básico");
+                          toast.success("Activo en Plan Empresa Beta");
                         }}
                       >
-                        Activar Plan Básico
+                        Activar Plan Beta Gratis
                       </Button>
                     </div>
 
-                    {/* PRO */}
+                    {/* Empresa Profesional */}
                     <div className={cn(
                       "p-4 rounded-2xl border-2 flex flex-col justify-between transition-all relative overflow-hidden",
                       initialProfile.subscription_plan === "pro" ? "border-primary bg-primary/10" : "border-primary/50 bg-primary/5"
                     )}>
                       <div className="absolute top-2 right-2">
-                        <Badge className="bg-primary text-primary-foreground text-[9px] font-bold">MÁS POPULAR ⭐</Badge>
+                        <Badge className="bg-primary text-primary-foreground text-[9px] font-bold">RECURRENTE 🔵</Badge>
                       </div>
                       <div>
-                        <Badge variant="default" className="text-[10px] font-bold">PRO</Badge>
-                        <h3 className="text-lg font-bold mt-2">$1,499 <span className="text-xs font-normal text-muted-foreground">MXN/mes</span></h3>
-                        <p className="text-[11px] text-muted-foreground mt-1">Para hoteles, restaurantes y empresas de rotación continua.</p>
+                        <Badge variant="default" className="text-[10px] font-bold">Profesional</Badge>
+                        <h3 className="text-lg font-bold mt-2">$399 - $999 <span className="text-xs font-normal text-muted-foreground">MXN/mes</span></h3>
+                        <p className="text-[11px] text-muted-foreground mt-1">Para empresas contratando constantemente con ingresos recurrentes.</p>
                         <ul className="text-xs space-y-1.5 mt-4 font-semibold">
-                          <li className="flex items-center gap-1.5"><Check className="size-3.5 text-emerald-500" /> 15 Vacantes Activas</li>
-                          <li className="flex items-center gap-1.5"><Check className="size-3.5 text-emerald-500" /> 3 Vacantes Destacadas/mes</li>
-                          <li className="flex items-center gap-1.5"><Check className="size-3.5 text-emerald-500" /> Radar GPS + Contacto Directo</li>
-                          <li className="flex items-center gap-1.5"><Check className="size-3.5 text-emerald-500" /> Badge Empresa Verificada</li>
+                          <li className="flex items-center gap-1.5"><Check className="size-3.5 text-emerald-500" /> Más Vacantes (15 activas)</li>
+                          <li className="flex items-center gap-1.5"><Check className="size-3.5 text-emerald-500" /> Empresa Verificada con Badge</li>
+                          <li className="flex items-center gap-1.5"><Check className="size-3.5 text-emerald-500" /> Mejor Exposición en Feed</li>
+                          <li className="flex items-center gap-1.5"><Check className="size-3.5 text-emerald-500" /> Filtros Avanzados de Candidatos</li>
                         </ul>
                       </div>
                       <Button
@@ -994,27 +996,27 @@ export function CompanySettingsView({ user, initialProfile, initialPauseState, i
                         onClick={async () => {
                           await updateSubscriptionPlan(initialProfile.id, "pro");
                           setIsPlanModalOpen(false);
-                          toast.success("¡Plan PRO Activado con éxito!");
+                          toast.success("¡Plan Profesional Activado!");
                         }}
                       >
-                        Activar Plan PRO
+                        Activar Plan Profesional
                       </Button>
                     </div>
 
                     {/* Corporativo */}
                     <div className={cn(
-                      "p-4 rounded-2xl border flex flex-col justify-between transition-all",
+                      "p-4 rounded-2xl border flex flex-col justify-between transition-all opacity-95",
                       initialProfile.subscription_plan === "enterprise" ? "border-amber-500 bg-amber-500/5" : "border-border"
                     )}>
                       <div>
-                        <Badge variant="secondary" className="text-[10px] font-bold">Corporativo</Badge>
-                        <h3 className="text-lg font-bold mt-2">$3,999 <span className="text-xs font-normal text-muted-foreground">MXN/mes</span></h3>
-                        <p className="text-[11px] text-muted-foreground mt-1">Para cadenas, grandes grupos y logística regional.</p>
+                        <Badge variant="secondary" className="text-[10px] font-bold">Corporativo 🟣</Badge>
+                        <h3 className="text-lg font-bold mt-2">Bajo Demanda <span className="text-xs font-normal text-muted-foreground">VIP</span></h3>
+                        <p className="text-[11px] text-muted-foreground mt-1">Para grandes grupos y cadenas hoteleras cuando exista demanda.</p>
                         <ul className="text-xs space-y-1.5 mt-4">
-                          <li className="flex items-center gap-1.5"><Check className="size-3.5 text-emerald-500" /> Vacantes ILIMITADAS</li>
-                          <li className="flex items-center gap-1.5"><Check className="size-3.5 text-emerald-500" /> 10 Vacantes Destacadas/mes</li>
-                          <li className="flex items-center gap-1.5"><Check className="size-3.5 text-emerald-500" /> Radar GPS VIP + Cuentas RRHH</li>
-                          <li className="flex items-center gap-1.5"><Check className="size-3.5 text-emerald-500" /> Verificación Prioritaria 12h</li>
+                          <li className="flex items-center gap-1.5"><Check className="size-3.5 text-emerald-500" /> Equipos Multi-Reclutador</li>
+                          <li className="flex items-center gap-1.5"><Check className="size-3.5 text-emerald-500" /> Reportes Personalizados</li>
+                          <li className="flex items-center gap-1.5"><Check className="size-3.5 text-emerald-500" /> Funciones Especiales a Medida</li>
+                          <li className="flex items-center gap-1.5"><Check className="size-3.5 text-emerald-500" /> Vacantes Destacadas VIP</li>
                         </ul>
                       </div>
                       <Button
@@ -1024,10 +1026,10 @@ export function CompanySettingsView({ user, initialProfile, initialPauseState, i
                         onClick={async () => {
                           await updateSubscriptionPlan(initialProfile.id, "enterprise");
                           setIsPlanModalOpen(false);
-                          toast.success("¡Plan Corporativo Activado!");
+                          toast.success("¡Plan Corporativo Solicitado!");
                         }}
                       >
-                        Activar Plan Corporativo
+                        Solicitar Plan Corporativo
                       </Button>
                     </div>
                   </div>

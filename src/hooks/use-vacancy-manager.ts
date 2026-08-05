@@ -58,7 +58,7 @@ export function useVacancyManager() {
 
       // Check active vacancy count limit for company's plan
       const plan = companyProfile?.subscription_plan || "basic";
-      let maxAllowed = 5;
+      let maxAllowed = 3;
       if (plan === "pro") maxAllowed = 15;
       if (plan === "enterprise") maxAllowed = Infinity;
 
@@ -129,7 +129,7 @@ export function useVacancyManager() {
             .maybeSingle();
 
           const plan = compProfile?.subscription_plan || "basic";
-          let maxAllowed = 5;
+          let maxAllowed = 3;
           if (plan === "pro") maxAllowed = 15;
           if (plan === "enterprise") maxAllowed = Infinity;
 
