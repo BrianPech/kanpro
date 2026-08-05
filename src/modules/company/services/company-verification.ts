@@ -165,7 +165,18 @@ export const companyVerificationService = {
   async deleteDocument(userId: string, docType: CompanyDocType, docId?: string) {
     const supabase = createClient();
 
+    let fileUrl: string | null = null;
+
     if (docId) {
+      const { data: docData } = await supabase
+        .from("profile_documents")
+        .select("file_url")
+        .eq("id", docId)
+        .eq("owner_id", userId)
+        .maybeSingle();
+
+      fileUrl = docData?.file_url || null;
+
       const { error } = await supabase
         .from("profile_documents")
         .delete()
@@ -174,6 +185,15 @@ export const companyVerificationService = {
 
       if (error) throw error;
     } else {
+      const { data: docData } = await supabase
+        .from("profile_documents")
+        .select("file_url")
+        .eq("owner_id", userId)
+        .eq("doc_type", docType)
+        .maybeSingle();
+
+      fileUrl = docData?.file_url || null;
+
       const { error } = await supabase
         .from("profile_documents")
         .delete()
@@ -181,6 +201,15 @@ export const companyVerificationService = {
         .eq("doc_type", docType);
 
       if (error) throw error;
+    }
+
+    // Remove physical file object from Supabase Storage
+    if (fileUrl) {
+      const parts = fileUrl.split("/profile_documents/");
+      const storagePath = parts.length > 1 ? parts[1] : null;
+      if (storagePath) {
+        await supabase.storage.from("profile_documents").remove([decodeURIComponent(storagePath)]);
+      }
     }
   },
 };

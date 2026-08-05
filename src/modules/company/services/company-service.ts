@@ -45,10 +45,7 @@ export const companyService = {
 
     const currentLoc = currentProfile?.location || "";
 
-    // Use current location if the incoming location is empty/invalid
-    const finalLocation = (profile.location && profile.location.includes(" - "))
-      ? profile.location
-      : (currentLoc || null);
+    const finalLocation = profile.location || currentLoc || "Mérida";
 
     // 2. Update the base profiles table first (FK target must exist)
     const { error: baseError } = await supabase

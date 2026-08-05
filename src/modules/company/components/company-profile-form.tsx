@@ -551,20 +551,29 @@ export function CompanyProfileForm({
                 <div className="flex-grow min-w-0">
                   <Select
                     value={watch("location") || ""}
-                    onValueChange={(value) => setValue("location", value, { shouldValidate: true })}
+                    onValueChange={(value) => setValue("location", value, { shouldValidate: true, shouldDirty: true })}
                   >
                     <SelectTrigger className="w-full h-14 bg-white dark:bg-zinc-900 border border-[#ebeef3] dark:border-zinc-800 rounded-[16px] px-4 text-[15px] sm:text-[16px] font-[600] text-[#1f2732] dark:text-zinc-100 focus:ring-2 focus:ring-primary/20 transition-all outline-none shadow-none cursor-pointer">
                       <SelectValue placeholder="Selecciona tu ciudad..." />
                     </SelectTrigger>
                     <SelectContent className="rounded-[16px] border border-[#ebeef3] dark:border-zinc-800 bg-popover text-sm font-semibold">
-                      {Object.keys(GEO_CONFIG).map((cityName) => (
-                        <SelectItem key={cityName} value={cityName}>
-                          {cityName} (Mérida & Riviera Maya)
+                      {[
+                        { value: "Mérida", label: "Mérida, Yucatán" },
+                        { value: "Playa del Carmen", label: "Playa del Carmen, Q. Roo" },
+                        { value: "Cancún", label: "Cancún, Q. Roo" },
+                        { value: "Tulum", label: "Tulum, Q. Roo" },
+                        { value: "Cozumel", label: "Cozumel, Q. Roo" },
+                        { value: "Puerto Morelos", label: "Puerto Morelos, Q. Roo" },
+                        { value: "Isla Mujeres", label: "Isla Mujeres, Q. Roo" },
+                        { value: "Chetumal", label: "Chetumal, Q. Roo" },
+                        { value: "Valladolid", label: "Valladolid, Yucatán" },
+                        { value: "Progreso", label: "Progreso, Yucatán" },
+                        { value: "Campeche", label: "Campeche, Campeche" },
+                      ].map((city) => (
+                        <SelectItem key={city.value} value={city.value}>
+                          {city.label}
                         </SelectItem>
                       ))}
-                      <SelectItem value="Tulum">Tulum, Q. Roo</SelectItem>
-                      <SelectItem value="Cancún">Cancún, Q. Roo</SelectItem>
-                      <SelectItem value="Cozumel">Cozumel, Q. Roo</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>

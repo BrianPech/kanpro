@@ -6,9 +6,29 @@ import { useRouter } from "next/navigation";
 import { companyProfileSchema, type CompanyProfileFormValues } from "../schemas/company.schema";
 import { companyService } from "../services/company-service";
 
+export function normalizeCity(loc?: string | null): string {
+  if (!loc) return "";
+  const lower = loc.toLowerCase().trim();
+  if (lower.includes("playa del carmen")) return "Playa del Carmen";
+  if (lower.includes("tulum")) return "Tulum";
+  if (lower.includes("cancún") || lower.includes("cancun")) return "Cancún";
+  if (lower.includes("cozumel")) return "Cozumel";
+  if (lower.includes("puerto morelos")) return "Puerto Morelos";
+  if (lower.includes("isla mujeres")) return "Isla Mujeres";
+  if (lower.includes("chetumal")) return "Chetumal";
+  if (lower.includes("valladolid")) return "Valladolid";
+  if (lower.includes("progreso")) return "Progreso";
+  if (lower.includes("campeche")) return "Campeche";
+  if (lower.includes("mérida") || lower.includes("merida")) return "Mérida";
+  if (loc.includes(" - ")) return loc.split(" - ")[0].trim();
+  return loc.trim();
+}
+
 export function useCompanyProfileForm(initialProfile: any, userId: string) {
   const [isSaving, setIsSaving] = React.useState(false);
   const router = useRouter();
+
+  const rawLocation = initialProfile?.location || initialProfile?.fiscal_address || "";
 
   const form = useForm<CompanyProfileFormValues>({
     resolver: zodResolver(companyProfileSchema),
@@ -16,7 +36,7 @@ export function useCompanyProfileForm(initialProfile: any, userId: string) {
       company_name: initialProfile?.company_name || "",
       industry: initialProfile?.industry || "",
       website: initialProfile?.website_or_linkedin || initialProfile?.website || "",
-      location: initialProfile?.location || "",
+      location: normalizeCity(rawLocation),
       logo_url: initialProfile?.logo_url || "",
       description: initialProfile?.description || "",
       phone: initialProfile?.phone || "",

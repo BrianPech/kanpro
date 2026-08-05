@@ -1,6 +1,3 @@
-"use client"
-
-import * as React from "react"
 import { 
   Search, 
   Filter, 
@@ -17,12 +14,18 @@ import {
   Phone,
   ArrowLeft,
   BriefcaseIcon,
-  Loader2
+  Loader2,
+  FileText,
+  ShieldCheck,
+  Lock,
+  Clock
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
+import { Badge } from "@/components/ui/badge"
 import { toast } from "sonner"
 import { useApplicationsInbox, type Applicant } from "../hooks/use-applications-inbox"
+import { requestDocumentAccess, getDocumentAccessStatus } from "../actions/document-access"
 
 export function ApplicationsInbox() {
   // Assume a default company user id or let Supabase fetch current user inside hook
@@ -43,6 +46,47 @@ export function ApplicationsInbox() {
   } = useApplicationsInbox() // Fetch logic inside hooks takes care of user sessions
 
   const [mobileDetailOpen, setMobileDetailOpen] = React.useState(false)
+  const [docAccessState, setDocAccessState] = React.useState<{ status: string; id?: string } | null>(null)
+  const [isRequestingDocs, setIsRequestingDocs] = React.useState(false)
+
+  // Fetch document access request status when selected applicant changes
+  React.useEffect(() => {
+    async function loadDocStatus() {
+      if (selectedApplicant?.id && !selectedApplicant.id.startsWith("mock-")) {
+        try {
+          const docReq = await getDocumentAccessStatus(selectedApplicant.id)
+          if (docReq) {
+            setDocAccessState({ status: docReq.status, id: docReq.id })
+          } else {
+            setDocAccessState(null)
+          }
+        } catch (e) {
+          setDocAccessState(null)
+        }
+      } else {
+        setDocAccessState(null)
+      }
+    }
+    loadDocStatus()
+  }, [selectedApplicant])
+
+  const handleRequestDocuments = async () => {
+    if (!selectedApplicant) return
+    setIsRequestingDocs(true)
+    try {
+      const res = await requestDocumentAccess(selectedApplicant.id, selectedApplicant.candidateId)
+      setDocAccessState({ status: res.status, id: res.requestId })
+      toast.success("Solicitud de documentos enviada", {
+        description: res.message || "Se ha enviado una notificación al candidato para autorizar el acceso."
+      })
+    } catch (err: any) {
+      toast.error("Error al solicitar documentos", {
+        description: err.message || "No se pudo procesar la solicitud."
+      })
+    } finally {
+      setIsRequestingDocs(false)
+    }
+  }
   const [sortBy, setSortBy] = React.useState<"newest" | "rating">("newest")
 
   // Filter and sort roster based on search text, vacancy selector, and sort mode
@@ -405,6 +449,101 @@ export function ApplicationsInbox() {
                     </div>
                   )}
                 </div>
+              </div>
+
+              {/* Document Access Authorization Panel */}
+              <div className="glass-panel p-6 md:p-8 rounded-[24px] shadow-sm bg-background border border-border/50 space-y-4">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
+                    <ShieldCheck className="size-3.5 text-indigo-650" /> Expediente y Documentos de Contratación
+                  </h3>
+                  {docAccessState?.status === "approved" && (
+                    <Badge className="bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20 text-[10px] font-bold">
+                      ACCESO AUTORIZADO
+                    </Badge>
+                  )}
+                  {docAccessState?.status === "pending" && (
+                    <Badge variant="outline" className="text-amber-600 border-amber-500/30 bg-amber-500/10 text-[10px] font-bold">
+                      SOLICITUD ENVIADA
+                    </Badge>
+                  )}
+                  {docAccessState?.status === "rejected" && (
+                    <Badge variant="destructive" className="text-[10px] font-bold">
+                      ACCESO DECLINADO
+                    </Badge>
+                  )}
+                </div>
+
+                {!docAccessState && (
+                  <div className="space-y-3">
+                    <p className="text-xs text-muted-foreground">
+                      Por privacidad, la documentación personal del candidato (INE, CURP, RFC) permanece protegida hasta que el candidato autorice compartirla para este proceso de contratación.
+                    </p>
+                    <Button
+                      onClick={handleRequestDocuments}
+                      disabled={isRequestingDocs || selectedApplicant.id.startsWith("mock-")}
+                      className="w-full sm:w-auto px-6 py-2.5 h-auto rounded-xl text-xs font-bold bg-indigo-600 hover:bg-indigo-700 text-white gap-2"
+                    >
+                      {isRequestingDocs ? <Loader2 className="size-3.5 animate-spin" /> : <FileText className="size-3.5" />}
+                      <span>Solicitar Documentación para Contratación</span>
+                    </Button>
+                  </div>
+                )}
+
+                {docAccessState?.status === "pending" && (
+                  <div className="p-4 rounded-xl bg-amber-500/5 border border-amber-500/20 flex items-start gap-3">
+                    <Clock className="size-4 text-amber-600 dark:text-amber-400 mt-0.5 shrink-0" />
+                    <div>
+                      <h4 className="text-xs font-bold text-foreground">Solicitud Pendiente de Respuesta</h4>
+                      <p className="text-[11px] text-muted-foreground mt-0.5">
+                        Hemos notificado a {selectedApplicant.name}. En cuanto acepte compartir su expediente, se habilitará el acceso a sus documentos verificados.
+                      </p>
+                    </div>
+                  </div>
+                )}
+
+                {docAccessState?.status === "approved" && (
+                  <div className="space-y-3">
+                    <p className="text-xs text-muted-foreground">
+                      El candidato ha otorgado acceso a sus documentos verificados:
+                    </p>
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                      <div className="p-3 rounded-xl border border-border bg-muted/20 flex items-center justify-between">
+                        <div className="flex items-center gap-2 text-xs font-bold">
+                          <FileText className="size-4 text-indigo-600" />
+                          <span>Identificación (INE)</span>
+                        </div>
+                        <Badge variant="secondary" className="text-[9px]">Autorizado</Badge>
+                      </div>
+                      <div className="p-3 rounded-xl border border-border bg-muted/20 flex items-center justify-between">
+                        <div className="flex items-center gap-2 text-xs font-bold">
+                          <FileText className="size-4 text-indigo-600" />
+                          <span>CURP Oficial</span>
+                        </div>
+                        <Badge variant="secondary" className="text-[9px]">Autorizado</Badge>
+                      </div>
+                      <div className="p-3 rounded-xl border border-border bg-muted/20 flex items-center justify-between">
+                        <div className="flex items-center gap-2 text-xs font-bold">
+                          <FileText className="size-4 text-indigo-600" />
+                          <span>Constancia RFC</span>
+                        </div>
+                        <Badge variant="secondary" className="text-[9px]">Autorizado</Badge>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {docAccessState?.status === "rejected" && (
+                  <div className="p-4 rounded-xl bg-destructive/5 border border-destructive/20 flex items-start gap-3">
+                    <Lock className="size-4 text-destructive mt-0.5 shrink-0" />
+                    <div>
+                      <h4 className="text-xs font-bold text-foreground">Acceso No Otorgado</h4>
+                      <p className="text-[11px] text-muted-foreground mt-0.5">
+                        El candidato ha declinado compartir sus documentos personales para esta vacante.
+                      </p>
+                    </div>
+                  </div>
+                )}
               </div>
 
             </div>

@@ -367,6 +367,64 @@ export type Database = {
           },
         ]
       }
+      document_access_requests: {
+        Row: {
+          application_id: string
+          approved_at: string | null
+          candidate_id: string
+          company_id: string
+          created_at: string
+          id: string
+          rejected_at: string | null
+          requested_documents: string[]
+          status: string
+        }
+        Insert: {
+          application_id: string
+          approved_at?: string | null
+          candidate_id: string
+          company_id: string
+          created_at?: string
+          id?: string
+          rejected_at?: string | null
+          requested_documents?: string[]
+          status?: string
+        }
+        Update: {
+          application_id?: string
+          approved_at?: string | null
+          candidate_id?: string
+          company_id?: string
+          created_at?: string
+          id?: string
+          rejected_at?: string | null
+          requested_documents?: string[]
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "document_access_requests_application_id_fkey"
+            columns: ["application_id"]
+            isOneToOne: false
+            referencedRelation: "applications"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "document_access_requests_candidate_id_fkey"
+            columns: ["candidate_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "document_access_requests_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       notifications: {
         Row: {
           created_at: string
