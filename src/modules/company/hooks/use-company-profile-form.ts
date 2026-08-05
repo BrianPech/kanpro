@@ -30,10 +30,15 @@ export function useCompanyProfileForm(initialProfile: any, userId: string) {
 
   const rawLocation = initialProfile?.location || initialProfile?.fiscal_address || "";
 
+  const rawName = initialProfile?.company_name;
+  const resolvedName = (rawName && rawName.trim() !== "" && rawName.trim() !== "Nueva Empresa")
+    ? rawName
+    : (initialProfile?.display_name || initialProfile?.full_name || initialProfile?.username || "");
+
   const form = useForm<CompanyProfileFormValues>({
     resolver: zodResolver(companyProfileSchema),
     defaultValues: {
-      company_name: initialProfile?.company_name || "",
+      company_name: resolvedName,
       industry: initialProfile?.industry || "",
       website: initialProfile?.website_or_linkedin || initialProfile?.website || "",
       location: normalizeCity(rawLocation),

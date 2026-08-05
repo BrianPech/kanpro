@@ -378,9 +378,11 @@ export async function getCompanyProfileData() {
   }
 
   if (user) {
+    const metaDisplayName = user.user_metadata?.display_name || user.user_metadata?.full_name || user.user_metadata?.name || user.user_metadata?.company_name || "";
+
     const { data: baseProfile } = await supabase
       .from("profiles")
-      .select("full_name, location, avatar_url")
+      .select("full_name, username, location, avatar_url")
       .eq("id", user.id)
       .single();
 
@@ -394,8 +396,13 @@ export async function getCompanyProfileData() {
 
     if (companyData) {
       const social = (companyData.social_links as any) || {};
+      const rawCompName = companyData.company_name;
+      const validCompName = (rawCompName && rawCompName.trim() !== "Nueva Empresa" && rawCompName.trim() !== "")
+        ? rawCompName
+        : (metaDisplayName || baseProfile?.full_name || baseProfile?.username || "");
+
       profile = {
-        company_name: companyData.company_name || baseProfile?.full_name || "Empresa",
+        company_name: validCompName,
         industry: companyData.industry || "",
         website_or_linkedin: companyData.website_url || "",
         location: companyData.fiscal_address || baseProfile?.location || "",
@@ -416,7 +423,7 @@ export async function getCompanyProfileData() {
         operation_hours: companyData.operation_hours || ""
       }
     } else {
-      profile.company_name = baseProfile?.full_name || "Empresa";
+      profile.company_name = metaDisplayName || baseProfile?.full_name || baseProfile?.username || "";
       profile.location = baseProfile?.location || "";
       profile.logo_url = baseProfile?.avatar_url || "";
     }
