@@ -1,5 +1,6 @@
 import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
+import type { UserRole } from '@/modules/auth/types/auth.types'
 
 export async function updateSession(request: NextRequest) {
   let supabaseResponse = NextResponse.next({
@@ -51,10 +52,11 @@ export async function updateSession(request: NextRequest) {
   }
 
   // Fetch the user's role for protected routes
-  let role: string | null = null
+  let role: UserRole | null = null
   if (user) {
     // 1. Try to get role from auth metadata (fastest)
-    role = user.user_metadata?.role || null
+    role = (user.user_metadata?.role as UserRole) || null
+
 
     // 2. If not found in metadata, search in database profiles
     if (!role) {

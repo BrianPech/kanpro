@@ -7,8 +7,8 @@ export async function createClient() {
   const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
 
   if (!url || !anonKey) {
-    const createMock = (): any => {
-      const mock: any = () => {
+    const createMock = (): ReturnType<typeof createServerClient<Database>> => {
+      const mock = () => {
         throw new Error("Supabase client URL or Anon Key is missing.")
       }
       return new Proxy(mock, {
@@ -16,7 +16,7 @@ export async function createClient() {
           if (prop === 'then') return undefined
           return createMock()
         }
-      })
+      }) as unknown as ReturnType<typeof createServerClient<Database>>
     }
     return createMock()
   }

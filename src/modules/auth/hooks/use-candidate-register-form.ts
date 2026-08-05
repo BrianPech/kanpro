@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useForm } from "react-hook-form";
+import { useForm, type SubmitHandler } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
@@ -22,9 +22,8 @@ export function useCandidateRegisterForm() {
     }
   });
 
-  const onSubmit = async (data: CandidateRegisterValues) => {
+  const onSubmit: SubmitHandler<CandidateRegisterValues> = async (data) => {
     try {
-      console.log("Iniciando registro de candidato...");
       await authService.signUpCandidate(data);
       
       toast.success("Cuenta creada", {
@@ -33,18 +32,19 @@ export function useCandidateRegisterForm() {
       
       router.push("/dashboard/candidate");
       router.refresh();
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Error capturado en onSubmit de candidato:", error);
-      if (error && typeof error === "object") {
-        console.error("Detalles del error - Status:", error.status, "Código:", error.code);
-      }
-
       let errorMessage = "No se pudo crear la cuenta de candidato. Inténtalo de nuevo.";
 
       if (error instanceof Error) {
         errorMessage = error.message;
-      } else if (typeof error === "object" && error !== null && "message" in error) {
-        errorMessage = String(error.message);
+      } else if (
+        typeof error === "object" &&
+        error !== null &&
+        "message" in error &&
+        typeof (error as { message: unknown }).message === "string"
+      ) {
+        errorMessage = (error as { message: string }).message;
       } else if (typeof error === "string") {
         errorMessage = error;
       }
@@ -57,10 +57,11 @@ export function useCandidateRegisterForm() {
 
   return {
     register: form.register,
-    handleSubmit: (onValid: any) => form.handleSubmit(onValid, (errors) => {
-      console.error("❌ Errores de validación ocultos de Zod:", errors);
-      toast.error("Por favor rellena todos los campos requeridos.");
-    }),
+    handleSubmit: (onValid: SubmitHandler<CandidateRegisterValues>) =>
+      form.handleSubmit(onValid, (errors) => {
+        console.error("Errores de validación de Zod:", errors);
+        toast.error("Por favor rellena todos los campos requeridos con datos válidos.");
+      }),
     errors: form.formState.errors,
     isSubmitting: form.formState.isSubmitting,
     showPassword,

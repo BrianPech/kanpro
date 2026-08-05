@@ -4,7 +4,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { loginSchema, type LoginFormValues } from "../schemas/login.schema";
-import { createClient } from "@/lib/supabase/client";
+import { authService } from "../services/auth-service";
 
 export function useLoginForm() {
   const [showPassword, setShowPassword] = useState(false);
@@ -19,26 +19,13 @@ export function useLoginForm() {
   });
 
   const onSubmit = async (values: LoginFormValues) => {
-    const supabase = createClient();
     try {
-      // 1. Iniciar sesión con email y contraseña
-      const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
-        email: values.email,
-        password: values.password,
-      });
-
-      if (authError) throw authError;
-
-      if (!authData.user) {
-        throw new Error("No se pudieron obtener los datos del usuario autenticado.");
-      }
-
-      // 2. Obtener rol desde user_metadata o perfil de forma segura
-      const role = authData.user.user_metadata?.role || "candidate";
+      // 1. Iniciar sesión a través de authService (que ejecuta validación Zod estricta)
+      const { role } = await authService.signIn(values);
 
       toast.success("¡Bienvenido de nuevo!");
 
-      // 3. Ejecutar las condiciones de enrutamiento directo
+      // 2. Ejecutar redirección según rol
       if (role === "admin") {
         router.push("/dashboard/admin");
       } else if (role === "company") {
@@ -53,8 +40,13 @@ export function useLoginForm() {
       let errorMessage = "Credenciales inválidas.";
       if (error instanceof Error) {
         errorMessage = error.message;
-      } else if (typeof error === "object" && error !== null && "message" in error) {
-        errorMessage = String((error as any).message);
+      } else if (
+        typeof error === "object" &&
+        error !== null &&
+        "message" in error &&
+        typeof (error as { message: unknown }).message === "string"
+      ) {
+        errorMessage = (error as { message: string }).message;
       }
       toast.error("Error al iniciar sesión", {
         description: errorMessage,

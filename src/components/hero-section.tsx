@@ -5,8 +5,10 @@ import Link from "next/link";
 import Image from "next/image";
 import { Search, ArrowRight, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { useUserSession } from "@/modules/auth/hooks/use-user-session";
 
 export function HeroSection() {
+  const { user, dashboardUrl } = useUserSession();
   const [activeTab, setActiveTab] = useState<"hire" | "work">("hire");
   const [searchQuery, setSearchQuery] = useState("");
   const [currentCityIndex, setCurrentCityIndex] = useState(0);
@@ -56,10 +58,10 @@ export function HeroSection() {
           </p>
         </div>
         <Link
-          href="/register"
+          href={user ? dashboardUrl : "/register"}
           className="text-xs sm:text-sm font-semibold text-primary hover:text-primary/80 underline underline-offset-4 flex items-center gap-0.5 shrink-0 transition-colors"
         >
-          Comenzar ahora <ArrowRight className="size-3.5" />
+          {user ? "Ir a mi Panel" : "Comenzar ahora"} <ArrowRight className="size-3.5" />
         </Link>
       </div>
 
