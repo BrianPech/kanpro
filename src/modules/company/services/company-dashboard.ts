@@ -261,41 +261,55 @@ export async function getCompanyDashboardData() {
       : thisWeekTotal > 0 ? 100 : 0
 
     // 9. Calculate Monthly Effectiveness & Category Distribution (Efectividad del Mes)
-    const { data: vacCategoriesData } = await supabase
+    const { data: companyVacancies } = await supabase
       .from("vacancies")
-      .select("category")
+      .select("id, category, is_active")
       .eq("company_id", user.id)
 
+    const vacanciesList = companyVacancies || []
     const categoryCounts: Record<string, number> = {}
-    let totalCatVacs = 0
+    let totalCompanyVacs = vacanciesList.length
 
-    const categoriesList = vacCategoriesData || []
-    categoriesList.forEach((v: any) => {
+    vacanciesList.forEach((v: any) => {
       const cat = v.category || "General"
       categoryCounts[cat] = (categoryCounts[cat] || 0) + 1
-      totalCatVacs++
     })
 
-    const fiordColors = ["#3e546d", "#5c7c9b", "#aabccf", "#7d99b3"]
+    const fiordColors = ["#3e546d", "#5c7c9b", "#aabccf", "#7d99b3", "#475569", "#64748b"]
     let pieData: { name: string; value: number; color: string }[] = []
 
     const sortedCategories = Object.entries(categoryCounts).sort((a, b) => b[1] - a[1])
 
-    if (sortedCategories.length > 0 && totalCatVacs > 0) {
-      pieData = sortedCategories.slice(0, 3).map(([name, count], index) => ({
+    if (sortedCategories.length > 0 && totalCompanyVacs > 0) {
+      pieData = sortedCategories.slice(0, 4).map(([name, count], index) => ({
         name,
-        value: Math.round((count / totalCatVacs) * 100),
+        value: Math.round((count / totalCompanyVacs) * 100),
         color: fiordColors[index % fiordColors.length],
       }))
     } else {
       pieData = [
-        { name: "Operativo", value: 60, color: "#3e546d" },
-        { name: "Comercial", value: 30, color: "#5c7c9b" },
-        { name: "Servicio", value: 10, color: "#aabccf" },
+        { name: "Sin Vacantes", value: 100, color: "#94a3b8" }
       ]
     }
 
-    const goalRatio = totalCatVacs > 0 ? Math.round((activeVacancies / totalCatVacs) * 100) : 100
+    // Real Goal Ratio calculation:
+    // Ratio of processed applications or active vacancies filled
+    let goalRatio = 0
+    if (totalApplications > 0 && vacanciesList.length > 0) {
+      const vacancyIds = vacanciesList.map((v: any) => v.id)
+      const { count: processedCount } = await supabase
+        .from("applications")
+        .select("id", { count: "exact", head: true })
+        .in("vacancy_id", vacancyIds)
+        .neq("status", "Pendiente")
+
+      const handled = processedCount || 0
+      goalRatio = Math.min(100, Math.round((handled / totalApplications) * 100))
+    } else if (totalCompanyVacs > 0) {
+      goalRatio = Math.min(100, Math.round((activeVacancies / totalCompanyVacs) * 100))
+    } else {
+      goalRatio = 0
+    }
 
     return {
       companyName,

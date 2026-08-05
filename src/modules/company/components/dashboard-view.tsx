@@ -119,12 +119,8 @@ export function DashboardView({
     growthPercent: 0
   },
   monthlyAnalytics = {
-    pieData: [
-      { name: "Operativo", value: 60, color: "#3e546d" },
-      { name: "Comercial", value: 30, color: "#5c7c9b" },
-      { name: "Servicio", value: 10, color: "#aabccf" }
-    ],
-    goalPercent: 100
+    pieData: [],
+    goalPercent: 0
   }
 }: DashboardViewProps) {
   const [mounted, setMounted] = React.useState(false)
