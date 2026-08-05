@@ -342,6 +342,12 @@ export function CompanyProfileForm({
                   className="w-full h-14 bg-white dark:bg-zinc-900 border border-[#ebeef3] dark:border-zinc-800 rounded-[16px] pl-11 pr-4 text-[15px] sm:text-[16px] font-[600] text-[#1f2732] dark:text-zinc-100 placeholder-[#94a3b8] focus-visible:ring-2 focus-visible:ring-[#1f2732] transition-all outline-none"
                 />
               </div>
+              <p className="text-[11px] text-[#5c7c9b] dark:text-zinc-400 font-medium">
+                Número para recepción de candidatos. Puedes elegir el canal preferido (WhatsApp, Llamada o Inbox) en{" "}
+                <Link href="/dashboard/company/settings" className="underline font-bold hover:text-[#1f2732] dark:hover:text-zinc-200">
+                  Ajustes
+                </Link>.
+              </p>
             </div>
 
             {/* Company Size Input */}

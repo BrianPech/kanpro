@@ -91,7 +91,7 @@ export const companyService = {
 
     const { data: updatedRows, error: updateErr } = await supabase
       .from("company_profiles")
-      .update(companyPayload)
+      .update(companyPayload as any)
       .eq("id", userId)
       .select("id");
 
@@ -103,7 +103,7 @@ export const companyService = {
         .upsert({
           id: userId,
           rfc: "XAXX010101000",
-          ...companyPayload,
+          ...(companyPayload as any),
         });
 
       if (upsertErr) throw upsertErr;

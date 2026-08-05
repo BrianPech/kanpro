@@ -14,6 +14,7 @@ import {
   CheckCircle2 
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { toast } from "sonner";
 import {
   Dialog,
   DialogContent,
@@ -43,15 +44,11 @@ export function UploadCvView({ onBack }: UploadCvViewProps) {
   // Modals state
   const [isPreviewOpen, setIsPreviewOpen] = React.useState<boolean>(false);
   const [isDeleteOpen, setIsDeleteOpen] = React.useState<boolean>(false);
-  const [toastMessage, setToastMessage] = React.useState<string | null>(null);
 
   const fileInputRef = React.useRef<HTMLInputElement | null>(null);
 
   const showToast = (msg: string) => {
-    setToastMessage(msg);
-    setTimeout(() => {
-      setToastMessage(null);
-    }, 2500);
+    toast.success(msg);
   };
 
   const handleBack = () => {
@@ -101,15 +98,6 @@ export function UploadCvView({ onBack }: UploadCvViewProps) {
 
   return (
     <div className="flex-grow min-h-full bg-transparent dark:bg-zinc-950 px-6 sm:px-10 lg:px-14 pt-4 pb-28 md:pb-8 max-w-3xl mx-auto w-full animate-in fade-in duration-300 relative">
-      
-      {/* Toast Notification */}
-      {toastMessage && (
-        <div className="fixed top-6 left-1/2 -translate-x-1/2 z-50 px-5 py-3.5 bg-[#1f2732] dark:bg-zinc-100 text-white dark:text-zinc-900 rounded-[14px] text-sm font-bold shadow-lg flex items-center gap-2.5 animate-in fade-in slide-in-from-top-2">
-          <CheckCircle2 className="w-5 h-5 text-emerald-400 dark:text-emerald-600" />
-          <span>{toastMessage}</span>
-        </div>
-      )}
-
       {/* Hidden File Input */}
       <input
         type="file"

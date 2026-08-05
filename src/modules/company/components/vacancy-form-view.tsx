@@ -207,11 +207,13 @@ export function VacancyFormView({ userId, vacancyId }: VacancyFormViewProps) {
         .eq("id", userId)
         .single();
 
-      const { data: compProfile } = await supabase
+      const { data: rawCompProfile } = await supabase
         .from("company_profiles")
-        .select("company_name, contact_phone, fiscal_address, logo_url, address_details, operation_hours, social_links")
+        .select("*")
         .eq("id", userId)
         .maybeSingle();
+
+      const compProfile = rawCompProfile as any;
 
       const company_name = compProfile?.company_name || baseProfile?.full_name || "";
       const phone = compProfile?.contact_phone || "configurado";
@@ -255,7 +257,7 @@ export function VacancyFormView({ userId, vacancyId }: VacancyFormViewProps) {
         const perks: string[] = Array.isArray(data.benefits)
           ? data.benefits
           : typeof data.benefits === "string"
-          ? data.benefits.split(",").map((b: string) => b.trim()).filter(Boolean)
+          ? (data.benefits as any).split(",").map((b: string) => b.trim()).filter(Boolean)
           : [];
 
         const isAltLoc = Boolean(data.zone && data.location && data.zone !== data.location);
@@ -450,9 +452,9 @@ export function VacancyFormView({ userId, vacancyId }: VacancyFormViewProps) {
           requirements: values.description,
           description: values.description,
           modality: "Presencial",
-          status: "Activa",
+          status: "Activa" as any,
           is_active: true,
-          zone: resolvedZone,
+          zone: resolvedZone || "Mérida - Centro",
           location: profile?.location || "Mérida - Centro",
           benefits: values.benefits,
         });

@@ -10,7 +10,9 @@ import {
   Users,
   UserCheck,
   ShieldCheck,
+  Crosshair,
 } from "lucide-react";
+
 import {
   Sidebar,
   SidebarContent,
@@ -52,6 +54,11 @@ export function CompanySidebar() {
           title: "Postulantes",
           url: "/dashboard/company/applications",
           icon: Users,
+        },
+        {
+          title: "Radar de Candidatos",
+          url: "/dashboard/company/radar",
+          icon: Crosshair,
         },
         {
           title: "Empleados",

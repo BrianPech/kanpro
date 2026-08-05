@@ -516,10 +516,17 @@ export function DashboardView({
           </Card>
         </motion.div>
 
-        {/* IN-PROGRESS VACANCIES GRID - 2/3 Width container */}
-        <motion.div variants={cardVariants} className="lg:col-span-2 flex flex-col justify-between">
+        {/* UNIFIED VACANCIES SECTION - Single Consolidated Section */}
+        <motion.div variants={cardVariants} className="lg:col-span-3">
           <div className="flex items-center justify-between mb-4">
-            <h4 className="text-[18px] sm:text-[20px] font-[800] text-fiord-900 dark:text-fiord-100 tracking-[-0.3px]">Vacantes en Proceso</h4>
+            <div className="space-y-0.5">
+              <h4 className="text-[18px] sm:text-[20px] font-[800] text-fiord-900 dark:text-fiord-100 tracking-[-0.3px]">
+                Vacantes Activas y Recientes
+              </h4>
+              <p className="text-[13px] text-fiord-400 dark:text-fiord-500 font-semibold">
+                Gestión de ofertas publicadas y progreso de postulaciones locales
+              </p>
+            </div>
             <Link 
               href="/dashboard/company/vacancies" 
               className="text-[13px] font-extrabold text-[#5c7c9b] hover:text-[#1f2732] dark:hover:text-zinc-100 flex items-center gap-1 transition-colors"
@@ -529,221 +536,94 @@ export function DashboardView({
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
-            {latestVacancies.slice(0, 2).map((vac) => {
-              const formattedSalary =
-                vac.salary_min && vac.salary_max
-                  ? `$${vac.salary_min.toLocaleString("es-MX")} - $${vac.salary_max.toLocaleString("es-MX")}`
-                  : vac.salary_min
-                  ? `Desde $${vac.salary_min.toLocaleString("es-MX")}`
-                  : vac.salary_max
-                  ? `Hasta $${vac.salary_max.toLocaleString("es-MX")}`
-                  : "A convenir";
-
-              return (
-                <Link key={vac.id} href={`/dashboard/company/vacancies/${vac.id}`} className="block min-h-[310px]">
-                  <Card className="bg-white dark:bg-fiord-900 border-fiord-100 dark:border-fiord-800 rounded-[26px] p-6 flex flex-col justify-between h-full shadow-sm relative group hover:border-fiord-200 dark:hover:border-fiord-700 transition-all duration-200">
-                    <div>
-                      <div className="flex justify-between items-start">
-                        <div className="size-11 rounded-2xl bg-fiord-50 dark:bg-fiord-800 text-fiord-900 dark:text-fiord-100 flex items-center justify-center group-hover:scale-105 transition-transform">
-                          <Briefcase className="size-5.5" />
-                        </div>
-                        <Badge
-                          className={cn(
-                            "font-extrabold text-[10px] px-2.5 py-1 rounded-full border-none",
-                            vac.is_active !== false
-                              ? "bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-400"
-                              : "bg-fiord-100 text-fiord-600 dark:bg-fiord-800 dark:text-fiord-400"
-                          )}
-                        >
-                          {vac.is_active !== false ? "● Activa" : "○ Pausada"}
-                        </Badge>
-                      </div>
-
-                      <div className="mt-5 space-y-1">
-                        <h5 className="text-[16px] sm:text-[17px] font-bold text-fiord-900 dark:text-fiord-50 line-clamp-1 leading-snug">
-                          {vac.title}
-                        </h5>
-                        <p className="text-[12px] text-fiord-400 dark:text-fiord-400 font-bold uppercase tracking-wider">
-                          {companyName}
-                        </p>
-                      </div>
-
-                      <div className="mt-4 flex flex-wrap gap-2">
-                        <Badge className="bg-fiord-50 dark:bg-fiord-800 text-fiord-700 dark:text-fiord-300 border-none font-bold text-[10px] px-3 py-1 rounded-full flex items-center gap-1">
-                          <MapPin className="size-3" />
-                          <span>{vac.zone || vac.location || "Mérida"}</span>
-                        </Badge>
-                        {vac.employment_type && (
-                          <Badge className="bg-[#1f2732] dark:bg-zinc-100 text-white dark:text-zinc-900 border-none font-bold text-[10px] px-3 py-1 rounded-full">
-                            {vac.employment_type}
-                          </Badge>
-                        )}
-                      </div>
-                    </div>
-
-                    <div className="flex items-center justify-between border-t border-fiord-100/50 dark:border-fiord-800/50 pt-4 mt-4">
-                      <span className="text-[11px] text-fiord-400 dark:text-fiord-500 font-extrabold uppercase tracking-wider">
-                        SUELDO: {formattedSalary} MXN
-                      </span>
-                      <div className="size-9 rounded-full bg-[#1f2732] dark:bg-zinc-100 hover:bg-[#253240] dark:hover:bg-zinc-200 text-white dark:text-zinc-900 flex items-center justify-center shadow-sm active:scale-95 transition-all">
-                        <ArrowRight className="size-4" />
-                      </div>
-                    </div>
-                  </Card>
-                </Link>
-              );
-            })}
-
-            {/* Empty state card if user has 0 vacancies */}
-            {latestVacancies.length === 0 && (
-              <Card className="bg-white dark:bg-fiord-900 border-fiord-100 dark:border-fiord-800 rounded-[26px] p-6 flex flex-col items-center justify-center min-h-[310px] shadow-sm text-center">
-                <Briefcase className="size-10 text-fiord-300 dark:text-fiord-700 mb-3" />
-                <h5 className="text-sm font-bold text-fiord-900 dark:text-fiord-100">Sin vacantes aún</h5>
-                <p className="text-[13px] text-fiord-400 dark:text-fiord-500 font-semibold mt-1 max-w-[180px]">
-                  Publica tu primera oferta para empezar a recibir candidatos.
-                </p>
-              </Card>
-            )}
-
-            {/* Dashed Action Card - Crear Vacante */}
-            <Link href="/dashboard/company/vacancies/new" className="min-h-[310px]">
+            {/* Create Vacancy Action Card */}
+            <Link href="/dashboard/company/vacancies/new" className="min-h-[220px]">
               <Card className="border-2 border-dashed border-fiord-200 dark:border-fiord-800 hover:border-fiord-400 dark:hover:border-fiord-600 bg-fiord-50/20 dark:bg-fiord-900/10 rounded-[26px] p-6 flex flex-col items-center justify-center h-full text-center group cursor-pointer transition-all duration-300 hover:bg-fiord-50/45">
-                <div className="size-14 rounded-full border border-fiord-100 dark:border-fiord-850 bg-white dark:bg-fiord-950 text-fiord-900 dark:text-fiord-50 flex items-center justify-center shadow-sm group-hover:scale-110 transition-transform duration-300">
-                  <Plus className="size-7" />
+                <div className="size-12 rounded-full border border-fiord-100 dark:border-fiord-850 bg-white dark:bg-fiord-950 text-fiord-900 dark:text-fiord-50 flex items-center justify-center shadow-sm group-hover:scale-110 transition-transform duration-300">
+                  <Plus className="size-6" />
                 </div>
-                <h5 className="text-[16px] font-bold text-fiord-900 dark:text-fiord-100 mt-4">Crear Vacante</h5>
-                <p className="text-[13px] text-fiord-400 dark:text-fiord-500 font-medium mt-1 max-w-[180px] mx-auto leading-relaxed">
-                  Publica una nueva oferta exprés en el sureste
+                <h5 className="text-[15px] font-bold text-fiord-900 dark:text-fiord-100 mt-3">Crear Nueva Vacante</h5>
+                <p className="text-[12px] text-fiord-400 dark:text-fiord-500 font-medium mt-0.5 max-w-[180px] mx-auto leading-relaxed">
+                  Publica una oferta exprés en Mérida y Riviera Maya
                 </p>
               </Card>
             </Link>
-          </div>
-        </motion.div>
 
-        {/* ========================================================================= */}
-        {/* ROW 3: Horizontal bottom list: Últimas Vacantes Publicadas                 */}
-        {/* ========================================================================= */}
+            {/* Display up to 5 vacancies */}
+            {(() => {
+              const displayVacancies = publishedVacancies.length > 0 ? publishedVacancies : latestVacancies;
+              return displayVacancies.slice(0, 5).map((vac) => {
+                const formattedSalary =
+                  vac.salary_min && vac.salary_max
+                    ? `$${vac.salary_min.toLocaleString("es-MX")} - $${vac.salary_max.toLocaleString("es-MX")}`
+                    : vac.salary_min
+                    ? `Desde $${vac.salary_min.toLocaleString("es-MX")}`
+                    : vac.salary_max
+                    ? `Hasta $${vac.salary_max.toLocaleString("es-MX")}`
+                    : "A convenir";
 
-        <motion.div variants={cardVariants} className="lg:col-span-3">
-          <div className="flex items-center justify-between mb-4">
-            <div className="space-y-0.5">
-              <h4 className="text-[18px] sm:text-[20px] font-[800] text-fiord-900 dark:text-fiord-100 tracking-[-0.3px]">Últimas Vacantes Publicadas</h4>
-              <p className="text-[13px] text-fiord-400 dark:text-fiord-500 font-semibold">Progreso de postulaciones y reclutamiento local</p>
-            </div>
-            <Link 
-              href="/dashboard/company/vacancies" 
-              className="text-[13px] font-extrabold text-[#5c7c9b] hover:text-[#1f2732] dark:hover:text-zinc-100 transition-colors"
-            >
-              Ver historial
-            </Link>
-          </div>
+                const appCount = vac.applicationsCount ?? 0;
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
-            {publishedVacancies.slice(0, 3).map((vac, idx) => {
-              const formattedSalary =
-                vac.salary_min && vac.salary_max
-                  ? `$${vac.salary_min.toLocaleString("es-MX")} - $${vac.salary_max.toLocaleString("es-MX")}`
-                  : vac.salary_min
-                  ? `Desde $${vac.salary_min.toLocaleString("es-MX")}`
-                  : vac.salary_max
-                  ? `Hasta $${vac.salary_max.toLocaleString("es-MX")}`
-                  : "A convenir";
-
-              const appCount = vac.applicationsCount ?? 0;
-              const isDarkCard = idx === 0;
-
-              if (isDarkCard) {
                 return (
                   <Link key={vac.id} href={`/dashboard/company/vacancies/${vac.id}`} className="block">
-                    <div className="bg-[#1f2732] dark:bg-fiord-900 text-white rounded-[26px] p-6 flex items-center justify-between gap-4 shadow-sm relative overflow-hidden group hover:bg-[#253240] transition-all duration-300 h-full">
+                    <Card className="bg-white dark:bg-fiord-900 border-fiord-100 dark:border-fiord-800 rounded-[26px] p-6 flex items-center justify-between gap-4 shadow-sm hover:border-fiord-200 dark:hover:border-fiord-700 transition-all duration-300 h-full">
                       <div className="space-y-2 flex-1 min-w-0">
                         <div className="flex items-center gap-2">
-                          <Badge className="bg-fiord-800 text-fiord-200 border-none font-bold text-[10px] px-2.5 py-1 rounded-md">
+                          <Badge className="bg-fiord-50 dark:bg-fiord-800 text-fiord-700 dark:text-fiord-300 border-none font-bold text-[10px] px-2.5 py-1 rounded-md">
                             {vac.category || "General"}
                           </Badge>
-                          <span className="text-[11px] text-fiord-300 font-bold uppercase tracking-wider">
-                            {vac.zone || vac.location || "Mérida"}
-                          </span>
+                          <Badge
+                            className={cn(
+                              "font-extrabold text-[9px] px-2 py-0.5 rounded-full border-none",
+                              vac.is_active !== false
+                                ? "bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-400"
+                                : "bg-fiord-100 text-fiord-600 dark:bg-fiord-800 dark:text-fiord-400"
+                            )}
+                          >
+                            {vac.is_active !== false ? "Activa" : "Pausada"}
+                          </Badge>
                         </div>
-                        <h5 className="text-[16px] sm:text-[17px] font-bold tracking-tight text-white line-clamp-1">
+                        <h5 className="text-[16px] sm:text-[17px] font-bold tracking-tight text-fiord-900 dark:text-fiord-50 line-clamp-1">
                           {vac.title}
                         </h5>
-                        <p className="text-[13px] text-fiord-300 font-bold">{formattedSalary} MXN</p>
+                        <div className="flex items-center gap-2 text-[11px] text-fiord-400 dark:text-fiord-500 font-bold">
+                          <MapPin className="size-3 text-fiord-400" />
+                          <span>{vac.zone || vac.location || "Mérida"}</span>
+                          <span>•</span>
+                          <span className="text-fiord-700 dark:text-fiord-300 font-semibold">{formattedSalary} MXN</span>
+                        </div>
                       </div>
 
                       {/* Progress wheel SVG */}
-                      <div className="relative size-18 shrink-0 flex items-center justify-center">
+                      <div className="relative size-16 shrink-0 flex items-center justify-center">
                         <svg className="size-full transform -rotate-90">
-                          <circle cx="36" cy="36" r="28" stroke="rgba(255,255,255,0.08)" strokeWidth="6" fill="transparent" />
+                          <circle cx="32" cy="32" r="24" stroke="#ebeef3" strokeWidth="5" fill="transparent" className="dark:stroke-fiord-800" />
                           <circle
-                            cx="36"
-                            cy="36"
-                            r="28"
-                            stroke="#aabccf"
-                            strokeWidth="6"
+                            cx="32"
+                            cy="32"
+                            r="24"
+                            stroke="#5c7c9b"
+                            strokeWidth="5"
                             fill="transparent"
-                            strokeDasharray="175"
-                            strokeDashoffset={Math.max(0, 175 - Math.min(appCount, 10) * 17.5)}
+                            strokeDasharray="150"
+                            strokeDashoffset={Math.max(0, 150 - Math.min(appCount, 10) * 15)}
                             strokeLinecap="round"
                           />
                         </svg>
                         <div className="absolute inset-0 flex flex-col items-center justify-center">
-                          <span className="text-[13px] font-bold font-mono">{appCount}</span>
-                          <span className="text-[7.5px] text-fiord-300 uppercase tracking-widest font-extrabold">Postulantes</span>
+                          <span className="text-[12px] font-bold font-mono text-fiord-900 dark:text-fiord-100">{appCount}</span>
+                          <span className="text-[7px] text-fiord-400 dark:text-fiord-500 uppercase tracking-widest font-extrabold">Postulantes</span>
                         </div>
                       </div>
-                    </div>
+                    </Card>
                   </Link>
                 );
-              }
+              });
+            })()}
 
-              return (
-                <Link key={vac.id} href={`/dashboard/company/vacancies/${vac.id}`} className="block">
-                  <Card className="bg-white dark:bg-fiord-900 border-fiord-100 dark:border-fiord-800 rounded-[26px] p-6 flex items-center justify-between gap-4 shadow-sm hover:border-fiord-200 dark:hover:border-fiord-700 transition-all duration-300 h-full">
-                    <div className="space-y-2 flex-1 min-w-0">
-                      <div className="flex items-center gap-2">
-                        <Badge className="bg-fiord-50 dark:bg-fiord-800 text-fiord-700 dark:text-fiord-300 border-none font-bold text-[10px] px-2.5 py-1 rounded-md">
-                          {vac.category || "General"}
-                        </Badge>
-                        <span className="text-[11px] text-fiord-400 dark:text-fiord-500 font-bold uppercase tracking-wider">
-                          {vac.zone || vac.location || "Mérida"}
-                        </span>
-                      </div>
-                      <h5 className="text-[16px] sm:text-[17px] font-bold tracking-tight text-fiord-900 dark:text-fiord-50 line-clamp-1">
-                        {vac.title}
-                      </h5>
-                      <p className="text-[13px] text-fiord-500 dark:text-fiord-400 font-bold">{formattedSalary} MXN</p>
-                    </div>
-
-                    {/* Progress wheel SVG */}
-                    <div className="relative size-18 shrink-0 flex items-center justify-center">
-                      <svg className="size-full transform -rotate-90">
-                        <circle cx="36" cy="36" r="28" stroke="#ebeef3" strokeWidth="6" fill="transparent" className="dark:stroke-fiord-800" />
-                        <circle
-                          cx="36"
-                          cy="36"
-                          r="28"
-                          stroke="#5c7c9b"
-                          strokeWidth="6"
-                          fill="transparent"
-                          strokeDasharray="175"
-                          strokeDashoffset={Math.max(0, 175 - Math.min(appCount, 10) * 17.5)}
-                          strokeLinecap="round"
-                        />
-                      </svg>
-                      <div className="absolute inset-0 flex flex-col items-center justify-center">
-                        <span className="text-[13px] font-bold font-mono text-fiord-900 dark:text-fiord-100">{appCount}</span>
-                        <span className="text-[7.5px] text-fiord-400 dark:text-fiord-500 uppercase tracking-widest font-extrabold">Postulantes</span>
-                      </div>
-                    </div>
-                  </Card>
-                </Link>
-              );
-            })}
-
-            {publishedVacancies.length === 0 && (
-              <div className="col-span-3 text-center py-6 text-fiord-400 dark:text-fiord-500 text-sm font-semibold">
-                Aún no has publicado vacantes. Tus vacantes más recientes se mostrarán aquí.
+            {latestVacancies.length === 0 && publishedVacancies.length === 0 && (
+              <div className="col-span-2 text-center py-6 text-fiord-400 dark:text-fiord-500 text-sm font-semibold">
+                Aún no has publicado vacantes. Tus ofertas creadas se mostrarán aquí.
               </div>
             )}
           </div>

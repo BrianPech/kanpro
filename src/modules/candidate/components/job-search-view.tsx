@@ -85,26 +85,41 @@ export function JobSearchView({ initialVacancies = [], onBack }: JobSearchViewPr
     return () => clearTimeout(handler);
   }, [searchQuery]);
 
-  // Load saved vacancies from Supabase on mount
+  // Load saved vacancies and user location preference from Supabase on mount
   React.useEffect(() => {
-    async function loadSaved() {
+    async function loadUserPreferences() {
       try {
         const { data: { user } } = await supabase.auth.getUser();
         if (user) {
-          const { data } = await supabase
-            .from("saved_vacancies")
-            .select("vacancy_id")
-            .eq("candidate_id", user.id);
+          const [{ data: savedData }, { data: profile }] = await Promise.all([
+            supabase
+              .from("saved_vacancies")
+              .select("vacancy_id")
+              .eq("candidate_id", user.id),
+            supabase
+              .from("profiles")
+              .select("location")
+              .eq("id", user.id)
+              .maybeSingle()
+          ]);
 
-          if (data) {
-            setSavedJobIds(new Set(data.map((r: any) => r.vacancy_id)));
+          if (savedData) {
+            setSavedJobIds(new Set(savedData.map((r: any) => r.vacancy_id)));
+          }
+
+          if (profile?.location) {
+            const knownLocations = ["Playa del Carmen", "Cancún", "Tulum", "Mérida"];
+            const matched = knownLocations.find((loc) => profile.location.includes(loc));
+            if (matched && activeFilters.length === 0) {
+              setActiveFilters([matched]);
+            }
           }
         }
       } catch (err) {
-        console.error("Error loading saved vacancies:", err);
+        console.error("Error loading candidate preferences:", err);
       }
     }
-    loadSaved();
+    loadUserPreferences();
   }, [supabase]);
 
   // Perform dynamic search on Supabase whenever debouncedQuery or activeFilters change

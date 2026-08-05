@@ -94,10 +94,7 @@ export function EditPublicProfileView({ onBack }: EditPublicProfileViewProps) {
   };
 
   const showToast = (msg: string) => {
-    setToastMessage(msg);
-    setTimeout(() => {
-      setToastMessage(null);
-    }, 2500);
+    toast.success(msg);
   };
 
   const handleSimulatePhotoSelect = (fromCamera: boolean) => {

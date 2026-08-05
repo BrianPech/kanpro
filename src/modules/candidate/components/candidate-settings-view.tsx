@@ -284,6 +284,29 @@ export function CandidateSettingsView() {
         </button>
       </div>
 
+      {/* 3.1 Expediente Digital & Verification Callout */}
+      <div className="p-6 bg-emerald-500/10 border border-emerald-500/20 rounded-[24px] flex items-center justify-between gap-4">
+        <div className="flex items-center gap-4 min-w-0">
+          <div className="w-12 h-12 rounded-full bg-emerald-500/20 text-emerald-600 flex items-center justify-center shrink-0">
+            <ShieldCheck className="w-6 h-6" />
+          </div>
+          <div className="min-w-0">
+            <h3 className="text-[16px] font-bold text-[#1f2732] dark:text-zinc-100 leading-tight">
+              Expediente Digital y Documentación
+            </h3>
+            <p className="text-[13px] text-[#5c7c9b] dark:text-zinc-400 font-medium leading-snug mt-1">
+              Sube tus 8 documentos obligatorios (INE, CURP, Teléfono) y 8 méritos opcionales para certificar tu perfil.
+            </p>
+          </div>
+        </div>
+        <button
+          onClick={() => router.push("/dashboard/candidate/documents")}
+          className="shrink-0 px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 rounded-[14px] text-white text-xs sm:text-sm font-bold transition-all cursor-pointer active:scale-95"
+        >
+          Gestionar &gt;
+        </button>
+      </div>
+
       {/* 4. Location & Radar Geográfico Section */}
       <div className="p-6 bg-white dark:bg-zinc-900 rounded-[24px] border border-[#ebeef3] dark:border-zinc-800 shadow-2xs space-y-4">
         <div className="flex items-center justify-between">

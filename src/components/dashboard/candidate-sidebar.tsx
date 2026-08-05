@@ -7,6 +7,7 @@ import {
   Kanban,
   Compass,
   FileText,
+  ShieldCheck,
 } from "lucide-react";
 import {
   Sidebar,
@@ -40,6 +41,11 @@ export function CandidateSidebar() {
       title: "Mis Postulaciones",
       url: "/dashboard/candidate/applications",
       icon: FileText,
+    },
+    {
+      title: "Expediente Digital",
+      url: "/dashboard/candidate/documents",
+      icon: ShieldCheck,
     },
     { 
       title: "Mi Perfil", 

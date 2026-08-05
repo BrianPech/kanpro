@@ -1,5 +1,5 @@
-import { UploadCvView } from "@/modules/candidate/components/upload-cv-view";
+import { CandidateDocumentsView } from "@/modules/candidate/components/candidate-documents-view";
 
 export default function CandidateProfileCvPage() {
-  return <UploadCvView />;
+  return <CandidateDocumentsView />;
 }

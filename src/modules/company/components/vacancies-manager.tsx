@@ -100,7 +100,7 @@ export function VacanciesManager({ userId }: { userId: string }) {
       const company_name = compProfile?.company_name || baseProfile?.full_name || "";
       const phone = compProfile?.contact_phone || "configurado";
       const location = compProfile?.fiscal_address || baseProfile?.location || "";
-      const is_validated = compProfile?.verification_status === "verified";
+      const is_validated = (compProfile?.verification_status as any) === "verified" || (compProfile?.verification_status as any) === "approved";
 
       setProfile({
         company_name,
@@ -384,6 +384,32 @@ export function VacanciesManager({ userId }: { userId: string }) {
           >
             <Link href="/dashboard/company/profile">
               Completar Perfil
+            </Link>
+          </Button>
+        </Alert>
+      )}
+
+      {/* Global recruitment paused banner alert */}
+      {vacancies.length > 0 && vacancies.every((v) => !v.is_active) && (
+        <Alert className="bg-amber-500/10 border-amber-500/30 text-amber-800 dark:text-amber-300 p-5 rounded-[22px] flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-xs">
+          <div className="flex items-center gap-3.5">
+            <span className="text-2xl shrink-0">⏸️</span>
+            <div>
+              <AlertTitle className="text-sm font-extrabold uppercase tracking-wider text-amber-900 dark:text-amber-200">
+                Reclutamiento Temporalmente Pausado
+              </AlertTitle>
+              <AlertDescription className="text-xs font-semibold text-amber-800 dark:text-amber-300/90 mt-0.5">
+                Todas tus vacantes se encuentran inactivas y ocultas en el feed de candidatos. Puedes activarlas individualmente o reanudar tu operación en Ajustes.
+              </AlertDescription>
+            </div>
+          </div>
+          <Button
+            asChild
+            variant="outline"
+            className="h-9 px-4 rounded-[12px] border-amber-600/40 text-amber-900 dark:text-amber-200 hover:bg-amber-500/20 text-xs font-bold shrink-0 cursor-pointer"
+          >
+            <Link href="/dashboard/company/settings">
+              Ver Ajustes
             </Link>
           </Button>
         </Alert>

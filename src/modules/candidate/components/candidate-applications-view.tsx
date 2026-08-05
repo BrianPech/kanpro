@@ -257,6 +257,9 @@ export function CandidateApplicationsView({ initialData }: CandidateApplications
         {selectedApp && (
           <DialogContent className="sm:max-w-[480px] rounded-t-[32px] sm:rounded-3xl bg-white dark:bg-zinc-900 border border-[#ebeef3] dark:border-zinc-800 p-6 sm:p-8 max-h-[90vh] overflow-y-auto">
             <DialogHeader className="flex flex-row items-center justify-between pb-3 border-b border-[#ebeef3] dark:border-zinc-800">
+              <DialogTitle className="text-base sm:text-lg font-bold text-[#1f2732] dark:text-zinc-50">
+                Detalles de la Postulación
+              </DialogTitle>
               <div className={`px-3.5 py-1.5 rounded-[16px] flex items-center gap-1.5 text-xs sm:text-sm font-bold ${
                 selectedApp.status === "Contratado"
                   ? "bg-emerald-500/10 text-emerald-600"

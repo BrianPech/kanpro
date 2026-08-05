@@ -52,7 +52,7 @@ export async function updateContactChannel(companyId: string, channel: string) {
 
   const { error } = await supabase
     .from("company_profiles")
-    .update({ contact_channel: channel })
+    .update({ contact_channel: channel } as any)
     .eq("id", companyId)
 
   if (error) {

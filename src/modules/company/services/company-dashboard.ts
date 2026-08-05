@@ -163,8 +163,8 @@ export async function getCompanyDashboardData() {
     }
 
     // 6. Get direct connections count
-    const { count: connCount } = await supabase
-      .from("connections")
+    const { count: connCount } = await (supabase
+      .from("connections" as any) as any)
       .select("id", { count: "exact", head: true })
       .eq("recruiter_id", user.id)
 
@@ -384,11 +384,13 @@ export async function getCompanyProfileData() {
       .eq("id", user.id)
       .single();
 
-    const { data: companyData } = await supabase
+    const { data: rawCompanyData } = await supabase
       .from("company_profiles")
-      .select("company_name, industry, website_url, contact_phone, company_size, description, logo_url, banner_url, fiscal_address, address_details, operation_hours, social_links")
+      .select("*")
       .eq("id", user.id)
       .maybeSingle();
+
+    const companyData = rawCompanyData as any;
 
     if (companyData) {
       const social = (companyData.social_links as any) || {};
