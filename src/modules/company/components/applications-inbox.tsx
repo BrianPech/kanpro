@@ -21,12 +21,16 @@ import {
   FileText,
   ShieldCheck,
   Lock,
-  Clock
+  Clock,
+  Download,
+  Save,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
+import { Textarea } from "@/components/ui/textarea"
 import { Badge } from "@/components/ui/badge"
 import { toast } from "sonner"
+import { cn } from "@/lib/utils"
 import { useApplicationsInbox, type Applicant } from "../hooks/use-applications-inbox"
 import { requestDocumentAccess, getDocumentAccessStatus } from "../actions/document-access"
 
@@ -46,11 +50,21 @@ export function ApplicationsInbox() {
     handleUpdateStatus,
     getWhatsAppLink,
     handleContactApplicant,
-  } = useApplicationsInbox() // Fetch logic inside hooks takes care of user sessions
+    handleUpdateNotes,
+    handleUpdateRating,
+    handleExportCSV,
+  } = useApplicationsInbox()
 
   const [mobileDetailOpen, setMobileDetailOpen] = React.useState(false)
   const [docAccessState, setDocAccessState] = React.useState<{ status: string; id?: string } | null>(null)
   const [isRequestingDocs, setIsRequestingDocs] = React.useState(false)
+  const [noteText, setNoteText] = React.useState("")
+
+  React.useEffect(() => {
+    if (selectedApplicant) {
+      setNoteText(selectedApplicant.internalNotes || "")
+    }
+  }, [selectedApplicant])
 
   // Fetch document access request status when selected applicant changes
   React.useEffect(() => {
@@ -146,9 +160,21 @@ export function ApplicationsInbox() {
         <div className="p-4 sm:p-5 border-b border-border/40 flex flex-col gap-3 bg-background/50 backdrop-blur-sm shrink-0">
           <div className="flex justify-between items-center gap-2">
             <span className="text-xs sm:text-sm font-bold text-muted-foreground">Filtrar por Vacante:</span>
-            <span className="bg-[#1f2732] dark:bg-zinc-100 text-white dark:text-zinc-900 px-3 py-1 rounded-full font-bold text-xs tracking-wide">
-              {filteredApplicants.length} Encontrados
-            </span>
+            <div className="flex items-center gap-2">
+              <span className="bg-[#1f2732] dark:bg-zinc-100 text-white dark:text-zinc-900 px-3 py-1 rounded-full font-bold text-xs tracking-wide">
+                {filteredApplicants.length} Encontrados
+              </span>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => handleExportCSV(filteredApplicants)}
+                title="Exportar postulantes filtrados a CSV / Excel"
+                className="h-8 px-2.5 rounded-full border-border/60 text-xs font-bold gap-1 bg-background hover:bg-muted shadow-none"
+              >
+                <Download className="size-3.5 text-emerald-600 dark:text-emerald-400" />
+                <span className="hidden sm:inline">CSV</span>
+              </Button>
+            </div>
           </div>
 
           {/* Vacancy Filter Dropdown */}
@@ -451,6 +477,67 @@ export function ApplicationsInbox() {
                       <span>{selectedApplicant.phone}</span>
                     </div>
                   )}
+                </div>
+              </div>
+
+              {/* Internal Evaluation Rating & Private Recruiter Notes */}
+              <div className="glass-panel p-6 md:p-8 rounded-[24px] shadow-sm bg-background border border-border/50 space-y-4">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
+                    <Star className="size-3.5 text-amber-500 fill-amber-500" /> Evaluación Interna y Notas del Reclutador
+                  </h3>
+                  <Badge variant="outline" className="text-[10px] font-bold text-muted-foreground border-border/60">
+                    Solo visible para tu empresa
+                  </Badge>
+                </div>
+
+                {/* Rating Selector */}
+                <div className="space-y-2">
+                  <span className="text-xs font-extrabold text-foreground block">Calificación del candidato:</span>
+                  <div className="flex items-center gap-1.5">
+                    {[1, 2, 3, 4, 5].map((star) => (
+                      <button
+                        key={star}
+                        type="button"
+                        onClick={() => handleUpdateRating(selectedApplicant.id, star)}
+                        className="p-1 hover:scale-110 transition-transform cursor-pointer"
+                        title={`Calificar con ${star} estrellas`}
+                      >
+                        <Star
+                          className={cn(
+                            "size-5 transition-colors",
+                            star <= (selectedApplicant.internalRating || selectedApplicant.rating || 5)
+                              ? "text-amber-500 fill-amber-500"
+                              : "text-muted-foreground/30"
+                          )}
+                        />
+                      </button>
+                    ))}
+                    <span className="text-xs font-bold text-amber-600 dark:text-amber-400 ml-2">
+                      {selectedApplicant.internalRating || selectedApplicant.rating || 5} de 5 Estrellas
+                    </span>
+                  </div>
+                </div>
+
+                {/* Private Notes Textarea */}
+                <div className="space-y-2 pt-1">
+                  <span className="text-xs font-extrabold text-foreground block">Notas privadas de entrevista / observaciones:</span>
+                  <Textarea
+                    value={noteText}
+                    onChange={(e) => setNoteText(e.target.value)}
+                    placeholder="Escribe aquí notas sobre la entrevista, sueldo pretendido o impresiones internas..."
+                    className="w-full min-h-[90px] bg-muted/30 border border-border/60 rounded-xl p-3 text-xs font-medium text-foreground focus-visible:ring-primary/20"
+                  />
+                  <div className="flex justify-end pt-1">
+                    <Button
+                      size="sm"
+                      onClick={() => handleUpdateNotes(selectedApplicant.id, noteText)}
+                      className="h-9 px-4 rounded-xl text-xs font-bold bg-primary hover:bg-primary/90 text-primary-foreground gap-1.5 shadow-none"
+                    >
+                      <Save className="size-3.5" />
+                      <span>Guardar Nota Privada</span>
+                    </Button>
+                  </div>
                 </div>
               </div>
 

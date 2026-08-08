@@ -60,6 +60,96 @@ const categories = [
   "Otro",
 ] as const;
 
+// Quick pre-filled job templates for instant vacancy creation
+const JOB_TEMPLATES = [
+  {
+    name: "Cocinero B / Cocinera",
+    title: "Cocinero B (Línea Caliente y Fría)",
+    category: "Alimentos y Bebidas",
+    employment_type: "Tiempo Completo",
+    salary_min: "12000",
+    salary_max: "16000",
+    description: `Responsabilidades del Puesto:
+- Preparación y ensamble de platillos en línea fría y caliente siguiendo estándares del menú.
+- Control de temperatura, porcionamiento e higiene en la estación de trabajo.
+- Apoyo en recepción e inventario de insumos diarios.
+
+Requisitos:
+- Experiencia previa mínima de 1 año en cocina de restaurante u hotel.
+- Conocimiento de distintivo H y manejo higiénico de alimentos.
+- Trabajo en equipo y agilidad en horas pico.`,
+    benefits: ["Prestaciones de Ley", "Comedor de empleados", "Propinas", "Uniformes"],
+  },
+  {
+    name: "Recepcionista Bilingüe",
+    title: "Recepcionista de Hotel Bilingüe",
+    category: "Hotelería y Turismo",
+    employment_type: "Turno Rotativo",
+    salary_min: "14000",
+    salary_max: "18000",
+    description: `Responsabilidades del Puesto:
+- Atender la llegada (Check-in) y salida (Check-out) de huéspedes locales e internacionales.
+- Brindar atención telefónica y gestionar reservas en sistema PMS.
+- Orientación sobre tours, amenidades e información de la zona.
+
+Requisitos:
+- Inglés conversacional fluido (80%+).
+- Excelente actitud de servicio y presentación ejecutiva.
+- Manejo básico de sistemas de gestión hotelera.`,
+    benefits: ["Prestaciones de Ley", "Transporte de personal", "Capacitación / Crecimiento"],
+  },
+  {
+    name: "Mesero / Mesera",
+    title: "Mesero / Mesera de Restaurante",
+    category: "Alimentos y Bebidas",
+    employment_type: "Tiempo Completo",
+    salary_min: "10000",
+    salary_max: "15000",
+    description: `Responsabilidades del Puesto:
+- Atención personalizada a comensales en mesa, toma de comandas y sugerencia de menú.
+- Montaje y limpieza de mesas antes y después del servicio.
+- Colaboración con cocina y bar para la entrega oportuna de platillos y bebidas.
+
+Requisitos:
+- Experiencia mínima de 6 meses en servicio a mesa.
+- Actitud proactiva, amabilidad y trabajo bajo presión.`,
+    benefits: ["Prestaciones de Ley", "Propinas", "Comedor de empleados", "Uniformes"],
+  },
+  {
+    name: "Auxiliar Mantenimiento",
+    title: "Auxiliar de Mantenimiento General",
+    category: "Mantenimiento y Limpieza",
+    employment_type: "Tiempo Completo",
+    salary_min: "11000",
+    salary_max: "14500",
+    description: `Responsabilidades del Puesto:
+- Mantenimiento preventivo y correctivo de instalaciones (plomería, pintura, electricidad básica, aire acondicionado).
+- Atención a reportes de fallas en áreas comunes o habitaciones.
+
+Requisitos:
+- Conocimientos básicos de oficios generales.
+- Disponibilidad para rolar turnos si se requiere.`,
+    benefits: ["Prestaciones de Ley", "Uniformes", "Capacitación / Crecimiento"],
+  },
+  {
+    name: "Ejecutivo de Ventas",
+    title: "Ejecutivo de Ventas y Atención Comercial",
+    category: "Ventas y Comercio",
+    employment_type: "Tiempo Completo",
+    salary_min: "15000",
+    salary_max: "22000",
+    description: `Responsabilidades del Puesto:
+- Prospección de clientes, negociación y cierre de ventas.
+- Asesoría comercial personalizada y seguimiento posventa.
+- Cumplimiento de metas comerciales mensuales.
+
+Requisitos:
+- Experiencia comprobable en ventas directas o atención al cliente.
+- Facilidad de palabra y orientación a resultados.`,
+    benefits: ["Prestaciones de Ley", "Capacitación / Crecimiento"],
+  },
+];
+
 // Zod Schema matching requirements
 const vacancySchema = z
   .object({
@@ -539,6 +629,43 @@ export function VacancyFormView({ userId, vacancyId }: VacancyFormViewProps) {
           </Button>
         )}
       </div>
+
+      {/* Quick Job Templates Bar */}
+      {!isEditMode && (
+        <Card className="bg-gradient-to-r from-indigo-500/10 via-primary/5 to-purple-500/10 border border-primary/20 rounded-[24px] p-5 space-y-3 shadow-none">
+          <div className="flex items-center gap-2">
+            <Sparkles className="size-4 text-primary shrink-0" />
+            <h4 className="text-xs sm:text-sm font-extrabold text-foreground">
+              ¿Quieres ahorrar tiempo? Carga una Plantilla Rápida de Puesto:
+            </h4>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            {JOB_TEMPLATES.map((tmpl) => (
+              <Button
+                key={tmpl.name}
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  setValue("title", tmpl.title, { shouldValidate: true, shouldDirty: true });
+                  setValue("category", tmpl.category, { shouldValidate: true, shouldDirty: true });
+                  setValue("employment_type", tmpl.employment_type as any, { shouldValidate: true, shouldDirty: true });
+                  setValue("salary_min", tmpl.salary_min, { shouldValidate: true, shouldDirty: true });
+                  setValue("salary_max", tmpl.salary_max, { shouldValidate: true, shouldDirty: true });
+                  setValue("description", tmpl.description, { shouldValidate: true, shouldDirty: true });
+                  setValue("benefits", tmpl.benefits, { shouldValidate: true, shouldDirty: true });
+                  toast.success(`Plantilla "${tmpl.name}" cargada`, {
+                    description: "Se han completado automáticamente los detalles del puesto.",
+                  });
+                }}
+                className="h-8 text-xs font-bold rounded-xl border-primary/20 bg-background/80 hover:bg-primary hover:text-primary-foreground transition-all active:scale-95 shadow-none cursor-pointer"
+              >
+                ⚡ {tmpl.name}
+              </Button>
+            ))}
+          </div>
+        </Card>
+      )}
 
       {isProfileIncomplete && !loadingProfile && (
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 p-5 rounded-2xl bg-amber-500/10 border border-amber-500/20 text-amber-700 dark:text-amber-400">

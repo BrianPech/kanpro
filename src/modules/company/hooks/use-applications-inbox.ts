@@ -39,6 +39,8 @@ export interface Applicant {
   vacancyTitle: string;
   vacancyId: string;
   candidateId: string;
+  internalRating?: number;
+  internalNotes?: string;
 }
 
 export function useApplicationsInbox() {
@@ -106,6 +108,9 @@ export function useApplicationsInbox() {
             elapsedTime = `Hace ${diffHours}h`;
           }
 
+          const savedNotes = typeof window !== "undefined" ? localStorage.getItem(`kanpro_notes_${app.id}`) || "" : "";
+          const savedRating = typeof window !== "undefined" ? Number(localStorage.getItem(`kanpro_rating_${app.id}`)) || 5 : 5;
+
           return {
             id: app.id,
             name: profile.full_name || "Profesional K'anPro",
@@ -114,7 +119,9 @@ export function useApplicationsInbox() {
             location: profile.location || "Local",
             elapsedTime,
             status: app.status,
-            rating: 5,
+            rating: savedRating,
+            internalRating: savedRating,
+            internalNotes: savedNotes,
             reviewsCount: 5,
             bio: profile.bio || "Sin biografía disponible.",
             experiences,
@@ -239,6 +246,82 @@ export function useApplicationsInbox() {
     }
   };
 
+  // Notes & Rating update handlers
+  const handleUpdateNotes = (id: string, notes: string) => {
+    try {
+      if (typeof window !== "undefined") {
+        localStorage.setItem(`kanpro_notes_${id}`, notes);
+      }
+      setApplicants((prev) =>
+        prev.map((app) => (app.id === id ? { ...app, internalNotes: notes } : app))
+      );
+      toast.success("Nota interna guardada");
+    } catch (e) {
+      console.error("Error saving internal note:", e);
+    }
+  };
+
+  const handleUpdateRating = (id: string, rating: number) => {
+    try {
+      if (typeof window !== "undefined") {
+        localStorage.setItem(`kanpro_rating_${id}`, String(rating));
+      }
+      setApplicants((prev) =>
+        prev.map((app) => (app.id === id ? { ...app, internalRating: rating, rating } : app))
+      );
+      toast.success(`Puntuación asignada: ${rating} ★`);
+    } catch (e) {
+      console.error("Error saving rating:", e);
+    }
+  };
+
+  // Export filtered applicants list to CSV
+  const handleExportCSV = React.useCallback((applicantsToExport: Applicant[]) => {
+    if (!applicantsToExport || applicantsToExport.length === 0) {
+      toast.error("No hay postulantes disponibles para exportar");
+      return;
+    }
+
+    const headers = [
+      "Nombre Candidato",
+      "Puesto Postulado",
+      "Estado Postulación",
+      "Ubicación",
+      "Teléfono / WhatsApp",
+      "Email",
+      "Puntuación Interna",
+      "Notas Privadas Reclutador",
+      "Fecha Antigüedad",
+    ];
+
+    const rows = applicantsToExport.map((app) => [
+      `"${app.name.replace(/"/g, '""')}"`,
+      `"${app.vacancyTitle.replace(/"/g, '""')}"`,
+      `"${app.status}"`,
+      `"${app.location.replace(/"/g, '""')}"`,
+      `"${app.phone}"`,
+      `"${app.email || ""}"`,
+      `"${app.internalRating || app.rating || 5}"`,
+      `"${(app.internalNotes || "").replace(/"/g, '""')}"`,
+      `"${app.elapsedTime}"`,
+    ]);
+
+    const csvContent =
+      "\uFEFF" + [headers.join(","), ...rows.map((r) => r.join(","))].join("\n");
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.setAttribute(
+      "download",
+      `Postulantes_KanPro_${new Date().toISOString().slice(0, 10)}.csv`
+    );
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    toast.success("¡Reporte CSV exportado exitosamente!");
+  }, []);
+
   return {
     applicants,
     vacancies,
@@ -253,6 +336,9 @@ export function useApplicationsInbox() {
     handleUpdateStatus,
     getWhatsAppLink,
     handleContactApplicant,
+    handleUpdateNotes,
+    handleUpdateRating,
+    handleExportCSV,
     reloadData: loadData,
   };
 }

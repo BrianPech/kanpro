@@ -102,6 +102,23 @@ export function CompanySettingsView({ user, initialProfile, initialPauseState, i
   const [mounted, setMounted] = React.useState(false)
   const [activeTab, setActiveTab] = React.useState<"account" | "location" | "recruitment" | "credits">("account")
   
+  // Notification Preferences State
+  const [notifyEmail, setNotifyEmail] = React.useState<boolean>(() => {
+    if (typeof window !== "undefined") {
+      const val = localStorage.getItem("kanpro_notify_email");
+      return val !== null ? val === "true" : true;
+    }
+    return true;
+  });
+
+  const [notifyWhatsapp, setNotifyWhatsapp] = React.useState<boolean>(() => {
+    if (typeof window !== "undefined") {
+      const val = localStorage.getItem("kanpro_notify_whatsapp");
+      return val !== null ? val === "true" : true;
+    }
+    return true;
+  });
+
   // Location & Radar State for Company
   const [companyCity, setCompanyCity] = React.useState<string>("Mérida")
   const [companyZone, setCompanyZone] = React.useState<string>("Centro Mérida")
@@ -661,7 +678,56 @@ export function CompanySettingsView({ user, initialProfile, initialPauseState, i
                 )}
               </Card>
 
-              {/* SECCIÓN 2: CANAL DE CONTACTO PREFERIDO */}
+              {/* SECCIÓN 3: PREFERENCIAS DE NOTIFICACIÓN DE NUEVOS CANDIDATOS */}
+              <Card className="border-fiord-100 dark:border-fiord-800 bg-white dark:bg-fiord-900 rounded-2xl p-6 shadow-sm space-y-4">
+                <div className="space-y-0.5">
+                  <h3 className="text-sm font-bold text-fiord-900 dark:text-fiord-50 flex items-center gap-2">
+                    <Sparkles className="size-4 text-amber-500" />
+                    Alertas y Notificaciones de Postulaciones
+                  </h3>
+                  <p className="text-[11px] text-fiord-400 dark:text-fiord-400 font-medium">
+                    Elige cómo quieres recibir las notificaciones al recibir un nuevo postulante calificado.
+                  </p>
+                </div>
+
+                <div className="space-y-3 pt-2">
+                  {/* Email Alert Toggle */}
+                  <div className="flex items-center justify-between p-3.5 rounded-xl border border-fiord-100 dark:border-fiord-800 bg-fiord-50/30 dark:bg-fiord-950/30">
+                    <div className="space-y-0.5">
+                      <span className="text-xs font-bold text-fiord-900 dark:text-fiord-100 block">Notificaciones por Correo Electrónico</span>
+                      <span className="text-[11px] text-fiord-400 dark:text-fiord-400 block font-medium">
+                        Recibe un resumen diario y alertas inmediatas cuando un candidato aplique a tus vacantes.
+                      </span>
+                    </div>
+                    <Switch
+                      checked={notifyEmail}
+                      onCheckedChange={(val) => {
+                        setNotifyEmail(val);
+                        if (typeof window !== "undefined") localStorage.setItem("kanpro_notify_email", String(val));
+                        toast.success(val ? "Alertas por email activadas" : "Alertas por email desactivadas");
+                      }}
+                    />
+                  </div>
+
+                  {/* WhatsApp Alert Toggle */}
+                  <div className="flex items-center justify-between p-3.5 rounded-xl border border-fiord-100 dark:border-fiord-800 bg-fiord-50/30 dark:bg-fiord-950/30">
+                    <div className="space-y-0.5">
+                      <span className="text-xs font-bold text-fiord-900 dark:text-fiord-100 block">Notificaciones Inmediatas por WhatsApp</span>
+                      <span className="text-[11px] text-fiord-400 dark:text-fiord-400 block font-medium">
+                        Recibe una alerta exprés en el WhatsApp corporativo al postularse un candidato destacado.
+                      </span>
+                    </div>
+                    <Switch
+                      checked={notifyWhatsapp}
+                      onCheckedChange={(val) => {
+                        setNotifyWhatsapp(val);
+                        if (typeof window !== "undefined") localStorage.setItem("kanpro_notify_whatsapp", String(val));
+                        toast.success(val ? "Alertas por WhatsApp activadas" : "Alertas por WhatsApp desactivadas");
+                      }}
+                    />
+                  </div>
+                </div>
+              </Card>
               <Card className="border-fiord-100 dark:border-fiord-800 bg-white dark:bg-fiord-900 rounded-2xl p-6 shadow-sm space-y-4">
                 <div className="space-y-0.5">
                   <h3 className="text-sm font-bold text-fiord-900 dark:text-fiord-50 flex items-center gap-2">
