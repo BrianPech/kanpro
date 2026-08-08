@@ -164,15 +164,14 @@ export function CompanyProfileForm({
               const matchedKey = Object.keys(GEO_CONFIG).find((k) =>
                 cityName.toLowerCase().includes(k.toLowerCase()) || k.toLowerCase().includes(cityName.toLowerCase())
               );
-              if (matchedKey) {
-                detectedCity = matchedKey;
-              }
+              detectedCity = matchedKey || cityName;
             }
           }
         } catch (e) {
           console.warn("Reverse geocoding fetch fallback:", e);
         }
 
+        const formattedCity = detectedCity.includes(",") ? detectedCity : `${detectedCity}, Mexico`;
         setValue("location", detectedCity, { shouldValidate: true, shouldDirty: true });
         if (detectedStreet) {
           setValue("address_details", detectedStreet, { shouldValidate: true, shouldDirty: true });
@@ -526,73 +525,77 @@ export function CompanyProfileForm({
             </div>
           </div>
 
-          {gpsDetectedInfo && (
+          {/* Dynamic Active Location Status Banner */}
+          {(watch("location") || watch("address_details")) ? (
             <div className="p-4 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-800 dark:text-emerald-300 flex items-center justify-between gap-3 text-xs font-semibold animate-in fade-in duration-300">
-              <div className="flex items-center gap-2.5">
+              <div className="flex items-center gap-2.5 min-w-0">
                 <CheckCircle2 className="size-4.5 text-emerald-600 dark:text-emerald-400 shrink-0" />
-                <div>
-                  <span className="font-extrabold">Ubicación GPS Confirmada:</span>{" "}
-                  {gpsDetectedInfo.city} {gpsDetectedInfo.address ? `• ${gpsDetectedInfo.address}` : ""}
+                <div className="truncate">
+                  <span className="font-extrabold">
+                    {gpsDetectedInfo && gpsDetectedInfo.city === watch("location")
+                      ? "Ubicación GPS Confirmada:"
+                      : "Ubicación Actual:"}
+                  </span>{" "}
+                  <span className="font-bold">{watch("location") || "Ciudad no especificada"}</span>
+                  {watch("address_details") ? ` • ${watch("address_details")}` : ""}
                 </div>
               </div>
-              <Badge className="bg-emerald-600 text-white text-[10px] font-bold px-2.5 py-0.5 rounded-full shrink-0 shadow-none">
-                GPS Activo
+              <Badge className={cn(
+                "text-[10px] font-bold px-2.5 py-0.5 rounded-full shrink-0 shadow-none",
+                gpsDetectedInfo && gpsDetectedInfo.city === watch("location")
+                  ? "bg-emerald-600 text-white"
+                  : "bg-indigo-600 text-white"
+              )}>
+                {gpsDetectedInfo && gpsDetectedInfo.city === watch("location") ? "GPS Activo" : "Registrada"}
               </Badge>
             </div>
-          )}
+          ) : null}
 
+          {/* Location Inputs Grid */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {/* General Zone Selection with Integrated GPS Button */}
+            {/* Flexible City & State Input */}
             <div className="space-y-2.5">
               <label className="block text-[14px] sm:text-[15px] font-extrabold text-[#3e546d] dark:text-zinc-200">
                 Ciudad Principal / Sede *
               </label>
-              <div className="flex gap-2">
-                <div className="flex-grow min-w-0">
-                  <Select
-                    value={watch("location") || ""}
-                    onValueChange={(value) => setValue("location", value, { shouldValidate: true, shouldDirty: true })}
-                  >
-                    <SelectTrigger className="w-full h-14 bg-white dark:bg-zinc-900 border border-[#ebeef3] dark:border-zinc-800 rounded-[16px] px-4 text-[15px] sm:text-[16px] font-[600] text-[#1f2732] dark:text-zinc-100 focus:ring-2 focus:ring-primary/20 transition-all outline-none shadow-none cursor-pointer">
-                      <SelectValue placeholder="Selecciona tu ciudad..." />
-                    </SelectTrigger>
-                    <SelectContent className="rounded-[16px] border border-[#ebeef3] dark:border-zinc-800 bg-popover text-sm font-semibold">
-                      {[
-                        { value: "Mérida", label: "Mérida, Yucatán" },
-                        { value: "Playa del Carmen", label: "Playa del Carmen, Q. Roo" },
-                        { value: "Cancún", label: "Cancún, Q. Roo" },
-                        { value: "Tulum", label: "Tulum, Q. Roo" },
-                        { value: "Cozumel", label: "Cozumel, Q. Roo" },
-                        { value: "Puerto Morelos", label: "Puerto Morelos, Q. Roo" },
-                        { value: "Isla Mujeres", label: "Isla Mujeres, Q. Roo" },
-                        { value: "Chetumal", label: "Chetumal, Q. Roo" },
-                        { value: "Valladolid", label: "Valladolid, Yucatán" },
-                        { value: "Progreso", label: "Progreso, Yucatán" },
-                        { value: "Campeche", label: "Campeche, Campeche" },
-                      ].map((city) => (
-                        <SelectItem key={city.value} value={city.value}>
-                          {city.label}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={handleDetectLocation}
-                  disabled={isLocating}
-                  title="Detectar ubicación automáticamente por GPS"
-                  className="h-14 px-4 bg-primary/5 hover:bg-primary/10 border-primary/20 text-primary font-bold text-xs rounded-[16px] flex items-center gap-2 shrink-0 transition-all active:scale-95 shadow-none"
-                >
-                  {isLocating ? (
-                    <Loader2 className="size-4 animate-spin" />
-                  ) : (
-                    <Navigation className="size-4 text-primary" />
-                  )}
-                  <span className="hidden sm:inline">{isLocating ? "Buscando..." : "Detectar GPS"}</span>
-                </Button>
+              <div className="relative">
+                <MapPin className="absolute left-4 top-1/2 -translate-y-1/2 size-4 text-[#5c7c9b] dark:text-zinc-400 pointer-events-none" />
+                <Input
+                  type="text"
+                  placeholder="Ej. Mérida, Yucatán o escribe tu ciudad..."
+                  {...register("location")}
+                  className="w-full h-14 bg-white dark:bg-zinc-900 border border-[#ebeef3] dark:border-zinc-800 rounded-[16px] pl-11 pr-4 text-[15px] sm:text-[16px] font-[600] text-[#1f2732] dark:text-zinc-100 placeholder-[#94a3b8] focus-visible:ring-2 focus-visible:ring-primary/20 transition-all outline-none"
+                />
               </div>
+
+              {/* Quick Select City Pills */}
+              <div className="flex flex-wrap items-center gap-1.5 pt-1">
+                <span className="text-[11px] font-bold text-[#5c7c9b] dark:text-zinc-400 mr-1">Rápidos:</span>
+                {[
+                  "Mérida, Yucatán",
+                  "Playa del Carmen, Q. Roo",
+                  "Cancún, Q. Roo",
+                  "Tulum, Q. Roo",
+                  "Cozumel, Q. Roo",
+                  "Chetumal, Q. Roo",
+                  "CDMX",
+                ].map((city) => (
+                  <button
+                    key={city}
+                    type="button"
+                    onClick={() => setValue("location", city, { shouldValidate: true, shouldDirty: true })}
+                    className={cn(
+                      "px-2.5 py-1 rounded-lg text-[11px] font-bold transition-all border cursor-pointer",
+                      watch("location") === city
+                        ? "bg-primary text-primary-foreground border-primary"
+                        : "bg-muted/40 hover:bg-muted text-muted-foreground border-border/40 hover:border-border"
+                    )}
+                  >
+                    {city}
+                  </button>
+                ))}
+              </div>
+
               {errors.location && (
                 <p className="text-xs sm:text-sm font-semibold text-rose-500">
                   {errors.location.message}
@@ -617,6 +620,24 @@ export function CompanyProfileForm({
                 </p>
               )}
             </div>
+          </div>
+
+          {/* GPS Detection Button placed at the END */}
+          <div className="pt-3 border-t border-[#ebeef3] dark:border-zinc-800 flex justify-end">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={handleDetectLocation}
+              disabled={isLocating}
+              className="w-full sm:w-auto h-12 px-6 bg-primary/5 hover:bg-primary/10 border-primary/20 text-primary font-bold text-xs sm:text-sm rounded-[16px] flex items-center justify-center gap-2.5 transition-all active:scale-95 shadow-none"
+            >
+              {isLocating ? (
+                <Loader2 className="size-4.5 animate-spin" />
+              ) : (
+                <Navigation className="size-4.5 text-primary" />
+              )}
+              <span>{isLocating ? "Obteniendo coordenadas GPS..." : "Detectar mi ubicación exacta por GPS"}</span>
+            </Button>
           </div>
         </Card>
 

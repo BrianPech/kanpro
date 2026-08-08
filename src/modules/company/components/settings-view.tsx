@@ -1043,10 +1043,3 @@ export function CompanySettingsView({ user, initialProfile, initialPauseState, i
     </div>
   )
 }
-          )}
-
-        </div>
-      </div>
-    </div>
-  )
-}
