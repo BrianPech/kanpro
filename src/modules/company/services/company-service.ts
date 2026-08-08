@@ -36,31 +36,8 @@ export const companyService = {
   async updateProfile(userId: string, profile: CompanyProfileFormValues) {
     const supabase = createClient();
 
-    // 1. Retrieve the current location from profiles base to ensure it is not overwritten
-    const { data: currentProfile } = await supabase
-      .from("profiles")
-      .select("location")
-      .eq("id", userId)
-      .single();
+    const finalLocation = profile.location || "Mérida";
 
-    const currentLoc = currentProfile?.location || "";
-
-    const finalLocation = profile.location || currentLoc || "Mérida";
-
-    // 2. Update the base profiles table first (FK target must exist)
-    const { error: baseError } = await supabase
-      .from("profiles")
-      .update({
-        full_name: profile.company_name,
-        avatar_url: profile.logo_url || null,
-        location: finalLocation,
-        updated_at: new Date().toISOString(),
-      })
-      .eq("id", userId);
-
-    if (baseError) throw baseError;
-
-    // 3. Update company_profiles extension table (using update first, fallback to upsert)
     const companyPayload = {
       company_name: profile.company_name,
       industry: profile.industry || "General",
@@ -86,15 +63,28 @@ export const companyService = {
       updated_at: new Date().toISOString(),
     };
 
-    const { data: updatedRows, error: updateErr } = await supabase
-      .from("company_profiles")
-      .update(companyPayload as any)
-      .eq("id", userId)
-      .select("id");
+    // Parallel update for base profiles and company_profiles extension
+    const [baseRes, updateRes] = await Promise.all([
+      supabase
+        .from("profiles")
+        .update({
+          full_name: profile.company_name,
+          avatar_url: profile.logo_url || null,
+          location: finalLocation,
+          updated_at: new Date().toISOString(),
+        })
+        .eq("id", userId),
+      supabase
+        .from("company_profiles")
+        .update(companyPayload as any)
+        .eq("id", userId)
+        .select("id")
+    ]);
 
-    if (updateErr) throw updateErr;
+    if (baseRes.error) throw baseRes.error;
+    if (updateRes.error) throw updateRes.error;
 
-    if (!updatedRows || updatedRows.length === 0) {
+    if (!updateRes.data || updateRes.data.length === 0) {
       const { error: upsertErr } = await supabase
         .from("company_profiles")
         .upsert({
@@ -159,6 +149,18 @@ export const companyService = {
 
   async getApplications(companyId: string) {
     const supabase = createClient();
+
+    // 1. Fetch company vacancy IDs
+    const { data: userVacs } = await supabase
+      .from("vacancies")
+      .select("id")
+      .eq("company_id", companyId);
+
+    const vacIds = (userVacs || []).map((v) => v.id);
+
+    if (vacIds.length === 0) return [];
+
+    // 2. Fetch applications filtered directly in PostgreSQL
     const { data, error } = await supabase
       .from("applications")
       .select(`
@@ -188,11 +190,12 @@ export const companyService = {
           )
         )
       `)
+      .in("vacancy_id", vacIds)
       .order("applied_at", { ascending: false });
 
     if (error) throw error;
 
-    const flattened = (data || []).map((app: any) => {
+    return (data || []).map((app: any) => {
       const candidateObj = app.candidate;
       const candidateProfile = Array.isArray(candidateObj) ? candidateObj[0] : candidateObj;
       const baseProfile = candidateProfile?.profiles
@@ -216,9 +219,6 @@ export const companyService = {
         } : null
       };
     });
-    
-    // Filter records in memory to match vacancy owner
-    return flattened.filter((app: any) => app.vacancies?.company_id === companyId);
   },
 
   async updateApplicationStatus(applicationId: string, status: string) {

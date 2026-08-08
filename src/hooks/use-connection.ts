@@ -70,10 +70,10 @@ export function useConnection() {
         throw new Error(`Error al registrar la conexión: ${insertError.message}`);
       }
 
-      // 4. Paso B: Consultar perfil en la vista profiles (que el RLS desoculta por la conexión)
+      // 4. Paso B: Consultar perfil en la tabla profiles
       const { data: profile, error: selectError } = await supabase
-        .from("profiles_view")
-        .select("full_name, phone, whatsapp_number")
+        .from("profiles")
+        .select("full_name, whatsapp_number")
         .eq("id", targetCandidateId)
         .single();
 
@@ -81,7 +81,7 @@ export function useConnection() {
         throw new Error(`No se pudo obtener el contacto: ${selectError?.message || "Perfil no encontrado"}`);
       }
 
-      const targetPhone = profile.phone || profile.whatsapp_number;
+      const targetPhone = (profile as any)?.phone || profile.whatsapp_number;
       if (!targetPhone) {
         throw new Error("El candidato no tiene registrado un número telefónico de contacto.");
       }

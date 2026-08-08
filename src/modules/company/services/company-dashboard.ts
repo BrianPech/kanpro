@@ -18,115 +18,110 @@ export async function getCompanyDashboardData() {
   let pendingTasks: { id: string; text: string; completed: boolean }[] = []
 
   if (user) {
-    // 1. Get company name
-    const { data: companyData } = await supabase
-      .from("company_profiles")
-      .select("company_name")
-      .eq("id", user.id)
-      .single()
+    // 1. Parallel Batch 1: Fetch company profile, all vacancies for this company, and connections count
+    const [companyRes, vacanciesRes, connectionsRes] = await Promise.all([
+      supabase
+        .from("company_profiles")
+        .select("company_name")
+        .eq("id", user.id)
+        .maybeSingle(),
+      supabase
+        .from("vacancies")
+        .select("id, title, location, zone, salary_min, salary_max, category, employment_type, created_at, is_active")
+        .eq("company_id", user.id)
+        .order("created_at", { ascending: false }),
+      (supabase.from("connections" as any) as any)
+        .select("id", { count: "exact", head: true })
+        .eq("recruiter_id", user.id)
+    ]);
 
-    if (companyData?.company_name) {
-      companyName = companyData.company_name
+    if (companyRes.data?.company_name) {
+      companyName = companyRes.data.company_name
     }
 
-    // 2. Fetch top 3 most recent published vacancies ordered by created_at DESC (Optimized DB query)
-    const { data: pubVacsData } = await supabase
-      .from("vacancies")
-      .select("id, title, location, zone, salary_min, salary_max, category, employment_type, created_at, is_active")
-      .eq("company_id", user.id)
-      .order("created_at", { ascending: false })
-      .limit(3)
+    totalConnections = connectionsRes.count || 0
 
-    const publishedVacanciesRaw = pubVacsData || []
+    const allVacancies = vacanciesRes.data || []
+    activeVacancies = allVacancies.filter((v: any) => v.is_active !== false).length
+    pausedVacancies = allVacancies.filter((v: any) => v.is_active === false).length
+
+    const publishedVacanciesRaw = allVacancies.slice(0, 3)
     latestVacancies = publishedVacanciesRaw.slice(0, 2)
-
-    // Compute application counts per vacancy for top 3
-    publishedVacancies = await Promise.all(
-      publishedVacanciesRaw.map(async (v: any) => {
-        const { count } = await supabase
-          .from("applications")
-          .select("id", { count: "exact", head: true })
-          .eq("vacancy_id", v.id)
-
-        return {
-          ...v,
-          applicationsCount: count || 0,
-        }
-      })
-    )
-
-    // 3. Count total active vacancies efficiently from DB
-    const { count: activeCount } = await supabase
-      .from("vacancies")
-      .select("id", { count: "exact", head: true })
-      .eq("company_id", user.id)
-      .eq("is_active", true)
-
-    activeVacancies = activeCount || 0
-
-    // 4. Count total paused/inactive vacancies efficiently from DB
-    const { count: pausedCount } = await supabase
-      .from("vacancies")
-      .select("id", { count: "exact", head: true })
-      .eq("company_id", user.id)
-      .eq("is_active", false)
-
-    pausedVacancies = pausedCount || 0
-
-    // 5. Get all vacancy IDs to fetch application stats
-    const { data: allVacIdsData } = await supabase
-      .from("vacancies")
-      .select("id")
-      .eq("company_id", user.id)
-
-    const vacIds = (allVacIdsData || []).map((v: any) => v.id)
+    const vacIds = allVacancies.map((v: any) => v.id)
 
     let recentAppDates: any[] = []
 
+    // 2. Parallel Batch 2: Applications metrics & recent activities if company has vacancies
     if (vacIds.length > 0) {
-      // Total applications count
-      const { count: appCount } = await supabase
-        .from("applications")
-        .select("id", { count: "exact", head: true })
-        .in("vacancy_id", vacIds)
+      const fourteenDaysAgo = new Date()
+      fourteenDaysAgo.setDate(fourteenDaysAgo.getDate() - 14)
 
-      totalApplications = appCount || 0
-
-      // Reviewing/pending applications count
-      const { count: revCount } = await supabase
-        .from("applications")
-        .select("id", { count: "exact", head: true })
-        .in("vacancy_id", vacIds)
-        .in("status", ["En revisión", "Preseleccionado", "Pendiente"])
-
-      reviewingApplications = revCount || 0
-
-      // Recent applications list (limit 5)
-      const { data: recentApps } = await supabase
-        .from("applications")
-        .select(`
-          id,
-          applied_at,
-          status,
-          vacancies (
-            title
-          ),
-          candidate:candidate_profiles (
+      const [
+        pubVacCounts,
+        totalAppsRes,
+        reviewingAppsRes,
+        recentAppsRes,
+        appDatesRes
+      ] = await Promise.all([
+        // Count applications per top vacancy
+        Promise.all(
+          publishedVacanciesRaw.map(async (v: any) => {
+            const { count } = await supabase
+              .from("applications")
+              .select("id", { count: "exact", head: true })
+              .eq("vacancy_id", v.id)
+            return { ...v, applicationsCount: count || 0 }
+          })
+        ),
+        // Total applications
+        supabase
+          .from("applications")
+          .select("id", { count: "exact", head: true })
+          .in("vacancy_id", vacIds),
+        // Reviewing/pending applications
+        supabase
+          .from("applications")
+          .select("id", { count: "exact", head: true })
+          .in("vacancy_id", vacIds)
+          .in("status", ["En revisión", "Preseleccionado", "Pendiente"]),
+        // Recent applications list
+        supabase
+          .from("applications")
+          .select(`
             id,
-            headline,
-            skills,
-            profiles (
+            applied_at,
+            status,
+            vacancies (
+              title
+            ),
+            candidate:candidate_profiles (
               id,
-              full_name,
-              avatar_url
+              headline,
+              skills,
+              profiles (
+                id,
+                full_name,
+                avatar_url
+              )
             )
-          )
-        `)
-        .in("vacancy_id", vacIds)
-        .order("applied_at", { ascending: false })
-        .limit(5)
+          `)
+          .in("vacancy_id", vacIds)
+          .order("applied_at", { ascending: false })
+          .limit(5),
+        // Application dates for weekly flow chart
+        supabase
+          .from("applications")
+          .select("applied_at")
+          .in("vacancy_id", vacIds)
+          .gte("applied_at", fourteenDaysAgo.toISOString())
+      ])
 
-      recentActivities = (recentApps || []).map((app: any) => {
+      publishedVacancies = pubVacCounts
+      totalApplications = totalAppsRes.count || 0
+      reviewingApplications = reviewingAppsRes.count || 0
+      recentAppDates = appDatesRes.data || []
+
+      recentActivities = (recentAppsRes.data || []).map((app: any) => {
         const candidateProfile = Array.isArray(app.candidate) ? app.candidate[0] : app.candidate;
         const baseProfile = candidateProfile?.profiles
           ? (Array.isArray(candidateProfile.profiles) ? candidateProfile.profiles[0] : candidateProfile.profiles)
@@ -148,27 +143,7 @@ export async function getCompanyDashboardData() {
           createdAt: app.applied_at || app.created_at
         }
       })
-
-      // Fetch dates of recent applications for weekly flow chart (last 14 days)
-      const fourteenDaysAgo = new Date()
-      fourteenDaysAgo.setDate(fourteenDaysAgo.getDate() - 14)
-
-      const { data: appDates } = await supabase
-        .from("applications")
-        .select("applied_at")
-        .in("vacancy_id", vacIds)
-        .gte("applied_at", fourteenDaysAgo.toISOString())
-
-      recentAppDates = appDates || []
     }
-
-    // 6. Get direct connections count
-    const { count: connCount } = await (supabase
-      .from("connections" as any) as any)
-      .select("id", { count: "exact", head: true })
-      .eq("recruiter_id", user.id)
-
-    totalConnections = connCount || 0
 
     // 7. Dynamically construct real pending tasks from database status
     if (reviewingApplications > 0) {
@@ -261,16 +236,10 @@ export async function getCompanyDashboardData() {
       : thisWeekTotal > 0 ? 100 : 0
 
     // 9. Calculate Monthly Effectiveness & Category Distribution (Efectividad del Mes)
-    const { data: companyVacancies } = await supabase
-      .from("vacancies")
-      .select("id, category, is_active")
-      .eq("company_id", user.id)
-
-    const vacanciesList = companyVacancies || []
     const categoryCounts: Record<string, number> = {}
-    let totalCompanyVacs = vacanciesList.length
+    let totalCompanyVacs = allVacancies.length
 
-    vacanciesList.forEach((v: any) => {
+    allVacancies.forEach((v: any) => {
       const cat = v.category || "General"
       categoryCounts[cat] = (categoryCounts[cat] || 0) + 1
     })
@@ -293,14 +262,12 @@ export async function getCompanyDashboardData() {
     }
 
     // Real Goal Ratio calculation:
-    // Ratio of processed applications or active vacancies filled
     let goalRatio = 0
-    if (totalApplications > 0 && vacanciesList.length > 0) {
-      const vacancyIds = vacanciesList.map((v: any) => v.id)
+    if (totalApplications > 0 && allVacancies.length > 0) {
       const { count: processedCount } = await supabase
         .from("applications")
         .select("id", { count: "exact", head: true })
-        .in("vacancy_id", vacancyIds)
+        .in("vacancy_id", vacIds)
         .neq("status", "Pendiente")
 
       const handled = processedCount || 0
@@ -394,19 +361,22 @@ export async function getCompanyProfileData() {
   if (user) {
     const metaDisplayName = user.user_metadata?.display_name || user.user_metadata?.full_name || user.user_metadata?.name || user.user_metadata?.company_name || "";
 
-    const { data: baseProfile } = await supabase
-      .from("profiles")
-      .select("full_name, username, location, avatar_url")
-      .eq("id", user.id)
-      .single();
+    // Parallel execution for profiles base and company_profiles extension
+    const [baseProfileRes, rawCompanyRes] = await Promise.all([
+      supabase
+        .from("profiles")
+        .select("full_name, username, location, avatar_url")
+        .eq("id", user.id)
+        .single(),
+      supabase
+        .from("company_profiles")
+        .select("*")
+        .eq("id", user.id)
+        .maybeSingle()
+    ]);
 
-    const { data: rawCompanyData } = await supabase
-      .from("company_profiles")
-      .select("*")
-      .eq("id", user.id)
-      .maybeSingle();
-
-    const companyData = rawCompanyData as any;
+    const baseProfile = baseProfileRes.data as any;
+    const companyData = rawCompanyRes.data as any;
 
     if (companyData) {
       const social = (companyData.social_links as any) || {};

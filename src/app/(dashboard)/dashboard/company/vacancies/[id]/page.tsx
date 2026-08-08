@@ -57,29 +57,56 @@ export default function VacancyDetailPage({ params }: PageProps) {
       }
       setVacancy(vacData as VacancyRow);
 
-      // 2. Fetch company profile
+      // 2. Fetch company profile and base profile in parallel
       const companyId = vacData.company_id || vacData.recruiter_id;
       if (companyId) {
-        const { data: compProfile } = await supabase
-          .from("profiles_view")
-          .select("*")
-          .eq("id", companyId)
-          .single();
+        const [compRes, baseProfRes, otherVacRes] = await Promise.all([
+          supabase
+            .from("company_profiles")
+            .select("*")
+            .eq("id", companyId)
+            .maybeSingle(),
+          supabase
+            .from("profiles")
+            .select("full_name, location, avatar_url")
+            .eq("id", companyId)
+            .maybeSingle(),
+          supabase
+            .from("vacancies")
+            .select("id, title, location, created_at")
+            .eq("company_id", companyId)
+            .neq("id", id)
+            .limit(4),
+        ]);
 
-        if (compProfile) {
-          setCompany(compProfile as CompanyInfo);
-        }
+        const compProfile = compRes.data as any;
+        const baseProfile = baseProfRes.data as any;
 
-        // 3. Fetch other active vacancies from this company
-        const { data: otherVac } = await supabase
-          .from("vacancies")
-          .select("id, title, location, created_at")
-          .eq("company_id", companyId)
-          .neq("id", id)
-          .limit(4);
+        const resolvedName =
+          compProfile?.company_name &&
+          compProfile.company_name.trim() !== "" &&
+          compProfile.company_name.trim() !== "Nueva Empresa"
+            ? compProfile.company_name
+            : baseProfile?.full_name || "Empresa K'anPro";
 
-        if (otherVac) {
-          setOtherVacancies(otherVac);
+        const resolvedLogo = compProfile?.logo_url || baseProfile?.avatar_url || "";
+        const resolvedLocation =
+          compProfile?.fiscal_address || compProfile?.address_details || baseProfile?.location || "";
+
+        setCompany({
+          id: companyId,
+          company_name: resolvedName,
+          logo_url: resolvedLogo,
+          location: resolvedLocation,
+          industry: compProfile?.industry || "",
+          description: compProfile?.description || "",
+          phone: compProfile?.contact_phone || "",
+          website_or_linkedin: compProfile?.website_url || "",
+          followers_count: 0,
+        });
+
+        if (otherVacRes.data) {
+          setOtherVacancies(otherVacRes.data);
         }
       }
     } catch (err: any) {

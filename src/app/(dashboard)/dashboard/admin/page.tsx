@@ -27,49 +27,35 @@ export default async function AdminDashboard() {
     redirect("/login");
   }
 
-  // 3. Query candidates and companies from consolidated Supabase views
+  // 3. Query candidates and companies from real Supabase tables
   const [candidatesResult, companyProfilesResult] = await Promise.all([
     supabase
-      .from("profiles_view")
-      .select("id, full_name, role, location, skills, is_validated, avatar_url")
-      .eq("role", "candidate")
-      .order("created_at", { ascending: false }),
+      .from("candidate_profiles")
+      .select("id, skills, is_verified, profiles(full_name, location, avatar_url)"),
     supabase
-      .from("profiles_view")
-      .select("id, company_name, logo_url, location, is_validated")
-      .eq("role", "company")
-      .order("created_at", { ascending: false })
+      .from("company_profiles")
+      .select("id, company_name, logo_url, fiscal_address, is_verified")
   ]);
 
-  const candidates = (candidatesResult.data || []).map((c: {
-    id: string;
-    full_name: string | null;
-    location: string | null;
-    skills: string[] | null;
-    is_validated: boolean | null;
-    avatar_url: string | null;
-  }) => ({
-    id: c.id,
-    full_name: c.full_name,
-    role: "candidate" as const,
-    location: c.location,
-    skills: c.skills,
-    is_validated: !!c.is_validated,
-    avatar_url: c.avatar_url,
-  }));
+  const candidates = (candidatesResult.data || []).map((c: any) => {
+    const baseProf = Array.isArray(c.profiles) ? c.profiles[0] : c.profiles;
+    return {
+      id: c.id,
+      full_name: baseProf?.full_name || "Candidato",
+      role: "candidate" as const,
+      location: baseProf?.location || "",
+      skills: Array.isArray(c.skills) ? c.skills : String(c.skills || "").split(",").filter(Boolean),
+      is_validated: !!c.is_verified,
+      avatar_url: baseProf?.avatar_url || null,
+    };
+  });
 
-  const companies = (companyProfilesResult.data || []).map((c: {
-    id: string;
-    company_name: string | null;
-    logo_url: string | null;
-    location: string | null;
-    is_validated: boolean | null;
-  }) => ({
+  const companies = (companyProfilesResult.data || []).map((c: any) => ({
     id: c.id,
-    company_name: c.company_name,
-    logo_url: c.logo_url,
-    location: c.location,
-    is_validated: !!c.is_validated,
+    company_name: c.company_name || "Empresa",
+    logo_url: c.logo_url || null,
+    location: c.fiscal_address || "",
+    is_validated: !!c.is_verified,
     role: "company" as const
   }));
 
