@@ -38,23 +38,24 @@ export default async function CompanySettingsPage() {
   const hasActiveVacancies = vacancies && vacancies.some((v: { is_active: boolean }) => v.is_active);
   const initialPauseState = hasVacancies ? !hasActiveVacancies : false;
 
+  const p = profile as any;
   const defaultProfile = {
     id: user.id,
-    company_name: profile?.company_name || "Mi Empresa",
-    credits_available: profile?.credits_available ?? 3,
-    contact_channel: profile?.contact_channel || "whatsapp",
-    logo_url: profile?.logo_url || null,
-    description: profile?.description || null,
-    phone: profile?.contact_phone || null,
-    company_size: profile?.company_size || null,
-    industry: profile?.industry || null,
-    website_or_linkedin: profile?.website_url || null,
-    whatsapp_number: profile?.contact_phone || "",
-    subscription_plan: profile?.subscription_plan || "basic",
-    subscription_status: profile?.subscription_status || "active",
-    subscription_period_end: profile?.subscription_period_end || null,
-    featured_vacancies_allowance: profile?.featured_vacancies_allowance ?? 0,
-    featured_vacancies_used: profile?.featured_vacancies_used ?? 0,
+    company_name: p?.company_name || "Mi Empresa",
+    credits_available: p?.credits_available ?? 3,
+    contact_channel: p?.contact_channel || "whatsapp",
+    logo_url: p?.logo_url || null,
+    description: p?.description || null,
+    phone: p?.contact_phone || null,
+    company_size: p?.company_size || null,
+    industry: p?.industry || null,
+    website_or_linkedin: p?.website_url || null,
+    whatsapp_number: p?.contact_phone || "",
+    subscription_plan: p?.subscription_plan || "basic",
+    subscription_status: p?.subscription_status || "active",
+    subscription_period_end: p?.subscription_period_end || null,
+    featured_vacancies_allowance: p?.featured_vacancies_allowance ?? 0,
+    featured_vacancies_used: p?.featured_vacancies_used ?? 0,
   };
 
   return (

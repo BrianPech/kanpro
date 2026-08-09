@@ -207,7 +207,7 @@ export function useApplicationsInbox() {
       const supabase = createClient();
 
       // 1. Register the connection to unmask the candidate's phone
-      const { error: connError } = await supabase.from("connections").insert({
+      const { error: connError } = await (supabase.from as any)("connections").insert({
         candidate_id: applicant.candidateId,
         recruiter_id: userId,
         vacancy_id: applicant.vacancyId,
@@ -229,7 +229,7 @@ export function useApplicationsInbox() {
       const companyName = companyProfile?.company_name || "Empresa";
 
       // Trigger candidate contact notification via RPC
-      const { error } = await supabase.rpc("notify_candidate_contact", {
+      const { error } = await (supabase.rpc as any)("notify_candidate_contact", {
         p_candidate_id: applicant.candidateId,
         p_vacancy_title: applicant.vacancyTitle,
         p_company_name: companyName,

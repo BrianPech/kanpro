@@ -56,15 +56,14 @@ export function useConnection() {
       }
 
       // 3. Paso A: Registrar la conexión en la base de datos (clic a WhatsApp)
-      const { error: insertError } = await supabase
-        .from("connections")
+      const { error: insertError } = await (supabase.from as any)("connections")
         .insert({
           candidate_id: targetCandidateId,
           recruiter_id: recruiterId,
           vacancy_id: vacancyId,
           initiated_by: initiatedBy,
           status: "contacted",
-        });
+        } as any);
 
       if (insertError) {
         throw new Error(`Error al registrar la conexión: ${insertError.message}`);

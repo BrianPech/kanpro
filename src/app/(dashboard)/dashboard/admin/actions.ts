@@ -26,7 +26,7 @@ export async function toggleProfileVerification(profileId: string, isValidated: 
   // 3. Perform the update securely using RLS-governed database client
   const { error: updateErr } = await supabase
     .from("profiles")
-    .update({ is_validated: isValidated })
+    .update({ is_verified: isValidated })
     .eq("id", profileId);
 
   if (updateErr) {
