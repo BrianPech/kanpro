@@ -9,6 +9,18 @@ export const companyProfileSchema = z.object({
   description: z.string().max(300, "La bio comercial no puede exceder los 300 caracteres").optional(),
   phone: z.string().optional(),
   company_size: z.string().optional(),
+  // Optional benefits and shift fields
+  banner_url: z.string().optional(),
+  instagram_url: z.string().optional(),
+  facebook_url: z.string().optional(),
+  address_details: z.string().min(3, "La dirección física detallada es requerida para orientar al candidato"),
+  has_transport: z.boolean().optional(),
+  benefit_canteen: z.boolean().optional(),
+  benefit_tips: z.boolean().optional(),
+  benefit_imss: z.boolean().optional(),
+  benefit_uniforms: z.boolean().optional(),
+  benefit_growth: z.boolean().optional(),
+  operation_hours: z.string().optional(),
 });
 
 export type CompanyProfileFormValues = z.infer<typeof companyProfileSchema>;

@@ -1,23 +1,29 @@
 "use client";
 
 import * as React from "react";
-import {
-  ChevronLeft,
-  MapPin,
-  Briefcase,
-  DollarSign,
-  Calendar,
-  Edit2,
-} from "lucide-react";
+import { ChevronLeft, Edit2, Trash2, AlertTriangle } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Switch } from "@/components/ui/switch";
 import { useVacancyManager, type VacancyRow } from "@/hooks/use-vacancy-manager";
 import { createClient } from "@/lib/supabase/client";
 import { toast } from "sonner";
-import { cn } from "@/lib/utils";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
+import {
+  VacancyPreview,
+  type CompanyInfo,
+} from "@/modules/company/components/vacancy-preview";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 
 interface PageProps {
   params: React.Usable<{ id: string }>;
@@ -25,25 +31,84 @@ interface PageProps {
 
 export default function VacancyDetailPage({ params }: PageProps) {
   const { id } = React.use(params);
+  const router = useRouter();
   const [vacancy, setVacancy] = React.useState<VacancyRow | null>(null);
+  const [company, setCompany] = React.useState<CompanyInfo | null>(null);
+  const [otherVacancies, setOtherVacancies] = React.useState<any[]>([]);
   const [loading, setLoading] = React.useState(true);
+  const [deleting, setDeleting] = React.useState(false);
 
-  const { toggleVacancyStatus } = useVacancyManager();
+  const { toggleVacancyStatus, deleteVacancy } = useVacancyManager();
 
-  const fetchVacancy = React.useCallback(async () => {
+  const fetchVacancyData = React.useCallback(async () => {
     try {
       setLoading(true);
       const supabase = createClient();
-      const { data, error } = await supabase
+
+      // 1. Fetch main vacancy
+      const { data: vacData, error: vacError } = await supabase
         .from("vacancies")
         .select("*")
         .eq("id", id)
         .single();
 
-      if (error) {
-        throw error;
+      if (vacError || !vacData) {
+        throw vacError || new Error("Vacante no encontrada");
       }
-      setVacancy(data as VacancyRow);
+      setVacancy(vacData as VacancyRow);
+
+      // 2. Fetch company profile and base profile in parallel
+      const companyId = vacData.company_id || vacData.recruiter_id;
+      if (companyId) {
+        const [compRes, baseProfRes, otherVacRes] = await Promise.all([
+          supabase
+            .from("company_profiles")
+            .select("*")
+            .eq("id", companyId)
+            .maybeSingle(),
+          supabase
+            .from("profiles")
+            .select("full_name, location, avatar_url")
+            .eq("id", companyId)
+            .maybeSingle(),
+          supabase
+            .from("vacancies")
+            .select("id, title, location, created_at")
+            .eq("company_id", companyId)
+            .neq("id", id)
+            .limit(4),
+        ]);
+
+        const compProfile = compRes.data as any;
+        const baseProfile = baseProfRes.data as any;
+
+        const resolvedName =
+          compProfile?.company_name &&
+          compProfile.company_name.trim() !== "" &&
+          compProfile.company_name.trim() !== "Nueva Empresa"
+            ? compProfile.company_name
+            : baseProfile?.full_name || "Empresa K'anPro";
+
+        const resolvedLogo = compProfile?.logo_url || baseProfile?.avatar_url || "";
+        const resolvedLocation =
+          compProfile?.fiscal_address || compProfile?.address_details || baseProfile?.location || "";
+
+        setCompany({
+          id: companyId,
+          company_name: resolvedName,
+          logo_url: resolvedLogo,
+          location: resolvedLocation,
+          industry: compProfile?.industry || "",
+          description: compProfile?.description || "",
+          phone: compProfile?.contact_phone || "",
+          website_or_linkedin: compProfile?.website_url || "",
+          followers_count: 0,
+        });
+
+        if (otherVacRes.data) {
+          setOtherVacancies(otherVacRes.data);
+        }
+      }
     } catch (err: any) {
       console.error("Error fetching vacancy detail:", err);
     } finally {
@@ -52,8 +117,8 @@ export default function VacancyDetailPage({ params }: PageProps) {
   }, [id]);
 
   React.useEffect(() => {
-    fetchVacancy();
-  }, [fetchVacancy]);
+    fetchVacancyData();
+  }, [fetchVacancyData]);
 
   const handleToggleActive = async () => {
     if (!vacancy) return;
@@ -86,56 +151,42 @@ export default function VacancyDetailPage({ params }: PageProps) {
     }
   };
 
-  const formatSalary = (min: number | null, max: number | null) => {
-    const formatter = new Intl.NumberFormat("es-MX", {
-      style: "currency",
-      currency: "MXN",
-      maximumFractionDigits: 0,
-    });
-
-    if (min != null && max != null) {
-      return `${formatter.format(min)} - ${formatter.format(max)} MXN`;
-    } else if (min != null) {
-      return `Desde ${formatter.format(min)} MXN`;
-    } else if (max != null) {
-      return `Hasta ${formatter.format(max)} MXN`;
+  const handleDeleteVacancy = async () => {
+    if (!vacancy) return;
+    setDeleting(true);
+    try {
+      const success = await deleteVacancy(vacancy.id);
+      if (success) {
+        toast.success("Vacante eliminada", {
+          description: `Se eliminó la oferta "${vacancy.title}".`,
+        });
+        router.push("/dashboard/company/vacancies");
+      }
+    } catch (err: any) {
+      toast.error("Error al eliminar la vacante", {
+        description: err.message,
+      });
+    } finally {
+      setDeleting(false);
     }
-    return "Sueldo no especificado";
-  };
-
-  const formatDate = (dateStr: string) => {
-    const date = new Date(dateStr);
-    return date
-      .toLocaleDateString("es-MX", {
-        day: "2-digit",
-        month: "short",
-        year: "numeric",
-      })
-      .replace(".", "");
   };
 
   if (loading) {
     return (
-      <div className="max-w-4xl mx-auto p-6 md:p-8 space-y-8 animate-in fade-in duration-300">
+      <div className="max-w-6xl mx-auto p-4 md:p-8 space-y-6 animate-in fade-in duration-300">
         <div className="flex items-center justify-between">
-          <Skeleton className="h-10 w-32" />
-          <div className="flex items-center gap-4">
-            <Skeleton className="h-10 w-24" />
-            <Skeleton className="h-6 w-12" />
+          <Skeleton className="h-10 w-36 rounded-xl" />
+          <Skeleton className="h-10 w-28 rounded-xl" />
+        </div>
+        <Skeleton className="h-64 w-full rounded-3xl" />
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+          <div className="lg:col-span-8 space-y-6">
+            <Skeleton className="h-96 w-full rounded-2xl" />
+            <Skeleton className="h-40 w-full rounded-2xl" />
           </div>
-        </div>
-        <div className="space-y-4">
-          <Skeleton className="h-12 w-3/4" />
-          <Skeleton className="h-6 w-1/2" />
-          <Skeleton className="h-6 w-1/3" />
-        </div>
-        <div className="grid grid-cols-2 gap-4">
-          <Skeleton className="h-20 w-full" />
-          <Skeleton className="h-20 w-full" />
-        </div>
-        <div className="space-y-2">
-          <Skeleton className="h-6 w-40" />
-          <Skeleton className="h-24 w-full" />
+          <div className="lg:col-span-4 space-y-6">
+            <Skeleton className="h-80 w-full rounded-2xl" />
+          </div>
         </div>
       </div>
     );
@@ -144,12 +195,21 @@ export default function VacancyDetailPage({ params }: PageProps) {
   if (!vacancy) {
     return (
       <div className="max-w-4xl mx-auto p-6 md:p-8 text-center space-y-6 py-20 animate-in fade-in duration-300">
-        <div className="text-6xl">⚠️</div>
-        <h2 className="text-xl font-bold text-foreground">Oferta no encontrada</h2>
-        <p className="text-sm text-muted-foreground max-w-md mx-auto">
-          La vacante que intentas visualizar no existe o ha sido eliminada permanentemente de la plataforma.
-        </p>
-        <Button asChild className="rounded-xl px-6 h-12 bg-primary hover:bg-primary/90 text-white font-bold">
+        <div className="size-16 rounded-2xl bg-fiord-100 dark:bg-fiord-900 text-fiord-600 dark:text-fiord-300 flex items-center justify-center mx-auto text-2xl">
+          ⚠️
+        </div>
+        <div className="space-y-2">
+          <h2 className="text-xl font-bold text-fiord-950 dark:text-fiord-50">
+            Oferta no encontrada
+          </h2>
+          <p className="text-xs font-semibold text-fiord-500 dark:text-fiord-400 max-w-md mx-auto leading-relaxed">
+            La vacante que intentas visualizar no existe o ha sido eliminada permanentemente.
+          </p>
+        </div>
+        <Button
+          asChild
+          className="rounded-xl px-6 h-11 bg-fiord-950 hover:bg-fiord-900 dark:bg-fiord-50 dark:hover:bg-fiord-100 text-white dark:text-fiord-950 font-bold text-xs uppercase tracking-wider"
+        >
           <Link href="/dashboard/company/vacancies">
             Volver a vacantes
           </Link>
@@ -159,14 +219,13 @@ export default function VacancyDetailPage({ params }: PageProps) {
   }
 
   return (
-    <div className="max-w-4xl mx-auto p-6 md:p-8 space-y-8 animate-in fade-in duration-300">
-      
-      {/* Cabecera de Control */}
-      <div className="flex items-center justify-between gap-4 border-b border-zinc-100 dark:border-zinc-800 pb-5">
+    <div className="space-y-6 pb-12">
+      {/* Top Header Control Toolbar */}
+      <div className="flex items-center justify-between gap-4 max-w-6xl mx-auto px-2">
         <Button
           asChild
           variant="ghost"
-          className="text-xs font-bold text-muted-foreground hover:text-foreground gap-1.5 px-3 rounded-lg border border-border/20"
+          className="text-xs font-bold text-fiord-600 dark:text-fiord-400 hover:text-fiord-950 dark:hover:text-fiord-50 hover:bg-fiord-100/60 gap-2 px-3.5 h-10 rounded-xl border border-fiord-100 dark:border-fiord-800 bg-white dark:bg-fiord-950 shadow-xs"
         >
           <Link href="/dashboard/company/vacancies">
             <ChevronLeft className="size-4" />
@@ -174,112 +233,65 @@ export default function VacancyDetailPage({ params }: PageProps) {
           </Link>
         </Button>
 
-        <div className="flex items-center gap-5">
+        <div className="flex items-center gap-3">
           <Button
             asChild
-            variant="link"
-            className="text-xs font-bold text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 gap-1.5 p-0 h-auto"
+            variant="outline"
+            className="h-10 px-4 rounded-xl border-fiord-200 dark:border-fiord-800 text-fiord-900 dark:text-fiord-100 bg-white dark:bg-fiord-900/30 hover:bg-fiord-50 font-bold text-xs gap-2 shadow-xs"
           >
             <Link href={`/dashboard/company/vacancies/${vacancy.id}/edit`}>
-              <Edit2 className="size-3.5" />
-              Editar vacante
+              <Edit2 className="size-3.5 text-blue-600 dark:text-blue-400" />
+              Editar Vacante
             </Link>
           </Button>
-          
-          <div className="h-4 w-px bg-zinc-200 dark:bg-zinc-800" />
 
-          <div className="flex items-center gap-2">
-            <Switch
-              checked={vacancy.is_active}
-              onCheckedChange={handleToggleActive}
-            />
-            <span className="text-xs font-bold text-zinc-700 dark:text-zinc-300">
-              {vacancy.is_active ? "Activa" : "Pausada"}
-            </span>
-          </div>
+          <AlertDialog>
+            <AlertDialogTrigger asChild>
+              <Button
+                variant="outline"
+                size="icon"
+                disabled={deleting}
+                className="h-10 w-10 rounded-xl border-red-200/70 text-red-600 hover:bg-red-50 dark:border-red-900/50 dark:text-red-400 shrink-0"
+                title="Eliminar vacante"
+              >
+                <Trash2 className="size-4" />
+              </Button>
+            </AlertDialogTrigger>
+            <AlertDialogContent className="rounded-2xl bg-white dark:bg-fiord-950 border-fiord-200 dark:border-fiord-800">
+              <AlertDialogHeader>
+                <AlertDialogTitle className="text-lg font-extrabold text-fiord-950 dark:text-fiord-50 flex items-center gap-2">
+                  <AlertTriangle className="size-5 text-red-500" />
+                  ¿Eliminar vacante?
+                </AlertDialogTitle>
+                <AlertDialogDescription className="text-xs font-semibold text-fiord-600 dark:text-fiord-400 leading-relaxed">
+                  Esta acción eliminará la oferta &quot;{vacancy.title}&quot; de forma permanente. Los candidatos ya no podrán verla ni postularse.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel className="rounded-xl text-xs font-bold border-fiord-200">
+                  Cancelar
+                </AlertDialogCancel>
+                <AlertDialogAction
+                  onClick={handleDeleteVacancy}
+                  className="rounded-xl text-xs font-bold bg-red-600 hover:bg-red-700 text-white"
+                >
+                  Eliminar
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
         </div>
       </div>
 
-      {/* Bloque de Identidad */}
-      <div className="space-y-3">
-        <div className="flex items-center gap-3 flex-wrap">
-          <Badge
-            variant="outline"
-            className={cn(
-              "text-[10px] font-bold tracking-wider uppercase px-2.5 py-0.5 rounded-full border",
-              vacancy.is_active
-                ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20"
-                : "bg-zinc-100 text-zinc-600 border-zinc-200 dark:bg-zinc-800 dark:text-zinc-300 dark:border-zinc-700"
-            )}
-          >
-            {vacancy.is_active ? "Oferta Activa" : "Oferta Pausada"}
-          </Badge>
-          <span className="text-xs text-muted-foreground font-semibold">
-            Categoría: <span className="text-foreground font-bold">{vacancy.category}</span>
-          </span>
-        </div>
-
-        <h1 className="text-2xl md:text-4xl font-extrabold text-zinc-900 dark:text-zinc-50 tracking-tight leading-tight">
-          {vacancy.title}
-        </h1>
-
-        <div className="flex items-center gap-1.5 text-xs md:text-sm text-muted-foreground font-semibold">
-          <MapPin className="size-4 text-zinc-400 shrink-0" />
-          <span>📍 {vacancy.zone || vacancy.location}</span>
-        </div>
-      </div>
-
-      {/* Fila de Metadatos Clave */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 border border-zinc-200 dark:border-zinc-800 rounded-2xl p-5 bg-white dark:bg-zinc-950 shadow-xs">
-        <div className="flex items-center gap-3">
-          <div className="h-10 w-10 rounded-xl bg-blue-500/10 text-blue-600 dark:text-blue-400 flex items-center justify-center shrink-0">
-            <Briefcase className="size-5" />
-          </div>
-          <div>
-            <p className="text-[10px] uppercase font-bold text-muted-foreground/60 tracking-wider">Tipo de Jornada</p>
-            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20 mt-1">
-              {vacancy.employment_type || "No especificado"}
-            </span>
-          </div>
-        </div>
-
-        <div className="flex items-center gap-3">
-          <div className="h-10 w-10 rounded-xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0">
-            <DollarSign className="size-5" />
-          </div>
-          <div>
-            <p className="text-[10px] uppercase font-bold text-muted-foreground/60 tracking-wider">Compensación Mensual</p>
-            <p className="text-sm font-extrabold text-zinc-900 dark:text-zinc-50 mt-0.5">
-              {formatSalary(vacancy.salary_min, vacancy.salary_max)}
-            </p>
-          </div>
-        </div>
-      </div>
-
-      {/* Cuerpo de la Oferta */}
-      <div className="space-y-6">
-        <div className="space-y-3">
-          <h3 className="text-sm font-extrabold uppercase tracking-wider text-muted-foreground">Descripción del Puesto</h3>
-          <div className="text-sm md:text-base text-zinc-700 dark:text-zinc-300 leading-relaxed font-medium whitespace-pre-line bg-zinc-50/50 dark:bg-zinc-900/10 border border-zinc-100 dark:border-zinc-800 p-5 rounded-2xl">
-            {vacancy.description}
-          </div>
-        </div>
-
-        {vacancy.requirements && (
-          <div className="space-y-3">
-            <h3 className="text-sm font-extrabold uppercase tracking-wider text-muted-foreground">Requisitos</h3>
-            <div className="text-sm md:text-base text-zinc-700 dark:text-zinc-300 leading-relaxed font-medium whitespace-pre-line bg-zinc-50/50 dark:bg-zinc-900/10 border border-zinc-100 dark:border-zinc-800 p-5 rounded-2xl">
-              {vacancy.requirements}
-            </div>
-          </div>
-        )}
-      </div>
-
-      {/* Info adicional de fecha */}
-      <div className="flex items-center gap-1.5 text-xs text-muted-foreground/80 font-semibold border-t border-zinc-100 dark:border-zinc-800 pt-5">
-        <Calendar className="size-4" />
-        <span>Oferta creada el {formatDate(vacancy.created_at)}</span>
-      </div>
+      {/* Render High-Fidelity VacancyPreview Component */}
+      <VacancyPreview
+        vacancy={vacancy}
+        company={company}
+        otherVacancies={otherVacancies}
+        isCompanyView={true}
+        onEdit={() => router.push(`/dashboard/company/vacancies/${vacancy.id}/edit`)}
+        onToggleActive={handleToggleActive}
+      />
     </div>
   );
 }

@@ -1,24 +1,70 @@
 "use client"
 
 import * as React from "react"
+import { motion } from "framer-motion"
 import { 
   Briefcase, 
   Users, 
   Clock, 
-  CalendarDays, 
   Download, 
   Plus, 
   ArrowRight,
-  Loader2
+  MoreVertical,
+  Bell,
+  MapPin,
+  CalendarCheck,
+  CheckCircle2,
+  TrendingUp,
+  FileText,
+  DollarSign,
+  BriefcaseConveyorBelt,
+  Sparkles,
+  ClipboardList
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
-import Link from "next/link"
+import { Card } from "@/components/ui/card"
+import { Badge } from "@/components/ui/badge"
+import { Checkbox } from "@/components/ui/checkbox"
 import { toast } from "sonner"
+import Link from "next/link"
+import {
+  ResponsiveContainer,
+  AreaChart,
+  Area,
+  XAxis,
+  YAxis,
+  Tooltip,
+  PieChart,
+  Pie,
+  Cell
+} from "recharts"
+import { cn } from "@/lib/utils"
+
+export interface VacancyDashboardItem {
+  id: string
+  title: string
+  location?: string | null
+  zone?: string | null
+  salary_min?: number | null
+  salary_max?: number | null
+  category?: string | null
+  employment_type?: string | null
+  created_at?: string | null
+  is_active?: boolean
+  applicationsCount?: number
+}
+
+export interface PendingTaskItem {
+  id: string
+  text: string
+  completed: boolean
+}
 
 interface DashboardViewProps {
   companyName: string
   metrics?: {
     activeVacancies: number
+    pausedVacancies: number
     totalApplications: number
     reviewingApplications: number
     totalConnections: number
@@ -32,322 +78,554 @@ interface DashboardViewProps {
     vacancyTitle: string
     createdAt: string
   }[]
-}
-
-function formatRelativeTime(dateString: string) {
-  const date = new Date(dateString)
-  const diffMs = Date.now() - date.getTime()
-  const diffMinutes = Math.floor(diffMs / (1000 * 60))
-  const diffHours = Math.floor(diffMs / (1000 * 60 * 60))
-  const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24))
-
-  if (diffMinutes < 1) return "hace unos segundos"
-  if (diffMinutes < 60) return `hace ${diffMinutes} min`
-  if (diffHours < 24) return `hace ${diffHours} h`
-  return `hace ${diffDays} d`
+  latestVacancies?: VacancyDashboardItem[]
+  publishedVacancies?: VacancyDashboardItem[]
+  pendingTasks?: PendingTaskItem[]
+  weeklyAnalytics?: {
+    flowData: { day: string; candidatos: number }[]
+    average: number
+    growthPercent: number
+  }
+  monthlyAnalytics?: {
+    pieData: { name: string; value: number; color: string }[]
+    goalPercent: number
+  }
 }
 
 export function DashboardView({ 
   companyName, 
   metrics = {
     activeVacancies: 0,
+    pausedVacancies: 0,
     totalApplications: 0,
     reviewingApplications: 0,
     totalConnections: 0
   },
-  recentActivities = []
+  recentActivities = [],
+  latestVacancies = [],
+  publishedVacancies = [],
+  pendingTasks = [],
+  weeklyAnalytics = {
+    flowData: [
+      { day: "Lunes", candidatos: 0 },
+      { day: "Martes", candidatos: 0 },
+      { day: "Miércoles", candidatos: 0 },
+      { day: "Jueves", candidatos: 0 },
+      { day: "Viernes", candidatos: 0 },
+      { day: "Sábado", candidatos: 0 },
+      { day: "Domingo", candidatos: 0 }
+    ],
+    average: 0,
+    growthPercent: 0
+  },
+  monthlyAnalytics = {
+    pieData: [],
+    goalPercent: 0
+  }
 }: DashboardViewProps) {
+  const [mounted, setMounted] = React.useState(false)
   const [isDownloading, setIsDownloading] = React.useState(false)
 
-  // Report download logic with micro-interaction loading spinner
+  const initialTodos = React.useMemo(() => {
+    if (pendingTasks && pendingTasks.length > 0) {
+      return pendingTasks
+    }
+    return [
+      { id: "todo-1", text: `Verificar perfil de ${companyName}`, completed: true },
+      { id: "todo-2", text: "Revisar postulaciones activas", completed: false },
+      { id: "todo-3", text: "Publicar oferta laboral en el sureste", completed: false },
+    ]
+  }, [pendingTasks, companyName])
+
+  const [todos, setTodos] = React.useState(initialTodos)
+
+  React.useEffect(() => {
+    setMounted(true)
+  }, [])
+
+  React.useEffect(() => {
+    setTodos(initialTodos)
+  }, [initialTodos])
+
+  const handleToggleTodo = (id: string) => {
+    setTodos(prev => prev.map(todo => 
+      todo.id === id ? { ...todo, completed: !todo.completed } : todo
+    ))
+  }
+
   const handleDownloadReport = () => {
     setIsDownloading(true)
     toast.info("Generando reporte...", {
-      description: "Estamos preparando tu resumen de actividad empresarial.",
+      description: "Preparando el informe de reclutamiento en formato CSV.",
     })
-    
-    setTimeout(() => {
+
+    try {
+      const dateStr = new Date().toISOString().split("T")[0]
+      const sanitizedCompany = (companyName || "Empresa").replace(/[^a-zA-Z0-9_-]/g, "_")
+      const filename = `Reporte_Reclutamiento_${sanitizedCompany}_${dateStr}.csv`
+
+      const csvRows: string[] = []
+
+      // Section 1: Header & Key Metrics
+      csvRows.push(`REPORTE DE RECLUTAMIENTO - K'ANPRO`)
+      csvRows.push(`Empresa:,"${(companyName || "Empresa").replace(/"/g, '""')}"`)
+      csvRows.push(`Fecha de Emision:,${dateStr}`)
+      csvRows.push(``)
+      csvRows.push(`METRICAS GENERALES`)
+      csvRows.push(`Postulaciones Totales:,${metrics.totalApplications ?? 0}`)
+      csvRows.push(`Vacantes Activas:,${metrics.activeVacancies ?? 0}`)
+      csvRows.push(`Vacantes Pausadas:,${metrics.pausedVacancies ?? 0}`)
+      csvRows.push(`En Revision:,${metrics.reviewingApplications ?? 0}`)
+      csvRows.push(`Contratados:,${metrics.totalConnections ?? 0}`)
+      csvRows.push(``)
+
+      // Section 2: Published Vacancies List
+      csvRows.push(`VACANTES PUBLICADAS Y RECIENTES`)
+      csvRows.push(`Titulo,Estado,Categoria,Zona,Sueldo Min,Sueldo Max,Postulaciones`)
+
+      const reportVacs = publishedVacancies.length > 0 ? publishedVacancies : latestVacancies
+      if (reportVacs.length > 0) {
+        reportVacs.forEach((vac) => {
+          const title = `"${(vac.title || "").replace(/"/g, '""')}"`
+          const status = vac.is_active !== false ? "Activa" : "Pausada"
+          const category = `"${(vac.category || "General").replace(/"/g, '""')}"`
+          const zone = `"${(vac.zone || vac.location || "Mérida").replace(/"/g, '""')}"`
+          const sMin = vac.salary_min || 0
+          const sMax = vac.salary_max || 0
+          const apps = vac.applicationsCount || 0
+          csvRows.push(`${title},${status},${category},${zone},${sMin},${sMax},${apps}`)
+        })
+      } else {
+        csvRows.push(`"Sin vacantes registradas",-,-,-,0,0,0`)
+      }
+      csvRows.push(``)
+
+      // Section 3: Weekly Activity Breakdown
+      csvRows.push(`FLUJO SEMANAL DE CANDIDATOS`)
+      csvRows.push(`Dia,Nuevos Candidatos`)
+      weeklyAnalytics.flowData.forEach((item) => {
+        csvRows.push(`${item.day},${item.candidatos}`)
+      })
+
+      const csvContent = "\uFEFF" + csvRows.join("\n")
+      const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" })
+      const url = URL.createObjectURL(blob)
+      const link = document.createElement("a")
+      link.setAttribute("href", url)
+      link.setAttribute("download", filename)
+      document.body.appendChild(link)
+      link.click()
+      document.body.removeChild(link)
+      URL.revokeObjectURL(url)
+
       setIsDownloading(false)
       toast.success("¡Reporte descargado con éxito!", {
-        description: `El informe de reclutamiento para ${companyName} ha sido guardado.`,
+        description: `Se guardó el archivo ${filename} en tu equipo.`,
       })
-    }, 1500)
+    } catch (error) {
+      setIsDownloading(false)
+      toast.error("Error al generar el reporte", {
+        description: "No se pudo crear el archivo de reporte.",
+      })
+    }
   }
 
-  // Mouse move interactive shine glow handler for glassmorphism bento cards
-  const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
-    const card = e.currentTarget
-    const rect = card.getBoundingClientRect()
-    const x = e.clientX - rect.left
-    const y = e.clientY - rect.top
-    card.style.setProperty("--mouse-x", `${x}px`)
-    card.style.setProperty("--mouse-y", `${y}px`)
-  }
+  // Animation variants
+  const containerVariants = {
+    hidden: { opacity: 0 },
+    show: {
+      opacity: 1,
+      transition: {
+        staggerChildren: 0.08
+      }
+    }
+  } as const
+
+  const cardVariants = {
+    hidden: { opacity: 0, y: 20 },
+    show: { opacity: 1, y: 0, transition: { type: "spring", stiffness: 100, damping: 15 } }
+  } as const
 
   return (
-    <div className="flex-grow min-h-screen bg-background/50 dark:bg-background/20 px-4 md:px-10 lg:px-12 py-10 space-y-12 animate-in fade-in duration-500">
-      
-      {/* Dashboard Header Banner */}
-      <section className="flex flex-col md:flex-row md:items-end justify-between gap-6">
-        <div>
-          <h2 className="text-3xl font-extrabold tracking-tight text-slate-900 dark:text-slate-100 md:text-4xl">
-            Dashboard Empresarial
-          </h2>
-          <p className="text-sm md:text-base text-slate-600 dark:text-slate-300 mt-2 font-medium">
-            Bienvenido de nuevo, <span className="text-indigo-600 dark:text-indigo-300 font-bold">{companyName}</span>. Aquí tienes el resumen de tu actividad de reclutamiento.
-          </p>
-        </div>
+    <div className="flex-grow min-h-screen bg-fiord-50/30 dark:bg-fiord-950/10 px-6 sm:px-10 lg:px-14 py-8 pb-28 md:pb-8 space-y-8 max-w-6xl mx-auto w-full animate-in fade-in duration-300">
+      <motion.div 
+        variants={containerVariants}
+        initial="hidden"
+        animate="show"
+        className="grid grid-cols-1 lg:grid-cols-3 gap-6"
+      >
         
-        <div className="flex items-center gap-3">
-          <Button 
-            onClick={handleDownloadReport}
-            disabled={isDownloading}
-            className="flex items-center gap-2 border border-indigo-500/20 dark:border-indigo-500/40 bg-card hover:bg-indigo-500/5 text-indigo-600 dark:text-indigo-300 font-semibold px-6 py-5 rounded-xl h-auto active:scale-95 transition-all shadow-sm"
-          >
-            {isDownloading ? (
-              <Loader2 className="size-4 animate-spin text-indigo-600 dark:text-indigo-300" />
-            ) : (
-              <Download className="size-4 text-indigo-600 dark:text-indigo-300" />
-            )}
-            <span>{isDownloading ? "Descargando..." : "Descargar Reporte"}</span>
-          </Button>
-        </div>
-      </section>
-
-      {/* Bento Grid Metrics Cards */}
-      <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-        
-        {/* Metric 1 - Vacantes activas */}
-        <Link 
-          href="/dashboard/company/vacancies"
-          className="no-underline block"
-        >
-          <div 
-            onMouseMove={handleMouseMove}
-            className="glass-card p-6 md:p-8 rounded-[24px] flex flex-col gap-4 group cursor-pointer relative overflow-hidden h-full"
-          >
-            {/* Shine glowing radial effect */}
-            <div 
-              className="absolute inset-0 pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-[24px]"
-              style={{
-                background: "radial-gradient(300px circle at var(--mouse-x, 0px) var(--mouse-y, 0px), rgba(99, 102, 241, 0.08), transparent 80%)"
-              }}
-            />
-            <div className="w-12 h-12 bg-indigo-500/10 dark:bg-indigo-500/20 rounded-2xl flex items-center justify-center text-indigo-600 dark:text-indigo-300 relative z-10">
-              <Briefcase className="size-6 fill-indigo-500/20 dark:fill-indigo-500/30" />
-            </div>
-            <div className="relative z-10">
-              <p className="text-[12px] font-bold text-slate-600 dark:text-slate-300 uppercase tracking-wider">
-                Vacantes activas
-              </p>
-              <h3 className="text-4xl font-extrabold text-slate-900 dark:text-slate-100 mt-1 tracking-tight font-sans">
-                {metrics.activeVacancies}
-              </h3>
-            </div>
-            <div className="flex items-center text-indigo-600 dark:text-indigo-300 gap-1 mt-auto relative z-10 font-semibold text-xs">
-              <span>Gestionar puestos</span>
-              <ArrowRight className="size-3 group-hover:translate-x-1 transition-transform" />
-            </div>
-          </div>
-        </Link>
-
-        {/* Metric 2 - Postulaciones totales */}
-        <Link 
-          href="/dashboard/company/inbox"
-          className="no-underline block"
-        >
-          <div 
-            onMouseMove={handleMouseMove}
-            className="glass-card p-6 md:p-8 rounded-[24px] flex flex-col gap-4 group cursor-pointer relative overflow-hidden h-full"
-          >
-            <div 
-              className="absolute inset-0 pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-[24px]"
-              style={{
-                background: "radial-gradient(300px circle at var(--mouse-x, 0px) var(--mouse-y, 0px), rgba(99, 102, 241, 0.08), transparent 80%)"
-              }}
-            />
-            <div className="w-12 h-12 bg-blue-500/10 dark:bg-blue-500/20 rounded-2xl flex items-center justify-center text-blue-600 dark:text-blue-300 relative z-10">
-              <Users className="size-6 fill-blue-500/20 dark:fill-blue-500/30" />
-            </div>
-            <div className="relative z-10">
-              <p className="text-[12px] font-bold text-slate-600 dark:text-slate-300 uppercase tracking-wider">
-                Postulaciones totales
-              </p>
-              <h3 className="text-4xl font-extrabold text-slate-900 dark:text-slate-100 mt-1 tracking-tight font-sans">
-                {metrics.totalApplications}
-              </h3>
-            </div>
-            <div className="flex items-center text-blue-600 dark:text-blue-300 gap-1 mt-auto relative z-10 font-semibold text-xs">
-              <span>Ver bandeja de entrada</span>
-              <ArrowRight className="size-3 group-hover:translate-x-1 transition-transform" />
-            </div>
-          </div>
-        </Link>
-
-        {/* Metric 3 - Perfiles en revisión */}
-        <Link 
-          href="/dashboard/company/inbox"
-          className="no-underline block"
-        >
-          <div 
-            onMouseMove={handleMouseMove}
-            className="glass-card p-6 md:p-8 rounded-[24px] flex flex-col gap-4 group cursor-pointer relative overflow-hidden h-full"
-          >
-            <div 
-              className="absolute inset-0 pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-[24px]"
-              style={{
-                background: "radial-gradient(300px circle at var(--mouse-x, 0px) var(--mouse-y, 0px), rgba(99, 102, 241, 0.08), transparent 80%)"
-              }}
-            />
-            <div className="w-12 h-12 bg-amber-500/10 dark:bg-amber-500/20 rounded-2xl flex items-center justify-center text-amber-600 dark:text-amber-400 relative z-10">
-              <Clock className="size-6 fill-amber-500/20 dark:fill-amber-500/30" />
-            </div>
-            <div className="relative z-10">
-              <p className="text-[12px] font-bold text-slate-600 dark:text-slate-300 uppercase tracking-wider">
-                Postulaciones pendientes
-              </p>
-              <h3 className="text-4xl font-extrabold text-slate-900 dark:text-slate-100 mt-1 tracking-tight font-sans">
-                {metrics.reviewingApplications}
-              </h3>
-            </div>
-            <div className="flex items-center text-amber-700 dark:text-amber-400 gap-1 mt-auto relative z-10 font-semibold text-xs">
-              <Clock className="size-4 animate-pulse text-amber-500" />
-              <span>Requieren revisión</span>
-            </div>
-          </div>
-        </Link>
-
-        {/* Metric 4 - Contactos directos */}
-        <Link 
-          href="/dashboard/company/radar"
-          className="no-underline block"
-        >
-          <div 
-            onMouseMove={handleMouseMove}
-            className="glass-card p-6 md:p-8 rounded-[24px] flex flex-col gap-4 group cursor-pointer relative overflow-hidden h-full"
-          >
-            <div 
-              className="absolute inset-0 pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-[24px]"
-              style={{
-                background: "radial-gradient(300px circle at var(--mouse-x, 0px) var(--mouse-y, 0px), rgba(99, 102, 241, 0.08), transparent 80%)"
-              }}
-            />
-            <div className="w-12 h-12 bg-emerald-500/10 dark:bg-emerald-500/20 rounded-2xl flex items-center justify-center text-emerald-600 dark:text-emerald-300 relative z-10">
-              <CalendarDays className="size-6 fill-emerald-500/20 dark:fill-emerald-500/30" />
-            </div>
-            <div className="relative z-10">
-              <p className="text-[12px] font-bold text-slate-600 dark:text-slate-300 uppercase tracking-wider">
-                Contactos Directos
-              </p>
-              <h3 className="text-4xl font-extrabold text-slate-900 dark:text-slate-100 mt-1 tracking-tight font-sans">
-                {metrics.totalConnections}
-              </h3>
-            </div>
-            <div className="flex items-center text-emerald-600 dark:text-emerald-300 font-bold gap-1 mt-auto hover:text-emerald-700 transition-colors relative z-10 text-xs">
-              <span>Buscar talento local</span>
-              <ArrowRight className="size-4 text-emerald-600 dark:text-emerald-300 group-hover:translate-x-1 transition-transform duration-300" />
-            </div>
-          </div>
-        </Link>
-
-      </section>
-
-      {/* Activity Feed Section */}
-      <section className="space-y-6">
-        <div className="flex items-center justify-between">
-          <h3 className="text-xl font-extrabold text-slate-900 dark:text-slate-100 tracking-tight md:text-2xl">
-            Feed de Actividad Reciente
-          </h3>
-          <Link href="/dashboard/company/inbox">
-            <Button 
-              variant="ghost" 
-              className="text-indigo-600 dark:text-indigo-300 hover:text-indigo-700 dark:hover:text-indigo-200 font-bold text-sm hover:bg-indigo-500/5 active:scale-95 transition-all"
-            >
-              Ver todo
-            </Button>
-          </Link>
-        </div>
-
-        <div className="glass-card rounded-[24px] overflow-hidden shadow-sm">
-          {recentActivities.length === 0 ? (
-            <div className="text-center py-16 px-4 text-muted-foreground bg-card">
-              <Users className="size-12 stroke-[1.2] mx-auto mb-4 text-slate-300 dark:text-slate-700" />
-              <p className="text-sm font-semibold">No hay postulaciones recientes</p>
-              <p className="text-xs mt-1 max-w-sm mx-auto">
-                Tus vacantes activas no han recibido postulaciones en los últimos días. ¡Usa el botón flotante para publicar otra oferta exprés!
-              </p>
-            </div>
-          ) : (
-            <>
-              {/* Feed Header */}
-              <div className="hidden sm:grid grid-cols-12 px-8 py-4 bg-muted/20 dark:bg-muted/10 border-b border-border/40">
-                <div className="col-span-6 text-xs font-bold text-slate-600 dark:text-slate-400 uppercase tracking-wider">CANDIDATO</div>
-                <div className="col-span-4 text-xs font-bold text-slate-600 dark:text-slate-400 uppercase tracking-wider">HABILIDADES</div>
-                <div className="col-span-2 text-xs font-bold text-slate-600 dark:text-slate-400 uppercase tracking-wider text-right">TIEMPO</div>
+        {/* HERO CARD - Resumen Global (Fiord 950 Dark theme) */}
+        <motion.div variants={cardVariants} className="lg:col-span-1">
+          <div className="bg-[#1f2732] dark:bg-fiord-950 text-white rounded-[28px] p-6 sm:p-7 flex flex-col justify-between min-h-[370px] relative overflow-hidden shadow-md">
+            
+            {/* Top info */}
+            <div>
+              <div className="flex items-center justify-between">
+                <span className="text-[13px] font-bold uppercase tracking-[0.16em] text-fiord-300">Resumen de Reclutamiento</span>
+                <div className="flex gap-2">
+                  <button className="text-fiord-300 hover:text-white p-1.5 transition-colors cursor-pointer" aria-label="Tendencia">
+                    <TrendingUp className="size-5" />
+                  </button>
+                  <button className="text-fiord-300 hover:text-white p-1.5 transition-colors cursor-pointer" aria-label="Opciones">
+                    <MoreVertical className="size-5" />
+                  </button>
+                </div>
               </div>
 
-              {/* List Items */}
-              <div className="divide-y divide-border/40">
-                {recentActivities.map((act) => (
-                  <Link 
-                    key={act.id}
-                    href="/dashboard/company/inbox"
-                    className="no-underline block"
-                  >
-                    <div className="grid grid-cols-1 sm:grid-cols-12 px-6 sm:px-8 py-6 items-center hover:bg-muted/20 dark:hover:bg-muted/10 transition-colors cursor-pointer group gap-4 sm:gap-0">
-                      <div className="col-span-12 sm:col-span-6 flex items-center gap-4">
-                        <img 
-                          alt={act.candidateName} 
-                          className="w-12 h-12 rounded-full object-cover border-2 border-indigo-500/10 dark:border-indigo-500/30 group-hover:scale-105 transition-transform duration-300 shadow-sm" 
-                          src={act.candidateAvatar || "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=100&h=100&fit=crop"} 
-                        />
-                        <div>
-                          <h4 className="text-sm md:text-base font-bold text-slate-900 dark:text-slate-100 group-hover:text-indigo-600 dark:group-hover:text-indigo-300 transition-colors">
-                            {act.candidateName}
-                          </h4>
-                          <p className="text-xs md:text-sm text-slate-600 dark:text-slate-300 font-medium">
-                            {act.candidateHeadline} <span className="text-indigo-500/80 dark:text-indigo-400 font-semibold">• Postuló a {act.vacancyTitle}</span>
-                          </p>
-                        </div>
-                      </div>
-                      <div className="col-span-12 sm:col-span-4 flex flex-wrap gap-2">
-                        {act.skills.length === 0 ? (
-                          <span className="text-xs text-muted-foreground italic">Sin habilidades registradas</span>
-                        ) : (
-                          act.skills.map((skill: string) => (
-                            <span key={skill} className="px-3 py-1 bg-indigo-500/10 dark:bg-indigo-500/20 text-indigo-600 dark:text-indigo-300 text-[10px] font-bold rounded-full uppercase tracking-wider">
-                              {skill}
-                            </span>
-                          ))
-                        )}
-                      </div>
-                      <div className="col-span-12 sm:col-span-2 text-left sm:text-right">
-                        <p className="text-xs text-slate-600 dark:text-slate-400 font-semibold">
-                          {formatRelativeTime(act.createdAt)}
-                        </p>
-                      </div>
+              <div className="mt-8 flex gap-8">
+                <div>
+                  <h3 className="text-5xl sm:text-6xl font-[800] tracking-tight text-white font-sans">
+                    {metrics.totalApplications ?? 0}
+                  </h3>
+                  <p className="text-[13px] text-fiord-300 font-bold mt-1.5">Postulaciones Totales</p>
+                </div>
+                <div className="border-l border-fiord-800 h-16 my-auto" />
+                <div>
+                  <h3 className="text-5xl sm:text-6xl font-[800] tracking-tight text-white font-sans">
+                    {metrics.pausedVacancies ?? 0}
+                  </h3>
+                  <p className="text-[13px] text-fiord-300 font-bold mt-1.5">Vacantes Pausadas</p>
+                </div>
+              </div>
+            </div>
+
+            {/* Bottom floating cards */}
+            <div className="grid grid-cols-3 gap-3 mt-auto relative z-10 pt-4">
+              <div className="bg-white text-fiord-950 rounded-2xl p-3.5 border border-fiord-100 flex flex-col justify-between">
+                <span className="text-[18px] font-[800] leading-none font-sans text-fiord-950">{metrics.activeVacancies ?? 0}</span>
+                <span className="text-[11px] font-bold text-fiord-500 mt-2 leading-tight">Activas</span>
+              </div>
+              <div className="bg-white text-fiord-950 rounded-2xl p-3.5 border border-fiord-100 flex flex-col justify-between">
+                <span className="text-[18px] font-[800] leading-none font-sans text-fiord-950">{metrics.reviewingApplications ?? 0}</span>
+                <span className="text-[11px] font-bold text-fiord-500 mt-2 leading-tight">En Revisión</span>
+              </div>
+              <div className="bg-white text-fiord-950 rounded-2xl p-3.5 border border-fiord-100 flex flex-col justify-between">
+                <span className="text-[18px] font-[800] leading-none font-sans text-fiord-950">{metrics.totalConnections ?? 0}</span>
+                <span className="text-[11px] font-bold text-fiord-500 mt-2 leading-tight">Contratados</span>
+              </div>
+            </div>
+            
+            {/* Background Glow */}
+            <div className="absolute -bottom-10 -left-10 size-40 bg-fiord-800 rounded-full blur-[60px] opacity-40 pointer-events-none" />
+          </div>
+        </motion.div>
+
+        {/* CHART CARD 1 - Flujo Semanal (Light Theme) */}
+        <motion.div variants={cardVariants} className="lg:col-span-1">
+          <Card className="bg-white dark:bg-fiord-900 border-fiord-100 dark:border-fiord-800 rounded-[28px] p-6 flex flex-col justify-between min-h-[370px] shadow-sm relative overflow-hidden">
+            <div className="flex items-center justify-between">
+              <div className="space-y-0.5">
+                <h4 className="text-[16px] font-bold text-fiord-900 dark:text-fiord-100">Flujo Semanal</h4>
+                <p className="text-[12px] text-fiord-400 dark:text-fiord-400 font-bold uppercase tracking-wider">Nuevos Candidatos</p>
+              </div>
+              <Badge className="bg-emerald-50 dark:bg-emerald-950/30 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-50 border-none font-extrabold text-xs px-3 py-1 rounded-full flex items-center gap-0.5">
+                <span>
+                  {weeklyAnalytics.growthPercent >= 0
+                    ? `+${weeklyAnalytics.growthPercent}%`
+                    : `${weeklyAnalytics.growthPercent}%`}
+                </span>
+              </Badge>
+            </div>
+
+            {/* Recharts Area Chart */}
+            <div className="h-44 w-full mt-4 flex items-end">
+              {mounted ? (
+                <ResponsiveContainer width="100%" height="100%">
+                  <AreaChart data={weeklyAnalytics.flowData} margin={{ top: 10, right: 5, left: -25, bottom: 0 }}>
+                    <defs>
+                      <linearGradient id="colorCandidatos" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="5%" stopColor="#5c7c9b" stopOpacity={0.25} />
+                        <stop offset="95%" stopColor="#5c7c9b" stopOpacity={0.0} />
+                      </linearGradient>
+                    </defs>
+                    <XAxis 
+                      dataKey="day" 
+                      tickLine={false} 
+                      axisLine={false} 
+                      tick={{ fill: "#7d99b3", fontSize: 11, fontWeight: 600 }} 
+                      tickFormatter={(val) => val.substring(0, 1)}
+                    />
+                    <YAxis tickLine={false} axisLine={false} tick={{ fill: "#7d99b3", fontSize: 11 }} />
+                    <Tooltip 
+                      contentStyle={{ 
+                        borderRadius: "14px", 
+                        backgroundColor: "#1f2732", 
+                        borderColor: "#2f3c4b",
+                        color: "#ffffff",
+                        fontSize: "12px",
+                        fontWeight: "700"
+                      }} 
+                    />
+                    <Area 
+                      type="monotone" 
+                      dataKey="candidatos" 
+                      stroke="#5c7c9b" 
+                      strokeWidth={2.5} 
+                      fillOpacity={1} 
+                      fill="url(#colorCandidatos)" 
+                    />
+                  </AreaChart>
+                </ResponsiveContainer>
+              ) : (
+                <div className="h-full w-full flex items-center justify-center text-fiord-300 font-semibold text-sm">Cargando gráfico...</div>
+              )}
+            </div>
+
+            <div className="flex justify-between items-center mt-3 text-[12px] text-fiord-400 dark:text-fiord-400 font-semibold px-1">
+              <span>Lun - Dom</span>
+              <span className="text-fiord-800 dark:text-fiord-200 font-bold">
+                Promedio: {weeklyAnalytics.average} candidatos/día
+              </span>
+            </div>
+          </Card>
+        </motion.div>
+
+        {/* CHART CARD 2 - Efectividad del Mes (Light Theme) */}
+        <motion.div variants={cardVariants} className="lg:col-span-1">
+          <Card className="bg-white dark:bg-fiord-900 border-fiord-100 dark:border-fiord-800 rounded-[28px] p-6 flex flex-col justify-between min-h-[370px] shadow-sm">
+            <div className="flex items-center justify-between">
+              <div className="space-y-0.5">
+                <h4 className="text-[16px] font-bold text-fiord-900 dark:text-fiord-100">Efectividad del Mes</h4>
+                <p className="text-[12px] text-fiord-400 dark:text-fiord-400 font-bold uppercase tracking-wider">Meta de Contratación</p>
+              </div>
+              <button className="text-fiord-400 hover:text-fiord-900 dark:hover:text-fiord-100 p-1.5 cursor-pointer" aria-label="Estadísticas">
+                <TrendingUp className="size-5" />
+              </button>
+            </div>
+
+            {/* Recharts Pie Chart & Legend Grid */}
+            <div className="flex items-center justify-between gap-3 mt-2">
+              <div className="relative size-36 shrink-0">
+                {mounted ? (
+                  <ResponsiveContainer width="100%" height="100%">
+                    <PieChart>
+                      <Pie
+                        data={monthlyAnalytics.pieData}
+                        cx="50%"
+                        cy="50%"
+                        innerRadius={40}
+                        outerRadius={52}
+                        paddingAngle={4}
+                        dataKey="value"
+                      >
+                        {monthlyAnalytics.pieData.map((entry, index) => (
+                          <Cell key={`cell-${index}`} fill={entry.color} />
+                        ))}
+                      </Pie>
+                    </PieChart>
+                  </ResponsiveContainer>
+                ) : null}
+                <div className="absolute inset-0 flex flex-col items-center justify-center text-center">
+                  <span className="text-xl font-bold text-fiord-900 dark:text-fiord-100 font-mono leading-none">
+                    {monthlyAnalytics.goalPercent}%
+                  </span>
+                  <span className="text-[9px] text-fiord-400 uppercase tracking-widest font-bold mt-0.5">Meta</span>
+                </div>
+              </div>
+
+              {/* Legends list */}
+              <div className="flex-1 space-y-2.5 px-1">
+                {monthlyAnalytics.pieData.map((item) => (
+                  <div key={item.name} className="flex items-center justify-between text-[12px]">
+                    <div className="flex items-center gap-2">
+                      <span className="size-2.5 rounded-full shrink-0" style={{ backgroundColor: item.color }} />
+                      <span className="text-fiord-700 dark:text-fiord-300 font-semibold">{item.name}</span>
                     </div>
-                  </Link>
+                    <span className="font-bold text-fiord-900 dark:text-fiord-100">{item.value}%</span>
+                  </div>
                 ))}
               </div>
-            </>
-          )}
-        </div>
-      </section>
+            </div>
 
-      {/* Floating Action Button (FAB) persistent */}
-      <Link 
-        href="/dashboard/company/vacancies?create=true" 
-        className="fixed bottom-20 md:bottom-10 right-10 z-50 animate-bounce group"
-        onClick={() => toast.info("Abriendo publicador...", { description: "Preparando formulario de nueva vacante." })}
-        style={{ animationDuration: "3s" }}
-      >
-        <Button className="bg-primary hover:bg-secondary-container text-white px-6 py-6 rounded-full shadow-2xl flex items-center gap-3 transition-all duration-300 active:scale-95 h-auto md:px-8">
-          <Plus className="size-6 group-hover:rotate-90 transition-transform duration-300" />
-          <span className="font-extrabold tracking-wide text-xs md:text-sm">Publicar Nueva Vacante</span>
-        </Button>
-      </Link>
+            {/* Actions button */}
+            <Button
+              onClick={handleDownloadReport}
+              disabled={isDownloading}
+              className="w-full bg-[#1f2732] dark:bg-zinc-100 text-white dark:text-zinc-900 hover:bg-[#253240] dark:hover:bg-zinc-200 font-bold text-sm rounded-[14px] h-12 flex items-center justify-center gap-2 border-none transition-all cursor-pointer shadow-xs"
+            >
+              <Download className="size-4" />
+              <span>{isDownloading ? "Preparando..." : "Descargar Reporte"}</span>
+            </Button>
+          </Card>
+        </motion.div>
 
+        {/* CHECKLIST CARD - Pendientes (Light Theme) */}
+        <motion.div variants={cardVariants} className="lg:col-span-1">
+          <Card className="bg-white dark:bg-fiord-900 border-fiord-100 dark:border-fiord-800 rounded-[28px] p-6 flex flex-col justify-between min-h-[370px] shadow-sm">
+            <div>
+              <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center gap-2.5">
+                  <div className="size-8 rounded-xl bg-fiord-100 dark:bg-fiord-800 text-fiord-950 dark:text-fiord-50 flex items-center justify-center">
+                    <ClipboardList className="size-4.5" />
+                  </div>
+                  <h4 className="text-[16px] font-bold text-fiord-900 dark:text-fiord-100">Pendientes del día</h4>
+                </div>
+                <Badge className="bg-[#1f2732] dark:bg-zinc-100 text-white dark:text-zinc-900 border-none font-bold text-[11px] px-2.5 py-1 rounded-lg">
+                  {todos.filter(t => !t.completed).length} Hoy
+                </Badge>
+              </div>
+
+              <div className="space-y-3.5 mt-4">
+                {todos.map(todo => (
+                  <div 
+                    key={todo.id} 
+                    className="flex items-start gap-3.5 p-2.5 rounded-xl hover:bg-fiord-50/50 dark:hover:bg-fiord-800/30 transition-colors"
+                  >
+                    <Checkbox
+                      id={todo.id}
+                      checked={todo.completed}
+                      onCheckedChange={() => handleToggleTodo(todo.id)}
+                      className="mt-0.5 size-5 rounded-md border-fiord-300 dark:border-fiord-700 data-[state=checked]:bg-[#1f2732] dark:data-[state=checked]:bg-zinc-100 data-[state=checked]:text-white dark:data-[state=checked]:text-zinc-900 cursor-pointer"
+                    />
+                    <label 
+                      htmlFor={todo.id}
+                      className={`text-[14px] leading-snug font-semibold cursor-pointer transition-all select-none
+                        ${todo.completed 
+                          ? "text-fiord-500/70 dark:text-fiord-400/60 line-through font-medium" 
+                          : "text-fiord-800 dark:text-fiord-200"
+                        }`}
+                    >
+                      {todo.text}
+                    </label>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div className="flex items-center justify-between text-[12px] text-fiord-400 dark:text-fiord-400 font-semibold border-t border-fiord-100/50 dark:border-fiord-800/50 pt-3.5">
+              <span className="font-bold">
+                {todos.length > 0
+                  ? `${Math.round((todos.filter(t => t.completed).length / todos.length) * 100)}% Completado`
+                  : "100% Completado"}
+              </span>
+              <button 
+                onClick={() => {
+                  setTodos(prev => prev.map(t => ({ ...t, completed: true })))
+                  toast.success("¡Todas las tareas completadas!")
+                }} 
+                className="text-[#5c7c9b] dark:text-zinc-300 font-bold hover:underline transition-colors cursor-pointer"
+              >
+                Completar todo
+              </button>
+            </div>
+          </Card>
+        </motion.div>
+
+        {/* UNIFIED VACANCIES SECTION - Single Consolidated Section */}
+        <motion.div variants={cardVariants} className="lg:col-span-3">
+          <div className="flex items-center justify-between mb-4">
+            <div className="space-y-0.5">
+              <h4 className="text-[18px] sm:text-[20px] font-[800] text-fiord-900 dark:text-fiord-100 tracking-[-0.3px]">
+                Vacantes Activas y Recientes
+              </h4>
+              <p className="text-[13px] text-fiord-400 dark:text-fiord-500 font-semibold">
+                Gestión de ofertas publicadas y progreso de postulaciones locales
+              </p>
+            </div>
+            <Link 
+              href="/dashboard/company/vacancies" 
+              className="text-[13px] font-extrabold text-[#5c7c9b] hover:text-[#1f2732] dark:hover:text-zinc-100 flex items-center gap-1 transition-colors"
+            >
+              Ver todas las vacantes <ArrowRight className="size-4" />
+            </Link>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+            {/* Create Vacancy Action Card */}
+            <Link href="/dashboard/company/vacancies/new" className="min-h-[220px]">
+              <Card className="border-2 border-dashed border-fiord-200 dark:border-fiord-800 hover:border-fiord-400 dark:hover:border-fiord-600 bg-fiord-50/20 dark:bg-fiord-900/10 rounded-[26px] p-6 flex flex-col items-center justify-center h-full text-center group cursor-pointer transition-all duration-300 hover:bg-fiord-50/45">
+                <div className="size-12 rounded-full border border-fiord-100 dark:border-fiord-850 bg-white dark:bg-fiord-950 text-fiord-900 dark:text-fiord-50 flex items-center justify-center shadow-sm group-hover:scale-110 transition-transform duration-300">
+                  <Plus className="size-6" />
+                </div>
+                <h5 className="text-[15px] font-bold text-fiord-900 dark:text-fiord-100 mt-3">Crear Nueva Vacante</h5>
+                <p className="text-[12px] text-fiord-400 dark:text-fiord-500 font-medium mt-0.5 max-w-[180px] mx-auto leading-relaxed">
+                  Publica una oferta exprés en Mérida y Riviera Maya
+                </p>
+              </Card>
+            </Link>
+
+            {/* Display up to 5 vacancies */}
+            {(() => {
+              const displayVacancies = publishedVacancies.length > 0 ? publishedVacancies : latestVacancies;
+              return displayVacancies.slice(0, 5).map((vac) => {
+                const formattedSalary =
+                  vac.salary_min && vac.salary_max
+                    ? `$${vac.salary_min.toLocaleString("es-MX")} - $${vac.salary_max.toLocaleString("es-MX")}`
+                    : vac.salary_min
+                    ? `Desde $${vac.salary_min.toLocaleString("es-MX")}`
+                    : vac.salary_max
+                    ? `Hasta $${vac.salary_max.toLocaleString("es-MX")}`
+                    : "A convenir";
+
+                const appCount = vac.applicationsCount ?? 0;
+
+                return (
+                  <Link key={vac.id} href={`/dashboard/company/vacancies/${vac.id}`} className="block">
+                    <Card className="bg-white dark:bg-fiord-900 border-fiord-100 dark:border-fiord-800 rounded-[26px] p-6 flex items-center justify-between gap-4 shadow-sm hover:border-fiord-200 dark:hover:border-fiord-700 transition-all duration-300 h-full">
+                      <div className="space-y-2 flex-1 min-w-0">
+                        <div className="flex items-center gap-2">
+                          <Badge className="bg-fiord-50 dark:bg-fiord-800 text-fiord-700 dark:text-fiord-300 border-none font-bold text-[10px] px-2.5 py-1 rounded-md">
+                            {vac.category || "General"}
+                          </Badge>
+                          <Badge
+                            className={cn(
+                              "font-extrabold text-[9px] px-2 py-0.5 rounded-full border-none",
+                              vac.is_active !== false
+                                ? "bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-400"
+                                : "bg-fiord-100 text-fiord-600 dark:bg-fiord-800 dark:text-fiord-400"
+                            )}
+                          >
+                            {vac.is_active !== false ? "Activa" : "Pausada"}
+                          </Badge>
+                        </div>
+                        <h5 className="text-[16px] sm:text-[17px] font-bold tracking-tight text-fiord-900 dark:text-fiord-50 line-clamp-1">
+                          {vac.title}
+                        </h5>
+                        <div className="flex items-center gap-2 text-[11px] text-fiord-400 dark:text-fiord-500 font-bold">
+                          <MapPin className="size-3 text-fiord-400" />
+                          <span>{vac.zone || vac.location || "Mérida"}</span>
+                          <span>•</span>
+                          <span className="text-fiord-700 dark:text-fiord-300 font-semibold">{formattedSalary} MXN</span>
+                        </div>
+                      </div>
+
+                      {/* Progress wheel SVG */}
+                      <div className="relative size-16 shrink-0 flex items-center justify-center">
+                        <svg className="size-full transform -rotate-90">
+                          <circle cx="32" cy="32" r="24" stroke="#ebeef3" strokeWidth="5" fill="transparent" className="dark:stroke-fiord-800" />
+                          <circle
+                            cx="32"
+                            cy="32"
+                            r="24"
+                            stroke="#5c7c9b"
+                            strokeWidth="5"
+                            fill="transparent"
+                            strokeDasharray="150"
+                            strokeDashoffset={Math.max(0, 150 - Math.min(appCount, 10) * 15)}
+                            strokeLinecap="round"
+                          />
+                        </svg>
+                        <div className="absolute inset-0 flex flex-col items-center justify-center">
+                          <span className="text-[12px] font-bold font-mono text-fiord-900 dark:text-fiord-100">{appCount}</span>
+                          <span className="text-[7px] text-fiord-400 dark:text-fiord-500 uppercase tracking-widest font-extrabold">Postulantes</span>
+                        </div>
+                      </div>
+                    </Card>
+                  </Link>
+                );
+              });
+            })()}
+
+            {latestVacancies.length === 0 && publishedVacancies.length === 0 && (
+              <div className="col-span-2 text-center py-6 text-fiord-400 dark:text-fiord-500 text-sm font-semibold">
+                Aún no has publicado vacantes. Tus ofertas creadas se mostrarán aquí.
+              </div>
+            )}
+          </div>
+        </motion.div>
+        
+      </motion.div>
     </div>
   )
 }

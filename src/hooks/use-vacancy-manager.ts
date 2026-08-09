@@ -34,10 +34,10 @@ export function useVacancyManager() {
         throw new Error("Debe iniciar sesión como empresa para publicar ofertas.");
       }
 
-      // Fetch company profile location
+      // Fetch company profile & subscription plan
       const { data: companyProfile, error: profileError } = await supabase
         .from("company_profiles")
-        .select("location")
+        .select("location, subscription_plan")
         .eq("id", user.id)
         .single();
 
@@ -54,6 +54,24 @@ export function useVacancyManager() {
 
       if (!companyLocation) {
         companyLocation = "Mérida - Centro";
+      }
+
+      // Check active vacancy count limit for company's plan
+      const plan = companyProfile?.subscription_plan || "basic";
+      let maxAllowed = 3;
+      if (plan === "pro") maxAllowed = 15;
+      if (plan === "enterprise") maxAllowed = Infinity;
+
+      if (maxAllowed !== Infinity) {
+        const { count: activeCount } = await supabase
+          .from("vacancies")
+          .select("id", { count: "exact", head: true })
+          .eq("company_id", user.id)
+          .eq("is_active", true);
+
+        if ((activeCount || 0) >= maxAllowed) {
+          throw new Error(`Has alcanzado el límite de ${maxAllowed} vacantes activas de tu Plan ${plan.toUpperCase()}. Actualiza a Plan PRO o Corporativo en Configuración para activar más vacantes.`);
+        }
       }
 
       // Insertar en la tabla vacancies. Los triggers de base de datos se encargan de
@@ -101,6 +119,34 @@ export function useVacancyManager() {
     setError(null);
 
     try {
+      if (isActive) {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (user) {
+          const { data: compProfile } = await supabase
+            .from("company_profiles")
+            .select("subscription_plan")
+            .eq("id", user.id)
+            .maybeSingle();
+
+          const plan = compProfile?.subscription_plan || "basic";
+          let maxAllowed = 3;
+          if (plan === "pro") maxAllowed = 15;
+          if (plan === "enterprise") maxAllowed = Infinity;
+
+          if (maxAllowed !== Infinity) {
+            const { count: activeCount } = await supabase
+              .from("vacancies")
+              .select("id", { count: "exact", head: true })
+              .eq("company_id", user.id)
+              .eq("is_active", true);
+
+            if ((activeCount || 0) >= maxAllowed) {
+              throw new Error(`Has alcanzado el límite de ${maxAllowed} vacantes activas de tu Plan ${plan.toUpperCase()}. Actualiza tu suscripción en Configuración para activar más ofertas.`);
+            }
+          }
+        }
+      }
+
       const { error: updateError } = await supabase
         .from("vacancies")
         .update({

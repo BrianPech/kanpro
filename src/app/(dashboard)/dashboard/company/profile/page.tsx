@@ -11,11 +11,7 @@ export default async function CompanyProfilePage() {
 
 
   return (
-    <div className="p-6 md:p-12 lg:p-16 max-w-[1000px] mx-auto w-full">
-      <div className="mb-12">
-        <h1 className="text-[40px] font-medium tracking-tight text-foreground mb-2">Perfil de Empresa</h1>
-        <p className="text-[16px] text-muted-foreground">Completa la información de tu empresa para empezar a publicar proyectos.</p>
-      </div>
+    <div className="flex-grow min-h-screen bg-fiord-50/20 dark:bg-[#18181B] px-6 sm:px-10 lg:px-14 py-8 pb-28 md:pb-8 max-w-4xl mx-auto w-full space-y-8 animate-in fade-in duration-300">
       <CompanyProfileForm initialProfile={profile} userId={userId} />
     </div>
   )

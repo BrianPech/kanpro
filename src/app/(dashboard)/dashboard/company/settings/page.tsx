@@ -10,18 +10,27 @@ export default async function CompanySettingsPage() {
     redirect("/login");
   }
 
-  // Fetch the company profile details
-  const { data: profile } = await supabase
-    .from("company_profiles")
-    .select("*")
-    .eq("id", user.id)
-    .single();
+  // Fetch company details, vacancies, and invoices concurrently via Promise.all
+  const [profileRes, vacanciesRes, invoicesRes] = await Promise.all([
+    supabase
+      .from("company_profiles")
+      .select("*")
+      .eq("id", user.id)
+      .maybeSingle(),
+    supabase
+      .from("vacancies")
+      .select("id, is_active")
+      .eq("company_id", user.id),
+    supabase
+      .from("company_invoices")
+      .select("*")
+      .eq("company_id", user.id)
+      .order("created_at", { ascending: false })
+  ]);
 
-  // Fetch vacancies to determine the initial global pause status
-  const { data: vacancies } = await supabase
-    .from("vacancies")
-    .select("id, is_active")
-    .eq("company_id", user.id);
+  const profile = profileRes.data;
+  const vacancies = vacanciesRes.data;
+  const invoices = invoicesRes.data;
 
   // If there are vacancies, recruitment is paused if ALL vacancies are inactive.
   // If there are no vacancies, we default to active (false).
@@ -36,11 +45,16 @@ export default async function CompanySettingsPage() {
     contact_channel: profile?.contact_channel || "whatsapp",
     logo_url: profile?.logo_url || null,
     description: profile?.description || null,
-    phone: profile?.phone || null,
+    phone: profile?.contact_phone || null,
     company_size: profile?.company_size || null,
     industry: profile?.industry || null,
-    website_or_linkedin: profile?.website_or_linkedin || null,
-    whatsapp_number: profile?.whatsapp_number || ""
+    website_or_linkedin: profile?.website_url || null,
+    whatsapp_number: profile?.contact_phone || "",
+    subscription_plan: profile?.subscription_plan || "basic",
+    subscription_status: profile?.subscription_status || "active",
+    subscription_period_end: profile?.subscription_period_end || null,
+    featured_vacancies_allowance: profile?.featured_vacancies_allowance ?? 0,
+    featured_vacancies_used: profile?.featured_vacancies_used ?? 0,
   };
 
   return (
@@ -48,6 +62,7 @@ export default async function CompanySettingsPage() {
       user={{ id: user.id, email: user.email || "" }}
       initialProfile={defaultProfile}
       initialPauseState={initialPauseState}
+      initialInvoices={invoices || []}
     />
   );
 }

@@ -62,7 +62,7 @@ export function LoginClient() {
           toast.success("¡Sesión iniciada con éxito!");
           
           // Let redirect middleware/layout guide user, or force dashboard push
-          router.push(role === "company" ? "/dashboard/company/radar" : "/dashboard/candidate/discovery");
+          router.push(role === "company" ? "/dashboard/company" : "/dashboard/candidate/discovery");
           router.refresh();
         }
       } else {
@@ -82,13 +82,12 @@ export function LoginClient() {
         if (error) throw error;
 
         if (data.user) {
-
           toast.success("¡Cuenta creada con éxito!", {
-            description: "Comencemos configurando tu ubicación.",
+            description: "Bienvenido a K'anPro.",
           });
           
-          // Force immediate push to onboarding screen
-          router.push("/onboarding");
+          // Direct push to appropriate dashboard
+          router.push(role === "company" ? "/dashboard/company" : "/dashboard/candidate/discovery");
           router.refresh();
         }
       }

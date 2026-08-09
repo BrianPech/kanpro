@@ -1,25 +1,18 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import Link from "next/link";
 import {
   Bell,
   ChevronDown,
-  Clock3,
-  LogOut,
-  MessageSquareText,
-  Sparkles,
-  CheckCircle2
+  LogOut
 } from "lucide-react";
 import * as React from "react";
 
-import { Badge } from "@/components/ui/badge";
 import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
   DropdownMenuContent,
-  DropdownMenuGroup,
   DropdownMenuItem,
   DropdownMenuLabel,
   DropdownMenuSeparator,
@@ -64,17 +57,22 @@ export function CandidateTopbar({
     router.refresh();
   };
 
+  const firstName = userName ? userName.trim().split(" ")[0] : "Candidato";
+
   return (
-    <header className="sticky top-0 z-40 flex h-20 shrink-0 items-center justify-between bg-background/60 backdrop-blur-md px-6 md:px-10 border-b border-border/30 transition-all duration-300">
+    <header className="hidden md:flex sticky top-0 z-40 h-20 shrink-0 items-center justify-between bg-background/80 backdrop-blur-md px-6 md:px-10 border-b border-border/10 transition-all duration-300">
       
-      {/* Left Area: Sidebar Trigger (mostly for mobile/tablet) */}
+      {/* Left Area: Greeting */}
       <div className="flex items-center gap-4">
-        <SidebarTrigger className="-ml-2 text-muted-foreground hover:text-foreground md:hidden" />
+        <SidebarTrigger className="-ml-2 text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 md:hidden" />
         
-        {/* Quick Candidate Job Status Pill */}
-        <div className="hidden sm:flex items-center gap-1.5 px-3 py-1 bg-emerald-500/10 border border-emerald-500/20 rounded-full text-[11px] font-bold text-emerald-600 dark:text-emerald-400">
-          <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-ping"></span>
-          Buscando Empleo Activamente
+        <div className="flex flex-col">
+          <h2 className="text-[20px] font-[800] text-[#1f2732] dark:text-zinc-100 tracking-[-0.4px] leading-tight">
+            Hola, {firstName}
+          </h2>
+          <p className="text-[14px] font-medium text-[#5c7c9b] dark:text-zinc-400 mt-0.5">
+            Descubre nuevas oportunidades hoy
+          </p>
         </div>
       </div>
 
@@ -88,9 +86,9 @@ export function CandidateTopbar({
           <Button
             variant="ghost"
             size="icon"
-            className="relative rounded-full text-muted-foreground hover:bg-muted hover:text-foreground transition-all duration-300"
+            className="relative h-11 w-11 rounded-full text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-900 hover:text-zinc-900 dark:hover:text-zinc-100 transition-all duration-200"
           >
-            <Bell className="h-5 w-5" />
+            <Bell className="h-6 w-6" />
           </Button>
         )}
 
@@ -99,44 +97,44 @@ export function CandidateTopbar({
           <DropdownMenuTrigger asChild>
             <Button
               variant="ghost"
-              className="h-auto rounded-full p-1 text-left hover:bg-muted/70 flex items-center gap-2 border border-border/20 shadow-xs"
+              className="h-auto rounded-full p-2 text-left hover:bg-zinc-100 dark:hover:bg-zinc-900 flex items-center gap-2.5 border border-border/10 transition-all cursor-pointer"
             >
-              <div className="hidden md:flex md:flex-col md:items-end md:gap-0.5 pl-3 pr-1">
-                <span className="text-[13px] font-bold leading-none tracking-tight text-foreground">
+              <div className="hidden md:flex md:flex-col md:items-end pl-2.5 pr-1">
+                <span className="text-[14px] font-bold tracking-tight text-zinc-900 dark:text-zinc-100">
                   {userName}
                 </span>
-                <span className="text-[10px] leading-none text-muted-foreground font-semibold mt-1.5">
+                <span className="text-[11px] text-zinc-400 dark:text-zinc-500 font-semibold mt-0.5">
                   {plan}
                 </span>
               </div>
-              <div className="flex h-9 w-9 items-center justify-center rounded-full bg-gradient-to-tr from-primary to-[#4f55f1] text-[13px] font-bold text-white shadow-xs border border-white/10 shrink-0">
+              <div className="flex h-10 w-10 items-center justify-center rounded-full bg-zinc-900 dark:bg-zinc-100 text-[14px] font-bold text-zinc-100 dark:text-zinc-900 border border-border/10 shrink-0 shadow-2xs">
                 {userInitials}
               </div>
-              <ChevronDown className="mr-2 size-3 text-muted-foreground shrink-0" />
+              <ChevronDown className="mr-1 size-4 text-zinc-400 dark:text-zinc-500 shrink-0" />
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent
-            className="min-w-60 rounded-[24px] border border-border/40 shadow-md p-1.5"
+            className="min-w-56 rounded-xl border border-border/20 shadow-lg p-1.5"
             align="end"
             sideOffset={8}
           >
-            <DropdownMenuLabel className="px-3.5 py-2.5">
-              <div className="grid gap-1">
-                <span className="text-sm font-bold text-foreground leading-none">
+            <DropdownMenuLabel className="px-3 py-2">
+              <div className="grid gap-0.5">
+                <span className="text-xs font-bold text-zinc-900 dark:text-zinc-100 leading-none">
                   {userName}
                 </span>
-                <span className="text-xs text-muted-foreground font-medium">
+                <span className="text-[10px] text-zinc-400 dark:text-zinc-500 font-medium">
                   {plan}
                 </span>
               </div>
             </DropdownMenuLabel>
-
+            <DropdownMenuSeparator className="my-1 border-t border-border/10" />
             <DropdownMenuItem 
               variant="destructive" 
               onClick={handleLogout}
-              className="rounded-xl px-3 py-2 cursor-pointer focus:bg-destructive/10 focus:text-destructive flex items-center gap-2"
+              className="rounded-lg px-3 py-2 cursor-pointer focus:bg-rose-50/80 dark:focus:bg-rose-950/20 focus:text-rose-600 dark:focus:text-rose-400 flex items-center gap-2 text-xs"
             >
-              <LogOut className="h-4.5 w-4.5" />
+              <LogOut className="h-4 w-4" />
               <span>Cerrar sesión</span>
             </DropdownMenuItem>
           </DropdownMenuContent>

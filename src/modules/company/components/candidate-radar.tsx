@@ -76,14 +76,25 @@ export function CandidateRadar() {
         setLoadingProfile(true);
         const { data: { user } } = await supabase.auth.getUser();
         if (user) {
-          const { data, error } = await supabase
-            .from("company_profiles")
-            .select("company_name, phone, logo_url, location")
+          const { data: baseProfile } = await supabase
+            .from("profiles")
+            .select("full_name, location")
             .eq("id", user.id)
             .single();
-          if (!error && data) {
-            setProfile(data);
-          }
+
+          const { data: compProfile } = await supabase
+            .from("company_profiles")
+            .select("company_name, contact_phone, fiscal_address, logo_url, subscription_plan")
+            .eq("id", user.id)
+            .maybeSingle();
+
+          setProfile({
+            company_name: compProfile?.company_name || baseProfile?.full_name || "",
+            phone: compProfile?.contact_phone || "configurado",
+            location: compProfile?.fiscal_address || baseProfile?.location || "",
+            logo_url: compProfile?.logo_url || null,
+            subscription_plan: compProfile?.subscription_plan || "basic",
+          });
         }
       } catch (err) {
         console.error("Error loading profile:", err);
@@ -96,13 +107,12 @@ export function CandidateRadar() {
 
   const isProfileIncomplete = React.useMemo(() => {
     if (loadingProfile) return false;
-    if (!profile) return true;
+    if (!profile) return false;
 
     const name = profile.company_name?.trim() || "";
-    const wp = profile.whatsapp_number?.trim() || profile.phone?.trim() || "";
-    const addr = profile.address?.trim() || profile.location?.trim() || "";
+    const addr = profile.location?.trim() || "";
 
-    return !name || !wp || !addr;
+    return !name || name === "Nueva Empresa" || !addr;
   }, [profile, loadingProfile]);
 
   React.useEffect(() => {
@@ -143,46 +153,76 @@ export function CandidateRadar() {
         }
       }
 
-      // Restrict candidates to the company's city in Supabase (Paso A)
-      let query = supabase
-        .from("profiles_view")
-        .select("*")
-        .eq("role", "candidate");
+      // Fetch candidate profiles directly from profiles & candidate_profiles
+      const { data, error } = await supabase
+        .from("profiles")
+        .select(`
+          id,
+          full_name,
+          avatar_url,
+          location,
+          whatsapp_number,
+          email,
+          is_verified,
+          created_at,
+          candidate_profiles (
+            id,
+            headline,
+            bio,
+            skills,
+            experience,
+            education,
+            preferred_zone
+          )
+        `)
+        .eq("role", "candidate")
+        .order("created_at", { ascending: false });
 
-      if (fetchedCompanyCity) {
-        query = query.ilike("location", `%${fetchedCompanyCity}%`);
+      if (error) {
+        console.error("Supabase Error loading candidate profiles:", error.message || error);
+        throw error;
       }
 
-      const { data, error } = await query.order("created_at", { ascending: false });
-
-      if (error) throw error;
-
       if (data && data.length > 0) {
-        const formatted: Candidate[] = data.map((c: any) => ({
-          id: c.id,
-          full_name: c.full_name || "Profesional K'anPro",
-          headline: c.headline || "Candidato",
-          avatar_url: c.avatar_url,
-          location: c.location || "Playa del Carmen, Centro",
-          skills: Array.isArray(c.skills) ? c.skills : (c.skills ? String(c.skills).split(",") : []),
-          bio: c.bio,
-          experience_summary: c.experience_summary || "Profesional con ganas de trabajar.",
-          is_validated: c.is_validated || false,
-          phone: c.phone,
-          email: c.email,
-          experience: Array.isArray(c.experience) ? c.experience : [],
-          education: Array.isArray(c.education) ? c.education : [],
-        }));
-        setCandidates(formatted);
-        if (formatted.length > 0) {
-          setSelectedId(formatted[0].id);
+        const formatted: Candidate[] = data.map((prof: any) => {
+          const cand = Array.isArray(prof.candidate_profiles)
+            ? prof.candidate_profiles[0]
+            : (prof.candidate_profiles || {});
+
+          return {
+            id: prof.id,
+            full_name: prof.full_name || "Profesional K'anPro",
+            headline: cand.headline || "Candidato Registrado",
+            avatar_url: prof.avatar_url || null,
+            location: prof.location || cand.preferred_zone || "Riviera Maya",
+            skills: Array.isArray(cand.skills) ? cand.skills : (cand.skills ? String(cand.skills).split(",") : []),
+            bio: cand.bio || null,
+            experience_summary: cand.bio || "Profesional disponible en la región.",
+            is_validated: Boolean(prof.is_verified),
+            phone: prof.whatsapp_number || null,
+            email: prof.email || null,
+            experience: Array.isArray(cand.experience) ? cand.experience : [],
+            education: Array.isArray(cand.education) ? cand.education : [],
+          };
+        });
+
+        // Filter locally by city if set
+        const filteredByCity = fetchedCompanyCity
+          ? formatted.filter((cand) => cand.location.toLowerCase().includes(fetchedCompanyCity.toLowerCase()))
+          : formatted;
+
+        const finalCandidates = filteredByCity.length > 0 ? filteredByCity : formatted;
+
+        setCandidates(finalCandidates);
+        if (finalCandidates.length > 0) {
+          setSelectedId(finalCandidates[0].id);
         }
       } else {
         setCandidates([]);
         setSelectedId(null);
       }
-    } catch (error) {
-      console.error("Error loading candidates:", error);
+    } catch (err: any) {
+      console.error("Error loading candidates:", err?.message || err);
     } finally {
       setIsLoading(false);
     }
@@ -244,6 +284,20 @@ export function CandidateRadar() {
   }, [candidates, searchQuery, selectedZone, userCoords, companyCity, companyZone]);
 
   const handleContact = async (candidate: Candidate) => {
+    // If company is on basic plan, suggest upgrading to PRO for proactive Radar outreach
+    if (profile?.subscription_plan === "basic" || !profile?.subscription_plan) {
+      toast.info("Función del Plan PRO", {
+        description: "El contacto proactivo desde el Radar GPS es exclusivo de los Planes PRO y Corporativo. Actualiza tu suscripción en Configuración para escribirle directamente.",
+        action: {
+          label: "Ver Planes",
+          onClick: () => {
+            window.location.href = "/dashboard/company/settings";
+          }
+        }
+      });
+      return;
+    }
+
     try {
       const toastId = toast.loading("Conectando con el candidato...");
       const link = await initiateWhatsAppConnection({

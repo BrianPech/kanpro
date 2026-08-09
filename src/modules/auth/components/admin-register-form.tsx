@@ -1,15 +1,12 @@
 "use client";
 
-import * as React from "react";
-import { Eye, EyeOff, ArrowRight, ArrowLeft, ShieldAlert, User, Mail, Lock, Kanban } from "lucide-react";
+import React from "react";
+import { Eye, EyeOff, Loader2, ShieldAlert } from "lucide-react";
 import Link from "next/link";
 
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { FieldError } from "@/components/ui/field";
-import { cn } from "@/lib/utils";
-
 import { useAdminRegisterForm } from "../hooks/use-admin-register-form";
+import { AuthHeader } from "./auth-header";
+import { PremiumTextField } from "./premium-text-field";
 
 export function AdminRegisterForm() {
   const {
@@ -20,197 +17,110 @@ export function AdminRegisterForm() {
     showPassword,
     setShowPassword,
     onSubmit,
-    trigger,
   } = useAdminRegisterForm();
 
-  const [step, setStep] = React.useState(0);
-
-  const handleNextStep = async (e: React.MouseEvent) => {
-    e.preventDefault();
-    const isValid = await trigger(["fullName", "email"]);
-    if (isValid) {
-      setStep(1);
-    }
-  };
-
   return (
-    <main className="min-h-screen w-full flex items-center justify-center p-4 relative bg-background overflow-hidden box-border font-sans">
-      
-      {/* Ambient background glows (matching hero section) */}
-      <div className="absolute inset-0 overflow-hidden pointer-events-none z-0">
-        <div className="absolute top-[-10%] left-[-10%] w-[50%] h-[50%] rounded-full bg-primary/10 blur-[120px] dark:bg-primary/5" />
-        <div className="absolute bottom-[20%] right-[-10%] w-[45%] h-[45%] rounded-full bg-amber-500/5 blur-[120px] dark:bg-amber-500/2.5" />
-      </div>
+    <main className="min-h-screen w-full bg-white sm:bg-[#f8fafc] dark:bg-zinc-950 flex flex-col items-center justify-start font-sans selection:bg-[#5c7c9b]/20">
+      {/* 1. Full-Width Dark Curved Header Section */}
+      <AuthHeader
+        title="Admin"
+        backHref="/register"
+      />
 
-      {/* Floating Card */}
-      <div className="relative w-full max-w-[460px] bg-card border border-border/80 dark:border-border/10 rounded-[28px] p-6 sm:p-10 shadow-[0_8px_30px_rgb(0,0,0,0.015)] dark:shadow-[0_8px_30px_rgb(0,0,0,0.15)] z-10 flex flex-col gap-6">
-        
-        {/* Back Link */}
-        {step === 0 ? (
-          <Link
-            href="/register"
-            className="inline-flex items-center gap-2 text-[13px] font-semibold text-muted-foreground hover:text-foreground transition-all duration-200 group w-fit"
+      {/* 2. Form Area */}
+      <div className="w-full max-w-[480px] sm:max-w-[500px] px-7 sm:px-0 sm:-mt-14 z-20 relative pb-16">
+        <div className="w-full bg-white dark:bg-zinc-900 sm:rounded-[28px] sm:shadow-[0_16px_40px_rgba(31,39,50,0.08)] sm:dark:shadow-[0_16px_40px_rgba(0,0,0,0.4)] sm:border sm:border-[#d2dbe5]/50 sm:dark:border-zinc-800/80 sm:p-10 flex flex-col items-center">
+          <form
+            onSubmit={handleSubmit(onSubmit)}
+            className="w-full flex flex-col items-center gap-4"
+            noValidate
           >
-            <ArrowLeft className="h-4 w-4 transition-transform group-hover:-translate-x-1" />
-            Volver a opciones
-          </Link>
-        ) : (
-          <button
-            type="button"
-            onClick={() => setStep(0)}
-            className="inline-flex items-center gap-2 text-[13px] font-semibold text-muted-foreground hover:text-foreground transition-all duration-200 group w-fit cursor-pointer"
-          >
-            <ArrowLeft className="h-4 w-4 transition-transform group-hover:-translate-x-1" />
-            Volver al paso anterior
-          </button>
-        )}
-
-        {/* Header */}
-        <div className="flex flex-col items-center text-center">
-          <div className="size-14 rounded-[18px] bg-card border border-border/85 dark:border-border/10 shadow-sm flex items-center justify-center text-primary mb-3 transition-transform hover:scale-105 duration-300">
-            <Kanban className="size-6.5 fill-primary/5" />
-          </div>
-          
-          <h2 className="text-2xl sm:text-3xl font-bold text-foreground tracking-[-0.03em] leading-tight">
-            Registro de Administrador
-          </h2>
-
-          <div className="flex items-center justify-center gap-2 mt-2.5">
-            <div className="flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-amber-500/10 text-amber-500 border border-amber-500/20 text-[10px] font-semibold uppercase tracking-wider animate-pulse">
-              <ShieldAlert className="h-3.5 w-3.5" />
-              Acceso Temporal
+            <div className="flex items-center gap-2 mt-2 sm:mt-0 mb-1">
+              <h2 className="text-[28px] font-extrabold text-[#2f3c4b] dark:text-zinc-50 tracking-[-1px] text-center">
+                Registro Admin
+              </h2>
+              <span className="flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-amber-500/10 text-amber-600 text-[10px] font-bold uppercase tracking-wider">
+                <ShieldAlert className="size-3" />
+                Interno
+              </span>
             </div>
-            {/* Step Pagination dots */}
-            <div className="flex items-center gap-1">
-              <div className={cn("h-1.5 rounded-full transition-all duration-300", step === 0 ? "w-4 bg-primary" : "w-1.5 bg-border")} />
-              <div className={cn("h-1.5 rounded-full transition-all duration-300", step === 1 ? "w-4 bg-primary" : "w-1.5 bg-border")} />
-            </div>
-          </div>
-        </div>
 
-        {/* Form */}
-        <form className="flex flex-col gap-4.5" onSubmit={handleSubmit(onSubmit)} method="POST" noValidate>
-          
-          {/* STEP 1: Identification */}
-          {step === 0 && (
-            <div className="flex flex-col gap-4.5 animate-in fade-in duration-300">
-              {/* Full Name */}
-              <div className="flex flex-col gap-1.5">
-                <label htmlFor="fullName" className="text-[12.5px] font-semibold text-foreground/85">
-                  Nombre Completo
-                </label>
-                <div className="relative group/input">
-                  <User className="absolute left-4 top-1/2 -translate-y-1/2 h-[18px] w-[18px] text-muted-foreground/60 group-focus-within/input:text-primary transition-colors duration-200" />
-                  <Input
-                    id="fullName"
-                    placeholder="Juan Pérez"
-                    {...register("fullName")}
-                    className="h-[48px] pl-11 pr-4 bg-zinc-50 dark:bg-zinc-900/40 border border-zinc-200/80 dark:border-zinc-800/80 focus-visible:border-primary/50 focus-visible:ring-primary/20 rounded-[12px] text-[14px] font-medium placeholder:text-muted-foreground/50 transition-all duration-200"
-                    aria-invalid={!!errors.fullName}
-                  />
-                </div>
-                {errors.fullName && <FieldError errors={[errors.fullName]} />}
-              </div>
+            {/* Full Name */}
+            <PremiumTextField
+              id="fullName"
+              label="Nombre Completo"
+              hintText="Juan Pérez"
+              type="text"
+              registerProps={register("fullName")}
+              error={errors.fullName?.message}
+            />
 
-              {/* Email */}
-              <div className="flex flex-col gap-1.5">
-                <label htmlFor="email" className="text-[12.5px] font-semibold text-foreground/85">
-                  Correo Electrónico
-                </label>
-                <div className="relative group/input">
-                  <Mail className="absolute left-4 top-1/2 -translate-y-1/2 h-[18px] w-[18px] text-muted-foreground/60 group-focus-within/input:text-primary transition-colors duration-200" />
-                  <Input
-                    id="email"
-                    placeholder="admin@kanpro.com"
-                    type="email"
-                    {...register("email")}
-                    className="h-[48px] pl-11 pr-4 bg-zinc-50 dark:bg-zinc-900/40 border border-zinc-200/80 dark:border-zinc-800/80 focus-visible:border-primary/50 focus-visible:ring-primary/20 rounded-[12px] text-[14px] font-medium placeholder:text-muted-foreground/50 transition-all duration-200"
-                    aria-invalid={!!errors.email}
-                  />
-                </div>
-                {errors.email && <FieldError errors={[errors.email]} />}
-              </div>
+            {/* Email */}
+            <PremiumTextField
+              id="email"
+              label="Correo Electrónico"
+              hintText="admin@kanpro.com"
+              type="email"
+              registerProps={register("email")}
+              error={errors.email?.message}
+            />
 
-              {/* Siguiente Button */}
-              <Button
-                type="button"
-                onClick={handleNextStep}
-                className="h-[48px] w-full rounded-full bg-primary hover:bg-primary/95 text-primary-foreground font-bold text-[14px] shadow-md shadow-primary/10 tracking-[0.2px] transition-all flex items-center justify-center gap-2 cursor-pointer mt-2 border-0"
-              >
-                Siguiente
-                <ArrowRight className="h-4.5 w-4.5" />
-              </Button>
-            </div>
-          )}
+            {/* Password */}
+            <PremiumTextField
+              id="password"
+              label="Contraseña"
+              hintText="••••••••"
+              type={showPassword ? "text" : "password"}
+              registerProps={register("password")}
+              error={errors.password?.message}
+              suffixIcon={
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="text-[#7d99b3] dark:text-zinc-500 hover:text-[#1f2732] dark:hover:text-zinc-300 transition-colors p-1"
+                  aria-label={
+                    showPassword ? "Ocultar contraseña" : "Mostrar contraseña"
+                  }
+                >
+                  {showPassword ? (
+                    <EyeOff className="size-5" />
+                  ) : (
+                    <Eye className="size-5" />
+                  )}
+                </button>
+              }
+            />
 
-          {/* STEP 2: Password */}
-          {step === 1 && (
-            <div className="flex flex-col gap-4.5 animate-in fade-in duration-300">
-              {/* Password */}
-              <div className="flex flex-col gap-1.5">
-                <label htmlFor="password" className="text-[12.5px] font-semibold text-foreground/85">
-                  Contraseña
-                </label>
-                <div className="relative group/input">
-                  <Lock className="absolute left-4 top-1/2 -translate-y-1/2 h-[18px] w-[18px] text-muted-foreground/60 group-focus-within/input:text-primary transition-colors duration-200" />
-                  <Input
-                    id="password"
-                    placeholder="••••••••"
-                    type={showPassword ? "text" : "password"}
-                    {...register("password")}
-                    className="w-full h-[48px] pl-11 pr-11 bg-zinc-50 dark:bg-zinc-900/40 border border-zinc-200/80 dark:border-zinc-800/80 focus-visible:border-primary/50 focus-visible:ring-primary/20 rounded-[12px] text-[14px] font-medium placeholder:text-muted-foreground/50 transition-all duration-200"
-                    aria-invalid={!!errors.password}
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-4 top-1/2 -translate-y-1/2 text-muted-foreground/60 hover:text-foreground transition-colors cursor-pointer p-1"
-                  >
-                    {showPassword ? <EyeOff className="h-4.5 w-4.5" /> : <Eye className="h-4.5 w-4.5" />}
-                  </button>
-                </div>
-                {errors.password && <FieldError errors={[errors.password]} />}
-              </div>
-
-              {/* Submit Button */}
-              <Button
-                type="submit"
-                disabled={isSubmitting}
-                className="h-[48px] w-full rounded-full bg-primary hover:bg-primary/95 text-primary-foreground font-bold text-[14px] shadow-md shadow-primary/10 tracking-[0.2px] transition-all flex items-center justify-center gap-2 cursor-pointer mt-2 active:scale-[0.98] disabled:opacity-50 border-0"
-              >
-                {isSubmitting ? "Registrando Administrador..." : "Registrar Administrador"}
-                <ArrowRight className="h-4.5 w-4.5" />
-              </Button>
-            </div>
-          )}
-
-        </form>
-
-        {/* Footer */}
-        <footer className="pt-2 mt-1 w-full border-t border-border/60 dark:border-border/10 flex flex-col gap-3 items-center">
-          <p className="text-[13px] text-muted-foreground font-medium">
-            ¿Ya tienes una cuenta?{" "}
-            <Link 
-              href="/login" 
-              className="text-primary font-bold hover:underline ml-0.5 transition-colors tracking-[0.1px]"
+            {/* Submit Button */}
+            <button
+              type="submit"
+              disabled={isSubmitting}
+              className="w-full h-[56px] mt-3 rounded-[16px] bg-[#1f2732] hover:bg-[#2f3c4b] text-white font-bold text-[16px] tracking-[-0.2px] shadow-md shadow-[#1f2732]/10 transition-all duration-200 flex items-center justify-center gap-2 cursor-pointer active:scale-[0.99] disabled:opacity-50 disabled:pointer-events-none"
             >
-              Inicia Sesión
-            </Link>
-          </p>
+              {isSubmitting ? (
+                <>
+                  <Loader2 className="size-5 animate-spin text-white/80" />
+                  <span>Registrando...</span>
+                </>
+              ) : (
+                <span>Registrar Administrador</span>
+              )}
+            </button>
 
-          <p className="text-[11px] text-muted-foreground text-center font-medium leading-relaxed max-w-[340px] mx-auto border-t border-border/40 dark:border-border/5 pt-3 w-full">
-            Al continuar, aceptas nuestros{" "}
-            <a className="underline hover:text-foreground transition-colors" href="#">
-              Términos de Servicio
-            </a>{" "}
-            y{" "}
-            <a className="underline hover:text-foreground transition-colors" href="#">
-              Política de Privacidad
-            </a>
-            .
-          </p>
-        </footer>
-
+            {/* Navigation Link to Login */}
+            <div className="mt-4 text-center">
+              <span className="text-[#5c7c9b] dark:text-zinc-400 text-[14px] font-medium">
+                ¿Ya tienes una cuenta?{" "}
+              </span>
+              <Link
+                href="/login"
+                className="text-[#1f2732] dark:text-zinc-100 font-bold text-[14px] hover:underline transition-colors"
+              >
+                Inicia Sesión
+              </Link>
+            </div>
+          </form>
+        </div>
       </div>
     </main>
   );

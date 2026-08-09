@@ -18,7 +18,8 @@ import {
   BrainCircuit,
   TrendingUp,
   X,
-  DollarSign
+  DollarSign,
+  LayoutDashboard
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -38,9 +39,10 @@ import {
   SheetTrigger,
 } from "@/components/ui/sheet";
 import { cn } from "@/lib/utils";
+import { useUserSession } from "@/modules/auth/hooks/use-user-session";
 
 export function Navbar() {
-  const { theme, setTheme } = useTheme();
+  const { user, role, isLoading, dashboardUrl } = useUserSession();
   const [mounted, setMounted] = useState(false);
   const [openMobile, setOpenMobile] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
@@ -234,30 +236,31 @@ export function Navbar() {
           </nav>
         </div>
 
-        {/* Right Side: Theme, Auth Actions, Mobile Menu */}
+        {/* Right Side: Auth Actions, Mobile Menu */}
         <div className="flex items-center gap-3">
-
-          {/* Theme Switcher */}
-          {mounted && (
-            <Button
-              variant="ghost"
-              size="icon"
-              className="rounded-xl hover:bg-muted/50 shrink-0 text-muted-foreground hover:text-foreground cursor-pointer"
-              onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
-              aria-label="Alternar tema oscuro"
-            >
-              {theme === "dark" ? <Sun className="size-4.5" /> : <Moon className="size-4.5" />}
-            </Button>
-          )}
 
           {/* Desktop Auth Actions */}
           <div className="hidden lg:flex items-center gap-3">
-            <Button variant="ghost" className="h-12 px-6 rounded-full font-semibold text-sm tracking-[0.24px]" asChild>
-              <Link href="/login">Iniciar Sesión</Link>
-            </Button>
-            <Button className="h-12 px-6 rounded-full bg-primary hover:bg-primary/95 text-primary-foreground font-semibold text-sm tracking-[0.24px] transition-all duration-200" asChild>
-              <Link href="/register">Registrarse</Link>
-            </Button>
+            {isLoading ? (
+              <div className="h-10 w-36 bg-muted/60 animate-pulse rounded-full" />
+            ) : user ? (
+              <Button className="h-12 px-6 rounded-full bg-primary hover:bg-primary/95 text-primary-foreground font-semibold text-sm tracking-[0.24px] transition-all duration-200 flex items-center gap-2" asChild>
+                <Link href={dashboardUrl}>
+                  <LayoutDashboard className="size-4" />
+                  <span>Ir a mi Panel ({role === "admin" ? "Admin" : role === "company" ? "Empresa" : "Candidato"})</span>
+                  <ArrowRight className="size-4" />
+                </Link>
+              </Button>
+            ) : (
+              <>
+                <Button variant="ghost" className="h-12 px-6 rounded-full font-semibold text-sm tracking-[0.24px]" asChild>
+                  <Link href="/login">Iniciar Sesión</Link>
+                </Button>
+                <Button className="h-12 px-6 rounded-full bg-primary hover:bg-primary/95 text-primary-foreground font-semibold text-sm tracking-[0.24px] transition-all duration-200" asChild>
+                  <Link href="/register">Registrarse</Link>
+                </Button>
+              </>
+            )}
           </div>
 
           {/* Mobile Drawer Trigger (Sheet) */}
@@ -334,30 +337,29 @@ export function Navbar() {
 
               {/* Mobile Auth actions */}
               <div className="space-y-3 pt-6 border-t border-border/50">
-                {mounted && (
-                  <div className="flex items-center justify-between px-3 py-2 rounded-xl bg-muted/40">
-                    <span className="text-xs font-medium text-muted-foreground">Modo Oscuro</span>
-                    <Button
-                      variant="ghost"
-                      size="icon-sm"
-                      className="rounded-lg hover:bg-muted/80 text-muted-foreground hover:text-foreground"
-                      onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
-                      aria-label="Alternar tema oscuro"
-                    >
-                      {theme === "dark" ? <Sun className="size-4" /> : <Moon className="size-4" />}
+                {isLoading ? (
+                  <div className="h-12 w-full bg-muted/60 animate-pulse rounded-full" />
+                ) : user ? (
+                  <Button className="w-full h-12 rounded-full bg-primary hover:bg-primary/95 justify-center font-semibold text-primary-foreground text-sm tracking-[0.24px] flex items-center gap-2" asChild>
+                    <Link href={dashboardUrl} onClick={() => setOpenMobile(false)}>
+                      <LayoutDashboard className="size-4" />
+                      <span>Ir a mi Panel</span>
+                      <ArrowRight className="size-4 ml-1" />
+                    </Link>
+                  </Button>
+                ) : (
+                  <>
+                    <Button variant="outline" className="w-full h-12 rounded-full justify-center font-semibold text-sm tracking-[0.24px]" asChild>
+                      <Link href="/login" onClick={() => setOpenMobile(false)}>Iniciar Sesión</Link>
                     </Button>
-                  </div>
+
+                    <Button className="w-full h-12 rounded-full bg-primary hover:bg-primary/95 justify-center font-semibold text-primary-foreground text-sm tracking-[0.24px] transition-all duration-200" asChild>
+                      <Link href="/register" onClick={() => setOpenMobile(false)}>
+                        Registrarse Gratis <ArrowRight className="size-4 ml-1.5" />
+                      </Link>
+                    </Button>
+                  </>
                 )}
-
-                <Button variant="outline" className="w-full h-12 rounded-full justify-center font-semibold text-sm tracking-[0.24px]" asChild>
-                  <Link href="/login" onClick={() => setOpenMobile(false)}>Iniciar Sesión</Link>
-                </Button>
-
-                <Button className="w-full h-12 rounded-full bg-primary hover:bg-primary/95 justify-center font-semibold text-primary-foreground text-sm tracking-[0.24px] transition-all duration-200" asChild>
-                  <Link href="/register" onClick={() => setOpenMobile(false)}>
-                    Registrarse Gratis <ArrowRight className="size-4 ml-1.5" />
-                  </Link>
-                </Button>
               </div>
 
             </SheetContent>

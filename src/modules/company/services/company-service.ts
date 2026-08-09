@@ -36,49 +36,65 @@ export const companyService = {
   async updateProfile(userId: string, profile: CompanyProfileFormValues) {
     const supabase = createClient();
 
-    // 1. Retrieve the current location from profiles base to ensure it is not overwritten
-    const { data: currentProfile } = await supabase
-      .from("profiles")
-      .select("location")
-      .eq("id", userId)
-      .single();
+    const finalLocation = profile.location || "Mérida";
 
-    const currentLoc = currentProfile?.location || "";
+    const companyPayload = {
+      company_name: profile.company_name,
+      industry: profile.industry || "General",
+      fiscal_address: finalLocation || profile.address_details || "Mérida, Yucatán",
+      website_url: profile.website || null,
+      logo_url: profile.logo_url || null,
+      banner_url: profile.banner_url || null,
+      description: profile.description || null,
+      contact_phone: profile.phone || null,
+      company_size: profile.company_size || null,
+      address_details: profile.address_details || null,
+      operation_hours: profile.operation_hours || null,
+      social_links: {
+        instagram: profile.instagram_url || null,
+        facebook: profile.facebook_url || null,
+        has_transport: profile.has_transport,
+        benefit_canteen: profile.benefit_canteen,
+        benefit_tips: profile.benefit_tips,
+        benefit_imss: profile.benefit_imss,
+        benefit_uniforms: profile.benefit_uniforms,
+        benefit_growth: profile.benefit_growth,
+      },
+      updated_at: new Date().toISOString(),
+    };
 
-    // Use current location if the incoming location is empty/invalid
-    const finalLocation = (profile.location && profile.location.includes(" - "))
-      ? profile.location
-      : (currentLoc || null);
+    // Parallel update for base profiles and company_profiles extension
+    const [baseRes, updateRes] = await Promise.all([
+      supabase
+        .from("profiles")
+        .update({
+          full_name: profile.company_name,
+          avatar_url: profile.logo_url || null,
+          location: finalLocation,
+          updated_at: new Date().toISOString(),
+        })
+        .eq("id", userId),
+      supabase
+        .from("company_profiles")
+        .update(companyPayload as any)
+        .eq("id", userId)
+        .select("id")
+    ]);
 
-    // 2. Update the base profiles table first (FK target must exist)
-    const { error: baseError } = await supabase
-      .from("profiles")
-      .update({
-        full_name: profile.company_name,
-        avatar_url: profile.logo_url || null,
-        location: finalLocation,
-        updated_at: new Date().toISOString(),
-      })
-      .eq("id", userId);
+    if (baseRes.error) throw baseRes.error;
+    if (updateRes.error) throw updateRes.error;
 
-    if (baseError) throw baseError;
+    if (!updateRes.data || updateRes.data.length === 0) {
+      const { error: upsertErr } = await supabase
+        .from("company_profiles")
+        .upsert({
+          id: userId,
+          rfc: "XAXX010101000",
+          ...(companyPayload as any),
+        });
 
-    // 3. Upsert into company_profiles extension table second (respecting FK constraints)
-    const { error: companyError } = await supabase
-      .from("company_profiles")
-      .upsert({
-        id: userId,
-        company_name: profile.company_name,
-        industry: profile.industry,
-        website_or_linkedin: profile.website || null,
-        logo_url: profile.logo_url || null,
-        description: profile.description || null,
-        phone: profile.phone || null,
-        company_size: profile.company_size || null,
-        updated_at: new Date().toISOString(),
-      });
-
-    if (companyError) throw companyError;
+      if (upsertErr) throw upsertErr;
+    }
   },
 
   async getVacancies(companyId: string) {
@@ -110,8 +126,8 @@ export const companyService = {
       employment_type: vacancy.employment_type || null,
       application_deadline: vacancy.application_deadline || null,
       benefits: splitCsv(vacancy.benefits),
-      salary_min: vacancy.salary_min ?? null,
-      salary_max: vacancy.salary_max ?? null,
+      salary_min: vacancy.salary_min && !isNaN(Number(vacancy.salary_min)) ? Number(vacancy.salary_min) : null,
+      salary_max: vacancy.salary_max && !isNaN(Number(vacancy.salary_max)) ? Number(vacancy.salary_max) : null,
       currency: vacancy.currency || "USD",
       skills: splitCsv(vacancy.skills),
       status: "Activa",
@@ -133,63 +149,76 @@ export const companyService = {
 
   async getApplications(companyId: string) {
     const supabase = createClient();
+
+    // 1. Fetch company vacancy IDs
+    const { data: userVacs } = await supabase
+      .from("vacancies")
+      .select("id")
+      .eq("company_id", companyId);
+
+    const vacIds = (userVacs || []).map((v) => v.id);
+
+    if (vacIds.length === 0) return [];
+
+    // 2. Fetch applications filtered directly in PostgreSQL
     const { data, error } = await supabase
       .from("applications")
       .select(`
         id,
         status,
-        created_at,
+        applied_at,
         vacancy_id,
         vacancies (
           id,
           title,
           company_id
         ),
-        candidate:profiles (
+        candidate:candidate_profiles (
           id,
-          full_name,
-          location,
-          avatar_url,
-          email,
-          candidate_profiles (
-            headline,
-            bio,
-            phone,
-            skills,
-            experience,
-            education
+          headline,
+          bio,
+          skills,
+          experience,
+          education,
+          profiles (
+            id,
+            full_name,
+            location,
+            avatar_url,
+            email,
+            whatsapp_number
           )
         )
       `)
-      .order("created_at", { ascending: false });
+      .in("vacancy_id", vacIds)
+      .order("applied_at", { ascending: false });
 
     if (error) throw error;
 
-    const flattened = (data || []).map((app: any) => {
-      // Find candidate profiles extension and merge it for backwards compatibility with legacy layout
-      const extension = app.candidate?.candidate_profiles;
-      const extensionObj = Array.isArray(extension) ? extension[0] : extension;
-      
+    return (data || []).map((app: any) => {
+      const candidateObj = app.candidate;
+      const candidateProfile = Array.isArray(candidateObj) ? candidateObj[0] : candidateObj;
+      const baseProfile = candidateProfile?.profiles
+        ? (Array.isArray(candidateProfile.profiles) ? candidateProfile.profiles[0] : candidateProfile.profiles)
+        : {};
+
       return {
         ...app,
-        candidate: app.candidate ? {
-          id: app.candidate.id,
-          full_name: app.candidate.full_name,
-          location: app.candidate.location,
-          avatar_url: app.candidate.avatar_url,
-          email: app.candidate.email,
-          headline: extensionObj?.headline || null,
-          bio: extensionObj?.bio || null,
-          phone: extensionObj?.phone || null,
-          skills: extensionObj?.skills || null,
-          experience: extensionObj?.experience || null,
-          education: extensionObj?.education || null,
+        candidate: candidateProfile ? {
+          id: candidateProfile.id,
+          full_name: baseProfile.full_name,
+          location: baseProfile.location,
+          avatar_url: baseProfile.avatar_url,
+          email: baseProfile.email,
+          headline: candidateProfile.headline,
+          bio: candidateProfile.bio,
+          phone: baseProfile.whatsapp_number,
+          skills: candidateProfile.skills,
+          experience: candidateProfile.experience,
+          education: candidateProfile.education,
         } : null
       };
     });
-    
-    // Filter records in memory to match vacancy owner
-    return flattened.filter((app: any) => app.vacancies?.company_id === companyId);
   },
 
   async updateApplicationStatus(applicationId: string, status: string) {

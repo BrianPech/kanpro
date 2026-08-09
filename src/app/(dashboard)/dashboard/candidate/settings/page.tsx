@@ -1,5 +1,5 @@
-import { CandidateSettingsView } from "@/modules/candidate/components/candidate-settings-view";
+import { redirect } from "next/navigation";
 
 export default function CandidateSettingsPage() {
-  return <CandidateSettingsView />;
+  redirect("/dashboard/candidate/profile");
 }

@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useForm } from "react-hook-form";
+import { useForm, type SubmitHandler } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
@@ -19,9 +19,8 @@ export function useCompanyRegisterForm() {
     }
   });
 
-  const onSubmit = async (data: CompanyRegisterValues) => {
+  const onSubmit: SubmitHandler<CompanyRegisterValues> = async (data) => {
     try {
-      console.log("Iniciando registro...");
       await authService.signUpCompany(data);
       
       toast.success("Cuenta creada", {
@@ -31,7 +30,7 @@ export function useCompanyRegisterForm() {
       router.push("/dashboard/company");
       router.refresh();
     } catch (error: unknown) {
-      console.error("Error capturado en onSubmit:", error);
+      console.error("Error capturado en onSubmit de empresa:", error);
       const errorMessage = error instanceof Error ? error.message : "No se pudo crear la cuenta.";
       toast.error("Error al registrar", {
         description: errorMessage
@@ -41,10 +40,11 @@ export function useCompanyRegisterForm() {
 
   return {
     register: form.register,
-    handleSubmit: (onValid: any) => form.handleSubmit(onValid, (errors) => {
-      console.error("❌ Errores de validación ocultos de Zod:", errors);
-      toast.error("Por favor rellena todos los campos requeridos.");
-    }),
+    handleSubmit: (onValid: SubmitHandler<CompanyRegisterValues>) =>
+      form.handleSubmit(onValid, (errors) => {
+        console.error("Errores de validación de Zod:", errors);
+        toast.error("Por favor rellena todos los campos requeridos con datos válidos.");
+      }),
     errors: form.formState.errors,
     isSubmitting: form.formState.isSubmitting,
     showPassword,

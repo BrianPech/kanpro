@@ -1,15 +1,10 @@
-import * as React from "react"
-import { CandidateRadar } from "@/modules/company/components/candidate-radar"
-import { createClient } from "@/lib/supabase/server"
-import { redirect } from "next/navigation"
+import { CandidateRadar } from "@/modules/company/components/candidate-radar";
 
-export default async function RadarPage() {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
+export const metadata = {
+  title: "Radar de Candidatos | K'anPro",
+  description: "Busca y explora talento disponible en Mérida y Riviera Maya.",
+};
 
-  if (!user) {
-    redirect("/login")
-  }
-
-  return <CandidateRadar />
+export default function CandidateRadarPage() {
+  return <CandidateRadar />;
 }

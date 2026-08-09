@@ -70,3 +70,27 @@ export function getCoordsForZone(locationStr: string | null | undefined): GeoCoo
 
   return null;
 }
+
+/**
+ * Finds the nearest city and zone from GEO_CONFIG given lat/lng coordinates.
+ */
+export function findNearestCityAndZone(lat: number, lng: number): { city: string; zone: string } {
+  let minDistance = Infinity;
+  let bestCity = "Mérida";
+  let bestZone = "Centro Mérida";
+
+  for (const [cityName, cityInfo] of Object.entries(GEO_CONFIG)) {
+    for (const [zoneName, zoneInfo] of Object.entries(cityInfo.zones)) {
+      const dLat = zoneInfo.coords.lat - lat;
+      const dLng = zoneInfo.coords.lng - lng;
+      const dist = dLat * dLat + dLng * dLng;
+      if (dist < minDistance) {
+        minDistance = dist;
+        bestCity = cityName;
+        bestZone = zoneName;
+      }
+    }
+  }
+
+  return { city: bestCity, zone: bestZone };
+}

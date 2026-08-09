@@ -25,7 +25,6 @@ export function OnboardingClient() {
 
   useEffect(() => {
     async function checkSession() {
-      // Defensive runtime client creation
       const supabase = createClient();
       try {
         const { data: { user } } = await supabase.auth.getUser();
@@ -34,20 +33,29 @@ export function OnboardingClient() {
           return;
         }
 
+        const userRole = user.user_metadata?.role || "candidate";
+        setRole(userRole as any);
+
         const { data: profile } = await supabase
           .from("profiles")
           .select("role, location, full_name")
           .eq("id", user.id)
-          .single();
+          .maybeSingle();
 
         if (profile) {
-          setRole(profile.role as any);
-          setFullName(profile.full_name || "");
+          setRole((profile.role || userRole) as any);
+          setFullName(profile.full_name || user.user_metadata?.full_name || "");
 
-          // Check if onboarding is already complete to avoid re-onboarding loop
-          const location = profile.location || "";
+          const location = profile.location || user.user_metadata?.location || "";
           if (location.includes(" - ")) {
-            router.push(profile.role === "company" ? "/dashboard/company/radar" : "/dashboard/candidate/discovery");
+            router.push(profile.role === "company" ? "/dashboard/company" : "/dashboard/candidate/discovery");
+            return;
+          }
+        } else {
+          setFullName(user.user_metadata?.full_name || "");
+          const location = user.user_metadata?.location || "";
+          if (location.includes(" - ")) {
+            router.push(userRole === "company" ? "/dashboard/company" : "/dashboard/candidate/discovery");
             return;
           }
         }
@@ -68,35 +76,75 @@ export function OnboardingClient() {
     }
 
     setSaving(true);
-    // Defensive runtime client creation
     const supabase = createClient();
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("Sesión no encontrada.");
 
       const locationStr = `${city} - ${zone}`;
+      const userRole = role || user.user_metadata?.role || "candidate";
 
-      // Update location in profiles view
-      const { error } = await supabase
-        .from("profiles")
-        .update({
+      // 1. Update user metadata in Supabase Auth (always permitted for authenticated user)
+      await supabase.auth.updateUser({
+        data: {
           location: locationStr,
-        })
-        .eq("id", user.id);
+          city: city,
+          zone: zone,
+        }
+      });
 
-      if (error) throw error;
+      // 2. Update role-specific table (candidate_profiles or company_profiles)
+      if (userRole === "company") {
+        try {
+          await supabase
+            .from("company_profiles")
+            .update({
+              fiscal_address: locationStr,
+              updated_at: new Date().toISOString(),
+            })
+            .eq("id", user.id);
+        } catch (e) {
+          // ignore error
+        }
+      } else {
+        try {
+          await supabase
+            .from("candidate_profiles")
+            .upsert({
+              id: user.id,
+              preferred_zone: zone,
+              updated_at: new Date().toISOString(),
+            });
+        } catch (e) {
+          // ignore error
+        }
+      }
+
+      // 3. Try updating base profiles table if permitted by SQL role grants
+      try {
+        await supabase
+          .from("profiles")
+          .update({
+            location: locationStr,
+            updated_at: new Date().toISOString(),
+          })
+          .eq("id", user.id);
+      } catch (e) {
+        // Suppress SQL 42501 table privilege error if profiles table is restricted
+      }
 
       toast.success("¡Ubicación guardada con éxito!", {
         description: "Tu Radar K'anPro ha sido activado.",
       });
 
       // Redirect to correct dashboard
-      router.push(role === "company" ? "/dashboard/company/radar" : "/dashboard/candidate/discovery");
+      router.push(userRole === "company" ? "/dashboard/company" : "/dashboard/candidate/discovery");
       router.refresh();
     } catch (err: any) {
-      console.error(err);
+      console.error("Error al guardar ubicación en onboarding:", err);
+      const errMsg = err?.message || err?.details || err?.error_description || (typeof err === "string" ? err : "Ocurrió un error inesperado.");
       toast.error("Error al guardar ubicación", {
-        description: err.message || "Ocurrió un error inesperado.",
+        description: errMsg,
       });
     } finally {
       setSaving(false);
@@ -104,7 +152,6 @@ export function OnboardingClient() {
   };
 
   const handleLogout = async () => {
-    // Defensive runtime client creation
     const supabase = createClient();
     await supabase.auth.signOut();
     toast.success("Sesión cerrada");

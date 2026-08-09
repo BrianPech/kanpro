@@ -84,11 +84,11 @@ export function NotificationBell({ userId }: NotificationBellProps) {
         <Button
           variant="ghost"
           size="icon"
-          className="relative rounded-full text-muted-foreground hover:bg-muted hover:text-foreground transition-all duration-300"
+          className="relative h-11 w-11 rounded-full text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-900 hover:text-zinc-900 dark:hover:text-zinc-100 transition-all duration-200 cursor-pointer"
         >
-          <Bell className="h-5 w-5" />
+          <Bell className="h-6 w-6 stroke-[2]" />
           {unreadCount > 0 && (
-            <span className="absolute -right-0.5 -top-0.5 flex h-4.5 w-4.5 items-center justify-center rounded-full bg-[#494fdf] text-[9px] font-extrabold text-white ring-2 ring-background animate-in zoom-in-50 duration-200">
+            <span className="absolute -right-0.5 -top-0.5 flex h-5 w-5 items-center justify-center rounded-full bg-[#1f2732] dark:bg-zinc-100 text-[10px] font-bold text-white dark:text-zinc-900 ring-2 ring-background animate-in zoom-in-50 duration-200">
               {unreadCount}
             </span>
           )}

@@ -12,11 +12,15 @@ export function useAdminRegisterForm() {
 
   const form = useForm<AdminRegisterValues>({
     resolver: zodResolver(adminRegisterSchema),
+    defaultValues: {
+      fullName: "",
+      email: "",
+      password: "",
+    },
   });
 
   const onSubmit = async (data: AdminRegisterValues) => {
     try {
-      console.log("Iniciando registro de administrador...");
       await authService.signUpAdmin(data);
       
       toast.success("Cuenta de Administrador creada", {
@@ -26,7 +30,7 @@ export function useAdminRegisterForm() {
       router.push("/dashboard/admin");
       router.refresh();
     } catch (error: unknown) {
-      console.error("Error capturado en onSubmit:", error);
+      console.error("Error capturado en onSubmit de administrador:", error);
       const errorMessage = error instanceof Error ? error.message : "No se pudo crear la cuenta de administrador.";
       toast.error("Error al registrar", {
         description: errorMessage

@@ -17,12 +17,22 @@ import {
   Phone,
   ArrowLeft,
   BriefcaseIcon,
-  Loader2
+  Loader2,
+  FileText,
+  ShieldCheck,
+  Lock,
+  Clock,
+  Download,
+  Save,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
+import { Textarea } from "@/components/ui/textarea"
+import { Badge } from "@/components/ui/badge"
 import { toast } from "sonner"
+import { cn } from "@/lib/utils"
 import { useApplicationsInbox, type Applicant } from "../hooks/use-applications-inbox"
+import { requestDocumentAccess, getDocumentAccessStatus } from "../actions/document-access"
 
 export function ApplicationsInbox() {
   // Assume a default company user id or let Supabase fetch current user inside hook
@@ -40,13 +50,65 @@ export function ApplicationsInbox() {
     handleUpdateStatus,
     getWhatsAppLink,
     handleContactApplicant,
-  } = useApplicationsInbox() // Fetch logic inside hooks takes care of user sessions
+    handleUpdateNotes,
+    handleUpdateRating,
+    handleExportCSV,
+  } = useApplicationsInbox()
 
   const [mobileDetailOpen, setMobileDetailOpen] = React.useState(false)
+  const [docAccessState, setDocAccessState] = React.useState<{ status: string; id?: string } | null>(null)
+  const [isRequestingDocs, setIsRequestingDocs] = React.useState(false)
+  const [noteText, setNoteText] = React.useState("")
 
-  // Filter roster based on search text and vacancy selector
+  React.useEffect(() => {
+    if (selectedApplicant) {
+      setNoteText(selectedApplicant.internalNotes || "")
+    }
+  }, [selectedApplicant])
+
+  // Fetch document access request status when selected applicant changes
+  React.useEffect(() => {
+    async function loadDocStatus() {
+      if (selectedApplicant?.id && !selectedApplicant.id.startsWith("mock-")) {
+        try {
+          const docReq = await getDocumentAccessStatus(selectedApplicant.id)
+          if (docReq) {
+            setDocAccessState({ status: docReq.status, id: docReq.id })
+          } else {
+            setDocAccessState(null)
+          }
+        } catch (e) {
+          setDocAccessState(null)
+        }
+      } else {
+        setDocAccessState(null)
+      }
+    }
+    loadDocStatus()
+  }, [selectedApplicant])
+
+  const handleRequestDocuments = async () => {
+    if (!selectedApplicant) return
+    setIsRequestingDocs(true)
+    try {
+      const res = await requestDocumentAccess(selectedApplicant.id, selectedApplicant.candidateId)
+      setDocAccessState({ status: res.status, id: res.requestId })
+      toast.success("Solicitud de documentos enviada", {
+        description: res.message || "Se ha enviado una notificación al candidato para autorizar el acceso."
+      })
+    } catch (err: any) {
+      toast.error("Error al solicitar documentos", {
+        description: err.message || "No se pudo procesar la solicitud."
+      })
+    } finally {
+      setIsRequestingDocs(false)
+    }
+  }
+  const [sortBy, setSortBy] = React.useState<"newest" | "rating">("newest")
+
+  // Filter and sort roster based on search text, vacancy selector, and sort mode
   const filteredApplicants = React.useMemo(() => {
-    return applicants.filter((app) => {
+    const list = applicants.filter((app) => {
       // Search text filter
       const matchesSearch = searchQuery
         ? app.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -59,7 +121,12 @@ export function ApplicationsInbox() {
 
       return matchesSearch && matchesVacancy
     })
-  }, [applicants, searchQuery, selectedVacancyId])
+
+    if (sortBy === "rating") {
+      return [...list].sort((a, b) => (b.rating || 0) - (a.rating || 0))
+    }
+    return list
+  }, [applicants, searchQuery, selectedVacancyId, sortBy])
 
   const selectApplicantOnMobile = (id: string) => {
     setSelectedId(id)
@@ -70,8 +137,19 @@ export function ApplicationsInbox() {
     await handleUpdateStatus(id, status)
   }
 
+  const toggleSortMode = () => {
+    const nextMode = sortBy === "newest" ? "rating" : "newest"
+    setSortBy(nextMode)
+    toast.success(
+      nextMode === "rating" ? "Ordenado por Calificación" : "Ordenado por Más Recientes",
+      {
+        description: nextMode === "rating" ? "Postulantes con mayor número de estrellas primero." : "Postulaciones más recientes primero."
+      }
+    )
+  }
+
   return (
-    <div className="flex-grow flex h-[calc(100vh-65px)] overflow-hidden bg-background selection:bg-primary/20 animate-in fade-in duration-300">
+    <div className="flex-grow flex h-[calc(100vh-80px)] overflow-hidden bg-background selection:bg-primary/20 animate-in fade-in duration-300">
       
       {/* ================= LEFT COLUMN: APPLICANTS ROSTER (40% width, hidden on mobile if detail is open) ================= */}
       <div className={`w-full md:w-[40%] flex flex-col border-r border-border/40 bg-card/10 relative h-full ${
@@ -79,14 +157,24 @@ export function ApplicationsInbox() {
       }`}>
         
         {/* Roster Header */}
-        <div className="p-6 border-b border-border/40 flex flex-col gap-4 bg-background/50 backdrop-blur-sm shrink-0">
-          <div className="flex justify-between items-center">
-            <h2 className="text-xl font-extrabold text-foreground tracking-tight md:text-2xl">
-              Postulantes
-            </h2>
-            <span className="bg-primary/10 text-primary px-3 py-1 rounded-full font-bold text-xs font-sans tracking-wide">
-              {filteredApplicants.length} Encontrados
-            </span>
+        <div className="p-4 sm:p-5 border-b border-border/40 flex flex-col gap-3 bg-background/50 backdrop-blur-sm shrink-0">
+          <div className="flex justify-between items-center gap-2">
+            <span className="text-xs sm:text-sm font-bold text-muted-foreground">Filtrar por Vacante:</span>
+            <div className="flex items-center gap-2">
+              <span className="bg-[#1f2732] dark:bg-zinc-100 text-white dark:text-zinc-900 px-3 py-1 rounded-full font-bold text-xs tracking-wide">
+                {filteredApplicants.length} Encontrados
+              </span>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => handleExportCSV(filteredApplicants)}
+                title="Exportar postulantes filtrados a CSV / Excel"
+                className="h-8 px-2.5 rounded-full border-border/60 text-xs font-bold gap-1 bg-background hover:bg-muted shadow-none"
+              >
+                <Download className="size-3.5 text-emerald-600 dark:text-emerald-400" />
+                <span className="hidden sm:inline">CSV</span>
+              </Button>
+            </div>
           </div>
 
           {/* Vacancy Filter Dropdown */}
@@ -94,7 +182,7 @@ export function ApplicationsInbox() {
             <select
               value={selectedVacancyId}
               onChange={(e) => setSelectedVacancyId(e.target.value)}
-              className="w-full h-10 px-3 bg-muted/40 border border-border/40 rounded-xl text-xs font-bold text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20"
+              className="w-full h-11 px-3.5 bg-muted/40 border border-border/40 rounded-[14px] text-xs sm:text-sm font-bold text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 cursor-pointer"
             >
               <option value="all">Todas las vacantes</option>
               {vacancies.map((vac) => (
@@ -107,21 +195,24 @@ export function ApplicationsInbox() {
         </div>
 
         {/* Search & Filter Mini Pane inside roster */}
-        <div className="px-6 py-4 border-b border-border/30 shrink-0 bg-background/20 flex gap-2">
+        <div className="px-6 py-4 border-b border-border/30 shrink-0 bg-background/20 flex gap-2.5">
           <div className="relative flex-grow">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground size-3.5" />
+            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-muted-foreground size-4 pointer-events-none" />
             <Input 
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-9 pr-3 py-4 h-9 bg-card border-border/60 rounded-full text-xs font-semibold focus-visible:ring-primary/20"
+              className="w-full pl-10 pr-3 py-4 h-11 bg-card border-border/60 rounded-[14px] text-sm font-semibold focus-visible:ring-primary/20"
               placeholder="Buscar por nombre, puesto o habilidad..."
             />
           </div>
           <Button 
             variant="outline" 
             size="icon" 
-            onClick={() => toast.info("Filtros avanzados", { description: "Próximamente filtros por afinidad e historial." })}
-            className="size-9 rounded-full border-border/60 text-muted-foreground hover:text-foreground shrink-0 shadow-sm"
+            onClick={toggleSortMode}
+            title={sortBy === "rating" ? "Ordenado por Calificación" : "Ordenado por Fecha"}
+            className={`size-9 rounded-full border-border/60 shrink-0 shadow-sm transition-all ${
+              sortBy === "rating" ? "bg-amber-500/10 text-amber-600 border-amber-500/30" : "text-muted-foreground hover:text-foreground"
+            }`}
           >
             <Filter className="size-3.5" />
           </Button>
@@ -387,6 +478,162 @@ export function ApplicationsInbox() {
                     </div>
                   )}
                 </div>
+              </div>
+
+              {/* Internal Evaluation Rating & Private Recruiter Notes */}
+              <div className="glass-panel p-6 md:p-8 rounded-[24px] shadow-sm bg-background border border-border/50 space-y-4">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
+                    <Star className="size-3.5 text-amber-500 fill-amber-500" /> Evaluación Interna y Notas del Reclutador
+                  </h3>
+                  <Badge variant="outline" className="text-[10px] font-bold text-muted-foreground border-border/60">
+                    Solo visible para tu empresa
+                  </Badge>
+                </div>
+
+                {/* Rating Selector */}
+                <div className="space-y-2">
+                  <span className="text-xs font-extrabold text-foreground block">Calificación del candidato:</span>
+                  <div className="flex items-center gap-1.5">
+                    {[1, 2, 3, 4, 5].map((star) => (
+                      <button
+                        key={star}
+                        type="button"
+                        onClick={() => handleUpdateRating(selectedApplicant.id, star)}
+                        className="p-1 hover:scale-110 transition-transform cursor-pointer"
+                        title={`Calificar con ${star} estrellas`}
+                      >
+                        <Star
+                          className={cn(
+                            "size-5 transition-colors",
+                            star <= (selectedApplicant.internalRating || selectedApplicant.rating || 5)
+                              ? "text-amber-500 fill-amber-500"
+                              : "text-muted-foreground/30"
+                          )}
+                        />
+                      </button>
+                    ))}
+                    <span className="text-xs font-bold text-amber-600 dark:text-amber-400 ml-2">
+                      {selectedApplicant.internalRating || selectedApplicant.rating || 5} de 5 Estrellas
+                    </span>
+                  </div>
+                </div>
+
+                {/* Private Notes Textarea */}
+                <div className="space-y-2 pt-1">
+                  <span className="text-xs font-extrabold text-foreground block">Notas privadas de entrevista / observaciones:</span>
+                  <Textarea
+                    value={noteText}
+                    onChange={(e) => setNoteText(e.target.value)}
+                    placeholder="Escribe aquí notas sobre la entrevista, sueldo pretendido o impresiones internas..."
+                    className="w-full min-h-[90px] bg-muted/30 border border-border/60 rounded-xl p-3 text-xs font-medium text-foreground focus-visible:ring-primary/20"
+                  />
+                  <div className="flex justify-end pt-1">
+                    <Button
+                      size="sm"
+                      onClick={() => handleUpdateNotes(selectedApplicant.id, noteText)}
+                      className="h-9 px-4 rounded-xl text-xs font-bold bg-primary hover:bg-primary/90 text-primary-foreground gap-1.5 shadow-none"
+                    >
+                      <Save className="size-3.5" />
+                      <span>Guardar Nota Privada</span>
+                    </Button>
+                  </div>
+                </div>
+              </div>
+
+              {/* Document Access Authorization Panel */}
+              <div className="glass-panel p-6 md:p-8 rounded-[24px] shadow-sm bg-background border border-border/50 space-y-4">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
+                    <ShieldCheck className="size-3.5 text-indigo-650" /> Expediente y Documentos de Contratación
+                  </h3>
+                  {docAccessState?.status === "approved" && (
+                    <Badge className="bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20 text-[10px] font-bold">
+                      ACCESO AUTORIZADO
+                    </Badge>
+                  )}
+                  {docAccessState?.status === "pending" && (
+                    <Badge variant="outline" className="text-amber-600 border-amber-500/30 bg-amber-500/10 text-[10px] font-bold">
+                      SOLICITUD ENVIADA
+                    </Badge>
+                  )}
+                  {docAccessState?.status === "rejected" && (
+                    <Badge variant="destructive" className="text-[10px] font-bold">
+                      ACCESO DECLINADO
+                    </Badge>
+                  )}
+                </div>
+
+                {!docAccessState && (
+                  <div className="space-y-3">
+                    <p className="text-xs text-muted-foreground">
+                      Por privacidad, la documentación personal del candidato (INE, CURP, RFC) permanece protegida hasta que el candidato autorice compartirla para este proceso de contratación.
+                    </p>
+                    <Button
+                      onClick={handleRequestDocuments}
+                      disabled={isRequestingDocs || selectedApplicant.id.startsWith("mock-")}
+                      className="w-full sm:w-auto px-6 py-2.5 h-auto rounded-xl text-xs font-bold bg-indigo-600 hover:bg-indigo-700 text-white gap-2"
+                    >
+                      {isRequestingDocs ? <Loader2 className="size-3.5 animate-spin" /> : <FileText className="size-3.5" />}
+                      <span>Solicitar Documentación para Contratación</span>
+                    </Button>
+                  </div>
+                )}
+
+                {docAccessState?.status === "pending" && (
+                  <div className="p-4 rounded-xl bg-amber-500/5 border border-amber-500/20 flex items-start gap-3">
+                    <Clock className="size-4 text-amber-600 dark:text-amber-400 mt-0.5 shrink-0" />
+                    <div>
+                      <h4 className="text-xs font-bold text-foreground">Solicitud Pendiente de Respuesta</h4>
+                      <p className="text-[11px] text-muted-foreground mt-0.5">
+                        Hemos notificado a {selectedApplicant.name}. En cuanto acepte compartir su expediente, se habilitará el acceso a sus documentos verificados.
+                      </p>
+                    </div>
+                  </div>
+                )}
+
+                {docAccessState?.status === "approved" && (
+                  <div className="space-y-3">
+                    <p className="text-xs text-muted-foreground">
+                      El candidato ha otorgado acceso a sus documentos verificados:
+                    </p>
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                      <div className="p-3 rounded-xl border border-border bg-muted/20 flex items-center justify-between">
+                        <div className="flex items-center gap-2 text-xs font-bold">
+                          <FileText className="size-4 text-indigo-600" />
+                          <span>Identificación (INE)</span>
+                        </div>
+                        <Badge variant="secondary" className="text-[9px]">Autorizado</Badge>
+                      </div>
+                      <div className="p-3 rounded-xl border border-border bg-muted/20 flex items-center justify-between">
+                        <div className="flex items-center gap-2 text-xs font-bold">
+                          <FileText className="size-4 text-indigo-600" />
+                          <span>CURP Oficial</span>
+                        </div>
+                        <Badge variant="secondary" className="text-[9px]">Autorizado</Badge>
+                      </div>
+                      <div className="p-3 rounded-xl border border-border bg-muted/20 flex items-center justify-between">
+                        <div className="flex items-center gap-2 text-xs font-bold">
+                          <FileText className="size-4 text-indigo-600" />
+                          <span>Constancia RFC</span>
+                        </div>
+                        <Badge variant="secondary" className="text-[9px]">Autorizado</Badge>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {docAccessState?.status === "rejected" && (
+                  <div className="p-4 rounded-xl bg-destructive/5 border border-destructive/20 flex items-start gap-3">
+                    <Lock className="size-4 text-destructive mt-0.5 shrink-0" />
+                    <div>
+                      <h4 className="text-xs font-bold text-foreground">Acceso No Otorgado</h4>
+                      <p className="text-[11px] text-muted-foreground mt-0.5">
+                        El candidato ha declinado compartir sus documentos personales para esta vacante.
+                      </p>
+                    </div>
+                  </div>
+                )}
               </div>
 
             </div>

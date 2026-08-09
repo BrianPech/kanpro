@@ -4,7 +4,7 @@ import * as React from "react";
 import {
   Settings,
   LayoutDashboard,
-  Sparkles,
+  Kanban,
   Users,
   ClipboardCheck,
   MessageSquare,
@@ -42,28 +42,28 @@ export function AdminSidebar() {
     <Sidebar
       variant="inset"
       collapsible="none"
-      className="hidden md:flex border-none peer"
+      className="hidden md:flex border-r border-border/20 bg-zinc-50/50 dark:bg-zinc-950/40 peer"
       data-variant="inset"
       data-state="expanded"
     >
-      <SidebarHeader className="h-20 px-6 flex items-center justify-center border-none">
-        <div className="flex w-full items-center gap-2 transition-all duration-300">
-          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-foreground shadow-md transition-all duration-300">
-            <Sparkles className="h-4 w-4 text-background" />
+      <SidebarHeader className="h-20 px-6 flex items-center justify-center border-b border-border/10">
+        <div className="flex w-full items-center gap-2.5 transition-all duration-300">
+          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-zinc-900 dark:bg-zinc-100 transition-all duration-300">
+            <Kanban className="h-4.5 w-4.5 text-zinc-100 dark:text-zinc-900" />
           </div>
-          <span className="text-[20px] font-semibold text-foreground tracking-[-0.04em]">
+          <span className="text-[18px] font-bold text-zinc-900 dark:text-zinc-50 tracking-[-0.03em]">
             K&apos;anPro
           </span>
         </div>
       </SidebarHeader>
 
-      <SidebarContent className="px-3 py-2">
+      <SidebarContent className="px-3 py-4">
         <SidebarGroup>
-          <SidebarGroupLabel className="text-[12px] uppercase tracking-[0.2em] font-semibold text-muted-foreground/60 mb-4 px-2">
+          <SidebarGroupLabel className="text-[11px] uppercase tracking-[0.18em] font-semibold text-zinc-400 dark:text-zinc-500 mb-4 px-2">
             Workspace
           </SidebarGroupLabel>
           <SidebarGroupContent>
-            <SidebarMenu className="gap-1.5">
+            <SidebarMenu className="gap-1">
               {navigation.map((item) => {
                 const isActive =
                   pathname === item.url ||
@@ -76,17 +76,17 @@ export function AdminSidebar() {
                       asChild
                       isActive={isActive}
                       tooltip={item.title}
-                      className="h-11 rounded-[14px] px-3.5 gap-3.5 hover:bg-muted/60 text-muted-foreground hover:text-foreground data-[active=true]:bg-primary data-[active=true]:text-primary-foreground data-[active=true]:shadow-sm transition-all duration-300"
+                      className="h-10 rounded-lg px-3 gap-3 hover:bg-zinc-100 dark:hover:bg-zinc-900/60 text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 data-[active=true]:bg-primary/10 dark:data-[active=true]:bg-primary/20 data-[active=true]:text-primary dark:data-[active=true]:text-primary-foreground transition-all duration-200 border border-transparent data-[active=true]:border-primary/10"
                     >
                       <Link
                         href={item.url}
-                        className="flex w-full items-center gap-3.5"
+                        className="flex w-full items-center gap-3"
                       >
                         <item.icon
-                          className={`size-4 shrink-0 transition-colors ${isActive ? "text-primary-foreground" : "text-muted-foreground group-hover:text-foreground"}`}
+                          className={`size-4 shrink-0 transition-colors ${isActive ? "text-primary dark:text-primary-foreground" : "text-zinc-400 group-hover:text-zinc-900 dark:group-hover:text-zinc-100"}`}
                         />
                         <span
-                          className={`text-[14px] tracking-tight ${isActive ? "font-semibold" : "font-medium"}`}
+                          className={`text-[13px] tracking-tight ${isActive ? "font-semibold" : "font-medium"}`}
                         >
                           {item.title}
                         </span>

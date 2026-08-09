@@ -1,10 +1,9 @@
 import * as React from "react";
 import { redirect } from "next/navigation";
-import { Sparkles, ShieldCheck, Users } from "lucide-react";
+import { Users } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 
 import { Badge } from "@/components/ui/badge";
-import { Card, CardContent } from "@/components/ui/card";
 import { AdminPlatformStats } from "@/modules/admin/components/admin-platform-stats";
 import { AdminProfilesManager } from "./profiles-manager";
 
@@ -28,56 +27,53 @@ export default async function AdminDashboard() {
     redirect("/login");
   }
 
-  // 3. Query candidates and companies from consolidated Supabase views
+  // 3. Query candidates and companies from real Supabase tables
   const [candidatesResult, companyProfilesResult] = await Promise.all([
     supabase
-      .from("profiles_view")
-      .select("id, full_name, role, location, skills, is_validated, avatar_url")
-      .eq("role", "candidate")
-      .order("created_at", { ascending: false }),
+      .from("candidate_profiles")
+      .select("id, skills, is_verified, profiles(full_name, location, avatar_url)"),
     supabase
-      .from("profiles_view")
-      .select("id, company_name, logo_url, location, is_validated")
-      .eq("role", "company")
-      .order("created_at", { ascending: false })
+      .from("company_profiles")
+      .select("id, company_name, logo_url, fiscal_address, is_verified")
   ]);
 
-  const candidates = (candidatesResult.data || []).map((c: any) => ({
-    id: c.id,
-    full_name: c.full_name,
-    role: "candidate" as const,
-    location: c.location,
-    skills: c.skills,
-    is_validated: c.is_validated,
-    avatar_url: c.avatar_url,
-  }));
+  const candidates = (candidatesResult.data || []).map((c: any) => {
+    const baseProf = Array.isArray(c.profiles) ? c.profiles[0] : c.profiles;
+    return {
+      id: c.id,
+      full_name: baseProf?.full_name || "Candidato",
+      role: "candidate" as const,
+      location: baseProf?.location || "",
+      skills: Array.isArray(c.skills) ? c.skills : String(c.skills || "").split(",").filter(Boolean),
+      is_validated: !!c.is_verified,
+      avatar_url: baseProf?.avatar_url || null,
+    };
+  });
 
   const companies = (companyProfilesResult.data || []).map((c: any) => ({
     id: c.id,
-    company_name: c.company_name,
-    logo_url: c.logo_url,
-    location: c.location,
-    is_validated: !!c.is_validated,
+    company_name: c.company_name || "Empresa",
+    logo_url: c.logo_url || null,
+    location: c.fiscal_address || "",
+    is_validated: !!c.is_verified,
     role: "company" as const
   }));
 
   return (
-    <div className="flex-1 overflow-y-auto w-full p-6 md:p-10 lg:p-12 max-w-[1440px] mx-auto space-y-10 animate-in fade-in slide-in-from-bottom-4 duration-700">
+    <div className="flex-grow min-h-screen bg-[#fafafa] dark:bg-zinc-950/20 px-4 md:px-10 lg:px-12 py-10 space-y-10 max-w-[1400px] mx-auto w-full animate-in fade-in duration-300">
       
       {/* Page Header */}
-      <section className="flex flex-col md:flex-row justify-between items-start md:items-end gap-6 pb-2 border-b border-border/30">
+      <section className="flex flex-col md:flex-row justify-between items-start md:items-end gap-6 pb-2 border-b border-border/10">
         <div>
-          <div className="flex items-center gap-2 mb-2">
-            <Badge variant="outline" className="px-3 py-1 rounded-full border-primary/20 bg-primary/5 text-primary text-[11px] font-semibold flex items-center gap-1.5">
-              <Sparkles className="h-3.5 w-3.5 animate-pulse" />
+          <div className="flex items-center gap-2 mb-2.5">
+            <Badge variant="outline" className="px-2.5 py-1 rounded-md border-primary/20 bg-primary/5 text-primary text-[10px] font-semibold uppercase tracking-wider flex items-center gap-1.5">
               Consola de Administración Central
             </Badge>
           </div>
-          <h2 className="text-[32px] md:text-[48px] font-bold text-foreground tracking-tight leading-none flex items-center gap-3">
-            <ShieldCheck className="h-10 w-10 text-primary shrink-0" />
+          <h2 className="text-2xl md:text-3xl font-bold text-zinc-900 dark:text-zinc-50 tracking-tight leading-none flex items-center gap-2">
             Consola de Auditoría
           </h2>
-          <p className="text-[16px] md:text-[18px] text-muted-foreground mt-2 max-w-xl">
+          <p className="text-xs md:text-sm text-zinc-500 dark:text-zinc-400 mt-2 max-w-xl">
             Control de calidad, sello de verificación y aprobación de perfiles de candidatos y empresas.
           </p>
         </div>
@@ -89,15 +85,15 @@ export default async function AdminDashboard() {
       {/* Profiles Directory Section */}
       <section className="space-y-6">
         <div className="flex items-center gap-2">
-          <Users className="h-6 w-6 text-primary shrink-0" />
-          <h3 className="text-xl md:text-2xl font-bold text-foreground tracking-tight">
+          <Users className="h-5 w-5 text-zinc-400 shrink-0" />
+          <h3 className="text-base font-bold text-zinc-900 dark:text-zinc-50 tracking-tight uppercase tracking-wider text-[11px] text-zinc-400">
             Directorio de Perfiles & Aprobaciones
           </h3>
         </div>
 
-        <Card className="bg-white/70 dark:bg-zinc-900/50 backdrop-blur-xl border border-black/5 dark:border-white/5 rounded-[24px] p-6 shadow-xs">
+        <div className="bg-white dark:bg-zinc-900 border border-border/10 rounded-2xl p-6 shadow-none">
           <AdminProfilesManager initialCandidates={candidates} initialCompanies={companies} />
-        </Card>
+        </div>
       </section>
 
     </div>
