@@ -67,6 +67,16 @@ interface Invoice {
   created_at: string
 }
 
+interface Transaction {
+  id: string
+  type: string
+  description: string
+  credits: number | string
+  amount?: number | string
+  status?: string
+  date: string
+}
+
 interface CompanyProfile {
   id: string
   company_name: string

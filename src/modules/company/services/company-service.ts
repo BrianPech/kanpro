@@ -132,7 +132,7 @@ export const companyService = {
       skills: splitCsv(vacancy.skills),
       status: "Activa",
       is_active: true,
-    });
+    } as any);
 
     if (error) throw error;
   },

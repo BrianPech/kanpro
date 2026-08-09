@@ -64,19 +64,20 @@ export function JobAlertPreferencesView({ onBack }: JobAlertPreferencesViewProps
         if (user) {
           const { data: profile } = await supabase
             .from("profiles")
-            .select("job_alerts_enabled, category, location")
+            .select("job_alerts_enabled, category, location" as any)
             .eq("id", user.id)
             .single();
 
           if (profile) {
-            if (profile.job_alerts_enabled !== undefined && profile.job_alerts_enabled !== null) {
-              setAlertsEnabled(!!profile.job_alerts_enabled);
+            const p = profile as any;
+            if (p.job_alerts_enabled !== undefined && p.job_alerts_enabled !== null) {
+              setAlertsEnabled(!!p.job_alerts_enabled);
             }
-            if (profile.category) {
-              setSelectedCategories([profile.category]);
+            if (p.category) {
+              setSelectedCategories([p.category]);
             }
-            if (profile.location) {
-              setSelectedLocations([profile.location]);
+            if (p.location) {
+              setSelectedLocations([p.location]);
             }
           }
         }
@@ -130,8 +131,7 @@ export function JobAlertPreferencesView({ onBack }: JobAlertPreferencesViewProps
         const primaryCat = selectedCategories[0] || "Hotelería & Recepción";
         const primaryLoc = selectedLocations[0] || "Playa del Carmen, Q. Roo";
 
-        await supabase
-          .from("profiles")
+        await (supabase.from as any)("profiles")
           .update({
             job_alerts_enabled: alertsEnabled,
             category: primaryCat,

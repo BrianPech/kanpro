@@ -116,7 +116,7 @@ export const candidateProfileService = {
 
     const { error: baseError } = await supabase
       .from("profiles")
-      .update(basePayload)
+      .update(basePayload as any)
       .eq("id", userId);
 
     if (baseError) {

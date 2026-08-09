@@ -37,11 +37,12 @@ export function useVacancyManager() {
       // Fetch company profile & subscription plan
       const { data: companyProfile, error: profileError } = await supabase
         .from("company_profiles")
-        .select("location, subscription_plan")
+        .select("fiscal_address, subscription_plan" as any)
         .eq("id", user.id)
         .single();
 
-      let companyLocation = companyProfile?.location || null;
+      const cp = companyProfile as any;
+      let companyLocation = cp?.fiscal_address || null;
 
       if (profileError || !companyLocation) {
         const { data: generalProfile } = await supabase
@@ -57,7 +58,7 @@ export function useVacancyManager() {
       }
 
       // Check active vacancy count limit for company's plan
-      const plan = companyProfile?.subscription_plan || "basic";
+      const plan = cp?.subscription_plan || "basic";
       let maxAllowed = 3;
       if (plan === "pro") maxAllowed = 15;
       if (plan === "enterprise") maxAllowed = Infinity;
@@ -93,7 +94,7 @@ export function useVacancyManager() {
           is_active: true,
           location: companyLocation, // Inyección automática para evitar el not-null constraint
           employment_type: params.employment_type || null, // Tipo de Jornada
-        })
+        } as any)
         .select()
         .single();
 

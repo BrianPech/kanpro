@@ -109,7 +109,7 @@ export function JobSearchView({ initialVacancies = [], onBack }: JobSearchViewPr
 
           if (profile?.location) {
             const knownLocations = ["Playa del Carmen", "Cancún", "Tulum", "Mérida"];
-            const matched = knownLocations.find((loc) => profile.location.includes(loc));
+            const matched = knownLocations.find((loc) => profile.location?.includes(loc));
             if (matched && activeFilters.length === 0) {
               setActiveFilters([matched]);
             }

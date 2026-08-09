@@ -33,8 +33,7 @@ export function useUserSession(): UserSessionState {
 
           // Fallback if role is not directly in metadata
           if (!currentUser.user_metadata?.role) {
-            const { data: adminProfile } = await supabase
-              .from("admin_profiles")
+            const { data: adminProfile } = await (supabase.from as any)("admin_profiles")
               .select("id")
               .eq("id", currentUser.id)
               .maybeSingle();

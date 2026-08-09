@@ -65,9 +65,8 @@ export async function requestDocumentAccess(
   await supabase.from("notifications").insert({
     user_id: candidateId,
     title: "Solicitud de Documentos de Contratación",
-    message: `${companyName} solicita tu autorización para revisar tus documentos (INE, CURP, RFC) para tu proceso de contratación.`,
+    description: `${companyName} solicita tu autorización para revisar tus documentos (INE, CURP, RFC) para tu proceso de contratación.`,
     type: "document_request",
-    link_url: "/dashboard/candidate/applications"
   })
 
   revalidatePath("/dashboard/company/applications")

@@ -32,8 +32,7 @@ export const authService = {
 
       // Fallback: Si no hay rol en metadata, verificar si existe en admin_profiles o company_profiles
       if (!role) {
-        const { data: adminProfile } = await supabase
-          .from("admin_profiles")
+        const { data: adminProfile } = await (supabase.from as any)("admin_profiles")
           .select("id")
           .eq("id", authData.user.id)
           .maybeSingle();
