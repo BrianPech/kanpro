@@ -20,6 +20,7 @@ import {
   Navigation,
   CheckCircle2,
 } from "lucide-react";
+import { createClient } from "@/lib/supabase/client";
 
 const InstagramIcon = (props: React.SVGProps<SVGSVGElement>) => (
   <svg
@@ -198,25 +199,73 @@ export function CompanyProfileForm({
   };
   const charCount = description.length;
 
-  const handleLogoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleLogoChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      const localUrl = URL.createObjectURL(file);
-      setValue("logo_url", localUrl);
-      toast.success("Logotipo cargado", {
-        description: "Se ha generado una vista previa del logo comercial localmente.",
-      });
+      const tempUrl = URL.createObjectURL(file);
+      setValue("logo_url", tempUrl);
+
+      try {
+        const supabase = createClient();
+        const sanitizeName = file.name.replace(/[^a-zA-Z0-9._-]/g, "_");
+        const filePath = `${userId}/logo_${Date.now()}_${sanitizeName}`;
+        const { error: uploadErr } = await supabase.storage
+          .from("profile_documents")
+          .upload(filePath, file, { upsert: true });
+
+        if (!uploadErr) {
+          const { data: urlData } = supabase.storage
+            .from("profile_documents")
+            .getPublicUrl(filePath);
+          if (urlData?.publicUrl) {
+            setValue("logo_url", urlData.publicUrl, { shouldValidate: true, shouldDirty: true });
+            toast.success("Logotipo guardado en la nube", {
+              description: "Se ha subido la imagen del logo comercial a la nube.",
+            });
+          }
+        } else {
+          toast.success("Logotipo listo para guardar", {
+            description: "Se mantendrá la vista previa del logo comercial.",
+          });
+        }
+      } catch (err) {
+        console.warn("Error uploading logo to storage:", err);
+      }
     }
   };
 
-  const handleBannerChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleBannerChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      const localUrl = URL.createObjectURL(file);
-      setValue("banner_url", localUrl);
-      toast.success("Banner cargado", {
-        description: "Se ha generado una vista previa de la portada comercial localmente.",
-      });
+      const tempUrl = URL.createObjectURL(file);
+      setValue("banner_url", tempUrl);
+
+      try {
+        const supabase = createClient();
+        const sanitizeName = file.name.replace(/[^a-zA-Z0-9._-]/g, "_");
+        const filePath = `${userId}/banner_${Date.now()}_${sanitizeName}`;
+        const { error: uploadErr } = await supabase.storage
+          .from("profile_documents")
+          .upload(filePath, file, { upsert: true });
+
+        if (!uploadErr) {
+          const { data: urlData } = supabase.storage
+            .from("profile_documents")
+            .getPublicUrl(filePath);
+          if (urlData?.publicUrl) {
+            setValue("banner_url", urlData.publicUrl, { shouldValidate: true, shouldDirty: true });
+            toast.success("Portada comercial guardada en la nube", {
+              description: "Se ha subido la imagen de portada a la nube.",
+            });
+          }
+        } else {
+          toast.success("Portada lista para guardar", {
+            description: "Se mantendrá la vista previa de la portada comercial.",
+          });
+        }
+      } catch (err) {
+        console.warn("Error uploading banner to storage:", err);
+      }
     }
   };
 
