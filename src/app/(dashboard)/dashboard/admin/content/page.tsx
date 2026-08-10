@@ -1,27 +1,20 @@
 import * as React from "react"
-import { Shield } from "lucide-react"
-import { ReportedContent } from "@/modules/admin/components/reported-content"
+import { Flag } from "lucide-react"
 
 export default function AdminContentPage() {
   return (
-    <div className="flex flex-col gap-10 p-6 md:p-12 lg:p-16 max-w-[1400px] mx-auto w-full animate-in fade-in slide-in-from-bottom-4 duration-700">
-      <div className="flex flex-col gap-3">
-        <div className="flex items-center gap-3">
-          <div className="h-10 w-10 rounded-full bg-[#e61e49]/10 text-[#e61e49] flex items-center justify-center">
-            <Shield className="h-5 w-5" />
-          </div>
-          <div>
-            <h1 className="text-[28px] md:text-[36px] font-medium tracking-tighter leading-[1.0]">
-              Moderación
-            </h1>
-            <p className="text-[15px] text-muted-foreground mt-1">
-              Revisa y modera el contenido reportado en la plataforma
-            </p>
-          </div>
+    <div className="flex flex-col gap-6 p-6 md:p-12 max-w-[1400px] mx-auto w-full animate-in fade-in duration-300">
+      <div className="flex items-center gap-3">
+        <div className="h-10 w-10 rounded-full bg-primary/10 text-primary flex items-center justify-center">
+          <Flag className="h-5 w-5" />
+        </div>
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight">Moderación de Contenido</h1>
+          <p className="text-sm text-muted-foreground">
+            Reportes y supervisión de publicaciones.
+          </p>
         </div>
       </div>
-
-      <ReportedContent />
     </div>
   )
 }

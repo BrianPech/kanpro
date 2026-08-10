@@ -30,12 +30,14 @@ export function NavDocuments({
   const { isMobile } = useSidebar()
 
   return (
-    <SidebarGroup className="group-data-[collapsible=icon]:hidden">
-      <SidebarGroupLabel>Documents</SidebarGroupLabel>
-      <SidebarMenu>
+    <SidebarGroup className="group-data-[collapsible=icon]:hidden px-2 py-1">
+      <SidebarGroupLabel className="text-[11px] uppercase tracking-wider font-bold text-muted-foreground/80 mb-1 px-2">
+        Documentos & Reportes
+      </SidebarGroupLabel>
+      <SidebarMenu className="gap-0.5">
         {items.map((item) => (
           <SidebarMenuItem key={item.name}>
-            <SidebarMenuButton asChild>
+            <SidebarMenuButton asChild className="h-9.5 rounded-lg px-3 gap-2.5 text-sm font-semibold hover:bg-muted">
               <a href={item.url}>
                 {item.icon}
                 <span>{item.name}</span>
@@ -45,42 +47,38 @@ export function NavDocuments({
               <DropdownMenuTrigger asChild>
                 <SidebarMenuAction
                   showOnHover
-                  className="rounded-sm data-[state=open]:bg-accent"
+                  className="rounded-md h-7 w-7 data-[state=open]:bg-accent"
                 >
-                  <MoreHorizontalIcon
-                  />
-                  <span className="sr-only">More</span>
+                  <MoreHorizontalIcon className="size-3.5" />
+                  <span className="sr-only">Más opciones</span>
                 </SidebarMenuAction>
               </DropdownMenuTrigger>
               <DropdownMenuContent
-                className="w-24 rounded-lg"
+                className="w-32 rounded-lg"
                 side={isMobile ? "bottom" : "right"}
                 align={isMobile ? "end" : "start"}
               >
-                <DropdownMenuItem>
-                  <FolderIcon
-                  />
-                  <span>Open</span>
+                <DropdownMenuItem className="text-xs font-medium">
+                  <FolderIcon className="size-3.5 mr-2" />
+                  <span>Abrir</span>
                 </DropdownMenuItem>
-                <DropdownMenuItem>
-                  <ShareIcon
-                  />
-                  <span>Share</span>
+                <DropdownMenuItem className="text-xs font-medium">
+                  <ShareIcon className="size-3.5 mr-2" />
+                  <span>Compartir</span>
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
-                <DropdownMenuItem variant="destructive">
-                  <Trash2Icon
-                  />
-                  <span>Delete</span>
+                <DropdownMenuItem variant="destructive" className="text-xs font-medium">
+                  <Trash2Icon className="size-3.5 mr-2" />
+                  <span>Eliminar</span>
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
           </SidebarMenuItem>
         ))}
         <SidebarMenuItem>
-          <SidebarMenuButton className="text-sidebar-foreground/70">
-            <MoreHorizontalIcon className="text-sidebar-foreground/70" />
-            <span>More</span>
+          <SidebarMenuButton className="h-9.5 rounded-lg px-3 text-sm font-semibold text-sidebar-foreground/70 hover:bg-muted">
+            <MoreHorizontalIcon className="size-4 text-sidebar-foreground/70" />
+            <span>Ver más</span>
           </SidebarMenuButton>
         </SidebarMenuItem>
       </SidebarMenu>

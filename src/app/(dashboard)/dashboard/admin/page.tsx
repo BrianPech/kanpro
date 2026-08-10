@@ -2,11 +2,11 @@ import * as React from "react";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 
-import { AppSidebar } from "@/components/app-sidebar";
-import { ChartAreaInteractive } from "@/components/chart-area-interactive";
-import { DataTable } from "@/components/data-table";
-import { SectionCards } from "@/components/section-cards";
-import { SiteHeader } from "@/components/site-header";
+import { AppSidebar } from "@/modules/admin/components/app-sidebar";
+import { ChartAreaInteractive } from "@/modules/admin/components/chart-area-interactive";
+import { DataTable } from "@/modules/admin/components/data-table";
+import { SectionCards } from "@/modules/admin/components/section-cards";
+import { SiteHeader } from "@/modules/admin/components/site-header";
 import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
 
 import data from "./data.json";
@@ -37,8 +37,8 @@ export default async function AdminDashboardPage() {
     <SidebarProvider
       style={
         {
-          "--sidebar-width": "calc(var(--spacing) * 72)",
-          "--header-height": "calc(var(--spacing) * 12)",
+          "--sidebar-width": "16rem",
+          "--header-height": "3.5rem",
         } as React.CSSProperties
       }
     >

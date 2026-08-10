@@ -1,18 +1,20 @@
-import { SlaMonitor } from "@/modules/admin/components/sla-monitor";
+import * as React from "react"
+import { ClipboardCheck } from "lucide-react"
 
-export default function SlaAdminPage() {
+export default function AdminSlaPage() {
   return (
-    <div className="flex flex-col gap-6 p-6 md:p-8 w-full max-w-[1600px] mx-auto animate-in fade-in slide-in-from-bottom-4 duration-700">
-      <div className="flex flex-col gap-1.5 pb-2 border-b border-border/30">
-        <h1 className="text-[28px] md:text-[36px] font-bold tracking-tight text-foreground">
-          Monitor de SLAs
-        </h1>
-        <p className="text-[14px] text-muted-foreground">
-          Supervisión en tiempo real de los tiempos de espera y cola de procesamiento de postulaciones.
-        </p>
+    <div className="flex flex-col gap-6 p-6 md:p-12 max-w-[1400px] mx-auto w-full animate-in fade-in duration-300">
+      <div className="flex items-center gap-3">
+        <div className="h-10 w-10 rounded-full bg-primary/10 text-primary flex items-center justify-center">
+          <ClipboardCheck className="h-5 w-5" />
+        </div>
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight">Monitor de SLAs</h1>
+          <p className="text-sm text-muted-foreground">
+            Métricas de tiempo de respuesta y calidad de servicio.
+          </p>
+        </div>
       </div>
-
-      <SlaMonitor />
     </div>
-  );
+  )
 }

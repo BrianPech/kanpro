@@ -5,5 +5,5 @@ export default function AdminDashboardLayout({
 }: {
   children: React.ReactNode;
 }) {
-  return <div className="w-full min-h-screen bg-background">{children}</div>;
+  return <div className="w-full min-h-screen bg-sidebar">{children}</div>;
 }

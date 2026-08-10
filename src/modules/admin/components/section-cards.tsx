@@ -22,8 +22,7 @@ export function SectionCards() {
           </CardTitle>
           <CardAction>
             <Badge variant="outline">
-              <TrendingUpIcon
-              />
+              <TrendingUpIcon />
               +12.5%
             </Badge>
           </CardAction>
@@ -38,6 +37,7 @@ export function SectionCards() {
           </div>
         </CardFooter>
       </Card>
+
       <Card className="@container/card">
         <CardHeader>
           <CardDescription>New Customers</CardDescription>
@@ -46,8 +46,7 @@ export function SectionCards() {
           </CardTitle>
           <CardAction>
             <Badge variant="outline">
-              <TrendingDownIcon
-              />
+              <TrendingDownIcon />
               -20%
             </Badge>
           </CardAction>
@@ -62,6 +61,7 @@ export function SectionCards() {
           </div>
         </CardFooter>
       </Card>
+
       <Card className="@container/card">
         <CardHeader>
           <CardDescription>Active Accounts</CardDescription>
@@ -70,8 +70,7 @@ export function SectionCards() {
           </CardTitle>
           <CardAction>
             <Badge variant="outline">
-              <TrendingUpIcon
-              />
+              <TrendingUpIcon />
               +12.5%
             </Badge>
           </CardAction>
@@ -84,6 +83,7 @@ export function SectionCards() {
           <div className="text-muted-foreground">Engagement exceed targets</div>
         </CardFooter>
       </Card>
+
       <Card className="@container/card">
         <CardHeader>
           <CardDescription>Growth Rate</CardDescription>
@@ -92,8 +92,7 @@ export function SectionCards() {
           </CardTitle>
           <CardAction>
             <Badge variant="outline">
-              <TrendingUpIcon
-              />
+              <TrendingUpIcon />
               +4.5%
             </Badge>
           </CardAction>

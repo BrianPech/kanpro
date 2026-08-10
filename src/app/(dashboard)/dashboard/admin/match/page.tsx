@@ -1,18 +1,20 @@
-import { MatchPanel } from "@/modules/admin/components/match-panel";
+import * as React from "react"
+import { Handshake } from "lucide-react"
 
-export default function MatchAdminPage() {
+export default function AdminMatchPage() {
   return (
-    <div className="flex flex-col gap-6 p-6 md:p-8 w-full max-w-[1600px] mx-auto animate-in fade-in slide-in-from-bottom-4 duration-700">
-      <div className="flex flex-col gap-1.5 pb-2 border-b border-border/30">
-        <h1 className="text-[28px] md:text-[36px] font-bold tracking-tight text-foreground">
-          Match Manual
-        </h1>
-        <p className="text-[14px] text-muted-foreground">
-          Curaduría y vinculación manual entre talentos Premium disponibles y vacantes urgentes.
-        </p>
+    <div className="flex flex-col gap-6 p-6 md:p-12 max-w-[1400px] mx-auto w-full animate-in fade-in duration-300">
+      <div className="flex items-center gap-3">
+        <div className="h-10 w-10 rounded-full bg-primary/10 text-primary flex items-center justify-center">
+          <Handshake className="h-5 w-5" />
+        </div>
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight">Match Manual</h1>
+          <p className="text-sm text-muted-foreground">
+            Vinculación directa entre candidatos y vacantes.
+          </p>
+        </div>
       </div>
-
-      <MatchPanel />
     </div>
-  );
+  )
 }
