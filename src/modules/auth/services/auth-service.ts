@@ -30,25 +30,16 @@ export const authService = {
         | UserRole
         | undefined;
 
-      // Fallback: Si no hay rol en metadata, verificar si existe en admin_profiles o company_profiles
+      // Fallback: Si no hay rol en metadata, verificar en la tabla profiles
       if (!role) {
-        const { data: adminProfile } = await (supabase.from as any)("admin_profiles")
-          .select("id")
+        const { data: profile } = await supabase
+          .from("profiles")
+          .select("role")
           .eq("id", authData.user.id)
           .maybeSingle();
 
-        if (adminProfile) {
-          role = "admin";
-        } else {
-          const { data: companyProfile } = await supabase
-            .from("company_profiles")
-            .select("id")
-            .eq("id", authData.user.id)
-            .maybeSingle();
-
-          if (companyProfile) {
-            role = "company";
-          }
+        if (profile?.role) {
+          role = profile.role as UserRole;
         }
       }
 

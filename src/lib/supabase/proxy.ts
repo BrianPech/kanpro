@@ -68,26 +68,16 @@ export async function updateSession(request: NextRequest) {
       role = profile?.role || null
     }
 
-    // 3. Fallback: Search specific profile tables
+    // 3. Fallback: Search company_profiles
     if (!role) {
-      const { data: adminProfile } = await supabase
-        .from('admin_profiles')
+      const { data: companyProfile } = await supabase
+        .from('company_profiles')
         .select('id')
         .eq('id', user.id)
         .maybeSingle()
       
-      if (adminProfile) {
-        role = 'admin'
-      } else {
-        const { data: companyProfile } = await supabase
-          .from('company_profiles')
-          .select('id')
-          .eq('id', user.id)
-          .maybeSingle() // Use maybeSingle to avoid errors if not found
-        
-        if (companyProfile) {
-          role = 'company'
-        }
+      if (companyProfile) {
+        role = 'company'
       }
     }
   }

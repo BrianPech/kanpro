@@ -33,23 +33,14 @@ export function useUserSession(): UserSessionState {
 
           // Fallback if role is not directly in metadata
           if (!currentUser.user_metadata?.role) {
-            const { data: adminProfile } = await (supabase.from as any)("admin_profiles")
-              .select("id")
+            const { data: profile } = await supabase
+              .from("profiles")
+              .select("role")
               .eq("id", currentUser.id)
               .maybeSingle();
 
-            if (adminProfile) {
-              userRole = "admin";
-            } else {
-              const { data: companyProfile } = await supabase
-                .from("company_profiles")
-                .select("id")
-                .eq("id", currentUser.id)
-                .maybeSingle();
-
-              if (companyProfile) {
-                userRole = "company";
-              }
+            if (profile?.role) {
+              userRole = profile.role as UserRole;
             }
           }
 

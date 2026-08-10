@@ -61,8 +61,22 @@ export function LoginClient() {
         if (data.user) {
           toast.success("¡Sesión iniciada con éxito!");
           
-          // Let redirect middleware/layout guide user, or force dashboard push
-          router.push(role === "company" ? "/dashboard/company" : "/dashboard/candidate/discovery");
+          // Determine user role from profile table or metadata
+          const { data: profile } = await supabase
+            .from("profiles")
+            .select("role")
+            .eq("id", data.user.id)
+            .maybeSingle();
+
+          const effectiveRole = profile?.role || data.user.user_metadata?.role;
+
+          if (effectiveRole === "admin") {
+            router.push("/dashboard/admin");
+          } else if (effectiveRole === "company") {
+            router.push("/dashboard/company");
+          } else {
+            router.push("/dashboard/candidate/discovery");
+          }
           router.refresh();
         }
       } else {
