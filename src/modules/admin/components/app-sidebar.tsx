@@ -1,11 +1,11 @@
-"use client"
+"use client";
 
-import * as React from "react"
+import * as React from "react";
 
-import { NavDocuments } from "@/modules/admin/components/nav-documents"
-import { NavMain } from "@/modules/admin/components/nav-main"
-import { NavSecondary } from "@/modules/admin/components/nav-secondary"
-import { NavUser } from "@/modules/admin/components/nav-user"
+import { NavDocuments } from "@/modules/admin/components/nav-documents";
+import { NavMain } from "@/modules/admin/components/nav-main";
+import { NavSecondary } from "@/modules/admin/components/nav-secondary";
+import { NavUser } from "@/modules/admin/components/nav-user";
 import {
   Sidebar,
   SidebarContent,
@@ -14,167 +14,90 @@ import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
-} from "@/components/ui/sidebar"
-import { LayoutDashboardIcon, ListIcon, ChartBarIcon, FolderIcon, UsersIcon, CameraIcon, FileTextIcon, Settings2Icon, CircleHelpIcon, SearchIcon, DatabaseIcon, FileChartColumnIcon, FileIcon, CommandIcon } from "lucide-react"
+} from "@/components/ui/sidebar";
+import {
+  LayoutDashboardIcon,
+  UsersIcon,
+  ChartBarIcon,
+  FolderIcon,
+  ListIcon,
+  Settings2Icon,
+  CircleHelpIcon,
+  SearchIcon,
+  DatabaseIcon,
+  FileChartColumnIcon,
+  FileIcon,
+  CommandIcon,
+} from "lucide-react";
 
 const data = {
   user: {
-    name: "shadcn",
-    email: "m@example.com",
-    avatar: "/avatars/shadcn.jpg",
+    name: "Administrador",
+    email: "admin@kanpro.com",
+    avatar: "/avatars/admin.jpg",
   },
   navMain: [
     {
       title: "Dashboard",
-      url: "#",
-      icon: (
-        <LayoutDashboardIcon
-        />
-      ),
+      url: "/dashboard/admin",
+      icon: <LayoutDashboardIcon />,
     },
     {
-      title: "Lifecycle",
-      url: "#",
-      icon: (
-        <ListIcon
-        />
-      ),
+      title: "Usuarios Registrados",
+      url: "/dashboard/admin/users",
+      icon: <UsersIcon />,
     },
     {
       title: "Analytics",
       url: "#",
-      icon: (
-        <ChartBarIcon
-        />
-      ),
+      icon: <ChartBarIcon />,
     },
     {
-      title: "Projects",
+      title: "Proyectos",
       url: "#",
-      icon: (
-        <FolderIcon
-        />
-      ),
+      icon: <FolderIcon />,
     },
     {
-      title: "Team",
+      title: "Ciclo de Vida",
       url: "#",
-      icon: (
-        <UsersIcon
-        />
-      ),
-    },
-  ],
-  navClouds: [
-    {
-      title: "Capture",
-      icon: (
-        <CameraIcon
-        />
-      ),
-      isActive: true,
-      url: "#",
-      items: [
-        {
-          title: "Active Proposals",
-          url: "#",
-        },
-        {
-          title: "Archived",
-          url: "#",
-        },
-      ],
-    },
-    {
-      title: "Proposal",
-      icon: (
-        <FileTextIcon
-        />
-      ),
-      url: "#",
-      items: [
-        {
-          title: "Active Proposals",
-          url: "#",
-        },
-        {
-          title: "Archived",
-          url: "#",
-        },
-      ],
-    },
-    {
-      title: "Prompts",
-      icon: (
-        <FileTextIcon
-        />
-      ),
-      url: "#",
-      items: [
-        {
-          title: "Active Proposals",
-          url: "#",
-        },
-        {
-          title: "Archived",
-          url: "#",
-        },
-      ],
+      icon: <ListIcon />,
     },
   ],
   navSecondary: [
     {
       title: "Settings",
       url: "#",
-      icon: (
-        <Settings2Icon
-        />
-      ),
+      icon: <Settings2Icon />,
     },
     {
       title: "Get Help",
       url: "#",
-      icon: (
-        <CircleHelpIcon
-        />
-      ),
+      icon: <CircleHelpIcon />,
     },
     {
       title: "Search",
       url: "#",
-      icon: (
-        <SearchIcon
-        />
-      ),
+      icon: <SearchIcon />,
     },
   ],
   documents: [
     {
       name: "Data Library",
       url: "#",
-      icon: (
-        <DatabaseIcon
-        />
-      ),
+      icon: <DatabaseIcon />,
     },
     {
       name: "Reports",
       url: "#",
-      icon: (
-        <FileChartColumnIcon
-        />
-      ),
+      icon: <FileChartColumnIcon />,
     },
     {
       name: "Word Assistant",
       url: "#",
-      icon: (
-        <FileIcon
-        />
-      ),
+      icon: <FileIcon />,
     },
   ],
-}
+};
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   return (
@@ -186,9 +109,11 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
               asChild
               className="data-[slot=sidebar-menu-button]:p-1.5!"
             >
-              <a href="#">
+              <a href="/dashboard/admin">
                 <CommandIcon className="size-5!" />
-                <span className="text-base font-semibold">Acme Inc.</span>
+                <span className="text-base font-bold tracking-tight">
+                  K'anPro
+                </span>
               </a>
             </SidebarMenuButton>
           </SidebarMenuItem>
@@ -203,5 +128,5 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         <NavUser user={data.user} />
       </SidebarFooter>
     </Sidebar>
-  )
+  );
 }

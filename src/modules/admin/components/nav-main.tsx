@@ -1,24 +1,29 @@
-"use client"
+"use client";
 
-import { Button } from "@/components/ui/button"
+import { usePathname } from "next/navigation";
+import Link from "next/link";
+import { Button } from "@/components/ui/button";
 import {
   SidebarGroup,
   SidebarGroupContent,
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
-} from "@/components/ui/sidebar"
-import { CirclePlusIcon, MailIcon } from "lucide-react"
+} from "@/components/ui/sidebar";
+import { CirclePlusIcon, MailIcon } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 export function NavMain({
   items,
 }: {
   items: {
-    title: string
-    url: string
-    icon?: React.ReactNode
-  }[]
+    title: string;
+    url: string;
+    icon?: React.ReactNode;
+  }[];
 }) {
+  const pathname = usePathname();
+
   return (
     <SidebarGroup className="px-2 py-1.5">
       <SidebarGroupContent className="flex flex-col gap-2">
@@ -42,19 +47,34 @@ export function NavMain({
           </SidebarMenuItem>
         </SidebarMenu>
         <SidebarMenu className="gap-1">
-          {items.map((item) => (
-            <SidebarMenuItem key={item.title}>
-              <SidebarMenuButton
-                tooltip={item.title}
-                className="h-10 rounded-lg px-3 gap-3 text-sm font-semibold transition-all hover:bg-muted"
-              >
-                {item.icon}
-                <span className="text-sm font-semibold">{item.title}</span>
-              </SidebarMenuButton>
-            </SidebarMenuItem>
-          ))}
+          {items.map((item) => {
+            const isActive =
+              item.url !== "#" &&
+              (pathname === item.url ||
+                (item.url !== "/dashboard/admin" && pathname.startsWith(item.url)));
+
+            return (
+              <SidebarMenuItem key={item.title}>
+                <SidebarMenuButton
+                  asChild
+                  isActive={isActive}
+                  tooltip={item.title}
+                  className={cn(
+                    "h-10 rounded-lg px-3 gap-3 text-sm font-semibold transition-all hover:bg-muted",
+                    isActive &&
+                      "bg-primary/10 text-primary font-bold hover:bg-primary/15 hover:text-primary dark:bg-primary/20"
+                  )}
+                >
+                  <Link href={item.url}>
+                    {item.icon}
+                    <span className="text-sm">{item.title}</span>
+                  </Link>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+            );
+          })}
         </SidebarMenu>
       </SidebarGroupContent>
     </SidebarGroup>
-  )
+  );
 }
