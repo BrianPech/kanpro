@@ -34,6 +34,50 @@ export type Database = {
   }
   public: {
     Tables: {
+      admin_staff_members: {
+        Row: {
+          created_at: string
+          department: string | null
+          id: string
+          notes: string | null
+          permissions: string[] | null
+          profile_id: string
+          status: string
+          sub_role: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          department?: string | null
+          id?: string
+          notes?: string | null
+          permissions?: string[] | null
+          profile_id: string
+          status?: string
+          sub_role?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          department?: string | null
+          id?: string
+          notes?: string | null
+          permissions?: string[] | null
+          profile_id?: string
+          status?: string
+          sub_role?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "admin_staff_members_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: true
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
       applications: {
         Row: {
           applied_at: string

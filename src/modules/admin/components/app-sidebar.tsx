@@ -28,6 +28,7 @@ import {
   FileChartColumnIcon,
   FileIcon,
   CommandIcon,
+  ShieldCheckIcon,
 } from "lucide-react";
 
 const data = {
@@ -46,6 +47,11 @@ const data = {
       title: "Usuarios Registrados",
       url: "/dashboard/admin/users",
       icon: <UsersIcon />,
+    },
+    {
+      title: "Administradores y Personal",
+      url: "/dashboard/admin/staff",
+      icon: <ShieldCheckIcon />,
     },
     {
       title: "Analytics",
