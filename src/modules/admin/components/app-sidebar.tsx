@@ -29,6 +29,7 @@ import {
   FileIcon,
   CommandIcon,
   ShieldCheckIcon,
+  HeadphonesIcon,
 } from "lucide-react";
 
 const data = {
@@ -42,6 +43,11 @@ const data = {
       title: "Dashboard",
       url: "/dashboard/admin",
       icon: <LayoutDashboardIcon />,
+    },
+    {
+      title: "Soporte Técnico",
+      url: "/dashboard/admin/support",
+      icon: <HeadphonesIcon />,
     },
     {
       title: "Usuarios Registrados",
@@ -88,19 +94,19 @@ const data = {
   ],
   documents: [
     {
-      name: "Data Library",
-      url: "#",
-      icon: <DatabaseIcon />,
-    },
-    {
-      name: "Reports",
-      url: "#",
+      name: "Reportes e Incidencias",
+      url: "/dashboard/admin/support",
       icon: <FileChartColumnIcon />,
     },
     {
-      name: "Word Assistant",
-      url: "#",
-      icon: <FileIcon />,
+      name: "Tickets de Soporte",
+      url: "/dashboard/admin/support",
+      icon: <HeadphonesIcon />,
+    },
+    {
+      name: "Expedientes de Usuarios",
+      url: "/dashboard/admin/users",
+      icon: <FolderIcon />,
     },
   ],
 };
@@ -118,7 +124,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
               <a href="/dashboard/admin">
                 <CommandIcon className="size-5!" />
                 <span className="text-base font-bold tracking-tight">
-                  K'anPro
+                  K’anPro
                 </span>
               </a>
             </SidebarMenuButton>

@@ -8,6 +8,7 @@ import {
   DialogDescription,
   DialogFooter,
   DialogHeader,
+  DialogTitle,
 } from "@/components/ui/dialog";
 import {
   AlertDialog,
@@ -17,6 +18,7 @@ import {
   AlertDialogDescription,
   AlertDialogFooter,
   AlertDialogHeader,
+  AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -112,10 +114,10 @@ export function CreateStaffModal({ open, onOpenChange, onSuccess }: CreateStaffM
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto rounded-2xl p-6">
         <DialogHeader className="gap-1.5">
-          <div className="flex items-center gap-2 text-primary font-bold text-base">
+          <DialogTitle className="flex items-center gap-2 text-primary font-bold text-base">
             <UserPlusIcon className="size-5" />
             <span>Dar de Alta a Nuevo Personal / Administrador</span>
-          </div>
+          </DialogTitle>
           <DialogDescription className="text-xs text-muted-foreground">
             Complete la información general y asigne los permisos necesarios para el nuevo miembro del equipo K’anPro.
           </DialogDescription>
@@ -332,10 +334,10 @@ function EditStaffModalContent({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto rounded-2xl p-6">
         <DialogHeader className="gap-1.5">
-          <div className="flex items-center gap-2 text-primary font-bold text-base">
+          <DialogTitle className="flex items-center gap-2 text-primary font-bold text-base">
             <ShieldCheckIcon className="size-5 text-purple-500" />
             <span>Editar Personal y Permisos: {staff.name}</span>
-          </div>
+          </DialogTitle>
           <DialogDescription className="text-xs text-muted-foreground">
             Actualice la información, cambie el rol administrativo u otorgue/revoque permisos granulares.
           </DialogDescription>
@@ -504,10 +506,10 @@ export function DeleteStaffDialog({ staff, open, onOpenChange, onSuccess }: Dele
     <AlertDialog open={open} onOpenChange={onOpenChange}>
       <AlertDialogContent className="rounded-2xl max-w-md p-6">
         <AlertDialogHeader>
-          <div className="flex items-center gap-2 text-destructive font-bold">
+          <AlertDialogTitle className="flex items-center gap-2 text-destructive font-bold text-base">
             <Trash2Icon className="size-5" />
             <span>Dar de Baja Acceso Administrativo</span>
-          </div>
+          </AlertDialogTitle>
           <AlertDialogDescription className="text-xs text-muted-foreground pt-2">
             ¿Está seguro de revocar el acceso administrativo a <strong className="text-foreground">{staff.name}</strong> ({staff.email})?
             <br /><br />
