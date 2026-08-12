@@ -13,6 +13,7 @@ import {
   SidebarMenuItem,
 } from "@/components/ui/sidebar"
 import { AdminCommandPalette } from "@/modules/admin/components/admin-command-palette"
+import { SettingsDialog } from "@/components/settings-dialog"
 
 export function NavSecondary({
   items,
@@ -26,6 +27,7 @@ export function NavSecondary({
 } & React.ComponentPropsWithoutRef<typeof SidebarGroup>) {
   const pathname = usePathname()
   const [commandPaletteOpen, setCommandPaletteOpen] = React.useState(false)
+  const [settingsOpen, setSettingsOpen] = React.useState(false)
 
   return (
     <>
@@ -36,6 +38,11 @@ export function NavSecondary({
               const isSearch =
                 item.title.toLowerCase() === "search" ||
                 item.title.toLowerCase() === "buscar"
+
+              const isSettings =
+                item.title.toLowerCase().includes("setting") ||
+                item.title.toLowerCase().includes("ajuste") ||
+                item.title.toLowerCase().includes("config")
 
               const isActive = item.url !== "#" && pathname === item.url
 
@@ -52,6 +59,20 @@ export function NavSecondary({
                         <Kbd>⌘</Kbd>
                         <Kbd>K</Kbd>
                       </KbdGroup>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                )
+              }
+
+              if (isSettings) {
+                return (
+                  <SidebarMenuItem key={item.title}>
+                    <SidebarMenuButton
+                      onClick={() => setSettingsOpen(true)}
+                      className="h-9.5 rounded-lg px-3 gap-2.5 text-sm font-semibold hover:bg-muted cursor-pointer"
+                    >
+                      {item.icon}
+                      <span className="flex-1 text-left">{item.title}</span>
                     </SidebarMenuButton>
                   </SidebarMenuItem>
                 )
@@ -84,6 +105,12 @@ export function NavSecondary({
         open={commandPaletteOpen}
         onOpenChange={setCommandPaletteOpen}
       />
+
+      <SettingsDialog
+        open={settingsOpen}
+        onOpenChange={setSettingsOpen}
+      />
     </>
   )
 }
+

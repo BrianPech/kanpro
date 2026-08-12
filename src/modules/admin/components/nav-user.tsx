@@ -188,7 +188,7 @@ export function NavUser({
                 <CircleUserRoundIcon className="size-4 mr-2" />
                 Cuenta Admin
               </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => router.push("/dashboard/admin")}>
+              <DropdownMenuItem onClick={() => router.push("/dashboard/admin/settings")}>
                 <SettingsIcon className="size-4 mr-2" />
                 Ajustes Sistema
               </DropdownMenuItem>

@@ -57,6 +57,7 @@ export const viewport: Viewport = {
 import { ThemeProvider } from "@/components/theme-provider";
 import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
+import { WhatsAppSupportWidget } from "@/components/whatsapp-support-widget";
 
 export default function RootLayout({
   children,
@@ -137,6 +138,7 @@ export default function RootLayout({
           >
             {children}
           </ThemeProvider>
+          <WhatsAppSupportWidget />
           <Toaster richColors theme="system" />
         </TooltipProvider>
       </body>

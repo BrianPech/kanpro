@@ -25,6 +25,7 @@ import {
   adjustCompanyCredits,
   quickResetUserStatus,
 } from "@/app/(dashboard)/dashboard/admin/support/actions";
+import { startImpersonating } from "@/lib/auth/impersonation";
 import {
   WrenchIcon,
   SearchIcon,
@@ -36,6 +37,7 @@ import {
   PhoneIcon,
   Building2Icon,
   UserIcon,
+  SparklesIcon,
 } from "lucide-react";
 
 export interface SupportUserResult {
@@ -271,6 +273,26 @@ export function SupportToolsDrawer({ open, onOpenChange }: SupportToolsDrawerPro
                   </div>
                 )}
               </div>
+
+              {/* Impersonation Button */}
+              <Button
+                type="button"
+                onClick={async () => {
+                  if (!selectedUser) return;
+                  try {
+                    toast.loading(`Iniciando impersonación de ${selectedUser.name}...`);
+                    const res = await startImpersonating(selectedUser.id);
+                    toast.success(`Impersonando a ${res.targetName}`);
+                    window.location.href = res.redirectUrl;
+                  } catch (err: unknown) {
+                    toast.error((err as Error).message || "Error al impersonar.");
+                  }
+                }}
+                className="w-full h-9 bg-purple-700 hover:bg-purple-800 text-white font-bold text-xs gap-2 rounded-xl shadow-xs mt-1"
+              >
+                <SparklesIcon className="size-4 text-amber-300" />
+                <span>Log in as User (Impersonar Sesión de Soporte)</span>
+              </Button>
 
               <Separator className="my-1" />
 

@@ -36,6 +36,7 @@ import {
 import { toast } from "sonner"
 import { z } from "zod"
 
+import { startImpersonating } from "@/lib/auth/impersonation";
 import { useIsMobile } from "@/hooks/use-mobile"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
@@ -101,6 +102,7 @@ import {
   MailIcon,
   SearchIcon,
   UserPlusIcon,
+  SparklesIcon,
 } from "lucide-react"
 
 export const userSchema = z.object({
@@ -258,7 +260,24 @@ const columns: ColumnDef<UserItem>[] = [
             <span className="sr-only">Abrir opciones</span>
           </Button>
         </DropdownMenuTrigger>
-        <DropdownMenuContent align="end" className="w-40 rounded-xl">
+        <DropdownMenuContent align="end" className="w-52 rounded-xl">
+          <DropdownMenuItem
+            className="text-xs font-semibold cursor-pointer text-purple-600 dark:text-purple-400 gap-2"
+            onClick={async () => {
+              try {
+                toast.loading(`Iniciando impersonación de ${row.original.name}...`);
+                const res = await startImpersonating(row.original.id);
+                toast.success(`Impersonando a ${res.targetName}`);
+                window.location.href = res.redirectUrl;
+              } catch (err: unknown) {
+                toast.error((err as Error).message || "Error al impersonar.");
+              }
+            }}
+          >
+            <SparklesIcon className="size-3.5 text-purple-500" />
+            Impersonar (Log in as User)
+          </DropdownMenuItem>
+          <DropdownMenuSeparator />
           <DropdownMenuItem
             className="text-xs font-medium cursor-pointer"
             onClick={() => toast.info(`Viendo perfil de ${row.original.name}`)}

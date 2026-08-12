@@ -5,6 +5,7 @@ import { createClient } from "@/lib/supabase/server";
 import { AppSidebar } from "@/modules/admin/components/app-sidebar";
 import { SiteHeader } from "@/modules/admin/components/site-header";
 import { SupportDataTable } from "@/modules/admin/components/support-data-table";
+import { WhatsAppHubCard } from "@/modules/admin/components/whatsapp-hub-card";
 import { getSupportTickets } from "@/app/(dashboard)/dashboard/admin/support/actions";
 import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
 import { Badge } from "@/components/ui/badge";
@@ -178,6 +179,11 @@ export default async function AdminSupportPage() {
                     </div>
                   </CardFooter>
                 </Card>
+              </div>
+
+              {/* WhatsApp Business Live Support Central Hub */}
+              <div className="px-4 lg:px-6 pb-2">
+                <WhatsAppHubCard />
               </div>
 
               {/* Support Data Table */}

@@ -32,6 +32,7 @@ import {
   quickResetUserStatus,
   adjustCompanyCredits,
 } from "@/app/(dashboard)/dashboard/admin/support/actions";
+import { startImpersonating } from "@/lib/auth/impersonation";
 import {
   SendIcon,
   LockIcon,
@@ -448,6 +449,25 @@ export function TicketWorkbenchClient({ ticket }: TicketWorkbenchClientProps) {
           <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">
             Herramientas Exprés
           </span>
+
+          <Button
+            size="sm"
+            onClick={async () => {
+              if (!ticket.userId) return;
+              try {
+                toast.loading(`Iniciando impersonación de ${ticket.userName}...`);
+                const res = await startImpersonating(ticket.userId);
+                toast.success(`Impersonando a ${res.targetName}`);
+                window.location.href = res.redirectUrl;
+              } catch (err: unknown) {
+                toast.error((err as Error).message || "Error al impersonar.");
+              }
+            }}
+            className="h-9 justify-start text-xs font-bold gap-2 bg-purple-700 hover:bg-purple-800 text-white shadow-xs"
+          >
+            <SparklesIcon className="size-4 text-amber-300" />
+            <span>Impersonar Solicitante (Log in as User)</span>
+          </Button>
 
           <Button
             variant="outline"
