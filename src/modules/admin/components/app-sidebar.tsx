@@ -30,6 +30,7 @@ import {
   CommandIcon,
   ShieldCheckIcon,
   HeadphonesIcon,
+  ShieldAlertIcon,
 } from "lucide-react";
 
 const data = {
@@ -43,6 +44,11 @@ const data = {
       title: "Dashboard",
       url: "/dashboard/admin",
       icon: <LayoutDashboardIcon />,
+    },
+    {
+      title: "Moderación y Reportes",
+      url: "/dashboard/admin/reports",
+      icon: <ShieldAlertIcon />,
     },
     {
       title: "Soporte Técnico",

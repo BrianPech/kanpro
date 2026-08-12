@@ -34,6 +34,57 @@ export type Database = {
   }
   public: {
     Tables: {
+      vacancy_reports: {
+        Row: {
+          action_taken: string | null
+          created_at: string
+          details: string | null
+          id: string
+          reason: string
+          reporter_id: string | null
+          status: string
+          updated_at: string
+          vacancy_id: string | null
+        }
+        Insert: {
+          action_taken?: string | null
+          created_at?: string
+          details?: string | null
+          id?: string
+          reason?: string
+          reporter_id?: string | null
+          status?: string
+          updated_at?: string
+          vacancy_id?: string | null
+        }
+        Update: {
+          action_taken?: string | null
+          created_at?: string
+          details?: string | null
+          id?: string
+          reason?: string
+          reporter_id?: string | null
+          status?: string
+          updated_at?: string
+          vacancy_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "vacancy_reports_vacancy_id_fkey"
+            columns: ["vacancy_id"]
+            isOneToOne: false
+            referencedRelation: "vacancies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "vacancy_reports_reporter_id_fkey"
+            columns: ["reporter_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
       support_tickets: {
         Row: {
           assigned_to: string | null
