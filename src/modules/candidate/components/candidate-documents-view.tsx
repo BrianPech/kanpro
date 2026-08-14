@@ -263,7 +263,7 @@ export function CandidateDocumentsView() {
           full_name: mandatory.fullName,
           whatsapp_number: mandatory.phone,
         });
-        const { error } = await supabase.from("candidate_profiles").upsert({
+        const { error } = await supabase.from("candidate_private_profiles").upsert({
           id: user.id,
           curp: mandatory.curp || null,
           birth_date: mandatory.birthDate || null,

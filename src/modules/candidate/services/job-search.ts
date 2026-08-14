@@ -102,7 +102,7 @@ export const jobSearchService = {
 
     if (companyIds.length > 0) {
       const { data: companyProfiles } = await supabase
-        .from("company_profiles")
+        .from("company_directory")
         .select("id, company_name, logo_url")
         .in("id", companyIds);
 

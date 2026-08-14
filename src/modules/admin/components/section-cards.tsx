@@ -11,98 +11,113 @@ import {
 } from "@/components/ui/card"
 import { TrendingUpIcon, TrendingDownIcon } from "lucide-react"
 
-export function SectionCards() {
+interface SectionCardsProps {
+  metrics?: {
+    totalCandidates: number;
+    totalCompanies: number;
+    pendingVerifications: number;
+    activeVacancies: number;
+    totalApplications: number;
+  };
+}
+
+export function SectionCards({ metrics }: SectionCardsProps) {
+  const candidates = metrics?.totalCandidates ?? 0;
+  const companies = metrics?.totalCompanies ?? 0;
+  const verifications = metrics?.pendingVerifications ?? 0;
+  const vacancies = metrics?.activeVacancies ?? 0;
+  const applications = metrics?.totalApplications ?? 0;
+
   return (
     <div className="grid grid-cols-1 gap-4 px-4 *:data-[slot=card]:bg-gradient-to-t *:data-[slot=card]:from-primary/5 *:data-[slot=card]:to-card *:data-[slot=card]:shadow-xs lg:px-6 @xl/main:grid-cols-2 @5xl/main:grid-cols-4 dark:*:data-[slot=card]:bg-card">
       <Card className="@container/card">
         <CardHeader>
-          <CardDescription>Total Revenue</CardDescription>
+          <CardDescription>Candidatos Registrados</CardDescription>
           <CardTitle className="text-2xl font-semibold tabular-nums @[250px]/card:text-3xl">
-            $1,250.00
+            {candidates.toLocaleString()}
           </CardTitle>
           <CardAction>
             <Badge variant="outline">
               <TrendingUpIcon />
-              +12.5%
+              Activos
             </Badge>
           </CardAction>
         </CardHeader>
         <CardFooter className="flex-col items-start gap-1.5 text-sm">
           <div className="line-clamp-1 flex gap-2 font-medium">
-            Trending up this month{" "}
+            Talento en el sureste{" "}
             <TrendingUpIcon className="size-4" />
           </div>
           <div className="text-muted-foreground">
-            Visitors for the last 6 months
+            Perfiles con datos y CVs
           </div>
         </CardFooter>
       </Card>
 
       <Card className="@container/card">
         <CardHeader>
-          <CardDescription>New Customers</CardDescription>
+          <CardDescription>Empresas en Plataforma</CardDescription>
           <CardTitle className="text-2xl font-semibold tabular-nums @[250px]/card:text-3xl">
-            1,234
+            {companies.toLocaleString()}
           </CardTitle>
           <CardAction>
-            <Badge variant="outline">
-              <TrendingDownIcon />
-              -20%
+            <Badge variant={verifications > 0 ? "destructive" : "outline"}>
+              {verifications > 0 ? `${verifications} pendientes` : "Verificadas"}
             </Badge>
           </CardAction>
         </CardHeader>
         <CardFooter className="flex-col items-start gap-1.5 text-sm">
           <div className="line-clamp-1 flex gap-2 font-medium">
-            Down 20% this period{" "}
-            <TrendingDownIcon className="size-4" />
+            {verifications > 0 ? "Requiere atención" : "Empresas validadas"}{" "}
+            <TrendingUpIcon className="size-4" />
           </div>
           <div className="text-muted-foreground">
-            Acquisition needs attention
+            Validación fiscal y legal
           </div>
         </CardFooter>
       </Card>
 
       <Card className="@container/card">
         <CardHeader>
-          <CardDescription>Active Accounts</CardDescription>
+          <CardDescription>Vacantes Activas</CardDescription>
           <CardTitle className="text-2xl font-semibold tabular-nums @[250px]/card:text-3xl">
-            45,678
+            {vacancies.toLocaleString()}
           </CardTitle>
           <CardAction>
             <Badge variant="outline">
               <TrendingUpIcon />
-              +12.5%
+              Publicadas
             </Badge>
           </CardAction>
         </CardHeader>
         <CardFooter className="flex-col items-start gap-1.5 text-sm">
           <div className="line-clamp-1 flex gap-2 font-medium">
-            Strong user retention{" "}
+            Ofertas laborales{" "}
             <TrendingUpIcon className="size-4" />
           </div>
-          <div className="text-muted-foreground">Engagement exceed targets</div>
+          <div className="text-muted-foreground">Oportunidades abiertas</div>
         </CardFooter>
       </Card>
 
       <Card className="@container/card">
         <CardHeader>
-          <CardDescription>Growth Rate</CardDescription>
+          <CardDescription>Postulaciones Totales</CardDescription>
           <CardTitle className="text-2xl font-semibold tabular-nums @[250px]/card:text-3xl">
-            4.5%
+            {applications.toLocaleString()}
           </CardTitle>
           <CardAction>
             <Badge variant="outline">
               <TrendingUpIcon />
-              +4.5%
+              En proceso
             </Badge>
           </CardAction>
         </CardHeader>
         <CardFooter className="flex-col items-start gap-1.5 text-sm">
           <div className="line-clamp-1 flex gap-2 font-medium">
-            Steady performance increase{" "}
+            Conexiones de trabajo{" "}
             <TrendingUpIcon className="size-4" />
           </div>
-          <div className="text-muted-foreground">Meets growth projections</div>
+          <div className="text-muted-foreground">Métrica de coincidencia</div>
         </CardFooter>
       </Card>
     </div>

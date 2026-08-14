@@ -12,7 +12,41 @@ export type Database = {
       [_ in never]: never
     }
     Views: {
-      [_ in never]: never
+      company_directory: {
+        Row: {
+          id: string | null
+          company_name: string | null
+          logo_url: string | null
+          industry: string | null
+          company_size: string | null
+          description: string | null
+          banner_url: string | null
+          website_url: string | null
+          social_links: Json | null
+          verification_status: Database["public"]["Enums"]["verification_status"] | null
+        }
+        Relationships: []
+      }
+      candidate_directory: {
+        Row: {
+          id: string | null
+          full_name: string | null
+          avatar_url: string | null
+          location: string | null
+          is_verified: boolean | null
+          headline: string | null
+          bio: string | null
+          skills: string[] | null
+          experience: Json | null
+          education: Json | null
+          preferred_zone: string | null
+          specialization_area: string | null
+          years_experience: number | null
+          trade_description: string | null
+          candidate_type: Database["public"]["Enums"]["candidate_type"] | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
       graphql: {
@@ -346,6 +380,44 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "candidate_profiles_id_fkey"
+            columns: ["id"]
+            isOneToOne: true
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      candidate_private_profiles: {
+        Row: {
+          id: string
+          curp: string | null
+          rfc: string | null
+          birth_date: string | null
+          cedula_profesional: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id: string
+          curp?: string | null
+          rfc?: string | null
+          birth_date?: string | null
+          cedula_profesional?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          curp?: string | null
+          rfc?: string | null
+          birth_date?: string | null
+          cedula_profesional?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "candidate_private_profiles_id_fkey"
             columns: ["id"]
             isOneToOne: true
             referencedRelation: "profiles"
@@ -893,7 +965,41 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      company_directory: {
+        Row: {
+          id: string | null
+          company_name: string | null
+          logo_url: string | null
+          industry: string | null
+          company_size: string | null
+          description: string | null
+          banner_url: string | null
+          website_url: string | null
+          social_links: Json | null
+          verification_status: Database["public"]["Enums"]["verification_status"] | null
+        }
+        Relationships: []
+      }
+      candidate_directory: {
+        Row: {
+          id: string | null
+          full_name: string | null
+          avatar_url: string | null
+          location: string | null
+          is_verified: boolean | null
+          headline: string | null
+          bio: string | null
+          skills: string[] | null
+          experience: Json | null
+          education: Json | null
+          preferred_zone: string | null
+          specialization_area: string | null
+          years_experience: number | null
+          trade_description: string | null
+          candidate_type: Database["public"]["Enums"]["candidate_type"] | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
       [_ in never]: never
@@ -1079,4 +1185,3 @@ export const Constants = {
     },
   },
 } as const
-

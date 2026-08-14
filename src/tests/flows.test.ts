@@ -98,7 +98,7 @@ describe("K'anPro Integration and Functional Test Suite", () => {
 
       // 2. Verificar que el trigger handle_new_auth_user se disparó e insertó el perfil
       const { data: profile, error: profileErr } = await supabaseAdmin
-        .from("profiles_private")
+        .from("profiles")
         .select("role, location")
         .eq("id", testCandidateId)
         .single();
@@ -149,7 +149,7 @@ describe("K'anPro Integration and Functional Test Suite", () => {
 
       // 3. Validar que se guardó exactamente como "Mérida - Altabrisa"
       const { data: updatedProfile, error: fetchErr } = await supabaseAdmin
-        .from("profiles_private")
+        .from("profiles")
         .select("location")
         .eq("id", testCandidateId)
         .single();
@@ -518,7 +518,7 @@ describe("K'anPro Integration and Functional Test Suite", () => {
       const result = await toggleCandidateVerification(candidateProfileId, true);
 
       expect(result).toEqual({ success: true });
-      expect(mockUpdate).toHaveBeenCalledWith({ is_validated: true });
+      expect(mockUpdate).toHaveBeenCalledWith({ is_verified: true });
       expect(mockEq).toHaveBeenCalledWith("id", candidateProfileId);
       expect(mockRevalidatePath).toHaveBeenCalledWith("/dashboard/admin");
     });

@@ -30,9 +30,10 @@ export async function getCompanyDashboardData() {
         .select("id, title, location, zone, salary_min, salary_max, category, employment_type, created_at, is_active")
         .eq("company_id", user.id)
         .order("created_at", { ascending: false }),
-      (supabase.from("connections" as any) as any)
+      supabase
+        .from("document_access_requests")
         .select("id", { count: "exact", head: true })
-        .eq("recruiter_id", user.id)
+        .eq("company_id", user.id)
     ]);
 
     if (companyRes.data?.company_name) {

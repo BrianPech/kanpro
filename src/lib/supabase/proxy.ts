@@ -51,35 +51,16 @@ export async function updateSession(request: NextRequest) {
     return NextResponse.redirect(url)
   }
 
-  // Fetch the user's role for protected routes
+  // Always read authorization from the database. `user_metadata` belongs to
+  // the user and must never be trusted for access-control decisions.
   let role: UserRole | null = null
   if (user) {
-    // 1. Try to get role from auth metadata (fastest)
-    role = (user.user_metadata?.role as UserRole) || null
-
-
-    // 2. If not found in metadata, search in database profiles
-    if (!role) {
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('role')
-        .eq('id', user.id)
-        .single()
-      role = profile?.role || null
-    }
-
-    // 3. Fallback: Search company_profiles
-    if (!role) {
-      const { data: companyProfile } = await supabase
-        .from('company_profiles')
-        .select('id')
-        .eq('id', user.id)
-        .maybeSingle()
-      
-      if (companyProfile) {
-        role = 'company'
-      }
-    }
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('role')
+      .eq('id', user.id)
+      .single()
+    role = profile?.role || null
   }
 
   // Protect admin routes

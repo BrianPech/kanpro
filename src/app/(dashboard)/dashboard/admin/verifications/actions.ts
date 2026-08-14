@@ -238,6 +238,12 @@ export async function getCandidateVerifications(): Promise<PendingCandidateItem[
 
   const candidateIds = candidateProfiles.map((c) => c.id);
 
+  const { data: privateProfiles } = await supabase
+    .from("candidate_private_profiles")
+    .select("id, curp, rfc, cedula_profesional")
+    .in("id", candidateIds);
+  const privateProfileMap = new Map((privateProfiles || []).map((profile) => [profile.id, profile]));
+
   // 1. Fetch Profiles
   const { data: profiles } = await supabase
     .from("profiles")
@@ -263,6 +269,7 @@ export async function getCandidateVerifications(): Promise<PendingCandidateItem[
 
   return candidateProfiles.map((c) => {
     const p = profileMap.get(c.id);
+    const privateProfile = privateProfileMap.get(c.id);
     const uploadedDocs = candidateDocsMap.get(c.id) || [];
     const docMap = new Map(uploadedDocs.map((d) => [d.docType, d.fileUrl]));
 
@@ -274,9 +281,9 @@ export async function getCandidateVerifications(): Promise<PendingCandidateItem[
       candidateType: (c.candidate_type as PendingCandidateItem["candidateType"]) || "operativo",
       specializationArea: c.specialization_area || undefined,
       yearsExperience: c.years_experience || undefined,
-      cedulaProfesional: c.cedula_profesional || undefined,
-      rfc: c.rfc || undefined,
-      curp: c.curp || undefined,
+      cedulaProfesional: privateProfile?.cedula_profesional || undefined,
+      rfc: privateProfile?.rfc || undefined,
+      curp: privateProfile?.curp || undefined,
       headline: c.headline || undefined,
       bio: c.bio || undefined,
       preferredZone: c.preferred_zone || undefined,
