@@ -18,6 +18,8 @@ export interface CandidateProfileData {
   is_validated: boolean | null;
   is_approved: boolean | null;
   show_phone: boolean | null;
+  curp: string | null;
+  birth_date: string | null;
 }
 
 export const candidateProfileService = {
@@ -37,7 +39,7 @@ export const candidateProfileService = {
             .maybeSingle(),
           supabase
             .from("candidate_profiles")
-            .select("id, headline, bio, skills, experience, portfolio_links, preferred_zone")
+            .select("id, headline, bio, skills, experience, portfolio_links, preferred_zone, curp, birth_date")
             .eq("id", userId)
             .maybeSingle(),
         ]);
@@ -70,6 +72,8 @@ export const candidateProfileService = {
         is_validated: true,
         is_approved: true,
         show_phone: true,
+        curp: candProfile?.curp || null,
+        birth_date: candProfile?.birth_date || null,
       };
     } catch (err: any) {
       console.error("[candidateProfileService] Unexpected error in getProfile:", err?.message || err);

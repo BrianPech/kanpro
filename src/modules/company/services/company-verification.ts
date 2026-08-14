@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/client";
+import type { Database } from "@/types/supabase";
 
 export type CompanyDocType =
   | "acta_constitutiva"
@@ -42,7 +43,7 @@ export const companyVerificationService = {
     const supabase = createClient();
 
     // 1. Update company_profiles
-    const companyPayload: any = {
+    const companyPayload: Database["public"]["Tables"]["company_profiles"]["Update"] = {
       updated_at: new Date().toISOString(),
     };
 
@@ -67,7 +68,7 @@ export const companyVerificationService = {
     if (companyErr) throw companyErr;
 
     // 2. Sync base profiles location & contact phone if provided
-    const profilesPayload: any = {
+    const profilesPayload: Database["public"]["Tables"]["profiles"]["Update"] = {
       updated_at: new Date().toISOString(),
     };
     if (data.fiscal_address) profilesPayload.location = data.fiscal_address;
@@ -87,6 +88,10 @@ export const companyVerificationService = {
   ): Promise<CompanyVerificationDoc> {
     const supabase = createClient();
 
+    if (!["application/pdf", "image/jpeg", "image/png", "image/webp"].includes(file.type)) {
+      throw new Error("Formato no permitido. Carga un PDF, JPG, PNG o WEBP.");
+    }
+
     // Clean filename
     const sanitizeName = file.name.replace(/[^a-zA-Z0-9._-]/g, "_");
     const filePath = `${userId}/${docType}_${Date.now()}_${sanitizeName}`;
@@ -102,12 +107,9 @@ export const companyVerificationService = {
       );
     }
 
-    // 2. Get Public or Signed URL
-    const { data: urlData } = supabase.storage
-      .from("profile_documents")
-      .getPublicUrl(filePath);
-
-    const fileUrl = urlData.publicUrl || filePath;
+    // Keep the storage path, never a public URL. Administrators receive a
+    // short-lived signed URL from the server when inspecting the document.
+    const fileUrl = filePath;
 
     // 3. Check if document record already exists in profile_documents table
     const { data: existingDoc } = await supabase
@@ -206,7 +208,7 @@ export const companyVerificationService = {
     // Remove physical file object from Supabase Storage
     if (fileUrl) {
       const parts = fileUrl.split("/profile_documents/");
-      const storagePath = parts.length > 1 ? parts[1] : null;
+      const storagePath = fileUrl.startsWith("http") ? (parts.length > 1 ? parts[1] : null) : fileUrl;
       if (storagePath) {
         await supabase.storage.from("profile_documents").remove([decodeURIComponent(storagePath)]);
       }

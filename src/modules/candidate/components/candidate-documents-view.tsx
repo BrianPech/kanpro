@@ -30,6 +30,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { createClient } from "@/lib/supabase/client";
 import { candidateProfileService } from "../services/candidate-profile";
+import { candidateDocumentsService, type CandidateDocumentType } from "../services/candidate-documents";
 import { toast } from "sonner";
 import {
   Dialog,
@@ -86,64 +87,60 @@ interface OptionalState {
 
 export function CandidateDocumentsView() {
   const supabase = createClient();
+  const fileInputRef = React.useRef<HTMLInputElement>(null);
+  const [userId, setUserId] = useState<string | null>(null);
+  const [uploadField, setUploadField] = useState<"officialIdFile" | "proofAddressFile" | "cvFile" | null>(null);
+  const [isUploading, setIsUploading] = useState(false);
   const [activeTab, setActiveTab] = useState<"mandatory" | "optional">("mandatory");
 
   // Mandatory fields state
   const [mandatory, setMandatory] = useState<MandatoryState>({
     fullName: "",
-    birthDate: "1995-04-12",
-    curp: "HESA950412HDFRR09",
-    officialIdFile: "INE_Frontal_y_Reverso_2026.pdf",
+    birthDate: "",
+    curp: "",
+    officialIdFile: null,
     email: "",
     phone: "",
-    isPhoneVerified: true,
+    isPhoneVerified: false,
     profilePhotoUrl: null,
-    acceptedTerms: true,
+    acceptedTerms: false,
   });
 
-  // Fetch candidate profile on mount
+  // Optional fields state
+  const [optional, setOptional] = useState<OptionalState>({
+    proofAddressFile: null,
+    cvFile: null,
+    workCertificates: [],
+    recommendationLetters: [],
+    courses: [],
+    certifications: [],
+    languages: [],
+    portfolioUrl: "",
+    portfolioFile: null
+  });
+
+  // Fetch candidate profile and the actual verification records on mount.
   React.useEffect(() => {
     async function loadCandidateProfile() {
       try {
         const { data: { user } } = await supabase.auth.getUser();
-        if (user) {
-          const profile = await candidateProfileService.getProfile(user.id);
-          if (profile) {
-            setMandatory((prev) => ({
-              ...prev,
-              fullName: profile.full_name || prev.fullName,
-              email: profile.email || user.email || prev.email,
-              phone: profile.whatsapp_number || prev.phone,
-              profilePhotoUrl: profile.avatar_url || prev.profilePhotoUrl,
-            }));
-          }
+        if (!user) return;
+        setUserId(user.id);
+        const [profile, documents] = await Promise.all([
+          candidateProfileService.getProfile(user.id),
+          candidateDocumentsService.list(user.id),
+        ]);
+        if (profile) {
+          setMandatory((prev) => ({ ...prev, fullName: profile.full_name || prev.fullName, email: profile.email || user.email || prev.email, phone: profile.whatsapp_number || prev.phone, profilePhotoUrl: profile.avatar_url || prev.profilePhotoUrl, curp: profile.curp || prev.curp, birthDate: profile.birth_date || prev.birthDate }));
         }
+        setMandatory((prev) => ({ ...prev, officialIdFile: documents.find((doc) => doc.doc_type === "ine_passport")?.file_name || null }));
+        setOptional((prev) => ({ ...prev, proofAddressFile: documents.find((doc) => doc.doc_type === "proof_of_address")?.file_name || null, cvFile: documents.find((doc) => doc.doc_type === "cv")?.file_name || null }));
       } catch (err) {
         console.error("Error loading candidate profile in documents view:", err);
       }
     }
     loadCandidateProfile();
   }, [supabase]);
-
-  // Optional fields state
-  const [optional, setOptional] = useState<OptionalState>({
-    proofAddressFile: "Comprobante_CFE_Julio.pdf",
-    cvFile: "CV_Ana_Hernandez_2026.pdf",
-    workCertificates: ["Constancia_Hotel_Xcaret_2024.pdf"],
-    recommendationLetters: ["Carta_Recomendacion_Gerencia.pdf"],
-    courses: [
-      { id: "1", title: "Atención al Cliente Excepcional", institution: "Instituto de Gastronomía y Turismo", file: "Diploma_Turismo.pdf" }
-    ],
-    certifications: [
-      { id: "1", name: "Servicio de Bebidas y Alimentos Nivel 2", issuer: "CONOCER México", file: "Certificado_CONOCER.pdf" }
-    ],
-    languages: [
-      { id: "1", language: "Español", level: "Nativo" },
-      { id: "2", language: "Inglés", level: "Avanzado (C1)" }
-    ],
-    portfolioUrl: "https://dribbble.com/analucia_h",
-    portfolioFile: null
-  });
 
   // UI Modals
   const [previewFile, setPreviewFile] = useState<{ name: string; type: string } | null>(null);
@@ -185,12 +182,40 @@ export function CandidateDocumentsView() {
 
   const totalProgressPercent = Math.round(((mandatoryCompleted * 2) + optionalCompleted) / 24 * 100);
 
-  const handleSimulateFileUpload = (field: keyof MandatoryState | keyof OptionalState, defaultFileName: string) => {
-    if (field in mandatory) {
-      setMandatory((prev) => ({ ...prev, [field]: defaultFileName }));
-    } else {
-      setOptional((prev) => ({ ...prev, [field]: defaultFileName }));
+  const requestFileUpload = (field: "officialIdFile" | "proofAddressFile" | "cvFile") => {
+    setUploadField(field);
+    fileInputRef.current?.click();
+  };
+
+  const handleFileSelected = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    const field = uploadField;
+    event.target.value = "";
+    if (!file || !field || !userId) return;
+    const typeByField: Record<typeof field, CandidateDocumentType> = {
+      officialIdFile: "ine_passport",
+      proofAddressFile: "proof_of_address",
+      cvFile: "cv",
+    };
+    setIsUploading(true);
+    try {
+      await candidateDocumentsService.upload(userId, typeByField[field], file);
+      if (field === "officialIdFile") setMandatory((prev) => ({ ...prev, officialIdFile: file.name }));
+      else setOptional((prev) => ({ ...prev, [field]: file.name }));
+      toast.success("Documento cargado y enviado a revisión.");
+    } catch (error: unknown) {
+      toast.error((error as Error).message || "No se pudo cargar el documento.");
+    } finally {
+      setIsUploading(false);
+      setUploadField(null);
     }
+  };
+
+  // Remaining optional profile fields are local drafts until their dedicated
+  // document categories are enabled in the verification workflow.
+  const handleSimulateFileUpload = (field: keyof MandatoryState | keyof OptionalState, defaultFileName: string) => {
+    if (field in mandatory) setMandatory((prev) => ({ ...prev, [field]: defaultFileName }));
+    else setOptional((prev) => ({ ...prev, [field]: defaultFileName }));
   };
 
   const handleAddCourse = () => {
@@ -238,6 +263,13 @@ export function CandidateDocumentsView() {
           full_name: mandatory.fullName,
           whatsapp_number: mandatory.phone,
         });
+        const { error } = await supabase.from("candidate_profiles").upsert({
+          id: user.id,
+          curp: mandatory.curp || null,
+          birth_date: mandatory.birthDate || null,
+          updated_at: new Date().toISOString(),
+        });
+        if (error) throw error;
       }
       toast.success("Expediente guardado", {
         description: "Tus documentos e información personal han sido actualizados con éxito."
@@ -252,6 +284,7 @@ export function CandidateDocumentsView() {
 
   return (
     <div className="min-h-full p-4 sm:p-6 lg:p-8 max-w-6xl mx-auto space-y-6">
+      <input ref={fileInputRef} type="file" accept="application/pdf,image/png,image/jpeg,image/webp" className="hidden" onChange={handleFileSelected} />
       {/* 1. Header & Progress Banner */}
       <div className="bg-white dark:bg-zinc-900 rounded-[28px] sm:rounded-[32px] p-6 sm:p-8 border border-[#ebeef3] dark:border-zinc-800 shadow-xs relative overflow-hidden">
         <div className="absolute -top-12 -right-12 w-48 h-48 bg-gradient-to-br from-emerald-500/10 via-blue-500/5 to-transparent rounded-full blur-2xl pointer-events-none" />
@@ -463,7 +496,8 @@ export function CandidateDocumentsView() {
                 </div>
               ) : (
                 <button
-                  onClick={() => handleSimulateFileUpload("officialIdFile", "INE_Vigente_2026.pdf")}
+                  onClick={() => requestFileUpload("officialIdFile")}
+                  disabled={isUploading}
                   className="w-full p-5 border-2 border-dashed border-[#ebeef3] dark:border-zinc-700 rounded-[18px] flex flex-col items-center justify-center text-center gap-2 hover:bg-[#f8fafc] dark:hover:bg-zinc-800/40 transition-colors cursor-pointer"
                 >
                   <UploadCloud className="w-8 h-8 text-[#5c7c9b]" />
@@ -655,7 +689,8 @@ export function CandidateDocumentsView() {
               ) : (
                 <Button
                   variant="outline"
-                  onClick={() => handleSimulateFileUpload("proofAddressFile", "Comprobante_Domicilio_Reciente.pdf")}
+                  onClick={() => requestFileUpload("proofAddressFile")}
+                  disabled={isUploading}
                   className="w-full h-12 rounded-[14px] border-dashed border-[#ebeef3] dark:border-zinc-700 text-xs font-bold text-[#5c7c9b]"
                 >
                   <Plus className="w-4 h-4 mr-2" /> Adjuntar CFE, Agua o Predial (máx 3 meses)
@@ -703,7 +738,8 @@ export function CandidateDocumentsView() {
               ) : (
                 <Button
                   variant="outline"
-                  onClick={() => handleSimulateFileUpload("cvFile", "CV_Actualizado_2026.pdf")}
+                  onClick={() => requestFileUpload("cvFile")}
+                  disabled={isUploading}
                   className="w-full h-12 rounded-[14px] border-dashed border-[#ebeef3] dark:border-zinc-700 text-xs font-bold text-[#5c7c9b]"
                 >
                   <Plus className="w-4 h-4 mr-2" /> Subir CV en formato PDF

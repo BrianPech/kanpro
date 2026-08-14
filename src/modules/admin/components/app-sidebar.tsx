@@ -19,11 +19,12 @@ import {
   UsersIcon,
   Settings2Icon,
   BookOpenIcon,
-  SearchIcon,
   CommandIcon,
+  BadgeCheckIcon,
   ShieldCheckIcon,
   HeadphonesIcon,
   ShieldAlertIcon,
+  SearchIcon,
 } from "lucide-react";
 
 const data = {
@@ -37,6 +38,11 @@ const data = {
       title: "Dashboard",
       url: "/dashboard/admin",
       icon: <LayoutDashboardIcon />,
+    },
+    {
+      title: "Verificación de Expedientes",
+      url: "/dashboard/admin/verifications",
+      icon: <BadgeCheckIcon />,
     },
     {
       title: "Moderación y Reportes",
