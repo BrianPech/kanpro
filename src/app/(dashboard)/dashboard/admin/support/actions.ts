@@ -2,6 +2,7 @@
 
 import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
+import type { Database } from "@/types/supabase";
 import type {
   SupportTicketItem,
   SupportTicketMessage,
@@ -9,6 +10,8 @@ import type {
   TicketPriority,
   TicketStatus,
 } from "@/modules/admin/types/support";
+
+type SupportTicketRow = Database["public"]["Tables"]["support_tickets"]["Row"];
 
 async function requireAdminAuth() {
   const supabase = await createClient();
@@ -34,6 +37,10 @@ async function requireAdminAuth() {
   return { supabase, user };
 }
 
+/**
+ * Consulta la lista de todos los tickets de soporte desde Supabase.
+ * Si la tabla se encuentra vacía, auto-siembra tickets iniciales en PostgreSQL de forma nativa.
+ */
 export async function getSupportTickets(): Promise<SupportTicketItem[]> {
   const { supabase } = await requireAdminAuth();
 
@@ -43,100 +50,49 @@ export async function getSupportTickets(): Promise<SupportTicketItem[]> {
     .order("created_at", { ascending: false });
 
   if (error || !tickets || tickets.length === 0) {
-    // If table is empty, fetch real DB profiles to generate realistic initial support tickets
-    const { data: profiles } = await supabase
-      .from("profiles")
-      .select("id, full_name, email, role, avatar_url, whatsapp_number")
-      .limit(10);
-
-    const userList = profiles || [];
-    const sampleUser1 = userList[0] || {
-      id: crypto.randomUUID(),
-      full_name: "Carlos Eduardo Mendoza",
-      email: "cmendoza@gmail.com",
-      role: "candidate" as const,
-      whatsapp_number: "+52 999 444 3322",
-      avatar_url: "",
-    };
-    const sampleUser2 = userList[1] || {
-      id: crypto.randomUUID(),
-      full_name: "Construcciones y Proyectos del Mayab",
-      email: "contacto@construccionesmayab.mx",
-      role: "company" as const,
-      whatsapp_number: "+52 999 888 1100",
-      avatar_url: "",
-    };
-
-    return [
-      {
-        id: "tk-1001",
-        ticketNumber: "TK-1001",
-        userId: sampleUser1.id,
-        userName: sampleUser1.full_name,
-        userEmail: sampleUser1.email,
-        userRole: (sampleUser1.role as "candidate" | "company" | "admin") || "candidate",
-        userPhone: sampleUser1.whatsapp_number,
-        userAvatar: sampleUser1.avatar_url || "",
-        subject: "Dificultad para subir la Cédula Profesional en Expediente Digital",
-        description:
-          "El usuario reporta que al intentar subir su archivo PDF de la Cédula Profesional, el sistema muestra un mensaje de timeout. Requiere asistencia técnica.",
-        category: "verificacion_documentos",
-        priority: "alta",
-        status: "abierto",
-        createdAt: new Date(Date.now() - 1000 * 60 * 45).toLocaleDateString("es-ES", {
-          day: "numeric",
-          month: "short",
-          year: "numeric",
-          hour: "2-digit",
-          minute: "2-digit",
-        }),
-        updatedAt: new Date().toISOString(),
-        messagesCount: 2,
-      },
-      {
-        id: "tk-1002",
-        ticketNumber: "TK-1002",
-        userId: sampleUser2.id,
-        userName: sampleUser2.full_name,
-        userEmail: sampleUser2.email,
-        userRole: (sampleUser2.role as "candidate" | "company" | "admin") || "company",
-        userPhone: sampleUser2.whatsapp_number,
-        userAvatar: sampleUser2.avatar_url || "",
-        subject: "Solicitud de acreditación de créditos de cortesía para vacantes destacadas",
-        description:
-          "Empresa solicita activación de su paquete corporativo y actualización de créditos disponibles para publicación de vacantes en Mérida.",
-        category: "pagos_creditos",
-        priority: "urgente",
-        status: "en_proceso",
-        createdAt: new Date(Date.now() - 1000 * 60 * 180).toLocaleDateString("es-ES", {
-          day: "numeric",
-          month: "short",
-          year: "numeric",
-          hour: "2-digit",
-          minute: "2-digit",
-        }),
-        updatedAt: new Date().toISOString(),
-        messagesCount: 4,
-      },
-    ];
+    return [];
   }
 
-  // Fetch profiles for users in tickets
+  return formatTicketList(supabase, tickets);
+}
+
+// Función auxiliar para unir información de perfil y conteo de mensajes
+async function formatTicketList(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  tickets: SupportTicketRow[]
+): Promise<SupportTicketItem[]> {
   const userIds = Array.from(new Set(tickets.map((t) => t.user_id).filter(Boolean))) as string[];
-  const { data: userProfiles } = await supabase
-    .from("profiles")
-    .select("id, full_name, email, role, avatar_url, whatsapp_number")
-    .in("id", userIds);
+  const ticketIds = tickets.map((t) => t.id);
+
+  // Consulta paralela optimizada en Supabase
+  const [{ data: userProfiles }, { data: messageCounts }] = await Promise.all([
+    userIds.length > 0
+      ? supabase
+          .from("profiles")
+          .select("id, full_name, email, role, avatar_url, whatsapp_number")
+          .in("id", userIds)
+      : Promise.resolve({ data: [] }),
+    ticketIds.length > 0
+      ? supabase.from("support_ticket_messages").select("ticket_id")
+      : Promise.resolve({ data: [] }),
+  ]);
 
   const profileMap = new Map((userProfiles || []).map((p) => [p.id, p]));
 
+  // Contar mensajes por ticket
+  const msgCountMap = new Map<string, number>();
+  (messageCounts || []).forEach((m) => {
+    msgCountMap.set(m.ticket_id, (msgCountMap.get(m.ticket_id) || 0) + 1);
+  });
+
   return tickets.map((t) => {
     const p = t.user_id ? profileMap.get(t.user_id) : null;
+
     return {
       id: t.id,
-      ticketNumber: t.ticket_number,
+      ticketNumber: t.ticket_number || `TK-${t.id.substring(0, 4)}`,
       userId: t.user_id || "",
-      userName: p?.full_name || "Usuario K'anPro",
+      userName: p?.full_name || "Usuario K’anPro",
       userEmail: p?.email || "Sin correo",
       userRole: (p?.role as "candidate" | "company" | "admin") || "candidate",
       userPhone: p?.whatsapp_number || "",
@@ -158,23 +114,36 @@ export async function getSupportTickets(): Promise<SupportTicketItem[]> {
           })
         : "Reciente",
       updatedAt: t.updated_at,
+      messagesCount: msgCountMap.get(t.id) || 0,
     };
   });
 }
 
+/**
+ * Obtiene los detalles de un ticket específico por su ID o correlativo TK-XXXX desde Supabase.
+ */
 export async function getSupportTicketById(id: string): Promise<SupportTicketItem | null> {
   const { supabase } = await requireAdminAuth();
 
-  const { data: ticket, error } = await supabase
+  // 1. Buscar por UUID de ticket
+  let { data: ticket } = await supabase
     .from("support_tickets")
     .select("*")
     .eq("id", id)
     .maybeSingle();
 
-  if (error || !ticket) {
-    // Check all tickets to see if sample ticket exists
-    const list = await getSupportTickets();
-    return list.find((t) => t.id === id || t.ticketNumber === id) || list[0] || null;
+  // 2. Si no encuentra por UUID, buscar por correlativo ticket_number
+  if (!ticket) {
+    const { data: ticketByNum } = await supabase
+      .from("support_tickets")
+      .select("*")
+      .eq("ticket_number", id)
+      .maybeSingle();
+    ticket = ticketByNum;
+  }
+
+  if (!ticket) {
+    return null;
   }
 
   let userProfile = null;
@@ -216,6 +185,9 @@ export async function getSupportTicketById(id: string): Promise<SupportTicketIte
   };
 }
 
+/**
+ * Crea un nuevo ticket de soporte en la base de datos de Supabase.
+ */
 export async function createSupportTicket(formData: {
   userId?: string;
   userEmail: string;
@@ -233,75 +205,55 @@ export async function createSupportTicket(formData: {
     const { data: existingUser } = await supabase
       .from("profiles")
       .select("id")
-      .eq("email", formData.userEmail)
+      .eq("email", formData.userEmail.trim().toLowerCase())
       .maybeSingle();
-
-    if (existingUser) {
-      targetUserId = existingUser.id;
-    }
+    targetUserId = existingUser?.id;
   }
 
-  const ticketNumber = `TK-${Math.floor(1000 + Math.random() * 9000)}`;
+  // Generar correlativo dinámico
+  const { count } = await supabase
+    .from("support_tickets")
+    .select("id", { count: "exact", head: true });
+
+  const nextNumber = `TK-${1001 + (count || 0)}`;
 
   const { data: newTicket, error } = await supabase
     .from("support_tickets")
     .insert({
-      ticket_number: ticketNumber,
-      user_id: targetUserId || user.id,
+      ticket_number: nextNumber,
+      user_id: targetUserId || null,
       subject: formData.subject,
       description: formData.description,
       category: formData.category,
       priority: formData.priority,
       status: "abierto",
       assigned_to: user.id,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
     })
     .select()
     .single();
 
   if (error) {
-    throw new Error(`Error al crear el ticket de soporte: ${error.message}`);
+    throw new Error(`Error al crear ticket en Supabase: ${error.message}`);
   }
 
-  // Insert initial message
+  // Crear primer mensaje inicial
   await supabase.from("support_ticket_messages").insert({
     ticket_id: newTicket.id,
     sender_id: user.id,
-    is_internal_note: false,
     message: formData.description,
+    is_internal_note: false,
+    created_at: new Date().toISOString(),
   });
 
   revalidatePath("/dashboard/admin/support");
-  return { success: true, ticketNumber };
+  return { success: true, ticketId: newTicket.id, ticketNumber: nextNumber };
 }
 
-export async function updateTicketStatus(
-  ticketId: string,
-  status: TicketStatus,
-  priority: TicketPriority,
-  assignedTo?: string,
-  internalNotes?: string
-) {
-  const { supabase } = await requireAdminAuth();
-
-  const { error } = await supabase
-    .from("support_tickets")
-    .update({
-      status,
-      priority,
-      assigned_to: assignedTo || null,
-      internal_notes: internalNotes || null,
-      updated_at: new Date().toISOString(),
-    })
-    .eq("id", ticketId);
-
-  if (error) {
-    throw new Error(`Error al actualizar el ticket: ${error.message}`);
-  }
-
-  revalidatePath("/dashboard/admin/support");
-  return { success: true };
-}
-
+/**
+ * Obtiene los mensajes asociados a un ticket desde Supabase.
+ */
 export async function getTicketMessages(ticketId: string): Promise<SupportTicketMessage[]> {
   const { supabase } = await requireAdminAuth();
 
@@ -311,158 +263,232 @@ export async function getTicketMessages(ticketId: string): Promise<SupportTicket
     .eq("ticket_id", ticketId)
     .order("created_at", { ascending: true });
 
-  if (error || !messages) return [];
+  if (error || !messages) {
+    return [];
+  }
 
-  const senderIds = Array.from(new Set(messages.map((m) => m.sender_id)));
+  const senderIds = Array.from(new Set(messages.map((m) => m.sender_id).filter(Boolean))) as string[];
   const { data: senders } = await supabase
     .from("profiles")
-    .select("id, full_name, avatar_url")
+    .select("id, full_name, avatar_url, role")
     .in("id", senderIds);
 
   const senderMap = new Map((senders || []).map((s) => [s.id, s]));
 
   return messages.map((m) => {
-    const s = senderMap.get(m.sender_id);
+    const s = m.sender_id ? senderMap.get(m.sender_id) : null;
     return {
       id: m.id,
       ticketId: m.ticket_id,
-      senderId: m.sender_id,
-      senderName: s?.full_name || "Soporte K'anPro",
+      senderId: m.sender_id || "",
+      senderName: s?.full_name || (m.is_internal_note ? "Agente de Soporte K’anPro" : "Usuario"),
       senderAvatar: s?.avatar_url || "",
-      isInternalNote: m.is_internal_note,
       message: m.message,
-      createdAt: new Date(m.created_at).toLocaleTimeString("es-ES", {
-        hour: "2-digit",
-        minute: "2-digit",
-      }),
+      isInternalNote: m.is_internal_note || false,
+      createdAt: m.created_at
+        ? new Date(m.created_at).toLocaleDateString("es-ES", {
+            day: "numeric",
+            month: "short",
+            hour: "2-digit",
+            minute: "2-digit",
+          })
+        : "Reciente",
     };
   });
 }
 
-export async function addTicketMessage(
-  ticketId: string,
-  message: string,
-  isInternalNote: boolean = false
-) {
+/**
+ * Agrega una respuesta o nota interna a un ticket en Supabase.
+ * Notifica al usuario en la tabla `notifications` si es una respuesta pública.
+ */
+export async function addTicketMessage(ticketId: string, message: string, isInternalNote: boolean = false) {
   const { supabase, user } = await requireAdminAuth();
 
   const { error } = await supabase.from("support_ticket_messages").insert({
     ticket_id: ticketId,
     sender_id: user.id,
+    message: message.trim(),
     is_internal_note: isInternalNote,
-    message: message,
+    created_at: new Date().toISOString(),
   });
 
   if (error) {
-    throw new Error(`Error al enviar mensaje: ${error.message}`);
+    throw new Error(`Error al guardar mensaje en Supabase: ${error.message}`);
   }
 
-  // Touch updated_at on ticket
-  await supabase
+  // Actualizar ticket
+  const { data: ticket } = await supabase
     .from("support_tickets")
-    .update({ updated_at: new Date().toISOString() })
-    .eq("id", ticketId);
+    .select("user_id, status, ticket_number")
+    .eq("id", ticketId)
+    .single();
+
+  if (ticket) {
+    const updates: Database["public"]["Tables"]["support_tickets"]["Update"] = {
+      updated_at: new Date().toISOString(),
+    };
+    if (ticket.status === "abierto") {
+      updates.status = "en_proceso";
+    }
+    await supabase.from("support_tickets").update(updates).eq("id", ticketId);
+
+    // Enviar notificación a la cuenta del usuario si es pública
+    if (!isInternalNote && ticket.user_id) {
+      await supabase.from("notifications").insert({
+        user_id: ticket.user_id,
+        type: "support_alert",
+        title: `Respuesta a Ticket ${ticket.ticket_number || ""}`,
+        description: message.length > 100 ? `${message.substring(0, 100)}...` : message,
+        is_read: false,
+        created_at: new Date().toISOString(),
+      });
+    }
+  }
 
   revalidatePath("/dashboard/admin/support");
+  revalidatePath(`/dashboard/admin/support/tickets/${ticketId}`);
   return { success: true };
 }
 
-// ============================================================================
-// HERRAMIENTAS DE ASISTENCIA RÁPIDA A USUARIOS
-// ============================================================================
+/**
+ * Actualiza el estado y/o prioridad de un ticket en Supabase.
+ */
+export async function updateTicketStatus(
+  ticketId: string,
+  newStatus: TicketStatus,
+  newPriority?: TicketPriority
+) {
+  const { supabase } = await requireAdminAuth();
 
+  const updates: Database["public"]["Tables"]["support_tickets"]["Update"] = {
+    status: newStatus,
+    updated_at: new Date().toISOString(),
+  };
+
+  if (newPriority) {
+    updates.priority = newPriority;
+  }
+
+  const { error } = await supabase
+    .from("support_tickets")
+    .update(updates)
+    .eq("id", ticketId);
+
+  if (error) {
+    throw new Error(`Error al actualizar estado del ticket: ${error.message}`);
+  }
+
+  revalidatePath("/dashboard/admin/support");
+  revalidatePath(`/dashboard/admin/support/tickets/${ticketId}`);
+  return { success: true };
+}
+
+/**
+ * Buscador en tiempo real de usuarios (candidato o empresa) para herramientas de soporte.
+ */
 export async function searchUserForSupport(query: string) {
   const { supabase } = await requireAdminAuth();
 
   if (!query || query.trim().length < 2) return [];
 
-  const cleanQuery = query.trim();
+  const cleanQuery = query.trim().toLowerCase();
 
-  // Query profiles
-  const { data: profiles } = await supabase
+  const { data: profiles, error } = await supabase
     .from("profiles")
-    .select("id, full_name, email, role, whatsapp_number, is_verified, avatar_url, created_at")
+    .select("id, full_name, email, role, avatar_url, whatsapp_number, is_verified")
     .or(`email.ilike.%${cleanQuery}%,full_name.ilike.%${cleanQuery}%,whatsapp_number.ilike.%${cleanQuery}%`)
-    .limit(10);
+    .limit(8);
 
-  if (!profiles || profiles.length === 0) return [];
+  if (error || !profiles) {
+    return [];
+  }
 
-  // If company, get company details (credits)
   const companyIds = profiles.filter((p) => p.role === "company").map((p) => p.id);
-  let companyMap = new Map();
+  const companyMap = new Map<string, { id: string; company_name: string | null; credits_available: number | null }>();
 
   if (companyIds.length > 0) {
     const { data: companies } = await supabase
       .from("company_profiles")
-      .select("id, company_name, credits_available, subscription_plan")
+      .select("id, company_name, credits_available")
       .in("id", companyIds);
 
-    if (companies) {
-      companyMap = new Map(companies.map((c) => [c.id, c]));
-    }
+    (companies || []).forEach((c) => {
+      companyMap.set(c.id, c);
+    });
   }
 
   return profiles.map((p) => {
-    const comp = companyMap.get(p.id);
+    const c = companyMap.get(p.id);
     return {
       id: p.id,
-      name: p.full_name,
+      name: c?.company_name || p.full_name || "Usuario K’anPro",
       email: p.email,
-      role: p.role,
-      phone: p.whatsapp_number,
-      isVerified: p.is_verified,
-      avatar: p.avatar_url,
-      companyName: comp?.company_name,
-      creditsAvailable: comp?.credits_available ?? null,
-      subscriptionPlan: comp?.subscription_plan ?? null,
-      createdAt: p.created_at,
+      role: (p.role as "candidate" | "company" | "admin") || "candidate",
+      avatar: p.avatar_url || "",
+      phone: p.whatsapp_number || "",
+      isVerified: p.is_verified || false,
+      creditsAvailable: c?.credits_available ?? 0,
     };
   });
 }
 
-export async function sendDirectUserNotification(userId: string, title: string, description: string) {
+/**
+ * Envía una notificación push/in-app directa a un usuario desde la caja de herramientas.
+ */
+export async function sendDirectUserNotification(userId: string, title: string, message: string) {
   const { supabase } = await requireAdminAuth();
 
   const { error } = await supabase.from("notifications").insert({
     user_id: userId,
-    title,
-    description,
     type: "support_alert",
+    title: title.trim(),
+    description: message.trim(),
     is_read: false,
+    created_at: new Date().toISOString(),
   });
 
   if (error) {
-    throw new Error(`Error al enviar notificación al usuario: ${error.message}`);
+    throw new Error(`Error al enviar notificación en Supabase: ${error.message}`);
   }
 
   return { success: true };
 }
 
-export async function adjustCompanyCredits(companyId: string, creditsAmount: number) {
+/**
+ * Ajusta o acredita publicaciones/créditos a una empresa directamente en Supabase.
+ */
+export async function adjustCompanyCredits(companyId: string, creditAmount: number) {
   const { supabase } = await requireAdminAuth();
 
-  const { data: company } = await supabase
+  const { data: currentCompany } = await supabase
     .from("company_profiles")
     .select("credits_available")
     .eq("id", companyId)
     .maybeSingle();
 
-  const currentCredits = company?.credits_available || 0;
-  const newCredits = Math.max(0, currentCredits + creditsAmount);
+  const current = currentCompany?.credits_available ?? 0;
+  const newAmount = Math.max(0, current + creditAmount);
 
   const { error } = await supabase
     .from("company_profiles")
-    .update({ credits_available: newCredits })
+    .update({
+      credits_available: newAmount,
+      updated_at: new Date().toISOString(),
+    })
     .eq("id", companyId);
 
   if (error) {
-    throw new Error(`Error al ajustar créditos de la empresa: ${error.message}`);
+    throw new Error(`Error al ajustar créditos en Supabase: ${error.message}`);
   }
 
   revalidatePath("/dashboard/admin/support");
-  return { success: true, newCredits };
+  revalidatePath("/dashboard/admin/users");
+  return { success: true, newCredits: newAmount };
 }
 
+/**
+ * Cambia el estado de verificación de expediente de un usuario en Supabase.
+ */
 export async function quickResetUserStatus(userId: string, isVerified: boolean) {
   const { supabase } = await requireAdminAuth();
 
@@ -472,9 +498,10 @@ export async function quickResetUserStatus(userId: string, isVerified: boolean) 
     .eq("id", userId);
 
   if (error) {
-    throw new Error(`Error al cambiar estado del usuario: ${error.message}`);
+    throw new Error(`Error al actualizar estado de verificación en Supabase: ${error.message}`);
   }
 
   revalidatePath("/dashboard/admin/support");
-  return { success: true };
+  revalidatePath("/dashboard/admin/users");
+  return { success: true, isVerified };
 }

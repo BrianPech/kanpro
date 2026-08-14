@@ -2,7 +2,6 @@
 
 import * as React from "react";
 
-import { NavDocuments } from "@/modules/admin/components/nav-documents";
 import { NavMain } from "@/modules/admin/components/nav-main";
 import { NavSecondary } from "@/modules/admin/components/nav-secondary";
 import { NavUser } from "@/modules/admin/components/nav-user";
@@ -18,15 +17,9 @@ import {
 import {
   LayoutDashboardIcon,
   UsersIcon,
-  ChartBarIcon,
-  FolderIcon,
-  ListIcon,
   Settings2Icon,
-  CircleHelpIcon,
+  BookOpenIcon,
   SearchIcon,
-  DatabaseIcon,
-  FileChartColumnIcon,
-  FileIcon,
   CommandIcon,
   ShieldCheckIcon,
   HeadphonesIcon,
@@ -65,54 +58,22 @@ const data = {
       url: "/dashboard/admin/staff",
       icon: <ShieldCheckIcon />,
     },
-    {
-      title: "Analytics",
-      url: "#",
-      icon: <ChartBarIcon />,
-    },
-    {
-      title: "Proyectos",
-      url: "#",
-      icon: <FolderIcon />,
-    },
-    {
-      title: "Ciclo de Vida",
-      url: "#",
-      icon: <ListIcon />,
-    },
   ],
   navSecondary: [
     {
-      title: "Settings",
+      title: "Buscar",
+      url: "#",
+      icon: <SearchIcon />,
+    },
+    {
+      title: "Configuración",
       url: "#",
       icon: <Settings2Icon />,
     },
     {
-      title: "Get Help",
-      url: "#",
-      icon: <CircleHelpIcon />,
-    },
-    {
-      title: "Search",
-      url: "#",
-      icon: <SearchIcon />,
-    },
-  ],
-  documents: [
-    {
-      name: "Reportes e Incidencias",
-      url: "/dashboard/admin/support",
-      icon: <FileChartColumnIcon />,
-    },
-    {
-      name: "Tickets de Soporte",
-      url: "/dashboard/admin/support",
-      icon: <HeadphonesIcon />,
-    },
-    {
-      name: "Expedientes de Usuarios",
-      url: "/dashboard/admin/users",
-      icon: <FolderIcon />,
+      title: "Manual de Usuario",
+      url: "/docs/manual-usuario",
+      icon: <BookOpenIcon />,
     },
   ],
 };
@@ -139,7 +100,6 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
       </SidebarHeader>
       <SidebarContent>
         <NavMain items={data.navMain} />
-        <NavDocuments items={data.documents} />
         <NavSecondary items={data.navSecondary} className="mt-auto" />
       </SidebarContent>
       <SidebarFooter>
@@ -148,3 +108,4 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
     </Sidebar>
   );
 }
+

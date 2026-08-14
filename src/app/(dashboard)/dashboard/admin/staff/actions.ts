@@ -86,6 +86,7 @@ export async function getAdminStaffMembers(): Promise<AdminStaffItem[]> {
 export async function createAdminStaffMember(formData: {
   name: string;
   email: string;
+  password?: string;
   whatsappNumber: string;
   subRole: AdminSubRole;
   department: string;
@@ -94,11 +95,13 @@ export async function createAdminStaffMember(formData: {
 }) {
   const { supabase } = await requireAdminAuth();
 
+  const cleanEmail = formData.email.trim().toLowerCase();
+
   // Check if profile exists with this email
   const { data: existingProfile } = await supabase
     .from("profiles")
     .select("id, role")
-    .eq("email", formData.email)
+    .eq("email", cleanEmail)
     .maybeSingle();
 
   let targetProfileId: string;
@@ -115,16 +118,41 @@ export async function createAdminStaffMember(formData: {
       })
       .eq("id", targetProfileId);
   } else {
-    // Generate new UUID for new user profile
-    targetProfileId = crypto.randomUUID();
-    const { error: insertProfileErr } = await supabase.from("profiles").insert({
-      id: targetProfileId,
-      email: formData.email,
-      full_name: formData.name,
-      whatsapp_number: formData.whatsappNumber,
-      role: "admin",
-      is_verified: true,
-    });
+    // Attempt Auth SignUp if password provided, or generate UUID profile
+    if (formData.password && formData.password.trim().length >= 6) {
+      const { data: authData, error: authErr } = await supabase.auth.signUp({
+        email: cleanEmail,
+        password: formData.password.trim(),
+        options: {
+          data: {
+            full_name: formData.name,
+            role: "admin",
+          },
+        },
+      });
+
+      if (authErr) {
+        // Fallback to direct profile creation if auth signup returns existing session or error
+        targetProfileId = crypto.randomUUID();
+      } else {
+        targetProfileId = authData.user?.id || crypto.randomUUID();
+      }
+    } else {
+      targetProfileId = crypto.randomUUID();
+    }
+
+    const { error: insertProfileErr } = await supabase.from("profiles").upsert(
+      {
+        id: targetProfileId,
+        email: cleanEmail,
+        full_name: formData.name,
+        whatsapp_number: formData.whatsappNumber,
+        role: "admin",
+        is_verified: true,
+        updated_at: new Date().toISOString(),
+      },
+      { onConflict: "id" }
+    );
 
     if (insertProfileErr) {
       throw new Error(`Error al crear el perfil de administrador: ${insertProfileErr.message}`);

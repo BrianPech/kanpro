@@ -417,38 +417,42 @@ export function SupportDataTable({ initialData }: SupportDataTableProps) {
       <div className="flex flex-col gap-4">
         {/* Controls Header */}
         <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4">
-          <Tabs value={activeStatusTab} onValueChange={handleStatusFilter} className="w-full lg:w-auto">
-            <Select value={activeStatusTab} onValueChange={handleStatusFilter}>
-              <SelectTrigger className="flex w-full sm:w-fit @4xl/main:hidden h-9 text-xs font-semibold" id="ticket-status-selector">
-                <SelectValue placeholder="Filtrar por estado" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectGroup>
-                  <SelectItem value="all">Todos los Tickets</SelectItem>
-                  <SelectItem value="abierto">Abiertos</SelectItem>
-                  <SelectItem value="en_proceso">En Atención</SelectItem>
-                  <SelectItem value="resuelto">Resueltos</SelectItem>
-                  <SelectItem value="cerrado">Cerrados</SelectItem>
-                </SelectGroup>
-              </SelectContent>
-            </Select>
+          <div className="w-full lg:w-auto">
+            <div className="flex @4xl/main:hidden w-full">
+              <Select value={activeStatusTab} onValueChange={handleStatusFilter}>
+                <SelectTrigger className="flex w-full sm:w-fit h-9 text-xs font-semibold" id="ticket-status-selector">
+                  <SelectValue placeholder="Filtrar por estado" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectGroup>
+                    <SelectItem value="all">Todos los Tickets</SelectItem>
+                    <SelectItem value="abierto">Abiertos</SelectItem>
+                    <SelectItem value="en_proceso">En Atención</SelectItem>
+                    <SelectItem value="resuelto">Resueltos</SelectItem>
+                    <SelectItem value="cerrado">Cerrados</SelectItem>
+                  </SelectGroup>
+                </SelectContent>
+              </Select>
+            </div>
 
-            <TabsList className="hidden **:data-[slot=badge]:size-5 **:data-[slot=badge]:rounded-full **:data-[slot=badge]:bg-muted-foreground/30 **:data-[slot=badge]:px-1 @4xl/main:flex">
-              <TabsTrigger value="all">Todos</TabsTrigger>
-              <TabsTrigger value="abierto">
-                Abiertos <Badge variant="secondary">{data.filter((t) => t.status === "abierto").length}</Badge>
-              </TabsTrigger>
-              <TabsTrigger value="en_proceso">
-                En Atención <Badge variant="secondary">{data.filter((t) => t.status === "en_proceso").length}</Badge>
-              </TabsTrigger>
-              <TabsTrigger value="resuelto">
-                Resueltos <Badge variant="secondary">{data.filter((t) => t.status === "resuelto").length}</Badge>
-              </TabsTrigger>
-              <TabsTrigger value="cerrado">
-                Cerrados <Badge variant="secondary">{data.filter((t) => t.status === "cerrado").length}</Badge>
-              </TabsTrigger>
-            </TabsList>
-          </Tabs>
+            <Tabs value={activeStatusTab} onValueChange={handleStatusFilter} className="hidden @4xl/main:flex w-full lg:w-auto">
+              <TabsList className="**:data-[slot=badge]:size-5 **:data-[slot=badge]:rounded-full **:data-[slot=badge]:bg-muted-foreground/30 **:data-[slot=badge]:px-1 flex">
+                <TabsTrigger value="all">Todos</TabsTrigger>
+                <TabsTrigger value="abierto">
+                  Abiertos <Badge variant="secondary">{data.filter((t) => t.status === "abierto").length}</Badge>
+                </TabsTrigger>
+                <TabsTrigger value="en_proceso">
+                  En Atención <Badge variant="secondary">{data.filter((t) => t.status === "en_proceso").length}</Badge>
+                </TabsTrigger>
+                <TabsTrigger value="resuelto">
+                  Resueltos <Badge variant="secondary">{data.filter((t) => t.status === "resuelto").length}</Badge>
+                </TabsTrigger>
+                <TabsTrigger value="cerrado">
+                  Cerrados <Badge variant="secondary">{data.filter((t) => t.status === "cerrado").length}</Badge>
+                </TabsTrigger>
+              </TabsList>
+            </Tabs>
+          </div>
 
           <div className="flex flex-col sm:flex-row items-center gap-2 w-full lg:w-auto justify-end">
             <div className="relative w-full sm:w-64">

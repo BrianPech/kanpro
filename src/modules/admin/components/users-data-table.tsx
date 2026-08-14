@@ -407,40 +407,44 @@ export function UsersDataTable({ data: initialData }: { data: UserItem[] }) {
         
         {/* Top Controls Header */}
         <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4">
-          <Tabs
-            value={activeRoleTab}
-            onValueChange={handleRoleFilter}
-            className="w-full lg:w-auto"
-          >
-            <Select value={activeRoleTab} onValueChange={handleRoleFilter}>
-              <SelectTrigger
-                className="flex w-full sm:w-fit @4xl/main:hidden h-9 text-xs font-semibold"
-                id="role-selector"
-              >
-                <SelectValue placeholder="Filtrar por rol" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectGroup>
-                  <SelectItem value="all">Todos los Usuarios</SelectItem>
-                  <SelectItem value="candidate">Candidatos</SelectItem>
-                  <SelectItem value="company">Empresas</SelectItem>
-                  <SelectItem value="admin">Administradores</SelectItem>
-                </SelectGroup>
-              </SelectContent>
-            </Select>
-            <TabsList className="hidden **:data-[slot=badge]:size-5 **:data-[slot=badge]:rounded-full **:data-[slot=badge]:bg-muted-foreground/30 **:data-[slot=badge]:px-1 @4xl/main:flex">
-              <TabsTrigger value="all">Todos</TabsTrigger>
-              <TabsTrigger value="candidate">
-                Candidatos <Badge variant="secondary">{data.filter(u => u.role === "candidate").length}</Badge>
-              </TabsTrigger>
-              <TabsTrigger value="company">
-                Empresas <Badge variant="secondary">{data.filter(u => u.role === "company").length}</Badge>
-              </TabsTrigger>
-              <TabsTrigger value="admin">
-                Administradores <Badge variant="secondary">{data.filter(u => u.role === "admin").length}</Badge>
-              </TabsTrigger>
-            </TabsList>
-          </Tabs>
+          <div className="w-full lg:w-auto">
+            <div className="flex @4xl/main:hidden w-full">
+              <Select value={activeRoleTab} onValueChange={handleRoleFilter}>
+                <SelectTrigger
+                  className="flex w-full sm:w-fit h-9 text-xs font-semibold"
+                  id="role-selector"
+                >
+                  <SelectValue placeholder="Filtrar por rol" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectGroup>
+                    <SelectItem value="all">Todos los Usuarios</SelectItem>
+                    <SelectItem value="candidate">Candidatos</SelectItem>
+                    <SelectItem value="company">Empresas</SelectItem>
+                    <SelectItem value="admin">Administradores</SelectItem>
+                  </SelectGroup>
+                </SelectContent>
+              </Select>
+            </div>
+            <Tabs
+              value={activeRoleTab}
+              onValueChange={handleRoleFilter}
+              className="hidden @4xl/main:flex w-full lg:w-auto"
+            >
+              <TabsList className="**:data-[slot=badge]:size-5 **:data-[slot=badge]:rounded-full **:data-[slot=badge]:bg-muted-foreground/30 **:data-[slot=badge]:px-1 flex">
+                <TabsTrigger value="all">Todos</TabsTrigger>
+                <TabsTrigger value="candidate">
+                  Candidatos <Badge variant="secondary">{data.filter(u => u.role === "candidate").length}</Badge>
+                </TabsTrigger>
+                <TabsTrigger value="company">
+                  Empresas <Badge variant="secondary">{data.filter(u => u.role === "company").length}</Badge>
+                </TabsTrigger>
+                <TabsTrigger value="admin">
+                  Administradores <Badge variant="secondary">{data.filter(u => u.role === "admin").length}</Badge>
+                </TabsTrigger>
+              </TabsList>
+            </Tabs>
+          </div>
 
           <div className="flex flex-col sm:flex-row items-center gap-2 w-full lg:w-auto justify-end">
             

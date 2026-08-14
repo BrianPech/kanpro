@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import Link from "next/link";
 import {
   closestCenter,
   DndContext,
@@ -444,42 +445,46 @@ export function StaffDataTable({ initialData }: StaffDataTableProps) {
       <div className="flex flex-col gap-4">
         {/* Header Controls */}
         <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4">
-          <Tabs value={activeTab} onValueChange={handleSubRoleFilter} className="w-full lg:w-auto">
-            <Select value={activeTab} onValueChange={handleSubRoleFilter}>
-              <SelectTrigger className="flex w-full sm:w-fit @4xl/main:hidden h-9 text-xs font-semibold" id="staff-role-selector">
-                <SelectValue placeholder="Filtrar por rol de personal" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectGroup>
-                  <SelectItem value="all">Todo el Personal</SelectItem>
-                  <SelectItem value="super_admin">Super Admins</SelectItem>
-                  <SelectItem value="ops_admin">Operaciones</SelectItem>
-                  <SelectItem value="verification_admin">Verificación</SelectItem>
-                  <SelectItem value="content_admin">Contenido</SelectItem>
-                  <SelectItem value="support">Soporte</SelectItem>
-                </SelectGroup>
-              </SelectContent>
-            </Select>
+          <div className="w-full lg:w-auto">
+            <div className="flex @4xl/main:hidden w-full">
+              <Select value={activeTab} onValueChange={handleSubRoleFilter}>
+                <SelectTrigger className="flex w-full sm:w-fit h-9 text-xs font-semibold" id="staff-role-selector">
+                  <SelectValue placeholder="Filtrar por rol de personal" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectGroup>
+                    <SelectItem value="all">Todo el Personal</SelectItem>
+                    <SelectItem value="super_admin">Super Admins</SelectItem>
+                    <SelectItem value="ops_admin">Operaciones</SelectItem>
+                    <SelectItem value="verification_admin">Verificación</SelectItem>
+                    <SelectItem value="content_admin">Contenido</SelectItem>
+                    <SelectItem value="support">Soporte</SelectItem>
+                  </SelectGroup>
+                </SelectContent>
+              </Select>
+            </div>
 
-            <TabsList className="hidden **:data-[slot=badge]:size-5 **:data-[slot=badge]:rounded-full **:data-[slot=badge]:bg-muted-foreground/30 **:data-[slot=badge]:px-1 @4xl/main:flex">
-              <TabsTrigger value="all">Todos</TabsTrigger>
-              <TabsTrigger value="super_admin">
-                Super Admin <Badge variant="secondary">{data.filter((u) => u.subRole === "super_admin").length}</Badge>
-              </TabsTrigger>
-              <TabsTrigger value="ops_admin">
-                Operaciones <Badge variant="secondary">{data.filter((u) => u.subRole === "ops_admin").length}</Badge>
-              </TabsTrigger>
-              <TabsTrigger value="verification_admin">
-                Verificación <Badge variant="secondary">{data.filter((u) => u.subRole === "verification_admin").length}</Badge>
-              </TabsTrigger>
-              <TabsTrigger value="content_admin">
-                Contenido <Badge variant="secondary">{data.filter((u) => u.subRole === "content_admin").length}</Badge>
-              </TabsTrigger>
-              <TabsTrigger value="support">
-                Soporte <Badge variant="secondary">{data.filter((u) => u.subRole === "support").length}</Badge>
-              </TabsTrigger>
-            </TabsList>
-          </Tabs>
+            <Tabs value={activeTab} onValueChange={handleSubRoleFilter} className="hidden @4xl/main:flex w-full lg:w-auto">
+              <TabsList className="**:data-[slot=badge]:size-5 **:data-[slot=badge]:rounded-full **:data-[slot=badge]:bg-muted-foreground/30 **:data-[slot=badge]:px-1 flex">
+                <TabsTrigger value="all">Todos</TabsTrigger>
+                <TabsTrigger value="super_admin">
+                  Super Admin <Badge variant="secondary">{data.filter((u) => u.subRole === "super_admin").length}</Badge>
+                </TabsTrigger>
+                <TabsTrigger value="ops_admin">
+                  Operaciones <Badge variant="secondary">{data.filter((u) => u.subRole === "ops_admin").length}</Badge>
+                </TabsTrigger>
+                <TabsTrigger value="verification_admin">
+                  Verificación <Badge variant="secondary">{data.filter((u) => u.subRole === "verification_admin").length}</Badge>
+                </TabsTrigger>
+                <TabsTrigger value="content_admin">
+                  Contenido <Badge variant="secondary">{data.filter((u) => u.subRole === "content_admin").length}</Badge>
+                </TabsTrigger>
+                <TabsTrigger value="support">
+                  Soporte <Badge variant="secondary">{data.filter((u) => u.subRole === "support").length}</Badge>
+                </TabsTrigger>
+              </TabsList>
+            </Tabs>
+          </div>
 
           <div className="flex flex-col sm:flex-row items-center gap-2 w-full lg:w-auto justify-end">
             <div className="relative w-full sm:w-64">
@@ -522,12 +527,14 @@ export function StaffDataTable({ initialData }: StaffDataTableProps) {
             </DropdownMenu>
 
             <Button
+              asChild
               size="sm"
               className="h-9 px-3.5 text-xs font-semibold gap-1.5 bg-primary text-primary-foreground hover:bg-primary/90 w-full sm:w-auto"
-              onClick={() => setCreateModalOpen(true)}
             >
-              <UserPlusIcon className="size-3.5" />
-              <span>Dar de Alta Personal</span>
+              <Link href="/dashboard/admin/staff/new">
+                <UserPlusIcon className="size-3.5" />
+                <span>Dar de Alta Personal</span>
+              </Link>
             </Button>
           </div>
         </div>

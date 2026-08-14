@@ -41,76 +41,7 @@ export async function getVacancyReports(): Promise<VacancyReportItem[]> {
     .order("created_at", { ascending: false });
 
   if (error || !reports || reports.length === 0) {
-    // If empty, fetch real vacancies and companies to construct sample reports for initial moderation setup
-    const { data: vacancies } = await supabase
-      .from("vacancies")
-      .select("id, title, category, company_id")
-      .limit(5);
-
-    const vList = vacancies || [];
-    const v1 = vList[0] || {
-      id: crypto.randomUUID(),
-      title: "Asistente de Oficina / Capturista de Datos",
-      category: "Administrativo",
-      company_id: crypto.randomUUID(),
-    };
-    const v2 = vList[1] || {
-      id: crypto.randomUUID(),
-      title: "Promotor de Ventas sin Experiencia",
-      category: "Ventas",
-      company_id: crypto.randomUUID(),
-    };
-
-    return [
-      {
-        id: "rep-2001",
-        vacancyId: v1.id,
-        vacancyTitle: v1.title,
-        vacancyCategory: v1.category,
-        companyId: v1.company_id,
-        companyName: "Comercializadora y Servicios del Sureste",
-        companyRfc: "CSS190412XX1",
-        companyIsVerified: false,
-        reporterName: "Mariana Alcocer",
-        reporterEmail: "malcocer@gmail.com",
-        reason: "cobro_dinero",
-        details:
-          "El reclutador solicitó un depósito previo de $450 MXN por concepto de 'exámenes médicos y papelería' antes de dar la cita de entrevista en Mérida.",
-        status: "pending",
-        createdAt: new Date(Date.now() - 1000 * 60 * 90).toLocaleDateString("es-ES", {
-          day: "numeric",
-          month: "short",
-          year: "numeric",
-          hour: "2-digit",
-          minute: "2-digit",
-        }),
-        updatedAt: new Date().toISOString(),
-      },
-      {
-        id: "rep-2002",
-        vacancyId: v2.id,
-        vacancyTitle: v2.title,
-        vacancyCategory: v2.category,
-        companyId: v2.company_id,
-        companyName: "Inversiones y Desarrollos Rápidos",
-        companyRfc: "IDR210805XA9",
-        companyIsVerified: false,
-        reporterName: "Jorge Castillo",
-        reporterEmail: "jcastillo@yahoo.es",
-        reason: "vacante_falsa",
-        details:
-          "Publicación de vacante fantasma con salario desproporcionado ($40,000 semanales) para captar datos personales de trabajadores de la construcción.",
-        status: "pending",
-        createdAt: new Date(Date.now() - 1000 * 60 * 300).toLocaleDateString("es-ES", {
-          day: "numeric",
-          month: "short",
-          year: "numeric",
-          hour: "2-digit",
-          minute: "2-digit",
-        }),
-        updatedAt: new Date().toISOString(),
-      },
-    ];
+    return [];
   }
 
   // Fetch vacancies details
