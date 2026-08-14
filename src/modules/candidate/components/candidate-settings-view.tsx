@@ -201,10 +201,9 @@ export function CandidateSettingsView() {
 
   const initialLetter = candidateName ? candidateName.trim()[0].toUpperCase() : "C";
 
-  const handleSignOut = async () => {
+  const handleSignOut = () => {
     setIsLoggingOut(true);
-    await supabase.auth.signOut();
-    router.push("/auth/login");
+    window.location.href = "/auth/logout";
   };
 
   return (

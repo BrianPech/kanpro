@@ -106,20 +106,8 @@ export function NavUser({
     };
   }, []);
 
-  const handleLogout = async () => {
-    try {
-      const supabase = createClient();
-      await supabase.auth.signOut();
-      toast.success("Sesión cerrada correctamente");
-      startTransition(() => {
-        router.push("/login");
-        router.refresh();
-      });
-    } catch (err: any) {
-      toast.error("Error al cerrar sesión", {
-        description: err.message || "Ocurrió un problema.",
-      });
-    }
+  const handleLogout = () => {
+    window.location.href = "/auth/logout";
   };
 
   const getInitials = (name: string) => {

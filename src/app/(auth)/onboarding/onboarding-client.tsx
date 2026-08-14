@@ -151,12 +151,8 @@ export function OnboardingClient() {
     }
   };
 
-  const handleLogout = async () => {
-    const supabase = createClient();
-    await supabase.auth.signOut();
-    toast.success("Sesión cerrada");
-    router.push("/login");
-    router.refresh();
+  const handleLogout = () => {
+    window.location.href = "/auth/logout";
   };
 
   if (loading) {

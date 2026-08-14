@@ -119,15 +119,6 @@ export function RegisterOptions() {
                 Inicia Sesión
               </Link>
             </p>
-            <p className="text-[12px] text-[#5c7c9b]/80 dark:text-zinc-500 font-medium">
-              ¿Acceso administrativo?{" "}
-              <Link
-                href="/register/admin"
-                className="text-amber-600 font-semibold hover:underline"
-              >
-                Registrar Administrador
-              </Link>
-            </p>
           </div>
         </div>
       </div>

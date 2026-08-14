@@ -1,9 +1,10 @@
-import type { User } from "@supabase/supabase-js";
+import type { User, Session } from "@supabase/supabase-js";
 
 export type UserRole = "admin" | "company" | "candidate";
 
 export interface AuthSuccessResponse {
   user: User;
+  session?: Session | null;
   role?: UserRole;
 }
 

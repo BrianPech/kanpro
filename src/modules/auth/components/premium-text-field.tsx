@@ -16,6 +16,7 @@ interface PremiumTextFieldProps {
   value?: string;
   onChange?: (e: React.ChangeEvent<HTMLInputElement>) => void;
   className?: string;
+  maxLength?: number;
 }
 
 export function PremiumTextField({
@@ -31,6 +32,7 @@ export function PremiumTextField({
   value,
   onChange,
   className = "",
+  maxLength,
 }: PremiumTextFieldProps) {
   return (
     <div className={`flex flex-col gap-1 w-full ${className}`}>
@@ -54,6 +56,7 @@ export function PremiumTextField({
             type={type}
             readOnly={readOnly}
             placeholder={hintText}
+            maxLength={maxLength}
             {...(registerProps || {})}
             value={value}
             onChange={onChange}

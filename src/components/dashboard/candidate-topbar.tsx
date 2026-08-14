@@ -46,15 +46,8 @@ export function CandidateTopbar({
     loadUser();
   }, [supabase]);
 
-  const handleLogout = async () => {
-    const { error } = await supabase.auth.signOut();
-    if (error) {
-      console.error("Error logging out:", error);
-      return;
-    }
-
-    router.push("/login");
-    router.refresh();
+  const handleLogout = () => {
+    window.location.href = "/auth/logout";
   };
 
   const firstName = userName ? userName.trim().split(" ")[0] : "Candidato";

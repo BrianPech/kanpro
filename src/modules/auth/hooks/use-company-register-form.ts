@@ -21,7 +21,15 @@ export function useCompanyRegisterForm() {
 
   const onSubmit: SubmitHandler<CompanyRegisterValues> = async (data) => {
     try {
-      await authService.signUpCompany(data);
+      const response = await authService.signUpCompany(data);
+
+      if (!response.session || !response.user?.email_confirmed_at) {
+        toast.success("Cuenta registrada", {
+          description: "Por favor confirma tu correo electrónico para activar tu cuenta.",
+        });
+        router.push(`/verify-email?email=${encodeURIComponent(data.email)}`);
+        return;
+      }
       
       toast.success("Cuenta creada", {
         description: "Bienvenido a K'anPro. Serás redirigido al dashboard."

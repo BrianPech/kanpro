@@ -22,7 +22,7 @@ export async function updateSession(request: NextRequest) {
           return request.cookies.getAll()
         },
         setAll(cookiesToSet) {
-          cookiesToSet.forEach(({ name, value, options }) => request.cookies.set(name, value))
+          cookiesToSet.forEach(({ name, value }) => request.cookies.set(name, value))
           supabaseResponse = NextResponse.next({
             request,
           })
@@ -34,6 +34,15 @@ export async function updateSession(request: NextRequest) {
     }
   )
 
+  // Helper to construct redirect responses while preserving updated cookies
+  const redirectWithCookies = (url: URL | string) => {
+    const redirectResponse = NextResponse.redirect(url)
+    supabaseResponse.cookies.getAll().forEach((cookie) => {
+      redirectResponse.cookies.set(cookie.name, cookie.value, cookie)
+    })
+    return redirectResponse
+  }
+
   // IMPORTANT: Avoid writing any logic between createServerClient and
   // supabase.auth.getUser(). A simple mistake could make it very hard to debug
   // issues with users being randomly logged out.
@@ -41,60 +50,105 @@ export async function updateSession(request: NextRequest) {
     data: { user },
   } = await supabase.auth.getUser()
 
-  if (
-    !user &&
-    (request.nextUrl.pathname === '/dashboard' ||
-      request.nextUrl.pathname.startsWith('/dashboard/'))
-  ) {
-    const url = request.nextUrl.clone()
-    url.pathname = '/'
-    return NextResponse.redirect(url)
+  const pathname = request.nextUrl.pathname
+
+  // Safe pass-through routes to avoid infinite redirect loops
+  const isExemptRoute =
+    pathname.startsWith('/verify-email') || pathname.startsWith('/reset-password')
+
+  if (isExemptRoute) {
+    return supabaseResponse
   }
 
-  // Always read authorization from the database. `user_metadata` belongs to
-  // the user and must never be trusted for access-control decisions.
-  let role: UserRole | null = null
-  if (user) {
-    const { data: profile } = await supabase
-      .from('profiles')
-      .select('role')
-      .eq('id', user.id)
-      .single()
-    role = profile?.role || null
-  }
+  // 1. Unauthenticated users trying to access protected or candidate/company routes
+  const isProtectedRoute =
+    pathname === '/dashboard' ||
+    pathname.startsWith('/dashboard/') ||
+    pathname === '/account' ||
+    pathname.startsWith('/account/') ||
+    pathname === '/candidate' ||
+    pathname.startsWith('/candidate/') ||
+    pathname === '/company' ||
+    pathname.startsWith('/company/')
 
-  // Protect admin routes
-  if (request.nextUrl.pathname.startsWith('/dashboard/admin') && role !== 'admin') {
-    const url = request.nextUrl.clone()
-    url.pathname = '/dashboard'
-    return NextResponse.redirect(url)
-  }
-
-  // Protect company routes
-  if (request.nextUrl.pathname.startsWith('/dashboard/company') && role !== 'company' && role !== 'admin') {
-    const url = request.nextUrl.clone()
-    url.pathname = '/dashboard'
-    return NextResponse.redirect(url)
-  }
-
-  // Protect candidate routes
-  if (request.nextUrl.pathname.startsWith('/dashboard/candidate') && role !== 'candidate' && role !== 'admin') {
-    const url = request.nextUrl.clone()
-    url.pathname = '/dashboard'
-    return NextResponse.redirect(url)
-  }
-
-  if (request.nextUrl.pathname === '/dashboard') {
-    const url = request.nextUrl.clone()
-    if (role === 'admin') {
-      url.pathname = '/dashboard/admin'
-    } else if (role === 'company') {
-      url.pathname = '/dashboard/company'
-    } else {
-      url.pathname = '/dashboard/candidate'
+  if (!user) {
+    if (isProtectedRoute) {
+      const redirectTarget = pathname + request.nextUrl.search
+      const url = request.nextUrl.clone()
+      url.pathname = '/login'
+      url.searchParams.set('redirectTo', redirectTarget)
+      return redirectWithCookies(url)
     }
 
-    return NextResponse.redirect(url)
+    return supabaseResponse
+  }
+
+  // 2. Authenticated users: fetch role from database profile
+  let role: UserRole = 'candidate'
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('role')
+    .eq('id', user.id)
+    .single()
+
+  if (profile?.role) {
+    role = profile.role as UserRole
+  }
+
+  const roleDashboard =
+    role === 'admin'
+      ? '/dashboard/admin'
+      : role === 'company'
+      ? '/dashboard/company'
+      : '/dashboard/candidate'
+
+  // 3. Authenticated users trying to access public auth pages
+  const isPublicAuthPage =
+    pathname === '/login' ||
+    pathname.startsWith('/login/') ||
+    pathname === '/register' ||
+    pathname.startsWith('/register/') ||
+    pathname === '/forgot-password' ||
+    pathname.startsWith('/forgot-password/')
+
+  if (isPublicAuthPage) {
+    const url = request.nextUrl.clone()
+    url.pathname = roleDashboard
+    url.search = ''
+    return redirectWithCookies(url)
+  }
+
+  // 4. Role-based access control for dashboard routes
+  if (pathname === '/dashboard' || pathname === '/dashboard/') {
+    const url = request.nextUrl.clone()
+    url.pathname = roleDashboard
+    return redirectWithCookies(url)
+  }
+
+  if (pathname.startsWith('/dashboard/admin') && role !== 'admin') {
+    const url = request.nextUrl.clone()
+    url.pathname = roleDashboard
+    return redirectWithCookies(url)
+  }
+
+  if (
+    pathname.startsWith('/dashboard/company') &&
+    role !== 'company' &&
+    role !== 'admin'
+  ) {
+    const url = request.nextUrl.clone()
+    url.pathname = roleDashboard
+    return redirectWithCookies(url)
+  }
+
+  if (
+    pathname.startsWith('/dashboard/candidate') &&
+    role !== 'candidate' &&
+    role !== 'admin'
+  ) {
+    const url = request.nextUrl.clone()
+    url.pathname = roleDashboard
+    return redirectWithCookies(url)
   }
 
   return supabaseResponse

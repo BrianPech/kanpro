@@ -134,6 +134,9 @@ export function SettingsView() {
           <NavButton
             icon={<LogOut />}
             label="Cerrar Sesión"
+            onClick={() => {
+              window.location.href = "/auth/logout";
+            }}
             className="text-destructive hover:bg-destructive/10 hover:text-destructive"
           />
         </div>
