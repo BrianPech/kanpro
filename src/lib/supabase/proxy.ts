@@ -120,7 +120,15 @@ export async function updateSession(request: NextRequest) {
     return redirectWithCookies(url)
   }
 
-  // 4. Role-based access control for dashboard routes
+  // 4. Redirect legacy /account routes to the active role's dashboard settings
+  if (pathname === '/account' || pathname.startsWith('/account/')) {
+    const url = request.nextUrl.clone()
+    url.pathname = `${roleDashboard}/settings`
+    url.search = ''
+    return redirectWithCookies(url)
+  }
+
+  // 5. Role-based access control for dashboard routes
   if (pathname === '/dashboard' || pathname === '/dashboard/') {
     const url = request.nextUrl.clone()
     url.pathname = roleDashboard

@@ -8,6 +8,7 @@ import {
   LogOut,
   User,
   Plus,
+  Settings,
 } from "lucide-react";
 import * as React from "react";
 
@@ -57,8 +58,15 @@ export function DashboardTopbar({
     role === "company"
       ? "/dashboard/company/profile"
       : role === "candidate"
-        ? "/dashboard/candidate"
+        ? "/dashboard/candidate/profile"
         : "/dashboard/admin";
+
+  const settingsHref =
+    role === "company"
+      ? "/dashboard/company/settings"
+      : role === "candidate"
+        ? "/dashboard/candidate/settings"
+        : "/dashboard/admin/settings";
 
   const handleLogout = () => {
     window.location.href = "/auth/logout";
@@ -218,6 +226,12 @@ export function DashboardTopbar({
                 <Link href={profileHref}>
                   <User className="h-4 w-4" />
                   <span>Mi perfil</span>
+                </Link>
+              </DropdownMenuItem>
+              <DropdownMenuItem asChild className="rounded-lg px-3 py-2 cursor-pointer flex items-center gap-2 text-xs font-semibold">
+                <Link href={settingsHref}>
+                  <Settings className="h-4 w-4" />
+                  <span>Configuración & Ajustes</span>
                 </Link>
               </DropdownMenuItem>
             </DropdownMenuGroup>

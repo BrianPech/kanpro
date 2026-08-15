@@ -164,7 +164,11 @@ export function CandidateDocumentsView() {
 
           if (Array.isArray(profile.portfolio_links) && profile.portfolio_links.length > 0) {
             const firstLink = profile.portfolio_links[0];
-            setPortfolioUrl(typeof firstLink === "string" ? firstLink : firstLink.url || "");
+            if (typeof firstLink === "string") {
+              setPortfolioUrl(firstLink);
+            } else if (firstLink && typeof firstLink === "object" && "url" in firstLink) {
+              setPortfolioUrl(String((firstLink as Record<string, any>).url || ""));
+            }
           }
         }
       } catch (err) {
@@ -355,7 +359,9 @@ export function CandidateDocumentsView() {
           birth_date: birthDate,
           education: courses.map((c) => ({
             degree: c.title,
-            school: c.institution,
+            institution: c.institution,
+            period: "Completado",
+            description: `Curso/Certificado emitido por ${c.institution}`,
           })),
           certifications: certifications.map((cert) => ({
             name: cert.name,
@@ -365,7 +371,7 @@ export function CandidateDocumentsView() {
             language: l.language,
             level: l.level,
           })),
-          portfolio_links: portfolioUrl ? [{ url: portfolioUrl, title: "Portafolio" }] : [],
+          portfolio_links: portfolioUrl ? [portfolioUrl] : [],
         });
       }
       toast.success("Expediente guardado", {

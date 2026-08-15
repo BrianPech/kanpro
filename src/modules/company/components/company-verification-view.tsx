@@ -699,7 +699,7 @@ export function CompanyVerificationView({
           >
             Manifiesto bajo protesta de decir verdad que represento legalmente a la Persona Moral y que los documentos ingresados son verídicos. Acepto íntegramente los{" "}
             <a
-              href="/account/privacy"
+              href="/contact"
               target="_blank"
               rel="noopener noreferrer"
               className="text-[#5c7c9b] dark:text-zinc-300 font-extrabold hover:underline inline-flex items-center gap-0.5"
@@ -708,7 +708,7 @@ export function CompanyVerificationView({
             </a>{" "}
             y el{" "}
             <a
-              href="/account/privacy"
+              href="/contact"
               target="_blank"
               rel="noopener noreferrer"
               className="text-[#5c7c9b] dark:text-zinc-300 font-extrabold hover:underline inline-flex items-center gap-0.5"

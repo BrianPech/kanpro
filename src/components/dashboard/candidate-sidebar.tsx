@@ -8,6 +8,7 @@ import {
   Compass,
   FileText,
   ShieldCheck,
+  Settings,
 } from "lucide-react";
 import {
   Sidebar,
@@ -19,6 +20,7 @@ import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
+  SidebarFooter,
 } from "@/components/ui/sidebar";
 import { usePathname } from "next/navigation";
 import Link from "next/link";
@@ -127,6 +129,45 @@ export function CandidateSidebar() {
           </SidebarGroupContent>
         </SidebarGroup>
       </SidebarContent>
+
+      <SidebarFooter className="p-3 border-t border-border/10">
+        <SidebarMenu>
+          <SidebarMenuItem>
+            <SidebarMenuButton
+              asChild
+              isActive={pathname === "/dashboard/candidate/settings"}
+              tooltip="Ajustes y Seguridad"
+              className={`h-12 sm:h-13 rounded-[16px] px-4 gap-4 transition-all duration-200 ${
+                pathname === "/dashboard/candidate/settings"
+                  ? "!bg-[#1f2732] dark:!bg-zinc-100 !text-white dark:!text-zinc-900 font-bold shadow-sm hover:!bg-[#253240] dark:hover:!bg-zinc-200"
+                  : "!text-[#5c7c9b] dark:!text-zinc-400 hover:!bg-[#ebeef3] dark:hover:!bg-zinc-900/80 hover:!text-[#1f2732] dark:hover:!text-zinc-100 font-semibold"
+              }`}
+            >
+              <Link
+                href="/dashboard/candidate/settings"
+                className="flex w-full items-center gap-4"
+              >
+                <Settings
+                  className={`size-[22px] shrink-0 transition-colors ${
+                    pathname === "/dashboard/candidate/settings"
+                      ? "!text-white dark:!text-zinc-900"
+                      : "!text-[#5c7c9b] dark:!text-zinc-400 group-hover/menu-button:!text-[#1f2732] dark:group-hover/menu-button:!text-zinc-100"
+                  }`}
+                />
+                <span
+                  className={`text-[15px] sm:text-[16px] tracking-tight ${
+                    pathname === "/dashboard/candidate/settings"
+                      ? "font-bold !text-white dark:!text-zinc-900"
+                      : "font-semibold !text-[#5c7c9b] dark:!text-zinc-400 group-hover/menu-button:!text-[#1f2732] dark:group-hover/menu-button:!text-zinc-100"
+                  }`}
+                >
+                  Ajustes y Seguridad
+                </span>
+              </Link>
+            </SidebarMenuButton>
+          </SidebarMenuItem>
+        </SidebarMenu>
+      </SidebarFooter>
     </Sidebar>
   );
 }

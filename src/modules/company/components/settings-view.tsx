@@ -389,7 +389,7 @@ export function CompanySettingsView({ user, initialProfile, initialPauseState, i
     
     try {
       const { error } = await supabase.auth.resetPasswordForEmail(user.email, {
-        redirectTo: `${window.location.origin}/account/security`,
+        redirectTo: `${window.location.origin}/dashboard/company/settings`,
       })
 
       if (error) {

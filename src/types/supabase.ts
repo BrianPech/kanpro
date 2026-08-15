@@ -313,6 +313,7 @@ export type Database = {
           birth_date: string | null
           candidate_type: Database["public"]["Enums"]["candidate_type"]
           cedula_profesional: string | null
+          certifications: Json | null
           created_at: string
           curp: string | null
           education: Json | null
@@ -336,6 +337,7 @@ export type Database = {
           birth_date?: string | null
           candidate_type?: Database["public"]["Enums"]["candidate_type"]
           cedula_profesional?: string | null
+          certifications?: Json | null
           created_at?: string
           curp?: string | null
           education?: Json | null
@@ -359,6 +361,7 @@ export type Database = {
           birth_date?: string | null
           candidate_type?: Database["public"]["Enums"]["candidate_type"]
           cedula_profesional?: string | null
+          certifications?: Json | null
           created_at?: string
           curp?: string | null
           education?: Json | null
