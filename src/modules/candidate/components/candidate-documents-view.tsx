@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import {
   FileCheck,
   ShieldCheck,
@@ -24,13 +24,15 @@ import {
   Award,
   Briefcase,
   Sparkles,
-  Lock
+  Lock,
+  Loader2,
+  Download
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { createClient } from "@/lib/supabase/client";
 import { candidateProfileService } from "../services/candidate-profile";
-import { candidateDocumentsService, type CandidateDocumentType } from "../services/candidate-documents";
+import { candidateDocumentsService, type CandidateDocumentType, type CandidateDocument } from "../services/candidate-documents";
 import { respondDocumentAccessRequest } from "@/modules/company/actions/document-access";
 import { FormTextField, FormDateField, FormCurpField, FormPhoneField } from "@/components/form";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -44,30 +46,16 @@ import {
   DialogFooter
 } from "@/components/ui/dialog";
 
-interface MandatoryState {
-  fullName: string;
-  birthDate: string;
-  curp: string;
-  officialIdFile: string | null;
-  email: string;
-  phone: string;
-  isPhoneVerified: boolean;
-  profilePhotoUrl: string | null;
-  acceptedTerms: boolean;
-}
-
 interface CourseItem {
   id: string;
   title: string;
   institution: string;
-  file: string | null;
 }
 
 interface CertificationItem {
   id: string;
   name: string;
   issuer: string;
-  file: string | null;
 }
 
 interface LanguageItem {
@@ -76,66 +64,45 @@ interface LanguageItem {
   level: string;
 }
 
-interface OptionalState {
-  proofAddressFile: string | null;
-  cvFile: string | null;
-  workCertificates: string[];
-  recommendationLetters: string[];
-  courses: CourseItem[];
-  certifications: CertificationItem[];
-  languages: LanguageItem[];
-  portfolioUrl: string;
-  portfolioFile: string | null;
-}
-
 export function CandidateDocumentsView() {
   const supabase = createClient();
   const fileInputRef = React.useRef<HTMLInputElement>(null);
+  const avatarInputRef = React.useRef<HTMLInputElement>(null);
+  
   const [userId, setUserId] = useState<string | null>(null);
-  const [uploadField, setUploadField] = useState<"officialIdFile" | "proofAddressFile" | "cvFile" | null>(null);
+  const [targetDocType, setTargetDocType] = useState<CandidateDocumentType | null>(null);
   const [isUploading, setIsUploading] = useState(false);
+  const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
   const [activeTab, setActiveTab] = useState<"mandatory" | "optional">("mandatory");
 
-  // Mandatory fields state
-  const [mandatory, setMandatory] = useState<MandatoryState>({
-    fullName: "",
-    birthDate: "",
-    curp: "",
-    officialIdFile: null,
-    email: "",
-    phone: "",
-    isPhoneVerified: false,
-    profilePhotoUrl: null,
-    acceptedTerms: false,
-  });
+  // Profile text & status fields state
+  const [fullName, setFullName] = useState("");
+  const [birthDate, setBirthDate] = useState("");
+  const [curp, setCurp] = useState("");
+  const [email, setEmail] = useState("");
+  const [phone, setPhone] = useState("");
+  const [profilePhotoUrl, setProfilePhotoUrl] = useState<string | null>(null);
+  const [acceptedTerms, setAcceptedTerms] = useState(true);
 
-  // Optional fields state
-  const [optional, setOptional] = useState<OptionalState>({
-    proofAddressFile: null,
-    cvFile: null,
-    workCertificates: [],
-    recommendationLetters: [],
-    courses: [],
-    certifications: [],
-    languages: [],
-    portfolioUrl: "",
-    portfolioFile: null
-  });
+  // Optional lists state
+  const [courses, setCourses] = useState<CourseItem[]>([]);
+  const [certifications, setCertifications] = useState<CertificationItem[]>([]);
+  const [languages, setLanguages] = useState<LanguageItem[]>([]);
+  const [portfolioUrl, setPortfolioUrl] = useState("");
 
   const queryClient = useQueryClient();
 
   // Fetch candidate documents with TanStack useQuery
   const { data: documents = [] } = useQuery({
-    queryKey: ['candidate-documents'],
+    queryKey: ['candidate-documents', userId],
     queryFn: async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return [];
-      setUserId(user.id);
-      return await candidateDocumentsService.list(user.id);
+      if (!userId) return [];
+      return await candidateDocumentsService.list(userId);
     },
+    enabled: !!userId,
   });
 
-  // Access requests mutation (approving / revoking access requests)
+  // Access requests mutation
   const accessRequestMutation = useMutation({
     mutationFn: async ({ requestId, status }: { requestId: string; status: "approved" | "rejected" }) => {
       return await respondDocumentAccessRequest(requestId, status);
@@ -149,10 +116,6 @@ export function CandidateDocumentsView() {
     },
   });
 
-  const handleRespondAccess = (requestId: string, status: "approved" | "rejected") => {
-    accessRequestMutation.mutate({ requestId, status });
-  };
-
   // Fetch profile details on mount
   React.useEffect(() => {
     async function loadCandidateProfile() {
@@ -162,15 +125,47 @@ export function CandidateDocumentsView() {
         setUserId(user.id);
         const profile = await candidateProfileService.getProfile(user.id);
         if (profile) {
-          setMandatory((prev) => ({
-            ...prev,
-            fullName: profile.full_name || prev.fullName,
-            email: profile.email || user.email || prev.email,
-            phone: profile.whatsapp_number || prev.phone,
-            profilePhotoUrl: profile.avatar_url || prev.profilePhotoUrl,
-            curp: profile.curp || prev.curp,
-            birthDate: profile.birth_date || prev.birthDate,
-          }));
+          setFullName(profile.full_name || "");
+          setEmail(profile.email || user.email || "");
+          setPhone(profile.whatsapp_number || "");
+          setProfilePhotoUrl(profile.avatar_url || null);
+          setCurp(profile.curp || "");
+          setBirthDate(profile.birth_date || "");
+
+          if (Array.isArray(profile.education)) {
+            setCourses(
+              (profile.education as any[]).map((ed: any, idx: number) => ({
+                id: ed.id || `edu-${idx}`,
+                title: ed.degree || ed.title || "Formación",
+                institution: ed.school || ed.institution || "Institución",
+              }))
+            );
+          }
+
+          if (Array.isArray(profile.certifications)) {
+            setCertifications(
+              (profile.certifications as any[]).map((cert: any, idx: number) => ({
+                id: cert.id || `cert-${idx}`,
+                name: cert.name || cert.title || "Certificación",
+                issuer: cert.issuer || cert.institution || "Organismo",
+              }))
+            );
+          }
+
+          if (Array.isArray(profile.languages)) {
+            setLanguages(
+              (profile.languages as any[]).map((lang: any, idx: number) => ({
+                id: lang.id || `lang-${idx}`,
+                language: typeof lang === "string" ? lang : lang.language || lang.name || "Idioma",
+                level: lang.level || "Intermedio (B1-B2)",
+              }))
+            );
+          }
+
+          if (Array.isArray(profile.portfolio_links) && profile.portfolio_links.length > 0) {
+            const firstLink = profile.portfolio_links[0];
+            setPortfolioUrl(typeof firstLink === "string" ? firstLink : firstLink.url || "");
+          }
         }
       } catch (err) {
         console.error("Error loading candidate profile in documents view:", err);
@@ -179,29 +174,31 @@ export function CandidateDocumentsView() {
     loadCandidateProfile();
   }, []);
 
-  // Sync documents from query data into component state safely without infinite loops
-  React.useEffect(() => {
-    if (!documents || documents.length === 0) return;
-
-    const officialId = documents.find((doc) => doc.doc_type === "ine_passport")?.file_name || null;
-    const proofAddr = documents.find((doc) => doc.doc_type === "proof_of_address")?.file_name || null;
-    const cv = documents.find((doc) => doc.doc_type === "cv")?.file_name || null;
-
-    setMandatory((prev) => {
-      if (prev.officialIdFile === officialId) return prev;
-      return { ...prev, officialIdFile: officialId };
-    });
-
-    setOptional((prev) => {
-      if (prev.proofAddressFile === proofAddr && prev.cvFile === cv) return prev;
-      return { ...prev, proofAddressFile: proofAddr, cvFile: cv };
-    });
-  }, [documents]);
+  // Directly derive documents from query data (Zero useEffect / Zero setState loops)
+  const officialIdDoc = useMemo(
+    () => documents.find((doc) => doc.doc_type === "ine_passport") || null,
+    [documents]
+  );
+  const proofAddressDoc = useMemo(
+    () => documents.find((doc) => doc.doc_type === "proof_of_address") || null,
+    [documents]
+  );
+  const cvDoc = useMemo(
+    () => documents.find((doc) => doc.doc_type === "cv") || null,
+    [documents]
+  );
+  const workCertificates = useMemo(
+    () => documents.filter((doc) => doc.doc_type === "work_certificate"),
+    [documents]
+  );
+  const recommendationLetters = useMemo(
+    () => documents.filter((doc) => doc.doc_type === "recommendation_letter"),
+    [documents]
+  );
 
   // UI Modals
-  const [previewFile, setPreviewFile] = useState<{ name: string; type: string } | null>(null);
-  const [isVerificationModalOpen, setIsVerificationModalOpen] = useState(false);
-  const [verificationCode, setVerificationCode] = useState("");
+  const [previewData, setPreviewData] = useState<{ name: string; type: string; url?: string | null; isPdf?: boolean } | null>(null);
+  const [isLoadingPreview, setIsLoadingPreview] = useState(false);
   const [isTermsModalOpen, setIsTermsModalOpen] = useState(false);
   const [isSuccessAlert, setIsSuccessAlert] = useState(false);
 
@@ -215,101 +212,135 @@ export function CandidateDocumentsView() {
 
   // Progress Calculations
   const mandatoryCompleted = [
-    Boolean(mandatory.fullName.trim()),
-    Boolean(mandatory.birthDate),
-    Boolean(mandatory.curp.trim().length === 18),
-    Boolean(mandatory.officialIdFile),
-    Boolean(mandatory.email.trim()),
-    Boolean(mandatory.phone.trim() && mandatory.isPhoneVerified),
-    Boolean(mandatory.profilePhotoUrl),
-    Boolean(mandatory.acceptedTerms),
+    Boolean(fullName.trim()),
+    Boolean(birthDate),
+    Boolean(curp.trim().length === 18),
+    Boolean(officialIdDoc),
+    Boolean(email.trim()),
+    Boolean(phone.trim()),
+    Boolean(profilePhotoUrl),
+    Boolean(acceptedTerms),
   ].filter(Boolean).length;
 
   const optionalCompleted = [
-    Boolean(optional.proofAddressFile),
-    Boolean(optional.cvFile),
-    optional.workCertificates.length > 0,
-    optional.recommendationLetters.length > 0,
-    optional.courses.length > 0,
-    optional.certifications.length > 0,
-    optional.languages.length > 0,
-    Boolean(optional.portfolioUrl || optional.portfolioFile),
+    Boolean(proofAddressDoc),
+    Boolean(cvDoc),
+    workCertificates.length > 0,
+    recommendationLetters.length > 0,
+    courses.length > 0,
+    certifications.length > 0,
+    languages.length > 0,
+    Boolean(portfolioUrl),
   ].filter(Boolean).length;
 
   const totalProgressPercent = Math.round(((mandatoryCompleted * 2) + optionalCompleted) / 24 * 100);
 
-  const requestFileUpload = (field: "officialIdFile" | "proofAddressFile" | "cvFile") => {
-    setUploadField(field);
+  // Trigger file selection for a specific document category
+  const requestFileUpload = (docType: CandidateDocumentType) => {
+    setTargetDocType(docType);
     fileInputRef.current?.click();
   };
 
+  // Upload handler for document categories
   const handleFileSelected = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
-    const field = uploadField;
+    const docType = targetDocType;
     event.target.value = "";
-    if (!file || !field || !userId) return;
-    const typeByField: Record<typeof field, CandidateDocumentType> = {
-      officialIdFile: "ine_passport",
-      proofAddressFile: "proof_of_address",
-      cvFile: "cv",
-    };
+    if (!file || !docType || !userId) return;
+
+    const isMultiple = ["work_certificate", "recommendation_letter", "course_certificate"].includes(docType);
+
     setIsUploading(true);
     try {
-      await candidateDocumentsService.upload(userId, typeByField[field], file);
-      queryClient.invalidateQueries({ queryKey: ['candidate-documents'] });
-      if (field === "officialIdFile") setMandatory((prev) => ({ ...prev, officialIdFile: file.name }));
-      else setOptional((prev) => ({ ...prev, [field]: file.name }));
-      toast.success("Documento cargado y enviado a revisión.");
+      await candidateDocumentsService.upload(userId, docType, file, isMultiple);
+      await queryClient.invalidateQueries({ queryKey: ['candidate-documents', userId] });
+      toast.success("Documento cargado con éxito.");
     } catch (error: unknown) {
       toast.error((error as Error).message || "No se pudo cargar el documento.");
     } finally {
       setIsUploading(false);
-      setUploadField(null);
+      setTargetDocType(null);
     }
   };
 
-  // Remaining optional profile fields are local drafts until their dedicated
-  // document categories are enabled in the verification workflow.
-  const handleSimulateFileUpload = (field: keyof MandatoryState | keyof OptionalState, defaultFileName: string) => {
-    if (field in mandatory) setMandatory((prev) => ({ ...prev, [field]: defaultFileName }));
-    else setOptional((prev) => ({ ...prev, [field]: defaultFileName }));
+  // Upload handler for Profile Avatar
+  const handleAvatarSelected = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    event.target.value = "";
+    if (!file || !userId) return;
+
+    setIsUploadingAvatar(true);
+    try {
+      const publicUrl = await candidateDocumentsService.uploadAvatar(userId, file);
+      setProfilePhotoUrl(publicUrl);
+      toast.success("Foto de perfil actualizada correctamente.");
+    } catch (error: unknown) {
+      toast.error((error as Error).message || "Error al subir la fotografía.");
+    } finally {
+      setIsUploadingAvatar(false);
+    }
+  };
+
+  // Delete document handler
+  const handleDeleteDocument = async (doc: CandidateDocument) => {
+    try {
+      await candidateDocumentsService.delete(doc.id, doc.file_url);
+      await queryClient.invalidateQueries({ queryKey: ['candidate-documents', userId] });
+      toast.success("Documento eliminado.");
+    } catch (err: any) {
+      toast.error(err?.message || "Error al eliminar el documento.");
+    }
+  };
+
+  // Document preview handler
+  const handleOpenPreview = async (doc: CandidateDocument, label: string) => {
+    setIsLoadingPreview(true);
+    setPreviewData({ name: doc.file_name, type: label });
+    try {
+      const signedUrl = await candidateDocumentsService.getSignedUrl(doc.file_url);
+      const isPdf = doc.file_name.toLowerCase().endsWith(".pdf");
+      setPreviewData({
+        name: doc.file_name,
+        type: label,
+        url: signedUrl,
+        isPdf,
+      });
+    } catch (err) {
+      toast.error("No se pudo cargar la vista previa.");
+    } finally {
+      setIsLoadingPreview(false);
+    }
   };
 
   const handleAddCourse = () => {
     if (!newCourseTitle.trim()) return;
-    setOptional((prev) => ({
+    setCourses((prev) => [
       ...prev,
-      courses: [
-        ...prev.courses,
-        { id: Date.now().toString(), title: newCourseTitle, institution: newCourseInst || "Institución", file: "Certificado_Adjunto.pdf" }
-      ]
-    }));
+      { id: Date.now().toString(), title: newCourseTitle, institution: newCourseInst || "Institución" }
+    ]);
     setNewCourseTitle("");
     setNewCourseInst("");
+    toast.success("Curso agregado.");
   };
 
   const handleAddCertification = () => {
     if (!newCertName.trim()) return;
-    setOptional((prev) => ({
+    setCertifications((prev) => [
       ...prev,
-      certifications: [
-        ...prev.certifications,
-        { id: Date.now().toString(), name: newCertName, issuer: newCertIssuer || "Organismo Emisor", file: "Certificacion_Adjunta.pdf" }
-      ]
-    }));
+      { id: Date.now().toString(), name: newCertName, issuer: newCertIssuer || "Organismo Emisor" }
+    ]);
     setNewCertName("");
     setNewCertIssuer("");
+    toast.success("Certificación agregada.");
   };
 
   const handleAddLanguage = () => {
     if (!newLangName.trim()) return;
-    setOptional((prev) => ({
+    setLanguages((prev) => [
       ...prev,
-      languages: [
-        ...prev.languages,
-        { id: Date.now().toString(), language: newLangName, level: newLangLevel }
-      ]
-    }));
+      { id: Date.now().toString(), language: newLangName, level: newLangLevel }
+    ]);
+    toast.success("Idioma agregado.");
   };
 
   const handleSaveProgress = async () => {
@@ -317,19 +348,28 @@ export function CandidateDocumentsView() {
       const { data: { user } } = await supabase.auth.getUser();
       if (user) {
         await candidateProfileService.updateProfile(user.id, {
-          full_name: mandatory.fullName,
-          whatsapp_number: mandatory.phone,
+          full_name: fullName,
+          whatsapp_number: phone,
+          avatar_url: profilePhotoUrl,
+          curp: curp,
+          birth_date: birthDate,
+          education: courses.map((c) => ({
+            degree: c.title,
+            school: c.institution,
+          })),
+          certifications: certifications.map((cert) => ({
+            name: cert.name,
+            issuer: cert.issuer,
+          })),
+          languages: languages.map((l) => ({
+            language: l.language,
+            level: l.level,
+          })),
+          portfolio_links: portfolioUrl ? [{ url: portfolioUrl, title: "Portafolio" }] : [],
         });
-        const { error } = await supabase.from("candidate_private_profiles").upsert({
-          id: user.id,
-          curp: mandatory.curp || null,
-          birth_date: mandatory.birthDate || null,
-          updated_at: new Date().toISOString(),
-        });
-        if (error) throw error;
       }
       toast.success("Expediente guardado", {
-        description: "Tus documentos e información personal han sido actualizados con éxito."
+        description: "Tus documentos, certificaciones e información personal han sido actualizados con éxito."
       });
       setIsSuccessAlert(true);
       setTimeout(() => setIsSuccessAlert(false), 4000);
@@ -341,7 +381,22 @@ export function CandidateDocumentsView() {
 
   return (
     <div className="min-h-full p-4 sm:p-6 lg:p-8 max-w-6xl mx-auto space-y-6">
-      <input ref={fileInputRef} type="file" accept="application/pdf,image/png,image/jpeg,image/webp" className="hidden" onChange={handleFileSelected} />
+      {/* Hidden File Inputs for real document & avatar uploads */}
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept="application/pdf,image/png,image/jpeg,image/webp"
+        className="hidden"
+        onChange={handleFileSelected}
+      />
+      <input
+        ref={avatarInputRef}
+        type="file"
+        accept="image/png,image/jpeg,image/webp"
+        className="hidden"
+        onChange={handleAvatarSelected}
+      />
+
       {/* 1. Header & Progress Banner */}
       <div className="bg-white dark:bg-zinc-900 rounded-[28px] sm:rounded-[32px] p-6 sm:p-8 border border-[#ebeef3] dark:border-zinc-800 shadow-xs relative overflow-hidden">
         <div className="absolute -top-12 -right-12 w-48 h-48 bg-gradient-to-br from-emerald-500/10 via-blue-500/5 to-transparent rounded-full blur-2xl pointer-events-none" />
@@ -356,7 +411,7 @@ export function CandidateDocumentsView() {
               Expediente Digital y Documentación
             </h1>
             <p className="text-[#5c7c9b] dark:text-zinc-400 text-sm sm:text-[15px] font-medium max-w-2xl">
-              Sube tus documentos requeridos para verificar tu perfil. Las empresas otorgan prioridad a candidatos con expediente verificado.
+              Sube tus documentos requeridos para certificar tu perfil. Las empresas otorgan prioridad de contratación a candidatos con expediente verificado.
             </p>
           </div>
 
@@ -395,7 +450,7 @@ export function CandidateDocumentsView() {
         {isSuccessAlert && (
           <div className="mt-5 p-4 rounded-[18px] bg-emerald-500/10 border border-emerald-500/20 text-emerald-700 dark:text-emerald-300 text-sm font-bold flex items-center gap-3 animate-in fade-in slide-in-from-top-2 duration-300">
             <CheckCircle2 className="w-5 h-5 shrink-0" />
-            <span>¡Expediente actualizado exitosamente! Los cambios han sido guardados.</span>
+            <span>¡Expediente actualizado exitosamente! Los cambios han sido guardados en la base de datos.</span>
           </div>
         )}
       </div>
@@ -450,8 +505,8 @@ export function CandidateDocumentsView() {
                 id="docFullName"
                 label="1. Nombre Completo"
                 required
-                value={mandatory.fullName}
-                onChange={(e) => setMandatory({ ...mandatory, fullName: e.target.value })}
+                value={fullName}
+                onChange={(e) => setFullName(e.target.value)}
                 hintText="Nombre(s) y Apellidos como en identificación"
                 prefixIcon={<User className="w-4 h-4 text-[#5c7c9b]" />}
                 helperText="Nombre oficial registrado para postulaciones formales."
@@ -464,8 +519,8 @@ export function CandidateDocumentsView() {
                 id="docBirthDate"
                 label="2. Fecha de Nacimiento"
                 required
-                value={mandatory.birthDate}
-                onChange={(val) => setMandatory({ ...mandatory, birthDate: val })}
+                value={birthDate}
+                onChange={(val) => setBirthDate(val)}
                 helperText="Cargado directamente de tu cuenta o modifícalo si es necesario."
               />
             </div>
@@ -476,8 +531,8 @@ export function CandidateDocumentsView() {
                 id="docCurp"
                 label="3. CURP Oficial"
                 required
-                value={mandatory.curp}
-                onChange={(val) => setMandatory({ ...mandatory, curp: val })}
+                value={curp}
+                onChange={(val) => setCurp(val)}
                 helperText="Clave Única de Registro de Población (18 caracteres en mayúsculas)."
               />
             </div>
@@ -494,7 +549,7 @@ export function CandidateDocumentsView() {
                 </span>
               </div>
 
-              {mandatory.officialIdFile ? (
+              {officialIdDoc ? (
                 <div className="p-4 rounded-[16px] bg-[#f8fafc] dark:bg-zinc-800/60 border border-[#ebeef3] dark:border-zinc-700 flex items-center justify-between">
                   <div className="flex items-center gap-3 overflow-hidden">
                     <div className="w-10 h-10 rounded-xl bg-emerald-500/10 text-emerald-600 flex items-center justify-center shrink-0">
@@ -502,7 +557,7 @@ export function CandidateDocumentsView() {
                     </div>
                     <div className="truncate">
                       <p className="text-sm font-bold text-[#1f2732] dark:text-zinc-200 truncate">
-                        {mandatory.officialIdFile}
+                        {officialIdDoc.file_name}
                       </p>
                       <p className="text-xs text-emerald-600 dark:text-emerald-400 font-semibold flex items-center gap-1">
                         <CheckCircle2 className="w-3 h-3" /> INE / Pasaporte Adjunto
@@ -513,16 +568,18 @@ export function CandidateDocumentsView() {
                     <Button
                       variant="ghost"
                       size="sm"
-                      onClick={() => setPreviewFile({ name: mandatory.officialIdFile!, type: "Identificación Oficial" })}
-                      className="h-8 w-8 p-0 rounded-lg text-[#5c7c9b] hover:text-[#1f2732]"
+                      onClick={() => handleOpenPreview(officialIdDoc, "Identificación Oficial")}
+                      className="h-8 w-8 p-0 rounded-lg text-[#5c7c9b] hover:text-[#1f2732] cursor-pointer"
+                      title="Ver documento"
                     >
                       <Eye className="w-4 h-4" />
                     </Button>
                     <Button
                       variant="ghost"
                       size="sm"
-                      onClick={() => setMandatory({ ...mandatory, officialIdFile: null })}
-                      className="h-8 w-8 p-0 rounded-lg text-rose-500 hover:text-rose-600"
+                      onClick={() => handleDeleteDocument(officialIdDoc)}
+                      className="h-8 w-8 p-0 rounded-lg text-rose-500 hover:text-rose-600 cursor-pointer"
+                      title="Eliminar documento"
                     >
                       <Trash2 className="w-4 h-4" />
                     </Button>
@@ -530,13 +587,20 @@ export function CandidateDocumentsView() {
                 </div>
               ) : (
                 <button
-                  onClick={() => requestFileUpload("officialIdFile")}
+                  type="button"
+                  onClick={() => requestFileUpload("ine_passport")}
                   disabled={isUploading}
                   className="w-full p-5 border-2 border-dashed border-[#ebeef3] dark:border-zinc-700 rounded-[18px] flex flex-col items-center justify-center text-center gap-2 hover:bg-[#f8fafc] dark:hover:bg-zinc-800/40 transition-colors cursor-pointer"
                 >
-                  <UploadCloud className="w-8 h-8 text-[#5c7c9b]" />
+                  {isUploading && targetDocType === "ine_passport" ? (
+                    <Loader2 className="w-8 h-8 text-primary animate-spin" />
+                  ) : (
+                    <UploadCloud className="w-8 h-8 text-[#5c7c9b]" />
+                  )}
                   <span className="text-xs font-bold text-[#1f2732] dark:text-zinc-200">
-                    Subir INE, Pasaporte o Cédula Profesional (PDF o Imagen)
+                    {isUploading && targetDocType === "ine_passport"
+                      ? "Subiendo documento..."
+                      : "Subir INE, Pasaporte o Cédula Profesional (PDF o Imagen)"}
                   </span>
                 </button>
               )}
@@ -549,48 +613,24 @@ export function CandidateDocumentsView() {
                 label="5. Correo Electrónico"
                 required
                 type="email"
-                value={mandatory.email}
-                onChange={(e) => setMandatory({ ...mandatory, email: e.target.value })}
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
                 hintText="candidato@correo.com"
                 prefixIcon={<Mail className="w-4 h-4 text-[#5c7c9b]" />}
                 helperText="Correo vinculado para notificaciones y accesos autorizados."
               />
             </div>
 
-            {/* Obligatorio 6: Teléfono Celular Verificado */}
+            {/* Obligatorio 6: Teléfono Celular */}
             <div className="bg-white dark:bg-zinc-900 p-6 rounded-[24px] border border-[#ebeef3] dark:border-zinc-800 space-y-3">
-              <div className="flex items-center justify-between">
-                <span className="text-xs font-bold text-[#5c7c9b] dark:text-zinc-400">
-                  6. Teléfono Celular
-                </span>
-                {mandatory.isPhoneVerified ? (
-                  <span className="text-[11px] font-extrabold px-2 py-0.5 rounded-md bg-emerald-500/10 text-emerald-600 flex items-center gap-1">
-                    <CheckCircle2 className="w-3 h-3" /> Verificado por SMS
-                  </span>
-                ) : (
-                  <span className="text-[11px] font-extrabold px-2 py-0.5 rounded-md bg-amber-500/10 text-amber-600">
-                    Pendiente SMS
-                  </span>
-                )}
-              </div>
-              <div className="flex items-center gap-2">
-                <FormPhoneField
-                  id="docPhone"
-                  label="Número de Contacto"
-                  required
-                  value={mandatory.phone}
-                  onChange={(val) => setMandatory({ ...mandatory, phone: val, isPhoneVerified: false })}
-                  className="flex-1"
-                />
-                {!mandatory.isPhoneVerified && (
-                  <Button
-                    onClick={() => setIsVerificationModalOpen(true)}
-                    className="h-12 mt-1 px-4 bg-[#1f2732] dark:bg-zinc-100 text-white dark:text-zinc-900 font-bold text-xs rounded-[14px] cursor-pointer shrink-0"
-                  >
-                    Verificar
-                  </Button>
-                )}
-              </div>
+              <FormPhoneField
+                id="docPhone"
+                label="6. Teléfono Celular de Contacto"
+                required
+                value={phone}
+                onChange={(val) => setPhone(val)}
+                helperText="Número directo para coordinación de entrevistas."
+              />
             </div>
 
             {/* Obligatorio 7: Fotografía de Perfil */}
@@ -606,10 +646,10 @@ export function CandidateDocumentsView() {
               </div>
 
               <div className="flex items-center gap-4">
-                {mandatory.profilePhotoUrl ? (
+                {profilePhotoUrl ? (
                   // eslint-disable-next-line @next/next/no-img-element
                   <img
-                    src={mandatory.profilePhotoUrl}
+                    src={profilePhotoUrl}
                     alt="Foto de Perfil"
                     className="w-16 h-16 rounded-full object-cover border-2 border-emerald-500 shadow-xs shrink-0"
                   />
@@ -623,12 +663,21 @@ export function CandidateDocumentsView() {
                     Foto formal de rostro despejado y fondo claro.
                   </p>
                   <Button
+                    type="button"
                     variant="outline"
                     size="sm"
-                    onClick={() => handleSimulateFileUpload("profilePhotoUrl", "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=400&auto=format&fit=crop&q=80")}
-                    className="h-8 rounded-lg text-xs font-bold border-[#ebeef3] dark:border-zinc-700"
+                    disabled={isUploadingAvatar}
+                    onClick={() => avatarInputRef.current?.click()}
+                    className="h-8 rounded-lg text-xs font-bold border-[#ebeef3] dark:border-zinc-700 cursor-pointer"
                   >
-                    Cambiar Fotografía
+                    {isUploadingAvatar ? (
+                      <>
+                        <Loader2 className="w-3.5 h-3.5 mr-1.5 animate-spin" />
+                        <span>Subiendo...</span>
+                      </>
+                    ) : (
+                      <span>{profilePhotoUrl ? "Cambiar Fotografía" : "Subir Fotografía"}</span>
+                    )}
                   </Button>
                 </div>
               </div>
@@ -649,29 +698,21 @@ export function CandidateDocumentsView() {
               <div className="p-4 rounded-[16px] bg-[#f8fafc] dark:bg-zinc-800/60 border border-[#ebeef3] dark:border-zinc-700 flex items-start gap-3">
                 <input
                   type="checkbox"
-                  id="terms-check"
-                  checked={mandatory.acceptedTerms}
-                  onChange={(e) => setMandatory({ ...mandatory, acceptedTerms: e.target.checked })}
-                  className="mt-1 w-4 h-4 rounded text-emerald-600 focus:ring-emerald-500 cursor-pointer"
+                  id="acceptTermsCheck"
+                  checked={acceptedTerms}
+                  onChange={(e) => setAcceptedTerms(e.target.checked)}
+                  className="mt-1 h-4 w-4 rounded border-gray-300 text-emerald-600 focus:ring-emerald-500 cursor-pointer"
                 />
-                <label htmlFor="terms-check" className="text-xs font-medium text-[#3e546d] dark:text-zinc-300 leading-relaxed cursor-pointer">
-                  Acepto los{" "}
+                <label htmlFor="acceptTermsCheck" className="text-xs text-[#5c7c9b] leading-relaxed cursor-pointer select-none">
+                  Acepto el resguardo y verificación de mis documentos según el{" "}
                   <button
                     type="button"
                     onClick={() => setIsTermsModalOpen(true)}
-                    className="text-emerald-600 dark:text-emerald-400 font-bold underline underline-offset-2"
+                    className="text-[#1f2732] dark:text-zinc-200 font-bold underline"
                   >
-                    Términos y Condiciones
-                  </button>{" "}
-                  y el{" "}
-                  <button
-                    type="button"
-                    onClick={() => setIsTermsModalOpen(true)}
-                    className="text-emerald-600 dark:text-emerald-400 font-bold underline underline-offset-2"
-                  >
-                    Aviso de Privacidad
-                  </button>{" "}
-                  para el tratamiento de mi expediente laboral en K&apos;anPro.
+                    Aviso de Privacidad y Términos de K&apos;anPro
+                  </button>
+                  .
                 </label>
               </div>
             </div>
@@ -700,31 +741,49 @@ export function CandidateDocumentsView() {
                   Opcional
                 </span>
               </div>
-              {optional.proofAddressFile ? (
+              {proofAddressDoc ? (
                 <div className="p-4 rounded-[16px] bg-[#f8fafc] dark:bg-zinc-800/60 border border-[#ebeef3] dark:border-zinc-700 flex items-center justify-between">
                   <div className="flex items-center gap-3 overflow-hidden">
                     <FileText className="w-5 h-5 text-emerald-600 shrink-0" />
                     <span className="text-sm font-bold text-[#1f2732] dark:text-zinc-200 truncate">
-                      {optional.proofAddressFile}
+                      {proofAddressDoc.file_name}
                     </span>
                   </div>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => setOptional({ ...optional, proofAddressFile: null })}
-                    className="h-8 w-8 p-0 text-rose-500"
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </Button>
+                  <div className="flex items-center gap-1">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => handleOpenPreview(proofAddressDoc, "Comprobante de Domicilio")}
+                      className="h-8 w-8 p-0 text-[#5c7c9b] hover:text-[#1f2732] cursor-pointer"
+                      title="Ver archivo"
+                    >
+                      <Eye className="w-4 h-4" />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => handleDeleteDocument(proofAddressDoc)}
+                      className="h-8 w-8 p-0 text-rose-500 hover:text-rose-600 cursor-pointer"
+                      title="Eliminar archivo"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </Button>
+                  </div>
                 </div>
               ) : (
                 <Button
+                  type="button"
                   variant="outline"
-                  onClick={() => requestFileUpload("proofAddressFile")}
+                  onClick={() => requestFileUpload("proof_of_address")}
                   disabled={isUploading}
-                  className="w-full h-12 rounded-[14px] border-dashed border-[#ebeef3] dark:border-zinc-700 text-xs font-bold text-[#5c7c9b]"
+                  className="w-full h-12 rounded-[14px] border-dashed border-[#ebeef3] dark:border-zinc-700 text-xs font-bold text-[#5c7c9b] cursor-pointer"
                 >
-                  <Plus className="w-4 h-4 mr-2" /> Adjuntar CFE, Agua o Predial (máx 3 meses)
+                  {isUploading && targetDocType === "proof_of_address" ? (
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  ) : (
+                    <Plus className="w-4 h-4 mr-2" />
+                  )}
+                  <span>Adjuntar CFE, Agua o Predial (PDF o Imagen)</span>
                 </Button>
               )}
             </div>
@@ -739,28 +798,30 @@ export function CandidateDocumentsView() {
                   Opcional
                 </span>
               </div>
-              {optional.cvFile ? (
+              {cvDoc ? (
                 <div className="p-4 rounded-[16px] bg-[#f8fafc] dark:bg-zinc-800/60 border border-[#ebeef3] dark:border-zinc-700 flex items-center justify-between">
                   <div className="flex items-center gap-3 overflow-hidden">
                     <FileText className="w-5 h-5 text-emerald-600 shrink-0" />
                     <span className="text-sm font-bold text-[#1f2732] dark:text-zinc-200 truncate">
-                      {optional.cvFile}
+                      {cvDoc.file_name}
                     </span>
                   </div>
                   <div className="flex items-center gap-1">
                     <Button
                       variant="ghost"
                       size="sm"
-                      onClick={() => setPreviewFile({ name: optional.cvFile!, type: "Curriculum Vitae" })}
-                      className="h-8 w-8 p-0 text-[#5c7c9b]"
+                      onClick={() => handleOpenPreview(cvDoc, "Currículum Vitae")}
+                      className="h-8 w-8 p-0 text-[#5c7c9b] hover:text-[#1f2732] cursor-pointer"
+                      title="Ver CV"
                     >
                       <Eye className="w-4 h-4" />
                     </Button>
                     <Button
                       variant="ghost"
                       size="sm"
-                      onClick={() => setOptional({ ...optional, cvFile: null })}
-                      className="h-8 w-8 p-0 text-rose-500"
+                      onClick={() => handleDeleteDocument(cvDoc)}
+                      className="h-8 w-8 p-0 text-rose-500 hover:text-rose-600 cursor-pointer"
+                      title="Eliminar CV"
                     >
                       <Trash2 className="w-4 h-4" />
                     </Button>
@@ -768,12 +829,18 @@ export function CandidateDocumentsView() {
                 </div>
               ) : (
                 <Button
+                  type="button"
                   variant="outline"
-                  onClick={() => requestFileUpload("cvFile")}
+                  onClick={() => requestFileUpload("cv")}
                   disabled={isUploading}
-                  className="w-full h-12 rounded-[14px] border-dashed border-[#ebeef3] dark:border-zinc-700 text-xs font-bold text-[#5c7c9b]"
+                  className="w-full h-12 rounded-[14px] border-dashed border-[#ebeef3] dark:border-zinc-700 text-xs font-bold text-[#5c7c9b] cursor-pointer"
                 >
-                  <Plus className="w-4 h-4 mr-2" /> Subir CV en formato PDF
+                  {isUploading && targetDocType === "cv" ? (
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  ) : (
+                    <Plus className="w-4 h-4 mr-2" />
+                  )}
+                  <span>Subir CV en formato PDF</span>
                 </Button>
               )}
             </div>
@@ -786,28 +853,40 @@ export function CandidateDocumentsView() {
                   <span>3. Constancias Laborales</span>
                 </label>
                 <span className="text-[11px] font-bold px-2 py-0.5 rounded-md bg-[#f5f7fa] dark:bg-zinc-800 text-[#5c7c9b]">
-                  {optional.workCertificates.length} adjuntas
+                  {workCertificates.length} adjuntas
                 </span>
               </div>
               <div className="space-y-2">
-                {optional.workCertificates.map((doc, idx) => (
-                  <div key={idx} className="p-3.5 rounded-[14px] bg-[#f8fafc] dark:bg-zinc-800/60 border border-[#ebeef3] dark:border-zinc-700 flex items-center justify-between text-xs font-bold text-[#1f2732] dark:text-zinc-200">
-                    <span className="truncate">{doc}</span>
-                    <button
-                      onClick={() => setOptional({ ...optional, workCertificates: optional.workCertificates.filter((_, i) => i !== idx) })}
-                      className="text-rose-500 hover:text-rose-600 cursor-pointer"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </button>
+                {workCertificates.map((doc) => (
+                  <div key={doc.id} className="p-3.5 rounded-[14px] bg-[#f8fafc] dark:bg-zinc-800/60 border border-[#ebeef3] dark:border-zinc-700 flex items-center justify-between text-xs font-bold text-[#1f2732] dark:text-zinc-200">
+                    <span className="truncate">{doc.file_name}</span>
+                    <div className="flex items-center gap-1">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => handleOpenPreview(doc, "Constancia Laboral")}
+                        className="h-7 w-7 p-0 text-[#5c7c9b] hover:text-[#1f2732] cursor-pointer"
+                      >
+                        <Eye className="w-3.5 h-3.5" />
+                      </Button>
+                      <button
+                        onClick={() => handleDeleteDocument(doc)}
+                        className="text-rose-500 hover:text-rose-600 cursor-pointer p-1"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
                   </div>
                 ))}
                 <Button
+                  type="button"
                   variant="outline"
                   size="sm"
-                  onClick={() => setOptional({ ...optional, workCertificates: [...optional.workCertificates, `Constancia_Laboral_${optional.workCertificates.length + 1}.pdf`] })}
-                  className="w-full h-10 rounded-[12px] text-xs font-bold border-dashed border-[#ebeef3] dark:border-zinc-700 text-[#5c7c9b]"
+                  onClick={() => requestFileUpload("work_certificate")}
+                  disabled={isUploading}
+                  className="w-full h-10 rounded-[12px] text-xs font-bold border-dashed border-[#ebeef3] dark:border-zinc-700 text-[#5c7c9b] cursor-pointer"
                 >
-                  <Plus className="w-3.5 h-3.5 mr-1.5" /> Agregar Constancia Laboral
+                  <Plus className="w-3.5 h-3.5 mr-1.5" /> Agregar Constancia Laboral (PDF o Imagen)
                 </Button>
               </div>
             </div>
@@ -820,28 +899,40 @@ export function CandidateDocumentsView() {
                   <span>4. Cartas de Recomendación</span>
                 </label>
                 <span className="text-[11px] font-bold px-2 py-0.5 rounded-md bg-[#f5f7fa] dark:bg-zinc-800 text-[#5c7c9b]">
-                  {optional.recommendationLetters.length} adjuntas
+                  {recommendationLetters.length} adjuntas
                 </span>
               </div>
               <div className="space-y-2">
-                {optional.recommendationLetters.map((doc, idx) => (
-                  <div key={idx} className="p-3.5 rounded-[14px] bg-[#f8fafc] dark:bg-zinc-800/60 border border-[#ebeef3] dark:border-zinc-700 flex items-center justify-between text-xs font-bold text-[#1f2732] dark:text-zinc-200">
-                    <span className="truncate">{doc}</span>
-                    <button
-                      onClick={() => setOptional({ ...optional, recommendationLetters: optional.recommendationLetters.filter((_, i) => i !== idx) })}
-                      className="text-rose-500 hover:text-rose-600 cursor-pointer"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </button>
+                {recommendationLetters.map((doc) => (
+                  <div key={doc.id} className="p-3.5 rounded-[14px] bg-[#f8fafc] dark:bg-zinc-800/60 border border-[#ebeef3] dark:border-zinc-700 flex items-center justify-between text-xs font-bold text-[#1f2732] dark:text-zinc-200">
+                    <span className="truncate">{doc.file_name}</span>
+                    <div className="flex items-center gap-1">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => handleOpenPreview(doc, "Carta de Recomendación")}
+                        className="h-7 w-7 p-0 text-[#5c7c9b] hover:text-[#1f2732] cursor-pointer"
+                      >
+                        <Eye className="w-3.5 h-3.5" />
+                      </Button>
+                      <button
+                        onClick={() => handleDeleteDocument(doc)}
+                        className="text-rose-500 hover:text-rose-600 cursor-pointer p-1"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
                   </div>
                 ))}
                 <Button
+                  type="button"
                   variant="outline"
                   size="sm"
-                  onClick={() => setOptional({ ...optional, recommendationLetters: [...optional.recommendationLetters, `Carta_Recomendacion_${optional.recommendationLetters.length + 1}.pdf`] })}
-                  className="w-full h-10 rounded-[12px] text-xs font-bold border-dashed border-[#ebeef3] dark:border-zinc-700 text-[#5c7c9b]"
+                  onClick={() => requestFileUpload("recommendation_letter")}
+                  disabled={isUploading}
+                  className="w-full h-10 rounded-[12px] text-xs font-bold border-dashed border-[#ebeef3] dark:border-zinc-700 text-[#5c7c9b] cursor-pointer"
                 >
-                  <Plus className="w-3.5 h-3.5 mr-1.5" /> Agregar Carta de Recomendación
+                  <Plus className="w-3.5 h-3.5 mr-1.5" /> Agregar Carta de Recomendación (PDF o Imagen)
                 </Button>
               </div>
             </div>
@@ -854,20 +945,20 @@ export function CandidateDocumentsView() {
                   <span>5. Certificados o Cursos</span>
                 </label>
                 <span className="text-[11px] font-bold px-2 py-0.5 rounded-md bg-[#f5f7fa] dark:bg-zinc-800 text-[#5c7c9b]">
-                  {optional.courses.length} registrados
+                  {courses.length} registrados
                 </span>
               </div>
 
               <div className="space-y-2">
-                {optional.courses.map((item) => (
+                {courses.map((item) => (
                   <div key={item.id} className="p-3.5 rounded-[14px] bg-[#f8fafc] dark:bg-zinc-800/60 border border-[#ebeef3] dark:border-zinc-700 flex items-center justify-between">
                     <div>
                       <p className="text-xs font-bold text-[#1f2732] dark:text-zinc-200">{item.title}</p>
                       <p className="text-[11px] text-[#5c7c9b] font-medium">{item.institution}</p>
                     </div>
                     <button
-                      onClick={() => setOptional({ ...optional, courses: optional.courses.filter((c) => c.id !== item.id) })}
-                      className="text-rose-500 hover:text-rose-600 cursor-pointer"
+                      onClick={() => setCourses((prev) => prev.filter((c) => c.id !== item.id))}
+                      className="text-rose-500 hover:text-rose-600 cursor-pointer p-1"
                     >
                       <Trash2 className="w-4 h-4" />
                     </button>
@@ -892,6 +983,7 @@ export function CandidateDocumentsView() {
                     className="h-10 bg-[#f8fafc] dark:bg-zinc-800/60 text-xs rounded-xl flex-1"
                   />
                   <Button
+                    type="button"
                     onClick={handleAddCourse}
                     className="h-10 px-4 bg-[#1f2732] dark:bg-zinc-100 text-white dark:text-zinc-900 text-xs font-bold rounded-xl cursor-pointer"
                   >
@@ -909,20 +1001,20 @@ export function CandidateDocumentsView() {
                   <span>6. Certificaciones Técnicas</span>
                 </label>
                 <span className="text-[11px] font-bold px-2 py-0.5 rounded-md bg-[#f5f7fa] dark:bg-zinc-800 text-[#5c7c9b]">
-                  {optional.certifications.length} registradas
+                  {certifications.length} registradas
                 </span>
               </div>
 
               <div className="space-y-2">
-                {optional.certifications.map((item) => (
+                {certifications.map((item) => (
                   <div key={item.id} className="p-3.5 rounded-[14px] bg-[#f8fafc] dark:bg-zinc-800/60 border border-[#ebeef3] dark:border-zinc-700 flex items-center justify-between">
                     <div>
                       <p className="text-xs font-bold text-[#1f2732] dark:text-zinc-200">{item.name}</p>
                       <p className="text-[11px] text-[#5c7c9b] font-medium">{item.issuer}</p>
                     </div>
                     <button
-                      onClick={() => setOptional({ ...optional, certifications: optional.certifications.filter((c) => c.id !== item.id) })}
-                      className="text-rose-500 hover:text-rose-600 cursor-pointer"
+                      onClick={() => setCertifications((prev) => prev.filter((c) => c.id !== item.id))}
+                      className="text-rose-500 hover:text-rose-600 cursor-pointer p-1"
                     >
                       <Trash2 className="w-4 h-4" />
                     </button>
@@ -947,6 +1039,7 @@ export function CandidateDocumentsView() {
                     className="h-10 bg-[#f8fafc] dark:bg-zinc-800/60 text-xs rounded-xl flex-1"
                   />
                   <Button
+                    type="button"
                     onClick={handleAddCertification}
                     className="h-10 px-4 bg-[#1f2732] dark:bg-zinc-100 text-white dark:text-zinc-900 text-xs font-bold rounded-xl cursor-pointer"
                   >
@@ -956,7 +1049,7 @@ export function CandidateDocumentsView() {
               </div>
             </div>
 
-            {/* Opcional 7: Idiomas */}
+            {/* Opcional 7: Idiomas Dominados */}
             <div className="bg-white dark:bg-zinc-900 p-6 rounded-[24px] border border-[#ebeef3] dark:border-zinc-800 space-y-4">
               <div className="flex items-center justify-between">
                 <label className="text-sm font-bold text-[#1f2732] dark:text-zinc-200 flex items-center gap-2">
@@ -964,19 +1057,22 @@ export function CandidateDocumentsView() {
                   <span>7. Idiomas</span>
                 </label>
                 <span className="text-[11px] font-bold px-2 py-0.5 rounded-md bg-[#f5f7fa] dark:bg-zinc-800 text-[#5c7c9b]">
-                  {optional.languages.length} agregados
+                  {languages.length} registrados
                 </span>
               </div>
 
-              <div className="flex flex-wrap gap-2">
-                {optional.languages.map((item) => (
-                  <div key={item.id} className="px-3.5 py-2 rounded-[14px] bg-[#f8fafc] dark:bg-zinc-800/60 border border-[#ebeef3] dark:border-zinc-700 flex items-center gap-2 text-xs font-bold text-[#1f2732] dark:text-zinc-200">
-                    <span>{item.language}: <span className="text-emerald-600 dark:text-emerald-400">{item.level}</span></span>
+              <div className="space-y-2">
+                {languages.map((item) => (
+                  <div key={item.id} className="p-3.5 rounded-[14px] bg-[#f8fafc] dark:bg-zinc-800/60 border border-[#ebeef3] dark:border-zinc-700 flex items-center justify-between">
+                    <div>
+                      <p className="text-xs font-bold text-[#1f2732] dark:text-zinc-200">{item.language}</p>
+                      <p className="text-[11px] text-[#5c7c9b] font-medium">{item.level}</p>
+                    </div>
                     <button
-                      onClick={() => setOptional({ ...optional, languages: optional.languages.filter((l) => l.id !== item.id) })}
-                      className="text-[#5c7c9b] hover:text-rose-500 cursor-pointer"
+                      onClick={() => setLanguages((prev) => prev.filter((l) => l.id !== item.id))}
+                      className="text-rose-500 hover:text-rose-600 cursor-pointer p-1"
                     >
-                      <X className="w-3.5 h-3.5" />
+                      <Trash2 className="w-4 h-4" />
                     </button>
                   </div>
                 ))}
@@ -985,7 +1081,7 @@ export function CandidateDocumentsView() {
               <div className="pt-2 border-t border-[#ebeef3] dark:border-zinc-800 flex gap-2">
                 <Input
                   type="text"
-                  placeholder="Idioma (ej. Francés, Alemán)"
+                  placeholder="Idioma (ej. Inglés, Francés, Maya)"
                   value={newLangName}
                   onChange={(e) => setNewLangName(e.target.value)}
                   className="h-10 bg-[#f8fafc] dark:bg-zinc-800/60 text-xs rounded-xl flex-1"
@@ -993,14 +1089,15 @@ export function CandidateDocumentsView() {
                 <select
                   value={newLangLevel}
                   onChange={(e) => setNewLangLevel(e.target.value)}
-                  className="h-10 bg-[#f8fafc] dark:bg-zinc-800/60 text-xs font-semibold rounded-xl px-2 border border-[#ebeef3] dark:border-zinc-700 text-[#1f2732] dark:text-zinc-200"
+                  className="h-10 px-3 bg-[#f8fafc] dark:bg-zinc-800 border border-[#ebeef3] dark:border-zinc-700 text-xs font-semibold rounded-xl text-[#1f2732] dark:text-zinc-100"
                 >
-                  <option value="Básico (A2)">Básico (A2)</option>
-                  <option value="Intermedio (B2)">Intermedio (B2)</option>
+                  <option value="Básico (A1-A2)">Básico (A1-A2)</option>
+                  <option value="Intermedio (B1-B2)">Intermedio (B1-B2)</option>
                   <option value="Avanzado (C1)">Avanzado (C1)</option>
                   <option value="Nativo">Nativo</option>
                 </select>
                 <Button
+                  type="button"
                   onClick={handleAddLanguage}
                   className="h-10 px-3 bg-[#1f2732] dark:bg-zinc-100 text-white dark:text-zinc-900 text-xs font-bold rounded-xl cursor-pointer"
                 >
@@ -1023,36 +1120,15 @@ export function CandidateDocumentsView() {
 
               <div className="space-y-3">
                 <div>
-                  <label className="text-xs font-semibold text-[#5c7c9b]">Enlace Web / Sitio Portafolio</label>
+                  <label className="text-xs font-semibold text-[#5c7c9b]">Enlace Web / Sitio Portafolio / GitHub</label>
                   <Input
                     type="url"
-                    value={optional.portfolioUrl}
-                    onChange={(e) => setOptional({ ...optional, portfolioUrl: e.target.value })}
+                    value={portfolioUrl}
+                    onChange={(e) => setPortfolioUrl(e.target.value)}
                     placeholder="https://miportafolio.com"
                     className="h-11 bg-[#f8fafc] dark:bg-zinc-800/60 border-[#ebeef3] dark:border-zinc-700 rounded-[14px] text-xs font-semibold mt-1"
                   />
                 </div>
-
-                {optional.portfolioFile ? (
-                  <div className="p-3.5 rounded-[14px] bg-[#f8fafc] dark:bg-zinc-800/60 border border-[#ebeef3] dark:border-zinc-700 flex items-center justify-between text-xs font-bold text-[#1f2732] dark:text-zinc-200">
-                    <span>{optional.portfolioFile}</span>
-                    <button
-                      onClick={() => setOptional({ ...optional, portfolioFile: null })}
-                      className="text-rose-500 hover:text-rose-600 cursor-pointer"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </button>
-                  </div>
-                ) : (
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => handleSimulateFileUpload("portfolioFile", "Portafolio_Proyectos_2026.pdf")}
-                    className="w-full h-10 rounded-[12px] text-xs font-bold border-dashed border-[#ebeef3] dark:border-zinc-700 text-[#5c7c9b]"
-                  >
-                    <Plus className="w-3.5 h-3.5 mr-1.5" /> Adjuntar Portafolio en PDF
-                  </Button>
-                )}
               </div>
             </div>
           </div>
@@ -1071,100 +1147,98 @@ export function CandidateDocumentsView() {
 
         <div className="flex items-center gap-3">
           <Button
+            type="button"
             onClick={handleSaveProgress}
-            className="h-12 px-6 bg-[#1f2732] dark:bg-zinc-100 hover:bg-[#2c3847] dark:hover:bg-zinc-200 text-white dark:text-zinc-900 font-extrabold text-sm rounded-[16px] shadow-xs cursor-pointer"
+            className="h-12 px-6 bg-[#1f2732] dark:bg-zinc-100 hover:bg-[#2c3847] dark:hover:bg-zinc-200 text-white dark:text-zinc-900 font-extrabold text-sm rounded-[16px] shadow-xs cursor-pointer active:scale-98 transition-all"
           >
             Guardar Expediente
           </Button>
         </div>
       </div>
 
-      {/* MODAL 1: Document Preview Modal */}
-      <Dialog open={!!previewFile} onOpenChange={(open) => !open && setPreviewFile(null)}>
-        <DialogContent className="sm:max-w-[480px] rounded-[28px] bg-white dark:bg-zinc-900 border border-[#ebeef3] dark:border-zinc-800 p-6 space-y-4">
+      {/* MODAL 1: Real Document Preview Modal */}
+      <Dialog open={!!previewData} onOpenChange={(open) => !open && setPreviewData(null)}>
+        <DialogContent className="sm:max-w-[540px] rounded-[28px] bg-white dark:bg-zinc-900 border border-[#ebeef3] dark:border-zinc-800 p-6 space-y-4">
           <DialogHeader>
             <DialogTitle className="text-lg font-bold text-[#1f2732] dark:text-zinc-50 flex items-center gap-2">
               <FileText className="w-5 h-5 text-emerald-600" />
-              <span>{previewFile?.type}</span>
+              <span>{previewData?.type}</span>
             </DialogTitle>
-            <DialogDescription className="text-xs text-[#5c7c9b]">
-              {previewFile?.name}
+            <DialogDescription className="text-xs text-[#5c7c9b] truncate">
+              {previewData?.name}
             </DialogDescription>
           </DialogHeader>
 
-          <div className="p-8 bg-[#f8fafc] dark:bg-zinc-800/50 border border-[#ebeef3] dark:border-zinc-700 rounded-[20px] text-center space-y-3">
-            <div className="w-14 h-14 rounded-full bg-emerald-500/10 text-emerald-600 flex items-center justify-center mx-auto">
-              <CheckCircle2 className="w-7 h-7" />
+          {isLoadingPreview ? (
+            <div className="p-12 text-center flex flex-col items-center justify-center gap-3">
+              <Loader2 className="w-8 h-8 animate-spin text-primary" />
+              <p className="text-xs font-semibold text-[#5c7c9b]">Cargando vista previa segura...</p>
             </div>
-            <p className="text-sm font-bold text-[#1f2732] dark:text-zinc-100">
-              Documento guardado y listo para revisión
-            </p>
-            <p className="text-xs text-[#5c7c9b]">
-              Formato verificado y encriptado en el almacenamiento seguro de K&apos;anPro.
-            </p>
-          </div>
+          ) : previewData?.url ? (
+            <div className="space-y-4">
+              <div className="p-4 bg-[#f8fafc] dark:bg-zinc-800/50 border border-[#ebeef3] dark:border-zinc-700 rounded-[20px] text-center space-y-3">
+                {previewData.isPdf ? (
+                  <div className="w-14 h-14 rounded-full bg-rose-500/10 text-rose-600 flex items-center justify-center mx-auto">
+                    <FileText className="w-7 h-7" />
+                  </div>
+                ) : (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
+                    src={previewData.url}
+                    alt={previewData.name}
+                    className="max-h-64 mx-auto rounded-xl object-contain shadow-xs"
+                  />
+                )}
+                <div>
+                  <p className="text-sm font-bold text-[#1f2732] dark:text-zinc-100">
+                    Documento listo para consulta
+                  </p>
+                  <p className="text-xs text-[#5c7c9b]">
+                    Almacenado de forma segura en el repositorio de K&apos;anPro.
+                  </p>
+                </div>
+              </div>
 
-          <DialogFooter>
-            <Button
-              variant="outline"
-              onClick={() => setPreviewFile(null)}
-              className="w-full h-11 rounded-[14px] text-xs font-bold"
-            >
-              Cerrar Vista Previa
-            </Button>
-          </DialogFooter>
+              <div className="flex gap-2">
+                <Button
+                  type="button"
+                  onClick={() => window.open(previewData.url!, "_blank")}
+                  className="flex-1 h-11 bg-[#1f2732] hover:bg-[#2c3847] text-white text-xs font-bold rounded-[14px] flex items-center justify-center gap-2 cursor-pointer"
+                >
+                  <Download className="w-4 h-4" />
+                  <span>Abrir / Descargar</span>
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => setPreviewData(null)}
+                  className="h-11 px-5 rounded-[14px] text-xs font-bold cursor-pointer"
+                >
+                  Cerrar
+                </Button>
+              </div>
+            </div>
+          ) : (
+            <div className="p-8 bg-[#f8fafc] dark:bg-zinc-800/50 border border-[#ebeef3] dark:border-zinc-700 rounded-[20px] text-center space-y-3">
+              <div className="w-14 h-14 rounded-full bg-emerald-500/10 text-emerald-600 flex items-center justify-center mx-auto">
+                <CheckCircle2 className="w-7 h-7" />
+              </div>
+              <p className="text-sm font-bold text-[#1f2732] dark:text-zinc-100">
+                Documento registrado en expediente
+              </p>
+              <Button
+                variant="outline"
+                onClick={() => setPreviewData(null)}
+                className="w-full h-11 rounded-[14px] text-xs font-bold cursor-pointer mt-2"
+              >
+                Cerrar
+              </Button>
+            </div>
+          )}
         </DialogContent>
       </Dialog>
 
-      {/* MODAL 2: SMS Phone Verification Modal */}
-      <Dialog open={isVerificationModalOpen} onOpenChange={setIsVerificationModalOpen}>
-        <DialogContent className="sm:max-w-[420px] rounded-[28px] bg-white dark:bg-zinc-900 border border-[#ebeef3] dark:border-zinc-800 p-6 space-y-4">
-          <DialogHeader>
-            <DialogTitle className="text-lg font-bold text-[#1f2732] dark:text-zinc-50 flex items-center gap-2">
-              <Phone className="w-5 h-5 text-emerald-600" />
-              <span>Verificar Teléfono Celular</span>
-            </DialogTitle>
-            <DialogDescription className="text-xs text-[#5c7c9b]">
-              Hemos enviado un código SMS de 6 dígitos al número {mandatory.phone}
-            </DialogDescription>
-          </DialogHeader>
-
-          <div className="space-y-3 py-2">
-            <Input
-              type="text"
-              maxLength={6}
-              value={verificationCode}
-              onChange={(e) => setVerificationCode(e.target.value)}
-              placeholder="Ej. 583920"
-              className="h-12 text-center text-lg font-extrabold tracking-widest bg-[#f8fafc] dark:bg-zinc-800 rounded-[14px]"
-            />
-            <p className="text-[11px] text-center text-[#5c7c9b]">
-              ¿No recibiste el código? <button type="button" className="text-emerald-600 font-bold">Reenviar SMS</button>
-            </p>
-          </div>
-
-          <DialogFooter className="gap-2">
-            <Button
-              variant="ghost"
-              onClick={() => setIsVerificationModalOpen(false)}
-              className="flex-1 h-11 rounded-[14px] text-xs font-bold"
-            >
-              Cancelar
-            </Button>
-            <Button
-              onClick={() => {
-                setMandatory({ ...mandatory, isPhoneVerified: true });
-                setIsVerificationModalOpen(false);
-              }}
-              className="flex-1 h-11 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-[14px] cursor-pointer"
-            >
-              Confirmar Código
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      {/* MODAL 3: Terms & Privacy Modal */}
+      {/* MODAL 2: Terms & Privacy Modal */}
       <Dialog open={isTermsModalOpen} onOpenChange={setIsTermsModalOpen}>
         <DialogContent className="sm:max-w-[540px] rounded-[28px] bg-white dark:bg-zinc-900 border border-[#ebeef3] dark:border-zinc-800 p-6 space-y-4 max-h-[85vh] overflow-y-auto">
           <DialogHeader>
@@ -1179,7 +1253,7 @@ export function CandidateDocumentsView() {
           <div className="text-xs text-[#3e546d] dark:text-zinc-300 space-y-3 leading-relaxed border-t border-b border-[#ebeef3] dark:border-zinc-800 py-4">
             <p className="font-bold text-[#1f2732] dark:text-zinc-100">1. Protección de Datos Personales</p>
             <p>
-              Tus documentos e información sensible (CURP, Identificación Oficial y comprobantes) son resguardados bajo estándares estricto de cifrado de extremo a extremo. Únicamente serán compartidos con empresas registradas ante las cuales postules explícitamente tu vacante.
+              Tus documentos e información sensible (CURP, Identificación Oficial y comprobantes) son resguardados bajo estándares estrictos de cifrado de extremo a extremo. Únicamente serán compartidos con empresas registradas ante las cuales postules explícitamente tu vacante.
             </p>
             <p className="font-bold text-[#1f2732] dark:text-zinc-100">2. Veracidad de la Información</p>
             <p>
@@ -1189,8 +1263,9 @@ export function CandidateDocumentsView() {
 
           <DialogFooter>
             <Button
+              type="button"
               onClick={() => setIsTermsModalOpen(false)}
-              className="w-full h-11 bg-[#1f2732] text-white font-bold text-xs rounded-[14px]"
+              className="w-full h-11 bg-[#1f2732] text-white font-bold text-xs rounded-[14px] cursor-pointer"
             >
               Entendido y Aceptado
             </Button>

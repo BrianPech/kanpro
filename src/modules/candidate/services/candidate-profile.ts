@@ -13,6 +13,8 @@ export interface CandidateProfileData {
   skills: string[] | null;
   experience: Json | null;
   education: Json | null;
+  certifications?: Json | null;
+  languages?: Json | null;
   portfolio_links: Json | null;
   avatar_url: string | null;
   cv_url: string | null;
@@ -82,7 +84,7 @@ export const candidateProfileService = {
           .maybeSingle(),
         supabase
           .from("candidate_profiles")
-          .select("id, headline, bio, skills, experience, education, portfolio_links, preferred_zone")
+          .select("id, headline, bio, skills, experience, education, certifications, languages, portfolio_links, preferred_zone")
           .eq("id", userId)
           .maybeSingle(),
         supabase
@@ -128,6 +130,8 @@ export const candidateProfileService = {
         skills: candProfile?.skills || [],
         experience: candProfile?.experience || [],
         education: candProfile?.education || [],
+        certifications: candProfile?.certifications || [],
+        languages: candProfile?.languages || [],
         portfolio_links: candProfile?.portfolio_links || [],
         cv_url: null,
         is_validated: true,
@@ -175,6 +179,8 @@ export const candidateProfileService = {
       avatar_url?: string | null;
       curp?: string | null;
       birth_date?: string | null;
+      certifications?: any[] | null;
+      languages?: any[] | null;
     }
   ) {
     const supabase = createClient();
@@ -208,6 +214,8 @@ export const candidateProfileService = {
     if (data.skills !== undefined) candidatePayload.skills = data.skills || [];
     if (data.experience !== undefined) candidatePayload.experience = (data.experience || []) as unknown as Json;
     if (data.education !== undefined) candidatePayload.education = (data.education || []) as unknown as Json;
+    if (data.certifications !== undefined) candidatePayload.certifications = (data.certifications || []) as unknown as Json;
+    if (data.languages !== undefined) candidatePayload.languages = (data.languages || []) as unknown as Json;
     if (data.portfolio_links !== undefined) candidatePayload.portfolio_links = (data.portfolio_links || []) as unknown as Json;
     if (data.zone !== undefined) candidatePayload.preferred_zone = data.zone;
 

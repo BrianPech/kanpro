@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
-import { MapPin, Crosshair, Loader2, Sparkles } from "lucide-react";
+import { MapPin, Crosshair, Loader2, Sparkles, Navigation } from "lucide-react";
 import { GEO_CONFIG, resolveLocationFromCoords } from "@/config/geo";
 import { normalizeLocation, parseLocation } from "@/lib/formatters";
 import { Label } from "@/components/ui/label";
@@ -26,7 +26,7 @@ export function FormLocationSelector({
   cityValue,
   zoneValue,
   onChange,
-  label = "Ubicación y Radar Geográfico",
+  label = "Zona de Trabajo y Cobertura",
   subtitle = "Configura tu ciudad y zona para conectar con oportunidades cercanas.",
   showRadarBadge = true,
   className = "",
@@ -85,10 +85,10 @@ export function FormLocationSelector({
     onChange({ city: currentCity, zone: newZone, locationStr: locStr });
   };
 
-  const handleDetectGPS = () => {
+  const handleDetectLocation = () => {
     if (typeof window === "undefined" || !("geolocation" in navigator)) {
       toast.error("Geolocalización no disponible", {
-        description: "Tu navegador no soporta el servicio GPS.",
+        description: "Tu navegador o dispositivo no cuenta con servicio de geolocalización.",
       });
       return;
     }
@@ -107,16 +107,19 @@ export function FormLocationSelector({
           zone: resolved.zone,
           locationStr: resolved.displayLocation,
         });
-        toast.success("Ubicación GPS detectada", {
-          description: `Se detectó: ${resolved.displayLocation}`,
+        toast.success("Ubicación detectada con éxito", {
+          description: `Se configuró: ${resolved.displayLocation}`,
         });
       } catch (e) {
         setIsLocating(false);
-        toast.error("Error al procesar la ubicación");
+        toast.error("No se pudo procesar tu ubicación", {
+          description: "Puedes seleccionar tu ciudad y zona en los menús de abajo.",
+        });
       }
     };
 
     const onLocationFailure = (err: GeolocationPositionError) => {
+      // If high accuracy failed/timed out, gracefully fallback to standard accuracy
       if (err.code === err.TIMEOUT || err.code === err.POSITION_UNAVAILABLE) {
         navigator.geolocation.getCurrentPosition(
           onLocationSuccess,
@@ -124,15 +127,15 @@ export function FormLocationSelector({
             setIsLocating(false);
             if (fallbackErr.code === fallbackErr.PERMISSION_DENIED) {
               toast.error("Permiso de ubicación denegado", {
-                description: "Habilita los permisos de ubicación en la barra de tu navegador.",
+                description: "Habilita los permisos de ubicación en tu navegador o selecciona tu zona manualmente.",
               });
             } else {
-              toast.error("No se pudo obtener señal GPS", {
-                description: "Selecciona tu ciudad y zona manualmente.",
+              toast.error("No se pudo detectar tu ubicación automática", {
+                description: "Selecciona tu ciudad y zona en las opciones de abajo.",
               });
             }
           },
-          { enableHighAccuracy: false, timeout: 15000, maximumAge: 60000 }
+          { enableHighAccuracy: false, timeout: 12000, maximumAge: 300000 }
         );
         return;
       }
@@ -140,10 +143,10 @@ export function FormLocationSelector({
       setIsLocating(false);
       if (err.code === err.PERMISSION_DENIED) {
         toast.error("Permiso de ubicación denegado", {
-          description: "Habilita el acceso en el icono de permisos de tu navegador.",
+          description: "Permite el acceso a tu ubicación en el navegador o selecciona tu zona manualmente.",
         });
       } else {
-        toast.error("No se pudo obtener la ubicación", {
+        toast.error("Ubicación no disponible", {
           description: "Selecciona tu ciudad y zona de la lista.",
         });
       }
@@ -152,7 +155,7 @@ export function FormLocationSelector({
     navigator.geolocation.getCurrentPosition(
       onLocationSuccess,
       onLocationFailure,
-      { enableHighAccuracy: true, timeout: 8000, maximumAge: 10000 }
+      { enableHighAccuracy: true, timeout: 6000, maximumAge: 60000 }
     );
   };
 
@@ -170,7 +173,7 @@ export function FormLocationSelector({
               {label}
             </h3>
             <p className="text-[12px] text-[#5c7c9b] dark:text-zinc-400 font-medium">
-              {fullLocationStr ? `Ubicación actual: ${fullLocationStr}` : subtitle}
+              {fullLocationStr ? `Ubicación activa: ${fullLocationStr}` : subtitle}
             </p>
           </div>
         </div>
@@ -230,21 +233,26 @@ export function FormLocationSelector({
         </div>
       </div>
 
-      {/* GPS Detection Button */}
+      {/* Automatic Location Detection Button */}
       <div className="pt-1">
         <Button
           type="button"
           variant="outline"
-          onClick={handleDetectGPS}
+          onClick={handleDetectLocation}
           disabled={disabled || isLocating}
           className="w-full sm:w-auto h-10 rounded-xl border-border text-xs font-bold flex items-center gap-2 cursor-pointer active:scale-98 transition-all"
         >
           {isLocating ? (
-            <Loader2 className="w-4 h-4 animate-spin text-primary" />
+            <>
+              <Loader2 className="w-4 h-4 animate-spin text-primary" />
+              <span>Detectando tu ubicación...</span>
+            </>
           ) : (
-            <Crosshair className="w-4 h-4 text-primary" />
+            <>
+              <Navigation className="w-4 h-4 text-primary" />
+              <span>Detectar mi ubicación actual</span>
+            </>
           )}
-          <span>Detectar mi ubicación actual (GPS)</span>
         </Button>
       </div>
     </div>

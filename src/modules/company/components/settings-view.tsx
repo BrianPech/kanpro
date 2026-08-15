@@ -677,7 +677,7 @@ export function CompanySettingsView({ user, initialProfile, initialPauseState, i
                       <div className="truncate">
                         <span className="font-extrabold">
                           {gpsDetectedInfo && gpsDetectedInfo.city === companyCity
-                            ? "Ubicación GPS Confirmada:"
+                            ? "Ubicación Confirmada:"
                             : "Ubicación Registrada:"}
                         </span>{" "}
                         <span className="font-bold">{companyCity || "Ciudad no especificada"}</span>
@@ -690,7 +690,7 @@ export function CompanySettingsView({ user, initialProfile, initialPauseState, i
                         ? "bg-emerald-600 text-white"
                         : "bg-indigo-600 text-white"
                     )}>
-                      {gpsDetectedInfo && gpsDetectedInfo.city === companyCity ? "GPS Activo" : "Registrada"}
+                      {gpsDetectedInfo && gpsDetectedInfo.city === companyCity ? "Ubicación Activa" : "Registrada"}
                     </Badge>
                   </div>
                 ) : null}
@@ -717,13 +717,17 @@ export function CompanySettingsView({ user, initialProfile, initialPauseState, i
                     <div className="flex flex-wrap items-center gap-1.5 pt-1">
                       <span className="text-[11px] font-bold text-fiord-400 mr-1">Rápidos:</span>
                       {[
-                        "Mérida, Yucatán",
+                        "Felipe Carrillo Puerto, Q. Roo",
                         "Playa del Carmen, Q. Roo",
                         "Cancún, Q. Roo",
                         "Tulum, Q. Roo",
-                        "Cozumel, Q. Roo",
                         "Chetumal, Q. Roo",
-                        "CDMX",
+                        "Bacalar, Q. Roo",
+                        "Cozumel, Q. Roo",
+                        "Puerto Morelos, Q. Roo",
+                        "Mérida, Yucatán",
+                        "Valladolid, Yucatán",
+                        "Progreso, Yucatán",
                       ].map((city) => (
                         <button
                           key={city}
@@ -771,7 +775,7 @@ export function CompanySettingsView({ user, initialProfile, initialPauseState, i
                     ) : (
                       <Crosshair className="size-4 text-primary" />
                     )}
-                    <span>{isLocatingCompany ? "Detectando..." : "Detectar mi ubicación exacta por GPS"}</span>
+                    <span>{isLocatingCompany ? "Detectando ubicación..." : "Detectar mi ubicación actual"}</span>
                   </Button>
 
                   <Button

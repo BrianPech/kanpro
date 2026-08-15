@@ -9,19 +9,20 @@ import {
   Camera, 
   X, 
   Plus, 
-  Lightbulb, 
   Camera as CameraIcon, 
   Image as GalleryIcon, 
   Trash2, 
-  CheckCircle2,
   Briefcase,
-  GraduationCap
+  GraduationCap,
+  Loader2,
+  CheckCircle2
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { createClient } from "@/lib/supabase/client";
 import { candidateProfileService } from "../services/candidate-profile";
+import { candidateDocumentsService } from "../services/candidate-documents";
 import { candidateProfileSchema, type CandidateProfileFormValues } from "../schemas/candidate.schema";
 import { FormTextField, FormPhoneField } from "@/components/form";
 import {
@@ -71,7 +72,7 @@ const ExperienceFieldArray = React.memo(({
 
       {fields.length === 0 ? (
         <div className="w-full p-4 bg-[#f5f7fa] dark:bg-zinc-900 rounded-[16px] border border-[#ebeef3] dark:border-zinc-800 text-xs text-[#5c7c9b]">
-          No has registrado experiencias aún. Toca "Añadir Experiencia" para agregar empleos anteriores.
+          No has registrado experiencias aún. Toca &quot;Añadir Experiencia&quot; para agregar empleos anteriores.
         </div>
       ) : (
         <div className="space-y-4">
@@ -80,7 +81,7 @@ const ExperienceFieldArray = React.memo(({
               <button
                 type="button"
                 onClick={() => remove(index)}
-                className="absolute top-3 right-3 p-1.5 text-rose-500 hover:text-rose-700 transition-colors"
+                className="absolute top-3 right-3 p-1.5 text-rose-500 hover:text-rose-700 transition-colors cursor-pointer"
                 aria-label="Eliminar experiencia"
               >
                 <Trash2 className="w-4 h-4" />
@@ -91,7 +92,7 @@ const ExperienceFieldArray = React.memo(({
                   <label className="text-[12px] font-bold text-[#5c7c9b]">Puesto / Cargo *</label>
                   <Input
                     {...register(`experience.${index}.role`)}
-                    placeholder="Ej. Chef Ejecutivo, Mesero"
+                    placeholder="Ej. Chef Ejecutivo, Mesero, Recepcionista"
                     className="h-10 text-xs mt-1 bg-white dark:bg-zinc-900 rounded-xl"
                   />
                   {errors.experience?.[index]?.role && (
@@ -103,7 +104,7 @@ const ExperienceFieldArray = React.memo(({
                   <label className="text-[12px] font-bold text-[#5c7c9b]">Empresa / Negocio *</label>
                   <Input
                     {...register(`experience.${index}.company`)}
-                    placeholder="Ej. Hotel Xcaret"
+                    placeholder="Ej. Hotel Riviera Grand"
                     className="h-10 text-xs mt-1 bg-white dark:bg-zinc-900 rounded-xl"
                   />
                   {errors.experience?.[index]?.company && (
@@ -126,15 +127,12 @@ const ExperienceFieldArray = React.memo(({
                 </div>
 
                 <div>
-                  <label className="text-[12px] font-bold text-[#5c7c9b]">Descripción *</label>
+                  <label className="text-[12px] font-bold text-[#5c7c9b]">Descripción / Funciones</label>
                   <Input
                     {...register(`experience.${index}.description`)}
-                    placeholder="Resumen de funciones principal..."
+                    placeholder="Resumen de responsabilidades..."
                     className="h-10 text-xs mt-1 bg-white dark:bg-zinc-900 rounded-xl"
                   />
-                  {errors.experience?.[index]?.description && (
-                    <p className="text-[11px] font-medium text-rose-500 mt-0.5">{errors.experience[index]?.description?.message}</p>
-                  )}
                 </div>
               </div>
             </div>
@@ -166,7 +164,7 @@ const EducationFieldArray = React.memo(({
       <div className="flex items-center justify-between">
         <label className="block text-[14px] sm:text-[15px] font-extrabold text-[#3e546d] dark:text-zinc-200 flex items-center gap-2">
           <GraduationCap className="w-4.5 h-4.5 text-[#5c7c9b]" />
-          <span>Educación y Formación</span>
+          <span>Educación y Grados Académicos</span>
         </label>
         <button
           type="button"
@@ -174,13 +172,13 @@ const EducationFieldArray = React.memo(({
           className="flex items-center gap-1.5 text-[14px] font-extrabold text-[#344558] dark:text-zinc-200 hover:text-[#1f2732] transition-colors cursor-pointer py-1 px-2"
         >
           <Plus className="w-4.5 h-4.5 stroke-[2.5]" />
-          <span>Añadir Educación</span>
+          <span>Añadir Formación</span>
         </button>
       </div>
 
       {fields.length === 0 ? (
         <div className="w-full p-4 bg-[#f5f7fa] dark:bg-zinc-900 rounded-[16px] border border-[#ebeef3] dark:border-zinc-800 text-xs text-[#5c7c9b]">
-          No has registrado formación educativa aún.
+          No has registrado formación académica aún.
         </div>
       ) : (
         <div className="space-y-4">
@@ -189,7 +187,7 @@ const EducationFieldArray = React.memo(({
               <button
                 type="button"
                 onClick={() => remove(index)}
-                className="absolute top-3 right-3 p-1.5 text-rose-500 hover:text-rose-700 transition-colors"
+                className="absolute top-3 right-3 p-1.5 text-rose-500 hover:text-rose-700 transition-colors cursor-pointer"
                 aria-label="Eliminar educación"
               >
                 <Trash2 className="w-4 h-4" />
@@ -197,10 +195,10 @@ const EducationFieldArray = React.memo(({
               
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
                 <div>
-                  <label className="text-[12px] font-bold text-[#5c7c9b]">Institución *</label>
+                  <label className="text-[12px] font-bold text-[#5c7c9b]">Institución o Escuela *</label>
                   <Input
                     {...register(`education.${index}.institution`)}
-                    placeholder="Ej. Universidad Tecnológica"
+                    placeholder="Ej. Universidad Tecnológica, Conalep"
                     className="h-10 text-xs mt-1 bg-white dark:bg-zinc-900 rounded-xl"
                   />
                   {errors.education?.[index]?.institution && (
@@ -209,10 +207,10 @@ const EducationFieldArray = React.memo(({
                 </div>
 
                 <div>
-                  <label className="text-[12px] font-bold text-[#5c7c9b]">Título / Certificado *</label>
+                  <label className="text-[12px] font-bold text-[#5c7c9b]">Grado o Carrera *</label>
                   <Input
                     {...register(`education.${index}.degree`)}
-                    placeholder="Ej. Licenciatura en Gastronomía"
+                    placeholder="Ej. Licenciatura en Gastronomía, Técnico"
                     className="h-10 text-xs mt-1 bg-white dark:bg-zinc-900 rounded-xl"
                   />
                   {errors.education?.[index]?.degree && (
@@ -222,15 +220,12 @@ const EducationFieldArray = React.memo(({
               </div>
 
               <div>
-                <label className="text-[12px] font-bold text-[#5c7c9b]">Período *</label>
+                <label className="text-[12px] font-bold text-[#5c7c9b]">Período (Opcional)</label>
                 <Input
                   {...register(`education.${index}.period`)}
                   placeholder="Ej. 2018 - 2022"
                   className="h-10 text-xs mt-1 bg-white dark:bg-zinc-900 rounded-xl"
                 />
-                {errors.education?.[index]?.period && (
-                  <p className="text-[11px] font-medium text-rose-500 mt-0.5">{errors.education[index]?.period?.message}</p>
-                )}
               </div>
             </div>
           ))}
@@ -244,20 +239,21 @@ EducationFieldArray.displayName = "EducationFieldArray";
 export function EditPublicProfileView({ onBack }: EditPublicProfileViewProps) {
   const router = useRouter();
   const supabase = createClient();
+  const avatarInputRef = React.useRef<HTMLInputElement>(null);
 
   const [isLoading, setIsLoading] = React.useState<boolean>(true);
   const [isSaving, setIsSaving] = React.useState<boolean>(false);
+  const [isUploadingPhoto, setIsUploadingPhoto] = React.useState<boolean>(false);
+  const [userId, setUserId] = React.useState<string | null>(null);
 
   // Profile photo state
-  const [hasCustomAvatar, setHasCustomAvatar] = React.useState<boolean>(false);
   const [avatarUrl, setAvatarUrl] = React.useState<string | null>(null);
 
   // Modals state
-  const [isPhotoModalOpen, setIsPhotoModalOpen] = React.useState<boolean>(false);
   const [isAddSkillOpen, setIsAddSkillOpen] = React.useState<boolean>(false);
   const [newSkillText, setNewSkillText] = React.useState<string>("");
 
-  // Reactive React Hook Form setup with Zod 4 field-level validation
+  // Reactive React Hook Form setup with Zod field-level validation
   const {
     register,
     handleSubmit,
@@ -284,20 +280,19 @@ export function EditPublicProfileView({ onBack }: EditPublicProfileViewProps) {
   const skills = watch("skills") || [];
   const fullName = watch("full_name") || "";
 
-  // Load existing candidate profile securely from Supabase using candidateProfileService
+  // Load existing candidate profile from Supabase
   React.useEffect(() => {
     async function loadData() {
       setIsLoading(true);
       try {
         const { data: { user } } = await supabase.auth.getUser();
         if (user) {
+          setUserId(user.id);
           const profile = await candidateProfileService.getProfile(user.id);
 
           if (profile) {
             const rawExperience = Array.isArray(profile.experience) ? profile.experience : [];
-            const rawEducation = (profile as any).education && Array.isArray((profile as any).education)
-              ? (profile as any).education
-              : [];
+            const rawEducation = Array.isArray(profile.education) ? profile.education : [];
 
             reset({
               full_name: profile.full_name || "",
@@ -312,7 +307,6 @@ export function EditPublicProfileView({ onBack }: EditPublicProfileViewProps) {
             });
 
             if (profile.avatar_url) {
-              setHasCustomAvatar(true);
               setAvatarUrl(profile.avatar_url);
             }
           }
@@ -331,24 +325,37 @@ export function EditPublicProfileView({ onBack }: EditPublicProfileViewProps) {
     if (onBack) {
       onBack();
     } else {
-      router.back();
+      router.push("/dashboard/candidate/profile");
     }
   };
 
-  const handleSimulatePhotoSelect = (fromCamera: boolean) => {
-    setIsPhotoModalOpen(false);
-    toast.info(fromCamera ? "Abriendo cámara..." : "Abriendo galería de fotos...");
-    setTimeout(() => {
-      setHasCustomAvatar(true);
-      toast.success("¡Foto de perfil seleccionada!");
-    }, 900);
+  // Real Photo Upload
+  const handlePhotoFileSelected = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file || !userId) return;
+
+    setIsUploadingPhoto(true);
+    try {
+      const publicUrl = await candidateDocumentsService.uploadAvatar(userId, file);
+      setAvatarUrl(publicUrl);
+      toast.success("Foto de perfil actualizada correctamente.");
+    } catch (err: any) {
+      toast.error(err.message || "Error al subir la fotografía.");
+    } finally {
+      setIsUploadingPhoto(false);
+    }
   };
 
-  const handleDeletePhoto = () => {
-    setIsPhotoModalOpen(false);
-    setHasCustomAvatar(false);
-    setAvatarUrl(null);
-    toast.info("Foto de perfil eliminada");
+  const handleDeletePhoto = async () => {
+    if (!userId) return;
+    try {
+      await supabase.from("profiles").update({ avatar_url: null }).eq("id", userId);
+      setAvatarUrl(null);
+      toast.success("Foto de perfil eliminada.");
+    } catch (e) {
+      toast.error("Error al eliminar la foto.");
+    }
   };
 
   const handleAddSkill = () => {
@@ -388,7 +395,7 @@ export function EditPublicProfileView({ onBack }: EditPublicProfileViewProps) {
       toast.success("¡Perfil guardado exitosamente!");
       setTimeout(() => {
         handleBack();
-      }, 700);
+      }, 500);
     } catch (err) {
       console.error("Error saving profile:", err);
       toast.error("Error al guardar los datos en la base de datos");
@@ -401,10 +408,18 @@ export function EditPublicProfileView({ onBack }: EditPublicProfileViewProps) {
 
   return (
     <div className="flex-grow min-h-full bg-transparent dark:bg-zinc-950 px-6 sm:px-10 lg:px-14 pt-4 pb-28 md:pb-8 max-w-3xl mx-auto w-full animate-in fade-in duration-300 relative">
-      
+      <input
+        ref={avatarInputRef}
+        type="file"
+        accept="image/png,image/jpeg,image/webp"
+        className="hidden"
+        onChange={handlePhotoFileSelected}
+      />
+
       {/* AppBar */}
       <div className="flex items-center justify-between py-4 border-b border-transparent">
         <button
+          type="button"
           onClick={handleBack}
           aria-label="Regresar"
           className="w-11 h-11 bg-[#f5f7fa] dark:bg-zinc-900 rounded-full flex items-center justify-center text-[#1f2732] dark:text-zinc-100 hover:bg-[#ebeef3] dark:hover:bg-zinc-800 transition-all cursor-pointer shadow-2xs"
@@ -413,7 +428,7 @@ export function EditPublicProfileView({ onBack }: EditPublicProfileViewProps) {
         </button>
 
         <h1 className="text-[20px] sm:text-[24px] font-[800] text-[#1f2732] dark:text-zinc-100 text-center">
-          Editar Perfil Público
+          Información Laboral Pública
         </h1>
 
         <div className="w-11" />
@@ -421,7 +436,7 @@ export function EditPublicProfileView({ onBack }: EditPublicProfileViewProps) {
 
       {isLoading ? (
         <div className="py-12 flex justify-center items-center">
-          <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin" />
+          <Loader2 className="w-8 h-8 text-primary animate-spin" />
         </div>
       ) : (
         /* Form Area */
@@ -430,12 +445,13 @@ export function EditPublicProfileView({ onBack }: EditPublicProfileViewProps) {
           {/* 0. Profile Photo Section */}
           <div className="flex flex-col items-center justify-center text-center">
             <div
-              onClick={() => setIsPhotoModalOpen(true)}
+              onClick={() => avatarInputRef.current?.click()}
               className="relative cursor-pointer group"
             >
               <div className="p-1 rounded-full border-2 border-[#d2dbe5] dark:border-zinc-700">
                 <div className="w-[110px] h-[110px] rounded-full bg-[#ebeef3] dark:bg-zinc-800 flex items-center justify-center text-[#1f2732] dark:text-zinc-100 text-[42px] font-[800] overflow-hidden">
                   {avatarUrl ? (
+                    // eslint-disable-next-line @next/next/no-img-element
                     <img src={avatarUrl} alt={fullName} className="w-full h-full object-cover rounded-full" />
                   ) : (
                     initialLetter
@@ -445,60 +461,82 @@ export function EditPublicProfileView({ onBack }: EditPublicProfileViewProps) {
 
               {/* Camera Icon Badge */}
               <div className="absolute bottom-1 right-1 w-[38px] h-[38px] bg-[#1f2732] dark:bg-zinc-100 text-white dark:text-zinc-900 rounded-full border-[2.5px] border-white dark:border-zinc-950 flex items-center justify-center shadow-md">
-                <Camera className="w-[18px] h-[18px] stroke-[2.2]" />
+                {isUploadingPhoto ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                ) : (
+                  <Camera className="w-[18px] h-[18px] stroke-[2.2]" />
+                )}
               </div>
             </div>
 
-            <button
-              type="button"
-              onClick={() => setIsPhotoModalOpen(true)}
-              className="mt-3 text-[14px] sm:text-[15px] font-extrabold text-[#344558] dark:text-zinc-300 hover:text-[#1f2732] transition-colors cursor-pointer py-1 px-2"
-            >
-              Cambiar foto de perfil
-            </button>
+            <div className="flex items-center gap-3 mt-3">
+              <button
+                type="button"
+                onClick={() => avatarInputRef.current?.click()}
+                disabled={isUploadingPhoto}
+                className="text-[14px] sm:text-[15px] font-extrabold text-[#344558] dark:text-zinc-300 hover:text-[#1f2732] transition-colors cursor-pointer py-1 px-2"
+              >
+                {avatarUrl ? "Cambiar fotografía" : "Subir fotografía"}
+              </button>
+              {avatarUrl && (
+                <button
+                  type="button"
+                  onClick={handleDeletePhoto}
+                  className="text-[13px] font-bold text-rose-500 hover:text-rose-700 transition-colors cursor-pointer py-1 px-2"
+                >
+                  Eliminar
+                </button>
+              )}
+            </div>
           </div>
 
-          {/* 1. Nombre Completo input */}
-          <FormTextField
-            id="candidate_full_name"
-            label="Nombre Completo"
-            required
-            registerProps={register("full_name")}
-            hintText="Ingresa tu nombre completo"
-            error={errors.full_name?.message}
-          />
+          {/* 1. Datos Principales */}
+          <div className="space-y-4">
+            <FormTextField
+              id="full_name"
+              label="Nombre Completo *"
+              hintText="Tu nombre como aparecerá en el perfil público"
+              registerProps={register("full_name")}
+              error={errors.full_name?.message}
+            />
 
-          {/* 2. Teléfono / WhatsApp input */}
-          <FormPhoneField
-            id="candidate_whatsapp_number"
-            label="Teléfono / WhatsApp de contacto"
-            required
-            value={watch("whatsapp_number")}
-            onChange={(val) => setValue("whatsapp_number", val, { shouldValidate: true })}
-            error={errors.whatsapp_number?.message}
-          />
+            <FormPhoneField
+              id="whatsapp_number"
+              label="Número de WhatsApp Directo *"
+              value={watch("whatsapp_number") || ""}
+              onChange={(val) => setValue("whatsapp_number", val, { shouldValidate: true })}
+              error={errors.whatsapp_number?.message}
+              helperText="Las empresas te contactarán a este número para entrevistas."
+            />
 
-          {/* 3. Extracto / Biografía profesional input */}
-          <div className="space-y-2.5">
+            <FormTextField
+              id="headline"
+              label="Titular Profesional / Puesto Buscado *"
+              hintText="Ej. Chef Especialista en Cocina de Mar | Barman Bilingüe"
+              registerProps={register("headline")}
+              error={errors.headline?.message}
+              helperText="Una línea descriptiva que verán los reclutadores en el Radar de talento."
+            />
+          </div>
+
+          {/* 2. Biografía y Resumen */}
+          <div className="space-y-2">
             <label className="block text-[14px] sm:text-[15px] font-extrabold text-[#3e546d] dark:text-zinc-200">
-              Extracto / Biografía profesional
+              Acerca de ti / Resumen Profesional
             </label>
             <Textarea
-              rows={4}
               {...register("experience_summary")}
-              placeholder="Escribe un breve resumen de tu experiencia o aptitudes..."
-              className="bg-white dark:bg-zinc-900 border-[#ebeef3] dark:border-zinc-800 rounded-[16px] p-4 text-[15px] sm:text-[16px] font-[600] leading-relaxed text-[#1f2732] dark:text-zinc-100 focus-visible:ring-2 focus-visible:ring-[#1f2732] resize-none"
+              placeholder="Describe brevemente tu trayectoria, tus fortalezas principales y lo que buscas en tu próximo empleo..."
+              rows={4}
+              className="w-full bg-[#f8fafc] dark:bg-zinc-900 border-[#ebeef3] dark:border-zinc-800 rounded-[18px] p-4 text-xs sm:text-sm font-medium leading-relaxed resize-none focus:bg-white dark:focus:bg-zinc-900"
             />
-            {errors.experience_summary && (
-              <p className="text-xs sm:text-sm font-semibold text-rose-500">{errors.experience_summary.message}</p>
-            )}
           </div>
 
-          {/* 4. Dynamic Skills tags area */}
-          <div className="space-y-3.5">
+          {/* 3. Habilidades Técnicas y Destrezas */}
+          <div className="space-y-3">
             <div className="flex items-center justify-between">
               <label className="block text-[14px] sm:text-[15px] font-extrabold text-[#3e546d] dark:text-zinc-200">
-                Habilidades
+                Habilidades y Destrezas
               </label>
               <button
                 type="button"
@@ -506,125 +544,89 @@ export function EditPublicProfileView({ onBack }: EditPublicProfileViewProps) {
                 className="flex items-center gap-1.5 text-[14px] font-extrabold text-[#344558] dark:text-zinc-200 hover:text-[#1f2732] transition-colors cursor-pointer py-1 px-2"
               >
                 <Plus className="w-4.5 h-4.5 stroke-[2.5]" />
-                <span>Añadir</span>
+                <span>Añadir Habilidad</span>
               </button>
             </div>
 
-            {skills.length === 0 ? (
-              <div className="w-full p-5 bg-[#f5f7fa] dark:bg-zinc-900 rounded-[16px] border border-[#ebeef3] dark:border-zinc-800 flex items-center gap-3">
-                <Lightbulb className="w-6 h-6 text-[#5c7c9b] shrink-0" />
-                <p className="text-[14px] text-[#5c7c9b] dark:text-zinc-400 font-medium">
-                  No has agregado habilidades aún. Toca "Añadir" para registrar tus conocimientos.
-                </p>
-              </div>
-            ) : (
-              <div className="flex flex-wrap gap-2.5">
-                {skills.map((skill) => (
+            <div className="flex flex-wrap gap-2 pt-1">
+              {skills.length === 0 ? (
+                <div className="w-full p-4 bg-[#f5f7fa] dark:bg-zinc-900 rounded-[16px] border border-[#ebeef3] dark:border-zinc-800 text-xs text-[#5c7c9b]">
+                  No has agregado habilidades aún. Toca &quot;Añadir Habilidad&quot; para sumar palabras clave a tu perfil.
+                </div>
+              ) : (
+                skills.map((skill) => (
                   <div
                     key={skill}
-                    className="px-4 py-2.5 bg-[#f5f7fa] dark:bg-zinc-900 border border-[#ebeef3] dark:border-zinc-800 rounded-[14px] flex items-center gap-2"
+                    className="inline-flex items-center gap-2 px-3.5 py-2 bg-[#1f2732] dark:bg-zinc-100 text-white dark:text-zinc-900 text-xs font-bold rounded-[14px] shadow-2xs"
                   >
-                    <span className="text-[13px] sm:text-[14px] font-bold text-[#344558] dark:text-zinc-200">
-                      {skill}
-                    </span>
+                    <span>{skill}</span>
                     <button
                       type="button"
                       onClick={() => handleRemoveSkill(skill)}
-                      className="p-1 text-[#7d99b3] hover:text-[#1f2732] dark:hover:text-zinc-100 transition-colors cursor-pointer"
+                      className="text-white/70 hover:text-white dark:text-zinc-700 dark:hover:text-zinc-900 cursor-pointer"
+                      aria-label={`Eliminar ${skill}`}
                     >
-                      <X className="w-4 h-4 stroke-[2.5]" />
+                      <X className="w-3.5 h-3.5" />
                     </button>
                   </div>
-                ))}
-              </div>
-            )}
+                ))
+              )}
+            </div>
           </div>
 
-          {/* 5. Dynamic Experience JSONB Structure */}
-          <ExperienceFieldArray
-            control={control}
-            register={register}
-            errors={errors}
-          />
+          {/* 4. Historial Laboral */}
+          <div className="pt-2 border-t border-[#ebeef3] dark:border-zinc-800">
+            <ExperienceFieldArray
+              control={control}
+              register={register}
+              errors={errors}
+            />
+          </div>
 
-          {/* 6. Dynamic Education JSONB Structure */}
-          <EducationFieldArray
-            control={control}
-            register={register}
-            errors={errors}
-          />
+          {/* 5. Educación y Formación */}
+          <div className="pt-2 border-t border-[#ebeef3] dark:border-zinc-800">
+            <EducationFieldArray
+              control={control}
+              register={register}
+              errors={errors}
+            />
+          </div>
 
-          {/* 7. Save Button */}
-          <div className="pt-6">
+          {/* Submit Action */}
+          <div className="pt-4 border-t border-[#ebeef3] dark:border-zinc-800 flex justify-end gap-3 sticky bottom-4 z-20 bg-white/80 dark:bg-zinc-950/80 backdrop-blur-md p-4 rounded-2xl shadow-lg">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={handleBack}
+              className="h-12 px-6 rounded-[16px] font-bold text-sm"
+            >
+              Cancelar
+            </Button>
+
             <Button
               type="submit"
               disabled={isSaving}
-              className="w-full h-[54px] bg-[#1f2732] dark:bg-zinc-100 text-white dark:text-zinc-900 hover:bg-[#2f3c4b] dark:hover:bg-zinc-200 rounded-[18px] text-[16px] font-bold transition-all shadow-sm cursor-pointer active:scale-95 border-none"
+              className="h-12 px-8 bg-[#1f2732] hover:bg-[#2f3c4b] dark:bg-zinc-100 dark:hover:bg-zinc-200 text-white dark:text-zinc-900 font-extrabold text-sm rounded-[16px] shadow-sm cursor-pointer active:scale-98 transition-all"
             >
-              {isSaving ? "Guardando..." : "Guardar Perfil"}
+              {isSaving ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  <span>Guardando...</span>
+                </>
+              ) : (
+                <span>Guardar Cambios</span>
+              )}
             </Button>
           </div>
-
         </form>
       )}
-
-      {/* Photo Picker Modal Bottom Sheet */}
-      <Dialog open={isPhotoModalOpen} onOpenChange={setIsPhotoModalOpen}>
-        <DialogContent className="sm:max-w-[440px] rounded-t-[32px] sm:rounded-3xl bg-white dark:bg-zinc-900 border border-[#ebeef3] dark:border-zinc-800 p-6 sm:p-8">
-          <DialogHeader className="flex flex-row items-center justify-between pb-3 border-b border-[#ebeef3] dark:border-zinc-800">
-            <DialogTitle className="text-[20px] font-bold text-[#1f2732] dark:text-zinc-50">
-              Foto de Perfil
-            </DialogTitle>
-          </DialogHeader>
-
-          <div className="py-4 space-y-3">
-            <button
-              onClick={() => handleSimulatePhotoSelect(true)}
-              className="w-full p-4 rounded-[18px] flex items-center gap-4 hover:bg-[#f5f7fa] dark:hover:bg-zinc-800 transition-colors text-left cursor-pointer"
-            >
-              <div className="w-12 h-12 rounded-full bg-[#f5f7fa] dark:bg-zinc-800 flex items-center justify-center text-[#1f2732] dark:text-zinc-100 shrink-0">
-                <CameraIcon className="w-6 h-6 stroke-[2]" />
-              </div>
-              <span className="text-[15px] font-bold text-[#1f2732] dark:text-zinc-100">
-                Tomar foto con la cámara
-              </span>
-            </button>
-
-            <button
-              onClick={() => handleSimulatePhotoSelect(false)}
-              className="w-full p-4 rounded-[18px] flex items-center gap-4 hover:bg-[#f5f7fa] dark:hover:bg-zinc-800 transition-colors text-left cursor-pointer"
-            >
-              <div className="w-12 h-12 rounded-full bg-[#f5f7fa] dark:bg-zinc-800 flex items-center justify-center text-[#1f2732] dark:text-zinc-100 shrink-0">
-                <GalleryIcon className="w-6 h-6 stroke-[2]" />
-              </div>
-              <span className="text-[15px] font-bold text-[#1f2732] dark:text-zinc-100">
-                Elegir de la galería
-              </span>
-            </button>
-
-            {hasCustomAvatar && (
-              <button
-                onClick={handleDeletePhoto}
-                className="w-full p-4 rounded-[18px] flex items-center gap-4 hover:bg-rose-50 dark:hover:bg-rose-950/30 transition-colors text-left cursor-pointer"
-              >
-                <div className="w-12 h-12 rounded-full bg-[#FEE4E2] dark:bg-rose-900/30 flex items-center justify-center text-rose-600 shrink-0">
-                  <Trash2 className="w-6 h-6 stroke-[2]" />
-                </div>
-                <span className="text-[15px] font-bold text-rose-600">
-                  Eliminar foto actual
-                </span>
-              </button>
-            )}
-          </div>
-        </DialogContent>
-      </Dialog>
 
       {/* Add Skill Modal Dialog */}
       <Dialog open={isAddSkillOpen} onOpenChange={setIsAddSkillOpen}>
         <DialogContent className="sm:max-w-[440px] rounded-[28px] bg-white dark:bg-zinc-900 border border-[#ebeef3] dark:border-zinc-800 p-6 sm:p-8 space-y-5">
           <DialogHeader>
             <DialogTitle className="text-[20px] font-bold text-[#1f2732] dark:text-zinc-50">
-              Agregar Habilidad
+              Agregar Habilidad o Destreza
             </DialogTitle>
           </DialogHeader>
 
@@ -641,7 +643,7 @@ export function EditPublicProfileView({ onBack }: EditPublicProfileViewProps) {
                 }
               }}
               placeholder="Ej. Cocina Caliente, Proactivo, Inglés..."
-              className="h-13 bg-white dark:bg-zinc-900 border-[#ebeef3] dark:border-zinc-800 rounded-[14px] px-4 text-[15px]"
+              className="h-12 bg-[#f8fafc] dark:bg-zinc-800 border-[#ebeef3] dark:border-zinc-700 rounded-[14px] px-4 text-sm"
             />
           </div>
 
@@ -654,6 +656,7 @@ export function EditPublicProfileView({ onBack }: EditPublicProfileViewProps) {
               Cancelar
             </Button>
             <Button
+              type="button"
               onClick={handleAddSkill}
               className="bg-[#1f2732] dark:bg-zinc-100 text-white dark:text-zinc-900 font-bold text-sm rounded-[14px] px-6 h-11 cursor-pointer"
             >
@@ -662,7 +665,6 @@ export function EditPublicProfileView({ onBack }: EditPublicProfileViewProps) {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-
     </div>
   );
 }

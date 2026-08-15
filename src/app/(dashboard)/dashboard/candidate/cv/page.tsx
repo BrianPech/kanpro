@@ -1,5 +1,5 @@
-import { UploadCvView } from "@/modules/candidate/components/upload-cv-view";
+import { redirect } from "next/navigation";
 
 export default function UploadCvPage() {
-  return <UploadCvView />;
+  redirect("/dashboard/candidate/documents");
 }

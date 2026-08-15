@@ -639,7 +639,7 @@ export function CompanyProfileForm({
                 <div className="truncate">
                   <span className="font-extrabold">
                     {gpsDetectedInfo && gpsDetectedInfo.city === watch("location")
-                      ? "Ubicación GPS Confirmada:"
+                      ? "Ubicación Confirmada:"
                       : "Ubicación Actual:"}
                   </span>{" "}
                   <span className="font-bold">{watch("location") || "Ciudad no especificada"}</span>
@@ -652,7 +652,7 @@ export function CompanyProfileForm({
                   ? "bg-emerald-600 text-white"
                   : "bg-indigo-600 text-white"
               )}>
-                {gpsDetectedInfo && gpsDetectedInfo.city === watch("location") ? "GPS Activo" : "Registrada"}
+                {gpsDetectedInfo && gpsDetectedInfo.city === watch("location") ? "Ubicación Activa" : "Registrada"}
               </Badge>
             </div>
           ) : null}
@@ -678,13 +678,17 @@ export function CompanyProfileForm({
               <div className="flex flex-wrap items-center gap-1.5 pt-1">
                 <span className="text-[11px] font-bold text-[#5c7c9b] dark:text-zinc-400 mr-1">Rápidos:</span>
                 {[
-                  "Mérida, Yucatán",
+                  "Felipe Carrillo Puerto, Q. Roo",
                   "Playa del Carmen, Q. Roo",
                   "Cancún, Q. Roo",
                   "Tulum, Q. Roo",
-                  "Cozumel, Q. Roo",
                   "Chetumal, Q. Roo",
-                  "CDMX",
+                  "Bacalar, Q. Roo",
+                  "Cozumel, Q. Roo",
+                  "Puerto Morelos, Q. Roo",
+                  "Mérida, Yucatán",
+                  "Valladolid, Yucatán",
+                  "Progreso, Yucatán",
                 ].map((city) => (
                   <button
                     key={city}
@@ -742,7 +746,7 @@ export function CompanyProfileForm({
               ) : (
                 <Navigation className="size-4.5 text-primary" />
               )}
-              <span>{isLocating ? "Obteniendo coordenadas GPS..." : "Detectar mi ubicación exacta por GPS"}</span>
+              <span>{isLocating ? "Detectando ubicación actual..." : "Detectar mi ubicación actual"}</span>
             </Button>
           </div>
         </Card>

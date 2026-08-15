@@ -115,74 +115,6 @@ export function CandidateSettingsView() {
     loadProfile();
   }, []);
 
-  // GPS Location Handler with robust fallback and precise permission feedback
-  const handleDetectLocation = () => {
-    if (typeof window === "undefined" || !("geolocation" in navigator)) {
-      toast.error("Geolocalización no soportada", {
-        description: "Tu navegador no soporta el servicio de geolocalización."
-      });
-      return;
-    }
-
-    setIsLocating(true);
-
-    const onLocationSuccess = async (position: GeolocationPosition) => {
-      try {
-        const { latitude, longitude } = position.coords;
-        const resolved = await resolveLocationFromCoords(latitude, longitude);
-        setCity(resolved.city);
-        setZone(resolved.zone);
-        setIsLocating(false);
-        toast.success("Ubicación detectada con éxito", {
-          description: `Se detectó: ${resolved.displayLocation}`
-        });
-      } catch (e) {
-        setIsLocating(false);
-        toast.error("Error al procesar la ubicación");
-      }
-    };
-
-    const onLocationFailure = (err: GeolocationPositionError) => {
-      // If high accuracy timed out or wasn't available, attempt standard accuracy fallback
-      if (err.code === err.TIMEOUT || err.code === err.POSITION_UNAVAILABLE) {
-        navigator.geolocation.getCurrentPosition(
-          onLocationSuccess,
-          (fallbackErr) => {
-            setIsLocating(false);
-            if (fallbackErr.code === fallbackErr.PERMISSION_DENIED) {
-              toast.error("Permiso de ubicación denegado", {
-                description: "Permite el acceso a la ubicación en el icono de permisos del navegador o selecciona tu zona manualmente."
-              });
-            } else {
-              toast.error("No se pudo obtener la señal GPS", {
-                description: "Por favor selecciona tu ciudad y zona de trabajo en los selectores de abajo."
-              });
-            }
-          },
-          { enableHighAccuracy: false, timeout: 15000, maximumAge: 60000 }
-        );
-        return;
-      }
-
-      setIsLocating(false);
-      if (err.code === err.PERMISSION_DENIED) {
-        toast.error("Permiso de ubicación denegado", {
-          description: "Habilita los permisos de ubicación en tu navegador (icono de candado en la barra de URL) o selecciona tu zona manualmente."
-        });
-      } else {
-        toast.error("Error al obtener ubicación", {
-          description: "No se pudo obtener tu ubicación automáticamente. Puedes seleccionarla manualmente."
-        });
-      }
-    };
-
-    navigator.geolocation.getCurrentPosition(
-      onLocationSuccess,
-      onLocationFailure,
-      { enableHighAccuracy: true, timeout: 8000, maximumAge: 10000 }
-    );
-  };
-
   // Save Location Handler
   const handleSaveLocation = async () => {
     if (!city || !zone) {
@@ -401,8 +333,8 @@ export function CandidateSettingsView() {
         />
         <SettingsRow
           icon={<FileText className="w-[25px] h-[25px] text-[#3e546d] dark:text-zinc-300 stroke-[1.8]" />}
-          title="Mi CV"
-          onClick={() => router.push("/dashboard/candidate/profile/cv")}
+          title="Mi CV y Documentos"
+          onClick={() => router.push("/dashboard/candidate/documents")}
         />
         <SettingsRow
           icon={<Bookmark className="w-[25px] h-[25px] text-[#3e546d] dark:text-zinc-300 stroke-[1.8]" />}

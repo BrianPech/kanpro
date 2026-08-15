@@ -277,7 +277,7 @@ export function CandidateRadar() {
     // If company is on basic plan, suggest upgrading to PRO for proactive Radar outreach
     if (profile?.subscription_plan === "basic" || !profile?.subscription_plan) {
       toast.info("Función del Plan PRO", {
-        description: "El contacto proactivo desde el Radar GPS es exclusivo de los Planes PRO y Corporativo. Actualiza tu suscripción en Configuración para escribirle directamente.",
+        description: "El contacto proactivo desde el Radar de Ubicación es exclusivo de los Planes PRO y Corporativo. Actualiza tu suscripción en Configuración para escribirle directamente.",
         action: {
           label: "Ver Planes",
           onClick: () => {

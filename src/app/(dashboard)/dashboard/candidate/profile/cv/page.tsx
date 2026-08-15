@@ -1,5 +1,5 @@
-import { CandidateDocumentsView } from "@/modules/candidate/components/candidate-documents-view";
+import { redirect } from "next/navigation";
 
 export default function CandidateProfileCvPage() {
-  return <CandidateDocumentsView />;
+  redirect("/dashboard/candidate/documents");
 }

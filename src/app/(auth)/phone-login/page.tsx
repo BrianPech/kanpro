@@ -1,22 +1,7 @@
-import React, { Suspense } from "react";
-import { PhoneOtpAuthForm } from "@/modules/auth/components/phone-otp-auth-form";
-import { Loader2 } from "lucide-react";
+import { redirect } from "next/navigation";
 
 export const dynamic = "force-dynamic";
 
 export default function PhoneLoginPage() {
-  return (
-    <Suspense
-      fallback={
-        <div className="flex flex-col items-center justify-center min-h-screen bg-[#fafafc] dark:bg-zinc-950 p-4">
-          <Loader2 className="h-10 w-10 text-primary animate-spin" />
-          <p className="text-sm font-semibold text-muted-foreground mt-4 animate-pulse">
-            Cargando acceso OTP...
-          </p>
-        </div>
-      }
-    >
-      <PhoneOtpAuthForm />
-    </Suspense>
-  );
+  redirect("/login");
 }
