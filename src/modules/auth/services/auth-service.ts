@@ -65,10 +65,11 @@ export const authService = {
       email: validatedData.email,
       password: validatedData.password,
       options: {
-        emailRedirectTo: `${origin}/auth/callback`,
+        emailRedirectTo: `${origin}/auth/callback?role=company`,
         data: {
           role: "company" satisfies UserRole,
           full_name: validatedData.full_name,
+          company_name: validatedData.full_name,
         },
       },
     });
@@ -111,7 +112,7 @@ export const authService = {
       email: validatedData.email,
       password: validatedData.password,
       options: {
-        emailRedirectTo: `${origin}/auth/callback`,
+        emailRedirectTo: `${origin}/auth/callback?role=candidate`,
         data: {
           role: "candidate" satisfies UserRole,
           full_name: validatedData.fullName,

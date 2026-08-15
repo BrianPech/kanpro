@@ -23,13 +23,18 @@ export async function GET(request: NextRequest) {
 
       let role = profile?.role;
 
-      // 2. If user profile does NOT have a role in profiles, set role from searchParams (defaulting to 'candidate')
+      // 2. If user profile does NOT have a role in profiles, resolve role from searchParams or user metadata (defaulting to 'candidate')
       if (!role) {
+        const metaRole = data.user.user_metadata?.role;
         const assignedRole =
           searchRole === "admin" ||
           searchRole === "company" ||
           searchRole === "candidate"
             ? searchRole
+            : metaRole === "admin" ||
+              metaRole === "company" ||
+              metaRole === "candidate"
+            ? metaRole
             : "candidate";
 
         const { error: upsertErr } = await supabase.from("profiles").upsert(
@@ -54,6 +59,28 @@ export async function GET(request: NextRequest) {
 
         if (upsertErr) {
           console.error("Error updating profile role:", upsertErr);
+        }
+
+        if (assignedRole === "company") {
+          const companyName =
+            (data.user.user_metadata?.company_name ||
+              data.user.user_metadata?.full_name ||
+              "Nueva Empresa") as string;
+          await supabase.from("company_profiles").upsert(
+            {
+              id: data.user.id,
+              company_name: companyName,
+              fiscal_address: "Mérida, Yucatán",
+              industry: "General",
+              rfc: "XAXX010101000",
+            },
+            { onConflict: "id" }
+          );
+        } else if (assignedRole === "candidate") {
+          await supabase.from("candidate_profiles").upsert(
+            { id: data.user.id },
+            { onConflict: "id" }
+          );
         }
 
         await supabase.auth.updateUser({

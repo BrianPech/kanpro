@@ -83,13 +83,13 @@ export async function updateSession(request: NextRequest) {
     return supabaseResponse
   }
 
-  // 2. Authenticated users: fetch role from database profile
-  let role: UserRole = 'candidate'
+  // 2. Authenticated users: fetch role from database profile, falling back to user_metadata
+  let role: UserRole = (user.user_metadata?.role as UserRole) || 'candidate'
   const { data: profile } = await supabase
     .from('profiles')
     .select('role')
     .eq('id', user.id)
-    .single()
+    .maybeSingle()
 
   if (profile?.role) {
     role = profile.role as UserRole

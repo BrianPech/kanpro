@@ -82,13 +82,16 @@ export function LoginClient() {
       } else {
         // Sign Up with metadata role insertion
         const name = role === "candidate" ? fullName : companyName;
+        const origin = typeof window !== "undefined" ? window.location.origin : "";
         const { data, error } = await supabase.auth.signUp({
           email,
           password,
           options: {
+            emailRedirectTo: `${origin}/auth/callback?role=${role}`,
             data: {
               role,
               full_name: name,
+              company_name: role === "company" ? name : undefined,
             },
           },
         });
