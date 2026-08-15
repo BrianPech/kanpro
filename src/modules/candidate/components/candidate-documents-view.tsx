@@ -32,6 +32,7 @@ import { createClient } from "@/lib/supabase/client";
 import { candidateProfileService } from "../services/candidate-profile";
 import { candidateDocumentsService, type CandidateDocumentType } from "../services/candidate-documents";
 import { respondDocumentAccessRequest } from "@/modules/company/actions/document-access";
+import { FormTextField, FormDateField, FormCurpField, FormPhoneField } from "@/components/form";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import {
@@ -152,7 +153,7 @@ export function CandidateDocumentsView() {
     accessRequestMutation.mutate({ requestId, status });
   };
 
-  // Fetch profile details
+  // Fetch profile details on mount
   React.useEffect(() => {
     async function loadCandidateProfile() {
       try {
@@ -176,14 +177,25 @@ export function CandidateDocumentsView() {
       }
     }
     loadCandidateProfile();
-  }, [supabase]);
+  }, []);
 
-  // Sync documents from query data into component state
+  // Sync documents from query data into component state safely without infinite loops
   React.useEffect(() => {
-    if (documents) {
-      setMandatory((prev) => ({ ...prev, officialIdFile: documents.find((doc) => doc.doc_type === "ine_passport")?.file_name || null }));
-      setOptional((prev) => ({ ...prev, proofAddressFile: documents.find((doc) => doc.doc_type === "proof_of_address")?.file_name || null, cvFile: documents.find((doc) => doc.doc_type === "cv")?.file_name || null }));
-    }
+    if (!documents || documents.length === 0) return;
+
+    const officialId = documents.find((doc) => doc.doc_type === "ine_passport")?.file_name || null;
+    const proofAddr = documents.find((doc) => doc.doc_type === "proof_of_address")?.file_name || null;
+    const cv = documents.find((doc) => doc.doc_type === "cv")?.file_name || null;
+
+    setMandatory((prev) => {
+      if (prev.officialIdFile === officialId) return prev;
+      return { ...prev, officialIdFile: officialId };
+    });
+
+    setOptional((prev) => {
+      if (prev.proofAddressFile === proofAddr && prev.cvFile === cv) return prev;
+      return { ...prev, proofAddressFile: proofAddr, cvFile: cv };
+    });
   }, [documents]);
 
   // UI Modals
@@ -434,63 +446,40 @@ export function CandidateDocumentsView() {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {/* Obligatorio 1: Nombre Completo */}
             <div className="bg-white dark:bg-zinc-900 p-6 rounded-[24px] border border-[#ebeef3] dark:border-zinc-800 space-y-3">
-              <div className="flex items-center justify-between">
-                <label className="text-sm font-bold text-[#1f2732] dark:text-zinc-200 flex items-center gap-2">
-                  <User className="w-4 h-4 text-[#5c7c9b]" />
-                  <span>1. Nombre Completo</span>
-                </label>
-                <span className="text-[11px] font-extrabold px-2 py-0.5 rounded-md bg-rose-500/10 text-rose-600">
-                  Obligatorio
-                </span>
-              </div>
-              <Input
-                type="text"
+              <FormTextField
+                id="docFullName"
+                label="1. Nombre Completo"
+                required
                 value={mandatory.fullName}
                 onChange={(e) => setMandatory({ ...mandatory, fullName: e.target.value })}
-                placeholder="Nombre(s) y Apellidos como en identificación"
-                className="h-12 bg-[#f8fafc] dark:bg-zinc-800/60 border-[#ebeef3] dark:border-zinc-700 rounded-[14px] px-4 font-semibold text-sm"
+                hintText="Nombre(s) y Apellidos como en identificación"
+                prefixIcon={<User className="w-4 h-4 text-[#5c7c9b]" />}
+                helperText="Nombre oficial registrado para postulaciones formales."
               />
             </div>
 
             {/* Obligatorio 2: Fecha de Nacimiento */}
             <div className="bg-white dark:bg-zinc-900 p-6 rounded-[24px] border border-[#ebeef3] dark:border-zinc-800 space-y-3">
-              <div className="flex items-center justify-between">
-                <label className="text-sm font-bold text-[#1f2732] dark:text-zinc-200 flex items-center gap-2">
-                  <Calendar className="w-4 h-4 text-[#5c7c9b]" />
-                  <span>2. Fecha de Nacimiento</span>
-                </label>
-                <span className="text-[11px] font-extrabold px-2 py-0.5 rounded-md bg-rose-500/10 text-rose-600">
-                  Obligatorio
-                </span>
-              </div>
-              <Input
-                type="date"
+              <FormDateField
+                id="docBirthDate"
+                label="2. Fecha de Nacimiento"
+                required
                 value={mandatory.birthDate}
-                onChange={(e) => setMandatory({ ...mandatory, birthDate: e.target.value })}
-                className="h-12 bg-[#f8fafc] dark:bg-zinc-800/60 border-[#ebeef3] dark:border-zinc-700 rounded-[14px] px-4 font-semibold text-sm"
+                onChange={(val) => setMandatory({ ...mandatory, birthDate: val })}
+                helperText="Cargado directamente de tu cuenta o modifícalo si es necesario."
               />
             </div>
 
             {/* Obligatorio 3: CURP */}
             <div className="bg-white dark:bg-zinc-900 p-6 rounded-[24px] border border-[#ebeef3] dark:border-zinc-800 space-y-3">
-              <div className="flex items-center justify-between">
-                <label className="text-sm font-bold text-[#1f2732] dark:text-zinc-200 flex items-center gap-2">
-                  <CreditCard className="w-4 h-4 text-[#5c7c9b]" />
-                  <span>3. CURP (18 caracteres)</span>
-                </label>
-                <span className="text-[11px] font-extrabold px-2 py-0.5 rounded-md bg-rose-500/10 text-rose-600">
-                  Obligatorio
-                </span>
-              </div>
-              <Input
-                type="text"
-                maxLength={18}
+              <FormCurpField
+                id="docCurp"
+                label="3. CURP Oficial"
+                required
                 value={mandatory.curp}
-                onChange={(e) => setMandatory({ ...mandatory, curp: e.target.value.toUpperCase() })}
-                placeholder="EJ. HESA950412HDFRR09"
-                className="h-12 bg-[#f8fafc] dark:bg-zinc-800/60 border-[#ebeef3] dark:border-zinc-700 rounded-[14px] px-4 font-bold tracking-wider text-sm uppercase"
+                onChange={(val) => setMandatory({ ...mandatory, curp: val })}
+                helperText="Clave Única de Registro de Población (18 caracteres en mayúsculas)."
               />
-              <p className="text-xs text-[#5c7c9b] font-medium">Clave Única de Registro de Población</p>
             </div>
 
             {/* Obligatorio 4: Identificación Oficial Vigente */}
@@ -555,30 +544,25 @@ export function CandidateDocumentsView() {
 
             {/* Obligatorio 5: Correo Electrónico */}
             <div className="bg-white dark:bg-zinc-900 p-6 rounded-[24px] border border-[#ebeef3] dark:border-zinc-800 space-y-3">
-              <div className="flex items-center justify-between">
-                <label className="text-sm font-bold text-[#1f2732] dark:text-zinc-200 flex items-center gap-2">
-                  <Mail className="w-4 h-4 text-[#5c7c9b]" />
-                  <span>5. Correo Electrónico</span>
-                </label>
-                <span className="text-[11px] font-extrabold px-2 py-0.5 rounded-md bg-emerald-500/10 text-emerald-600 flex items-center gap-1">
-                  <CheckCircle2 className="w-3 h-3" /> Verificado
-                </span>
-              </div>
-              <Input
+              <FormTextField
+                id="docEmail"
+                label="5. Correo Electrónico"
+                required
                 type="email"
                 value={mandatory.email}
                 onChange={(e) => setMandatory({ ...mandatory, email: e.target.value })}
-                className="h-12 bg-[#f8fafc] dark:bg-zinc-800/60 border-[#ebeef3] dark:border-zinc-700 rounded-[14px] px-4 font-semibold text-sm"
+                hintText="candidato@correo.com"
+                prefixIcon={<Mail className="w-4 h-4 text-[#5c7c9b]" />}
+                helperText="Correo vinculado para notificaciones y accesos autorizados."
               />
             </div>
 
             {/* Obligatorio 6: Teléfono Celular Verificado */}
             <div className="bg-white dark:bg-zinc-900 p-6 rounded-[24px] border border-[#ebeef3] dark:border-zinc-800 space-y-3">
               <div className="flex items-center justify-between">
-                <label className="text-sm font-bold text-[#1f2732] dark:text-zinc-200 flex items-center gap-2">
-                  <Phone className="w-4 h-4 text-[#5c7c9b]" />
-                  <span>6. Teléfono Celular Verificado</span>
-                </label>
+                <span className="text-xs font-bold text-[#5c7c9b] dark:text-zinc-400">
+                  6. Teléfono Celular
+                </span>
                 {mandatory.isPhoneVerified ? (
                   <span className="text-[11px] font-extrabold px-2 py-0.5 rounded-md bg-emerald-500/10 text-emerald-600 flex items-center gap-1">
                     <CheckCircle2 className="w-3 h-3" /> Verificado por SMS
@@ -590,16 +574,18 @@ export function CandidateDocumentsView() {
                 )}
               </div>
               <div className="flex items-center gap-2">
-                <Input
-                  type="tel"
+                <FormPhoneField
+                  id="docPhone"
+                  label="Número de Contacto"
+                  required
                   value={mandatory.phone}
-                  onChange={(e) => setMandatory({ ...mandatory, phone: e.target.value, isPhoneVerified: false })}
-                  className="h-12 bg-[#f8fafc] dark:bg-zinc-800/60 border-[#ebeef3] dark:border-zinc-700 rounded-[14px] px-4 font-semibold text-sm flex-1"
+                  onChange={(val) => setMandatory({ ...mandatory, phone: val, isPhoneVerified: false })}
+                  className="flex-1"
                 />
                 {!mandatory.isPhoneVerified && (
                   <Button
                     onClick={() => setIsVerificationModalOpen(true)}
-                    className="h-12 px-4 bg-[#1f2732] dark:bg-zinc-100 text-white dark:text-zinc-900 font-bold text-xs rounded-[14px] cursor-pointer"
+                    className="h-12 mt-1 px-4 bg-[#1f2732] dark:bg-zinc-100 text-white dark:text-zinc-900 font-bold text-xs rounded-[14px] cursor-pointer shrink-0"
                   >
                     Verificar
                   </Button>

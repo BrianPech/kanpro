@@ -12,22 +12,30 @@ export const companyRegisterSchema = z.object({
   password: passwordValidation,
 });
 
+import { normalizeDateToISO, normalizePhone } from "@/lib/formatters";
+
 export const candidateRegisterSchema = z.object({
   fullName: z.string().trim().min(2, "Por favor ingresa tu nombre completo"),
   birthDate: z
     .string()
     .trim()
     .min(1, "Por favor selecciona tu fecha de nacimiento")
+    .transform((val) => normalizeDateToISO(val) || val)
     .refine(
-      (val) => !isNaN(Date.parse(val)),
+      (val) => Boolean(normalizeDateToISO(val)),
       "Por favor ingresa una fecha de nacimiento válida"
     ),
   whatsappNumber: z
     .string()
     .trim()
-    .regex(
-      /^\+?[0-9\s\-]{8,18}$/,
-      "Por favor ingresa un número de WhatsApp / teléfono válido"
+    .min(8, "Por favor ingresa un número de teléfono válido")
+    .transform((val) => normalizePhone(val) || val)
+    .refine(
+      (val) => {
+        const clean = normalizePhone(val);
+        return clean.length >= 10 && clean.length <= 18;
+      },
+      "Por favor ingresa un número de WhatsApp / teléfono válido (10 dígitos)"
     ),
   email: z.string().trim().toLowerCase().email("Ingresa un correo electrónico válido"),
   password: passwordValidation,

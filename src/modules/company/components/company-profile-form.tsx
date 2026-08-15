@@ -73,6 +73,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useCompanyProfileForm } from "../hooks/use-company-profile-form";
+import { FormPhoneField, FormRfcField } from "@/components/form";
 import { toast } from "sonner";
 import { motion } from "framer-motion";
 import { cn } from "@/lib/utils";
@@ -488,26 +489,14 @@ export function CompanyProfileForm({
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {/* Phone Input */}
-            <div className="space-y-2.5">
-              <label className="block text-[14px] sm:text-[15px] font-extrabold text-[#3e546d] dark:text-zinc-200">
-                WhatsApp de Contacto
-              </label>
-              <div className="relative flex items-center">
-                <Phone className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-[#5c7c9b] dark:text-zinc-400 pointer-events-none" />
-                <Input
-                  type="tel"
-                  placeholder="Ej. +52 998 123 4567"
-                  {...register("phone")}
-                  className="w-full h-14 bg-white dark:bg-zinc-900 border border-[#ebeef3] dark:border-zinc-800 rounded-[16px] pl-11 pr-4 text-[15px] sm:text-[16px] font-[600] text-[#1f2732] dark:text-zinc-100 placeholder-[#94a3b8] focus-visible:ring-2 focus-visible:ring-[#1f2732] transition-all outline-none"
-                />
-              </div>
-              <p className="text-[11px] text-[#5c7c9b] dark:text-zinc-400 font-medium">
-                Número para recepción de candidatos. Puedes elegir el canal preferido (WhatsApp, Llamada o Inbox) en{" "}
-                <Link href="/dashboard/company/settings" className="underline font-bold hover:text-[#1f2732] dark:hover:text-zinc-200">
-                  Ajustes
-                </Link>.
-              </p>
-            </div>
+            <FormPhoneField
+              id="company_phone"
+              label="WhatsApp de Contacto"
+              value={watch("phone")}
+              onChange={(val) => setValue("phone", val, { shouldValidate: true })}
+              error={errors.phone?.message}
+              helperText="Número para recepción de candidatos y notificaciones de contratación."
+            />
 
             {/* Company Size Input */}
             <div className="space-y-2.5">
@@ -543,7 +532,6 @@ export function CompanyProfileForm({
                 value={watch("fiscal_regime") || "persona_moral"}
                 onValueChange={(val) => {
                   setValue("fiscal_regime", val as any, { shouldValidate: true });
-                  // Adjust rfc value if necessary or revalidate
                   const currentRfc = watch("rfc") || "";
                   if (val === "persona_moral" && currentRfc.length > 12) {
                     setValue("rfc", currentRfc.substring(0, 12), { shouldValidate: true });
@@ -561,31 +549,15 @@ export function CompanyProfileForm({
             </div>
 
             {/* RFC Input with Dynamic Rules */}
-            <div className="space-y-2.5">
-              <div className="flex items-center justify-between">
-                <label className="block text-[14px] sm:text-[15px] font-extrabold text-[#3e546d] dark:text-zinc-200">
-                  RFC Fiscal
-                </label>
-                <span className="text-[11px] font-bold text-[#5c7c9b]">
-                  {watch("fiscal_regime") === "persona_fisica" ? "13 Caracteres" : "12 Caracteres"}
-                </span>
-              </div>
-              <Input
-                type="text"
-                maxLength={watch("fiscal_regime") === "persona_fisica" ? 13 : 12}
-                placeholder={watch("fiscal_regime") === "persona_fisica" ? "ABCD120315XXX" : "ABC120315XXX"}
-                {...register("rfc")}
-                onChange={(e) => {
-                  setValue("rfc", e.target.value.toUpperCase().trim(), { shouldValidate: true });
-                }}
-                className="w-full h-14 bg-white dark:bg-zinc-900 border border-[#ebeef3] dark:border-zinc-800 rounded-[16px] px-4 text-[15px] sm:text-[16px] font-bold tracking-wider text-[#1f2732] dark:text-zinc-100 uppercase placeholder-[#94a3b8] focus-visible:ring-2 focus-visible:ring-[#1f2732] transition-all outline-none"
-              />
-              {errors.rfc && (
-                <p className="text-xs sm:text-sm font-semibold text-rose-500">
-                  {errors.rfc.message}
-                </p>
-              )}
-            </div>
+            <FormRfcField
+              id="company_rfc"
+              label="RFC Fiscal"
+              value={watch("rfc")}
+              onChange={(val) => setValue("rfc", val, { shouldValidate: true })}
+              error={errors.rfc?.message}
+              placeholder={watch("fiscal_regime") === "persona_fisica" ? "ABCD120315XXX" : "ABC120315XXX"}
+              helperText={watch("fiscal_regime") === "persona_fisica" ? "RFC de 13 caracteres para personas físicas" : "RFC de 12 caracteres para personas morales"}
+            />
           </div>
 
           <div className="h-px bg-[#ebeef3] dark:bg-zinc-800 w-full" />

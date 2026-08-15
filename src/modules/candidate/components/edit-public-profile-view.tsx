@@ -23,6 +23,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { createClient } from "@/lib/supabase/client";
 import { candidateProfileService } from "../services/candidate-profile";
 import { candidateProfileSchema, type CandidateProfileFormValues } from "../schemas/candidate.schema";
+import { FormTextField, FormPhoneField } from "@/components/form";
 import {
   Dialog,
   DialogContent,
@@ -379,6 +380,8 @@ export function EditPublicProfileView({ onBack }: EditPublicProfileViewProps) {
         headline: values.headline?.trim() || "",
         skills: values.skills,
         experience: values.experience,
+        education: values.education,
+        portfolio_links: values.portfolio_links,
         avatar_url: avatarUrl,
       });
 
@@ -456,36 +459,24 @@ export function EditPublicProfileView({ onBack }: EditPublicProfileViewProps) {
           </div>
 
           {/* 1. Nombre Completo input */}
-          <div className="space-y-2.5">
-            <label className="block text-[14px] sm:text-[15px] font-extrabold text-[#3e546d] dark:text-zinc-200">
-              Nombre Completo *
-            </label>
-            <Input
-              type="text"
-              {...register("full_name")}
-              placeholder="Ingresa tu nombre"
-              className="h-14 bg-white dark:bg-zinc-900 border-[#ebeef3] dark:border-zinc-800 rounded-[16px] px-4 text-[15px] sm:text-[16px] font-[600] text-[#1f2732] dark:text-zinc-100 focus-visible:ring-2 focus-visible:ring-[#1f2732]"
-            />
-            {errors.full_name && (
-              <p className="text-xs sm:text-sm font-semibold text-rose-500">{errors.full_name.message}</p>
-            )}
-          </div>
+          <FormTextField
+            id="candidate_full_name"
+            label="Nombre Completo"
+            required
+            registerProps={register("full_name")}
+            hintText="Ingresa tu nombre completo"
+            error={errors.full_name?.message}
+          />
 
           {/* 2. Teléfono / WhatsApp input */}
-          <div className="space-y-2.5">
-            <label className="block text-[14px] sm:text-[15px] font-extrabold text-[#3e546d] dark:text-zinc-200">
-              Teléfono / WhatsApp de contacto *
-            </label>
-            <Input
-              type="tel"
-              {...register("whatsapp_number")}
-              placeholder="Ej. +52 998 123 4567"
-              className="h-14 bg-white dark:bg-zinc-900 border-[#ebeef3] dark:border-zinc-800 rounded-[16px] px-4 text-[15px] sm:text-[16px] font-[600] text-[#1f2732] dark:text-zinc-100 focus-visible:ring-2 focus-visible:ring-[#1f2732]"
-            />
-            {errors.whatsapp_number && (
-              <p className="text-xs sm:text-sm font-semibold text-rose-500">{errors.whatsapp_number.message}</p>
-            )}
-          </div>
+          <FormPhoneField
+            id="candidate_whatsapp_number"
+            label="Teléfono / WhatsApp de contacto"
+            required
+            value={watch("whatsapp_number")}
+            onChange={(val) => setValue("whatsapp_number", val, { shouldValidate: true })}
+            error={errors.whatsapp_number?.message}
+          />
 
           {/* 3. Extracto / Biografía profesional input */}
           <div className="space-y-2.5">

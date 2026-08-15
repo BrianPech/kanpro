@@ -34,8 +34,9 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { createClient } from "@/lib/supabase/client";
-import { GEO_CONFIG, resolveLocationFromCoords } from "@/config/geo";
+import { GEO_CONFIG } from "@/config/geo";
 import { candidateProfileService } from "../services/candidate-profile";
+import { FormLocationSelector } from "@/components/form";
 import { toast } from "sonner";
 
 export function CandidateSettingsView() {
@@ -112,7 +113,7 @@ export function CandidateSettingsView() {
     }
 
     loadProfile();
-  }, [supabase]);
+  }, []);
 
   // GPS Location Handler with robust fallback and precise permission feedback
   const handleDetectLocation = () => {
@@ -362,106 +363,27 @@ export function CandidateSettingsView() {
       </div>
 
       {/* 4. Location & Radar Geográfico Section */}
-      <div className="p-6 bg-white dark:bg-zinc-900 rounded-[24px] border border-[#ebeef3] dark:border-zinc-800 shadow-2xs space-y-4">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-primary/10 text-primary flex items-center justify-center">
-              <MapPin className="w-5 h-5" />
-            </div>
-            <div>
-              <h3 className="text-[16px] font-bold text-[#1f2732] dark:text-zinc-100">
-                Ubicación y Radar K'anPro
-              </h3>
-              <p className="text-[12px] text-[#5c7c9b] dark:text-zinc-400 font-medium">
-                {locationStatus ? `Ubicación actual: ${locationStatus}` : "Configura tu ciudad y zona para conectar con vacantes cercanas."}
-              </p>
-            </div>
-          </div>
-          {locationStatus && (
-            <span className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 text-xs font-bold rounded-full border border-emerald-500/20">
-              <Sparkles className="w-3.5 h-3.5" />
-              Radar Activo
-            </span>
-          )}
-        </div>
+      <div className="space-y-3">
+        <FormLocationSelector
+          value={locationStatus}
+          cityValue={city}
+          zoneValue={zone}
+          onChange={({ city: newCity, zone: newZone, locationStr }) => {
+            setCity(newCity);
+            setZone(newZone);
+            setLocationStatus(locationStr);
+          }}
+        />
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
-          {/* City Selector */}
-          <div className="space-y-1.5">
-            <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground/80">
-              Ciudad
-            </Label>
-            <Select
-              value={city}
-              onValueChange={(val) => {
-                setCity(val);
-                const firstZone = Object.keys(GEO_CONFIG[val]?.zones || {})[0] || "";
-                setZone(firstZone);
-              }}
-            >
-              <SelectTrigger className="w-full h-11 bg-slate-50 dark:bg-zinc-950/40 border border-border/60 rounded-xl px-4 text-xs font-semibold">
-                <SelectValue placeholder="Selecciona Ciudad" />
-              </SelectTrigger>
-              <SelectContent className="rounded-xl max-h-60">
-                {availableCities.map((cityKey) => (
-                  <SelectItem key={cityKey} value={cityKey}>
-                    {GEO_CONFIG[cityKey]?.name || cityKey}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-
-          {/* Zone Selector */}
-          <div className="space-y-1.5">
-            <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground/80">
-              Zona de Trabajo
-            </Label>
-            <Select
-              value={zone}
-              onValueChange={setZone}
-              disabled={!city}
-            >
-              <SelectTrigger className="w-full h-11 bg-slate-50 dark:bg-zinc-950/40 border border-border/60 rounded-xl px-4 text-xs font-semibold">
-                <SelectValue placeholder="Selecciona Zona" />
-              </SelectTrigger>
-              <SelectContent className="rounded-xl max-h-60">
-                {city &&
-                  availableZones.map((zoneKey) => (
-                    <SelectItem key={zoneKey} value={zoneKey}>
-                      {GEO_CONFIG[city]?.zones?.[zoneKey]?.name || zoneKey}
-                    </SelectItem>
-                  ))}
-              </SelectContent>
-            </Select>
-          </div>
-        </div>
-
-        {/* GPS Detection & Save Buttons */}
-        <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pt-2">
-          <Button
-            type="button"
-            variant="outline"
-            onClick={handleDetectLocation}
-            disabled={isLocating}
-            className="w-full sm:w-auto h-10 rounded-xl border-border text-xs font-bold flex items-center gap-2"
-          >
-            {isLocating ? (
-              <Loader2 className="w-4 h-4 animate-spin text-primary" />
-            ) : (
-              <Crosshair className="w-4 h-4 text-primary" />
-            )}
-            <span>Detectar mi ubicación actual (GPS)</span>
-          </Button>
-
+        <div className="flex justify-end pt-1">
           <Button
             type="button"
             onClick={handleSaveLocation}
             disabled={isSavingLocation}
-            className="w-full sm:w-auto h-10 rounded-xl bg-primary hover:bg-primary/95 text-white text-xs font-bold px-6 flex items-center gap-2"
+            className="w-full sm:w-auto h-11 rounded-[16px] bg-[#1f2732] hover:bg-[#2f3c4b] text-white text-xs sm:text-sm font-bold px-7 flex items-center justify-center gap-2 shadow-sm cursor-pointer active:scale-98 transition-all"
           >
             {isSavingLocation ? (
-              <Loader2 className="w-4 h-4 animate-spin" />
+              <Loader2 className="w-4 h-4 animate-spin text-white/80" />
             ) : (
               <Sparkles className="w-4 h-4" />
             )}
