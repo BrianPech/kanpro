@@ -66,34 +66,52 @@ export function useGeolocation(throttleWaitMs: number = 500) {
     setLoading(true);
     setError(null);
 
-    navigator.geolocation.getCurrentPosition(
-      (position) => {
-        setCoordinates({
-          lat: position.coords.latitude,
-          lng: position.coords.longitude,
-        });
+    const handleSuccess = (position: GeolocationPosition) => {
+      setCoordinates({
+        lat: position.coords.latitude,
+        lng: position.coords.longitude,
+      });
+      setLoading(false);
+    };
+
+    const handleFallback = (primaryErr: GeolocationPositionError) => {
+      // If permission was explicitly denied, do not retry
+      if (primaryErr.code === primaryErr.PERMISSION_DENIED) {
+        setError("Permiso de ubicación denegado. Permite el acceso a la ubicación en los ajustes del navegador.");
         setLoading(false);
-      },
-      (err) => {
-        let errorMsg = "Ocurrió un error al obtener la ubicación.";
-        switch (err.code) {
-          case err.PERMISSION_DENIED:
-            errorMsg = "Permiso de ubicación denegado por el usuario.";
-            break;
-          case err.POSITION_UNAVAILABLE:
-            errorMsg = "La información de ubicación no está disponible.";
-            break;
-          case err.TIMEOUT:
+        return;
+      }
+
+      // Retry with standard accuracy (IP / network fallback)
+      navigator.geolocation.getCurrentPosition(
+        handleSuccess,
+        (fallbackErr) => {
+          let errorMsg = "No se pudo obtener la ubicación.";
+          if (fallbackErr.code === fallbackErr.PERMISSION_DENIED) {
+            errorMsg = "Permiso de ubicación denegado. Por favor permite el acceso en tu navegador.";
+          } else if (fallbackErr.code === fallbackErr.POSITION_UNAVAILABLE) {
+            errorMsg = "La señal de ubicación no está disponible en este momento.";
+          } else if (fallbackErr.code === fallbackErr.TIMEOUT) {
             errorMsg = "Tiempo de espera agotado al obtener la ubicación.";
-            break;
+          }
+          setError(errorMsg);
+          setLoading(false);
+        },
+        {
+          enableHighAccuracy: false,
+          timeout: 15000,
+          maximumAge: 60000,
         }
-        setError(errorMsg);
-        setLoading(false);
-      },
+      );
+    };
+
+    navigator.geolocation.getCurrentPosition(
+      handleSuccess,
+      handleFallback,
       {
         enableHighAccuracy: true,
-        timeout: 10000,
-        maximumAge: 0,
+        timeout: 8000,
+        maximumAge: 10000,
       }
     );
   }, []);

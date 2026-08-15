@@ -34,7 +34,7 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { createClient } from "@/lib/supabase/client";
-import { GEO_CONFIG, findNearestCityAndZone } from "@/config/geo";
+import { GEO_CONFIG, resolveLocationFromCoords } from "@/config/geo";
 import { candidateProfileService } from "../services/candidate-profile";
 import { toast } from "sonner";
 
@@ -114,9 +114,9 @@ export function CandidateSettingsView() {
     loadProfile();
   }, [supabase]);
 
-  // GPS Location Handler
+  // GPS Location Handler with robust fallback and precise permission feedback
   const handleDetectLocation = () => {
-    if (!("geolocation" in navigator)) {
+    if (typeof window === "undefined" || !("geolocation" in navigator)) {
       toast.error("Geolocalización no soportada", {
         description: "Tu navegador no soporta el servicio de geolocalización."
       });
@@ -124,24 +124,61 @@ export function CandidateSettingsView() {
     }
 
     setIsLocating(true);
-    navigator.geolocation.getCurrentPosition(
-      (position) => {
+
+    const onLocationSuccess = async (position: GeolocationPosition) => {
+      try {
         const { latitude, longitude } = position.coords;
-        const { city: detectedCity, zone: detectedZone } = findNearestCityAndZone(latitude, longitude);
-        setCity(detectedCity);
-        setZone(detectedZone);
+        const resolved = await resolveLocationFromCoords(latitude, longitude);
+        setCity(resolved.city);
+        setZone(resolved.zone);
         setIsLocating(false);
         toast.success("Ubicación detectada con éxito", {
-          description: `Se detectó: ${detectedCity} - ${detectedZone}`
+          description: `Se detectó: ${resolved.displayLocation}`
         });
-      },
-      (err) => {
+      } catch (e) {
         setIsLocating(false);
-        toast.error("No se pudo obtener la ubicación", {
-          description: "Por favor otorga permisos de geolocalización a tu navegador o selecciona manualmente."
+        toast.error("Error al procesar la ubicación");
+      }
+    };
+
+    const onLocationFailure = (err: GeolocationPositionError) => {
+      // If high accuracy timed out or wasn't available, attempt standard accuracy fallback
+      if (err.code === err.TIMEOUT || err.code === err.POSITION_UNAVAILABLE) {
+        navigator.geolocation.getCurrentPosition(
+          onLocationSuccess,
+          (fallbackErr) => {
+            setIsLocating(false);
+            if (fallbackErr.code === fallbackErr.PERMISSION_DENIED) {
+              toast.error("Permiso de ubicación denegado", {
+                description: "Permite el acceso a la ubicación en el icono de permisos del navegador o selecciona tu zona manualmente."
+              });
+            } else {
+              toast.error("No se pudo obtener la señal GPS", {
+                description: "Por favor selecciona tu ciudad y zona de trabajo en los selectores de abajo."
+              });
+            }
+          },
+          { enableHighAccuracy: false, timeout: 15000, maximumAge: 60000 }
+        );
+        return;
+      }
+
+      setIsLocating(false);
+      if (err.code === err.PERMISSION_DENIED) {
+        toast.error("Permiso de ubicación denegado", {
+          description: "Habilita los permisos de ubicación en tu navegador (icono de candado en la barra de URL) o selecciona tu zona manualmente."
         });
-      },
-      { enableHighAccuracy: true, timeout: 10000 }
+      } else {
+        toast.error("Error al obtener ubicación", {
+          description: "No se pudo obtener tu ubicación automáticamente. Puedes seleccionarla manualmente."
+        });
+      }
+    };
+
+    navigator.geolocation.getCurrentPosition(
+      onLocationSuccess,
+      onLocationFailure,
+      { enableHighAccuracy: true, timeout: 8000, maximumAge: 10000 }
     );
   };
 
@@ -206,8 +243,26 @@ export function CandidateSettingsView() {
     window.location.href = "/auth/logout";
   };
 
+  const availableCities = React.useMemo(() => {
+    const keys = Object.keys(GEO_CONFIG);
+    if (city && !keys.includes(city)) {
+      return [city, ...keys];
+    }
+    return keys;
+  }, [city]);
+
+  const availableZones = React.useMemo(() => {
+    if (!city) return [];
+    const configZones = Object.keys(GEO_CONFIG[city]?.zones || {});
+    if (zone && !configZones.includes(zone)) {
+      return [zone, ...configZones];
+    }
+    return configZones;
+  }, [city, zone]);
+
   return (
     <div className="flex-grow min-h-full bg-transparent dark:bg-zinc-950 px-6 sm:px-10 lg:px-14 pt-4 pb-28 md:pb-8 space-y-6 max-w-5xl mx-auto w-full animate-in fade-in duration-300">
+
       
       {/* 1. Top Custom Header */}
       <div className="flex items-center justify-between">
@@ -347,10 +402,10 @@ export function CandidateSettingsView() {
               <SelectTrigger className="w-full h-11 bg-slate-50 dark:bg-zinc-950/40 border border-border/60 rounded-xl px-4 text-xs font-semibold">
                 <SelectValue placeholder="Selecciona Ciudad" />
               </SelectTrigger>
-              <SelectContent className="rounded-xl">
-                {Object.keys(GEO_CONFIG).map((cityKey) => (
+              <SelectContent className="rounded-xl max-h-60">
+                {availableCities.map((cityKey) => (
                   <SelectItem key={cityKey} value={cityKey}>
-                    {cityKey}
+                    {GEO_CONFIG[cityKey]?.name || cityKey}
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -370,11 +425,11 @@ export function CandidateSettingsView() {
               <SelectTrigger className="w-full h-11 bg-slate-50 dark:bg-zinc-950/40 border border-border/60 rounded-xl px-4 text-xs font-semibold">
                 <SelectValue placeholder="Selecciona Zona" />
               </SelectTrigger>
-              <SelectContent className="rounded-xl">
+              <SelectContent className="rounded-xl max-h-60">
                 {city &&
-                  Object.keys(GEO_CONFIG[city]?.zones || {}).map((zoneKey) => (
+                  availableZones.map((zoneKey) => (
                     <SelectItem key={zoneKey} value={zoneKey}>
-                      {GEO_CONFIG[city].zones[zoneKey].name}
+                      {GEO_CONFIG[city]?.zones?.[zoneKey]?.name || zoneKey}
                     </SelectItem>
                   ))}
               </SelectContent>

@@ -139,62 +139,91 @@ export function CompanyProfileForm({
     }
 
     setIsLocating(true);
-    navigator.geolocation.getCurrentPosition(
-      async (pos) => {
-        const { latitude, longitude } = pos.coords;
-        const { city: nearestCity, zone: nearestZone } = findNearestCityAndZone(latitude, longitude);
+    const processPosition = async (pos: GeolocationPosition) => {
+      const { latitude, longitude } = pos.coords;
+      const { city: nearestCity, zone: nearestZone } = findNearestCityAndZone(latitude, longitude);
 
-        let detectedStreet = "";
-        let detectedCity = nearestCity;
+      let detectedStreet = "";
+      let detectedCity = nearestCity;
 
-        try {
-          const res = await fetch(
-            `https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}`
-          );
-          const geoData = await res.json();
-          if (geoData && geoData.address) {
-            const addr = geoData.address;
-            const road = addr.road || addr.pedestrian || addr.street || "";
-            const suburb = addr.suburb || addr.neighbourhood || addr.quarter || addr.city_district || "";
-            const cityName = addr.city || addr.town || addr.county || nearestCity;
+      try {
+        const res = await fetch(
+          `https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}`
+        );
+        const geoData = await res.json();
+        if (geoData && geoData.address) {
+          const addr = geoData.address;
+          const road = addr.road || addr.pedestrian || addr.street || "";
+          const suburb = addr.suburb || addr.neighbourhood || addr.quarter || addr.city_district || "";
+          const cityName = addr.city || addr.town || addr.county || nearestCity;
 
-            if (road || suburb) {
-              detectedStreet = [road, suburb].filter(Boolean).join(", ");
-            }
-            if (cityName) {
-              const matchedKey = Object.keys(GEO_CONFIG).find((k) =>
-                cityName.toLowerCase().includes(k.toLowerCase()) || k.toLowerCase().includes(cityName.toLowerCase())
-              );
-              detectedCity = matchedKey || cityName;
-            }
+          if (road || suburb) {
+            detectedStreet = [road, suburb].filter(Boolean).join(", ");
           }
-        } catch (e) {
-          console.warn("Reverse geocoding fetch fallback:", e);
+          if (cityName) {
+            const matchedKey = Object.keys(GEO_CONFIG).find((k) =>
+              cityName.toLowerCase().includes(k.toLowerCase()) || k.toLowerCase().includes(cityName.toLowerCase())
+            );
+            detectedCity = matchedKey || cityName;
+          }
         }
+      } catch (e) {
+        console.warn("Reverse geocoding fetch fallback:", e);
+      }
 
-        const formattedCity = detectedCity.includes(",") ? detectedCity : `${detectedCity}, Mexico`;
-        setValue("location", detectedCity, { shouldValidate: true, shouldDirty: true });
-        if (detectedStreet) {
-          setValue("address_details", detectedStreet, { shouldValidate: true, shouldDirty: true });
-        }
+      setValue("location", detectedCity, { shouldValidate: true, shouldDirty: true });
+      if (detectedStreet) {
+        setValue("address_details", detectedStreet, { shouldValidate: true, shouldDirty: true });
+      }
 
-        setGpsDetectedInfo({
-          city: detectedCity,
-          address: detectedStreet || nearestZone,
-        });
+      setGpsDetectedInfo({
+        city: detectedCity,
+        address: detectedStreet || nearestZone,
+      });
 
-        setIsLocating(false);
-        toast.success("Ubicación GPS confirmada", {
-          description: `Ciudad: ${detectedCity}${detectedStreet ? ` • ${detectedStreet}` : ""}`,
+      setIsLocating(false);
+      toast.success("Ubicación GPS confirmada", {
+        description: `Ciudad: ${detectedCity}${detectedStreet ? ` • ${detectedStreet}` : ""}`,
+      });
+    };
+
+    const handleGpsError = (err: GeolocationPositionError) => {
+      if (err.code === err.TIMEOUT || err.code === err.POSITION_UNAVAILABLE) {
+        navigator.geolocation.getCurrentPosition(
+          processPosition,
+          (fallbackErr) => {
+            setIsLocating(false);
+            if (fallbackErr.code === fallbackErr.PERMISSION_DENIED) {
+              toast.error("Permiso de ubicación denegado", {
+                description: "Por favor otorga acceso a la ubicación en las preferencias de tu navegador.",
+              });
+            } else {
+              toast.error("No se pudo obtener señal GPS", {
+                description: "Ingresa la ubicación de la empresa manualmente.",
+              });
+            }
+          },
+          { enableHighAccuracy: false, timeout: 15000, maximumAge: 60000 }
+        );
+        return;
+      }
+
+      setIsLocating(false);
+      if (err.code === err.PERMISSION_DENIED) {
+        toast.error("Permiso de ubicación denegado", {
+          description: "Por favor otorga acceso a la ubicación en el icono de candado de tu navegador.",
         });
-      },
-      (err) => {
-        setIsLocating(false);
-        toast.error("Permiso de GPS denegado", {
-          description: "Por favor otorga acceso a la ubicación en las preferencias de tu navegador.",
+      } else {
+        toast.error("Error de geolocalización", {
+          description: "No se pudo obtener la ubicación. Ingrésala manualmente.",
         });
-      },
-      { enableHighAccuracy: true, timeout: 10000 }
+      }
+    };
+
+    navigator.geolocation.getCurrentPosition(
+      processPosition,
+      handleGpsError,
+      { enableHighAccuracy: true, timeout: 8000, maximumAge: 10000 }
     );
   };
   const charCount = description.length;

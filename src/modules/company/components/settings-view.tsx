@@ -166,55 +166,85 @@ export function CompanySettingsView({ user, initialProfile, initialPauseState, i
     }
 
     setIsLocatingCompany(true)
-    navigator.geolocation.getCurrentPosition(
-      async (position) => {
-        const { latitude, longitude } = position.coords
-        const { city: nearestCity } = findNearestCityAndZone(latitude, longitude)
-        let detectedCity = nearestCity || "Mérida"
-        let detectedStreet = ""
+    const processCompanyPosition = async (position: GeolocationPosition) => {
+      const { latitude, longitude } = position.coords
+      const { city: nearestCity } = findNearestCityAndZone(latitude, longitude)
+      let detectedCity = nearestCity || "Mérida"
+      let detectedStreet = ""
 
-        try {
-          const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}`)
-          const geoData = await res.json()
-          if (geoData && geoData.address) {
-            const addr = geoData.address
-            const road = addr.road || addr.pedestrian || addr.street || ""
-            const suburb = addr.suburb || addr.neighbourhood || addr.quarter || addr.city_district || ""
-            const cityName = addr.city || addr.town || addr.county || nearestCity
+      try {
+        const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}`)
+        const geoData = await res.json()
+        if (geoData && geoData.address) {
+          const addr = geoData.address
+          const road = addr.road || addr.pedestrian || addr.street || ""
+          const suburb = addr.suburb || addr.neighbourhood || addr.quarter || addr.city_district || ""
+          const cityName = addr.city || addr.town || addr.county || nearestCity
 
-            if (road || suburb) {
-              detectedStreet = [road, suburb].filter(Boolean).join(", ")
-            }
-            if (cityName) {
-              detectedCity = cityName
-            }
+          if (road || suburb) {
+            detectedStreet = [road, suburb].filter(Boolean).join(", ")
           }
-        } catch (e) {
-          console.warn("Reverse geocoding fetch fallback:", e)
+          if (cityName) {
+            detectedCity = cityName
+          }
         }
+      } catch (e) {
+        console.warn("Reverse geocoding fetch fallback:", e)
+      }
 
-        setCompanyCity(detectedCity)
-        if (detectedStreet) {
-          setCompanyAddress(detectedStreet)
-        }
+      setCompanyCity(detectedCity)
+      if (detectedStreet) {
+        setCompanyAddress(detectedStreet)
+      }
 
-        setGpsDetectedInfo({
-          city: detectedCity,
-          address: detectedStreet
-        })
+      setGpsDetectedInfo({
+        city: detectedCity,
+        address: detectedStreet
+      })
 
-        setIsLocatingCompany(false)
-        toast.success("Ubicación GPS confirmada", {
-          description: `Ciudad: ${detectedCity}${detectedStreet ? ` • ${detectedStreet}` : ""}`
-        })
-      },
-      (err) => {
-        setIsLocatingCompany(false)
+      setIsLocatingCompany(false)
+      toast.success("Ubicación GPS confirmada", {
+        description: `Ciudad: ${detectedCity}${detectedStreet ? ` • ${detectedStreet}` : ""}`
+      })
+    }
+
+    const handleCompanyGpsError = (err: GeolocationPositionError) => {
+      if (err.code === err.TIMEOUT || err.code === err.POSITION_UNAVAILABLE) {
+        navigator.geolocation.getCurrentPosition(
+          processCompanyPosition,
+          (fallbackErr) => {
+            setIsLocatingCompany(false)
+            if (fallbackErr.code === fallbackErr.PERMISSION_DENIED) {
+              toast.error("Permiso de GPS denegado", {
+                description: "Por favor otorga acceso a la ubicación en las preferencias de tu navegador."
+              })
+            } else {
+              toast.error("No se pudo obtener señal GPS", {
+                description: "Ingresa la sede de la empresa manualmente."
+              })
+            }
+          },
+          { enableHighAccuracy: false, timeout: 15000, maximumAge: 60000 }
+        )
+        return
+      }
+
+      setIsLocatingCompany(false)
+      if (err.code === err.PERMISSION_DENIED) {
         toast.error("Permiso de GPS denegado", {
-          description: "Por favor otorga acceso a la ubicación en las preferencias de tu navegador."
+          description: "Por favor otorga acceso a la ubicación en el icono de permisos de tu navegador."
         })
-      },
-      { enableHighAccuracy: true, timeout: 10000 }
+      } else {
+        toast.error("Error de geolocalización", {
+          description: "No se pudo obtener la ubicación automáticamente. Ingrésala manualmente."
+        })
+      }
+    }
+
+    navigator.geolocation.getCurrentPosition(
+      processCompanyPosition,
+      handleCompanyGpsError,
+      { enableHighAccuracy: true, timeout: 8000, maximumAge: 10000 }
     )
   }
 
