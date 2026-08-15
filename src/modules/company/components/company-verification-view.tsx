@@ -65,7 +65,9 @@ export function CompanyVerificationView({
   userId,
   initialData,
 }: CompanyVerificationViewProps) {
-  // Form State for Non-Document Fields
+  const [fiscalRegime, setFiscalRegime] = React.useState<"persona_moral" | "persona_fisica">(
+    (initialData as any).fiscal_regime || "persona_moral"
+  );
   const [legalName, setLegalName] = React.useState(initialData.legal_name || "");
   const [companyName, setCompanyName] = React.useState(initialData.company_name || "");
   const [rfc, setRfc] = React.useState(initialData.rfc || "");
@@ -97,11 +99,20 @@ export function CompanyVerificationView({
     fileName: string;
   } | null>(null);
 
+  const isRfcValid = React.useMemo(() => {
+    const cleaned = rfc.trim().toUpperCase();
+    if (fiscalRegime === "persona_moral") {
+      return cleaned.length === 12 && /^[A-Z&Ñ]{3}\d{6}[A-Z0-9]{3}$/.test(cleaned);
+    } else {
+      return cleaned.length === 13 && /^[A-Z&Ñ]{4}\d{6}[A-Z0-9]{3}$/.test(cleaned);
+    }
+  }, [rfc, fiscalRegime]);
+
   // Calculate Progress (13 mandatory items)
   const itemsChecklist = [
     { label: "1. Denominación o razón social", isComplete: !!legalName.trim() },
     { label: "2. Acta constitutiva", isComplete: !!documents.acta_constitutiva },
-    { label: "3. RFC registrado", isComplete: !!rfc.trim() && rfc.trim().length >= 12 },
+    { label: `3. RFC (${fiscalRegime === "persona_moral" ? "12" : "13"} caract.)`, isComplete: isRfcValid },
     { label: "4. Constancia de Situación Fiscal", isComplete: !!documents.constancia_situacion_fiscal },
     { label: "5. Domicilio fiscal", isComplete: !!fiscalAddress.trim() },
     { label: "6. Nombre comercial", isComplete: !!companyName.trim() },
@@ -423,19 +434,55 @@ export function CompanyVerificationView({
             />
           </div>
 
-          {/* 3. RFC */}
+          {/* Fiscal Regime Select */}
           <div className="space-y-2">
             <Label className="text-xs sm:text-sm font-extrabold text-[#3e546d] dark:text-zinc-200">
-              3. RFC de la Persona Moral *
+              Régimen Fiscal *
             </Label>
+            <Select
+              value={fiscalRegime}
+              onValueChange={(val: "persona_moral" | "persona_fisica") => {
+                setFiscalRegime(val);
+                if (val === "persona_moral" && rfc.length > 12) {
+                  setRfc(rfc.substring(0, 12));
+                }
+              }}
+            >
+              <SelectTrigger className="h-12 bg-white dark:bg-zinc-900 border border-[#ebeef3] dark:border-zinc-800 rounded-[14px] px-4 text-sm font-semibold text-[#1f2732] dark:text-zinc-100">
+                <SelectValue placeholder="Selecciona Régimen Fiscal" />
+              </SelectTrigger>
+              <SelectContent className="rounded-xl border border-[#ebeef3] dark:border-zinc-800">
+                <SelectItem value="persona_moral">Persona Moral (12 Caracteres)</SelectItem>
+                <SelectItem value="persona_fisica">Persona Física (13 Caracteres)</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          {/* 3. RFC */}
+          <div className="space-y-2">
+            <div className="flex items-center justify-between">
+              <Label className="text-xs sm:text-sm font-extrabold text-[#3e546d] dark:text-zinc-200">
+                3. RFC Fiscal *
+              </Label>
+              <span className="text-[11px] font-bold text-[#5c7c9b]">
+                {fiscalRegime === "persona_moral" ? "12 caract." : "13 caract."}
+              </span>
+            </div>
             <Input
               type="text"
-              maxLength={13}
-              placeholder="Ej. ABC120315XXX"
+              maxLength={fiscalRegime === "persona_moral" ? 12 : 13}
+              placeholder={fiscalRegime === "persona_moral" ? "Ej. ABC120315XXX" : "Ej. ABCD120315XXX"}
               value={rfc}
-              onChange={(e) => setRfc(e.target.value.toUpperCase())}
+              onChange={(e) => setRfc(e.target.value.toUpperCase().trim())}
               className="h-12 bg-white dark:bg-zinc-900 border border-[#ebeef3] dark:border-zinc-800 rounded-[14px] px-4 text-sm font-bold tracking-wider text-[#1f2732] dark:text-zinc-100 uppercase placeholder-[#94a3b8]"
             />
+            {rfc.trim().length > 0 && !isRfcValid && (
+              <p className="text-[11px] font-semibold text-rose-500">
+                {fiscalRegime === "persona_moral"
+                  ? "Formato no válido. Debe tener 12 caracteres (3 letras + 6 dígitos + 3 homoclave)"
+                  : "Formato no válido. Debe tener 13 caracteres (4 letras + 6 dígitos + 3 homoclave)"}
+              </p>
+            )}
           </div>
 
           {/* 7. Giro o Actividad Económica */}

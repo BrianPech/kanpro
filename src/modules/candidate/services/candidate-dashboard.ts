@@ -12,6 +12,9 @@ export interface CandidateApplication {
   statusColor: string
   progress: number
   appliedDate: string
+  created_at: string
+  salary_min: number | null
+  salary_max: number | null
   companyPhone: string | null
 }
 
@@ -123,6 +126,9 @@ export async function getCandidateDashboardData(): Promise<CandidateDashboardDat
         location,
         modality,
         skills,
+        salary_min,
+        salary_max,
+        created_at,
         company_id
       )
     `)
@@ -140,6 +146,9 @@ export async function getCandidateDashboardData(): Promise<CandidateDashboardDat
       location: string | null
       modality: string
       skills: string[] | null
+      salary_min: number | null
+      salary_max: number | null
+      created_at: string
       company_id: string
     } | null
   }
@@ -262,6 +271,9 @@ export async function getCandidateDashboardData(): Promise<CandidateDashboardDat
       statusColor,
       progress,
       appliedDate,
+      created_at: appDateStr || new Date().toISOString(),
+      salary_min: vacancy?.salary_min ?? null,
+      salary_max: vacancy?.salary_max ?? null,
       companyPhone: companyInfo?.phone || null
     }
   })

@@ -22,6 +22,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { useQuery } from "@tanstack/react-query";
 import { createClient } from "@/lib/supabase/client";
 import { jobSearchService, matchFuzzy } from "../services/job-search";
 import { toast } from "sonner";
@@ -67,12 +68,7 @@ export function JobSearchView({ initialVacancies = [], onBack }: JobSearchViewPr
   const [activeFilters, setActiveFilters] = React.useState<string[]>([]);
   const [savedJobIds, setSavedJobIds] = React.useState<Set<string>>(new Set());
 
-  // Dynamic vacancies state
-  const [vacancies, setVacancies] = React.useState<SearchVacancy[]>(initialVacancies);
-
   // UI state
-  const [isLoading, setIsLoading] = React.useState<boolean>(false);
-  const [hasError, setHasError] = React.useState<boolean>(false);
   const [isFilterOpen, setIsFilterOpen] = React.useState<boolean>(false);
 
   // Debounced search trigger
@@ -122,47 +118,20 @@ export function JobSearchView({ initialVacancies = [], onBack }: JobSearchViewPr
     loadUserPreferences();
   }, [supabase]);
 
-  // Perform dynamic search on Supabase whenever debouncedQuery or activeFilters change
-  React.useEffect(() => {
-    let active = true;
-
-    async function performSearch() {
-      // If search query and active filters are empty, reset to initialVacancies
+  // TanStack Query for dynamic search
+  const { data: vacancies = initialVacancies, isLoading, isError: hasError, refetch } = useQuery({
+    queryKey: ['vacancies-search', { query: debouncedQuery, filters: activeFilters }],
+    queryFn: async () => {
       if (!debouncedQuery.trim() && activeFilters.length === 0) {
-        if (active) {
-          setVacancies(initialVacancies);
-          setHasError(false);
-          setIsLoading(false);
-        }
-        return;
+        return initialVacancies;
       }
-
-      setIsLoading(true);
-      setHasError(false);
-
-      try {
-        const results = await jobSearchService.searchVacancies({
-          query: debouncedQuery,
-          activeFilters: activeFilters,
-        });
-
-        if (active) {
-          setVacancies(results);
-        }
-      } catch (err) {
-        console.error("Error performing live job search:", err);
-        if (active) setHasError(true);
-      } finally {
-        if (active) setIsLoading(false);
-      }
-    }
-
-    performSearch();
-
-    return () => {
-      active = false;
-    };
-  }, [debouncedQuery, activeFilters, initialVacancies]);
+      return await jobSearchService.searchVacancies({
+        query: debouncedQuery,
+        activeFilters: activeFilters,
+      });
+    },
+    initialData: initialVacancies,
+  });
 
   // Instant in-memory filter for current search query & active filters
   const filteredVacancies = React.useMemo(() => {
@@ -253,7 +222,6 @@ export function JobSearchView({ initialVacancies = [], onBack }: JobSearchViewPr
     setSearchQuery("");
     setDebouncedQuery("");
     setActiveFilters([]);
-    setVacancies(initialVacancies);
   };
 
   const handleBack = () => {

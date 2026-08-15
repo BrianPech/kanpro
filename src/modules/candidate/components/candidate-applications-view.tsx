@@ -15,9 +15,32 @@ import {
   History,
   FileText,
   Check,
-  Circle
+  Circle,
+  LayoutGrid,
+  List,
+  ArrowUp,
+  ArrowDown,
+  ArrowUpDown,
 } from "lucide-react";
+import {
+  useReactTable,
+  getCoreRowModel,
+  getSortedRowModel,
+  getPaginationRowModel,
+  flexRender,
+  type ColumnDef,
+  type SortingState,
+} from "@tanstack/react-table";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import { CandidateDashboardData, CandidateApplication } from "../services/candidate-dashboard";
 import {
   Dialog,
@@ -33,6 +56,9 @@ interface CandidateApplicationsViewProps {
 export function CandidateApplicationsView({ initialData }: CandidateApplicationsViewProps) {
   const router = useRouter();
   const { profile, applications } = initialData;
+
+  // View mode switcher: "cards" | "table"
+  const [viewMode, setViewMode] = React.useState<"cards" | "table">("cards");
 
   // Selected filter tab index: 0: Todas, 1: En revisión, 2: Entrevistas / Selección, 3: Finalizadas
   const [selectedFilterIndex, setSelectedFilterIndex] = React.useState<number>(0);
@@ -78,18 +104,47 @@ export function CandidateApplicationsView({ initialData }: CandidateApplications
   return (
     <div className="flex-grow min-h-full bg-transparent dark:bg-zinc-950 px-6 sm:px-10 lg:px-14 pt-5 pb-28 md:pb-8 space-y-6 max-w-5xl mx-auto w-full animate-in fade-in duration-300">
       
-      {/* 1. Header (Mis Postulaciones & Refresh Action) */}
-      <div className="flex items-center justify-between">
+      {/* 1. Header (Mis Postulaciones & Actions) */}
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <h1 className="text-[26px] sm:text-[32px] font-[800] text-[#1f2732] dark:text-fiord-50 tracking-[-0.6px]">
           Mis Postulaciones
         </h1>
-        <button
-          onClick={handleRefresh}
-          aria-label="Actualizar postulaciones"
-          className="w-12 h-12 rounded-full bg-white dark:bg-zinc-900 border border-[#ebeef3] dark:border-zinc-800 flex items-center justify-center text-[#344558] dark:text-zinc-200 hover:bg-[#f5f7fa] dark:hover:bg-zinc-800 transition-all cursor-pointer active:scale-95 shadow-2xs"
-        >
-          <RotateCw className="w-6 h-6 stroke-[2]" />
-        </button>
+        
+        <div className="flex items-center gap-3">
+          {/* View Mode Switcher */}
+          <div className="inline-flex p-1 rounded-[16px] bg-white dark:bg-zinc-900 border border-[#ebeef3] dark:border-zinc-800 shadow-2xs">
+            <button
+              onClick={() => setViewMode("cards")}
+              className={`px-3 py-1.5 rounded-[12px] text-xs font-extrabold flex items-center gap-1.5 transition-all cursor-pointer ${
+                viewMode === "cards"
+                  ? "bg-[#1f2732] dark:bg-zinc-100 text-white dark:text-zinc-900 shadow-xs"
+                  : "text-[#5c7c9b] hover:text-[#1f2732] dark:hover:text-zinc-200"
+              }`}
+            >
+              <LayoutGrid className="size-3.5" />
+              <span>Tarjetas</span>
+            </button>
+            <button
+              onClick={() => setViewMode("table")}
+              className={`px-3 py-1.5 rounded-[12px] text-xs font-extrabold flex items-center gap-1.5 transition-all cursor-pointer ${
+                viewMode === "table"
+                  ? "bg-[#1f2732] dark:bg-zinc-100 text-white dark:text-zinc-900 shadow-xs"
+                  : "text-[#5c7c9b] hover:text-[#1f2732] dark:hover:text-zinc-200"
+              }`}
+            >
+              <List className="size-3.5" />
+              <span>Tabla</span>
+            </button>
+          </div>
+
+          <button
+            onClick={handleRefresh}
+            aria-label="Actualizar postulaciones"
+            className="w-10 h-10 rounded-full bg-white dark:bg-zinc-900 border border-[#ebeef3] dark:border-zinc-800 flex items-center justify-center text-[#344558] dark:text-zinc-200 hover:bg-[#f5f7fa] dark:hover:bg-zinc-800 transition-all cursor-pointer active:scale-95 shadow-2xs"
+          >
+            <RotateCw className="w-5 h-5 stroke-[2]" />
+          </button>
+        </div>
       </div>
 
       {/* 2. Filter Chips Bar */}
@@ -119,7 +174,7 @@ export function CandidateApplicationsView({ initialData }: CandidateApplications
         </div>
       </div>
 
-      {/* 3. Main List View / States */}
+      {/* 3. Main View Area (Cards or Tabular Table View) */}
       <div className="pt-2 space-y-5">
         {isLoading ? (
           /* Skeleton Loader */
@@ -159,7 +214,7 @@ export function CandidateApplicationsView({ initialData }: CandidateApplications
             </Button>
           </div>
         ) : filteredApplications.length === 0 ? (
-          /* Empty State (_EmptyApplicationsView) matching Flutter Spec */
+          /* Empty State */
           <div className="py-16 px-6 flex flex-col items-center justify-center text-center space-y-4">
             <div className="w-22 h-22 rounded-full bg-[#f5f7fa] dark:bg-zinc-900 flex items-center justify-center text-[#7d99b3] shrink-0">
               <History className="w-10 h-10 stroke-[1.75]" />
@@ -181,8 +236,14 @@ export function CandidateApplicationsView({ initialData }: CandidateApplications
               Explorar vacantes
             </Button>
           </div>
+        ) : viewMode === "table" ? (
+          /* TABULAR VIEW POWERED BY TANSTACK TABLE */
+          <CandidateApplicationsTable
+            data={filteredApplications}
+            onOpenDetail={handleOpenDetail}
+          />
         ) : (
-          /* Populated List of _ApplicationCard items */
+          /* CARDS VIEW */
           <div className="space-y-5">
             {filteredApplications.map((app) => (
               <div
@@ -233,7 +294,7 @@ export function CandidateApplicationsView({ initialData }: CandidateApplications
                   </div>
                 </div>
 
-                {/* Stepper Visualizer (_ApplicationStepper) */}
+                {/* Stepper Visualizer */}
                 <ApplicationStepper status={app.status} progress={app.progress} />
 
                 {/* Footer Row: Date & Chevron */}
@@ -252,7 +313,7 @@ export function CandidateApplicationsView({ initialData }: CandidateApplications
         )}
       </div>
 
-      {/* 4. Application Details Sheet Modal (_ApplicationDetailSheet) */}
+      {/* 4. Application Details Sheet Modal */}
       <Dialog open={isSheetOpen} onOpenChange={setIsSheetOpen}>
         {selectedApp && (
           <DialogContent className="sm:max-w-[480px] rounded-t-[32px] sm:rounded-3xl bg-white dark:bg-zinc-900 border border-[#ebeef3] dark:border-zinc-800 p-6 sm:p-8 max-h-[90vh] overflow-y-auto">
@@ -368,6 +429,226 @@ export function CandidateApplicationsView({ initialData }: CandidateApplications
         )}
       </Dialog>
 
+    </div>
+  );
+}
+
+/** TanStack Table for Candidate Applications Tabular View */
+function CandidateApplicationsTable({
+  data,
+  onOpenDetail,
+}: {
+  data: CandidateApplication[];
+  onOpenDetail: (app: CandidateApplication) => void;
+}) {
+  const [sorting, setSorting] = React.useState<SortingState>([
+    { id: "created_at", desc: true },
+  ]);
+
+  const formatSalary = (min?: number | null, max?: number | null) => {
+    if (min && max) return `$${min.toLocaleString()} - $${max.toLocaleString()} MXN`;
+    if (min) return `Desde $${min.toLocaleString()} MXN`;
+    if (max) return `Hasta $${max.toLocaleString()} MXN`;
+    return "No especificado";
+  };
+
+  const columns = React.useMemo<ColumnDef<CandidateApplication>[]>(
+    () => [
+      {
+        accessorKey: "position",
+        header: "Vacante / Empresa",
+        cell: ({ row }) => {
+          const app = row.original;
+          return (
+            <div className="flex items-center gap-3 py-1">
+              <div className="size-9 rounded-xl bg-[#f5f7fa] dark:bg-zinc-800 flex items-center justify-center shrink-0 font-bold text-xs border border-[#ebeef3] dark:border-zinc-800">
+                {app.logoUrl ? (
+                  <img src={app.logoUrl} alt={app.company} className="size-full object-cover rounded-xl" />
+                ) : (
+                  <Briefcase className="size-4 text-[#344558] dark:text-zinc-300" />
+                )}
+              </div>
+              <div className="flex flex-col min-w-0">
+                <span className="font-extrabold text-sm text-[#1f2732] dark:text-zinc-100 truncate">
+                  {app.position}
+                </span>
+                <span className="text-xs text-[#5c7c9b] dark:text-zinc-400 font-semibold truncate">
+                  {app.company} • {app.location}
+                </span>
+              </div>
+            </div>
+          );
+        },
+      },
+      {
+        accessorKey: "created_at",
+        header: ({ column }) => (
+          <button
+            type="button"
+            className="flex items-center gap-1.5 font-extrabold text-xs uppercase tracking-wider text-[#1f2732] dark:text-zinc-200 hover:text-black dark:hover:text-white transition-colors cursor-pointer select-none"
+            onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
+          >
+            <span>Fecha</span>
+            {column.getIsSorted() === "asc" ? (
+              <ArrowUp className="size-3.5 text-[#1f2732] dark:text-zinc-100" />
+            ) : column.getIsSorted() === "desc" ? (
+              <ArrowDown className="size-3.5 text-[#1f2732] dark:text-zinc-100" />
+            ) : (
+              <ArrowUpDown className="size-3.5 text-[#5c7c9b]/60" />
+            )}
+          </button>
+        ),
+        cell: ({ row }) => (
+          <span className="text-xs font-semibold text-[#5c7c9b] dark:text-zinc-300">
+            {row.original.appliedDate}
+          </span>
+        ),
+      },
+      {
+        accessorKey: "salary_min",
+        accessorFn: (row) => row.salary_min || 0,
+        header: ({ column }) => (
+          <button
+            type="button"
+            className="flex items-center gap-1.5 font-extrabold text-xs uppercase tracking-wider text-[#1f2732] dark:text-zinc-200 hover:text-black dark:hover:text-white transition-colors cursor-pointer select-none"
+            onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
+          >
+            <span>Rango Salarial</span>
+            {column.getIsSorted() === "asc" ? (
+              <ArrowUp className="size-3.5 text-[#1f2732] dark:text-zinc-100" />
+            ) : column.getIsSorted() === "desc" ? (
+              <ArrowDown className="size-3.5 text-[#1f2732] dark:text-zinc-100" />
+            ) : (
+              <ArrowUpDown className="size-3.5 text-[#5c7c9b]/60" />
+            )}
+          </button>
+        ),
+        cell: ({ row }) => (
+          <span className="text-xs font-bold text-[#1f2732] dark:text-zinc-100">
+            {formatSalary(row.original.salary_min, row.original.salary_max)}
+          </span>
+        ),
+      },
+      {
+        accessorKey: "status",
+        header: ({ column }) => (
+          <button
+            type="button"
+            className="flex items-center gap-1.5 font-extrabold text-xs uppercase tracking-wider text-[#1f2732] dark:text-zinc-200 hover:text-black dark:hover:text-white transition-colors cursor-pointer select-none"
+            onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
+          >
+            <span>Estado</span>
+            {column.getIsSorted() === "asc" ? (
+              <ArrowUp className="size-3.5 text-[#1f2732] dark:text-zinc-100" />
+            ) : column.getIsSorted() === "desc" ? (
+              <ArrowDown className="size-3.5 text-[#1f2732] dark:text-zinc-100" />
+            ) : (
+              <ArrowUpDown className="size-3.5 text-[#5c7c9b]/60" />
+            )}
+          </button>
+        ),
+        cell: ({ row }) => {
+          const app = row.original;
+          return (
+            <Badge
+              variant="outline"
+              className={`text-[11px] font-extrabold px-3 py-1 rounded-full flex items-center gap-1.5 w-fit border ${
+                app.status === "Contratado"
+                  ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/30"
+                  : app.status === "Preseleccionado" || app.status === "En revisión"
+                  ? "bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/30"
+                  : app.status === "Descartado"
+                  ? "bg-rose-500/10 text-rose-600 dark:text-rose-400 border-rose-500/30"
+                  : "bg-[#f5f7fa] text-[#5c7c9b] dark:bg-zinc-800 dark:text-zinc-400 border-[#ebeef3] dark:border-zinc-800"
+              }`}
+            >
+              {app.status === "Contratado" ? (
+                <CheckCircle2 className="size-3.5" />
+              ) : app.status === "Descartado" ? (
+                <X className="size-3.5" />
+              ) : (
+                <Clock className="size-3.5" />
+              )}
+              <span>{app.statusLabel}</span>
+            </Badge>
+          );
+        },
+      },
+      {
+        id: "actions",
+        header: () => <span className="sr-only">Acciones</span>,
+        cell: ({ row }) => (
+          <Button
+            size="sm"
+            variant="ghost"
+            onClick={() => onOpenDetail(row.original)}
+            className="h-8 px-3 text-xs font-extrabold text-[#344558] dark:text-zinc-200 hover:bg-[#f5f7fa] dark:hover:bg-zinc-800 rounded-xl cursor-pointer"
+          >
+            <span>Detalles</span>
+            <ChevronRight className="size-3.5 ml-1" />
+          </Button>
+        ),
+      },
+    ],
+    [onOpenDetail]
+  );
+
+  const table = useReactTable({
+    data,
+    columns,
+    state: {
+      sorting,
+    },
+    onSortingChange: setSorting,
+    getCoreRowModel: getCoreRowModel(),
+    getSortedRowModel: getSortedRowModel(),
+    getPaginationRowModel: getPaginationRowModel(),
+    initialState: {
+      pagination: {
+        pageSize: 10,
+      },
+    },
+  });
+
+  return (
+    <div className="border border-[#ebeef3] dark:border-zinc-800 rounded-[22px] bg-white dark:bg-zinc-900 overflow-hidden shadow-xs">
+      <Table className="w-full">
+        <TableHeader className="bg-[#f5f7fa]/80 dark:bg-zinc-900/60 border-b border-[#ebeef3] dark:border-zinc-800">
+          {table.getHeaderGroups().map((headerGroup) => (
+            <TableRow key={headerGroup.id} className="hover:bg-transparent border-none">
+              {headerGroup.headers.map((header) => (
+                <TableHead key={header.id} className="py-4 px-4 text-xs font-extrabold text-[#1f2732] dark:text-zinc-200">
+                  {header.isPlaceholder
+                    ? null
+                    : flexRender(header.column.columnDef.header, header.getContext())}
+                </TableHead>
+              ))}
+            </TableRow>
+          ))}
+        </TableHeader>
+        <TableBody>
+          {table.getRowModel().rows?.length ? (
+            table.getRowModel().rows.map((row) => (
+              <TableRow
+                key={row.id}
+                className="border-b border-[#ebeef3]/60 dark:border-zinc-800/50 hover:bg-[#f5f7fa]/60 dark:hover:bg-zinc-800/40 transition-colors"
+              >
+                {row.getVisibleCells().map((cell) => (
+                  <TableCell key={cell.id} className="px-4 py-3.5">
+                    {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                  </TableCell>
+                ))}
+              </TableRow>
+            ))
+          ) : (
+            <TableRow>
+              <TableCell colSpan={columns.length} className="h-28 text-center text-xs font-semibold text-[#5c7c9b]">
+                No hay postulaciones registradas en esta vista.
+              </TableCell>
+            </TableRow>
+          )}
+        </TableBody>
+      </Table>
     </div>
   );
 }

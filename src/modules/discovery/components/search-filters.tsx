@@ -2,6 +2,7 @@
 
 import * as React from "react";
 import { Search, MapPin } from "lucide-react";
+import { useDebouncedCallback } from "@tanstack/react-pacer";
 import { Input } from "@/components/ui/input";
 import {
   Select,
@@ -38,6 +39,33 @@ export function SearchFilters({
   categories,
   className,
 }: SearchFiltersProps) {
+  const [localSearch, setLocalSearch] = React.useState(search);
+  const [localLocation, setLocalLocation] = React.useState(location);
+
+  // Sync prop changes to local state
+  React.useEffect(() => {
+    setLocalSearch(search);
+  }, [search]);
+
+  React.useEffect(() => {
+    setLocalLocation(location);
+  }, [location]);
+
+  // Declarative debounced callbacks using @tanstack/react-pacer (300ms)
+  const debouncedSearchChange = useDebouncedCallback(
+    (val: string) => {
+      onSearchChange(val);
+    },
+    { wait: 300 }
+  );
+
+  const debouncedLocationChange = useDebouncedCallback(
+    (val: string) => {
+      onLocationChange(val);
+    },
+    { wait: 300 }
+  );
+
   return (
     <div
       className={cn(
@@ -51,8 +79,11 @@ export function SearchFilters({
         <Input
           type="text"
           placeholder="Buscar vacantes por cargo, habilidades o empresa..."
-          value={search}
-          onChange={(e) => onSearchChange(e.target.value)}
+          value={localSearch}
+          onChange={(e) => {
+            setLocalSearch(e.target.value);
+            debouncedSearchChange(e.target.value);
+          }}
           className="h-10 pl-10 pr-4 rounded-xl border-border/60 bg-white/60 dark:bg-zinc-800/40 focus-visible:ring-[#494fdf]/30 focus-visible:border-[#494fdf] text-sm placeholder:text-muted-foreground/50 transition-all w-full"
         />
       </div>
@@ -63,8 +94,11 @@ export function SearchFilters({
         <Input
           type="text"
           placeholder="Ciudad, zona o colonia..."
-          value={location}
-          onChange={(e) => onLocationChange(e.target.value)}
+          value={localLocation}
+          onChange={(e) => {
+            setLocalLocation(e.target.value);
+            debouncedLocationChange(e.target.value);
+          }}
           className="h-10 pl-10 pr-4 rounded-xl border-border/60 bg-white/60 dark:bg-zinc-800/40 focus-visible:ring-[#494fdf]/30 focus-visible:border-[#494fdf] text-sm placeholder:text-muted-foreground/50 transition-all w-full"
         />
       </div>

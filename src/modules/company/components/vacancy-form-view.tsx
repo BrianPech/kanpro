@@ -47,6 +47,7 @@ import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { motion } from "framer-motion";
 import Link from "next/link";
+import { useDebouncedCallback } from "@tanstack/react-pacer";
 import { revalidateVacancies } from "../actions/vacancies";
 
 // Standard categories for operatives/comerciales in local market
@@ -437,23 +438,30 @@ export function VacancyFormView({ userId, vacancyId }: VacancyFormViewProps) {
     }
   }, [profile, draftLoaded, setValue, DRAFT_KEY, isEditMode]);
 
-  // Auto-save draft ONLY in CREATE mode, when NOT submitting, and when form has actual title/description
+  // 500ms debounced auto-save draft to LocalStorage using @tanstack/react-pacer
+  const debouncedSaveDraft = useDebouncedCallback(
+    (values: VacancyFormValues) => {
+      if (isEditMode || !draftLoaded || isSubmittingRef.current || typeof window === "undefined") return;
+
+      const hasContent = Boolean(values.title?.trim() || values.description?.trim());
+      if (!hasContent) {
+        localStorage.removeItem(DRAFT_KEY);
+        return;
+      }
+
+      try {
+        localStorage.setItem(DRAFT_KEY, JSON.stringify(values));
+      } catch (e) {
+        console.error("Error saving vacancy draft:", e);
+      }
+    },
+    { wait: 500 }
+  );
+
   const allValues = watch();
   React.useEffect(() => {
-    if (isEditMode || !draftLoaded || isSubmittingRef.current || typeof window === "undefined") return;
-
-    const hasContent = Boolean(allValues.title?.trim() || allValues.description?.trim());
-    if (!hasContent) {
-      localStorage.removeItem(DRAFT_KEY);
-      return;
-    }
-
-    try {
-      localStorage.setItem(DRAFT_KEY, JSON.stringify(allValues));
-    } catch (e) {
-      console.error("Error saving vacancy draft:", e);
-    }
-  }, [allValues, draftLoaded, DRAFT_KEY, isEditMode]);
+    debouncedSaveDraft(allValues);
+  }, [allValues, debouncedSaveDraft]);
 
   // Toggle benefit pill
   const handleToggleBenefit = (perk: string) => {

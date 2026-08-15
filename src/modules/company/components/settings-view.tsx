@@ -55,6 +55,7 @@ import { cn } from "@/lib/utils"
 import { createClient } from "@/lib/supabase/client"
 import { toggleGlobalRecruitment, updateContactChannel, updateSubscriptionPlan } from "@/modules/company/actions/settings"
 import { GEO_CONFIG, findNearestCityAndZone } from "@/config/geo"
+import { BillingSubscriptionsTable, type BillingRecord } from "./billing-subscriptions-table"
 
 interface Invoice {
   id: string
@@ -293,6 +294,54 @@ export function CompanySettingsView({ user, initialProfile, initialPauseState, i
       amount: "$399 MXN",
     },
   ])
+
+  // Dynamic billing & subscriptions table data (TanStack Table)
+  const billingRecords: BillingRecord[] = React.useMemo(() => {
+    const list: BillingRecord[] = initialInvoices.map((inv) => ({
+      id: inv.id,
+      plan_name: inv.plan_name,
+      type: "Factura Fiscal",
+      amount: inv.amount,
+      currency: inv.currency,
+      status: inv.status || "PAGADO",
+      payment_method: inv.payment_method || "Tarjeta / SPEI",
+      created_at: inv.created_at,
+    }));
+
+    const activePlan = initialProfile.subscription_plan || "basic";
+    const planLabel =
+      activePlan === "pro"
+        ? "K'anPro PRO ($399 MXN/mes)"
+        : activePlan === "enterprise"
+        ? "K'anPro Corporativo"
+        : "K'anPro Básico (Gratuito)";
+
+    list.unshift({
+      id: "sub-active",
+      plan_name: planLabel,
+      type: "Suscripción",
+      amount: activePlan === "pro" ? 399 : activePlan === "enterprise" ? 999 : 0,
+      currency: "MXN",
+      status: "ACTIVO",
+      payment_method: "Suscripción Recurrente",
+      created_at: new Date().toISOString(),
+    });
+
+    const allowance = initialProfile.featured_vacancies_allowance || 0;
+    const used = initialProfile.featured_vacancies_used || 0;
+    list.unshift({
+      id: "quota-featured",
+      plan_name: `Cupo Vacantes Destacadas (${used} / ${allowance} Usadas)`,
+      type: "Consumo de Cupo",
+      amount: 0,
+      currency: "MXN",
+      status: "ACTIVO",
+      payment_method: "Incluido en Plan",
+      created_at: new Date().toISOString(),
+    });
+
+    return list;
+  }, [initialInvoices, initialProfile]);
 
   // Dialog / Modal states
   const [isBuyModalOpen, setIsBuyModalOpen] = React.useState(false)
@@ -1040,31 +1089,8 @@ export function CompanySettingsView({ user, initialProfile, initialPauseState, i
                       <CardDescription className="text-[10px] text-muted-foreground mt-0.5">Pagos y renovaciones de suscripción registradas.</CardDescription>
                     </div>
                   </CardHeader>
-                  <CardContent className="p-0">
-                    {initialInvoices.length > 0 ? (
-                      <div className="divide-y divide-border/20 max-h-[220px] overflow-y-auto custom-scrollbar">
-                        {initialInvoices.map((inv) => (
-                          <div key={inv.id} className="flex items-center justify-between p-4 hover:bg-muted/10 transition-colors">
-                            <div className="flex items-start gap-3">
-                              <div className="p-1.5 rounded-lg text-xs font-bold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 mt-0.5">
-                                PAGADO
-                              </div>
-                              <div>
-                                <h5 className="text-xs font-bold text-foreground">{inv.plan_name}</h5>
-                                <span className="text-[10px] text-muted-foreground">
-                                  {new Date(inv.created_at).toLocaleDateString("es-MX", { day: "numeric", month: "short", year: "numeric" })}
-                                </span>
-                              </div>
-                            </div>
-                            <span className="text-xs font-bold font-mono text-foreground">${inv.amount} {inv.currency}</span>
-                          </div>
-                        ))}
-                      </div>
-                    ) : (
-                      <div className="p-6 text-center text-xs text-muted-foreground">
-                        No hay facturas registradas aún. El Plan Básico es de acceso libre.
-                      </div>
-                    )}
+                  <CardContent className="p-4">
+                    <BillingSubscriptionsTable data={billingRecords} />
                   </CardContent>
                 </Card>
               </div>

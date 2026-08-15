@@ -26,6 +26,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { useQuery } from "@tanstack/react-query";
 import { useConnection } from "@/hooks/use-connection";
 import { createClient } from "@/lib/supabase/client";
 import { toast } from "sonner";
@@ -53,10 +54,8 @@ export interface Candidate {
 }
 
 export function CandidateRadar() {
-  const [candidates, setCandidates] = React.useState<Candidate[]>([]);
   const [searchQuery, setSearchQuery] = React.useState("");
   const [selectedId, setSelectedId] = React.useState<string | null>(null);
-  const [isLoading, setIsLoading] = React.useState(true);
   const [mobileDetailOpen, setMobileDetailOpen] = React.useState(false);
   const [selectedZone, setSelectedZone] = React.useState<string>("all");
   const [companyCity, setCompanyCity] = React.useState<string>("");
@@ -119,11 +118,10 @@ export function CandidateRadar() {
     requestLocation();
   }, [requestLocation]);
 
-  const loadCandidates = React.useCallback(async () => {
-    try {
-      setIsLoading(true);
-
-      // Get company city & zone
+  // TanStack Query for candidate list
+  const { data: candidates = [], isLoading } = useQuery({
+    queryKey: ['candidates', companyCity, selectedZone],
+    queryFn: async () => {
       const { data: { user } } = await supabase.auth.getUser();
       let fetchedCompanyCity = "";
       let fetchedCompanyZone = "";
@@ -153,7 +151,6 @@ export function CandidateRadar() {
         }
       }
 
-      // Fetch candidate profiles directly from profiles & candidate_profiles
       const { data, error } = await supabase
         .from("profiles")
         .select(`
@@ -183,54 +180,47 @@ export function CandidateRadar() {
         throw error;
       }
 
-      if (data && data.length > 0) {
-        const formatted: Candidate[] = data.map((prof: any) => {
-          const cand = Array.isArray(prof.candidate_profiles)
-            ? prof.candidate_profiles[0]
-            : (prof.candidate_profiles || {});
-
-          return {
-            id: prof.id,
-            full_name: prof.full_name || "Profesional K'anPro",
-            headline: cand.headline || "Candidato Registrado",
-            avatar_url: prof.avatar_url || null,
-            location: prof.location || cand.preferred_zone || "Riviera Maya",
-            skills: Array.isArray(cand.skills) ? cand.skills : (cand.skills ? String(cand.skills).split(",") : []),
-            bio: cand.bio || null,
-            experience_summary: cand.bio || "Profesional disponible en la región.",
-            is_validated: Boolean(prof.is_verified),
-            phone: prof.whatsapp_number || null,
-            email: prof.email || null,
-            experience: Array.isArray(cand.experience) ? cand.experience : [],
-            education: Array.isArray(cand.education) ? cand.education : [],
-          };
-        });
-
-        // Filter locally by city if set
-        const filteredByCity = fetchedCompanyCity
-          ? formatted.filter((cand) => cand.location.toLowerCase().includes(fetchedCompanyCity.toLowerCase()))
-          : formatted;
-
-        const finalCandidates = filteredByCity.length > 0 ? filteredByCity : formatted;
-
-        setCandidates(finalCandidates);
-        if (finalCandidates.length > 0) {
-          setSelectedId(finalCandidates[0].id);
-        }
-      } else {
-        setCandidates([]);
-        setSelectedId(null);
+      if (!data || data.length === 0) {
+        return [];
       }
-    } catch (err: any) {
-      console.error("Error loading candidates:", err?.message || err);
-    } finally {
-      setIsLoading(false);
-    }
-  }, [supabase]);
+
+      const formatted: Candidate[] = data.map((prof: any) => {
+        const cand = Array.isArray(prof.candidate_profiles)
+          ? prof.candidate_profiles[0]
+          : (prof.candidate_profiles || {});
+
+        return {
+          id: prof.id,
+          full_name: prof.full_name || "Profesional K'anPro",
+          headline: cand.headline || "Candidato Registrado",
+          avatar_url: prof.avatar_url || null,
+          location: prof.location || cand.preferred_zone || "Riviera Maya",
+          skills: Array.isArray(cand.skills) ? cand.skills : (cand.skills ? String(cand.skills).split(",") : []),
+          bio: cand.bio || null,
+          experience_summary: cand.bio || "Profesional disponible en la región.",
+          is_validated: Boolean(prof.is_verified),
+          phone: prof.whatsapp_number || null,
+          email: prof.email || null,
+          experience: Array.isArray(cand.experience) ? cand.experience : [],
+          education: Array.isArray(cand.education) ? cand.education : [],
+        };
+      });
+
+      const targetCity = fetchedCompanyCity || companyCity;
+      const filteredByCity = targetCity
+        ? formatted.filter((cand) => cand.location.toLowerCase().includes(targetCity.toLowerCase()))
+        : formatted;
+
+      return filteredByCity.length > 0 ? filteredByCity : formatted;
+    },
+    staleTime: 5 * 60 * 1000,
+  });
 
   React.useEffect(() => {
-    loadCandidates();
-  }, [loadCandidates]);
+    if (candidates.length > 0 && (!selectedId || !candidates.some((c) => c.id === selectedId))) {
+      setSelectedId(candidates[0].id);
+    }
+  }, [candidates, selectedId]);
 
   // Selección del candidato activo
   const selectedCandidate = React.useMemo(() => {

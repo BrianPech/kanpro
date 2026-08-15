@@ -54,6 +54,7 @@ export const viewport: Viewport = {
   userScalable: false,
 };
 
+import { QueryProvider } from "@/components/providers/query-provider";
 import { ThemeProvider } from "@/components/theme-provider";
 import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -128,19 +129,21 @@ export default function RootLayout({
             `
           }}
         />
-        <TooltipProvider delayDuration={0}>
-          <ThemeProvider
-            attribute="class"
-            defaultTheme="light"
-            forcedTheme="light"
-            enableSystem={false}
-            disableTransitionOnChange
-          >
-            {children}
-          </ThemeProvider>
-          <WhatsAppSupportWidget />
-          <Toaster richColors theme="system" />
-        </TooltipProvider>
+        <QueryProvider>
+          <TooltipProvider delayDuration={0}>
+            <ThemeProvider
+              attribute="class"
+              defaultTheme="light"
+              forcedTheme="light"
+              enableSystem={false}
+              disableTransitionOnChange
+            >
+              {children}
+            </ThemeProvider>
+            <WhatsAppSupportWidget />
+            <Toaster richColors theme="system" />
+          </TooltipProvider>
+        </QueryProvider>
       </body>
     </html>
   );

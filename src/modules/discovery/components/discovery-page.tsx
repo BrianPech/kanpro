@@ -28,7 +28,7 @@ export function DiscoveryPage({
   candidateId = "",
 }: DiscoveryPageProps) {
   const [candidateProfile, setCandidateProfile] = React.useState<{ location: string | null } | null>(null);
-  const { coordinates: userCoords, requestLocation } = useGeolocation();
+  const { throttledCoordinates: userCoords, requestLocation } = useGeolocation();
 
   React.useEffect(() => {
     requestLocation();

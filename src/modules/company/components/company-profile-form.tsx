@@ -503,6 +503,62 @@ export function CompanyProfileForm({
             </div>
           </div>
 
+          {/* Fiscal Regime and RFC Row */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {/* Fiscal Regime Select */}
+            <div className="space-y-2.5">
+              <label className="block text-[14px] sm:text-[15px] font-extrabold text-[#3e546d] dark:text-zinc-200">
+                Régimen Fiscal / Tipo de Persona *
+              </label>
+              <Select
+                value={watch("fiscal_regime") || "persona_moral"}
+                onValueChange={(val) => {
+                  setValue("fiscal_regime", val as any, { shouldValidate: true });
+                  // Adjust rfc value if necessary or revalidate
+                  const currentRfc = watch("rfc") || "";
+                  if (val === "persona_moral" && currentRfc.length > 12) {
+                    setValue("rfc", currentRfc.substring(0, 12), { shouldValidate: true });
+                  }
+                }}
+              >
+                <SelectTrigger className="w-full h-14 bg-white dark:bg-zinc-900 border border-[#ebeef3] dark:border-zinc-800 rounded-[16px] px-4 text-[15px] sm:text-[16px] font-[600] text-[#1f2732] dark:text-zinc-100 focus:ring-2 focus:ring-[#1f2732] transition-all outline-none shadow-none cursor-pointer">
+                  <SelectValue placeholder="Selecciona Régimen Fiscal" />
+                </SelectTrigger>
+                <SelectContent className="rounded-[16px] border border-[#ebeef3] dark:border-zinc-800 bg-popover text-sm font-semibold">
+                  <SelectItem value="persona_moral">Persona Moral (12 Caracteres)</SelectItem>
+                  <SelectItem value="persona_fisica">Persona Física (13 Caracteres)</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* RFC Input with Dynamic Rules */}
+            <div className="space-y-2.5">
+              <div className="flex items-center justify-between">
+                <label className="block text-[14px] sm:text-[15px] font-extrabold text-[#3e546d] dark:text-zinc-200">
+                  RFC Fiscal
+                </label>
+                <span className="text-[11px] font-bold text-[#5c7c9b]">
+                  {watch("fiscal_regime") === "persona_fisica" ? "13 Caracteres" : "12 Caracteres"}
+                </span>
+              </div>
+              <Input
+                type="text"
+                maxLength={watch("fiscal_regime") === "persona_fisica" ? 13 : 12}
+                placeholder={watch("fiscal_regime") === "persona_fisica" ? "ABCD120315XXX" : "ABC120315XXX"}
+                {...register("rfc")}
+                onChange={(e) => {
+                  setValue("rfc", e.target.value.toUpperCase().trim(), { shouldValidate: true });
+                }}
+                className="w-full h-14 bg-white dark:bg-zinc-900 border border-[#ebeef3] dark:border-zinc-800 rounded-[16px] px-4 text-[15px] sm:text-[16px] font-bold tracking-wider text-[#1f2732] dark:text-zinc-100 uppercase placeholder-[#94a3b8] focus-visible:ring-2 focus-visible:ring-[#1f2732] transition-all outline-none"
+              />
+              {errors.rfc && (
+                <p className="text-xs sm:text-sm font-semibold text-rose-500">
+                  {errors.rfc.message}
+                </p>
+              )}
+            </div>
+          </div>
+
           <div className="h-px bg-[#ebeef3] dark:bg-zinc-800 w-full" />
 
           {/* Social Media & Web Channels */}

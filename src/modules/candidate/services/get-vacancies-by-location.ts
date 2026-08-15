@@ -5,7 +5,11 @@ import type { Job } from "@/modules/discovery/types";
 
 export async function getVacanciesByLocation(
   searchQuery?: string,
-  locationQuery?: string
+  locationQuery?: string,
+  categoryQuery?: string,
+  modalityQuery?: string,
+  page: number = 0,
+  limit: number = 20
 ): Promise<Job[]> {
   const supabase = await createClient();
 
@@ -44,7 +48,19 @@ export async function getVacanciesByLocation(
     query = query.ilike("location", `%${candidateCity}%`);
   }
 
+  if (categoryQuery) {
+    query = query.ilike("category", `%${categoryQuery}%`);
+  }
+
+  if (modalityQuery) {
+    query = query.ilike("modality", `%${modalityQuery}%`);
+  }
+
   query = query.order("created_at", { ascending: false });
+
+  if (limit > 0) {
+    query = query.range(page * limit, (page + 1) * limit - 1);
+  }
 
   const { data: vacancies, error } = await query;
 

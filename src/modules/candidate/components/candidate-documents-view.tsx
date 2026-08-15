@@ -31,6 +31,8 @@ import { Input } from "@/components/ui/input";
 import { createClient } from "@/lib/supabase/client";
 import { candidateProfileService } from "../services/candidate-profile";
 import { candidateDocumentsService, type CandidateDocumentType } from "../services/candidate-documents";
+import { respondDocumentAccessRequest } from "@/modules/company/actions/document-access";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import {
   Dialog,
@@ -119,28 +121,70 @@ export function CandidateDocumentsView() {
     portfolioFile: null
   });
 
-  // Fetch candidate profile and the actual verification records on mount.
+  const queryClient = useQueryClient();
+
+  // Fetch candidate documents with TanStack useQuery
+  const { data: documents = [] } = useQuery({
+    queryKey: ['candidate-documents'],
+    queryFn: async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return [];
+      setUserId(user.id);
+      return await candidateDocumentsService.list(user.id);
+    },
+  });
+
+  // Access requests mutation (approving / revoking access requests)
+  const accessRequestMutation = useMutation({
+    mutationFn: async ({ requestId, status }: { requestId: string; status: "approved" | "rejected" }) => {
+      return await respondDocumentAccessRequest(requestId, status);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['candidate-documents'] });
+      toast.success("Solicitud de acceso a documentos actualizada");
+    },
+    onError: (err: any) => {
+      toast.error(err.message || "Error al actualizar la solicitud");
+    },
+  });
+
+  const handleRespondAccess = (requestId: string, status: "approved" | "rejected") => {
+    accessRequestMutation.mutate({ requestId, status });
+  };
+
+  // Fetch profile details
   React.useEffect(() => {
     async function loadCandidateProfile() {
       try {
         const { data: { user } } = await supabase.auth.getUser();
         if (!user) return;
         setUserId(user.id);
-        const [profile, documents] = await Promise.all([
-          candidateProfileService.getProfile(user.id),
-          candidateDocumentsService.list(user.id),
-        ]);
+        const profile = await candidateProfileService.getProfile(user.id);
         if (profile) {
-          setMandatory((prev) => ({ ...prev, fullName: profile.full_name || prev.fullName, email: profile.email || user.email || prev.email, phone: profile.whatsapp_number || prev.phone, profilePhotoUrl: profile.avatar_url || prev.profilePhotoUrl, curp: profile.curp || prev.curp, birthDate: profile.birth_date || prev.birthDate }));
+          setMandatory((prev) => ({
+            ...prev,
+            fullName: profile.full_name || prev.fullName,
+            email: profile.email || user.email || prev.email,
+            phone: profile.whatsapp_number || prev.phone,
+            profilePhotoUrl: profile.avatar_url || prev.profilePhotoUrl,
+            curp: profile.curp || prev.curp,
+            birthDate: profile.birth_date || prev.birthDate,
+          }));
         }
-        setMandatory((prev) => ({ ...prev, officialIdFile: documents.find((doc) => doc.doc_type === "ine_passport")?.file_name || null }));
-        setOptional((prev) => ({ ...prev, proofAddressFile: documents.find((doc) => doc.doc_type === "proof_of_address")?.file_name || null, cvFile: documents.find((doc) => doc.doc_type === "cv")?.file_name || null }));
       } catch (err) {
         console.error("Error loading candidate profile in documents view:", err);
       }
     }
     loadCandidateProfile();
   }, [supabase]);
+
+  // Sync documents from query data into component state
+  React.useEffect(() => {
+    if (documents) {
+      setMandatory((prev) => ({ ...prev, officialIdFile: documents.find((doc) => doc.doc_type === "ine_passport")?.file_name || null }));
+      setOptional((prev) => ({ ...prev, proofAddressFile: documents.find((doc) => doc.doc_type === "proof_of_address")?.file_name || null, cvFile: documents.find((doc) => doc.doc_type === "cv")?.file_name || null }));
+    }
+  }, [documents]);
 
   // UI Modals
   const [previewFile, setPreviewFile] = useState<{ name: string; type: string } | null>(null);
@@ -200,6 +244,7 @@ export function CandidateDocumentsView() {
     setIsUploading(true);
     try {
       await candidateDocumentsService.upload(userId, typeByField[field], file);
+      queryClient.invalidateQueries({ queryKey: ['candidate-documents'] });
       if (field === "officialIdFile") setMandatory((prev) => ({ ...prev, officialIdFile: file.name }));
       else setOptional((prev) => ({ ...prev, [field]: file.name }));
       toast.success("Documento cargado y enviado a revisión.");

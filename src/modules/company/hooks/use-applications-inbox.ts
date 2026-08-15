@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { companyService } from "../services/company-service";
 import { createClient } from "@/lib/supabase/client";
@@ -43,64 +44,60 @@ export interface Applicant {
   internalNotes?: string;
 }
 
+interface ApplicationsQueryData {
+  vacancies: { id: string; title: string }[];
+  applicants: Applicant[];
+}
+
 export function useApplicationsInbox() {
-  const [applicants, setApplicants] = React.useState<Applicant[]>([]);
-  const [vacancies, setVacancies] = React.useState<{ id: string; title: string }[]>([]);
+  const queryClient = useQueryClient();
   const [selectedVacancyId, setSelectedVacancyId] = React.useState<string>("all");
   const [selectedId, setSelectedId] = React.useState<string | null>(null);
   const [searchQuery, setSearchQuery] = React.useState("");
-  const [isLoading, setIsLoading] = React.useState(true);
   const [userId, setUserId] = React.useState<string>("");
 
   const supabase = React.useMemo(() => createClient(), []);
 
-  // Load vacancies and applications
-  const loadData = React.useCallback(async () => {
-    try {
-      setIsLoading(true);
+  const queryKey = ["company-applications", selectedVacancyId || "all"];
+
+  const { data, isLoading, refetch } = useQuery<ApplicationsQueryData>({
+    queryKey,
+    queryFn: async () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) {
         throw new Error("Usuario no autenticado");
       }
       setUserId(user.id);
 
-      // Fetch vacancies
       const vacList = await companyService.getVacancies(user.id);
-      setVacancies(vacList || []);
-
-      // Fetch applications
       const apps = await companyService.getApplications(user.id);
-      
+
+      let mapped: Applicant[] = [];
       if (apps && apps.length > 0) {
-        // Map database applications to Applicant format
-        const mapped: Applicant[] = apps.map((app: any) => {
+        mapped = apps.map((app: any) => {
           const profile = app.candidate || {};
-          
-          // Parse experience
+
           let experiences: Experience[] = [];
           if (profile.experience && Array.isArray(profile.experience)) {
             experiences = profile.experience as Experience[];
           }
-          
-          // Parse education
+
           let education: Education[] = [];
           if (profile.education && Array.isArray(profile.education)) {
             education = profile.education as Education[];
           }
 
-          // Parse skills
           let skills: string[] = [];
           if (profile.skills) {
             skills = Array.isArray(profile.skills) ? profile.skills : String(profile.skills).split(",");
           }
 
-          // Determine elapsed time
           const appDateStr = app.applied_at || app.created_at;
           const date = appDateStr ? new Date(appDateStr) : new Date();
           const diffMs = Date.now() - date.getTime();
           const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
           const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
-          
+
           let elapsedTime = "Hace poco";
           if (diffDays > 0) {
             elapsedTime = `Hace ${diffDays}d`;
@@ -135,60 +132,82 @@ export function useApplicationsInbox() {
             portfolio: [
               {
                 image: "https://images.unsplash.com/photo-1555066931-4365d14bab8c?w=400&h=400&fit=crop",
-                title: "Código Limpio"
+                title: "Código Limpio",
               },
               {
                 image: "https://images.unsplash.com/photo-1460925895917-afdab827c52f?w=400&h=400&fit=crop",
-                title: "UI Portal"
-              }
-            ]
+                title: "UI Portal",
+              },
+            ],
           };
         });
-        
-        setApplicants(mapped);
-        if (mapped.length > 0) {
-          setSelectedId(mapped[0].id);
-        }
-      } else {
-        setApplicants([]);
-        setSelectedId(null);
       }
-    } catch (error: any) {
-      console.error("Error loading applications details:", error?.message || error);
-      console.error("Error details:", JSON.stringify(error));
-      toast.error("Error al cargar postulaciones");
-    } finally {
-      setIsLoading(false);
-    }
-  }, [supabase]);
 
+      return {
+        vacancies: vacList || [],
+        applicants: mapped,
+      };
+    },
+  });
+
+  const applicants = data?.applicants || [];
+  const vacancies = data?.vacancies || [];
+
+  // Auto-select first applicant if none selected or if selected is missing
   React.useEffect(() => {
-    loadData();
-  }, [loadData]);
+    if (applicants.length > 0 && (!selectedId || !applicants.some((a) => a.id === selectedId))) {
+      setSelectedId(applicants[0].id);
+    }
+  }, [applicants, selectedId]);
 
   // Selected applicant details
   const selectedApplicant = React.useMemo(() => {
     return applicants.find((app) => app.id === selectedId) || null;
   }, [applicants, selectedId]);
 
-  // Update status action
-  const handleUpdateStatus = async (id: string, newStatus: Applicant["status"]) => {
-    try {
+  // Status mutation with optimistic updates
+  const statusMutation = useMutation({
+    mutationFn: async ({ id, newStatus }: { id: string; newStatus: Applicant["status"] }) => {
       if (!id.startsWith("mock-")) {
         await companyService.updateApplicationStatus(id, newStatus);
       }
-      
-      setApplicants((prev) =>
-        prev.map((app) => (app.id === id ? { ...app, status: newStatus } : app))
-      );
+      return { id, newStatus };
+    },
+    onMutate: async ({ id, newStatus }) => {
+      await queryClient.cancelQueries({ queryKey });
 
-      toast.success(`Postulación actualizada: ${newStatus}`, {
-        description: `Se ha marcado la postulación como "${newStatus}".`
-      });
-    } catch (error) {
-      console.error("Error updating application status:", error);
+      const previousData = queryClient.getQueryData<ApplicationsQueryData>(queryKey);
+
+      if (previousData) {
+        queryClient.setQueryData<ApplicationsQueryData>(queryKey, {
+          ...previousData,
+          applicants: previousData.applicants.map((app) =>
+            app.id === id ? { ...app, status: newStatus } : app
+          ),
+        });
+      }
+
+      return { previousData };
+    },
+    onError: (err, variables, context) => {
+      if (context?.previousData) {
+        queryClient.setQueryData(queryKey, context.previousData);
+      }
+      console.error("Error updating application status:", err);
       toast.error("Error al actualizar el estado de la postulación");
-    }
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: ["company-applications"] });
+    },
+    onSuccess: (result, variables) => {
+      toast.success(`Postulación actualizada: ${variables.newStatus}`, {
+        description: `Se ha marcado la postulación como "${variables.newStatus}".`,
+      });
+    },
+  });
+
+  const handleUpdateStatus = async (id: string, newStatus: Applicant["status"]) => {
+    await statusMutation.mutateAsync({ id, newStatus });
   };
 
   // WhatsApp helper
@@ -206,20 +225,18 @@ export function useApplicationsInbox() {
 
       const supabase = createClient();
 
-      // 1. Register the connection to unmask the candidate's phone
       const { error: connError } = await (supabase.from as any)("connections").insert({
         candidate_id: applicant.candidateId,
         recruiter_id: userId,
         vacancy_id: applicant.vacancyId,
-        status: 'contacted',
-        initiated_by: 'recruiter'
+        status: "contacted",
+        initiated_by: "recruiter",
       });
 
       if (connError) {
         console.error("Error creating connection in db:", connError);
       }
 
-      // Fetch company name
       const { data: companyProfile } = await supabase
         .from("company_profiles")
         .select("company_name")
@@ -228,7 +245,6 @@ export function useApplicationsInbox() {
 
       const companyName = companyProfile?.company_name || "Empresa";
 
-      // Trigger candidate contact notification via RPC
       const { error } = await (supabase.rpc as any)("notify_candidate_contact", {
         p_candidate_id: applicant.candidateId,
         p_vacancy_title: applicant.vacancyTitle,
@@ -239,8 +255,7 @@ export function useApplicationsInbox() {
         console.error("Error creating contact notification:", error);
       }
 
-      // 2. Reload the applications so that the phone number gets unmasked in the UI
-      await loadData();
+      queryClient.invalidateQueries({ queryKey: ["company-applications"] });
     } catch (err) {
       console.error("Error executing handleContactApplicant:", err);
     }
@@ -252,9 +267,15 @@ export function useApplicationsInbox() {
       if (typeof window !== "undefined") {
         localStorage.setItem(`kanpro_notes_${id}`, notes);
       }
-      setApplicants((prev) =>
-        prev.map((app) => (app.id === id ? { ...app, internalNotes: notes } : app))
-      );
+      queryClient.setQueryData<ApplicationsQueryData>(queryKey, (old) => {
+        if (!old) return old;
+        return {
+          ...old,
+          applicants: old.applicants.map((app) =>
+            app.id === id ? { ...app, internalNotes: notes } : app
+          ),
+        };
+      });
       toast.success("Nota interna guardada");
     } catch (e) {
       console.error("Error saving internal note:", e);
@@ -266,9 +287,15 @@ export function useApplicationsInbox() {
       if (typeof window !== "undefined") {
         localStorage.setItem(`kanpro_rating_${id}`, String(rating));
       }
-      setApplicants((prev) =>
-        prev.map((app) => (app.id === id ? { ...app, internalRating: rating, rating } : app))
-      );
+      queryClient.setQueryData<ApplicationsQueryData>(queryKey, (old) => {
+        if (!old) return old;
+        return {
+          ...old,
+          applicants: old.applicants.map((app) =>
+            app.id === id ? { ...app, internalRating: rating, rating } : app
+          ),
+        };
+      });
       toast.success(`Puntuación asignada: ${rating} ★`);
     } catch (e) {
       console.error("Error saving rating:", e);
@@ -339,6 +366,6 @@ export function useApplicationsInbox() {
     handleUpdateNotes,
     handleUpdateRating,
     handleExportCSV,
-    reloadData: loadData,
+    reloadData: refetch,
   };
 }

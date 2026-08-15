@@ -46,6 +46,8 @@ export function useCompanyProfileForm(initialProfile: any, userId: string) {
       description: initialProfile?.description || "",
       phone: initialProfile?.phone || "",
       company_size: initialProfile?.company_size || "",
+      fiscal_regime: initialProfile?.fiscal_regime || "persona_moral",
+      rfc: initialProfile?.rfc || "",
       // New fields
       banner_url: initialProfile?.banner_url || "",
       instagram_url: initialProfile?.instagram_url || "",

@@ -344,6 +344,33 @@ export function VacanciesManager({ userId }: { userId: string }) {
       .replace(".", "");
   };
 
+  const handleBatchStatusChange = async (ids: string[], newStatus: "Activa" | "Pausada" | "Cerrada") => {
+    const isActive = newStatus === "Activa";
+    try {
+      for (const id of ids) {
+        await toggleVacancyStatus(id, isActive);
+      }
+      setVacancies((prev) =>
+        prev.map((v) =>
+          ids.includes(v.id)
+            ? { ...v, is_active: isActive, status: newStatus }
+            : v
+        )
+      );
+      toast.success(
+        newStatus === "Pausada"
+          ? `${ids.length} vacantes pausadas con éxito`
+          : newStatus === "Cerrada"
+          ? `${ids.length} vacantes marcadas como cerradas`
+          : `${ids.length} vacantes activadas con éxito`
+      );
+    } catch (err: any) {
+      toast.error("Error al actualizar vacantes seleccionadas", {
+        description: err.message,
+      });
+    }
+  };
+
   const hasActiveFilters = categoryFilter !== "all" || locationFilter !== "all" || statusFilter !== "all" || searchQuery !== "";
 
   return (
@@ -625,6 +652,7 @@ export function VacanciesManager({ userId }: { userId: string }) {
                 <VacanciesTable
                   data={filteredVacancies}
                   onToggleActive={handleToggleActive}
+                  onBatchStatusChange={handleBatchStatusChange}
                   onDeleteVacancy={(id) => setDeletingVacancyId(id)}
                   formatSalary={formatSalary}
                   formatDate={formatDate}
