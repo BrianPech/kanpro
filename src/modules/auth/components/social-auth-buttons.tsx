@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
-import { Loader2 } from "lucide-react";
+import { Loader2, MessageSquare } from "lucide-react";
 import { toast } from "sonner";
 import { authService } from "../services/auth-service";
 import type { UserRole } from "../types/auth.types";
@@ -12,6 +12,7 @@ export interface SocialAuthButtonsProps {
   role?: UserRole;
   redirectTo?: string;
   className?: string;
+  onPhoneClick?: () => void;
 }
 
 function GoogleIcon({ className }: { className?: string }) {
@@ -45,10 +46,19 @@ function LinkedInIcon({ className }: { className?: string }) {
   );
 }
 
+function WhatsAppIcon({ className }: { className?: string }) {
+  return (
+    <svg className={cn("size-4 shrink-0 fill-[#25D366]", className)} viewBox="0 0 24 24">
+      <path d="M12.04 2c-5.46 0-9.91 4.45-9.91 9.91 0 1.75.46 3.45 1.32 4.95L2.05 22l5.25-1.38c1.45.79 3.08 1.21 4.74 1.21 5.46 0 9.91-4.45 9.91-9.91 0-2.65-1.03-5.14-2.9-7.01A9.816 9.816 0 0 0 12.04 2zM12.05 20.21c-1.48 0-2.93-.4-4.2-1.15l-.3-.18-3.12.82.83-3.04-.2-.31a8.196 8.196 0 0 1-1.26-4.44c0-4.54 3.7-8.24 8.25-8.24 2.2 0 4.27.86 5.82 2.42a8.18 8.18 0 0 1 2.41 5.83c.01 4.54-3.68 8.29-8.43 8.29z"/>
+    </svg>
+  );
+}
+
 export function SocialAuthButtons({
   role = "candidate",
   redirectTo,
   className,
+  onPhoneClick,
 }: SocialAuthButtonsProps) {
   const [loadingProvider, setLoadingProvider] = useState<
     "google" | "linkedin_oidc" | null
@@ -77,36 +87,58 @@ export function SocialAuthButtons({
   const isLoading = loadingProvider !== null;
 
   return (
-    <div className={cn("grid grid-cols-1 sm:grid-cols-2 gap-3 w-full", className)}>
+    <div
+      className={cn(
+        "grid gap-2.5 w-full",
+        onPhoneClick ? "grid-cols-3" : "grid-cols-2",
+        className
+      )}
+    >
+      {/* Google Button */}
       <Button
         type="button"
         variant="outline"
         disabled={isLoading}
         onClick={() => handleOAuthSignIn("google")}
-        className="h-11 rounded-xl border-border bg-background hover:bg-muted font-semibold text-xs tracking-wide transition-all shadow-xs flex items-center justify-center gap-2.5 cursor-pointer disabled:opacity-60"
+        className="h-11 px-2.5 rounded-xl border-border bg-background hover:bg-muted font-semibold text-xs tracking-wide transition-all shadow-xs flex items-center justify-center gap-2 cursor-pointer disabled:opacity-60"
       >
         {loadingProvider === "google" ? (
           <Loader2 className="size-4 animate-spin text-muted-foreground" />
         ) : (
           <GoogleIcon />
         )}
-        <span>Google</span>
+        <span className="truncate">Google</span>
       </Button>
 
+      {/* LinkedIn Button */}
       <Button
         type="button"
         variant="outline"
         disabled={isLoading}
         onClick={() => handleOAuthSignIn("linkedin_oidc")}
-        className="h-11 rounded-xl border-border bg-background hover:bg-muted font-semibold text-xs tracking-wide transition-all shadow-xs flex items-center justify-center gap-2.5 cursor-pointer disabled:opacity-60"
+        className="h-11 px-2.5 rounded-xl border-border bg-background hover:bg-muted font-semibold text-xs tracking-wide transition-all shadow-xs flex items-center justify-center gap-2 cursor-pointer disabled:opacity-60"
       >
         {loadingProvider === "linkedin_oidc" ? (
           <Loader2 className="size-4 animate-spin text-muted-foreground" />
         ) : (
           <LinkedInIcon />
         )}
-        <span>LinkedIn</span>
+        <span className="truncate">LinkedIn</span>
       </Button>
+
+      {/* WhatsApp / SMS Button */}
+      {onPhoneClick && (
+        <Button
+          type="button"
+          variant="outline"
+          disabled={isLoading}
+          onClick={onPhoneClick}
+          className="h-11 px-2.5 rounded-xl border-border bg-background hover:bg-muted font-semibold text-xs tracking-wide transition-all shadow-xs flex items-center justify-center gap-1.5 cursor-pointer text-[#1f2732] dark:text-zinc-200 hover:border-[#25D366]/40"
+        >
+          <WhatsAppIcon />
+          <span className="truncate">SMS / WA</span>
+        </Button>
+      )}
     </div>
   );
 }

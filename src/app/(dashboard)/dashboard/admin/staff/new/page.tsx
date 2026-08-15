@@ -1,7 +1,5 @@
-import * as React from "react";
-import { redirect } from "next/navigation";
+import { requireAdmin } from "@/lib/auth/require-admin";
 import Link from "next/link";
-import { createClient } from "@/lib/supabase/server";
 
 import { AppSidebar } from "@/modules/admin/components/app-sidebar";
 import { SiteHeader } from "@/modules/admin/components/site-header";
@@ -11,26 +9,7 @@ import { Button } from "@/components/ui/button";
 import { ArrowLeftIcon, UserPlusIcon } from "lucide-react";
 
 export default async function AdminNewStaffPage() {
-  const supabase = await createClient();
-
-  // 1. Authenticate user securely on the server
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) {
-    redirect("/login");
-  }
-
-  // 2. Fetch admin user profile to verify permissions
-  const { data: adminProfile } = await supabase
-    .from("profiles")
-    .select("role")
-    .eq("id", user.id)
-    .maybeSingle();
-
-  if (!adminProfile || adminProfile.role !== "admin") {
-    redirect("/login");
-  }
+  await requireAdmin();
 
   return (
     <SidebarProvider

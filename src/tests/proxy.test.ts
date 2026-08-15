@@ -61,6 +61,7 @@ describe('updateSession proxy protection', () => {
       select: () => ({
         eq: () => ({
           single: () => Promise.resolve({ data: { role: 'company' } }),
+          maybeSingle: () => Promise.resolve({ data: { role: 'company' } }),
         }),
       }),
     })
@@ -78,6 +79,7 @@ describe('updateSession proxy protection', () => {
       select: () => ({
         eq: () => ({
           single: () => Promise.resolve({ data: { role: 'candidate' } }),
+          maybeSingle: () => Promise.resolve({ data: { role: 'candidate' } }),
         }),
       }),
     })
@@ -95,6 +97,7 @@ describe('updateSession proxy protection', () => {
       select: () => ({
         eq: () => ({
           single: () => Promise.resolve({ data: { role: 'admin' } }),
+          maybeSingle: () => Promise.resolve({ data: { role: 'admin' } }),
         }),
       }),
     })
@@ -111,6 +114,7 @@ describe('updateSession proxy protection', () => {
       select: () => ({
         eq: () => ({
           single: () => Promise.resolve({ data: { role: 'admin' } }),
+          maybeSingle: () => Promise.resolve({ data: { role: 'admin' } }),
         }),
       }),
     })

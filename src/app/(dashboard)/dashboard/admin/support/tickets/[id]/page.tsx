@@ -1,7 +1,6 @@
-import * as React from "react";
+import { requireAdmin } from "@/lib/auth/require-admin";
 import { redirect } from "next/navigation";
 import Link from "next/link";
-import { createClient } from "@/lib/supabase/server";
 
 import { AppSidebar } from "@/modules/admin/components/app-sidebar";
 import { SiteHeader } from "@/modules/admin/components/site-header";
@@ -19,26 +18,7 @@ interface TicketPageProps {
 
 export default async function AdminTicketDetailPage({ params }: TicketPageProps) {
   const { id } = await params;
-  const supabase = await createClient();
-
-  // 1. Authenticate user securely on the server
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) {
-    redirect("/login");
-  }
-
-  // 2. Fetch admin user profile to verify permissions
-  const { data: adminProfile } = await supabase
-    .from("profiles")
-    .select("role")
-    .eq("id", user.id)
-    .maybeSingle();
-
-  if (!adminProfile || adminProfile.role !== "admin") {
-    redirect("/login");
-  }
+  await requireAdmin();
 
   // 3. Fetch ticket data
   const ticket = await getSupportTicketById(id);

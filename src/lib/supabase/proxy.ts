@@ -54,7 +54,9 @@ export async function updateSession(request: NextRequest) {
 
   // Safe pass-through routes to avoid infinite redirect loops
   const isExemptRoute =
-    pathname.startsWith('/verify-email') || pathname.startsWith('/reset-password')
+    pathname.startsWith('/verify-email') ||
+    pathname.startsWith('/reset-password') ||
+    pathname.startsWith('/auth/callback')
 
   if (isExemptRoute) {
     return supabaseResponse
