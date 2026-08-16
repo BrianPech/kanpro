@@ -169,10 +169,8 @@ export function StaffDataTable({ initialData }: StaffDataTableProps) {
       header: ({ table }) => (
         <div className="flex items-center justify-center">
           <Checkbox
-            checked={
-              table.getIsAllPageRowsSelected() ||
-              (table.getIsSomePageRowsSelected() && "indeterminate")
-            }
+            checked={table.getIsAllPageRowsSelected()}
+            indeterminate={table.getIsSomePageRowsSelected() && !table.getIsAllPageRowsSelected()}
             onCheckedChange={(value) => table.toggleAllPageRowsSelected(!!value)}
             aria-label="Seleccionar todo"
           />
@@ -318,15 +316,17 @@ export function StaffDataTable({ initialData }: StaffDataTableProps) {
 
         return (
           <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button
-                variant="ghost"
-                className="flex size-8 text-muted-foreground data-[state=open]:bg-muted"
-                size="icon"
-              >
-                <EllipsisVerticalIcon className="size-4" />
-                <span className="sr-only">Abrir opciones</span>
-              </Button>
+            <DropdownMenuTrigger
+              render={
+                <Button
+                  variant="ghost"
+                  className="flex size-8 text-muted-foreground data-[state=open]:bg-muted"
+                  size="icon"
+                />
+              }
+            >
+              <EllipsisVerticalIcon className="size-4" />
+              <span className="sr-only">Abrir opciones</span>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-48 rounded-xl">
               <DropdownMenuItem
@@ -447,7 +447,7 @@ export function StaffDataTable({ initialData }: StaffDataTableProps) {
         <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4">
           <div className="w-full lg:w-auto">
             <div className="flex @4xl/main:hidden w-full">
-              <Select value={activeTab} onValueChange={handleSubRoleFilter}>
+              <Select value={activeTab} onValueChange={(val) => handleSubRoleFilter(val || "all")}>
                 <SelectTrigger className="flex w-full sm:w-fit h-9 text-xs font-semibold" id="staff-role-selector">
                   <SelectValue placeholder="Filtrar por rol de personal" />
                 </SelectTrigger>
@@ -498,12 +498,14 @@ export function StaffDataTable({ initialData }: StaffDataTableProps) {
             </div>
 
             <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="outline" size="sm" className="h-9 px-3 text-xs font-semibold w-full sm:w-auto">
-                  <Columns3Icon className="size-3.5 mr-1.5" />
-                  Columnas
-                  <ChevronDownIcon className="size-3.5 ml-1.5" />
-                </Button>
+              <DropdownMenuTrigger
+                render={
+                  <Button variant="outline" size="sm" className="h-9 px-3 text-xs font-semibold w-full sm:w-auto" />
+                }
+              >
+                <Columns3Icon className="size-3.5 mr-1.5" />
+                Columnas
+                <ChevronDownIcon className="size-3.5 ml-1.5" />
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-40 rounded-xl">
                 {table
@@ -527,14 +529,12 @@ export function StaffDataTable({ initialData }: StaffDataTableProps) {
             </DropdownMenu>
 
             <Button
-              asChild
+              render={<Link href="/dashboard/admin/staff/new" />}
               size="sm"
               className="h-9 px-3.5 text-xs font-semibold gap-1.5 bg-primary text-primary-foreground hover:bg-primary/90 w-full sm:w-auto"
             >
-              <Link href="/dashboard/admin/staff/new">
-                <UserPlusIcon className="size-3.5" />
-                <span>Dar de Alta Personal</span>
-              </Link>
+              <UserPlusIcon className="size-3.5" />
+              <span>Dar de Alta Personal</span>
             </Button>
           </div>
         </div>

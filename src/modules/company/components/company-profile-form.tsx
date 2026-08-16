@@ -449,12 +449,10 @@ async function compressImageForUpload(
               </div>
             </div>
             <Button
-              asChild
+              render={<Link href="/dashboard/company/verification" />}
               className="h-10 px-5 rounded-[14px] bg-[#1f2732] dark:bg-zinc-100 hover:bg-[#253240] dark:hover:bg-zinc-200 text-white dark:text-zinc-900 text-xs font-bold shrink-0 cursor-pointer shadow-sm"
             >
-              <Link href="/dashboard/company/verification">
-                Ir a Verificación
-              </Link>
+              Ir a Verificación
             </Button>
           </div>
         )}
@@ -597,7 +595,7 @@ async function compressImageForUpload(
               <Select
                 value={watch("industry") || ""}
                 onValueChange={(value) =>
-                  setValue("industry", value, { shouldValidate: true })
+                  setValue("industry", value || "", { shouldValidate: true })
                 }
               >
                 <SelectTrigger className="w-full h-14 bg-white dark:bg-zinc-900 border border-[#ebeef3] dark:border-zinc-800 rounded-[16px] px-4 text-[15px] sm:text-[16px] font-[600] text-[#1f2732] dark:text-zinc-100 focus:ring-2 focus:ring-[#1f2732] transition-all outline-none shadow-none cursor-pointer">
@@ -642,7 +640,7 @@ async function compressImageForUpload(
               </label>
               <Select
                 value={watch("company_size") || ""}
-                onValueChange={(value) => setValue("company_size", value)}
+                onValueChange={(value) => setValue("company_size", value || undefined)}
               >
                 <SelectTrigger className="w-full h-14 bg-white dark:bg-zinc-900 border border-[#ebeef3] dark:border-zinc-800 rounded-[16px] px-4 text-[15px] sm:text-[16px] font-[600] text-[#1f2732] dark:text-zinc-100 focus:ring-2 focus:ring-[#1f2732] transition-all outline-none shadow-none cursor-pointer">
                   <SelectValue placeholder="Selecciona el tamaño" />

@@ -293,11 +293,9 @@ export function CompanyEmployeesView({ userId, initialEmployees }: CompanyEmploy
           </div>
 
           {/* Primary Action Button */}
-          <Button asChild className="h-11 rounded-[16px] bg-[#1f2732] dark:bg-zinc-100 hover:bg-[#253240] dark:hover:bg-zinc-200 text-white dark:text-zinc-900 font-bold text-xs sm:text-sm px-5 shrink-0 shadow-xs cursor-pointer">
-            <Link href="/dashboard/company/applications">
-              <Users className="size-4 mr-2" />
-              <span>Bandeja de Postulantes</span>
-            </Link>
+          <Button render={<Link href="/dashboard/company/applications" />} className="h-11 rounded-[16px] bg-[#1f2732] dark:bg-zinc-100 hover:bg-[#253240] dark:hover:bg-zinc-200 text-white dark:text-zinc-900 font-bold text-xs sm:text-sm px-5 shrink-0 shadow-xs cursor-pointer">
+            <Users className="size-4 mr-2" />
+            <span>Bandeja de Postulantes</span>
           </Button>
         </div>
 
@@ -446,26 +444,26 @@ export function CompanyEmployeesView({ userId, initialEmployees }: CompanyEmploy
                         <div className="flex items-center justify-end gap-2">
                           {whatsappUrl && (
                             <Button
-                              asChild
+                              render={<a href={whatsappUrl} target="_blank" rel="noopener noreferrer" />}
                               size="sm"
                               className="h-9 px-3 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs inline-flex items-center gap-1.5 shadow-xs cursor-pointer"
                             >
-                              <a href={whatsappUrl} target="_blank" rel="noopener noreferrer">
-                                <MessageCircle className="size-4" />
-                                <span>WhatsApp</span>
-                              </a>
+                              <MessageCircle className="size-4" />
+                              <span>WhatsApp</span>
                             </Button>
                           )}
 
                           <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                className="h-9 w-9 p-0 rounded-xl border border-border bg-background hover:bg-muted text-muted-foreground"
-                              >
-                                <MoreHorizontal className="size-4" />
-                              </Button>
+                            <DropdownMenuTrigger
+                              render={
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="h-9 w-9 p-0 rounded-xl border border-border bg-background hover:bg-muted text-muted-foreground"
+                                />
+                              }
+                            >
+                              <MoreHorizontal className="size-4" />
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end" className="rounded-2xl border border-border bg-popover min-w-[190px] p-1.5 shadow-lg">
                               <DropdownMenuItem
@@ -586,7 +584,7 @@ export function CompanyEmployeesView({ userId, initialEmployees }: CompanyEmploy
           <div className="space-y-4 py-2">
             <div className="space-y-1.5">
               <Label className="text-xs font-bold">Motivo de Desvinculación *</Label>
-              <Select value={terminationReason} onValueChange={setTerminationReason}>
+              <Select value={terminationReason} onValueChange={(val) => setTerminationReason(val || "")}>
                 <SelectTrigger className="h-11 rounded-xl text-xs font-semibold">
                   <SelectValue placeholder="Selecciona un motivo" />
                 </SelectTrigger>

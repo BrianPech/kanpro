@@ -193,7 +193,7 @@ export function FormLocationSelector({
           </Label>
           <Select
             value={currentCity}
-            onValueChange={handleCityChange}
+            onValueChange={(newCity) => handleCityChange(newCity || "")}
             disabled={disabled}
           >
             <SelectTrigger className="w-full h-11 bg-slate-50 dark:bg-zinc-950/40 border border-border/60 rounded-xl px-4 text-xs font-semibold">
@@ -216,7 +216,7 @@ export function FormLocationSelector({
           </Label>
           <Select
             value={currentZone}
-            onValueChange={handleZoneChange}
+            onValueChange={(newZone) => handleZoneChange(newZone || "")}
             disabled={disabled || !currentCity}
           >
             <SelectTrigger className="w-full h-11 bg-slate-50 dark:bg-zinc-950/40 border border-border/60 rounded-xl px-4 text-xs font-semibold">

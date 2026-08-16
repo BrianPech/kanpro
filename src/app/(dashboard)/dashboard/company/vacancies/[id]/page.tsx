@@ -207,12 +207,10 @@ export default function VacancyDetailPage({ params }: PageProps) {
           </p>
         </div>
         <Button
-          asChild
+          render={<Link href="/dashboard/company/vacancies" />}
           className="rounded-xl px-6 h-11 bg-fiord-950 hover:bg-fiord-900 dark:bg-fiord-50 dark:hover:bg-fiord-100 text-white dark:text-fiord-950 font-bold text-xs uppercase tracking-wider"
         >
-          <Link href="/dashboard/company/vacancies">
-            Volver a vacantes
-          </Link>
+          Volver a vacantes
         </Button>
       </div>
     );
@@ -223,39 +221,37 @@ export default function VacancyDetailPage({ params }: PageProps) {
       {/* Top Header Control Toolbar */}
       <div className="flex items-center justify-between gap-4 max-w-6xl mx-auto px-2">
         <Button
-          asChild
           variant="ghost"
+          render={<Link href="/dashboard/company/vacancies" />}
           className="text-xs font-bold text-fiord-600 dark:text-fiord-400 hover:text-fiord-950 dark:hover:text-fiord-50 hover:bg-fiord-100/60 gap-2 px-3.5 h-10 rounded-xl border border-fiord-100 dark:border-fiord-800 bg-white dark:bg-fiord-950 shadow-xs"
         >
-          <Link href="/dashboard/company/vacancies">
-            <ChevronLeft className="size-4" />
-            Volver a vacantes
-          </Link>
+          <ChevronLeft className="size-4" />
+          Volver a vacantes
         </Button>
 
         <div className="flex items-center gap-3">
           <Button
-            asChild
             variant="outline"
+            render={<Link href={`/dashboard/company/vacancies/${vacancy.id}/edit`} />}
             className="h-10 px-4 rounded-xl border-fiord-200 dark:border-fiord-800 text-fiord-900 dark:text-fiord-100 bg-white dark:bg-fiord-900/30 hover:bg-fiord-50 font-bold text-xs gap-2 shadow-xs"
           >
-            <Link href={`/dashboard/company/vacancies/${vacancy.id}/edit`}>
-              <Edit2 className="size-3.5 text-blue-600 dark:text-blue-400" />
-              Editar Vacante
-            </Link>
+            <Edit2 className="size-3.5 text-blue-600 dark:text-blue-400" />
+            Editar Vacante
           </Button>
 
           <AlertDialog>
-            <AlertDialogTrigger asChild>
-              <Button
-                variant="outline"
-                size="icon"
-                disabled={deleting}
-                className="h-10 w-10 rounded-xl border-red-200/70 text-red-600 hover:bg-red-50 dark:border-red-900/50 dark:text-red-400 shrink-0"
-                title="Eliminar vacante"
-              >
-                <Trash2 className="size-4" />
-              </Button>
+            <AlertDialogTrigger
+              render={
+                <Button
+                  variant="outline"
+                  size="icon"
+                  disabled={deleting}
+                  className="h-10 w-10 rounded-xl border-red-200/70 text-red-600 hover:bg-red-50 dark:border-red-900/50 dark:text-red-400 shrink-0"
+                  title="Eliminar vacante"
+                />
+              }
+            >
+              <Trash2 className="size-4" />
             </AlertDialogTrigger>
             <AlertDialogContent className="rounded-2xl bg-white dark:bg-fiord-950 border-fiord-200 dark:border-fiord-800">
               <AlertDialogHeader>

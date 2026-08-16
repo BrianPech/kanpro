@@ -546,13 +546,11 @@ export function VacancyPreview({
               </div>
 
               <Button
-                asChild
+                render={<Link href="/dashboard/company/vacancies" />}
                 variant="ghost"
                 className="w-full h-10 rounded-xl text-xs font-bold text-fiord-700 dark:text-fiord-300 hover:bg-fiord-50 dark:hover:bg-fiord-900/40 border border-fiord-100 dark:border-fiord-800 mt-2"
               >
-                <Link href="/dashboard/company/vacancies">
-                  Ver todas las vacantes
-                </Link>
+                Ver todas las vacantes
               </Button>
             </Card>
           )}

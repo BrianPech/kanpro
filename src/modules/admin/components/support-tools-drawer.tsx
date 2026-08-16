@@ -152,7 +152,7 @@ export function SupportToolsDrawer({ open, onOpenChange }: SupportToolsDrawerPro
   };
 
   return (
-    <Drawer direction={isMobile ? "bottom" : "right"} open={open} onOpenChange={onOpenChange}>
+    <Drawer swipeDirection={isMobile ? "down" : "right"} open={open} onOpenChange={onOpenChange}>
       <DrawerContent className="rounded-t-2xl md:rounded-l-2xl p-6 max-w-xl ml-auto h-full overflow-y-auto">
         <DrawerHeader className="gap-1.5 px-0 pt-0">
           <DrawerTitle className="flex items-center gap-2 text-primary font-bold text-lg">
@@ -379,10 +379,12 @@ export function SupportToolsDrawer({ open, onOpenChange }: SupportToolsDrawerPro
         </div>
 
         <DrawerFooter className="px-0 pt-4">
-          <DrawerClose asChild>
-            <Button variant="outline" className="h-9 font-semibold text-xs w-full">
-              Cerrar Herramientas
-            </Button>
+          <DrawerClose
+            render={
+              <Button variant="outline" className="h-9 font-semibold text-xs w-full" />
+            }
+          >
+            Cerrar Herramientas
           </DrawerClose>
         </DrawerFooter>
       </DrawerContent>

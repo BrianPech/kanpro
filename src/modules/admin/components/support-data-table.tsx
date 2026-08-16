@@ -173,10 +173,8 @@ export function SupportDataTable({ initialData }: SupportDataTableProps) {
       header: ({ table }) => (
         <div className="flex items-center justify-center">
           <Checkbox
-            checked={
-              table.getIsAllPageRowsSelected() ||
-              (table.getIsSomePageRowsSelected() && "indeterminate")
-            }
+            checked={table.getIsAllPageRowsSelected()}
+            indeterminate={table.getIsSomePageRowsSelected() && !table.getIsAllPageRowsSelected()}
             onCheckedChange={(value) => table.toggleAllPageRowsSelected(!!value)}
             aria-label="Seleccionar todo"
           />
@@ -295,25 +293,25 @@ export function SupportDataTable({ initialData }: SupportDataTableProps) {
 
         return (
           <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button
-                variant="ghost"
-                className="flex size-8 text-muted-foreground data-[state=open]:bg-muted"
-                size="icon"
-              >
-                <EllipsisVerticalIcon className="size-4" />
-                <span className="sr-only">Abrir opciones</span>
-              </Button>
+            <DropdownMenuTrigger
+              render={
+                <Button
+                  variant="ghost"
+                  className="flex size-8 text-muted-foreground data-[state=open]:bg-muted"
+                  size="icon"
+                />
+              }
+            >
+              <EllipsisVerticalIcon className="size-4" />
+              <span className="sr-only">Abrir opciones</span>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-48 rounded-xl">
               <DropdownMenuItem
-                asChild
+                render={<Link href={`/dashboard/admin/support/tickets/${ticket.id}`} />}
                 className="text-xs font-medium cursor-pointer gap-2"
               >
-                <Link href={`/dashboard/admin/support/tickets/${ticket.id}`}>
-                  <MessageSquareIcon className="size-3.5 text-purple-500" />
-                  <span>Atender / Ver Detalle</span>
-                </Link>
+                <MessageSquareIcon className="size-3.5 text-purple-500" />
+                <span>Atender / Ver Detalle</span>
               </DropdownMenuItem>
               <DropdownMenuSeparator />
               {ticket.status !== "en_proceso" && (
@@ -419,7 +417,7 @@ export function SupportDataTable({ initialData }: SupportDataTableProps) {
         <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4">
           <div className="w-full lg:w-auto">
             <div className="flex @4xl/main:hidden w-full">
-              <Select value={activeStatusTab} onValueChange={handleStatusFilter}>
+              <Select value={activeStatusTab} onValueChange={(val) => handleStatusFilter(val || "all")}>
                 <SelectTrigger className="flex w-full sm:w-fit h-9 text-xs font-semibold" id="ticket-status-selector">
                   <SelectValue placeholder="Filtrar por estado" />
                 </SelectTrigger>
@@ -466,12 +464,14 @@ export function SupportDataTable({ initialData }: SupportDataTableProps) {
             </div>
 
             <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="outline" size="sm" className="h-9 px-3 text-xs font-semibold w-full sm:w-auto">
-                  <Columns3Icon className="size-3.5 mr-1.5" />
-                  Columnas
-                  <ChevronDownIcon className="size-3.5 ml-1.5" />
-                </Button>
+              <DropdownMenuTrigger
+                render={
+                  <Button variant="outline" size="sm" className="h-9 px-3 text-xs font-semibold w-full sm:w-auto" />
+                }
+              >
+                <Columns3Icon className="size-3.5 mr-1.5" />
+                Columnas
+                <ChevronDownIcon className="size-3.5 ml-1.5" />
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-40 rounded-xl">
                 {table

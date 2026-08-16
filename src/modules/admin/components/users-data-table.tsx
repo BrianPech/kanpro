@@ -154,10 +154,8 @@ const columns: ColumnDef<UserItem>[] = [
     header: ({ table }) => (
       <div className="flex items-center justify-center">
         <Checkbox
-          checked={
-            table.getIsAllPageRowsSelected() ||
-            (table.getIsSomePageRowsSelected() && "indeterminate")
-          }
+          checked={table.getIsAllPageRowsSelected()}
+          indeterminate={table.getIsSomePageRowsSelected() && !table.getIsAllPageRowsSelected()}
           onCheckedChange={(value) => table.toggleAllPageRowsSelected(!!value)}
           aria-label="Seleccionar todo"
         />
@@ -250,15 +248,17 @@ const columns: ColumnDef<UserItem>[] = [
     id: "actions",
     cell: ({ row }) => (
       <DropdownMenu>
-        <DropdownMenuTrigger asChild>
-          <Button
-            variant="ghost"
-            className="flex size-8 text-muted-foreground data-[state=open]:bg-muted"
-            size="icon"
-          >
-            <EllipsisVerticalIcon className="size-4" />
-            <span className="sr-only">Abrir opciones</span>
-          </Button>
+        <DropdownMenuTrigger
+          render={
+            <Button
+              variant="ghost"
+              className="flex size-8 text-muted-foreground data-[state=open]:bg-muted"
+              size="icon"
+            />
+          }
+        >
+          <EllipsisVerticalIcon className="size-4" />
+          <span className="sr-only">Abrir opciones</span>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end" className="w-52 rounded-xl">
           <DropdownMenuItem
@@ -409,7 +409,7 @@ export function UsersDataTable({ data: initialData }: { data: UserItem[] }) {
         <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4">
           <div className="w-full lg:w-auto">
             <div className="flex @4xl/main:hidden w-full">
-              <Select value={activeRoleTab} onValueChange={handleRoleFilter}>
+              <Select value={activeRoleTab} onValueChange={(val) => handleRoleFilter(val || "all")}>
                 <SelectTrigger
                   className="flex w-full sm:w-fit h-9 text-xs font-semibold"
                   id="role-selector"
@@ -461,12 +461,14 @@ export function UsersDataTable({ data: initialData }: { data: UserItem[] }) {
 
             {/* Column Selector */}
             <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="outline" size="sm" className="h-9 px-3 text-xs font-semibold w-full sm:w-auto">
-                  <Columns3Icon className="size-3.5 mr-1.5" />
-                  Columnas
-                  <ChevronDownIcon className="size-3.5 ml-1.5" />
-                </Button>
+              <DropdownMenuTrigger
+                render={
+                  <Button variant="outline" size="sm" className="h-9 px-3 text-xs font-semibold w-full sm:w-auto" />
+                }
+              >
+                <Columns3Icon className="size-3.5 mr-1.5" />
+                Columnas
+                <ChevronDownIcon className="size-3.5 ml-1.5" />
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-40 rounded-xl">
                 {table
@@ -644,20 +646,22 @@ function UserCellViewer({ user }: { user: UserItem }) {
   const initials = getInitials(user.name)
 
   return (
-    <Drawer direction={isMobile ? "bottom" : "right"}>
-      <DrawerTrigger asChild>
-        <Button variant="link" className="w-fit p-0 h-auto text-left font-semibold text-sm text-foreground hover:text-primary gap-2.5">
-          <Avatar className="h-8 w-8 rounded-full border border-border/20 shrink-0">
-            <AvatarImage src={user.avatar} alt={user.name} />
-            <AvatarFallback className="bg-primary/10 text-primary font-bold text-xs">
-              {initials}
-            </AvatarFallback>
-          </Avatar>
-          <div className="flex flex-col text-left">
-            <span className="font-semibold text-sm leading-tight text-foreground">{user.name}</span>
-            <span className="text-xs text-muted-foreground font-normal">{user.email}</span>
-          </div>
-        </Button>
+    <Drawer swipeDirection={isMobile ? "down" : "right"}>
+      <DrawerTrigger
+        render={
+          <Button variant="link" className="w-fit p-0 h-auto text-left font-semibold text-sm text-foreground hover:text-primary gap-2.5" />
+        }
+      >
+        <Avatar className="h-8 w-8 rounded-full border border-border/20 shrink-0">
+          <AvatarImage src={user.avatar} alt={user.name} />
+          <AvatarFallback className="bg-primary/10 text-primary font-bold text-xs">
+            {initials}
+          </AvatarFallback>
+        </Avatar>
+        <div className="flex flex-col text-left">
+          <span className="font-semibold text-sm leading-tight text-foreground">{user.name}</span>
+          <span className="text-xs text-muted-foreground font-normal">{user.email}</span>
+        </div>
       </DrawerTrigger>
       <DrawerContent className="rounded-t-2xl md:rounded-l-2xl p-6">
         <DrawerHeader className="gap-2 px-0 pt-0">
@@ -728,8 +732,12 @@ function UserCellViewer({ user }: { user: UserItem }) {
           >
             Guardar Cambios
           </Button>
-          <DrawerClose asChild>
-            <Button variant="outline" className="h-10 px-4 font-semibold text-xs">Cerrar</Button>
+          <DrawerClose
+            render={
+              <Button variant="outline" className="h-10 px-4 font-semibold text-xs" />
+            }
+          >
+            Cerrar
           </DrawerClose>
         </DrawerFooter>
       </DrawerContent>

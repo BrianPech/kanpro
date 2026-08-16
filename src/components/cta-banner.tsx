@@ -97,21 +97,17 @@ export function CtaBanner() {
           <div className="flex flex-col sm:flex-row gap-3.5 pt-2">
             <Button 
               className="h-12 px-6 rounded-full bg-primary hover:bg-primary/95 text-primary-foreground font-semibold text-sm tracking-[0.24px] transition-all duration-200 border-none shadow-lg shadow-primary/25 flex items-center justify-center gap-2 group cursor-pointer" 
-              asChild
+              render={<Link href="/register/company" />}
             >
-              <Link href="/register/company">
-                Publicar Vacante Gratis
-                <ArrowRight className="size-4 transition-transform group-hover:translate-x-1" />
-              </Link>
+              Publicar Vacante Gratis
+              <ArrowRight className="size-4 transition-transform group-hover:translate-x-1" />
             </Button>
             <Button 
               variant="outline"
               className="h-12 px-6 rounded-full border border-border hover:bg-muted text-foreground font-semibold text-sm tracking-[0.24px] transition-all duration-200 cursor-pointer" 
-              asChild
+              render={<Link href="/discovery" />}
             >
-              <Link href="/discovery">
-                Explorar Candidatos
-              </Link>
+              Explorar Candidatos
             </Button>
           </div>
         </div>

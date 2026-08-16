@@ -95,10 +95,8 @@ export function VacanciesTable({
         header: ({ table }) => (
           <div className="px-1 flex items-center">
             <Checkbox
-              checked={
-                table.getIsAllPageRowsSelected() ||
-                (table.getIsSomePageRowsSelected() && "indeterminate")
-              }
+              checked={table.getIsAllPageRowsSelected()}
+              indeterminate={table.getIsSomePageRowsSelected() && !table.getIsAllPageRowsSelected()}
               onCheckedChange={(value) => table.toggleAllPageRowsSelected(!!value)}
               aria-label="Seleccionar todas las vacantes"
               className="cursor-pointer"
@@ -339,27 +337,31 @@ export function VacanciesTable({
           return (
             <div className="text-right py-1">
               <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-9 w-9 p-0 rounded-[12px] border border-[#d2dbe5] dark:border-zinc-800 bg-white dark:bg-zinc-900 hover:bg-[#f5f7fa] dark:hover:bg-zinc-800 transition-all cursor-pointer shadow-xs"
-                  >
-                    <MoreHorizontal className="h-4 w-4 text-[#5c7c9b]" />
-                  </Button>
+                <DropdownMenuTrigger
+                  render={
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-9 w-9 p-0 rounded-[12px] border border-[#d2dbe5] dark:border-zinc-800 bg-white dark:bg-zinc-900 hover:bg-[#f5f7fa] dark:hover:bg-zinc-800 transition-all cursor-pointer shadow-xs"
+                    />
+                  }
+                >
+                  <MoreHorizontal className="h-4 w-4 text-[#5c7c9b]" />
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end" className="rounded-[18px] border border-[#ebeef3] dark:border-zinc-800 bg-popover min-w-[170px] shadow-lg p-2">
-                  <DropdownMenuItem asChild className="cursor-pointer text-xs sm:text-sm font-bold text-[#1f2732] dark:text-zinc-200 rounded-[12px] hover:bg-muted py-3 px-3 gap-3">
-                    <Link href={`/dashboard/company/vacancies/${vacancy.id}`}>
-                      <Eye className="size-4 text-[#5c7c9b]" />
-                      <span>Ver detalles</span>
-                    </Link>
+                  <DropdownMenuItem
+                    render={<Link href={`/dashboard/company/vacancies/${vacancy.id}`} />}
+                    className="cursor-pointer text-xs sm:text-sm font-bold text-[#1f2732] dark:text-zinc-200 rounded-[12px] hover:bg-muted py-3 px-3 gap-3"
+                  >
+                    <Eye className="size-4 text-[#5c7c9b]" />
+                    <span>Ver detalles</span>
                   </DropdownMenuItem>
-                  <DropdownMenuItem asChild className="cursor-pointer text-xs sm:text-sm font-bold text-[#1f2732] dark:text-zinc-200 rounded-[12px] hover:bg-muted py-3 px-3 gap-3">
-                    <Link href={`/dashboard/company/vacancies/${vacancy.id}/edit`}>
-                      <Edit2 className="size-4 text-[#5c7c9b]" />
-                      <span>Editar</span>
-                    </Link>
+                  <DropdownMenuItem
+                    render={<Link href={`/dashboard/company/vacancies/${vacancy.id}/edit`} />}
+                    className="cursor-pointer text-xs sm:text-sm font-bold text-[#1f2732] dark:text-zinc-200 rounded-[12px] hover:bg-muted py-3 px-3 gap-3"
+                  >
+                    <Edit2 className="size-4 text-[#5c7c9b]" />
+                    <span>Editar</span>
                   </DropdownMenuItem>
                   {onCloneVacancy && (
                     <DropdownMenuItem

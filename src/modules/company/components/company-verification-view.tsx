@@ -452,7 +452,11 @@ export function CompanyVerificationView({
             </Label>
             <Select
               value={fiscalRegime}
-              onValueChange={(val: "persona_moral" | "persona_fisica") => setFiscalRegime(val)}
+              onValueChange={(val) => {
+                if (val === "persona_moral" || val === "persona_fisica") {
+                  setFiscalRegime(val);
+                }
+              }}
               disabled={isReadOnly}
             >
               <SelectTrigger className="h-12 bg-background border-border/40 rounded-[14px] px-4 text-sm font-semibold">
@@ -538,7 +542,7 @@ export function CompanyVerificationView({
             <Label className="text-xs sm:text-sm font-extrabold text-foreground">
               7. Giro o Actividad Económica *
             </Label>
-            <Select value={industry} onValueChange={setIndustry} disabled={isReadOnly}>
+            <Select value={industry} onValueChange={(val) => setIndustry(val || "")} disabled={isReadOnly}>
               <SelectTrigger className="h-12 bg-background border-border/40 rounded-[14px] px-4 text-sm font-semibold">
                 <SelectValue placeholder="Selecciona el sector" />
               </SelectTrigger>

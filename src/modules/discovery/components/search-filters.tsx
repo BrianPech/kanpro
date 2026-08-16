@@ -107,7 +107,7 @@ export function SearchFilters({
       <div className="flex flex-wrap items-center gap-3 w-full md:w-auto shrink-0 justify-start md:justify-end">
         {/* Sector / Industria */}
         <div className="flex flex-col gap-1 min-w-[130px] flex-1 md:flex-initial">
-          <Select value={category || "todos"} onValueChange={(val) => onCategoryChange(val === "todos" ? "" : val)}>
+          <Select value={category || "todos"} onValueChange={(val) => onCategoryChange(!val || val === "todos" ? "" : val)}>
             <SelectTrigger className={cn(
               "h-10 px-3 py-2 text-xs font-semibold rounded-xl border border-border/60 bg-white/60 dark:bg-zinc-800/40 hover:bg-white dark:hover:bg-zinc-800 transition-all duration-200 w-full md:w-[150px]",
               category
@@ -133,7 +133,7 @@ export function SearchFilters({
 
         {/* Modalidad */}
         <div className="flex flex-col gap-1 min-w-[130px] flex-1 md:flex-initial">
-          <Select value={modality || "todos"} onValueChange={(val) => onModalityChange(val === "todos" ? "" : val)}>
+          <Select value={modality || "todos"} onValueChange={(val) => onModalityChange(!val || val === "todos" ? "" : val)}>
             <SelectTrigger className={cn(
               "h-10 px-3 py-2 text-xs font-semibold rounded-xl border border-border/60 bg-white/60 dark:bg-zinc-800/40 hover:bg-white dark:hover:bg-zinc-800 transition-all duration-200 w-full md:w-[140px]",
               modality

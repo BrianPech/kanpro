@@ -429,12 +429,10 @@ export function VacanciesManager({ userId }: { userId: string }) {
             </div>
           </div>
           <Button
-            asChild
+            render={<Link href="/dashboard/company/profile" />}
             className="w-full sm:w-fit h-12 rounded-[16px] bg-amber-600 hover:bg-amber-700 text-white font-extrabold text-xs sm:text-sm uppercase tracking-wider shrink-0 border-none cursor-pointer px-6 shadow-sm"
           >
-            <Link href="/dashboard/company/profile">
-              Completar Perfil
-            </Link>
+            Completar Perfil
           </Button>
         </Alert>
       )}
@@ -454,13 +452,11 @@ export function VacanciesManager({ userId }: { userId: string }) {
             </div>
           </div>
           <Button
-            asChild
+            render={<Link href="/dashboard/company/settings" />}
             variant="outline"
             className="h-9 px-4 rounded-[12px] border-amber-600/40 text-amber-900 dark:text-amber-200 hover:bg-amber-500/20 text-xs font-bold shrink-0 cursor-pointer"
           >
-            <Link href="/dashboard/company/settings">
-              Ver Ajustes
-            </Link>
+            Ver Ajustes
           </Button>
         </Alert>
       )}
@@ -553,7 +549,7 @@ export function VacanciesManager({ userId }: { userId: string }) {
           {/* Filter 1: Category with shadcnui Select */}
           <div className="space-y-2">
             <label className="text-xs font-extrabold uppercase tracking-wider text-[#5c7c9b] dark:text-zinc-400">Categoría</label>
-            <Select value={categoryFilter} onValueChange={setCategoryFilter}>
+            <Select value={categoryFilter} onValueChange={(val) => setCategoryFilter(val || "all")}>
               <SelectTrigger className="w-full h-12 rounded-[16px] border border-[#d2dbe5] dark:border-zinc-800 bg-[#f5f7fa]/60 dark:bg-zinc-900/40 text-xs sm:text-sm font-semibold text-[#1f2732] dark:text-zinc-100 cursor-pointer px-4">
                 <SelectValue placeholder="Todas las categorías" />
               </SelectTrigger>
@@ -573,7 +569,7 @@ export function VacanciesManager({ userId }: { userId: string }) {
           {/* Filter 2: Location / Zone with shadcnui Select */}
           <div className="space-y-2">
             <label className="text-xs font-extrabold uppercase tracking-wider text-[#5c7c9b] dark:text-zinc-400">Zona / Ubicación</label>
-            <Select value={locationFilter} onValueChange={setLocationFilter}>
+            <Select value={locationFilter} onValueChange={(val) => setLocationFilter(val || "all")}>
               <SelectTrigger className="w-full h-12 rounded-[16px] border border-[#d2dbe5] dark:border-zinc-800 bg-[#f5f7fa]/60 dark:bg-zinc-900/40 text-xs sm:text-sm font-semibold text-[#1f2732] dark:text-zinc-100 cursor-pointer px-4">
                 <SelectValue placeholder="Todas las zonas" />
               </SelectTrigger>
@@ -710,23 +706,27 @@ export function VacanciesManager({ userId }: { userId: string }) {
                         </div>
                         
                         <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <button className="text-[#5c7c9b] hover:text-[#1f2732] dark:hover:text-zinc-100 p-2 cursor-pointer rounded-xl hover:bg-[#f5f7fa] dark:hover:bg-zinc-800">
-                              <MoreHorizontal className="size-5" />
-                            </button>
+                          <DropdownMenuTrigger
+                            render={
+                              <button className="text-[#5c7c9b] hover:text-[#1f2732] dark:hover:text-zinc-100 p-2 cursor-pointer rounded-xl hover:bg-[#f5f7fa] dark:hover:bg-zinc-800" />
+                            }
+                          >
+                            <MoreHorizontal className="size-5" />
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="end" className="rounded-[18px] border border-[#ebeef3] dark:border-zinc-800 bg-popover min-w-[170px] shadow-lg p-2">
-                            <DropdownMenuItem asChild className="cursor-pointer text-xs sm:text-sm font-bold text-[#1f2732] dark:text-zinc-200 rounded-[12px] hover:bg-muted py-3 px-3 gap-3">
-                              <Link href={`/dashboard/company/vacancies/${vacancy.id}`}>
-                                <Eye className="size-4 text-[#5c7c9b]" />
-                                <span>Ver detalles</span>
-                              </Link>
+                            <DropdownMenuItem
+                              render={<Link href={`/dashboard/company/vacancies/${vacancy.id}`} />}
+                              className="cursor-pointer text-xs sm:text-sm font-bold text-[#1f2732] dark:text-zinc-200 rounded-[12px] hover:bg-muted py-3 px-3 gap-3"
+                            >
+                              <Eye className="size-4 text-[#5c7c9b]" />
+                              <span>Ver detalles</span>
                             </DropdownMenuItem>
-                            <DropdownMenuItem asChild className="cursor-pointer text-xs sm:text-sm font-bold text-[#1f2732] dark:text-zinc-200 rounded-[12px] hover:bg-muted py-3 px-3 gap-3">
-                              <Link href={`/dashboard/company/vacancies/${vacancy.id}/edit`}>
-                                <Edit2 className="size-4 text-[#5c7c9b]" />
-                                <span>Editar</span>
-                              </Link>
+                            <DropdownMenuItem
+                              render={<Link href={`/dashboard/company/vacancies/${vacancy.id}/edit`} />}
+                              className="cursor-pointer text-xs sm:text-sm font-bold text-[#1f2732] dark:text-zinc-200 rounded-[12px] hover:bg-muted py-3 px-3 gap-3"
+                            >
+                              <Edit2 className="size-4 text-[#5c7c9b]" />
+                              <span>Editar</span>
                             </DropdownMenuItem>
                             <DropdownMenuItem
                               onSelect={() => handleCloneVacancy(vacancy.id)}

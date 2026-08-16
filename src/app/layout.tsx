@@ -3,7 +3,7 @@ import { Geist, Geist_Mono, Inter, Manrope } from "next/font/google";
 import "./globals.css";
 import { cn } from "@/lib/utils";
 
-const manrope = Manrope({ subsets: ['latin'], variable: '--font-sans' });
+const inter = Inter({subsets:['latin'],variable:'--font-sans'});
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -69,7 +69,7 @@ export default function RootLayout({
     <html
       lang="es"
       suppressHydrationWarning
-      className={cn("h-full", "antialiased", geistSans.variable, geistMono.variable, "font-sans", manrope.variable)}
+      className={cn("h-full", "antialiased", geistSans.variable, geistMono.variable, "font-sans", inter.variable)}
     >
       <body className="min-h-full flex flex-col" suppressHydrationWarning>
         <script
@@ -130,7 +130,7 @@ export default function RootLayout({
           }}
         />
         <QueryProvider>
-          <TooltipProvider delayDuration={0}>
+          <TooltipProvider>
             <ThemeProvider
               attribute="class"
               defaultTheme="light"

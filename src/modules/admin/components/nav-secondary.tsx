@@ -81,7 +81,7 @@ export function NavSecondary({
               return (
                 <SidebarMenuItem key={item.title}>
                   <SidebarMenuButton
-                    asChild
+                    render={<Link href={item.url} />}
                     isActive={isActive}
                     className={cn(
                       "h-9.5 rounded-lg px-3 gap-2.5 text-sm font-semibold hover:bg-muted",
@@ -89,10 +89,8 @@ export function NavSecondary({
                         "bg-primary/10 text-primary font-bold hover:bg-primary/15 hover:text-primary dark:bg-primary/20"
                     )}
                   >
-                    <Link href={item.url}>
-                      {item.icon}
-                      <span>{item.title}</span>
-                    </Link>
+                    {item.icon}
+                    <span>{item.title}</span>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
               )
@@ -113,4 +111,3 @@ export function NavSecondary({
     </>
   )
 }
-

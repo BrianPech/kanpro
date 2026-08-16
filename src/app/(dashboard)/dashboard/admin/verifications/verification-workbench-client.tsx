@@ -481,19 +481,19 @@ export function VerificationWorkbenchClient({
 
               <div className="flex items-center gap-2 pr-6">
                 <Button
-                  asChild
+                  render={
+                    <a
+                      href={`https://wa.me/${inspectCompany.contactPhone.replace(/[^0-9]/g, "")}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                    />
+                  }
                   variant="outline"
                   size="sm"
                   className="h-8 text-xs font-semibold gap-1.5 rounded-lg border-emerald-500/30 text-emerald-600 hover:bg-emerald-500/10"
                 >
-                  <a
-                    href={`https://wa.me/${inspectCompany.contactPhone.replace(/[^0-9]/g, "")}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                  >
-                    <PhoneIcon className="size-3.5" />
-                    <span>WhatsApp Directo</span>
-                  </a>
+                  <PhoneIcon className="size-3.5" />
+                  <span>WhatsApp Directo</span>
                 </Button>
               </div>
             </DialogHeader>
@@ -903,19 +903,19 @@ export function VerificationWorkbenchClient({
               <div className="flex items-center gap-2 pr-6">
                 {inspectCandidate.cedulaProfesional && (
                   <Button
-                    asChild
+                    render={
+                      <a
+                        href="https://cedulaprofesional.sep.gob.mx/"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                      />
+                    }
                     variant="outline"
                     size="sm"
                     className="h-8 text-xs font-semibold gap-1.5 rounded-lg border-purple-500/30 text-purple-600"
                   >
-                    <a
-                      href="https://cedulaprofesional.sep.gob.mx/"
-                      target="_blank"
-                      rel="noopener noreferrer"
-                    >
-                      <ExternalLinkIcon className="size-3.5" />
-                      <span>Validar Cédula SEP</span>
-                    </a>
+                    <ExternalLinkIcon className="size-3.5" />
+                    <span>Consultar SEP</span>
                   </Button>
                 )}
               </div>
@@ -1167,15 +1167,13 @@ export function VerificationWorkbenchClient({
 
               <div className="flex items-center gap-2 pr-6">
                 <Button
-                  asChild
+                  render={<a href={activeDocPreview.url} target="_blank" rel="noopener noreferrer" download />}
                   variant="outline"
                   size="sm"
                   className="h-8 text-xs font-semibold gap-1.5 rounded-lg"
                 >
-                  <a href={activeDocPreview.url} target="_blank" rel="noopener noreferrer" download>
-                    <DownloadIcon className="size-3.5 text-purple-600" />
-                    <span>Descargar Archivo</span>
-                  </a>
+                  <DownloadIcon className="size-3.5 text-purple-600" />
+                  <span>Descargar Archivo</span>
                 </Button>
               </div>
             </DialogHeader>

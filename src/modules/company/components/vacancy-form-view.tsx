@@ -615,13 +615,11 @@ export function VacancyFormView({ userId, vacancyId }: VacancyFormViewProps) {
         <div className="flex items-center gap-3">
           <Button
             variant="ghost"
-            asChild
+            render={<Link href="/dashboard/company/vacancies" />}
             className="rounded-xl border border-fiord-100/80 dark:border-fiord-800/80 bg-white dark:bg-fiord-900/10 hover:bg-fiord-50 dark:hover:bg-fiord-900/40 text-xs sm:text-sm font-bold flex items-center gap-2 px-4 h-10"
           >
-            <Link href="/dashboard/company/vacancies">
-              <ArrowLeft className="size-4 text-fiord-700 dark:text-fiord-350" />
-              <span>Volver a Vacantes</span>
-            </Link>
+            <ArrowLeft className="size-4 text-fiord-700 dark:text-fiord-350" />
+            <span>Volver a Vacantes</span>
           </Button>
         </div>
 
@@ -689,10 +687,10 @@ export function VacancyFormView({ userId, vacancyId }: VacancyFormViewProps) {
             </div>
           </div>
           <Button
-            asChild
+            render={<Link href="/dashboard/company/profile" />}
             className="w-full sm:w-fit h-10 rounded-xl bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs uppercase tracking-wider shrink-0 border-none"
           >
-            <Link href="/dashboard/company/profile">Completar Perfil</Link>
+            Completar Perfil
           </Button>
         </div>
       )}
@@ -745,7 +743,7 @@ export function VacancyFormView({ userId, vacancyId }: VacancyFormViewProps) {
               </Label>
               <Select
                 value={watch("category")}
-                onValueChange={(val) => setValue("category", val)}
+                onValueChange={(val) => setValue("category", val || "")}
                 disabled={isProfileIncomplete}
               >
                 <SelectTrigger id="category" className="w-full h-12 rounded-xl text-xs font-semibold border-fiord-100 dark:border-fiord-800 bg-fiord-50/20 dark:bg-fiord-950/20 text-fiord-900 dark:text-fiord-100 focus:ring-1 focus:ring-fiord-300 dark:focus:ring-fiord-700 transition-all px-4">
@@ -1080,10 +1078,10 @@ export function VacancyFormView({ userId, vacancyId }: VacancyFormViewProps) {
           <Button
             type="button"
             variant="ghost"
-            asChild
+            render={<Link href="/dashboard/company/vacancies" />}
             className="h-12 rounded-xl px-6 text-xs font-bold text-fiord-600 dark:text-fiord-400 hover:text-fiord-950 dark:hover:text-fiord-50"
           >
-            <Link href="/dashboard/company/vacancies">Cancelar</Link>
+            Cancelar
           </Button>
 
           <Button

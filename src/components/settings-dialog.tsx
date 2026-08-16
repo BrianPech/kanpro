@@ -57,7 +57,7 @@ import {
 export interface SettingsDialogProps {
   open?: boolean
   onOpenChange?: (open: boolean) => void
-  trigger?: React.ReactNode
+  trigger?: React.ReactElement
   defaultCategory?: string
 }
 
@@ -148,7 +148,7 @@ export function SettingsDialog({
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      {trigger && <DialogTrigger asChild>{trigger}</DialogTrigger>}
+      {trigger && <DialogTrigger render={trigger} />}
       <DialogContent className="overflow-hidden p-0 w-full sm:max-w-[840px] md:max-w-[920px] lg:max-w-[980px] h-[620px] max-h-[85vh] gap-0 border-border/40 shadow-2xl rounded-2xl">
         <DialogTitle className="sr-only">Configuración K'anPro</DialogTitle>
         <DialogDescription className="sr-only">

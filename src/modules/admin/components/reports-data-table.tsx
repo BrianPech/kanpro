@@ -285,10 +285,12 @@ export function ReportsDataTable({ data, onRefresh }: ReportsDataTableProps) {
 
               {/* Dropdown Menu */}
               <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" size="icon" className="h-8 w-8">
-                    <MoreHorizontalIcon className="size-4" />
-                  </Button>
+                <DropdownMenuTrigger
+                  render={
+                    <Button variant="ghost" size="icon" className="h-8 w-8" />
+                  }
+                >
+                  <MoreHorizontalIcon className="size-4" />
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end" className="w-52 rounded-xl">
                   <DropdownMenuLabel className="text-xs">Acciones de Moderación</DropdownMenuLabel>
