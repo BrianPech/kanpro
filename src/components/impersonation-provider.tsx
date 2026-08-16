@@ -6,7 +6,9 @@ interface ImpersonationProviderProps {
   children: React.ReactNode;
 }
 
-export async function ImpersonationProvider({ children }: ImpersonationProviderProps) {
+export async function ImpersonationProvider({
+  children,
+}: ImpersonationProviderProps) {
   const impersonationState = await getImpersonationState();
 
   return (

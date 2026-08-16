@@ -31,7 +31,6 @@ import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { cn } from "@/lib/utils";
 import { toggleGlobalRecruitment, updateContactChannel } from "@/modules/company/actions/settings";
 import { BillingSubscriptionsTable, type BillingRecord } from "./billing-subscriptions-table";
@@ -85,6 +84,39 @@ interface CompanySettingsViewProps {
   initialInvoices?: Invoice[];
 }
 
+const SETTING_SECTIONS = [
+  {
+    id: "system-preferences",
+    label: "Preferencias del Sistema",
+    icon: Sun,
+    description: "Tema visual y apariencia",
+  },
+  {
+    id: "security-access",
+    label: "Seguridad y Acceso",
+    icon: Key,
+    description: "Contraseña, correo y 2FA",
+  },
+  {
+    id: "recruitment-controls",
+    label: "Control de Reclutamiento",
+    icon: Briefcase,
+    description: "Pausa de vacantes y canales",
+  },
+  {
+    id: "subscription-billing",
+    label: "Suscripción y Facturación",
+    icon: CreditCard,
+    description: "Plan activo y comprobantes",
+  },
+  {
+    id: "company-privacy",
+    label: "Empresa y Privacidad",
+    icon: Building2,
+    description: "Expediente y zona de peligro",
+  },
+];
+
 export function CompanySettingsView({
   user,
   initialProfile,
@@ -94,6 +126,7 @@ export function CompanySettingsView({
   const { theme, setTheme } = useTheme();
   const [mounted, setMounted] = React.useState(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = React.useState(false);
+  const [activeSection, setActiveSection] = React.useState("system-preferences");
 
   // Recruitment controls
   const [pauseGlobal, setPauseGlobal] = React.useState(initialPauseState);
@@ -110,6 +143,38 @@ export function CompanySettingsView({
       if (waPref !== null) setNotifyWhatsapp(waPref === "true");
     }
   }, []);
+
+  // IntersectionObserver to auto-update active section on scroll
+  React.useEffect(() => {
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            setActiveSection(entry.target.id);
+          }
+        });
+      },
+      {
+        rootMargin: "-20% 0px -60% 0px",
+        threshold: 0.1,
+      }
+    );
+
+    SETTING_SECTIONS.forEach((sec) => {
+      const el = document.getElementById(sec.id);
+      if (el) observer.observe(el);
+    });
+
+    return () => observer.disconnect();
+  }, []);
+
+  const scrollToSection = (id: string) => {
+    setActiveSection(id);
+    const el = document.getElementById(id);
+    if (el) {
+      el.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+  };
 
   // Handle Pause Global Recruitment
   const handleTogglePause = async (checked: boolean) => {
@@ -180,135 +245,177 @@ export function CompanySettingsView({
   }, [initialInvoices]);
 
   return (
-    <div className="space-y-8 max-w-5xl mx-auto pb-12 font-sans animate-in fade-in duration-500">
+    <div className="space-y-8 max-w-6xl mx-auto pb-16 font-sans animate-in fade-in duration-300">
       
       {/* Header */}
-      <div className="flex flex-col gap-2">
+      <div className="flex flex-col gap-2 pb-4 border-b border-border/40">
         <div className="flex items-center gap-3 flex-wrap">
-          <h1 className="text-3xl font-bold tracking-tight text-foreground">
+          <h1 className="text-2xl sm:text-3xl font-[800] tracking-tight text-foreground">
             Configuración y Seguridad
           </h1>
           <Badge variant="outline" className="bg-primary/10 text-primary border-primary/20 font-bold px-3 py-0.5 rounded-full text-xs">
             {initialProfile.company_name}
           </Badge>
         </div>
-        <p className="text-muted-foreground text-sm leading-relaxed max-w-2xl">
-          Administra la seguridad de tu acceso corporativo, autenticación de dos pasos, canales de reclutamiento, alertas y facturación.
+        <p className="text-muted-foreground text-xs sm:text-sm leading-relaxed max-w-2xl font-medium">
+          Administra la apariencia, seguridad de acceso corporativo, canales de reclutamiento, alertas y facturación en un solo lugar.
         </p>
       </div>
 
-      <Tabs defaultValue="security" className="space-y-6">
-        <TabsList className="grid grid-cols-4 w-full max-w-xl bg-muted/60 p-1 rounded-xl">
-          <TabsTrigger value="security" className="rounded-lg text-xs font-semibold gap-1.5">
-            <Key className="size-3.5" />
-            Seguridad
-          </TabsTrigger>
-          <TabsTrigger value="recruitment" className="rounded-lg text-xs font-semibold gap-1.5">
-            <Briefcase className="size-3.5" />
-            Reclutamiento
-          </TabsTrigger>
-          <TabsTrigger value="subscription" className="rounded-lg text-xs font-semibold gap-1.5">
-            <CreditCard className="size-3.5" />
-            Suscripción
-          </TabsTrigger>
-          <TabsTrigger value="company" className="rounded-lg text-xs font-semibold gap-1.5">
-            <Building2 className="size-3.5" />
-            Empresa
-          </TabsTrigger>
-        </TabsList>
+      {/* Main Container: Sticky Quick Navigation + Continuous Column */}
+      <div className="flex flex-col lg:flex-row gap-8 items-start">
+        
+        {/* Quick Nav Vertical Index (Sticky on Desktop, Horizontal Pills on Mobile) */}
+        <div className="w-full lg:w-64 shrink-0 sticky top-4 lg:top-24 z-20 bg-background/90 backdrop-blur-md rounded-2xl border border-border/40 p-2 shadow-xs">
+          <div className="hidden lg:block px-3 py-2 text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
+            Secciones de Ajustes
+          </div>
+          <nav className="flex lg:flex-col gap-1 overflow-x-auto lg:overflow-x-visible hide-scrollbar p-1 lg:p-0">
+            {SETTING_SECTIONS.map((sec) => {
+              const isSecActive = activeSection === sec.id;
+              const Icon = sec.icon;
+              return (
+                <button
+                  key={sec.id}
+                  type="button"
+                  onClick={() => scrollToSection(sec.id)}
+                  className={cn(
+                    "flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl text-xs font-bold transition-all text-left cursor-pointer whitespace-nowrap lg:whitespace-normal shrink-0 lg:shrink",
+                    isSecActive
+                      ? "bg-[#1f2732] dark:bg-zinc-100 text-white dark:text-zinc-900 shadow-xs"
+                      : "text-muted-foreground hover:text-foreground hover:bg-muted/60"
+                  )}
+                >
+                  <Icon className="size-4 shrink-0" />
+                  <span className="truncate">{sec.label}</span>
+                </button>
+              );
+            })}
+          </nav>
+        </div>
 
-        {/* ========================================================= */}
-        {/* TAB 1: SEGURIDAD                                          */}
-        {/* ========================================================= */}
-        <TabsContent value="security" className="space-y-4">
-          <ChangePasswordForm />
-          <ChangeEmailForm />
-          <TwoFactorSetup />
-          <ActiveSessionsCard />
-
-          {/* Theme & Appearance */}
-          <Card className="rounded-2xl border-border/40 shadow-xs">
-            <CardHeader className="pb-3">
-              <div className="flex items-center gap-3">
-                <div className="p-2.5 bg-indigo-500/10 rounded-xl text-indigo-600 dark:text-indigo-400">
-                  <Sun className="size-5" />
-                </div>
-                <div>
-                  <CardTitle className="text-base font-bold">Tema Visual de la Interfaz</CardTitle>
-                  <CardDescription className="text-xs">
-                    Selecciona el modo visual para el panel administrativo.
-                  </CardDescription>
-                </div>
-              </div>
-            </CardHeader>
-            <CardContent className="pt-2">
-              {mounted && (
-                <div className="grid grid-cols-3 gap-3 max-w-md">
-                  <button
-                    type="button"
-                    onClick={() => setTheme("light")}
-                    className={cn(
-                      "flex flex-col items-center justify-center p-3 rounded-xl border text-xs font-semibold gap-2 transition-all cursor-pointer",
-                      theme === "light"
-                        ? "border-primary bg-primary/10 text-primary font-bold shadow-2xs"
-                        : "border-border/40 hover:bg-muted text-muted-foreground"
-                    )}
-                  >
-                    <Sun className="size-4" />
-                    <span>Claro</span>
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setTheme("dark")}
-                    className={cn(
-                      "flex flex-col items-center justify-center p-3 rounded-xl border text-xs font-semibold gap-2 transition-all cursor-pointer",
-                      theme === "dark"
-                        ? "border-primary bg-primary/10 text-primary font-bold shadow-2xs"
-                        : "border-border/40 hover:bg-muted text-muted-foreground"
-                    )}
-                  >
-                    <Moon className="size-4" />
-                    <span>Oscuro</span>
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setTheme("system")}
-                    className={cn(
-                      "flex flex-col items-center justify-center p-3 rounded-xl border text-xs font-semibold gap-2 transition-all cursor-pointer",
-                      theme === "system"
-                        ? "border-primary bg-primary/10 text-primary font-bold shadow-2xs"
-                        : "border-border/40 hover:bg-muted text-muted-foreground"
-                    )}
-                  >
-                    <Laptop className="size-4" />
-                    <span>Sistema</span>
-                  </button>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        {/* ========================================================= */}
-        {/* TAB 2: RECLUTAMIENTO                                      */}
-        {/* ========================================================= */}
-        <TabsContent value="recruitment" className="space-y-6">
-          {/* Pausa Global de Reclutamiento */}
-          <Card className="rounded-2xl border-border/40 shadow-xs">
-            <CardHeader>
-              <div className="flex items-center justify-between gap-4">
+        {/* Continuous Single Column with All Sections */}
+        <div className="flex-1 w-full space-y-10 min-w-0">
+          
+          {/* ========================================================= */}
+          {/* 1. PREFERENCIAS DEL SISTEMA                               */}
+          {/* ========================================================= */}
+          <section id="system-preferences" className="scroll-mt-6 space-y-4">
+            <Card className="rounded-[24px] border border-border/40 bg-card shadow-xs">
+              <CardHeader className="pb-3">
                 <div className="flex items-center gap-3">
+                  <div className="size-10 rounded-2xl bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 flex items-center justify-center shrink-0">
+                    <Sun className="size-5" />
+                  </div>
+                  <div>
+                    <CardTitle className="text-base font-extrabold text-foreground">
+                      Preferencias del Sistema & Tema Visual
+                    </CardTitle>
+                    <CardDescription className="text-xs text-muted-foreground font-semibold mt-0.5">
+                      Personaliza la apariencia del panel de administración corporativo.
+                    </CardDescription>
+                  </div>
+                </div>
+              </CardHeader>
+              <CardContent className="pt-2">
+                {mounted && (
+                  <div className="grid grid-cols-3 gap-3 max-w-md">
+                    <button
+                      type="button"
+                      onClick={() => setTheme("light")}
+                      className={cn(
+                        "flex flex-col items-center justify-center p-3.5 rounded-xl border text-xs font-bold gap-2 transition-all cursor-pointer",
+                        theme === "light"
+                          ? "border-[#1f2732] dark:border-zinc-100 bg-[#1f2732]/5 dark:bg-zinc-100/10 text-foreground shadow-2xs"
+                          : "border-border/40 hover:bg-muted/50 text-muted-foreground"
+                      )}
+                    >
+                      <Sun className="size-4.5" />
+                      <span>Claro</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setTheme("dark")}
+                      className={cn(
+                        "flex flex-col items-center justify-center p-3.5 rounded-xl border text-xs font-bold gap-2 transition-all cursor-pointer",
+                        theme === "dark"
+                          ? "border-[#1f2732] dark:border-zinc-100 bg-[#1f2732]/5 dark:bg-zinc-100/10 text-foreground shadow-2xs"
+                          : "border-border/40 hover:bg-muted/50 text-muted-foreground"
+                      )}
+                    >
+                      <Moon className="size-4.5" />
+                      <span>Oscuro</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setTheme("system")}
+                      className={cn(
+                        "flex flex-col items-center justify-center p-3.5 rounded-xl border text-xs font-bold gap-2 transition-all cursor-pointer",
+                        theme === "system"
+                          ? "border-[#1f2732] dark:border-zinc-100 bg-[#1f2732]/5 dark:bg-zinc-100/10 text-foreground shadow-2xs"
+                          : "border-border/40 hover:bg-muted/50 text-muted-foreground"
+                      )}
+                    >
+                      <Laptop className="size-4.5" />
+                      <span>Sistema</span>
+                    </button>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </section>
+
+          {/* ========================================================= */}
+          {/* 2. SEGURIDAD Y ACCESO (COLUMNA COMPACTA)                   */}
+          {/* ========================================================= */}
+          <section id="security-access" className="scroll-mt-6 space-y-4">
+            <div className="pb-1">
+              <h2 className="text-lg font-extrabold text-foreground flex items-center gap-2">
+                <Key className="size-5 text-[#5c7c9b]" />
+                Seguridad y Acceso de la Cuenta
+              </h2>
+              <p className="text-xs text-muted-foreground font-semibold mt-0.5">
+                Contraseñas de acceso, verificación de identidad en 2 pasos y sesiones activas.
+              </p>
+            </div>
+
+            <ChangePasswordForm />
+            <ChangeEmailForm />
+            <TwoFactorSetup />
+            <ActiveSessionsCard />
+          </section>
+
+          {/* ========================================================= */}
+          {/* 3. CONTROL DE RECLUTAMIENTO                               */}
+          {/* ========================================================= */}
+          <section id="recruitment-controls" className="scroll-mt-6 space-y-4">
+            <div className="pb-1">
+              <h2 className="text-lg font-extrabold text-foreground flex items-center gap-2">
+                <Briefcase className="size-5 text-[#5c7c9b]" />
+                Control de Reclutamiento & Alertas
+              </h2>
+              <p className="text-xs text-muted-foreground font-semibold mt-0.5">
+                Pausa de vacantes, vías de contacto con candidatos y configuración de alertas.
+              </p>
+            </div>
+
+            {/* Pausa Global de Reclutamiento */}
+            <Card className="rounded-[24px] border border-border/40 bg-card shadow-xs p-6 space-y-4">
+              <div className="flex items-center justify-between gap-4">
+                <div className="flex items-start gap-3.5">
                   <div className={cn(
-                    "p-2.5 rounded-xl text-white shrink-0 transition-colors",
+                    "p-2.5 rounded-2xl text-white mt-0.5 shrink-0 transition-colors",
                     pauseGlobal ? "bg-amber-500" : "bg-emerald-600"
                   )}>
                     <ShieldCheck className="size-5" />
                   </div>
-                  <div>
-                    <CardTitle className="text-base font-bold">Pausa Global de Reclutamiento</CardTitle>
-                    <CardDescription className="text-xs">
-                      Oculta instantáneamente todas las vacantes de tu empresa del feed público.
-                    </CardDescription>
+                  <div className="space-y-0.5">
+                    <h3 className="text-base font-extrabold text-foreground">
+                      Pausar Reclutamiento Temporalmente
+                    </h3>
+                    <p className="text-xs text-muted-foreground font-semibold leading-relaxed max-w-xl">
+                      Al activarlo, todas las vacantes de tu empresa se ocultan instantáneamente del feed público de candidatos.
+                    </p>
                   </div>
                 </div>
                 <Switch
@@ -316,58 +423,56 @@ export function CompanySettingsView({
                   onCheckedChange={handleTogglePause}
                 />
               </div>
-            </CardHeader>
-            {pauseGlobal && (
-              <CardContent className="pt-0">
-                <div className="flex items-start gap-2.5 p-3.5 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-800 dark:text-amber-300 text-xs font-semibold">
-                  <AlertCircle className="size-4 mt-0.5 shrink-0" />
+
+              {pauseGlobal && (
+                <div className="flex items-start gap-2.5 p-4 rounded-2xl bg-amber-500/10 border border-amber-500/20 text-amber-800 dark:text-amber-300 text-xs font-semibold animate-in slide-in-from-top-2 duration-300">
+                  <AlertCircle className="size-4.5 mt-0.5 shrink-0" />
                   <div>
-                    <span className="font-bold">Efecto Inmediato:</span> Tus ofertas de empleo están pausadas. Ningún candidato podrá postularse hasta que reactives este control.
+                    <span className="font-extrabold">Efecto Inmediato:</span> Tus ofertas de empleo están pausadas. Ningún candidato podrá postularse hasta que reactives este control.
                   </div>
                 </div>
-              </CardContent>
-            )}
-          </Card>
+              )}
+            </Card>
 
-          {/* Canal de Contacto Preferido */}
-          <Card className="rounded-2xl border-border/40 shadow-xs">
-            <CardHeader>
-              <div className="flex items-center gap-3">
-                <div className="p-2.5 bg-emerald-500/10 rounded-xl text-emerald-600 dark:text-emerald-400">
+            {/* Canal de Contacto Preferido */}
+            <Card className="rounded-[24px] border border-border/40 bg-card shadow-xs p-6 space-y-4">
+              <div className="flex items-center gap-3 pb-2 border-b border-border/40">
+                <div className="size-10 rounded-2xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0">
                   <MessageCircle className="size-5" />
                 </div>
                 <div>
-                  <CardTitle className="text-base font-bold">Canal de Contacto Principal</CardTitle>
-                  <CardDescription className="text-xs">
-                    Elige cómo prefieres que los candidatos se comuniquen con tu equipo.
-                  </CardDescription>
+                  <h3 className="text-base font-extrabold text-foreground">
+                    Canal de Contacto Principal con Candidatos
+                  </h3>
+                  <p className="text-xs text-muted-foreground font-semibold mt-0.5">
+                    Elige cómo prefieres que los candidatos se comuniquen con tu equipo de recursos humanos.
+                  </p>
                 </div>
               </div>
-            </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5 pt-1">
                 {/* WhatsApp Directo */}
                 <div
                   onClick={() => handleContactChannelChange("whatsapp")}
                   className={cn(
-                    "flex flex-col justify-between p-4 rounded-xl border cursor-pointer transition-all duration-200 select-none",
+                    "flex flex-col justify-between p-4.5 rounded-2xl border cursor-pointer transition-all select-none space-y-3",
                     contactChannel === "whatsapp"
-                      ? "border-emerald-600 dark:border-emerald-500 bg-emerald-50/60 dark:bg-emerald-950/30 shadow-xs"
-                      : "border-border/40 hover:border-border bg-card"
+                      ? "border-emerald-600 dark:border-emerald-500 bg-emerald-50/60 dark:bg-emerald-950/30 shadow-xs ring-1 ring-emerald-500/20"
+                      : "border-border/40 hover:border-border bg-background"
                   )}
                 >
-                  <div className="flex justify-between items-center mb-3">
-                    <div className="p-2 rounded-lg bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">
-                      <MessageCircle className="size-4" />
+                  <div className="flex justify-between items-center">
+                    <div className="p-2 rounded-xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">
+                      <MessageCircle className="size-4.5" />
                     </div>
                     {contactChannel === "whatsapp" && (
-                      <Check className="size-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
+                      <Check className="size-4.5 text-emerald-600 dark:text-emerald-400 shrink-0 font-bold" />
                     )}
                   </div>
                   <div>
-                    <h4 className="text-xs font-bold text-foreground">WhatsApp Directo</h4>
-                    <p className="text-[11px] text-muted-foreground mt-1 leading-normal">
-                      Conexión exprés directa al número de WhatsApp corporativo.
+                    <h4 className="text-xs sm:text-sm font-extrabold text-foreground">WhatsApp Directo</h4>
+                    <p className="text-[11px] text-muted-foreground font-medium mt-1 leading-normal">
+                      Conexión exprés directa al WhatsApp corporativo.
                     </p>
                   </div>
                 </div>
@@ -376,237 +481,256 @@ export function CompanySettingsView({
                 <div
                   onClick={() => handleContactChannelChange("phone")}
                   className={cn(
-                    "flex flex-col justify-between p-4 rounded-xl border cursor-pointer transition-all duration-200 select-none",
+                    "flex flex-col justify-between p-4.5 rounded-2xl border cursor-pointer transition-all select-none space-y-3",
                     contactChannel === "phone"
-                      ? "border-primary bg-primary/10 shadow-xs"
-                      : "border-border/40 hover:border-border bg-card"
+                      ? "border-[#1f2732] dark:border-zinc-100 bg-[#1f2732]/5 dark:bg-zinc-100/10 shadow-xs ring-1 ring-foreground/20"
+                      : "border-border/40 hover:border-border bg-background"
                   )}
                 >
-                  <div className="flex justify-between items-center mb-3">
-                    <div className="p-2 rounded-lg bg-primary/10 text-primary">
-                      <Phone className="size-4" />
+                  <div className="flex justify-between items-center">
+                    <div className="p-2 rounded-xl bg-primary/10 text-primary">
+                      <Phone className="size-4.5" />
                     </div>
                     {contactChannel === "phone" && (
-                      <Check className="size-4 text-primary shrink-0" />
+                      <Check className="size-4.5 text-primary shrink-0 font-bold" />
                     )}
                   </div>
                   <div>
-                    <h4 className="text-xs font-bold text-foreground">Llamada Telefónica</h4>
-                    <p className="text-[11px] text-muted-foreground mt-1 leading-normal">
-                      Contacto telefónico directo para entrevistas y filtros.
+                    <h4 className="text-xs sm:text-sm font-extrabold text-foreground">Llamada Telefónica</h4>
+                    <p className="text-[11px] text-muted-foreground font-medium mt-1 leading-normal">
+                      Contacto telefónico para entrevistas y filtros directos.
                     </p>
                   </div>
                 </div>
 
-                {/* Inbox K'anPro */}
+                {/* Bandeja K'anPro */}
                 <div
                   onClick={() => handleContactChannelChange("inbox")}
                   className={cn(
-                    "flex flex-col justify-between p-4 rounded-xl border cursor-pointer transition-all duration-200 select-none",
+                    "flex flex-col justify-between p-4.5 rounded-2xl border cursor-pointer transition-all select-none space-y-3",
                     contactChannel === "inbox"
-                      ? "border-primary bg-primary/10 shadow-xs"
-                      : "border-border/40 hover:border-border bg-card"
+                      ? "border-[#1f2732] dark:border-zinc-100 bg-[#1f2732]/5 dark:bg-zinc-100/10 shadow-xs ring-1 ring-foreground/20"
+                      : "border-border/40 hover:border-border bg-background"
                   )}
                 >
-                  <div className="flex justify-between items-center mb-3">
-                    <div className="p-2 rounded-lg bg-primary/10 text-primary">
-                      <MessageSquare className="size-4" />
+                  <div className="flex justify-between items-center">
+                    <div className="p-2 rounded-xl bg-primary/10 text-primary">
+                      <MessageSquare className="size-4.5" />
                     </div>
                     {contactChannel === "inbox" && (
-                      <Check className="size-4 text-primary shrink-0" />
+                      <Check className="size-4.5 text-primary shrink-0 font-bold" />
                     )}
                   </div>
                   <div>
-                    <h4 className="text-xs font-bold text-foreground">Bandeja K&apos;anPro</h4>
-                    <p className="text-[11px] text-muted-foreground mt-1 leading-normal">
-                      Mensajería interna protegida a través de la plataforma.
+                    <h4 className="text-xs sm:text-sm font-extrabold text-foreground">Bandeja K&apos;anPro</h4>
+                    <p className="text-[11px] text-muted-foreground font-medium mt-1 leading-normal">
+                      Mensajería interna protegida en la plataforma.
                     </p>
                   </div>
                 </div>
               </div>
-            </CardContent>
-          </Card>
+            </Card>
 
-          {/* Alertas y Notificaciones */}
-          <Card className="rounded-2xl border-border/40 shadow-xs">
-            <CardHeader>
-              <div className="flex items-center gap-3">
-                <div className="p-2.5 bg-amber-500/10 rounded-xl text-amber-600 dark:text-amber-400">
+            {/* Alertas y Notificaciones */}
+            <Card className="rounded-[24px] border border-border/40 bg-card shadow-xs p-6 space-y-4">
+              <div className="flex items-center gap-3 pb-2 border-b border-border/40">
+                <div className="size-10 rounded-2xl bg-amber-500/10 text-amber-600 dark:text-amber-400 flex items-center justify-center shrink-0">
                   <Bell className="size-5" />
                 </div>
                 <div>
-                  <CardTitle className="text-base font-bold">Alertas de Nuevos Postulantes</CardTitle>
-                  <CardDescription className="text-xs">
-                    Define cómo recibir avisos cuando un candidato aplique a tus vacantes.
-                  </CardDescription>
+                  <h3 className="text-base font-extrabold text-foreground">
+                    Alertas de Nuevos Postulantes
+                  </h3>
+                  <p className="text-xs text-muted-foreground font-semibold mt-0.5">
+                    Define los medios para recibir avisos cuando un candidato aplique a tus vacantes.
+                  </p>
                 </div>
-              </div>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              <div className="flex items-center justify-between p-3.5 rounded-xl border border-border/30 bg-muted/20">
-                <div className="space-y-0.5">
-                  <span className="text-xs font-bold block text-foreground">Alertas por Correo Electrónico</span>
-                  <span className="text-[11px] text-muted-foreground block">
-                    Resumen y avisos inmediatos a {user.email}.
-                  </span>
-                </div>
-                <Switch
-                  checked={notifyEmail}
-                  onCheckedChange={(val) => {
-                    setNotifyEmail(val);
-                    if (typeof window !== "undefined") localStorage.setItem("kanpro_company_notify_email", String(val));
-                    toast.success(val ? "Alertas por email activadas" : "Alertas por email desactivadas");
-                  }}
-                />
               </div>
 
-              <div className="flex items-center justify-between p-3.5 rounded-xl border border-border/30 bg-muted/20">
-                <div className="space-y-0.5">
-                  <span className="text-xs font-bold block text-foreground">Avisos Inmediatos por WhatsApp</span>
-                  <span className="text-[11px] text-muted-foreground block">
-                    Notificación al número {initialProfile.phone || initialProfile.whatsapp_number || "registrado"}.
-                  </span>
+              <div className="space-y-3 pt-1">
+                <div className="flex items-center justify-between p-4 rounded-2xl border border-border/40 bg-muted/20">
+                  <div className="space-y-0.5">
+                    <span className="text-xs sm:text-sm font-bold block text-foreground">Alertas por Correo Electrónico</span>
+                    <span className="text-[11px] text-muted-foreground font-medium block">
+                      Resumen y avisos inmediatos a {user.email}.
+                    </span>
+                  </div>
+                  <Switch
+                    checked={notifyEmail}
+                    onCheckedChange={(val) => {
+                      setNotifyEmail(val);
+                      if (typeof window !== "undefined") localStorage.setItem("kanpro_company_notify_email", String(val));
+                      toast.success(val ? "Alertas por email activadas" : "Alertas por email desactivadas");
+                    }}
+                  />
                 </div>
-                <Switch
-                  checked={notifyWhatsapp}
-                  onCheckedChange={(val) => {
-                    setNotifyWhatsapp(val);
-                    if (typeof window !== "undefined") localStorage.setItem("kanpro_company_notify_wa", String(val));
-                    toast.success(val ? "Alertas por WhatsApp activadas" : "Alertas por WhatsApp desactivadas");
-                  }}
-                />
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
 
-        {/* ========================================================= */}
-        {/* TAB 3: SUSCRIPCIÓN                                        */}
-        {/* ========================================================= */}
-        <TabsContent value="subscription" className="space-y-6">
-          {/* Promotional Founder Banner */}
-          <Card className="rounded-2xl p-6 md:p-8 bg-gradient-to-br from-primary/10 via-primary/5 to-emerald-500/10 border border-primary/20 space-y-4 shadow-xs">
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-              <div className="space-y-1.5">
-                <div className="flex items-center gap-2 text-primary font-bold text-xs uppercase tracking-wider">
-                  <Sparkles className="size-4" />
-                  <span>PLAN FUNDADOR ACTIVO</span>
-                  <Badge className="bg-emerald-500 text-white text-[10px] font-bold px-2 py-0.2 rounded-full border-none">
-                    Fase Beta Gratuita
-                  </Badge>
+                <div className="flex items-center justify-between p-4 rounded-2xl border border-border/40 bg-muted/20">
+                  <div className="space-y-0.5">
+                    <span className="text-xs sm:text-sm font-bold block text-foreground">Avisos Inmediatos por WhatsApp</span>
+                    <span className="text-[11px] text-muted-foreground font-medium block">
+                      Notificación al número {initialProfile.phone || initialProfile.whatsapp_number || "registrado"}.
+                    </span>
+                  </div>
+                  <Switch
+                    checked={notifyWhatsapp}
+                    onCheckedChange={(val) => {
+                      setNotifyWhatsapp(val);
+                      if (typeof window !== "undefined") localStorage.setItem("kanpro_company_notify_wa", String(val));
+                      toast.success(val ? "Alertas por WhatsApp activadas" : "Alertas por WhatsApp desactivadas");
+                    }}
+                  />
                 </div>
-                <h2 className="text-2xl font-bold text-foreground">Acceso Ilimitado de Lanzamiento</h2>
-                <p className="text-xs text-muted-foreground max-w-xl leading-relaxed">
-                  Tu empresa cuenta con acceso total a todas las herramientas de K&apos;anPro sin costo durante la fase de lanzamiento en el Sureste.
-                </p>
               </div>
+            </Card>
+          </section>
+
+          {/* ========================================================= */}
+          {/* 4. SUSCRIPCIÓN Y FACTURACIÓN                              */}
+          {/* ========================================================= */}
+          <section id="subscription-billing" className="scroll-mt-6 space-y-4">
+            <div className="pb-1">
+              <h2 className="text-lg font-extrabold text-foreground flex items-center gap-2">
+                <CreditCard className="size-5 text-[#5c7c9b]" />
+                Suscripción & Facturación
+              </h2>
+              <p className="text-xs text-muted-foreground font-semibold mt-0.5">
+                Plan activo, beneficios promocionales de lanzamiento y comprobantes fiscales CFDI 4.0.
+              </p>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-4 border-t border-border/40 text-xs">
-              <div className="flex items-center gap-2 text-foreground font-medium">
-                <CheckCircle2 className="size-4 text-emerald-500 shrink-0" />
-                <span>Publicación ilimitada de vacantes</span>
+            {/* Promotional Founder Banner */}
+            <Card className="rounded-[24px] p-6 sm:p-8 bg-gradient-to-br from-primary/10 via-background to-emerald-500/10 border border-primary/20 space-y-4 shadow-xs">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <div className="space-y-1.5">
+                  <div className="flex items-center gap-2 text-primary font-bold text-xs uppercase tracking-wider">
+                    <Sparkles className="size-4 text-primary" />
+                    <span>PLAN FUNDADOR ACTIVO</span>
+                    <Badge className="bg-emerald-500 text-white text-[10px] font-bold px-2.5 py-0.5 rounded-full border-none">
+                      Fase Beta Gratuita
+                    </Badge>
+                  </div>
+                  <h2 className="text-xl sm:text-2xl font-extrabold text-foreground">Acceso Ilimitado de Lanzamiento</h2>
+                  <p className="text-xs sm:text-sm text-muted-foreground font-semibold max-w-xl leading-relaxed">
+                    Tu empresa cuenta con acceso total a las herramientas de K&apos;anPro sin costo durante la fase de lanzamiento en el Sureste.
+                  </p>
+                </div>
               </div>
-              <div className="flex items-center gap-2 text-foreground font-medium">
-                <CheckCircle2 className="size-4 text-emerald-500 shrink-0" />
-                <span>Contacto directo vía WhatsApp con candidatos</span>
-              </div>
-            </div>
-          </Card>
 
-          {/* Invoices & Subscription Table */}
-          <Card className="rounded-2xl border-border/40 shadow-xs">
-            <CardHeader>
-              <div className="flex items-center gap-3">
-                <div className="p-2.5 bg-indigo-500/10 rounded-xl text-indigo-600 dark:text-indigo-400">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5 pt-4 border-t border-border/40 text-xs font-semibold">
+                <div className="flex items-center gap-2.5 text-foreground">
+                  <CheckCircle2 className="size-4.5 text-emerald-500 shrink-0" />
+                  <span>Publicación ilimitada de vacantes</span>
+                </div>
+                <div className="flex items-center gap-2.5 text-foreground">
+                  <CheckCircle2 className="size-4.5 text-emerald-500 shrink-0" />
+                  <span>Contacto directo vía WhatsApp con candidatos</span>
+                </div>
+              </div>
+            </Card>
+
+            {/* Invoices & Subscription Table */}
+            <Card className="rounded-[24px] border border-border/40 bg-card shadow-xs p-6 space-y-4">
+              <div className="flex items-center gap-3 pb-2 border-b border-border/40">
+                <div className="size-10 rounded-2xl bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 flex items-center justify-center shrink-0">
                   <CreditCard className="size-5" />
                 </div>
                 <div>
-                  <CardTitle className="text-base font-bold">Historial de Suscripción & Facturación</CardTitle>
-                  <CardDescription className="text-xs">
-                    Comprobantes fiscales digitales (CFDI 4.0) y registros de pago corporativos.
+                  <CardTitle className="text-base font-bold text-foreground">
+                    Historial de Facturación & Comprobantes
+                  </CardTitle>
+                  <CardDescription className="text-xs text-muted-foreground font-semibold mt-0.5">
+                    Comprobantes fiscales digitales (CFDI 4.0) y registros de pago de tu empresa.
                   </CardDescription>
                 </div>
               </div>
-            </CardHeader>
-            <CardContent>
               <BillingSubscriptionsTable data={billingRecords} />
-            </CardContent>
-          </Card>
-        </TabsContent>
+            </Card>
+          </section>
 
-        {/* ========================================================= */}
-        {/* TAB 4: EMPRESA Y PRIVACIDAD                               */}
-        {/* ========================================================= */}
-        <TabsContent value="company" className="space-y-6">
-          {/* Perfil Público y Verificación */}
-          <Card className="rounded-2xl border-border/40 shadow-xs">
-            <CardHeader>
-              <div className="flex items-center gap-3">
-                <div className="p-2.5 bg-primary/10 rounded-xl text-primary">
-                  <Building2 className="size-5" />
-                </div>
-                <div>
-                  <CardTitle className="text-base font-bold">Datos del Perfil Corporativo</CardTitle>
-                  <CardDescription className="text-xs">
-                    Información comercial y expediente de verificación legal de tu empresa.
-                  </CardDescription>
-                </div>
-              </div>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <p className="text-xs text-muted-foreground leading-relaxed">
-                Gestiona la marca, logotipo, beneficios laborales y la documentación fiscal registrada ante el SAT.
+          {/* ========================================================= */}
+          {/* 5. EMPRESA Y PRIVACIDAD                                   */}
+          {/* ========================================================= */}
+          <section id="company-privacy" className="scroll-mt-6 space-y-4">
+            <div className="pb-1">
+              <h2 className="text-lg font-extrabold text-foreground flex items-center gap-2">
+                <Building2 className="size-5 text-[#5c7c9b]" />
+                Empresa y Privacidad
+              </h2>
+              <p className="text-xs text-muted-foreground font-semibold mt-0.5">
+                Expediente corporativo registrado ante el SAT y opciones de cuenta.
               </p>
-              <div className="flex items-center gap-3 flex-wrap">
-                <Link href="/dashboard/company/profile">
-                  <Button variant="outline" size="sm" className="rounded-full text-xs font-semibold">
-                    Editar Perfil de Empresa
-                    <ArrowRight className="size-3.5 ml-1.5" />
-                  </Button>
-                </Link>
-                <Link href="/dashboard/company/verification">
-                  <Button size="sm" className="rounded-full text-xs font-semibold bg-primary text-primary-foreground hover:bg-primary/90">
-                    Expediente de Verificación Legal
-                    <ArrowRight className="size-3.5 ml-1.5" />
-                  </Button>
-                </Link>
-              </div>
-            </CardContent>
-          </Card>
+            </div>
 
-          {/* Danger Zone */}
-          <Card className="rounded-2xl border-destructive/20 bg-destructive/5 shadow-xs">
-            <CardHeader>
-              <div className="flex items-center gap-3">
-                <div className="p-2.5 bg-destructive/10 rounded-xl text-destructive">
-                  <Trash2 className="size-5" />
+            {/* Perfil Público y Verificación */}
+            <Card className="rounded-[24px] border border-border/40 bg-card shadow-xs">
+              <CardHeader>
+                <div className="flex items-center gap-3">
+                  <div className="size-10 rounded-2xl bg-primary/10 text-primary flex items-center justify-center shrink-0">
+                    <Building2 className="size-5" />
+                  </div>
+                  <div>
+                    <CardTitle className="text-base font-bold">Datos del Perfil Corporativo</CardTitle>
+                    <CardDescription className="text-xs font-semibold text-muted-foreground mt-0.5">
+                      Información comercial y expediente de verificación legal de tu empresa.
+                    </CardDescription>
+                  </div>
                 </div>
-                <div>
-                  <CardTitle className="text-base font-bold text-destructive">Zona de Peligro</CardTitle>
-                  <CardDescription className="text-xs">
-                    Eliminación permanente de la cuenta corporativa y vacantes publicadas.
-                  </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <p className="text-xs text-muted-foreground leading-relaxed font-medium">
+                  Gestiona la marca, logotipo, beneficios laborales y la documentación fiscal registrada ante el SAT.
+                </p>
+                <div className="flex items-center gap-3 flex-wrap">
+                  <Link href="/dashboard/company/profile">
+                    <Button variant="outline" size="sm" className="rounded-xl text-xs font-bold h-10 px-4">
+                      Editar Perfil de Empresa
+                      <ArrowRight className="size-3.5 ml-1.5" />
+                    </Button>
+                  </Link>
+                  <Link href="/dashboard/company/verification">
+                    <Button size="sm" className="rounded-xl text-xs font-bold h-10 px-4 bg-primary text-primary-foreground hover:bg-primary/90">
+                      Expediente de Verificación Legal
+                      <ArrowRight className="size-3.5 ml-1.5" />
+                    </Button>
+                  </Link>
                 </div>
-              </div>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <p className="text-xs text-muted-foreground leading-relaxed">
-                Al eliminar tu cuenta de empresa, se cerrarán todas las vacantes publicadas, se desvincularán los expedientes de postulantes y se revocarán los accesos corporativos.
-              </p>
-              <Button
-                variant="destructive"
-                size="sm"
-                onClick={() => setIsDeleteModalOpen(true)}
-                className="rounded-full text-xs font-semibold"
-              >
-                Eliminar mi cuenta de empresa
-              </Button>
-            </CardContent>
-          </Card>
-        </TabsContent>
+              </CardContent>
+            </Card>
 
-      </Tabs>
+            {/* Danger Zone */}
+            <Card className="rounded-[24px] border-destructive/20 bg-destructive/5 shadow-xs">
+              <CardHeader>
+                <div className="flex items-center gap-3">
+                  <div className="size-10 rounded-2xl bg-destructive/10 text-destructive flex items-center justify-center shrink-0">
+                    <Trash2 className="size-5" />
+                  </div>
+                  <div>
+                    <CardTitle className="text-base font-bold text-destructive">Zona de Peligro</CardTitle>
+                    <CardDescription className="text-xs font-semibold text-muted-foreground mt-0.5">
+                      Eliminación permanente de la cuenta corporativa y vacantes publicadas.
+                    </CardDescription>
+                  </div>
+                </div>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <p className="text-xs text-muted-foreground leading-relaxed font-medium">
+                  Al eliminar tu cuenta de empresa, se cerrarán todas las vacantes publicadas, se desvincularán los expedientes de postulantes y se revocarán los accesos corporativos.
+                </p>
+                <Button
+                  variant="destructive"
+                  size="sm"
+                  onClick={() => setIsDeleteModalOpen(true)}
+                  className="rounded-xl text-xs font-bold h-10 px-5"
+                >
+                  Eliminar mi cuenta de empresa
+                </Button>
+              </CardContent>
+            </Card>
+          </section>
+
+        </div>
+      </div>
 
       <DeleteAccountModal
         open={isDeleteModalOpen}
