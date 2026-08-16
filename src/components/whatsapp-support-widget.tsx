@@ -151,7 +151,7 @@ export function WhatsAppSupportWidget() {
               <Button
                 type="button"
                 onClick={() => handleLaunchWhatsApp(customMessage)}
-                className="h-9 bg-[#25D366] hover:bg-[#20ba5a] text-white font-bold text-xs rounded-xl gap-2 shadow-xs"
+                className="h-9 bg-[#25D366] hover:bg-[#20ba5a] text-[#062c1e] font-extrabold text-xs rounded-xl gap-2 shadow-xs cursor-pointer"
               >
                 <PhoneIcon className="size-3.5 fill-current" />
                 <span>Abrir Chat en WhatsApp</span>
@@ -166,15 +166,15 @@ export function WhatsAppSupportWidget() {
       <Button
         type="button"
         onClick={() => setIsOpen(!isOpen)}
-        className="h-13 px-4 rounded-full bg-[#25D366] hover:bg-[#20ba5a] text-white shadow-xl hover:scale-105 transition-all flex items-center gap-2.5 border-2 border-white/30"
+        className="h-13 px-4 rounded-full bg-[#25D366] hover:bg-[#20ba5a] text-[#062c1e] shadow-xl hover:scale-105 transition-all flex items-center gap-2.5 border-2 border-[#062c1e]/20 cursor-pointer"
       >
         <div className="relative flex items-center justify-center">
-          <MessageCircleIcon className="size-6 fill-current" />
-          <span className="absolute -top-1 -right-1 h-3 w-3 rounded-full bg-emerald-300 animate-ping" />
+          <MessageCircleIcon className="size-6 fill-current text-[#062c1e]" />
+          <span className="absolute -top-1 -right-1 h-3 w-3 rounded-full bg-emerald-900 animate-ping" />
         </div>
         <div className="flex flex-col text-left">
-          <span className="text-xs font-extrabold tracking-tight leading-none">Soporte WhatsApp</span>
-          <span className="text-[10px] opacity-90 leading-none pt-0.5">Atención en vivo</span>
+          <span className="text-xs font-extrabold tracking-tight leading-none text-[#062c1e]">Soporte WhatsApp</span>
+          <span className="text-[10px] font-bold text-[#062c1e]/80 leading-none pt-0.5">Atención en vivo</span>
         </div>
       </Button>
     </div>

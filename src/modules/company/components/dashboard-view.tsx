@@ -144,7 +144,7 @@ export function DashboardView({
   }
   const monthlyAnalytics = directMonthly || analytics?.monthlyAnalytics || {
     goalPercent: 0,
-    pieData: [{ name: "Sin Vacantes", value: 100, color: "#94a3b8" }]
+    pieData: [{ name: "Sin Vacantes", value: 100, color: "#7d99b3" }]
   }
 
   const containerVariants = {
@@ -152,90 +152,87 @@ export function DashboardView({
     show: {
       opacity: 1,
       transition: {
-        staggerChildren: 0.08
+        staggerChildren: 0.06
       }
     }
   }
 
   const cardVariants = {
-    hidden: { opacity: 0, y: 20 },
-    show: { opacity: 1, y: 0, transition: { type: "spring", stiffness: 100, damping: 15 } }
+    hidden: { opacity: 0, y: 15 },
+    show: { opacity: 1, y: 0, transition: { type: "spring", stiffness: 120, damping: 15 } }
   } as const
 
   return (
-    <div className="w-full space-y-8 animate-in fade-in duration-300">
+    <div className="w-full space-y-5 animate-in fade-in duration-300">
       <motion.div 
         variants={containerVariants}
         initial="hidden"
         animate="show"
-        className="grid grid-cols-1 lg:grid-cols-3 gap-6"
+        className="grid grid-cols-1 lg:grid-cols-3 gap-4"
       >
         
-        {/* HERO CARD - Resumen Global (Fiord 950 Dark theme) */}
+        {/* HERO CARD - Resumen Global */}
         <motion.div variants={cardVariants} className="lg:col-span-1">
-          <div className="bg-[#1f2732] dark:bg-fiord-950 text-white rounded-[28px] p-6 sm:p-7 flex flex-col justify-between min-h-[370px] relative overflow-hidden shadow-md">
+          <Card className="bg-card text-card-foreground border border-border/60 rounded-2xl p-4 sm:p-5 flex flex-col justify-between min-h-[290px] relative overflow-hidden shadow-xs">
             
             {/* Top info */}
             <div>
               <div className="flex items-center justify-between">
-                <span className="text-[13px] font-bold uppercase tracking-[0.16em] text-fiord-300">Resumen de Reclutamiento</span>
-                <div className="flex gap-2">
-                  <button className="text-fiord-300 hover:text-white p-1.5 transition-colors cursor-pointer" aria-label="Tendencia">
-                    <TrendingUp className="size-5" />
+                <span className="text-[11px] font-bold uppercase tracking-[0.14em] text-muted-foreground">Resumen de Reclutamiento</span>
+                <div className="flex gap-1">
+                  <button className="text-muted-foreground hover:text-foreground p-1 transition-colors cursor-pointer rounded-md hover:bg-muted" aria-label="Tendencia">
+                    <TrendingUp className="size-4" />
                   </button>
-                  <button className="text-fiord-300 hover:text-white p-1.5 transition-colors cursor-pointer" aria-label="Opciones">
-                    <MoreVertical className="size-5" />
+                  <button className="text-muted-foreground hover:text-foreground p-1 transition-colors cursor-pointer rounded-md hover:bg-muted" aria-label="Opciones">
+                    <MoreVertical className="size-4" />
                   </button>
                 </div>
               </div>
 
-              <div className="mt-8 flex gap-8">
+              <div className="mt-4 flex gap-6">
                 <div>
-                  <h3 className="text-5xl sm:text-6xl font-[800] tracking-tight text-white font-sans">
+                  <h3 className="text-3xl sm:text-4xl font-[800] tracking-tight text-foreground font-sans leading-none">
                     {metrics.totalApplications ?? 0}
                   </h3>
-                  <p className="text-[13px] text-fiord-300 font-bold mt-1.5">Postulaciones Totales</p>
+                  <p className="text-[11px] text-muted-foreground font-semibold mt-1">Postulaciones Totales</p>
                 </div>
-                <div className="border-l border-fiord-800 h-16 my-auto" />
+                <div className="border-l border-border h-10 my-auto" />
                 <div>
-                  <h3 className="text-5xl sm:text-6xl font-[800] tracking-tight text-white font-sans">
+                  <h3 className="text-3xl sm:text-4xl font-[800] tracking-tight text-foreground font-sans leading-none">
                     {metrics.pausedVacancies ?? 0}
                   </h3>
-                  <p className="text-[13px] text-fiord-300 font-bold mt-1.5">Vacantes Pausadas</p>
+                  <p className="text-[11px] text-muted-foreground font-semibold mt-1">Vacantes Pausadas</p>
                 </div>
               </div>
             </div>
 
             {/* Bottom floating cards */}
-            <div className="grid grid-cols-3 gap-3 mt-auto relative z-10 pt-4">
-              <div className="bg-white text-fiord-950 rounded-2xl p-3.5 border border-fiord-100 flex flex-col justify-between">
-                <span className="text-[18px] font-[800] leading-none font-sans text-fiord-950">{metrics.activeVacancies ?? 0}</span>
-                <span className="text-[11px] font-bold text-fiord-500 mt-2 leading-tight">Activas</span>
+            <div className="grid grid-cols-3 gap-2 mt-auto relative z-10 pt-3">
+              <div className="bg-muted/70 text-foreground rounded-xl p-2.5 shadow-2xs border border-border/40 flex flex-col justify-between">
+                <span className="text-[15px] font-[800] leading-none font-sans text-foreground">{metrics.activeVacancies ?? 0}</span>
+                <span className="text-[10px] font-bold text-muted-foreground mt-1 leading-tight">Activas</span>
               </div>
-              <div className="bg-white text-fiord-950 rounded-2xl p-3.5 border border-fiord-100 flex flex-col justify-between">
-                <span className="text-[18px] font-[800] leading-none font-sans text-fiord-950">{metrics.reviewingApplications ?? 0}</span>
-                <span className="text-[11px] font-bold text-fiord-500 mt-2 leading-tight">En Revisión</span>
+              <div className="bg-muted/70 text-foreground rounded-xl p-2.5 shadow-2xs border border-border/40 flex flex-col justify-between">
+                <span className="text-[15px] font-[800] leading-none font-sans text-foreground">{metrics.reviewingApplications ?? 0}</span>
+                <span className="text-[10px] font-bold text-muted-foreground mt-1 leading-tight">En Revisión</span>
               </div>
-              <div className="bg-white text-fiord-950 rounded-2xl p-3.5 border border-fiord-100 flex flex-col justify-between">
-                <span className="text-[18px] font-[800] leading-none font-sans text-fiord-950">{metrics.totalConnections ?? 0}</span>
-                <span className="text-[11px] font-bold text-fiord-500 mt-2 leading-tight">Contratados</span>
+              <div className="bg-muted/70 text-foreground rounded-xl p-2.5 shadow-2xs border border-border/40 flex flex-col justify-between">
+                <span className="text-[15px] font-[800] leading-none font-sans text-foreground">{metrics.totalConnections ?? 0}</span>
+                <span className="text-[10px] font-bold text-muted-foreground mt-1 leading-tight">Contratados</span>
               </div>
             </div>
-            
-            {/* Background Glow */}
-            <div className="absolute -bottom-10 -left-10 size-40 bg-fiord-800 rounded-full blur-[60px] opacity-40 pointer-events-none" />
-          </div>
+          </Card>
         </motion.div>
 
-        {/* CHART CARD 1 - Flujo Semanal (Light Theme) */}
+        {/* CHART CARD 1 - Flujo Semanal */}
         <motion.div variants={cardVariants} className="lg:col-span-1">
-          <Card className="bg-white dark:bg-fiord-900 border-fiord-100 dark:border-fiord-800 rounded-[28px] p-6 flex flex-col justify-between min-h-[370px] shadow-sm relative overflow-hidden">
+          <Card className="bg-card text-card-foreground border border-border/60 rounded-2xl p-4 sm:p-5 flex flex-col justify-between min-h-[290px] shadow-xs relative overflow-hidden">
             <div className="flex items-center justify-between">
               <div className="space-y-0.5">
-                <h4 className="text-[16px] font-bold text-fiord-900 dark:text-fiord-100">Flujo Semanal</h4>
-                <p className="text-[12px] text-fiord-400 dark:text-fiord-400 font-bold uppercase tracking-wider">Nuevos Candidatos</p>
+                <h4 className="text-[14px] font-bold text-foreground">Flujo Semanal</h4>
+                <p className="text-[11px] text-muted-foreground font-semibold uppercase tracking-wider">Nuevos Candidatos</p>
               </div>
-              <Badge className="bg-emerald-50 dark:bg-emerald-950/30 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-50 border-none font-extrabold text-xs px-3 py-1 rounded-full flex items-center gap-0.5">
+              <Badge className="bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/15 border-none font-bold text-[10px] px-2 py-0.5 rounded-full flex items-center gap-0.5">
                 <span>
                   {weeklyAnalytics.growthPercent >= 0
                     ? `+${weeklyAnalytics.growthPercent}%`
@@ -245,74 +242,75 @@ export function DashboardView({
             </div>
 
             {/* Recharts Area Chart */}
-            <div className="h-44 w-full mt-4 flex items-end">
+            <div className="h-32 w-full mt-2 flex items-end">
               {mounted ? (
                 <ResponsiveContainer width="100%" height="100%">
-                  <AreaChart data={weeklyAnalytics.flowData} margin={{ top: 10, right: 5, left: -25, bottom: 0 }}>
+                  <AreaChart data={weeklyAnalytics.flowData} margin={{ top: 5, right: 5, left: -25, bottom: 0 }}>
                     <defs>
                       <linearGradient id="colorCandidatos" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="5%" stopColor="#5c7c9b" stopOpacity={0.25} />
-                        <stop offset="95%" stopColor="#5c7c9b" stopOpacity={0.0} />
+                        <stop offset="5%" stopColor="var(--color-fiord-500)" stopOpacity={0.4} />
+                        <stop offset="95%" stopColor="var(--color-fiord-500)" stopOpacity={0.0} />
                       </linearGradient>
                     </defs>
                     <XAxis 
                       dataKey="day" 
                       tickLine={false} 
                       axisLine={false} 
-                      tick={{ fill: "#7d99b3", fontSize: 11, fontWeight: 600 }} 
+                      tick={{ fill: "currentColor", fontSize: 10, fontWeight: 600 }} 
+                      className="text-muted-foreground"
                       tickFormatter={(val) => val.substring(0, 1)}
                     />
-                    <YAxis tickLine={false} axisLine={false} tick={{ fill: "#7d99b3", fontSize: 11 }} />
+                    <YAxis tickLine={false} axisLine={false} tick={{ fill: "currentColor", fontSize: 10 }} className="text-muted-foreground" />
                     <Tooltip 
                       contentStyle={{ 
-                        borderRadius: "14px", 
-                        backgroundColor: "#1f2732", 
-                        borderColor: "#2f3c4b",
-                        color: "#ffffff",
-                        fontSize: "12px",
+                        borderRadius: "10px", 
+                        backgroundColor: "var(--card)", 
+                        borderColor: "var(--border)",
+                        color: "var(--card-foreground)",
+                        fontSize: "11px",
                         fontWeight: "700"
                       }} 
                     />
                     <Area 
                       type="monotone" 
                       dataKey="candidatos" 
-                      stroke="#5c7c9b" 
-                      strokeWidth={2.5} 
+                      stroke="var(--color-fiord-500)" 
+                      strokeWidth={2} 
                       fillOpacity={1} 
                       fill="url(#colorCandidatos)" 
                     />
                   </AreaChart>
                 </ResponsiveContainer>
               ) : (
-                <div className="h-full w-full flex items-center justify-center text-fiord-300 font-semibold text-sm">Cargando gráfico...</div>
+                <div className="h-full w-full flex items-center justify-center text-muted-foreground font-semibold text-xs">Cargando gráfico...</div>
               )}
             </div>
 
-            <div className="flex justify-between items-center mt-3 text-[12px] text-fiord-400 dark:text-fiord-400 font-semibold px-1">
+            <div className="flex justify-between items-center mt-2 text-[11px] text-muted-foreground font-semibold px-0.5">
               <span>Lun - Dom</span>
-              <span className="text-fiord-800 dark:text-fiord-200 font-bold">
-                Promedio: {weeklyAnalytics.average} candidatos/día
+              <span className="text-foreground font-bold">
+                Promedio: {weeklyAnalytics.average} cand./día
               </span>
             </div>
           </Card>
         </motion.div>
 
-        {/* CHART CARD 2 - Efectividad del Mes (Light Theme) */}
+        {/* CHART CARD 2 - Efectividad del Mes */}
         <motion.div variants={cardVariants} className="lg:col-span-1">
-          <Card className="bg-white dark:bg-fiord-900 border-fiord-100 dark:border-fiord-800 rounded-[28px] p-6 flex flex-col justify-between min-h-[370px] shadow-sm">
+          <Card className="bg-card text-card-foreground border border-border/60 rounded-2xl p-4 sm:p-5 flex flex-col justify-between min-h-[290px] shadow-xs">
             <div className="flex items-center justify-between">
               <div className="space-y-0.5">
-                <h4 className="text-[16px] font-bold text-fiord-900 dark:text-fiord-100">Efectividad del Mes</h4>
-                <p className="text-[12px] text-fiord-400 dark:text-fiord-400 font-bold uppercase tracking-wider">Meta de Contratación</p>
+                <h4 className="text-[14px] font-bold text-foreground">Efectividad del Mes</h4>
+                <p className="text-[11px] text-muted-foreground font-semibold uppercase tracking-wider">Meta de Contratación</p>
               </div>
-              <button className="text-fiord-400 hover:text-fiord-900 dark:hover:text-fiord-100 p-1.5 cursor-pointer" aria-label="Estadísticas">
-                <TrendingUp className="size-5" />
+              <button className="text-muted-foreground hover:text-foreground p-1 cursor-pointer rounded-md hover:bg-muted" aria-label="Estadísticas">
+                <TrendingUp className="size-4" />
               </button>
             </div>
 
             {/* Recharts Pie Chart & Legend Grid */}
-            <div className="flex items-center justify-between gap-3 mt-2">
-              <div className="relative size-36 shrink-0">
+            <div className="flex items-center justify-between gap-2 mt-1">
+              <div className="relative size-28 shrink-0">
                 {mounted ? (
                   <ResponsiveContainer width="100%" height="100%">
                     <PieChart>
@@ -320,8 +318,8 @@ export function DashboardView({
                         data={monthlyAnalytics.pieData}
                         cx="50%"
                         cy="50%"
-                        innerRadius={40}
-                        outerRadius={52}
+                        innerRadius={30}
+                        outerRadius={42}
                         paddingAngle={4}
                         dataKey="value"
                       >
@@ -333,22 +331,22 @@ export function DashboardView({
                   </ResponsiveContainer>
                 ) : null}
                 <div className="absolute inset-0 flex flex-col items-center justify-center text-center">
-                  <span className="text-xl font-bold text-fiord-900 dark:text-fiord-100 font-mono leading-none">
+                  <span className="text-base font-bold text-foreground font-mono leading-none">
                     {monthlyAnalytics.goalPercent}%
                   </span>
-                  <span className="text-[9px] text-fiord-400 uppercase tracking-widest font-bold mt-0.5">Meta</span>
+                  <span className="text-[8px] text-muted-foreground uppercase tracking-widest font-bold mt-0.5">Meta</span>
                 </div>
               </div>
 
               {/* Legends list */}
-              <div className="flex-1 space-y-2.5 px-1">
+              <div className="flex-1 space-y-1.5 px-1">
                 {monthlyAnalytics.pieData.map((item) => (
-                  <div key={item.name} className="flex items-center justify-between text-[12px]">
-                    <div className="flex items-center gap-2">
-                      <span className="size-2.5 rounded-full shrink-0" style={{ backgroundColor: item.color }} />
-                      <span className="text-fiord-700 dark:text-fiord-300 font-semibold">{item.name}</span>
+                  <div key={item.name} className="flex items-center justify-between text-[11px]">
+                    <div className="flex items-center gap-1.5">
+                      <span className="size-2 rounded-full shrink-0" style={{ backgroundColor: item.color }} />
+                      <span className="text-muted-foreground font-medium truncate max-w-[90px]">{item.name}</span>
                     </div>
-                    <span className="font-bold text-fiord-900 dark:text-fiord-100">{item.value}%</span>
+                    <span className="font-bold text-foreground">{item.value}%</span>
                   </div>
                 ))}
               </div>
@@ -358,48 +356,48 @@ export function DashboardView({
             <Button
               onClick={handleDownloadReport}
               disabled={isDownloading}
-              className="w-full bg-[#1f2732] dark:bg-zinc-100 text-white dark:text-zinc-900 hover:bg-[#253240] dark:hover:bg-zinc-200 font-bold text-sm rounded-[14px] h-12 flex items-center justify-center gap-2 border-none transition-all cursor-pointer shadow-xs"
+              className="w-full bg-primary text-primary-foreground hover:bg-primary/90 font-bold text-xs rounded-xl h-9 flex items-center justify-center gap-1.5 border-none transition-all cursor-pointer shadow-xs mt-2"
             >
-              <Download className="size-4" />
+              <Download className="size-3.5" />
               <span>{isDownloading ? "Preparando..." : "Descargar Reporte"}</span>
             </Button>
           </Card>
         </motion.div>
 
-        {/* CHECKLIST CARD - Pendientes (Light Theme) */}
+        {/* CHECKLIST CARD - Pendientes */}
         <motion.div variants={cardVariants} className="lg:col-span-1">
-          <Card className="bg-white dark:bg-fiord-900 border-fiord-100 dark:border-fiord-800 rounded-[28px] p-6 flex flex-col justify-between min-h-[370px] shadow-sm">
+          <Card className="bg-card text-card-foreground border border-border/60 rounded-2xl p-4 sm:p-5 flex flex-col justify-between min-h-[290px] shadow-xs">
             <div>
-              <div className="flex items-center justify-between mb-4">
-                <div className="flex items-center gap-2.5">
-                  <div className="size-8 rounded-xl bg-fiord-100 dark:bg-fiord-800 text-fiord-950 dark:text-fiord-50 flex items-center justify-center">
-                    <ClipboardList className="size-4.5" />
+              <div className="flex items-center justify-between mb-3">
+                <div className="flex items-center gap-2">
+                  <div className="size-7 rounded-lg bg-primary/10 text-primary flex items-center justify-center">
+                    <ClipboardList className="size-4" />
                   </div>
-                  <h4 className="text-[16px] font-bold text-fiord-900 dark:text-fiord-100">Pendientes del día</h4>
+                  <h4 className="text-[14px] font-bold text-foreground">Pendientes del día</h4>
                 </div>
-                <Badge className="bg-[#1f2732] dark:bg-zinc-100 text-white dark:text-zinc-900 border-none font-bold text-[11px] px-2.5 py-1 rounded-lg">
+                <Badge className="bg-primary/10 text-primary border border-primary/20 font-bold text-[10px] px-2 py-0.5 rounded-md">
                   {todos.filter(t => !t.completed).length} Hoy
                 </Badge>
               </div>
 
-              <div className="space-y-3.5 mt-4">
+              <div className="space-y-2 mt-3">
                 {todos.map(todo => (
                   <div 
                     key={todo.id} 
-                    className="flex items-start gap-3.5 p-2.5 rounded-xl hover:bg-fiord-50/50 dark:hover:bg-fiord-800/30 transition-colors"
+                    className="flex items-start gap-2.5 p-1.5 rounded-lg hover:bg-muted/50 transition-colors"
                   >
                     <Checkbox
                       id={todo.id}
                       checked={todo.completed}
                       onCheckedChange={() => handleToggleTodo(todo.id)}
-                      className="mt-0.5 size-5 rounded-md border-fiord-300 dark:border-fiord-700 data-[state=checked]:bg-[#1f2732] dark:data-[state=checked]:bg-zinc-100 data-[state=checked]:text-white dark:data-[state=checked]:text-zinc-900 cursor-pointer"
+                      className="mt-0.5 size-4 rounded-md cursor-pointer"
                     />
                     <label 
                       htmlFor={todo.id}
-                      className={`text-[14px] leading-snug font-semibold cursor-pointer transition-all select-none
+                      className={`text-[12px] leading-snug font-medium cursor-pointer transition-all select-none
                         ${todo.completed 
-                          ? "text-fiord-500/70 dark:text-fiord-400/60 line-through font-medium" 
-                          : "text-fiord-800 dark:text-fiord-200"
+                          ? "text-muted-foreground line-through font-normal" 
+                          : "text-foreground"
                         }`}
                     >
                       {todo.text}
@@ -409,18 +407,18 @@ export function DashboardView({
               </div>
             </div>
 
-            <div className="flex items-center justify-between text-[12px] text-fiord-400 dark:text-fiord-400 font-semibold border-t border-fiord-100/50 dark:border-fiord-800/50 pt-3.5">
-              <span className="font-bold">
+            <div className="flex items-center justify-between text-[11px] text-muted-foreground font-semibold border-t border-border/60 pt-2.5">
+              <span className="font-bold text-foreground">
                 {todos.length > 0
-                  ? `${Math.round((todos.filter(t => t.completed).length / todos.length) * 100)}% Completado`
-                  : "100% Completado"}
+                  ? `${Math.round((todos.filter(t => t.completed).length / todos.length) * 100)}% Listo`
+                  : "100% Listo"}
               </span>
               <button 
                 onClick={() => {
                   setTodos(prev => prev.map(t => ({ ...t, completed: true })))
                   toast.success("¡Todas las tareas completadas!")
                 }} 
-                className="text-[#5c7c9b] dark:text-zinc-300 font-bold hover:underline transition-colors cursor-pointer"
+                className="text-primary font-bold hover:underline transition-colors cursor-pointer"
               >
                 Completar todo
               </button>
@@ -428,34 +426,34 @@ export function DashboardView({
           </Card>
         </motion.div>
 
-        {/* UNIFIED VACANCIES SECTION - Single Consolidated Section */}
+        {/* UNIFIED VACANCIES SECTION */}
         <motion.div variants={cardVariants} className="lg:col-span-2">
-          <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center justify-between mb-3">
             <div className="space-y-0.5">
-              <h4 className="text-[18px] sm:text-[20px] font-[800] text-fiord-900 dark:text-fiord-100 tracking-[-0.3px]">
+              <h4 className="text-[16px] sm:text-[17px] font-[800] text-foreground tracking-[-0.2px]">
                 Vacantes Activas y Recientes
               </h4>
-              <p className="text-[13px] text-fiord-400 dark:text-fiord-500 font-semibold">
+              <p className="text-[11px] text-muted-foreground font-semibold">
                 Gestión de ofertas publicadas y progreso de postulaciones locales
               </p>
             </div>
             <Link 
               href="/dashboard/company/vacancies" 
-              className="text-[13px] font-extrabold text-[#5c7c9b] hover:text-[#1f2732] dark:hover:text-zinc-100 flex items-center gap-1 transition-colors"
+              className="text-[12px] font-extrabold text-primary hover:underline flex items-center gap-1 transition-colors"
             >
-              Ver todas las vacantes <ArrowRight className="size-4" />
+              Ver todas <ArrowRight className="size-3.5" />
             </Link>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5">
             {/* Create Vacancy Action Card */}
-            <Link href="/dashboard/company/vacancies/new" className="min-h-[200px]">
-              <Card className="border-2 border-dashed border-fiord-200 dark:border-fiord-800 hover:border-fiord-400 dark:hover:border-fiord-600 bg-fiord-50/20 dark:bg-fiord-900/10 rounded-[26px] p-6 flex flex-col items-center justify-center h-full text-center group cursor-pointer transition-all duration-300 hover:bg-fiord-50/45">
-                <div className="size-12 rounded-full border border-fiord-100 dark:border-fiord-850 bg-white dark:bg-fiord-950 text-fiord-900 dark:text-fiord-50 flex items-center justify-center shadow-sm group-hover:scale-110 transition-transform duration-300">
-                  <Plus className="size-6" />
+            <Link href="/dashboard/company/vacancies/new" className="min-h-[140px]">
+              <Card className="border-2 border-dashed border-border hover:border-primary/50 bg-muted/20 hover:bg-muted/40 rounded-2xl p-4 flex flex-col items-center justify-center h-full text-center group cursor-pointer transition-all duration-200">
+                <div className="size-9 rounded-full border border-border bg-card text-foreground flex items-center justify-center shadow-2xs group-hover:scale-105 transition-transform">
+                  <Plus className="size-5" />
                 </div>
-                <h5 className="text-[15px] font-bold text-fiord-900 dark:text-fiord-100 mt-3">Crear Nueva Vacante</h5>
-                <p className="text-[12px] text-fiord-400 dark:text-fiord-500 font-medium mt-0.5 max-w-[180px] mx-auto leading-relaxed">
+                <h5 className="text-[13px] font-bold text-foreground mt-2">Crear Nueva Vacante</h5>
+                <p className="text-[11px] text-muted-foreground font-medium mt-0.5 max-w-[180px] mx-auto leading-tight">
                   Publica una oferta exprés en Mérida y Riviera Maya
                 </p>
               </Card>
@@ -478,54 +476,38 @@ export function DashboardView({
 
                 return (
                   <Link key={vac.id} href={`/dashboard/company/vacancies/${vac.id}`} className="block">
-                    <Card className="bg-white dark:bg-fiord-900 border-fiord-100 dark:border-fiord-800 rounded-[26px] p-6 flex items-center justify-between gap-4 shadow-sm hover:border-fiord-200 dark:hover:border-fiord-700 transition-all duration-300 h-full">
-                      <div className="space-y-2 flex-1 min-w-0">
-                        <div className="flex items-center gap-2">
-                          <Badge className="bg-fiord-50 dark:bg-fiord-800 text-fiord-700 dark:text-fiord-300 border-none font-bold text-[10px] px-2.5 py-1 rounded-md">
+                    <Card className="bg-card text-card-foreground border border-border/60 rounded-2xl p-4 flex items-center justify-between gap-3 shadow-xs hover:border-primary/40 transition-all duration-200 h-full">
+                      <div className="space-y-1.5 flex-1 min-w-0">
+                        <div className="flex items-center gap-1.5">
+                          <Badge variant="outline" className="text-[9px] px-2 py-0.5 rounded-md font-semibold">
                             {vac.category || "General"}
                           </Badge>
                           <Badge
                             className={cn(
                               "font-extrabold text-[9px] px-2 py-0.5 rounded-full border-none",
                               vac.is_active !== false
-                                ? "bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-400"
-                                : "bg-fiord-100 text-fiord-600 dark:bg-fiord-800 dark:text-fiord-400"
+                                ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
+                                : "bg-muted text-muted-foreground"
                             )}
                           >
                             {vac.is_active !== false ? "Activa" : "Pausada"}
                           </Badge>
                         </div>
-                        <h5 className="text-[16px] sm:text-[17px] font-bold tracking-tight text-fiord-900 dark:text-fiord-50 line-clamp-1">
+                        <h5 className="text-[14px] font-bold tracking-tight text-foreground line-clamp-1">
                           {vac.title}
                         </h5>
-                        <div className="flex items-center gap-2 text-[11px] text-fiord-400 dark:text-fiord-500 font-bold">
-                          <MapPin className="size-3 text-fiord-400" />
-                          <span>{vac.zone || vac.location || "Mérida"}</span>
+                        <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground font-semibold">
+                          <MapPin className="size-3 text-muted-foreground shrink-0" />
+                          <span className="truncate">{vac.zone || vac.location || "Mérida"}</span>
                           <span>•</span>
-                          <span className="text-fiord-700 dark:text-fiord-300 font-semibold">{formattedSalary} MXN</span>
+                          <span className="text-foreground font-bold">{formattedSalary} MXN</span>
                         </div>
                       </div>
 
-                      {/* Progress wheel SVG */}
-                      <div className="relative size-16 shrink-0 flex items-center justify-center">
-                        <svg className="size-full transform -rotate-90">
-                          <circle cx="32" cy="32" r="24" stroke="#ebeef3" strokeWidth="5" fill="transparent" className="dark:stroke-fiord-800" />
-                          <circle
-                            cx="32"
-                            cy="32"
-                            r="24"
-                            stroke="#5c7c9b"
-                            strokeWidth="5"
-                            fill="transparent"
-                            strokeDasharray="150"
-                            strokeDashoffset={Math.max(0, 150 - Math.min(appCount, 10) * 15)}
-                            strokeLinecap="round"
-                          />
-                        </svg>
-                        <div className="absolute inset-0 flex flex-col items-center justify-center">
-                          <span className="text-[12px] font-bold font-mono text-fiord-900 dark:text-fiord-100">{appCount}</span>
-                          <span className="text-[7px] text-fiord-400 dark:text-fiord-500 uppercase tracking-widest font-extrabold">Postulantes</span>
-                        </div>
+                      {/* Applicants Indicator */}
+                      <div className="flex flex-col items-center justify-center rounded-xl bg-muted/60 px-2.5 py-1.5 shrink-0 border border-border/40">
+                        <span className="text-[14px] font-bold font-mono text-foreground leading-none">{appCount}</span>
+                        <span className="text-[8px] text-muted-foreground uppercase tracking-wider font-extrabold mt-0.5">Postulantes</span>
                       </div>
                     </Card>
                   </Link>
@@ -534,8 +516,8 @@ export function DashboardView({
             })()}
 
             {latestVacancies.length === 0 && publishedVacancies.length === 0 && (
-              <div className="col-span-2 text-center py-6 text-fiord-400 dark:text-fiord-500 text-sm font-semibold">
-                Aún no has publicado vacantes. Tus ofertas creadas se mostrarán aquí.
+              <div className="col-span-2 text-center py-4 text-muted-foreground text-xs font-medium">
+                Aún no has publicado vacantes.
               </div>
             )}
           </div>
