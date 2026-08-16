@@ -11,6 +11,7 @@ import {
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -85,13 +86,13 @@ export function NotificationBell({ userId }: NotificationBellProps) {
           <Button
             variant="ghost"
             size="icon"
-            className="relative h-11 w-11 rounded-full text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-900 hover:text-zinc-900 dark:hover:text-zinc-100 transition-all duration-200 cursor-pointer"
+            className="relative h-8 w-8 rounded-lg text-muted-foreground hover:bg-muted transition-all duration-200 cursor-pointer"
           />
         }
       >
-        <Bell className="h-6 w-6 stroke-[2]" />
+        <Bell className="size-4" />
         {unreadCount > 0 && (
-          <span className="absolute -right-0.5 -top-0.5 flex h-5 w-5 items-center justify-center rounded-full bg-[#1f2732] dark:bg-zinc-100 text-[10px] font-bold text-white dark:text-zinc-900 ring-2 ring-background animate-in zoom-in-50 duration-200">
+          <span className="absolute -right-0.5 -top-0.5 flex h-4 w-4 items-center justify-center rounded-full bg-primary text-[9px] font-bold text-primary-foreground ring-2 ring-background animate-in zoom-in-50 duration-200">
             {unreadCount}
           </span>
         )}
@@ -119,7 +120,7 @@ export function NotificationBell({ userId }: NotificationBellProps) {
               </p>
             </div>
             {unreadCount > 0 && (
-              <Badge className="rounded-full bg-[#494fdf] hover:bg-[#494fdf]/90 text-[11px] font-bold px-2.5">
+              <Badge className="rounded-full bg-primary text-primary-foreground text-[11px] font-bold px-2.5">
                 {unreadCount} nuevas
               </Badge>
             )}
@@ -130,12 +131,12 @@ export function NotificationBell({ userId }: NotificationBellProps) {
         <div className="max-h-96 overflow-y-auto p-2 space-y-1">
           {loading ? (
             /* Mini Skeleton Loader while fetching */
-            Array.from({ length: 2 }).map((_, idx) => (
-              <div key={idx} className="flex items-start gap-3.5 p-3.5 rounded-xl animate-pulse">
-                <div className="h-9 w-9 bg-neutral-200 dark:bg-zinc-800 rounded-xl shrink-0" />
+            Array.from({ length: 3 }).map((_, idx) => (
+              <div key={idx} className="flex items-start gap-3.5 p-3.5 rounded-xl">
+                <Skeleton className="size-9 rounded-xl shrink-0" />
                 <div className="flex-1 space-y-2">
-                  <div className="h-3.5 bg-neutral-200 dark:bg-zinc-800 rounded-sm w-[40%]" />
-                  <div className="h-3 bg-neutral-200 dark:bg-zinc-800 rounded-sm w-[85%]" />
+                  <Skeleton className="h-3.5 w-2/5 rounded-md" />
+                  <Skeleton className="h-3 w-4/5 rounded-md" />
                 </div>
               </div>
             ))
@@ -149,7 +150,7 @@ export function NotificationBell({ userId }: NotificationBellProps) {
                   onClick={() => !notification.is_read && markAsRead(notification.id)}
                   className={cn(
                     "group flex items-start gap-3.5 rounded-xl px-3.5 py-3.5 cursor-pointer transition-all duration-200 hover:bg-muted/50 border border-transparent focus:bg-muted/50",
-                    !notification.is_read && "bg-neutral-50/40 dark:bg-zinc-900/40 border-l-[#494fdf] border-l-2"
+                    !notification.is_read && "bg-muted/30 border-l-primary border-l-2"
                   )}
                 >
                   <div
@@ -174,7 +175,7 @@ export function NotificationBell({ userId }: NotificationBellProps) {
                         {notification.title}
                       </p>
                       {!notification.is_read && (
-                        <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-[#494fdf]" />
+                        <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-primary" />
                       )}
                     </div>
                     
@@ -216,7 +217,7 @@ export function NotificationBell({ userId }: NotificationBellProps) {
                 e.stopPropagation();
                 markAllAsRead();
               }}
-              className="w-full text-center rounded-lg px-4 py-2 text-xs font-bold text-[#494fdf] hover:bg-[#494fdf]/5 transition-colors cursor-pointer flex items-center justify-center gap-1.5"
+              className="w-full text-center rounded-lg px-4 py-2 text-xs font-bold text-primary hover:bg-primary/5 transition-colors cursor-pointer flex items-center justify-center gap-1.5"
             >
               <Check className="h-3.5 w-3.5" />
               Marcar todas como leídas
