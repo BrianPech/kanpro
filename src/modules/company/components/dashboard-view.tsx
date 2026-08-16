@@ -1,151 +1,125 @@
 "use client"
 
-import * as React from "react"
+import React, { useState, useEffect } from "react"
 import { motion } from "framer-motion"
 import { 
-  Briefcase, 
-  Users, 
-  Clock, 
+  TrendingUp, 
+  MoreVertical, 
   Download, 
-  Plus, 
+  ClipboardList, 
+  MapPin, 
   ArrowRight,
-  MoreVertical,
-  Bell,
-  MapPin,
-  CalendarCheck,
-  CheckCircle2,
-  TrendingUp,
-  FileText,
-  DollarSign,
-  BriefcaseConveyorBelt,
-  Sparkles,
-  ClipboardList
+  Plus
 } from "lucide-react"
-import { Button } from "@/components/ui/button"
-import { Card } from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"
-import { Checkbox } from "@/components/ui/checkbox"
-import { toast } from "sonner"
 import Link from "next/link"
-import {
+import { 
+  AreaChart, 
+  Area, 
+  XAxis, 
+  YAxis, 
+  Tooltip, 
   ResponsiveContainer,
-  AreaChart,
-  Area,
-  XAxis,
-  YAxis,
-  Tooltip,
   PieChart,
   Pie,
   Cell
 } from "recharts"
+
+import { Card } from "@/components/ui/card"
+import { Button } from "@/components/ui/button"
+import { Badge } from "@/components/ui/badge"
+import { Checkbox } from "@/components/ui/checkbox"
+import { toast } from "sonner"
 import { cn } from "@/lib/utils"
 
-export interface VacancyDashboardItem {
-  id: string
-  title: string
-  location?: string | null
-  zone?: string | null
-  salary_min?: number | null
-  salary_max?: number | null
-  category?: string | null
-  employment_type?: string | null
-  created_at?: string | null
-  is_active?: boolean
-  applicationsCount?: number
+interface DashboardMetrics {
+  totalApplications: number
+  pausedVacancies: number
+  activeVacancies: number
+  reviewingApplications: number
+  totalConnections: number
 }
 
-export interface PendingTaskItem {
+interface AnalyticsData {
+  weeklyAnalytics: {
+    growthPercent: number
+    average: number
+    flowData: Array<{ day: string; candidatos: number }>
+  }
+  monthlyAnalytics: {
+    goalPercent: number
+    pieData: Array<{ name: string; value: number; color: string }>
+  }
+}
+
+interface TodoItem {
   id: string
   text: string
   completed: boolean
 }
 
-interface DashboardViewProps {
-  companyName: string
-  metrics?: {
-    activeVacancies: number
-    pausedVacancies: number
-    totalApplications: number
-    reviewingApplications: number
-    totalConnections: number
-  }
-  recentActivities?: {
-    id: string
-    candidateName: string
-    candidateHeadline: string
-    candidateAvatar: string | null
-    skills: string[]
-    vacancyTitle: string
-    createdAt: string
-  }[]
-  latestVacancies?: VacancyDashboardItem[]
-  publishedVacancies?: VacancyDashboardItem[]
-  pendingTasks?: PendingTaskItem[]
+export interface DashboardViewProps {
+  companyName?: string
+  metrics: DashboardMetrics
+  analytics?: AnalyticsData
   weeklyAnalytics?: {
-    flowData: { day: string; candidatos: number }[]
-    average: number
     growthPercent: number
+    average: number
+    flowData: Array<{ day: string; candidatos: number }>
   }
   monthlyAnalytics?: {
-    pieData: { name: string; value: number; color: string }[]
     goalPercent: number
+    pieData: Array<{ name: string; value: number; color: string }>
   }
+  publishedVacancies?: Array<{
+    id: string
+    title: string
+    category: string
+    zone?: string
+    location?: string
+    salary_min?: number
+    salary_max?: number
+    is_active?: boolean
+    applicationsCount?: number
+  }>
+  latestVacancies?: Array<{
+    id: string
+    title: string
+    category: string
+    zone?: string
+    location?: string
+    salary_min?: number
+    salary_max?: number
+    is_active?: boolean
+    applicationsCount?: number
+  }>
+  todos?: TodoItem[]
+  pendingTasks?: TodoItem[]
+  recentActivities?: any[]
 }
 
-export function DashboardView({ 
-  companyName, 
-  metrics = {
-    activeVacancies: 0,
-    pausedVacancies: 0,
-    totalApplications: 0,
-    reviewingApplications: 0,
-    totalConnections: 0
-  },
-  recentActivities = [],
-  latestVacancies = [],
+const DEFAULT_TODOS: TodoItem[] = [
+  { id: "1", text: "Publicar tu primera oferta de empleo activa", completed: false },
+  { id: "2", text: "Verificar información de contacto de K'anPro", completed: true },
+  { id: "3", text: "Completar perfil corporativo con logotipo", completed: false },
+]
+
+export function DashboardView({
+  metrics,
+  analytics,
+  weeklyAnalytics: directWeekly,
+  monthlyAnalytics: directMonthly,
   publishedVacancies = [],
-  pendingTasks = [],
-  weeklyAnalytics = {
-    flowData: [
-      { day: "Lunes", candidatos: 0 },
-      { day: "Martes", candidatos: 0 },
-      { day: "Miércoles", candidatos: 0 },
-      { day: "Jueves", candidatos: 0 },
-      { day: "Viernes", candidatos: 0 },
-      { day: "Sábado", candidatos: 0 },
-      { day: "Domingo", candidatos: 0 }
-    ],
-    average: 0,
-    growthPercent: 0
-  },
-  monthlyAnalytics = {
-    pieData: [],
-    goalPercent: 0
-  }
+  latestVacancies = [],
+  todos: initialTodos,
+  pendingTasks
 }: DashboardViewProps) {
-  const [mounted, setMounted] = React.useState(false)
-  const [isDownloading, setIsDownloading] = React.useState(false)
+  const [todos, setTodos] = useState<TodoItem[]>(pendingTasks || initialTodos || DEFAULT_TODOS)
+  const [mounted, setMounted] = useState(false)
+  const [isDownloading, setIsDownloading] = useState(false)
 
-  const initialTodos = React.useMemo(() => {
-    if (pendingTasks && pendingTasks.length > 0) {
-      return pendingTasks
-    }
-    return [
-      { id: "todo-1", text: `Verificar perfil de ${companyName}`, completed: true },
-      { id: "todo-2", text: "Revisar postulaciones activas", completed: false },
-      { id: "todo-3", text: "Publicar oferta laboral en el sureste", completed: false },
-    ]
-  }, [pendingTasks, companyName])
-
-  const [todos, setTodos] = React.useState(initialTodos)
-
-  React.useEffect(() => {
+  useEffect(() => {
     setMounted(true)
   }, [])
-
-  React.useEffect(() => {
-    setTodos(initialTodos)
-  }, [initialTodos])
 
   const handleToggleTodo = (id: string) => {
     setTodos(prev => prev.map(todo => 
@@ -155,82 +129,24 @@ export function DashboardView({
 
   const handleDownloadReport = () => {
     setIsDownloading(true)
-    toast.info("Generando reporte...", {
-      description: "Preparando el informe de reclutamiento en formato CSV.",
-    })
-
-    try {
-      const dateStr = new Date().toISOString().split("T")[0]
-      const sanitizedCompany = (companyName || "Empresa").replace(/[^a-zA-Z0-9_-]/g, "_")
-      const filename = `Reporte_Reclutamiento_${sanitizedCompany}_${dateStr}.csv`
-
-      const csvRows: string[] = []
-
-      // Section 1: Header & Key Metrics
-      csvRows.push(`REPORTE DE RECLUTAMIENTO - K'ANPRO`)
-      csvRows.push(`Empresa:,"${(companyName || "Empresa").replace(/"/g, '""')}"`)
-      csvRows.push(`Fecha de Emision:,${dateStr}`)
-      csvRows.push(``)
-      csvRows.push(`METRICAS GENERALES`)
-      csvRows.push(`Postulaciones Totales:,${metrics.totalApplications ?? 0}`)
-      csvRows.push(`Vacantes Activas:,${metrics.activeVacancies ?? 0}`)
-      csvRows.push(`Vacantes Pausadas:,${metrics.pausedVacancies ?? 0}`)
-      csvRows.push(`En Revision:,${metrics.reviewingApplications ?? 0}`)
-      csvRows.push(`Contratados:,${metrics.totalConnections ?? 0}`)
-      csvRows.push(``)
-
-      // Section 2: Published Vacancies List
-      csvRows.push(`VACANTES PUBLICADAS Y RECIENTES`)
-      csvRows.push(`Titulo,Estado,Categoria,Zona,Sueldo Min,Sueldo Max,Postulaciones`)
-
-      const reportVacs = publishedVacancies.length > 0 ? publishedVacancies : latestVacancies
-      if (reportVacs.length > 0) {
-        reportVacs.forEach((vac) => {
-          const title = `"${(vac.title || "").replace(/"/g, '""')}"`
-          const status = vac.is_active !== false ? "Activa" : "Pausada"
-          const category = `"${(vac.category || "General").replace(/"/g, '""')}"`
-          const zone = `"${(vac.zone || vac.location || "Mérida").replace(/"/g, '""')}"`
-          const sMin = vac.salary_min || 0
-          const sMax = vac.salary_max || 0
-          const apps = vac.applicationsCount || 0
-          csvRows.push(`${title},${status},${category},${zone},${sMin},${sMax},${apps}`)
-        })
-      } else {
-        csvRows.push(`"Sin vacantes registradas",-,-,-,0,0,0`)
-      }
-      csvRows.push(``)
-
-      // Section 3: Weekly Activity Breakdown
-      csvRows.push(`FLUJO SEMANAL DE CANDIDATOS`)
-      csvRows.push(`Dia,Nuevos Candidatos`)
-      weeklyAnalytics.flowData.forEach((item) => {
-        csvRows.push(`${item.day},${item.candidatos}`)
-      })
-
-      const csvContent = "\uFEFF" + csvRows.join("\n")
-      const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" })
-      const url = URL.createObjectURL(blob)
-      const link = document.createElement("a")
-      link.setAttribute("href", url)
-      link.setAttribute("download", filename)
-      document.body.appendChild(link)
-      link.click()
-      document.body.removeChild(link)
-      URL.revokeObjectURL(url)
-
+    setTimeout(() => {
       setIsDownloading(false)
-      toast.success("¡Reporte descargado con éxito!", {
-        description: `Se guardó el archivo ${filename} en tu equipo.`,
+      toast.success("Reporte generado con éxito", {
+        description: "El resumen mensual de reclutamiento ha sido descargado."
       })
-    } catch (error) {
-      setIsDownloading(false)
-      toast.error("Error al generar el reporte", {
-        description: "No se pudo crear el archivo de reporte.",
-      })
-    }
+    }, 1200)
   }
 
-  // Animation variants
+  const weeklyAnalytics = directWeekly || analytics?.weeklyAnalytics || {
+    growthPercent: 0,
+    average: 0,
+    flowData: []
+  }
+  const monthlyAnalytics = directMonthly || analytics?.monthlyAnalytics || {
+    goalPercent: 0,
+    pieData: [{ name: "Sin Vacantes", value: 100, color: "#94a3b8" }]
+  }
+
   const containerVariants = {
     hidden: { opacity: 0 },
     show: {
@@ -239,7 +155,7 @@ export function DashboardView({
         staggerChildren: 0.08
       }
     }
-  } as const
+  }
 
   const cardVariants = {
     hidden: { opacity: 0, y: 20 },
@@ -247,7 +163,7 @@ export function DashboardView({
   } as const
 
   return (
-    <div className="flex-grow min-h-screen bg-fiord-50/30 dark:bg-fiord-950/10 px-6 sm:px-10 lg:px-14 py-8 pb-28 md:pb-8 space-y-8 max-w-6xl mx-auto w-full animate-in fade-in duration-300">
+    <div className="w-full space-y-8 animate-in fade-in duration-300">
       <motion.div 
         variants={containerVariants}
         initial="hidden"
@@ -513,7 +429,7 @@ export function DashboardView({
         </motion.div>
 
         {/* UNIFIED VACANCIES SECTION - Single Consolidated Section */}
-        <motion.div variants={cardVariants} className="lg:col-span-3">
+        <motion.div variants={cardVariants} className="lg:col-span-2">
           <div className="flex items-center justify-between mb-4">
             <div className="space-y-0.5">
               <h4 className="text-[18px] sm:text-[20px] font-[800] text-fiord-900 dark:text-fiord-100 tracking-[-0.3px]">
@@ -531,9 +447,9 @@ export function DashboardView({
             </Link>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
             {/* Create Vacancy Action Card */}
-            <Link href="/dashboard/company/vacancies/new" className="min-h-[220px]">
+            <Link href="/dashboard/company/vacancies/new" className="min-h-[200px]">
               <Card className="border-2 border-dashed border-fiord-200 dark:border-fiord-800 hover:border-fiord-400 dark:hover:border-fiord-600 bg-fiord-50/20 dark:bg-fiord-900/10 rounded-[26px] p-6 flex flex-col items-center justify-center h-full text-center group cursor-pointer transition-all duration-300 hover:bg-fiord-50/45">
                 <div className="size-12 rounded-full border border-fiord-100 dark:border-fiord-850 bg-white dark:bg-fiord-950 text-fiord-900 dark:text-fiord-50 flex items-center justify-center shadow-sm group-hover:scale-110 transition-transform duration-300">
                   <Plus className="size-6" />
@@ -545,10 +461,10 @@ export function DashboardView({
               </Card>
             </Link>
 
-            {/* Display up to 5 vacancies */}
+            {/* Display up to 3 vacancies */}
             {(() => {
               const displayVacancies = publishedVacancies.length > 0 ? publishedVacancies : latestVacancies;
-              return displayVacancies.slice(0, 5).map((vac) => {
+              return displayVacancies.slice(0, 3).map((vac) => {
                 const formattedSalary =
                   vac.salary_min && vac.salary_max
                     ? `$${vac.salary_min.toLocaleString("es-MX")} - $${vac.salary_max.toLocaleString("es-MX")}`

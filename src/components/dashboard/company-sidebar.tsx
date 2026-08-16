@@ -31,7 +31,9 @@ import { usePathname } from "next/navigation";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
 
-export function CompanySidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
+export function CompanySidebar({
+  ...props
+}: React.ComponentProps<typeof Sidebar>) {
   const pathname = usePathname();
 
   const sections = [
@@ -102,7 +104,7 @@ export function CompanySidebar({ ...props }: React.ComponentProps<typeof Sidebar
 
   return (
     <Sidebar variant="inset" {...props}>
-      <SidebarHeader className="border-b border-sidebar-border/60 py-3">
+      <SidebarHeader className="py-3">
         <SidebarMenu>
           <SidebarMenuItem>
             <SidebarMenuButton
@@ -114,8 +116,12 @@ export function CompanySidebar({ ...props }: React.ComponentProps<typeof Sidebar
                 <Kanban className="size-4" />
               </div>
               <div className="grid flex-1 text-left text-sm leading-tight">
-                <span className="truncate font-bold tracking-tight text-sidebar-foreground">K&apos;anPro</span>
-                <span className="truncate text-xs text-muted-foreground font-medium">Portal Empresa</span>
+                <span className="truncate font-bold tracking-tight text-sidebar-foreground">
+                  K&apos;anPro
+                </span>
+                <span className="truncate text-xs text-muted-foreground font-medium">
+                  Portal Empresa
+                </span>
               </div>
             </SidebarMenuButton>
           </SidebarMenuItem>
@@ -145,7 +151,7 @@ export function CompanySidebar({ ...props }: React.ComponentProps<typeof Sidebar
                         className={cn(
                           "h-9 rounded-lg px-2.5 gap-2.5 text-sm font-medium transition-all",
                           isActive &&
-                            "bg-sidebar-accent text-sidebar-accent-foreground font-semibold"
+                            "bg-sidebar-accent text-sidebar-accent-foreground font-semibold",
                         )}
                       >
                         <item.icon className="size-4 shrink-0" />
@@ -176,7 +182,7 @@ export function CompanySidebar({ ...props }: React.ComponentProps<typeof Sidebar
                       className={cn(
                         "h-9 rounded-lg px-2.5 gap-2.5 text-xs font-medium text-muted-foreground hover:text-foreground transition-all",
                         isActive &&
-                          "bg-sidebar-accent text-sidebar-accent-foreground font-semibold"
+                          "bg-sidebar-accent text-sidebar-accent-foreground font-semibold",
                       )}
                     >
                       <item.icon className="size-3.5 shrink-0" />
@@ -190,7 +196,7 @@ export function CompanySidebar({ ...props }: React.ComponentProps<typeof Sidebar
         </SidebarGroup>
       </SidebarContent>
 
-      <SidebarFooter className="border-t border-sidebar-border/60 p-2">
+      <SidebarFooter className="p-2">
         <NavUser />
       </SidebarFooter>
     </Sidebar>

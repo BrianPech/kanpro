@@ -12,6 +12,7 @@ import {
   BreadcrumbPage,
   BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb";
+import { ModeToggle } from "@/components/mode-toggle";
 
 const routeNames: Record<string, string> = {
   "/dashboard/admin": "Dashboard",
@@ -63,6 +64,10 @@ export function SiteHeader() {
             )}
           </BreadcrumbList>
         </Breadcrumb>
+      </div>
+
+      <div className="flex items-center gap-2">
+        <ModeToggle />
       </div>
     </header>
   );

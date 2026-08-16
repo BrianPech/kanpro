@@ -21,6 +21,7 @@ import {
   BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb";
 import { NotificationBell } from "@/modules/notifications/components/notification-bell";
+import { ModeToggle } from "@/components/mode-toggle";
 
 const routeNames: Record<string, string> = {
   "/dashboard/candidate": "Dashboard",
@@ -99,8 +100,8 @@ export function CandidateTopbar({
         </Breadcrumb>
       </div>
 
-      {/* Right Area: Action, Notifications */}
-      <div className="flex items-center gap-3">
+      {/* Right Area: Action, Notifications, ModeToggle */}
+      <div className="flex items-center gap-2">
         <Button
           variant="outline"
           size="sm"
@@ -122,6 +123,8 @@ export function CandidateTopbar({
             <Bell className="size-4" />
           </Button>
         )}
+
+        <ModeToggle />
       </div>
     </header>
   );
