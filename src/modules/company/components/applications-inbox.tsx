@@ -24,15 +24,17 @@ import {
   Clock,
   Download,
   Save,
+  Eye,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { Badge } from "@/components/ui/badge"
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog"
 import { toast } from "sonner"
 import { cn } from "@/lib/utils"
 import { useApplicationsInbox, type Applicant } from "../hooks/use-applications-inbox"
-import { requestDocumentAccess, getDocumentAccessStatus } from "../actions/document-access"
+import { requestDocumentAccess, getDocumentAccessStatus, getAuthorizedCandidateDocuments } from "../actions/document-access"
 
 export function ApplicationsInbox() {
   // Assume a default company user id or let Supabase fetch current user inside hook
@@ -59,6 +61,9 @@ export function ApplicationsInbox() {
   const [docAccessState, setDocAccessState] = React.useState<{ status: string; id?: string } | null>(null)
   const [isRequestingDocs, setIsRequestingDocs] = React.useState(false)
   const [noteText, setNoteText] = React.useState("")
+  const [authorizedDocs, setAuthorizedDocs] = React.useState<any[]>([])
+  const [isLoadingDocs, setIsLoadingDocs] = React.useState(false)
+  const [previewDoc, setPreviewDoc] = React.useState<any | null>(null)
 
   React.useEffect(() => {
     if (selectedApplicant) {
@@ -86,6 +91,31 @@ export function ApplicationsInbox() {
     }
     loadDocStatus()
   }, [selectedApplicant])
+
+  // Fetch authorized documents if status is approved
+  React.useEffect(() => {
+    async function loadAuthorizedDocs() {
+      if (selectedApplicant?.id && selectedApplicant?.candidateId && docAccessState?.status === "approved") {
+        setIsLoadingDocs(true)
+        try {
+          const res = await getAuthorizedCandidateDocuments(selectedApplicant.id, selectedApplicant.candidateId)
+          if (res.authorized) {
+            setAuthorizedDocs(res.documents)
+          } else {
+            setAuthorizedDocs([])
+          }
+        } catch (err) {
+          console.error("Error loading authorized documents:", err)
+          setAuthorizedDocs([])
+        } finally {
+          setIsLoadingDocs(false)
+        }
+      } else {
+        setAuthorizedDocs([])
+      }
+    }
+    loadAuthorizedDocs()
+  }, [selectedApplicant, docAccessState?.status])
 
   const handleRequestDocuments = async () => {
     if (!selectedApplicant) return
@@ -595,31 +625,59 @@ export function ApplicationsInbox() {
                 {docAccessState?.status === "approved" && (
                   <div className="space-y-3">
                     <p className="text-xs text-muted-foreground">
-                      El candidato ha otorgado acceso a sus documentos verificados:
+                      El candidato ha otorgado acceso a sus documentos verificados. Puedes visualizarlos o descargarlos a continuación:
                     </p>
-                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                      <div className="p-3 rounded-xl border border-border bg-muted/20 flex items-center justify-between">
-                        <div className="flex items-center gap-2 text-xs font-bold">
-                          <FileText className="size-4 text-indigo-600" />
-                          <span>Identificación (INE)</span>
-                        </div>
-                        <Badge variant="secondary" className="text-[9px]">Autorizado</Badge>
+                    
+                    {isLoadingDocs ? (
+                      <div className="flex items-center gap-2 py-4 text-xs text-muted-foreground">
+                        <Loader2 className="size-4 animate-spin text-primary" />
+                        <span>Generando accesos seguros a los documentos...</span>
                       </div>
-                      <div className="p-3 rounded-xl border border-border bg-muted/20 flex items-center justify-between">
-                        <div className="flex items-center gap-2 text-xs font-bold">
-                          <FileText className="size-4 text-indigo-600" />
-                          <span>CURP Oficial</span>
-                        </div>
-                        <Badge variant="secondary" className="text-[9px]">Autorizado</Badge>
+                    ) : authorizedDocs.length > 0 ? (
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        {authorizedDocs.map((doc: any) => (
+                          <div key={doc.id} className="p-3.5 rounded-2xl border border-border/60 bg-muted/20 flex items-center justify-between gap-3">
+                            <div className="flex items-center gap-2.5 min-w-0">
+                              <div className="p-2 rounded-xl bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 shrink-0">
+                                <FileText className="size-4" />
+                              </div>
+                              <div className="min-w-0">
+                                <span className="text-xs font-bold block truncate text-foreground">
+                                  {doc.file_name || doc.doc_type}
+                                </span>
+                                <span className="text-[10px] text-muted-foreground font-medium uppercase tracking-wider block">
+                                  {doc.doc_type}
+                                </span>
+                              </div>
+                            </div>
+                            <div className="flex items-center gap-1.5 shrink-0">
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => setPreviewDoc(doc)}
+                                className="h-8 px-2.5 rounded-lg text-xs font-bold gap-1"
+                              >
+                                <Eye className="size-3.5" />
+                                <span>Ver</span>
+                              </Button>
+                              <a href={doc.file_url} target="_blank" rel="noopener noreferrer" download>
+                                <Button
+                                  size="sm"
+                                  variant="ghost"
+                                  className="h-8 w-8 p-0 rounded-lg text-muted-foreground hover:text-foreground"
+                                >
+                                  <Download className="size-3.5" />
+                                </Button>
+                              </a>
+                            </div>
+                          </div>
+                        ))}
                       </div>
-                      <div className="p-3 rounded-xl border border-border bg-muted/20 flex items-center justify-between">
-                        <div className="flex items-center gap-2 text-xs font-bold">
-                          <FileText className="size-4 text-indigo-600" />
-                          <span>Constancia RFC</span>
-                        </div>
-                        <Badge variant="secondary" className="text-[9px]">Autorizado</Badge>
+                    ) : (
+                      <div className="p-3.5 rounded-xl bg-muted/40 border border-border/40 text-xs text-muted-foreground">
+                        El candidato aún no ha adjuntado archivos en su expediente oficial.
                       </div>
-                    </div>
+                    )}
                   </div>
                 )}
 
@@ -699,6 +757,53 @@ export function ApplicationsInbox() {
         )}
 
       </div>
+
+      {/* Integrated PDF / Document Viewer Modal */}
+      <Dialog open={!!previewDoc} onOpenChange={(open) => !open && setPreviewDoc(null)}>
+        <DialogContent className="max-w-4xl h-[85vh] flex flex-col p-6 rounded-[28px] bg-background border border-border shadow-2xl">
+          <DialogHeader className="flex flex-row items-center justify-between pb-3 border-b border-border/50">
+            <div className="space-y-0.5">
+              <DialogTitle className="text-base font-bold flex items-center gap-2 text-foreground">
+                <FileText className="size-4.5 text-indigo-600 dark:text-indigo-400" />
+                {previewDoc?.file_name || previewDoc?.doc_type || "Documento Verificado"}
+              </DialogTitle>
+              <DialogDescription className="text-xs text-muted-foreground font-medium">
+                Expediente confidencial autorizado para contratación de {selectedApplicant?.name}.
+              </DialogDescription>
+            </div>
+            {previewDoc?.file_url && (
+              <div className="flex items-center gap-2">
+                <a href={previewDoc.file_url} target="_blank" rel="noopener noreferrer">
+                  <Button variant="outline" size="sm" className="rounded-xl text-xs font-bold gap-1.5 h-8">
+                    <ExternalLink className="size-3.5" />
+                    Abrir original
+                  </Button>
+                </a>
+                <a href={previewDoc.file_url} target="_blank" rel="noopener noreferrer" download>
+                  <Button size="sm" className="rounded-xl text-xs font-bold gap-1.5 h-8 bg-primary text-primary-foreground">
+                    <Download className="size-3.5" />
+                    Descargar
+                  </Button>
+                </a>
+              </div>
+            )}
+          </DialogHeader>
+
+          <div className="flex-1 w-full h-full min-h-0 bg-muted/20 rounded-2xl overflow-hidden border border-border/60 mt-3 relative">
+            {previewDoc?.file_url ? (
+              <iframe
+                src={previewDoc.file_url}
+                className="w-full h-full rounded-2xl"
+                title={previewDoc.file_name || "Documento"}
+              />
+            ) : (
+              <div className="flex items-center justify-center h-full text-muted-foreground text-xs font-medium">
+                Cargando vista previa...
+              </div>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
 
     </div>
   )

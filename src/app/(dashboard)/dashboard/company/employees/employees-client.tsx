@@ -15,13 +15,21 @@ import {
   Mail,
   ChevronRight,
   Filter,
-  ArrowUpDown
+  ArrowUpDown,
+  UserX,
+  FileText,
+  RotateCcw,
+  AlertTriangle,
+  Loader2,
+  Clock
 } from "lucide-react"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Card } from "@/components/ui/card"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+import { Textarea } from "@/components/ui/textarea"
+import { Label } from "@/components/ui/label"
 import {
   Table,
   TableBody,
@@ -35,9 +43,31 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
+  DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu"
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from "@/components/ui/dialog"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
 import { cn } from "@/lib/utils"
 import Link from "next/link"
+import { toast } from "sonner"
+import {
+  updateEmployeeStartDate,
+  terminateEmployee,
+  reactivateEmployee
+} from "@/modules/company/actions/employees"
 
 interface Employee {
   id: string
@@ -49,7 +79,8 @@ interface Employee {
   vacancy_title: string
   vacancy_category: string
   hired_date: string
-  status: string
+  notes?: string
+  status: "Contratado" | "Baja"
 }
 
 interface CompanyEmployeesViewProps {
@@ -59,6 +90,7 @@ interface CompanyEmployeesViewProps {
 
 const CATEGORY_COLORS: Record<string, string> = {
   "Hostelería y Restaurantes": "bg-amber-500/10 text-amber-700 dark:text-amber-400 border-amber-500/20",
+  "Alimentos y Bebidas": "bg-amber-500/10 text-amber-700 dark:text-amber-400 border-amber-500/20",
   "Ventas y Comercio": "bg-blue-500/10 text-blue-700 dark:text-blue-400 border-blue-500/20",
   "Atención al Cliente": "bg-purple-500/10 text-purple-700 dark:text-purple-400 border-purple-500/20",
   "Operaciones y Logística": "bg-indigo-500/10 text-indigo-700 dark:text-indigo-400 border-indigo-500/20",
@@ -69,7 +101,27 @@ const CATEGORY_COLORS: Record<string, string> = {
 export function CompanyEmployeesView({ userId, initialEmployees }: CompanyEmployeesViewProps) {
   const [searchQuery, setSearchQuery] = React.useState("")
   const [categoryFilter, setCategoryFilter] = React.useState<string>("all")
-  const [employees] = React.useState<Employee[]>(initialEmployees)
+  const [statusFilter, setStatusFilter] = React.useState<"all" | "Contratado" | "Baja">("all")
+  const [employees, setEmployees] = React.useState<Employee[]>(initialEmployees)
+
+  // Dialog States
+  const [selectedEmp, setSelectedEmp] = React.useState<Employee | null>(null)
+  
+  // Date modal
+  const [isDateDialogOpen, setIsDateDialogOpen] = React.useState(false)
+  const [startDateValue, setStartDateValue] = React.useState("")
+  const [isSavingDate, setIsSavingDate] = React.useState(false)
+
+  // Termination modal
+  const [isTerminateDialogOpen, setIsTerminateDialogOpen] = React.useState(false)
+  const [terminationReason, setTerminationReason] = React.useState("Renuncia voluntaria")
+  const [terminationNotes, setTerminationNotes] = React.useState("")
+  const [isTerminating, setIsTerminating] = React.useState(false)
+
+  // Notes modal
+  const [isNotesDialogOpen, setIsNotesDialogOpen] = React.useState(false)
+  const [employeeNotes, setEmployeeNotes] = React.useState("")
+  const [isSavingNotes, setIsSavingNotes] = React.useState(false)
 
   const categories = React.useMemo(() => {
     const set = new Set<string>()
@@ -90,9 +142,12 @@ export function CompanyEmployeesView({ userId, initialEmployees }: CompanyEmploy
       const matchesCategory =
         categoryFilter === "all" || emp.vacancy_category === categoryFilter
 
-      return matchesSearch && matchesCategory
+      const matchesStatus =
+        statusFilter === "all" || emp.status === statusFilter
+
+      return matchesSearch && matchesCategory && matchesStatus
     })
-  }, [employees, searchQuery, categoryFilter])
+  }, [employees, searchQuery, categoryFilter, statusFilter])
 
   const formatDate = (dateStr: string) => {
     if (!dateStr) return "Reciente"
@@ -113,15 +168,81 @@ export function CompanyEmployeesView({ userId, initialEmployees }: CompanyEmploy
       .slice(0, 2)
   }
 
+  // Handlers
+  const handleOpenDateDialog = (emp: Employee) => {
+    setSelectedEmp(emp)
+    setStartDateValue(emp.hired_date ? new Date(emp.hired_date).toISOString().slice(0, 10) : "")
+    setIsDateDialogOpen(true)
+  }
+
+  const handleSaveStartDate = async () => {
+    if (!selectedEmp) return
+    setIsSavingDate(true)
+    try {
+      await updateEmployeeStartDate(selectedEmp.id, startDateValue)
+      setEmployees(prev => prev.map(e => e.id === selectedEmp.id ? { ...e, hired_date: startDateValue } : e))
+      toast.success("Fecha de inicio actualizada con éxito")
+      setIsDateDialogOpen(false)
+    } catch (err: any) {
+      toast.error(err.message || "Error al actualizar fecha")
+    } finally {
+      setIsSavingDate(false)
+    }
+  }
+
+  const handleOpenTerminateDialog = (emp: Employee) => {
+    setSelectedEmp(emp)
+    setTerminationReason("Renuncia voluntaria")
+    setTerminationNotes("")
+    setIsTerminateDialogOpen(true)
+  }
+
+  const handleConfirmTermination = async () => {
+    if (!selectedEmp) return
+    setIsTerminating(true)
+    try {
+      await terminateEmployee(selectedEmp.id, terminationReason, terminationNotes)
+      setEmployees(prev => prev.map(e => e.id === selectedEmp.id ? { ...e, status: "Baja" } : e))
+      toast.warning("Colaborador dado de baja", {
+        description: `Se ha registrado la baja de ${selectedEmp.full_name}.`
+      })
+      setIsTerminateDialogOpen(false)
+    } catch (err: any) {
+      toast.error(err.message || "Error al registrar baja")
+    } finally {
+      setIsTerminating(false)
+    }
+  }
+
+  const handleReactivate = async (emp: Employee) => {
+    try {
+      toast.loading("Reactivando colaborador...", { id: "reactivate-emp" })
+      await reactivateEmployee(emp.id)
+      setEmployees(prev => prev.map(e => e.id === emp.id ? { ...e, status: "Contratado" } : e))
+      toast.success("¡Colaborador reactivado!", {
+        id: "reactivate-emp",
+        description: `${emp.full_name} vuelve a estar en estatus de empleado activo.`
+      })
+    } catch (err: any) {
+      toast.error(err.message || "Error al reactivar colaborador", { id: "reactivate-emp" })
+    }
+  }
+
+  const handleOpenNotesDialog = (emp: Employee) => {
+    setSelectedEmp(emp)
+    setEmployeeNotes(emp.notes || "")
+    setIsNotesDialogOpen(true)
+  }
+
   return (
     <div className="space-y-6 pb-24 md:pb-8 animate-in fade-in duration-300">
       
       {/* Top Filter & Control Shell */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white dark:bg-[#18181b] p-4 sm:p-5 rounded-[24px] border border-[#ebeef3] dark:border-zinc-800 shadow-xs">
+      <div className="flex flex-col gap-4 bg-white dark:bg-[#18181b] p-4 sm:p-5 rounded-[24px] border border-[#ebeef3] dark:border-zinc-800 shadow-xs">
         
-        {/* Search & Category Pills */}
-        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 flex-1">
-          <div className="relative w-full sm:w-80">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+          {/* Search Bar */}
+          <div className="relative w-full md:w-96">
             <Search className="absolute left-4 top-1/2 -translate-y-1/2 size-4 text-[#5c7c9b]" />
             <Input
               placeholder="Buscar por empleado, puesto o zona..."
@@ -131,45 +252,85 @@ export function CompanyEmployeesView({ userId, initialEmployees }: CompanyEmploy
             />
           </div>
 
-          {/* Category Filter Pills */}
-          <div className="flex items-center gap-1.5 overflow-x-auto hide-scrollbar -mx-2 px-2 sm:mx-0 sm:px-0">
+          {/* Status switcher pills: Activos vs Bajas */}
+          <div className="inline-flex p-1 rounded-[16px] bg-[#f5f7fa] dark:bg-zinc-900 border border-[#ebeef3] dark:border-zinc-800">
             <button
               type="button"
-              onClick={() => setCategoryFilter("all")}
+              onClick={() => setStatusFilter("all")}
               className={cn(
-                "px-3.5 py-2 rounded-xl text-xs font-bold whitespace-nowrap transition-all cursor-pointer select-none",
-                categoryFilter === "all"
+                "px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer",
+                statusFilter === "all"
                   ? "bg-[#1f2732] dark:bg-zinc-100 text-white dark:text-zinc-900 shadow-xs"
-                  : "bg-[#f5f7fa] dark:bg-zinc-900 text-[#5c7c9b] hover:text-[#1f2732] dark:hover:text-zinc-100"
+                  : "text-[#5c7c9b] hover:text-[#1f2732] dark:hover:text-zinc-100"
               )}
             >
               Todos ({employees.length})
             </button>
-            {categories.map((cat) => (
-              <button
-                key={cat}
-                type="button"
-                onClick={() => setCategoryFilter(cat)}
-                className={cn(
-                  "px-3.5 py-2 rounded-xl text-xs font-bold whitespace-nowrap transition-all cursor-pointer select-none",
-                  categoryFilter === cat
-                    ? "bg-[#1f2732] dark:bg-zinc-100 text-white dark:text-zinc-900 shadow-xs"
-                    : "bg-[#f5f7fa] dark:bg-zinc-900 text-[#5c7c9b] hover:text-[#1f2732] dark:hover:text-zinc-100"
-                )}
-              >
-                {cat}
-              </button>
-            ))}
+            <button
+              type="button"
+              onClick={() => setStatusFilter("Contratado")}
+              className={cn(
+                "px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer",
+                statusFilter === "Contratado"
+                  ? "bg-[#1f2732] dark:bg-zinc-100 text-white dark:text-zinc-900 shadow-xs"
+                  : "text-[#5c7c9b] hover:text-[#1f2732] dark:hover:text-zinc-100"
+              )}
+            >
+              Activos ({employees.filter(e => e.status === "Contratado").length})
+            </button>
+            <button
+              type="button"
+              onClick={() => setStatusFilter("Baja")}
+              className={cn(
+                "px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer",
+                statusFilter === "Baja"
+                  ? "bg-rose-600 text-white shadow-xs"
+                  : "text-[#5c7c9b] hover:text-rose-600"
+              )}
+            >
+              Bajas ({employees.filter(e => e.status === "Baja").length})
+            </button>
           </div>
+
+          {/* Primary Action Button */}
+          <Button asChild className="h-11 rounded-[16px] bg-[#1f2732] dark:bg-zinc-100 hover:bg-[#253240] dark:hover:bg-zinc-200 text-white dark:text-zinc-900 font-bold text-xs sm:text-sm px-5 shrink-0 shadow-xs cursor-pointer">
+            <Link href="/dashboard/company/applications">
+              <Users className="size-4 mr-2" />
+              <span>Bandeja de Postulantes</span>
+            </Link>
+          </Button>
         </div>
 
-        {/* Primary Action Button */}
-        <Button asChild className="h-11 rounded-[16px] bg-[#1f2732] dark:bg-zinc-100 hover:bg-[#253240] dark:hover:bg-zinc-200 text-white dark:text-zinc-900 font-bold text-xs sm:text-sm px-5 shrink-0 shadow-xs cursor-pointer">
-          <Link href="/dashboard/company/applications">
-            <Users className="size-4 mr-2" />
-            <span>Postulantes Pendientes</span>
-          </Link>
-        </Button>
+        {/* Category Filter Pills */}
+        <div className="flex items-center gap-1.5 overflow-x-auto hide-scrollbar -mx-2 px-2 sm:mx-0 sm:px-0 pt-1 border-t border-[#ebeef3] dark:border-zinc-800">
+          <button
+            type="button"
+            onClick={() => setCategoryFilter("all")}
+            className={cn(
+              "px-3 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap transition-all cursor-pointer select-none",
+              categoryFilter === "all"
+                ? "bg-[#1f2732]/10 dark:bg-zinc-100/10 text-[#1f2732] dark:text-zinc-100 font-extrabold"
+                : "text-[#5c7c9b] hover:text-[#1f2732] dark:hover:text-zinc-100"
+            )}
+          >
+            Todas las áreas
+          </button>
+          {categories.map((cat) => (
+            <button
+              key={cat}
+              type="button"
+              onClick={() => setCategoryFilter(cat)}
+              className={cn(
+                "px-3 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap transition-all cursor-pointer select-none",
+                categoryFilter === cat
+                  ? "bg-[#1f2732]/10 dark:bg-zinc-100/10 text-[#1f2732] dark:text-zinc-100 font-extrabold"
+                  : "text-[#5c7c9b] hover:text-[#1f2732] dark:hover:text-zinc-100"
+              )}
+            >
+              {cat}
+            </button>
+          ))}
+        </div>
       </div>
 
       {/* Main Employee Table Shell */}
@@ -195,7 +356,7 @@ export function CompanyEmployeesView({ userId, initialEmployees }: CompanyEmploy
                     Fecha de Ingreso
                   </TableHead>
                   <TableHead className="py-4 px-4 sm:px-6 text-right font-[800] text-xs uppercase tracking-wider text-[#1f2732] dark:text-zinc-200">
-                    Contacto
+                    Acciones
                   </TableHead>
                 </TableRow>
               </TableHeader>
@@ -209,10 +370,15 @@ export function CompanyEmployeesView({ userId, initialEmployees }: CompanyEmploy
                   const catStyle =
                     CATEGORY_COLORS[emp.vacancy_category] || CATEGORY_COLORS["General"]
 
+                  const isHired = emp.status === "Contratado"
+
                   return (
                     <TableRow
                       key={emp.id}
-                      className="border-b border-[#ebeef3]/60 dark:border-zinc-800/50 transition-colors hover:bg-[#f5f7fa]/60 dark:hover:bg-zinc-900/40"
+                      className={cn(
+                        "border-b border-[#ebeef3]/60 dark:border-zinc-800/50 transition-colors hover:bg-[#f5f7fa]/60 dark:hover:bg-zinc-900/40",
+                        !isHired && "opacity-70 bg-muted/20"
+                      )}
                     >
                       {/* 1. Employee Name & Avatar */}
                       <TableCell className="px-4 sm:px-6 py-4">
@@ -257,10 +423,17 @@ export function CompanyEmployeesView({ userId, initialEmployees }: CompanyEmploy
 
                       {/* 4. Status */}
                       <TableCell className="px-3 sm:px-4 py-4 whitespace-nowrap">
-                        <Badge variant="outline" className="bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border-emerald-500/30 text-[11px] font-extrabold px-3 py-1 rounded-full flex items-center gap-1.5 w-fit">
-                          <CheckCircle2 className="size-3.5 text-emerald-600 dark:text-emerald-400" />
-                          <span>Contratado</span>
-                        </Badge>
+                        {isHired ? (
+                          <Badge variant="outline" className="bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border-emerald-500/30 text-[11px] font-extrabold px-3 py-1 rounded-full flex items-center gap-1.5 w-fit">
+                            <CheckCircle2 className="size-3.5 text-emerald-600 dark:text-emerald-400" />
+                            <span>Activo</span>
+                          </Badge>
+                        ) : (
+                          <Badge variant="outline" className="bg-rose-500/10 text-rose-700 dark:text-rose-400 border-rose-500/30 text-[11px] font-extrabold px-3 py-1 rounded-full flex items-center gap-1.5 w-fit">
+                            <UserX className="size-3.5 text-rose-600" />
+                            <span>Baja</span>
+                          </Badge>
+                        )}
                       </TableCell>
 
                       {/* 5. Hired Date */}
@@ -268,22 +441,71 @@ export function CompanyEmployeesView({ userId, initialEmployees }: CompanyEmploy
                         {formatDate(emp.hired_date)}
                       </TableCell>
 
-                      {/* 6. Contact Actions */}
+                      {/* 6. Contact & Dropdown Actions */}
                       <TableCell className="px-4 sm:px-6 py-4 text-right whitespace-nowrap">
-                        {whatsappUrl ? (
-                          <Button
-                            asChild
-                            size="sm"
-                            className="h-9 px-3.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs inline-flex items-center gap-1.5 shadow-xs cursor-pointer"
-                          >
-                            <a href={whatsappUrl} target="_blank" rel="noopener noreferrer">
-                              <MessageCircle className="size-4" />
-                              <span>WhatsApp</span>
-                            </a>
-                          </Button>
-                        ) : (
-                          <span className="text-xs font-semibold text-[#94a3b8]">Sin teléfono</span>
-                        )}
+                        <div className="flex items-center justify-end gap-2">
+                          {whatsappUrl && (
+                            <Button
+                              asChild
+                              size="sm"
+                              className="h-9 px-3 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs inline-flex items-center gap-1.5 shadow-xs cursor-pointer"
+                            >
+                              <a href={whatsappUrl} target="_blank" rel="noopener noreferrer">
+                                <MessageCircle className="size-4" />
+                                <span>WhatsApp</span>
+                              </a>
+                            </Button>
+                          )}
+
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-9 w-9 p-0 rounded-xl border border-border bg-background hover:bg-muted text-muted-foreground"
+                              >
+                                <MoreHorizontal className="size-4" />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end" className="rounded-2xl border border-border bg-popover min-w-[190px] p-1.5 shadow-lg">
+                              <DropdownMenuItem
+                                onClick={() => handleOpenDateDialog(emp)}
+                                className="text-xs font-bold py-2.5 px-3 rounded-xl cursor-pointer gap-2.5"
+                              >
+                                <Calendar className="size-4 text-[#5c7c9b]" />
+                                <span>Fecha de Ingreso</span>
+                              </DropdownMenuItem>
+
+                              <DropdownMenuItem
+                                onClick={() => handleOpenNotesDialog(emp)}
+                                className="text-xs font-bold py-2.5 px-3 rounded-xl cursor-pointer gap-2.5"
+                              >
+                                <FileText className="size-4 text-[#5c7c9b]" />
+                                <span>Notas & Incidencias</span>
+                              </DropdownMenuItem>
+
+                              <DropdownMenuSeparator className="my-1" />
+
+                              {isHired ? (
+                                <DropdownMenuItem
+                                  onClick={() => handleOpenTerminateDialog(emp)}
+                                  className="text-xs font-bold text-rose-600 dark:text-rose-400 py-2.5 px-3 rounded-xl hover:bg-rose-500/10 focus:bg-rose-500/10 cursor-pointer gap-2.5"
+                                >
+                                  <UserX className="size-4 text-rose-500" />
+                                  <span>Dar de baja / Archivar</span>
+                                </DropdownMenuItem>
+                              ) : (
+                                <DropdownMenuItem
+                                  onClick={() => handleReactivate(emp)}
+                                  className="text-xs font-bold text-emerald-600 dark:text-emerald-400 py-2.5 px-3 rounded-xl hover:bg-emerald-500/10 focus:bg-emerald-500/10 cursor-pointer gap-2.5"
+                                >
+                                  <RotateCcw className="size-4 text-emerald-500" />
+                                  <span>Reactivar como Activo</span>
+                                </DropdownMenuItem>
+                              )}
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        </div>
                       </TableCell>
                     </TableRow>
                   )
@@ -299,20 +521,155 @@ export function CompanyEmployeesView({ userId, initialEmployees }: CompanyEmploy
             </div>
             <div className="space-y-1 max-w-md mx-auto">
               <h3 className="text-base font-[800] text-[#1f2732] dark:text-zinc-100">
-                Sin empleados registrados en la lista
+                Sin colaboradores en esta vista
               </h3>
               <p className="text-xs sm:text-sm font-semibold text-[#5c7c9b] dark:text-zinc-400">
-                Cuando aceptes candidatos en la Bandeja de Postulantes, aparecerán organizados en este módulo de empleados activos.
+                No hay empleados que coincidan con la búsqueda o filtro de estatus seleccionado.
               </p>
             </div>
-            <Button asChild className="h-10 rounded-xl bg-[#1f2732] dark:bg-zinc-100 hover:bg-[#253240] dark:hover:bg-zinc-200 text-white dark:text-zinc-900 font-bold text-xs px-5">
-              <Link href="/dashboard/company/applications">
-                Ir a Bandeja de Postulantes
-              </Link>
-            </Button>
           </div>
         )}
       </div>
+
+      {/* 1. Modal Fecha de Ingreso */}
+      <Dialog open={isDateDialogOpen} onOpenChange={setIsDateDialogOpen}>
+        <DialogContent className="sm:max-w-md rounded-[24px]">
+          <DialogHeader>
+            <DialogTitle className="text-base font-bold flex items-center gap-2">
+              <Calendar className="size-5 text-indigo-600" />
+              Fecha de Inicio de Labores
+            </DialogTitle>
+            <DialogDescription className="text-xs">
+              Define o actualiza el día formal de ingreso de {selectedEmp?.full_name}.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-3 py-2">
+            <Label className="text-xs font-bold">Fecha de Ingreso / Alta</Label>
+            <Input
+              type="date"
+              value={startDateValue}
+              onChange={(e) => setStartDateValue(e.target.value)}
+              className="h-11 rounded-xl"
+            />
+          </div>
+
+          <DialogFooter className="gap-2 sm:gap-0 pt-3 border-t">
+            <Button variant="outline" size="sm" onClick={() => setIsDateDialogOpen(false)} className="rounded-xl">
+              Cancelar
+            </Button>
+            <Button
+              size="sm"
+              onClick={handleSaveStartDate}
+              disabled={isSavingDate}
+              className="rounded-xl bg-primary text-primary-foreground font-bold"
+            >
+              {isSavingDate ? <Loader2 className="size-3.5 animate-spin" /> : "Guardar Fecha"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* 2. Modal Baja de Empleado */}
+      <Dialog open={isTerminateDialogOpen} onOpenChange={setIsTerminateDialogOpen}>
+        <DialogContent className="sm:max-w-md rounded-[24px]">
+          <DialogHeader>
+            <DialogTitle className="text-base font-bold text-destructive flex items-center gap-2">
+              <AlertTriangle className="size-5" />
+              Registrar Baja de Colaborador
+            </DialogTitle>
+            <DialogDescription className="text-xs">
+              Esta acción marcará a {selectedEmp?.full_name} como baja en el historial laboral de la empresa.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4 py-2">
+            <div className="space-y-1.5">
+              <Label className="text-xs font-bold">Motivo de Desvinculación *</Label>
+              <Select value={terminationReason} onValueChange={setTerminationReason}>
+                <SelectTrigger className="h-11 rounded-xl text-xs font-semibold">
+                  <SelectValue placeholder="Selecciona un motivo" />
+                </SelectTrigger>
+                <SelectContent className="rounded-xl">
+                  <SelectItem value="Renuncia voluntaria">Renuncia voluntaria</SelectItem>
+                  <SelectItem value="Término de contrato">Término de contrato</SelectItem>
+                  <SelectItem value="Fin de temporada turística">Fin de temporada turística</SelectItem>
+                  <SelectItem value="Rescisión justificada">Rescisión justificada</SelectItem>
+                  <SelectItem value="Mutuo acuerdo">Mutuo acuerdo</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-1.5">
+              <Label className="text-xs font-bold">Observaciones / Comentarios Adicionales</Label>
+              <Textarea
+                placeholder="Detalles sobre entrega de uniforme, finiquito o motivo..."
+                value={terminationNotes}
+                onChange={(e) => setTerminationNotes(e.target.value)}
+                className="rounded-xl text-xs min-h-[80px]"
+              />
+            </div>
+          </div>
+
+          <DialogFooter className="gap-2 sm:gap-0 pt-3 border-t">
+            <Button variant="outline" size="sm" onClick={() => setIsTerminateDialogOpen(false)} className="rounded-xl">
+              Cancelar
+            </Button>
+            <Button
+              variant="destructive"
+              size="sm"
+              onClick={handleConfirmTermination}
+              disabled={isTerminating}
+              className="rounded-xl font-bold"
+            >
+              {isTerminating ? <Loader2 className="size-3.5 animate-spin" /> : "Confirmar Baja Laboral"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* 3. Modal Notas de Seguimiento */}
+      <Dialog open={isNotesDialogOpen} onOpenChange={setIsNotesDialogOpen}>
+        <DialogContent className="sm:max-w-md rounded-[24px]">
+          <DialogHeader>
+            <DialogTitle className="text-base font-bold flex items-center gap-2">
+              <FileText className="size-5 text-primary" />
+              Notas de Seguimiento & Desempeño
+            </DialogTitle>
+            <DialogDescription className="text-xs">
+              Anotaciones internas del departamento de RRHH para {selectedEmp?.full_name}.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="py-2">
+            <Textarea
+              placeholder="Escribe incidencias, felicitaciones, turnos asignados o notas..."
+              value={employeeNotes}
+              onChange={(e) => setEmployeeNotes(e.target.value)}
+              className="rounded-xl text-xs min-h-[120px]"
+            />
+          </div>
+
+          <DialogFooter className="gap-2 sm:gap-0 pt-3 border-t">
+            <Button variant="outline" size="sm" onClick={() => setIsNotesDialogOpen(false)} className="rounded-xl">
+              Cerrar
+            </Button>
+            <Button
+              size="sm"
+              onClick={() => {
+                if (selectedEmp) {
+                  setEmployees(prev => prev.map(e => e.id === selectedEmp.id ? { ...e, notes: employeeNotes } : e))
+                  toast.success("Notas guardadas localmente")
+                  setIsNotesDialogOpen(false)
+                }
+              }}
+              className="rounded-xl bg-primary text-primary-foreground font-bold"
+            >
+              Guardar Nota
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
     </div>
   )

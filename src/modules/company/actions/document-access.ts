@@ -136,3 +136,71 @@ export async function getDocumentAccessStatus(applicationId: string) {
 
   return data
 }
+
+/**
+ * Retrieves authorized candidate documents with signed preview URLs if access was approved.
+ */
+export async function getAuthorizedCandidateDocuments(applicationId: string, candidateId: string) {
+  const supabase = await createClient()
+
+  const { data: { user }, error: authError } = await supabase.auth.getUser()
+  if (authError || !user) {
+    throw new Error("No autorizado.")
+  }
+
+  // 1. Verify access approval in document_access_requests
+  const { data: accessReq } = await supabase
+    .from("document_access_requests")
+    .select("status")
+    .eq("application_id", applicationId)
+    .eq("company_id", user.id)
+    .eq("status", "approved")
+    .maybeSingle()
+
+  if (!accessReq) {
+    return {
+      authorized: false,
+      documents: []
+    }
+  }
+
+  // 2. Fetch candidate documents from profile_documents
+  const { data: docs } = await supabase
+    .from("profile_documents")
+    .select("id, doc_type, file_url, file_name, status, created_at")
+    .eq("owner_id", candidateId)
+
+  const docList = docs || []
+
+  // 3. Generate signed URLs (15 minutes validity)
+  const documentsWithSignedUrls = await Promise.all(
+    docList.map(async (doc) => {
+      let signedUrl = doc.file_url
+
+      // If file_url is a path within storage bucket, create signed url
+      if (doc.file_url && !doc.file_url.startsWith("http")) {
+        const { data: signedData } = await supabase.storage
+          .from("profile_documents")
+          .createSignedUrl(doc.file_url, 900)
+        
+        if (signedData?.signedUrl) {
+          signedUrl = signedData.signedUrl
+        }
+      }
+
+      return {
+        id: doc.id,
+        doc_type: doc.doc_type,
+        file_name: doc.file_name,
+        file_url: signedUrl,
+        status: doc.status,
+        created_at: doc.created_at
+      }
+    })
+  )
+
+  return {
+    authorized: true,
+    documents: documentsWithSignedUrls
+  }
+}

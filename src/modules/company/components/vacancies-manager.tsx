@@ -17,6 +17,7 @@ import {
   List,
   X,
   Calendar,
+  Copy,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -62,6 +63,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import Link from "next/link";
+import { cloneVacancyAction } from "../actions/vacancies";
 
 export function VacanciesManager({ userId }: { userId: string }) {
   const [vacancies, setVacancies] = React.useState<VacancyRow[]>([]);
@@ -194,6 +196,25 @@ export function VacanciesManager({ userId }: { userId: string }) {
     }
   };
 
+  const handleCloneVacancy = async (id: string) => {
+    try {
+      toast.loading("Duplicando vacante...", { id: "clone-vac" });
+      const res = await cloneVacancyAction(id);
+      if (res.success) {
+        toast.success("¡Vacante duplicada exitosamente!", {
+          id: "clone-vac",
+          description: `Se ha creado "${res.title}" en borrador.`,
+        });
+        await loadVacancies();
+      }
+    } catch (err: any) {
+      toast.error("Error al duplicar vacante", {
+        id: "clone-vac",
+        description: err.message || "No se pudo duplicar la vacante.",
+      });
+    }
+  };
+
   // Standard default categories and zones for pre-populating filter dropdowns
   const DEFAULT_CATEGORIES = [
     "Alimentos y Bebidas",
@@ -298,21 +319,23 @@ export function VacanciesManager({ userId }: { userId: string }) {
       new Date(v.created_at).toLocaleDateString("es-MX")
     ]);
 
-    const csvContent = 
-      "data:text/csv;charset=utf-8," + 
-      [headers.join(","), ...rows.map(e => e.map(val => `"${val.toString().replace(/"/g, '""')}"`).join(","))].join("\n");
-    
-    const encodedUri = encodeURI(csvContent);
+    const csvContent =
+      "\uFEFF" +
+      [headers.join(","), ...rows.map((e) => e.map((val) => `"${String(val).replace(/"/g, '""')}"`).join(","))].join("\n");
+
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
-    link.setAttribute("href", encodedUri);
+    link.href = url;
     const companyLabel = profile?.company_name
       ? profile.company_name.toLowerCase().replace(/\s+/g, "_")
       : "empresa";
-    link.setAttribute("download", `vacantes_${companyLabel}.csv`);
+    link.setAttribute("download", `vacantes_${companyLabel}_${new Date().toISOString().slice(0, 10)}.csv`);
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
-    toast.success("CSV exportado con éxito");
+    URL.revokeObjectURL(url);
+    toast.success("¡Reporte de vacantes exportado con éxito!");
   };
 
   // Format salary with MXN currency format
@@ -654,6 +677,7 @@ export function VacanciesManager({ userId }: { userId: string }) {
                   onToggleActive={handleToggleActive}
                   onBatchStatusChange={handleBatchStatusChange}
                   onDeleteVacancy={(id) => setDeletingVacancyId(id)}
+                  onCloneVacancy={handleCloneVacancy}
                   formatSalary={formatSalary}
                   formatDate={formatDate}
                 />
@@ -703,6 +727,13 @@ export function VacanciesManager({ userId }: { userId: string }) {
                                 <Edit2 className="size-4 text-[#5c7c9b]" />
                                 <span>Editar</span>
                               </Link>
+                            </DropdownMenuItem>
+                            <DropdownMenuItem
+                              onSelect={() => handleCloneVacancy(vacancy.id)}
+                              className="cursor-pointer text-xs sm:text-sm font-bold text-[#1f2732] dark:text-zinc-200 rounded-[12px] hover:bg-muted py-3 px-3 gap-3"
+                            >
+                              <Copy className="size-4 text-[#5c7c9b]" />
+                              <span>Duplicar / Clonar</span>
                             </DropdownMenuItem>
                             <DropdownMenuItem
                               onSelect={() => setDeletingVacancyId(vacancy.id)}

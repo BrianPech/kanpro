@@ -29,6 +29,7 @@ import {
   XCircle,
   PlayCircle,
   User,
+  Copy,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -68,6 +69,7 @@ interface VacanciesTableProps {
   onToggleActive: (id: string, currentActive: boolean) => void;
   onBatchStatusChange?: (ids: string[], newStatus: "Activa" | "Pausada" | "Cerrada") => void;
   onDeleteVacancy: (id: string) => void;
+  onCloneVacancy?: (id: string) => void;
   formatSalary: (min: number | null, max: number | null) => string;
   formatDate: (dateStr: string) => string;
 }
@@ -77,6 +79,7 @@ export function VacanciesTable({
   onToggleActive,
   onBatchStatusChange,
   onDeleteVacancy,
+  onCloneVacancy,
   formatSalary,
   formatDate,
 }: VacanciesTableProps) {
@@ -358,6 +361,15 @@ export function VacanciesTable({
                       <span>Editar</span>
                     </Link>
                   </DropdownMenuItem>
+                  {onCloneVacancy && (
+                    <DropdownMenuItem
+                      onSelect={() => onCloneVacancy(vacancy.id)}
+                      className="cursor-pointer text-xs sm:text-sm font-bold text-[#1f2732] dark:text-zinc-200 rounded-[12px] hover:bg-muted py-3 px-3 gap-3"
+                    >
+                      <Copy className="size-4 text-[#5c7c9b]" />
+                      <span>Duplicar / Clonar</span>
+                    </DropdownMenuItem>
+                  )}
                   <DropdownMenuItem
                     onSelect={() => onDeleteVacancy(vacancy.id)}
                     className="cursor-pointer text-xs sm:text-sm font-bold text-rose-600 dark:text-rose-400 rounded-[12px] hover:bg-rose-500/10 focus:bg-rose-500/10 py-3 px-3 gap-3"
@@ -372,7 +384,7 @@ export function VacanciesTable({
         },
       },
     ],
-    [onToggleActive, onDeleteVacancy, formatSalary, formatDate]
+    [onToggleActive, onDeleteVacancy, onCloneVacancy, formatSalary, formatDate]
   );
 
   const table = useReactTable({

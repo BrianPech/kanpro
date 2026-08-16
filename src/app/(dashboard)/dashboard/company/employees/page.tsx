@@ -29,13 +29,14 @@ export default async function CompanyEmployeesPage() {
   let rawApplications: any[] = []
 
   if (vacIds.length > 0) {
-    // 2. Fetch hired applications for those vacancies
-    const { data: apps } = await supabase
-      .from("applications")
+    // 2. Fetch hired and terminated applications for those vacancies
+    const { data: apps } = await (supabase.from as any)("applications")
       .select(`
         id,
         status,
+        notes,
         applied_at,
+        created_at,
         vacancy:vacancies(id, title, category, location, zone),
         candidate:candidate_profiles(
           id,
@@ -44,7 +45,7 @@ export default async function CompanyEmployeesPage() {
         )
       `)
       .in("vacancy_id", vacIds)
-      .in("status", ["Contratado", "hired", "accepted"])
+      .in("status", ["Contratado", "hired", "accepted", "Baja", "Finalizado"])
       .order("applied_at", { ascending: false })
 
     rawApplications = apps || []
@@ -68,8 +69,9 @@ export default async function CompanyEmployeesPage() {
       location: candProfile.location || app.candidate?.preferred_zone || "Riviera Maya",
       vacancy_title: vacancyData.title || "Puesto General",
       vacancy_category: vacancyData.category || "General",
-      hired_date: app.applied_at,
-      status: app.status,
+      hired_date: app.applied_at || app.created_at,
+      notes: app.notes || "",
+      status: (app.status === "Baja" || app.status === "Finalizado" ? "Baja" : "Contratado") as "Contratado" | "Baja",
     }
   })
 

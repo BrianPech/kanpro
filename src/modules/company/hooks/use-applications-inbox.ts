@@ -156,6 +156,44 @@ export function useApplicationsInbox() {
     }
   }, [applicants, selectedId]);
 
+  // Supabase Realtime subscription for live incoming applications
+  React.useEffect(() => {
+    if (!userId) return;
+
+    const channel = supabase
+      .channel(`company-applications-live-${userId}`)
+      .on(
+        "postgres_changes",
+        {
+          event: "INSERT",
+          schema: "public",
+          table: "applications",
+        },
+        () => {
+          queryClient.invalidateQueries({ queryKey: ["company-applications"] });
+          toast.info("¡Nueva postulación recibida en tiempo real!", {
+            description: "Un candidato acaba de postularse a una de tus vacantes.",
+          });
+        }
+      )
+      .on(
+        "postgres_changes",
+        {
+          event: "UPDATE",
+          schema: "public",
+          table: "applications",
+        },
+        () => {
+          queryClient.invalidateQueries({ queryKey: ["company-applications"] });
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [userId, supabase, queryClient]);
+
   // Selected applicant details
   const selectedApplicant = React.useMemo(() => {
     return applicants.find((app) => app.id === selectedId) || null;
