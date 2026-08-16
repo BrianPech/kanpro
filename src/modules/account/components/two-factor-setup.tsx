@@ -205,31 +205,33 @@ export function TwoFactorSetup() {
   };
 
   return (
-    <div className="w-full max-w-xl mx-auto space-y-6">
-      <Card className="border shadow-sm">
-        <CardHeader>
-          <div className="flex items-center justify-between">
+    <div className="w-full space-y-4">
+      <Card className="rounded-2xl border border-border/40 bg-card shadow-xs">
+        <CardHeader className="pb-3">
+          <div className="flex items-center justify-between gap-3">
             <div className="flex items-center gap-3">
-              <div className="p-2.5 rounded-xl bg-primary/10 text-primary">
-                <Lock className="w-5 h-5" />
+              <div className="size-9 rounded-xl bg-primary/10 text-primary flex items-center justify-center shrink-0">
+                <Lock className="size-4.5" />
               </div>
               <div>
-                <CardTitle className="text-lg">Autenticación de Dos Factores (2FA)</CardTitle>
-                <CardDescription>
+                <CardTitle className="text-sm sm:text-base font-bold text-foreground">
+                  Autenticación de Dos Factores (2FA)
+                </CardTitle>
+                <CardDescription className="text-xs text-muted-foreground font-medium mt-0.5">
                   Protege tu cuenta con verificación TOTP mediante Google Authenticator o similares.
                 </CardDescription>
               </div>
             </div>
             {loading ? (
-              <Loader2 className="w-4 h-4 animate-spin text-muted-foreground" />
+              <Loader2 className="size-4 animate-spin text-muted-foreground shrink-0" />
             ) : activeFactor ? (
-              <Badge variant="default" className="bg-emerald-600 hover:bg-emerald-700 text-white gap-1.5 px-3 py-1">
-                <ShieldCheck className="w-3.5 h-3.5" />
+              <Badge variant="default" className="bg-emerald-600 hover:bg-emerald-700 text-white gap-1 px-2.5 py-0.5 text-[11px] font-bold shrink-0">
+                <ShieldCheck className="size-3.5" />
                 Activo
               </Badge>
             ) : (
-              <Badge variant="outline" className="text-muted-foreground gap-1.5 px-3 py-1">
-                <ShieldAlert className="w-3.5 h-3.5" />
+              <Badge variant="outline" className="text-muted-foreground gap-1 px-2.5 py-0.5 text-[11px] font-bold shrink-0">
+                <ShieldAlert className="size-3.5" />
                 Desactivado
               </Badge>
             )}

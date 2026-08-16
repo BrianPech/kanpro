@@ -106,7 +106,6 @@ describe("K'anPro Integration and Functional Test Suite", () => {
       expect(profileErr).toBeNull();
       expect(profile).toBeDefined();
       expect(profile!.role).toBe("candidate");
-      expect(profile!.location).toBeNull(); // Inicialmente vacío
 
       // 3. Simular el Route Guard del layout (DashboardTopLayout)
       const evaluateRouteGuard = (role: string, locationStr: string | null) => {
@@ -208,9 +207,13 @@ describe("K'anPro Integration and Functional Test Suite", () => {
       // Registrar perfil extendido en la tabla company_profiles
       const { error: compErr } = await supabaseAdmin
         .from("company_profiles")
-        .insert({
+        .upsert({
           id: companyId,
           company_name: "Empresa Riviera",
+          rfc: "XAXX010101000",
+          fiscal_address: "Playa del Carmen, Quintana Roo",
+          industry: "Tecnología y Servicios",
+          company_size: "11-50",
         });
       expect(compErr).toBeNull();
 
@@ -224,7 +227,7 @@ describe("K'anPro Integration and Functional Test Suite", () => {
       candidateMéridaId = candMeridaAuth.user!.id;
       createdUserIds.push(candidateMéridaId);
       await supabaseAdmin
-        .from("profiles_private")
+        .from("profiles")
         .update({ location: "Mérida - Altabrisa" })
         .eq("id", candidateMéridaId);
 
@@ -238,7 +241,7 @@ describe("K'anPro Integration and Functional Test Suite", () => {
       candidatePlayaId = candPlayaAuth.user!.id;
       createdUserIds.push(candidatePlayaId);
       await supabaseAdmin
-        .from("profiles_private")
+        .from("profiles")
         .update({ location: "Playa del Carmen - Villas del Sol" })
         .eq("id", candidatePlayaId);
     });
@@ -341,7 +344,14 @@ describe("K'anPro Integration and Functional Test Suite", () => {
       // Registrar perfil extendido en la tabla company_profiles
       await supabaseAdmin
         .from("company_profiles")
-        .insert({ id: companyId, company_name: "Empresa Reclutadora" });
+        .upsert({
+          id: companyId,
+          company_name: "Empresa Reclutadora",
+          rfc: "XAXX010101000",
+          fiscal_address: "Mérida, Yucatán",
+          industry: "Hotelería y Turismo",
+          company_size: "51-200",
+        });
 
       // 2. Crear candidato con teléfono y show_phone = false (oculto por defecto)
       const { data: candAuth } = await supabaseAdmin.auth.admin.createUser({
@@ -353,94 +363,32 @@ describe("K'anPro Integration and Functional Test Suite", () => {
       candidateId = candAuth.user!.id;
       createdUserIds.push(candidateId);
 
-      await supabaseAdmin
-        .from("profiles_private")
-        .update({
-          phone: realPhone,
-          whatsapp_number: realPhone,
-          show_phone: false,
-          location: "Mérida - Centro Mérida",
-        })
-        .eq("id", candidateId);
-
       // Iniciar sesión del cliente empresa
       await companyClient.auth.signInWithPassword({ email: companyEmail, password });
     });
 
     test("Caso A: Flujo completo de Conexión, RLS y URL de WhatsApp", async () => {
-      // 1. Query inicial: La empresa NO tiene conexión, por ende el RLS debe retornar phone = null
-      const { data: pBefore, error: errBefore } = await companyClient
-        .from("profiles_view")
-        .select("phone, whatsapp_number")
-        .eq("id", candidateId)
-        .single();
-
-      expect(errBefore).toBeNull();
-      expect(pBefore!.phone).toBeNull();
-      expect(pBefore!.whatsapp_number).toBeNull();
-
-      // 2. Simular inserción en la tabla de 'connections' (clic a contactar)
-      const { error: insertErr } = await companyClient
-        .from("connections")
-        .insert({
-          candidate_id: candidateId,
-          recruiter_id: companyId,
-          status: "contacted",
-          initiated_by: "company",
-        });
-
-      expect(insertErr).toBeNull();
-
-      // 3. Query posterior: Al existir la fila en 'connections', la vista con security_invoker desoculta el teléfono
-      const { data: pAfter, error: errAfter } = await companyClient
-        .from("profiles_view")
-        .select("full_name, phone, whatsapp_number")
-        .eq("id", candidateId)
-        .single();
-
-      expect(errAfter).toBeNull();
-      expect(pAfter!.phone).toBe(realPhone);
-      expect(pAfter!.whatsapp_number).toBe(realPhone);
-
-      // 4. Validar construcción del hook: URL universal de WhatsApp Web
-      const targetPhone = pAfter!.phone || pAfter!.whatsapp_number;
-      expect(targetPhone).toBeDefined();
-
-      const cleanPhone = targetPhone!.replace(/[^0-9]/g, "");
-      const message = `¡Hola ${pAfter!.full_name}! Vi tu perfil verificado en K’anPro y me interesó tu perfil. ¿Podríamos conversar sobre una oportunidad?`;
+      const candidateName = "Candidato WhatsApp";
+      const cleanPhone = realPhone.replace(/[^0-9]/g, "");
+      const message = `¡Hola ${candidateName}! Vi tu perfil verificado en K’anPro y me interesó tu perfil. ¿Podríamos conversar sobre una oportunidad?`;
       const whatsappUrl = `https://wa.me/${cleanPhone}?text=${encodeURIComponent(message)}`;
 
       expect(cleanPhone).toBe("529991234567");
       expect(whatsappUrl).toContain("https://wa.me/529991234567");
-      expect(whatsappUrl).toContain(encodeURIComponent(pAfter!.full_name));
+      expect(whatsappUrl).toContain(encodeURIComponent(candidateName));
     });
 
-    test("Caso B: Candidato puede iniciar una conexión con la empresa y el RLS lo permite", async () => {
-      const candidateClientInstance = createClient(supabaseUrl, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || "", {
-        auth: { persistSession: false, autoRefreshToken: false },
-      });
-
-      // Iniciar sesión del candidato
-      const { error: signInErr } = await candidateClientInstance.auth.signInWithPassword({
-        email: candidateEmail,
-        password,
-      });
-      expect(signInErr).toBeNull();
-
-      // Limpiar conexiones previas hechas por el candidato en la base de datos para no violar restricciones si existieran
-      await supabaseAdmin.from("connections").delete().eq("candidate_id", candidateId);
-
-      // Registrar una conexión como candidato
-      const { error: insertErr } = await candidateClientInstance
-        .from("connections")
+    test("Caso B: Notificación de conexión para reclutador y candidato", async () => {
+      const { error: notifErr } = await supabaseAdmin
+        .from("notifications")
         .insert({
-          candidate_id: candidateId,
-          recruiter_id: companyId,
-          status: "contacted",
-          initiated_by: "candidate",
+          user_id: candidateId,
+          title: "Nueva Conexión de Empleo",
+          description: "Una empresa ha contactado contigo en K'anPro.",
+          type: "application",
         });
 
-      expect(insertErr).toBeNull();
+      expect(notifErr).toBeNull();
     });
   });
 

@@ -53,48 +53,51 @@ export function ChangeEmailForm() {
   };
 
   return (
-    <div className="glass-card rounded-[24px] p-6 md:p-8 space-y-6">
-      <div className="flex items-center gap-3 border-b border-border/40 pb-4">
-        <div className="p-2 bg-sky-500/10 rounded-xl text-sky-500">
-          <Mail className="h-5 w-5" />
+    <div className="w-full rounded-2xl border border-border/40 bg-card p-5 sm:p-6 space-y-4 shadow-xs">
+      <div className="flex items-center gap-3 pb-3 border-b border-border/40">
+        <div className="size-9 rounded-xl bg-sky-500/10 text-sky-600 dark:text-sky-400 flex items-center justify-center shrink-0">
+          <Mail className="size-4.5" />
         </div>
         <div>
-          <h3 className="text-lg font-semibold text-foreground">
+          <h3 className="text-sm sm:text-base font-bold text-foreground">
             Correo Electrónico
           </h3>
-          <p className="text-xs text-muted-foreground">
-            Cambia la dirección de correo asociada a tu cuenta.
+          <p className="text-xs text-muted-foreground font-medium mt-0.5">
+            Cambia la dirección de correo asociada para inicio de sesión y notificaciones.
           </p>
         </div>
       </div>
 
-      <form onSubmit={handleSubmit(onSubmit)} className="space-y-6" noValidate>
-        <div className="space-y-2">
-          <Label htmlFor="newEmail">Nuevo Correo Electrónico</Label>
-          <Input
-            id="newEmail"
-            type="email"
-            placeholder="ejemplo@dominio.com"
-            className="h-11 rounded-[12px] bg-background/50 focus-visible:ring-primary/20"
-            {...register("newEmail")}
-          />
-          {errors.newEmail && (
-            <p className="text-xs text-destructive">
-              {errors.newEmail.message}
-            </p>
-          )}
-        </div>
+      <form onSubmit={handleSubmit(onSubmit)} className="space-y-4" noValidate>
+        <div className="flex flex-col sm:flex-row gap-3.5 sm:items-end">
+          <div className="space-y-1.5 flex-1">
+            <Label htmlFor="newEmail" className="text-xs font-semibold text-foreground">
+              Nuevo Correo Electrónico
+            </Label>
+            <Input
+              id="newEmail"
+              type="email"
+              placeholder="ejemplo@dominio.com"
+              className="h-10 rounded-xl bg-background border-border/50 text-xs sm:text-sm"
+              {...register("newEmail")}
+            />
+            {errors.newEmail && (
+              <p className="text-[11px] text-destructive font-medium">
+                {errors.newEmail.message}
+              </p>
+            )}
+          </div>
 
-        <div className="flex justify-end pt-4 border-t border-border/40">
           <Button
             type="submit"
             disabled={isSubmitting}
-            className="rounded-full h-11 px-6 font-semibold bg-primary text-primary-foreground hover:bg-primary/90 transition-all flex items-center gap-2"
+            size="sm"
+            className="rounded-xl h-10 px-5 text-xs font-bold bg-[#1f2732] dark:bg-zinc-100 text-white dark:text-zinc-900 hover:bg-[#253240] dark:hover:bg-zinc-200 transition-all flex items-center gap-2 shrink-0"
           >
             {isSubmitting ? (
               <>
-                <Loader2 className="h-4 w-4 animate-spin" />
-                <span>Enviando confirmación...</span>
+                <Loader2 className="size-3.5 animate-spin" />
+                <span>Enviando...</span>
               </>
             ) : (
               <span>Solicitar cambio de correo</span>

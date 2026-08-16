@@ -401,7 +401,7 @@ export function VacanciesManager({ userId }: { userId: string }) {
                 Perfil de Empresa Incompleto
               </AlertTitle>
               <AlertDescription className="text-xs sm:text-sm font-semibold leading-relaxed text-amber-700 dark:text-amber-300/90">
-                Para comenzar a publicar ofertas express y activar tu radar, primero completa la información esencial de tu negocio (Nombre, WhatsApp y Dirección) en la sección de Mi Perfil.
+                Para comenzar a publicar ofertas laborales y recibir candidatos, primero completa la información esencial de tu negocio (Nombre, WhatsApp y Dirección) en la sección de Mi Perfil.
               </AlertDescription>
             </div>
           </div>

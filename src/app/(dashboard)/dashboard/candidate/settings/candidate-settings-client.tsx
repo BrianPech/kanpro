@@ -55,12 +55,9 @@ export function CandidateSettingsClient({ user }: CandidateSettingsClientProps) 
         </TabsList>
 
         {/* Tab 1: Seguridad */}
-        <TabsContent value="security" className="space-y-6">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <ChangePasswordForm />
-            <ChangeEmailForm />
-          </div>
-
+        <TabsContent value="security" className="space-y-4">
+          <ChangePasswordForm />
+          <ChangeEmailForm />
           <TwoFactorSetup />
           <ActiveSessionsCard />
         </TabsContent>

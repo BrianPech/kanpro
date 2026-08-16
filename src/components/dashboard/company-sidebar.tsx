@@ -56,11 +56,6 @@ export function CompanySidebar() {
           icon: Users,
         },
         {
-          title: "Radar de Candidatos",
-          url: "/dashboard/company/radar",
-          icon: Crosshair,
-        },
-        {
           title: "Empleados",
           url: "/dashboard/company/employees",
           icon: UserCheck,

@@ -25,7 +25,7 @@ export async function getCompanyVerificationServerData(): Promise<{
   const { data: companyProfile } = await supabase
     .from("company_profiles")
     .select(
-      "company_name, legal_name, rfc, fiscal_address, industry, legal_rep_name, corporate_email, contact_phone, verification_status"
+      "company_name, legal_name, rfc, fiscal_address, industry, legal_rep_name, corporate_email, contact_phone, verification_status, entity_type"
     )
     .eq("id", user.id)
     .maybeSingle();
@@ -78,6 +78,8 @@ export async function getCompanyVerificationServerData(): Promise<{
     legal_rep_name: companyProfile?.legal_rep_name || "",
     corporate_email: companyProfile?.corporate_email || baseProfile?.email || "",
     contact_phone: companyProfile?.contact_phone || baseProfile?.whatsapp_number || "",
+    fiscal_regime: (companyProfile?.entity_type as any) || "persona_moral",
+    entity_type: (companyProfile?.entity_type as any) || "persona_moral",
     terms_accepted: !!baseProfile?.terms_accepted_at,
     terms_accepted_at: baseProfile?.terms_accepted_at || null,
     verification_status: normalizedStatus as any,

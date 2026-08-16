@@ -129,16 +129,12 @@ export function useApplicationsInbox() {
             vacancyTitle: app.vacancies?.title || "Vacante",
             vacancyId: app.vacancy_id,
             candidateId: profile.id || "",
-            portfolio: [
-              {
-                image: "https://images.unsplash.com/photo-1555066931-4365d14bab8c?w=400&h=400&fit=crop",
-                title: "Código Limpio",
-              },
-              {
-                image: "https://images.unsplash.com/photo-1460925895917-afdab827c52f?w=400&h=400&fit=crop",
-                title: "UI Portal",
-              },
-            ],
+            portfolio: Array.isArray(profile.portfolio_links)
+              ? profile.portfolio_links.map((link: any, idx: number) => ({
+                  title: typeof link === "string" ? `Enlace ${idx + 1}` : link.title || `Proyecto ${idx + 1}`,
+                  image: typeof link === "string" ? link : link.url || "",
+                }))
+              : [],
           };
         });
       }
@@ -168,9 +164,7 @@ export function useApplicationsInbox() {
   // Status mutation with optimistic updates
   const statusMutation = useMutation({
     mutationFn: async ({ id, newStatus }: { id: string; newStatus: Applicant["status"] }) => {
-      if (!id.startsWith("mock-")) {
-        await companyService.updateApplicationStatus(id, newStatus);
-      }
+      await companyService.updateApplicationStatus(id, newStatus);
       return { id, newStatus };
     },
     onMutate: async ({ id, newStatus }) => {
@@ -221,8 +215,6 @@ export function useApplicationsInbox() {
   // Create contact notification and register connection in db
   const handleContactApplicant = async (applicant: Applicant) => {
     try {
-      if (applicant.id.startsWith("mock-")) return;
-
       const supabase = createClient();
 
       const { error: connError } = await (supabase.from as any)("connections").insert({

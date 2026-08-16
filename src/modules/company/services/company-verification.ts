@@ -27,6 +27,8 @@ export interface CompanyVerificationData {
   legal_rep_name: string;
   corporate_email: string;
   contact_phone: string;
+  entity_type?: "persona_moral" | "persona_fisica";
+  fiscal_regime?: "persona_moral" | "persona_fisica";
   terms_accepted: boolean;
   terms_accepted_at?: string | null;
   verification_status: "pending" | "approved" | "rejected" | "unsubmitted";
@@ -35,6 +37,26 @@ export interface CompanyVerificationData {
 }
 
 export const companyVerificationService = {
+  async getSignedDocumentUrl(filePath: string): Promise<string | null> {
+    const supabase = createClient();
+    if (!filePath) return null;
+
+    if (filePath.startsWith("http://") || filePath.startsWith("https://")) {
+      return filePath;
+    }
+
+    const { data, error } = await supabase.storage
+      .from("profile_documents")
+      .createSignedUrl(filePath, 600);
+
+    if (error || !data?.signedUrl) {
+      console.error("Error creating signed URL for verification document:", error);
+      return null;
+    }
+
+    return data.signedUrl;
+  },
+
   async saveVerificationData(
     userId: string,
     data: Partial<CompanyVerificationData>,
@@ -55,6 +77,9 @@ export const companyVerificationService = {
     if (data.legal_rep_name !== undefined) companyPayload.legal_rep_name = data.legal_rep_name;
     if (data.corporate_email !== undefined) companyPayload.corporate_email = data.corporate_email;
     if (data.contact_phone !== undefined) companyPayload.contact_phone = data.contact_phone;
+    if (data.entity_type !== undefined || data.fiscal_regime !== undefined) {
+      companyPayload.entity_type = (data.entity_type || data.fiscal_regime) as any;
+    }
 
     if (submitForReview) {
       companyPayload.verification_status = "pending";
@@ -71,6 +96,7 @@ export const companyVerificationService = {
     const profilesPayload: Database["public"]["Tables"]["profiles"]["Update"] = {
       updated_at: new Date().toISOString(),
     };
+    if (data.company_name) profilesPayload.full_name = data.company_name;
     if (data.fiscal_address) profilesPayload.location = data.fiscal_address;
     if (data.contact_phone) profilesPayload.whatsapp_number = data.contact_phone;
     if (data.terms_accepted) profilesPayload.terms_accepted_at = new Date().toISOString();

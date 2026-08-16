@@ -69,7 +69,7 @@ export function ApplicationsInbox() {
   // Fetch document access request status when selected applicant changes
   React.useEffect(() => {
     async function loadDocStatus() {
-      if (selectedApplicant?.id && !selectedApplicant.id.startsWith("mock-")) {
+      if (selectedApplicant?.id) {
         try {
           const docReq = await getDocumentAccessStatus(selectedApplicant.id)
           if (docReq) {
@@ -571,7 +571,7 @@ export function ApplicationsInbox() {
                     </p>
                     <Button
                       onClick={handleRequestDocuments}
-                      disabled={isRequestingDocs || selectedApplicant.id.startsWith("mock-")}
+                      disabled={isRequestingDocs}
                       className="w-full sm:w-auto px-6 py-2.5 h-auto rounded-xl text-xs font-bold bg-indigo-600 hover:bg-indigo-700 text-white gap-2"
                     >
                       {isRequestingDocs ? <Loader2 className="size-3.5 animate-spin" /> : <FileText className="size-3.5" />}
@@ -652,7 +652,7 @@ export function ApplicationsInbox() {
               </Button>
               
               {/* WhatsApp invitation button */}
-              {!selectedApplicant.id.startsWith("mock-") && !selectedApplicant.phone ? (
+              {!selectedApplicant.phone ? (
                 <Button 
                   onClick={async () => {
                     await handleContactApplicant(selectedApplicant);

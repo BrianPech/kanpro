@@ -128,6 +128,8 @@ export function CompanyProfileForm({
   const description = watch("description") || "";
 
   const [isLocating, setIsLocating] = React.useState(false);
+  const [isUploadingLogo, setIsUploadingLogo] = React.useState(false);
+  const [isUploadingBanner, setIsUploadingBanner] = React.useState(false);
   const [gpsDetectedInfo, setGpsDetectedInfo] = React.useState<{
     city: string;
     address?: string;
@@ -229,73 +231,191 @@ export function CompanyProfileForm({
   };
   const charCount = description.length;
 
-  const handleLogoChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      const tempUrl = URL.createObjectURL(file);
-      setValue("logo_url", tempUrl);
+// Client-side image compressor for high-performance uploads
+async function compressImageForUpload(
+  file: File,
+  maxWidth: number,
+  maxHeight: number,
+  quality = 0.85
+): Promise<{ file: File; previewUrl: string }> {
+  if (file.type === "image/svg+xml") {
+    return { file, previewUrl: URL.createObjectURL(file) };
+  }
 
-      try {
-        const supabase = createClient();
-        const sanitizeName = file.name.replace(/[^a-zA-Z0-9._-]/g, "_");
-        const filePath = `${userId}/logo_${Date.now()}_${sanitizeName}`;
-        const { error: uploadErr } = await supabase.storage
-          .from("profile_documents")
-          .upload(filePath, file, { upsert: true });
-
-        if (!uploadErr) {
-          const { data: urlData } = supabase.storage
-            .from("profile_documents")
-            .getPublicUrl(filePath);
-          if (urlData?.publicUrl) {
-            setValue("logo_url", urlData.publicUrl, { shouldValidate: true, shouldDirty: true });
-            toast.success("Logotipo guardado en la nube", {
-              description: "Se ha subido la imagen del logo comercial a la nube.",
-            });
-          }
-        } else {
-          toast.success("Logotipo listo para guardar", {
-            description: "Se mantendrá la vista previa del logo comercial.",
-          });
+  return new Promise((resolve) => {
+    const reader = new FileReader();
+    reader.readAsDataURL(file);
+    reader.onload = (event) => {
+      const img = new Image();
+      img.src = event.target?.result as string;
+      img.onload = () => {
+        let { width, height } = img;
+        if (width > maxWidth || height > maxHeight) {
+          const ratio = Math.min(maxWidth / width, maxHeight / height);
+          width = Math.round(width * ratio);
+          height = Math.round(height * ratio);
         }
-      } catch (err) {
-        console.warn("Error uploading logo to storage:", err);
+
+        const canvas = document.createElement("canvas");
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext("2d");
+        if (!ctx) {
+          resolve({ file, previewUrl: URL.createObjectURL(file) });
+          return;
+        }
+
+        ctx.drawImage(img, 0, 0, width, height);
+        const outputType = file.type === "image/png" ? "image/png" : "image/webp";
+        canvas.toBlob(
+          (blob) => {
+            if (!blob) {
+              resolve({ file, previewUrl: URL.createObjectURL(file) });
+              return;
+            }
+            const ext = outputType === "image/webp" ? "webp" : "png";
+            const baseName = file.name.replace(/\.[^/.]+$/, "").replace(/[^a-zA-Z0-9_-]/g, "_");
+            const optimizedFile = new File([blob], `${baseName}.${ext}`, {
+              type: outputType,
+            });
+            const previewUrl = URL.createObjectURL(blob);
+            resolve({ file: optimizedFile, previewUrl });
+          },
+          outputType,
+          quality
+        );
+      };
+      img.onerror = () => resolve({ file, previewUrl: URL.createObjectURL(file) });
+    };
+    reader.onerror = () => resolve({ file, previewUrl: URL.createObjectURL(file) });
+  });
+}
+
+  const handleLogoChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const rawFile = e.target.files?.[0];
+    if (!rawFile) return;
+
+    if (rawFile.size > 5 * 1024 * 1024) {
+      toast.error("Archivo demasiado grande", {
+        description: "El logotipo no debe superar los 5 MB.",
+      });
+      return;
+    }
+
+    if (!["image/jpeg", "image/png", "image/webp", "image/svg+xml"].includes(rawFile.type)) {
+      toast.error("Formato no compatible", {
+        description: "Usa un archivo JPG, PNG, WEBP o SVG.",
+      });
+      return;
+    }
+
+    setIsUploadingLogo(true);
+
+    try {
+      // 1. Client-side downscaling & WebP compression (max 512x512)
+      const { file: optimizedFile, previewUrl } = await compressImageForUpload(rawFile, 512, 512, 0.88);
+      setValue("logo_url", previewUrl);
+
+      const supabase = createClient();
+      const { data: { user } } = await supabase.auth.getUser();
+      const currentUserId = user?.id || userId;
+      const fileExt = optimizedFile.name.split(".").pop() || "webp";
+      const filePath = `${currentUserId}/logo_${Date.now()}.${fileExt}`;
+
+      // 2. Upload with 1-year immutable CDN Cache-Control
+      const { error: uploadErr } = await supabase.storage
+        .from("avatars")
+        .upload(filePath, optimizedFile, {
+          upsert: true,
+          contentType: optimizedFile.type,
+          cacheControl: "31536000",
+        });
+
+      if (uploadErr) {
+        throw uploadErr;
       }
+
+      const { data: urlData } = supabase.storage
+        .from("avatars")
+        .getPublicUrl(filePath);
+
+      if (urlData?.publicUrl) {
+        setValue("logo_url", urlData.publicUrl, { shouldValidate: true, shouldDirty: true });
+        toast.success("Logotipo guardado", {
+          description: "La imagen comercial está optimizada y lista.",
+        });
+      }
+    } catch (err: any) {
+      console.error("Error uploading logo to storage:", err);
+      toast.error("Error al subir logotipo", {
+        description: err.message || "No se pudo subir la imagen a la nube.",
+      });
+    } finally {
+      setIsUploadingLogo(false);
     }
   };
 
   const handleBannerChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      const tempUrl = URL.createObjectURL(file);
-      setValue("banner_url", tempUrl);
+    const rawFile = e.target.files?.[0];
+    if (!rawFile) return;
 
-      try {
-        const supabase = createClient();
-        const sanitizeName = file.name.replace(/[^a-zA-Z0-9._-]/g, "_");
-        const filePath = `${userId}/banner_${Date.now()}_${sanitizeName}`;
-        const { error: uploadErr } = await supabase.storage
-          .from("profile_documents")
-          .upload(filePath, file, { upsert: true });
+    if (rawFile.size > 8 * 1024 * 1024) {
+      toast.error("Archivo demasiado grande", {
+        description: "La portada no debe superar los 8 MB.",
+      });
+      return;
+    }
 
-        if (!uploadErr) {
-          const { data: urlData } = supabase.storage
-            .from("profile_documents")
-            .getPublicUrl(filePath);
-          if (urlData?.publicUrl) {
-            setValue("banner_url", urlData.publicUrl, { shouldValidate: true, shouldDirty: true });
-            toast.success("Portada comercial guardada en la nube", {
-              description: "Se ha subido la imagen de portada a la nube.",
-            });
-          }
-        } else {
-          toast.success("Portada lista para guardar", {
-            description: "Se mantendrá la vista previa de la portada comercial.",
-          });
-        }
-      } catch (err) {
-        console.warn("Error uploading banner to storage:", err);
+    if (!["image/jpeg", "image/png", "image/webp"].includes(rawFile.type)) {
+      toast.error("Formato no compatible", {
+        description: "Usa un archivo JPG, PNG o WEBP.",
+      });
+      return;
+    }
+
+    setIsUploadingBanner(true);
+
+    try {
+      // 1. Client-side downscaling & WebP compression (max 1600x600)
+      const { file: optimizedFile, previewUrl } = await compressImageForUpload(rawFile, 1600, 600, 0.85);
+      setValue("banner_url", previewUrl);
+
+      const supabase = createClient();
+      const { data: { user } } = await supabase.auth.getUser();
+      const currentUserId = user?.id || userId;
+      const fileExt = optimizedFile.name.split(".").pop() || "webp";
+      const filePath = `${currentUserId}/banner_${Date.now()}.${fileExt}`;
+
+      // 2. Upload with 1-year immutable CDN Cache-Control
+      const { error: uploadErr } = await supabase.storage
+        .from("avatars")
+        .upload(filePath, optimizedFile, {
+          upsert: true,
+          contentType: optimizedFile.type,
+          cacheControl: "31536000",
+        });
+
+      if (uploadErr) {
+        throw uploadErr;
       }
+
+      const { data: urlData } = supabase.storage
+        .from("avatars")
+        .getPublicUrl(filePath);
+
+      if (urlData?.publicUrl) {
+        setValue("banner_url", urlData.publicUrl, { shouldValidate: true, shouldDirty: true });
+        toast.success("Portada guardada", {
+          description: "La portada comercial está optimizada y lista.",
+        });
+      }
+    } catch (err: any) {
+      console.error("Error uploading banner to storage:", err);
+      toast.error("Error al subir portada", {
+        description: err.message || "No se pudo subir la imagen a la nube.",
+      });
+    } finally {
+      setIsUploadingBanner(false);
     }
   };
 
@@ -311,7 +431,6 @@ export function CompanyProfileForm({
       <form onSubmit={onSubmit} method="POST" className="space-y-8">
         
         {/* ========================================== */}
-
         {/* TRUST / VALIDATION BADGE BANNER            */}
         {/* ========================================== */}
         {initialProfile?.is_validated ? (
@@ -359,13 +478,24 @@ export function CompanyProfileForm({
             <div className="absolute top-4 right-4">
               <Button
                 type="button"
+                disabled={isSaving || isUploadingBanner}
                 className="h-10 rounded-[14px] text-xs sm:text-sm font-bold bg-[#1f2732] dark:bg-zinc-100 text-white dark:text-zinc-900 hover:bg-[#253240] dark:hover:bg-zinc-200 flex items-center gap-2 shadow-md relative cursor-pointer"
               >
-                <Camera className="size-4" />
-                <span>{bannerUrl ? "Cambiar Portada" : "Subir Portada"}</span>
+                {isUploadingBanner ? (
+                  <>
+                    <Loader2 className="size-4 animate-spin" />
+                    <span>Subiendo Portada...</span>
+                  </>
+                ) : (
+                  <>
+                    <Camera className="size-4" />
+                    <span>{bannerUrl ? "Cambiar Portada" : "Subir Portada"}</span>
+                  </>
+                )}
                 <input
                   type="file"
-                  accept="image/*"
+                  accept="image/png,image/jpeg,image/webp"
+                  disabled={isSaving || isUploadingBanner}
                   onChange={handleBannerChange}
                   className="absolute inset-0 opacity-0 cursor-pointer"
                 />
@@ -377,7 +507,12 @@ export function CompanyProfileForm({
             {/* Logo uploader circular box */}
             <div className="relative group">
               <div className="w-32 h-32 rounded-full bg-white dark:bg-[#18181b] border-4 border-white dark:border-[#18181b] shadow-md flex flex-col items-center justify-center cursor-pointer overflow-hidden relative">
-                {logoUrl ? (
+                {isUploadingLogo ? (
+                  <div className="flex flex-col items-center justify-center">
+                    <Loader2 className="size-8 animate-spin text-[#1f2732] dark:text-zinc-100" />
+                    <span className="text-[9px] font-bold mt-1 text-muted-foreground">Subiendo...</span>
+                  </div>
+                ) : logoUrl ? (
                   <img src={logoUrl} alt="Logo" className="w-full h-full object-cover" />
                 ) : (
                   <div className="flex flex-col items-center justify-center text-[#5c7c9b] dark:text-zinc-400">
@@ -389,7 +524,8 @@ export function CompanyProfileForm({
                 {/* Hidden File Input */}
                 <input
                   type="file"
-                  accept="image/*"
+                  accept="image/png,image/jpeg,image/webp,image/svg+xml"
+                  disabled={isSaving || isUploadingLogo}
                   onChange={handleLogoChange}
                   className="absolute inset-0 opacity-0 cursor-pointer"
                 />
@@ -397,10 +533,11 @@ export function CompanyProfileForm({
 
               {/* Float edit button */}
               <div className="absolute bottom-1 right-1 bg-[#1f2732] dark:bg-zinc-100 text-white dark:text-zinc-900 p-2 rounded-full shadow-md cursor-pointer active:scale-95 transition-transform">
-                <Edit3 className="size-4" />
+                {isUploadingLogo ? <Loader2 className="size-4 animate-spin" /> : <Edit3 className="size-4" />}
                 <input
                   type="file"
-                  accept="image/*"
+                  accept="image/png,image/jpeg,image/webp,image/svg+xml"
+                  disabled={isSaving || isUploadingLogo}
                   onChange={handleLogoChange}
                   className="absolute inset-0 opacity-0 cursor-pointer"
                 />

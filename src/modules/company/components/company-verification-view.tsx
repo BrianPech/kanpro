@@ -25,6 +25,7 @@ import {
   MapPin,
   Briefcase,
   HelpCircle,
+  Download,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -66,7 +67,7 @@ export function CompanyVerificationView({
   initialData,
 }: CompanyVerificationViewProps) {
   const [fiscalRegime, setFiscalRegime] = React.useState<"persona_moral" | "persona_fisica">(
-    (initialData as any).fiscal_regime || "persona_moral"
+    (initialData as any).fiscal_regime || (initialData as any).entity_type || "persona_moral"
   );
   const [legalName, setLegalName] = React.useState(initialData.legal_name || "");
   const [companyName, setCompanyName] = React.useState(initialData.company_name || "");
@@ -91,6 +92,7 @@ export function CompanyVerificationView({
   const [isSaving, setIsSaving] = React.useState(false);
   const [isSubmitting, setIsSubmitting] = React.useState(false);
   const [uploadingDocType, setUploadingDocType] = React.useState<CompanyDocType | null>(null);
+  const [isLoadingPreview, setIsLoadingPreview] = React.useState(false);
 
   // Modal State
   const [previewDoc, setPreviewDoc] = React.useState<{
@@ -98,6 +100,8 @@ export function CompanyVerificationView({
     url: string;
     fileName: string;
   } | null>(null);
+
+  const isReadOnly = verificationStatus === "pending" || verificationStatus === "approved";
 
   const isRfcValid = React.useMemo(() => {
     const cleaned = rfc.trim().toUpperCase();
@@ -155,7 +159,7 @@ export function CompanyVerificationView({
       }));
 
       toast.success("Documento cargado correctamente", {
-        description: `Se registró ${uploadedDoc.file_name} en tu expediente.`,
+        description: `Se registró ${uploadedDoc.file_name} en tu expediente digital.`,
       });
     } catch (err: any) {
       console.error("Error uploading doc:", err);
@@ -169,6 +173,13 @@ export function CompanyVerificationView({
 
   // File Delete Handler
   const handleDeleteDoc = async (docType: CompanyDocType) => {
+    if (isReadOnly) {
+      toast.warning("Expediente bloqueado", {
+        description: "No puedes eliminar documentos mientras el expediente está en revisión o validado.",
+      });
+      return;
+    }
+
     const targetDoc = documents[docType];
     try {
       await companyVerificationService.deleteDocument(
@@ -192,6 +203,31 @@ export function CompanyVerificationView({
     }
   };
 
+  // Preview Handler with Signed URL
+  const handlePreviewDoc = async (title: string, doc: CompanyVerificationDoc) => {
+    setIsLoadingPreview(true);
+    try {
+      const signedUrl = await companyVerificationService.getSignedDocumentUrl(doc.file_url);
+      if (!signedUrl) {
+        toast.error("Error al generar vista previa", {
+          description: "No se pudo obtener el enlace seguro de acceso al documento.",
+        });
+        return;
+      }
+      setPreviewDoc({
+        title,
+        url: signedUrl,
+        fileName: doc.file_name,
+      });
+    } catch (err: any) {
+      toast.error("Error al cargar vista previa", {
+        description: err.message || "Inténtalo de nuevo más tarde.",
+      });
+    } finally {
+      setIsLoadingPreview(false);
+    }
+  };
+
   // Save Draft Handler
   const handleSaveDraft = async () => {
     setIsSaving(true);
@@ -207,6 +243,8 @@ export function CompanyVerificationView({
           legal_rep_name: legalRepName,
           corporate_email: corporateEmail,
           contact_phone: contactPhone,
+          fiscal_regime: fiscalRegime,
+          entity_type: fiscalRegime,
           terms_accepted: termsAccepted,
         },
         false
@@ -250,6 +288,8 @@ export function CompanyVerificationView({
           legal_rep_name: legalRepName,
           corporate_email: corporateEmail,
           contact_phone: contactPhone,
+          fiscal_regime: fiscalRegime,
+          entity_type: fiscalRegime,
           terms_accepted: termsAccepted,
         },
         true
@@ -258,7 +298,7 @@ export function CompanyVerificationView({
       setVerificationStatus("pending");
       toast.success("¡Expediente enviado a revisión!", {
         description:
-          "El equipo de K'anPro revisará tus documentos corporativos. Te notificaremos una vez validados.",
+          "El equipo legal de K'anPro revisará tus documentos corporativos. Te notificaremos una vez validados.",
       });
     } catch (err: any) {
       toast.error("Error al enviar solicitud", {
@@ -274,21 +314,21 @@ export function CompanyVerificationView({
       initial={{ opacity: 0, y: 15 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.3 }}
-      className="space-y-8 max-w-4xl mx-auto w-full"
+      className="space-y-8 max-w-4xl mx-auto w-full font-sans"
     >
       {/* PAGE HEADER */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-2 border-b border-border/40">
         <div className="space-y-1">
           <div className="flex items-center gap-3 flex-wrap">
-            <h1 className="text-2xl sm:text-3xl font-[800] tracking-tight text-[#1f2732] dark:text-zinc-100 flex items-center gap-3">
+            <h1 className="text-2xl sm:text-3xl font-[800] tracking-tight text-foreground flex items-center gap-3">
               <Building2 className="size-7 text-[#5c7c9b]" />
-              Verificación de Empresa (Persona Moral)
+              Verificación Legal de Empresa
             </h1>
             <Badge variant="outline" className="bg-amber-500/10 text-amber-700 dark:text-amber-300 border-amber-500/20 font-bold px-3 py-1 rounded-full text-xs">
-              🔒 Expediente Privado & Confidencial (No visible para candidatos)
+              🔒 Expediente Privado & Confidencial
             </Badge>
           </div>
-          <p className="text-xs sm:text-sm text-[#5c7c9b] dark:text-zinc-400 font-semibold">
+          <p className="text-xs sm:text-sm text-muted-foreground font-semibold">
             Expediente digital confidencial para validación de cuenta corporativa e insignia de confianza en K&apos;anPro.
           </p>
         </div>
@@ -317,8 +357,8 @@ export function CompanyVerificationView({
           )}
 
           {verificationStatus === "unsubmitted" && (
-            <Badge className="bg-[#f5f7fa] dark:bg-zinc-800 border border-[#ebeef3] dark:border-zinc-700 text-[#5c7c9b] dark:text-zinc-300 px-4 py-2 rounded-2xl text-xs sm:text-sm font-bold flex items-center gap-2">
-              <FileText className="size-4.5 text-[#5c7c9b]" />
+            <Badge className="bg-muted border border-border text-muted-foreground px-4 py-2 rounded-2xl text-xs sm:text-sm font-bold flex items-center gap-2">
+              <FileText className="size-4.5 text-muted-foreground" />
               Pendiente de Envío
             </Badge>
           )}
@@ -330,7 +370,7 @@ export function CompanyVerificationView({
         <div className="flex items-center gap-4 p-5 rounded-[22px] bg-emerald-500/10 border border-emerald-500/20 text-emerald-800 dark:text-emerald-300">
           <ShieldCheck className="size-7 shrink-0 text-emerald-600 dark:text-emerald-400" />
           <div className="text-xs sm:text-sm font-semibold leading-relaxed">
-            <span className="font-extrabold">¡Tu perfil de Persona Moral está 100% verificado!</span> Tus ofertas laborales cuentan con la insignia de confianza corporativa activa en Yucatán y Quintana Roo.
+            <span className="font-extrabold">¡Tu perfil empresarial está 100% verificado!</span> Tus ofertas laborales cuentan con la insignia de confianza corporativa activa en el Sureste.
           </div>
         </div>
       )}
@@ -339,164 +379,172 @@ export function CompanyVerificationView({
         <div className="flex items-start gap-4 p-5 rounded-[22px] bg-amber-500/10 border border-amber-500/20 text-amber-800 dark:text-amber-300">
           <Clock className="size-6 shrink-0 mt-0.5 text-amber-600 dark:text-amber-400 animate-pulse" />
           <div className="text-xs sm:text-sm font-semibold leading-relaxed">
-            <span className="font-extrabold">Tu expediente digital está siendo validado.</span> Nuestro equipo legal está revisando los 13 requisitos corporativos. Recibirás una notificación una vez aprobado.
+            <span className="font-extrabold">Tu expediente digital está siendo auditado.</span> Nuestro equipo legal está revisando los 13 requisitos corporativos. Recibirás una notificación una vez validado.
           </div>
         </div>
       )}
 
       {/* PROGRESS TRACKER CARD */}
-      <Card className="bg-white dark:bg-[#18181b] border border-[#ebeef3] dark:border-zinc-800 rounded-[28px] p-6 sm:p-7 space-y-4 shadow-xs">
+      <Card className="bg-card border border-border/40 rounded-[28px] p-6 sm:p-7 space-y-4 shadow-xs">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
           <div>
-            <h3 className="text-sm sm:text-base font-extrabold text-[#1f2732] dark:text-zinc-100 flex items-center gap-2">
+            <h3 className="text-sm sm:text-base font-extrabold text-foreground flex items-center gap-2">
               <FileCheck className="size-5 text-[#5c7c9b]" />
-              Progreso del Expediente de Persona Moral
+              Progreso del Expediente Legal
             </h3>
-            <p className="text-xs text-[#5c7c9b] dark:text-zinc-400 font-semibold mt-0.5">
-              Completa los 13 requisitos obligatorios para habilitar el envío.
+            <p className="text-xs text-muted-foreground font-semibold mt-0.5">
+              Completa los 13 requisitos obligatorios para habilitar el envío oficial.
             </p>
           </div>
-          <span className="text-sm font-extrabold text-[#1f2732] dark:text-zinc-100">
+          <span className="text-sm font-extrabold text-foreground">
             {completedCount} de {totalCount} Requisitos ({progressPercent}%)
           </span>
         </div>
 
-        <Progress value={progressPercent} className="h-3.5 rounded-full bg-[#f5f7fa] dark:bg-zinc-800" />
+        <Progress value={progressPercent} className="h-2.5 bg-muted rounded-full" />
 
-        {/* Quick Checklist Grid */}
+        {/* 13 Items Dynamic Grid Checklist */}
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2.5 pt-2">
-          {itemsChecklist.map((item, idx) => (
+          {itemsChecklist.map((item, index) => (
             <div
-              key={idx}
+              key={index}
               className={cn(
-                "flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-semibold transition-colors",
+                "flex items-center gap-2 p-2.5 rounded-xl border text-xs font-semibold transition-all",
                 item.isComplete
-                  ? "bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border border-emerald-500/20"
-                  : "bg-[#f5f7fa] dark:bg-zinc-900 text-[#5c7c9b] dark:text-zinc-400 border border-[#ebeef3] dark:border-zinc-800"
+                  ? "bg-emerald-500/5 border-emerald-500/20 text-emerald-800 dark:text-emerald-300"
+                  : "bg-muted/30 border-border/40 text-muted-foreground"
               )}
             >
-              <CheckCircle2
-                className={cn(
-                  "size-4 shrink-0",
-                  item.isComplete
-                    ? "text-emerald-600 dark:text-emerald-400"
-                    : "text-[#94a3b8] dark:text-zinc-600"
-                )}
-              />
+              {item.isComplete ? (
+                <CheckCircle2 className="size-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
+              ) : (
+                <div className="size-4 rounded-full border border-border flex items-center justify-center text-[9px] text-muted-foreground shrink-0">
+                  {index + 1}
+                </div>
+              )}
               <span className="truncate">{item.label}</span>
             </div>
           ))}
         </div>
       </Card>
 
-      {/* SECTION 1: DATOS CORPORATIVOS Y LEGALES */}
-      <Card className="bg-white dark:bg-[#18181b] border border-[#ebeef3] dark:border-zinc-800 rounded-[28px] p-6 sm:p-8 space-y-6 shadow-xs">
-        <div className="flex items-center gap-3 pb-3 border-b border-[#ebeef3] dark:border-zinc-800">
-          <div className="size-10 rounded-2xl bg-[#1f2732] dark:bg-zinc-100 text-white dark:text-zinc-900 flex items-center justify-center font-bold text-sm shrink-0">
-            1
+      {/* SECTION 1: DATOS FISCALES Y CORPORATIVOS */}
+      <Card className="bg-card border border-border/40 rounded-[28px] p-6 sm:p-8 space-y-6 shadow-xs">
+        <div className="flex items-center gap-3 pb-3 border-b border-border/40">
+          <div className="size-10 rounded-2xl bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 flex items-center justify-center shrink-0">
+            <Building2 className="size-5" />
           </div>
           <div>
-            <h2 className="text-base sm:text-lg font-extrabold text-[#1f2732] dark:text-zinc-100">
-              Datos Corporativos y Fiscales de la Persona Moral
-            </h2>
-            <p className="text-xs text-[#5c7c9b] dark:text-zinc-400 font-semibold">
-              Información oficial según la Constancia de Situación Fiscal y Acta Constitutiva.
+            <h3 className="text-base font-extrabold text-foreground">
+              Sección 1: Datos Fiscales y de Identidad Corporativa
+            </h3>
+            <p className="text-xs text-muted-foreground font-semibold mt-0.5">
+              Información oficial registrada ante la Secretaría de Hacienda (SAT).
             </p>
           </div>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          {/* Régimen Fiscal */}
+          <div className="space-y-2">
+            <Label className="text-xs sm:text-sm font-extrabold text-foreground">
+              Régimen Fiscal de la Empresa *
+            </Label>
+            <Select
+              value={fiscalRegime}
+              onValueChange={(val: "persona_moral" | "persona_fisica") => setFiscalRegime(val)}
+              disabled={isReadOnly}
+            >
+              <SelectTrigger className="h-12 bg-background border-border/40 rounded-[14px] px-4 text-sm font-semibold">
+                <SelectValue placeholder="Selecciona el régimen" />
+              </SelectTrigger>
+              <SelectContent className="rounded-2xl">
+                <SelectItem value="persona_moral">Persona Moral (Empresa / Sociedad)</SelectItem>
+                <SelectItem value="persona_fisica">Persona Física con Actividad Empresarial</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
           {/* 1. Denominación o Razón Social */}
           <div className="space-y-2">
-            <Label className="text-xs sm:text-sm font-extrabold text-[#3e546d] dark:text-zinc-200">
+            <Label className="text-xs sm:text-sm font-extrabold text-foreground">
               1. Denominación o Razón Social *
             </Label>
-            <Input
-              type="text"
-              placeholder="Ej. Comercializadora del Caribe S.A. de C.V."
-              value={legalName}
-              onChange={(e) => setLegalName(e.target.value)}
-              className="h-12 bg-white dark:bg-zinc-900 border border-[#ebeef3] dark:border-zinc-800 rounded-[14px] px-4 text-sm font-semibold text-[#1f2732] dark:text-zinc-100 placeholder-[#94a3b8]"
-            />
+            <div className="relative">
+              <Building2 className="absolute left-4 top-1/2 -translate-y-1/2 size-4.5 text-[#5c7c9b] pointer-events-none" />
+              <Input
+                type="text"
+                placeholder="Ej. Operadora de Hoteles de la Riviera S.A. de C.V."
+                value={legalName}
+                onChange={(e) => setLegalName(e.target.value)}
+                disabled={isReadOnly}
+                className="h-12 bg-background border-border/40 rounded-[14px] pl-11 pr-4 text-sm font-semibold"
+              />
+            </div>
           </div>
 
           {/* 6. Nombre Comercial */}
           <div className="space-y-2">
-            <Label className="text-xs sm:text-sm font-extrabold text-[#3e546d] dark:text-zinc-200">
-              6. Nombre Comercial (si aplica) *
+            <Label className="text-xs sm:text-sm font-extrabold text-foreground">
+              6. Nombre Comercial de la Marca *
             </Label>
-            <Input
-              type="text"
-              placeholder="Ej. Hotel Cancún Sun & Spa"
-              value={companyName}
-              onChange={(e) => setCompanyName(e.target.value)}
-              className="h-12 bg-white dark:bg-zinc-900 border border-[#ebeef3] dark:border-zinc-800 rounded-[14px] px-4 text-sm font-semibold text-[#1f2732] dark:text-zinc-100 placeholder-[#94a3b8]"
-            />
-          </div>
-
-          {/* Fiscal Regime Select */}
-          <div className="space-y-2">
-            <Label className="text-xs sm:text-sm font-extrabold text-[#3e546d] dark:text-zinc-200">
-              Régimen Fiscal *
-            </Label>
-            <Select
-              value={fiscalRegime}
-              onValueChange={(val: "persona_moral" | "persona_fisica") => {
-                setFiscalRegime(val);
-                if (val === "persona_moral" && rfc.length > 12) {
-                  setRfc(rfc.substring(0, 12));
-                }
-              }}
-            >
-              <SelectTrigger className="h-12 bg-white dark:bg-zinc-900 border border-[#ebeef3] dark:border-zinc-800 rounded-[14px] px-4 text-sm font-semibold text-[#1f2732] dark:text-zinc-100">
-                <SelectValue placeholder="Selecciona Régimen Fiscal" />
-              </SelectTrigger>
-              <SelectContent className="rounded-xl border border-[#ebeef3] dark:border-zinc-800">
-                <SelectItem value="persona_moral">Persona Moral (12 Caracteres)</SelectItem>
-                <SelectItem value="persona_fisica">Persona Física (13 Caracteres)</SelectItem>
-              </SelectContent>
-            </Select>
+            <div className="relative">
+              <Briefcase className="absolute left-4 top-1/2 -translate-y-1/2 size-4.5 text-[#5c7c9b] pointer-events-none" />
+              <Input
+                type="text"
+                placeholder="Ej. Hotel Riviera Maya Resort"
+                value={companyName}
+                onChange={(e) => setCompanyName(e.target.value)}
+                disabled={isReadOnly}
+                className="h-12 bg-background border-border/40 rounded-[14px] pl-11 pr-4 text-sm font-semibold"
+              />
+            </div>
           </div>
 
           {/* 3. RFC */}
           <div className="space-y-2">
             <div className="flex items-center justify-between">
-              <Label className="text-xs sm:text-sm font-extrabold text-[#3e546d] dark:text-zinc-200">
-                3. RFC Fiscal *
+              <Label className="text-xs sm:text-sm font-extrabold text-foreground">
+                3. RFC de la Empresa *
               </Label>
-              <span className="text-[11px] font-bold text-[#5c7c9b]">
-                {fiscalRegime === "persona_moral" ? "12 caract." : "13 caract."}
+              <span className="text-[11px] text-muted-foreground font-bold">
+                {fiscalRegime === "persona_moral" ? "12 Caracteres" : "13 Caracteres"}
               </span>
             </div>
-            <Input
-              type="text"
-              maxLength={fiscalRegime === "persona_moral" ? 12 : 13}
-              placeholder={fiscalRegime === "persona_moral" ? "Ej. ABC120315XXX" : "Ej. ABCD120315XXX"}
-              value={rfc}
-              onChange={(e) => setRfc(e.target.value.toUpperCase().trim())}
-              className="h-12 bg-white dark:bg-zinc-900 border border-[#ebeef3] dark:border-zinc-800 rounded-[14px] px-4 text-sm font-bold tracking-wider text-[#1f2732] dark:text-zinc-100 uppercase placeholder-[#94a3b8]"
-            />
+            <div className="relative">
+              <FileCheck className="absolute left-4 top-1/2 -translate-y-1/2 size-4.5 text-[#5c7c9b] pointer-events-none" />
+              <Input
+                type="text"
+                placeholder={fiscalRegime === "persona_moral" ? "OHR120315ABC" : "GARM850612ABC"}
+                value={rfc}
+                onChange={(e) => setRfc(e.target.value.toUpperCase())}
+                maxLength={fiscalRegime === "persona_moral" ? 12 : 13}
+                disabled={isReadOnly}
+                className={cn(
+                  "h-12 bg-background border-border/40 rounded-[14px] pl-11 pr-4 text-sm font-semibold uppercase tracking-wider",
+                  rfc.trim().length > 0 && !isRfcValid && "border-destructive/60"
+                )}
+              />
+            </div>
             {rfc.trim().length > 0 && !isRfcValid && (
-              <p className="text-[11px] font-semibold text-rose-500">
-                {fiscalRegime === "persona_moral"
-                  ? "Formato no válido. Debe tener 12 caracteres (3 letras + 6 dígitos + 3 homoclave)"
-                  : "Formato no válido. Debe tener 13 caracteres (4 letras + 6 dígitos + 3 homoclave)"}
+              <p className="text-[11px] text-destructive font-semibold">
+                Formato de RFC inválido para {fiscalRegime === "persona_moral" ? "Persona Moral (12 caracteres)" : "Persona Física (13 caracteres)"}.
               </p>
             )}
           </div>
 
           {/* 7. Giro o Actividad Económica */}
           <div className="space-y-2">
-            <Label className="text-xs sm:text-sm font-extrabold text-[#3e546d] dark:text-zinc-200">
+            <Label className="text-xs sm:text-sm font-extrabold text-foreground">
               7. Giro o Actividad Económica *
             </Label>
-            <Select value={industry} onValueChange={setIndustry}>
-              <SelectTrigger className="h-12 bg-white dark:bg-zinc-900 border border-[#ebeef3] dark:border-zinc-800 rounded-[14px] px-4 text-sm font-semibold text-[#1f2732] dark:text-zinc-100">
-                <SelectValue placeholder="Selecciona la actividad económica" />
+            <Select value={industry} onValueChange={setIndustry} disabled={isReadOnly}>
+              <SelectTrigger className="h-12 bg-background border-border/40 rounded-[14px] px-4 text-sm font-semibold">
+                <SelectValue placeholder="Selecciona el sector" />
               </SelectTrigger>
-              <SelectContent className="rounded-xl border border-[#ebeef3] dark:border-zinc-800">
-                <SelectItem value="Restaurantes / Hotelería / Turismo">Restaurantes / Hotelería / Turismo</SelectItem>
-                <SelectItem value="Comercio y Retail">Comercio & Retail</SelectItem>
+              <SelectContent className="rounded-2xl">
+                <SelectItem value="Hotelería, Turismo y Gastronomía">Hotelería, Turismo y Gastronomía</SelectItem>
+                <SelectItem value="Comercio y Retail">Comercio y Retail</SelectItem>
                 <SelectItem value="Construcción e Inmobiliaria">Construcción e Inmobiliaria</SelectItem>
                 <SelectItem value="Servicios de Seguridad y Limpieza">Servicios de Seguridad y Limpieza</SelectItem>
                 <SelectItem value="Tecnología & Software">Tecnología & Software</SelectItem>
@@ -511,7 +559,7 @@ export function CompanyVerificationView({
 
           {/* 5. Domicilio Fiscal */}
           <div className="md:col-span-2 space-y-2">
-            <Label className="text-xs sm:text-sm font-extrabold text-[#3e546d] dark:text-zinc-200">
+            <Label className="text-xs sm:text-sm font-extrabold text-foreground">
               5. Domicilio Fiscal Completo *
             </Label>
             <div className="relative">
@@ -521,14 +569,15 @@ export function CompanyVerificationView({
                 placeholder="Calle, Número exterior/interior, Colonia, C.P., Ciudad y Estado"
                 value={fiscalAddress}
                 onChange={(e) => setFiscalAddress(e.target.value)}
-                className="h-12 bg-white dark:bg-zinc-900 border border-[#ebeef3] dark:border-zinc-800 rounded-[14px] pl-11 pr-4 text-sm font-semibold text-[#1f2732] dark:text-zinc-100 placeholder-[#94a3b8]"
+                disabled={isReadOnly}
+                className="h-12 bg-background border-border/40 rounded-[14px] pl-11 pr-4 text-sm font-semibold"
               />
             </div>
           </div>
 
           {/* 8. Nombre del Representante Legal */}
           <div className="space-y-2">
-            <Label className="text-xs sm:text-sm font-extrabold text-[#3e546d] dark:text-zinc-200">
+            <Label className="text-xs sm:text-sm font-extrabold text-foreground">
               8. Nombre del Representante Legal *
             </Label>
             <div className="relative">
@@ -538,14 +587,15 @@ export function CompanyVerificationView({
                 placeholder="Nombre(s) y Apellidos completos"
                 value={legalRepName}
                 onChange={(e) => setLegalRepName(e.target.value)}
-                className="h-12 bg-white dark:bg-zinc-900 border border-[#ebeef3] dark:border-zinc-800 rounded-[14px] pl-11 pr-4 text-sm font-semibold text-[#1f2732] dark:text-zinc-100 placeholder-[#94a3b8]"
+                disabled={isReadOnly}
+                className="h-12 bg-background border-border/40 rounded-[14px] pl-11 pr-4 text-sm font-semibold"
               />
             </div>
           </div>
 
           {/* 11. Correo Electrónico Corporativo */}
           <div className="space-y-2">
-            <Label className="text-xs sm:text-sm font-extrabold text-[#3e546d] dark:text-zinc-200">
+            <Label className="text-xs sm:text-sm font-extrabold text-foreground">
               11. Correo Electrónico Corporativo *
             </Label>
             <div className="relative">
@@ -555,14 +605,15 @@ export function CompanyVerificationView({
                 placeholder="ejemplo@empresa.com"
                 value={corporateEmail}
                 onChange={(e) => setCorporateEmail(e.target.value)}
-                className="h-12 bg-white dark:bg-zinc-900 border border-[#ebeef3] dark:border-zinc-800 rounded-[14px] pl-11 pr-4 text-sm font-semibold text-[#1f2732] dark:text-zinc-100 placeholder-[#94a3b8]"
+                disabled={isReadOnly}
+                className="h-12 bg-background border-border/40 rounded-[14px] pl-11 pr-4 text-sm font-semibold"
               />
             </div>
           </div>
 
           {/* 12. Número Telefónico de Contacto */}
           <div className="space-y-2">
-            <Label className="text-xs sm:text-sm font-extrabold text-[#3e546d] dark:text-zinc-200">
+            <Label className="text-xs sm:text-sm font-extrabold text-foreground">
               12. Número Telefónico de Contacto *
             </Label>
             <div className="relative">
@@ -572,25 +623,26 @@ export function CompanyVerificationView({
                 placeholder="+52 999 123 4567"
                 value={contactPhone}
                 onChange={(e) => setContactPhone(e.target.value)}
-                className="h-12 bg-white dark:bg-zinc-900 border border-[#ebeef3] dark:border-zinc-800 rounded-[14px] pl-11 pr-4 text-sm font-semibold text-[#1f2732] dark:text-zinc-100 placeholder-[#94a3b8]"
+                disabled={isReadOnly}
+                className="h-12 bg-background border-border/40 rounded-[14px] pl-11 pr-4 text-sm font-semibold"
               />
             </div>
           </div>
         </div>
       </Card>
 
-      {/* SECTION 2: EXPEDIENTE DIGITAL Y DOCUMENTOS */}
-      <Card className="bg-white dark:bg-[#18181b] border border-[#ebeef3] dark:border-zinc-800 rounded-[28px] p-6 sm:p-8 space-y-6 shadow-xs">
-        <div className="flex items-center gap-3 pb-3 border-b border-[#ebeef3] dark:border-zinc-800">
-          <div className="size-10 rounded-2xl bg-[#1f2732] dark:bg-zinc-100 text-white dark:text-zinc-900 flex items-center justify-center font-bold text-sm shrink-0">
-            2
+      {/* SECTION 2: DOCUMENTOS OFICIALES */}
+      <Card className="bg-card border border-border/40 rounded-[28px] p-6 sm:p-8 space-y-6 shadow-xs">
+        <div className="flex items-center gap-3 pb-3 border-b border-border/40">
+          <div className="size-10 rounded-2xl bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 flex items-center justify-center shrink-0">
+            <FileText className="size-5" />
           </div>
           <div>
-            <h2 className="text-base sm:text-lg font-extrabold text-[#1f2732] dark:text-zinc-100">
-              Expediente Digital de Documentos Obligatorios
-            </h2>
-            <p className="text-xs text-[#5c7c9b] dark:text-zinc-400 font-semibold">
-              Archivos PDF o imágenes nítidas de la documentación legal de la empresa (Máx. 10 MB cada uno).
+            <h3 className="text-base font-extrabold text-foreground">
+              Sección 2: Documentación Legal Oficial (Carga de Archivos)
+            </h3>
+            <p className="text-xs text-muted-foreground font-semibold mt-0.5">
+              Adjunta copias escaneadas legibles en formato PDF o imagen (Máx. 10 MB por archivo).
             </p>
           </div>
         </div>
@@ -605,13 +657,7 @@ export function CompanyVerificationView({
             isUploading={uploadingDocType === "acta_constitutiva"}
             onUpload={(file) => handleFileUpload("acta_constitutiva", file)}
             onDelete={() => handleDeleteDoc("acta_constitutiva")}
-            onPreview={(doc) =>
-              setPreviewDoc({
-                title: "Acta Constitutiva",
-                url: doc.file_url,
-                fileName: doc.file_name,
-              })
-            }
+            onPreview={(doc) => handlePreviewDoc("Acta Constitutiva", doc)}
           />
 
           {/* Document 4: Constancia de Situación Fiscal */}
@@ -623,13 +669,7 @@ export function CompanyVerificationView({
             isUploading={uploadingDocType === "constancia_situacion_fiscal"}
             onUpload={(file) => handleFileUpload("constancia_situacion_fiscal", file)}
             onDelete={() => handleDeleteDoc("constancia_situacion_fiscal")}
-            onPreview={(doc) =>
-              setPreviewDoc({
-                title: "Constancia de Situación Fiscal",
-                url: doc.file_url,
-                fileName: doc.file_name,
-              })
-            }
+            onPreview={(doc) => handlePreviewDoc("Constancia de Situación Fiscal", doc)}
           />
 
           {/* Document 9: Identificación del Rep. Legal */}
@@ -641,13 +681,7 @@ export function CompanyVerificationView({
             isUploading={uploadingDocType === "legal_rep_id"}
             onUpload={(file) => handleFileUpload("legal_rep_id", file)}
             onDelete={() => handleDeleteDoc("legal_rep_id")}
-            onPreview={(doc) =>
-              setPreviewDoc({
-                title: "Identificación Oficial del Representante Legal",
-                url: doc.file_url,
-                fileName: doc.file_name,
-              })
-            }
+            onPreview={(doc) => handlePreviewDoc("Identificación Oficial del Representante Legal", doc)}
           />
 
           {/* Document 10: Poder Notarial / Rep. Legal */}
@@ -659,130 +693,130 @@ export function CompanyVerificationView({
             isUploading={uploadingDocType === "legal_power"}
             onUpload={(file) => handleFileUpload("legal_power", file)}
             onDelete={() => handleDeleteDoc("legal_power")}
-            onPreview={(doc) =>
-              setPreviewDoc({
-                title: "Documento de Representación Legal / Poder Notarial",
-                url: doc.file_url,
-                fileName: doc.file_name,
-              })
-            }
+            onPreview={(doc) => handlePreviewDoc("Documento de Representación Legal / Poder Notarial", doc)}
           />
         </div>
       </Card>
 
       {/* SECTION 3: TÉRMINOS Y CONDICIONES Y AVISO DE PRIVACIDAD */}
-      <Card className="bg-white dark:bg-[#18181b] border border-[#ebeef3] dark:border-zinc-800 rounded-[28px] p-6 sm:p-8 space-y-4 shadow-xs">
-        <div className="flex items-center gap-3 pb-3 border-b border-[#ebeef3] dark:border-zinc-800">
-          <div className="size-10 rounded-2xl bg-[#1f2732] dark:bg-zinc-100 text-white dark:text-zinc-900 flex items-center justify-center font-bold text-sm shrink-0">
-            3
+      <Card className="bg-card border border-border/40 rounded-[28px] p-6 sm:p-8 space-y-4 shadow-xs">
+        <div className="flex items-center gap-3 pb-3 border-b border-border/40">
+          <div className="size-10 rounded-2xl bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 flex items-center justify-center shrink-0">
+            <Lock className="size-5" />
           </div>
           <div>
-            <h2 className="text-base sm:text-lg font-extrabold text-[#1f2732] dark:text-zinc-100">
-              13. Aceptación Legal y Políticas K&apos;anPro *
-            </h2>
-            <p className="text-xs text-[#5c7c9b] dark:text-zinc-400 font-semibold">
-              Requisito legal para habilitar la publicación corporativa.
+            <h3 className="text-base font-extrabold text-foreground">
+              Sección 3: Consentimiento Legal & Privacidad
+            </h3>
+            <p className="text-xs text-muted-foreground font-semibold mt-0.5">
+              Requisito 13: Aceptación de términos y custodia de datos corporativos.
             </p>
           </div>
         </div>
 
-        <div className="flex items-start gap-3.5 p-4 rounded-2xl bg-[#f5f7fa] dark:bg-zinc-900 border border-[#ebeef3] dark:border-zinc-800">
+        <div className="p-4.5 bg-muted/40 rounded-2xl border border-border/40 flex items-start gap-3.5">
           <Checkbox
-            id="terms-checkbox"
+            id="terms-check"
             checked={termsAccepted}
-            onCheckedChange={(val) => setTermsAccepted(!!val)}
-            className="mt-0.5 size-5 rounded-md border-fiord-300 dark:border-fiord-700 data-[state=checked]:bg-[#1f2732] dark:data-[state=checked]:bg-zinc-100 data-[state=checked]:text-white dark:data-[state=checked]:text-zinc-900"
+            onCheckedChange={(checked) => setTermsAccepted(!!checked)}
+            disabled={isReadOnly}
+            className="mt-0.5 size-5 rounded-md"
           />
-          <label
-            htmlFor="terms-checkbox"
-            className="text-xs sm:text-sm font-semibold text-[#1f2732] dark:text-zinc-200 leading-relaxed cursor-pointer select-none"
-          >
-            Manifiesto bajo protesta de decir verdad que represento legalmente a la Persona Moral y que los documentos ingresados son verídicos. Acepto íntegramente los{" "}
-            <a
-              href="/contact"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-[#5c7c9b] dark:text-zinc-300 font-extrabold hover:underline inline-flex items-center gap-0.5"
+          <div className="space-y-1">
+            <Label
+              htmlFor="terms-check"
+              className="text-xs sm:text-sm font-bold text-foreground cursor-pointer leading-relaxed"
             >
-              Términos y Condiciones <ExternalLink className="size-3" />
-            </a>{" "}
-            y el{" "}
-            <a
-              href="/contact"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-[#5c7c9b] dark:text-zinc-300 font-extrabold hover:underline inline-flex items-center gap-0.5"
-            >
-              Aviso de Privacidad de K'anPro <ExternalLink className="size-3" />
-            </a>.
-          </label>
+              13. Manifiesto bajo protesta de decir verdad que los datos y documentos proporcionados son legítimos y acepto los Términos y Condiciones y Aviso de Privacidad de K&apos;anPro.
+            </Label>
+            <p className="text-[11px] text-muted-foreground leading-relaxed">
+              K&apos;anPro resguarda la información fiscal y legal de manera estrictamente confidencial para fines exclusivos de validación de identidad corporativa.
+            </p>
+          </div>
         </div>
       </Card>
 
-      {/* FOOTER ACTIONS BAR */}
-      <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pt-2">
-        <Button
-          type="button"
-          variant="outline"
-          onClick={handleSaveDraft}
-          disabled={isSaving || isSubmitting}
-          className="w-full sm:w-auto h-13 rounded-[16px] font-bold bg-white dark:bg-zinc-900 text-[#1f2732] dark:text-zinc-200 border border-[#d2dbe5] dark:border-zinc-800 text-sm px-6 flex items-center justify-center gap-2 cursor-pointer shadow-none"
-        >
-          {isSaving ? <Loader2 className="size-4 animate-spin" /> : <Save className="size-4" />}
-          <span>Guardar Borrador</span>
-        </Button>
+      {/* BOTTOM ACTION BAR */}
+      <div className="flex flex-col sm:flex-row items-center justify-between gap-4 p-6 bg-card border border-border/40 rounded-[28px] shadow-sm">
+        <div className="flex items-center gap-3 w-full sm:w-auto">
+          <Button
+            type="button"
+            variant="outline"
+            onClick={handleSaveDraft}
+            disabled={isSaving || isSubmitting || isReadOnly}
+            className="w-full sm:w-auto rounded-2xl px-6 h-12 text-xs font-bold gap-2"
+          >
+            {isSaving ? <Loader2 className="size-4 animate-spin" /> : <Save className="size-4" />}
+            <span>Guardar Borrador</span>
+          </Button>
+        </div>
 
-        <Button
-          type="button"
-          onClick={handleSubmitVerification}
-          disabled={isSubmitting || completedCount < totalCount}
-          className="w-full sm:w-auto h-13 rounded-[16px] font-bold bg-[#1f2732] dark:bg-zinc-100 hover:bg-[#253240] dark:hover:bg-zinc-200 text-white dark:text-zinc-900 text-sm px-8 flex items-center justify-center gap-2 cursor-pointer shadow-md active:scale-95 disabled:opacity-50"
-        >
-          {isSubmitting ? (
-            <Loader2 className="size-5 animate-spin" />
-          ) : (
-            <Send className="size-4" />
-          )}
-          <span>Enviar Expediente a Revisión</span>
-        </Button>
+        <div className="flex items-center gap-3 w-full sm:w-auto">
+          <Button
+            type="button"
+            onClick={handleSubmitVerification}
+            disabled={isSubmitting || isSaving || completedCount < totalCount || isReadOnly}
+            className="w-full sm:w-auto rounded-2xl px-8 h-12 text-xs font-bold bg-[#1f2732] dark:bg-zinc-100 text-white dark:text-zinc-900 hover:bg-[#253240] dark:hover:bg-zinc-200 gap-2 shadow-xs"
+          >
+            {isSubmitting ? (
+              <>
+                <Loader2 className="size-4 animate-spin" />
+                <span>Enviando Expediente...</span>
+              </>
+            ) : (
+              <>
+                <Send className="size-4" />
+                <span>Enviar Expediente a Revisión</span>
+              </>
+            )}
+          </Button>
+        </div>
       </div>
 
-      {/* PDF PREVIEW MODAL */}
+      {/* PDF PREVIEW MODAL WITH SECURE SIGNED URL */}
       <Dialog open={!!previewDoc} onOpenChange={(open) => !open && setPreviewDoc(null)}>
-        <DialogContent className="sm:max-w-[500px] rounded-3xl bg-white dark:bg-zinc-900 border border-[#ebeef3] dark:border-zinc-800 p-6 space-y-4">
+        <DialogContent className="sm:max-w-[700px] max-h-[90vh] overflow-y-auto rounded-3xl bg-background border border-border/40 p-6 space-y-4">
           <DialogHeader>
-            <DialogTitle className="text-lg font-bold text-[#1f2732] dark:text-zinc-50 flex items-center gap-2">
+            <DialogTitle className="text-lg font-bold text-foreground flex items-center gap-2">
               <FileText className="size-5 text-[#5c7c9b]" />
               {previewDoc?.title}
             </DialogTitle>
-            <DialogDescription className="text-xs text-[#5c7c9b] font-medium">
+            <DialogDescription className="text-xs text-muted-foreground font-medium">
               {previewDoc?.fileName}
             </DialogDescription>
           </DialogHeader>
 
-          <div className="p-6 bg-[#f5f7fa] dark:bg-zinc-800/50 border border-[#ebeef3] dark:border-zinc-800 rounded-2xl flex flex-col items-center justify-center text-center space-y-4 py-10">
-            <div className="size-16 rounded-full bg-fiord-100 dark:bg-fiord-900 text-[#1f2732] dark:text-zinc-100 flex items-center justify-center">
-              <FileText className="size-8 text-[#5c7c9b]" />
-            </div>
-            <div>
-              <p className="text-sm font-bold text-[#1f2732] dark:text-zinc-100">
-                Documento registrado en Supabase Storage
-              </p>
-              <p className="text-xs text-[#5c7c9b] font-medium mt-1">
-                Haz clic abajo para abrir o descargar la copia original.
-              </p>
-            </div>
-
+          <div className="p-4 bg-muted/30 border border-border/40 rounded-2xl flex flex-col items-center justify-center text-center space-y-4">
             {previewDoc?.url && (
-              <a
-                href={previewDoc.url}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex items-center gap-2 px-5 py-2.5 bg-[#1f2732] dark:bg-zinc-100 text-white dark:text-zinc-900 rounded-xl text-xs font-bold shadow-xs hover:bg-[#253240]"
-              >
-                <span>Abrir Archivo Original</span>
-                <ExternalLink className="size-3.5" />
-              </a>
+              <div className="w-full space-y-4">
+                {previewDoc.fileName.toLowerCase().endsWith(".pdf") ? (
+                  <iframe
+                    src={previewDoc.url}
+                    className="w-full h-96 rounded-xl border border-border/40 bg-white"
+                    title={previewDoc.title}
+                  />
+                ) : (
+                  <div className="flex justify-center p-2">
+                    <img
+                      src={previewDoc.url}
+                      alt={previewDoc.title}
+                      className="max-h-96 rounded-xl object-contain border border-border/40"
+                    />
+                  </div>
+                )}
+
+                <div className="flex justify-center gap-3 pt-2">
+                  <a
+                    href={previewDoc.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-2 px-5 py-2.5 bg-[#1f2732] dark:bg-zinc-100 text-white dark:text-zinc-900 rounded-xl text-xs font-bold shadow-xs hover:bg-[#253240]"
+                  >
+                    <span>Abrir en Pestaña Completa</span>
+                    <ExternalLink className="size-3.5" />
+                  </a>
+                </div>
+              </div>
             )}
           </div>
         </DialogContent>
@@ -815,14 +849,14 @@ function DocumentUploadCard({
   const fileInputRef = React.useRef<HTMLInputElement | null>(null);
 
   return (
-    <div className="p-5 bg-[#f5f7fa] dark:bg-zinc-900/70 border border-[#ebeef3] dark:border-zinc-800 rounded-[20px] space-y-4 flex flex-col justify-between">
+    <div className="p-5 bg-card border border-border/40 rounded-[20px] space-y-4 flex flex-col justify-between">
       <div>
         <div className="flex items-start justify-between gap-2">
           <div>
-            <h4 className="text-xs sm:text-sm font-extrabold text-[#1f2732] dark:text-zinc-100">
+            <h4 className="text-xs sm:text-sm font-extrabold text-foreground">
               {title}
             </h4>
-            <p className="text-[11px] text-[#5c7c9b] dark:text-zinc-400 font-semibold mt-0.5">
+            <p className="text-[11px] text-muted-foreground font-semibold mt-0.5">
               {description}
             </p>
           </div>
@@ -840,17 +874,17 @@ function DocumentUploadCard({
 
         {/* Existing Doc Item */}
         {doc ? (
-          <div className="mt-4 p-3 bg-white dark:bg-zinc-800 border border-[#ebeef3] dark:border-zinc-700 rounded-xl flex items-center justify-between gap-3 shadow-2xs">
+          <div className="mt-4 p-3 bg-muted/40 border border-border/40 rounded-xl flex items-center justify-between gap-3 shadow-2xs">
             <div className="flex items-center gap-2.5 min-w-0">
               <FileText className="size-6 text-[#5c7c9b] shrink-0" />
               <div className="min-w-0">
-                <p className="text-xs font-bold text-[#1f2732] dark:text-zinc-100 truncate">
+                <p className="text-xs font-bold text-foreground truncate">
                   {doc.file_name}
                 </p>
-                <p className="text-[10px] text-[#5c7c9b] dark:text-zinc-400 font-medium">
+                <p className="text-[10px] text-muted-foreground font-medium">
                   {doc.file_size_bytes
                     ? `${(doc.file_size_bytes / (1024 * 1024)).toFixed(1)} MB`
-                    : "Documento PDF"}
+                    : "Documento Adjunto"}
                 </p>
               </div>
             </div>
@@ -859,7 +893,7 @@ function DocumentUploadCard({
               <button
                 type="button"
                 onClick={() => onPreview(doc)}
-                className="p-1.5 text-[#5c7c9b] hover:text-[#1f2732] dark:hover:text-zinc-100 transition-colors"
+                className="p-1.5 text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
                 title="Ver Documento"
               >
                 <Eye className="size-4" />
@@ -867,7 +901,7 @@ function DocumentUploadCard({
               <button
                 type="button"
                 onClick={onDelete}
-                className="p-1.5 text-rose-500 hover:text-rose-600 transition-colors"
+                className="p-1.5 text-rose-500 hover:text-rose-600 transition-colors cursor-pointer"
                 title="Eliminar Documento"
               >
                 <Trash2 className="size-4" />
@@ -879,24 +913,24 @@ function DocumentUploadCard({
           <div
             onClick={() => !isUploading && fileInputRef.current?.click()}
             className={cn(
-              "mt-4 p-5 bg-white dark:bg-zinc-950 rounded-xl border-2 border-dashed transition-all cursor-pointer text-center flex flex-col items-center justify-center space-y-2",
+              "mt-4 p-5 bg-background rounded-xl border-2 border-dashed transition-all cursor-pointer text-center flex flex-col items-center justify-center space-y-2",
               isUploading
-                ? "border-[#1f2732] dark:border-zinc-100 bg-[#f5f7fa]"
-                : "border-[#d2dbe5] dark:border-zinc-800 hover:border-[#1f2732] dark:hover:border-zinc-600"
+                ? "border-primary bg-muted/20"
+                : "border-border/60 hover:border-primary"
             )}
           >
             {isUploading ? (
-              <div className="flex items-center gap-2 text-xs font-bold text-[#1f2732] dark:text-zinc-100">
-                <Loader2 className="size-4 animate-spin text-[#5c7c9b]" />
+              <div className="flex items-center gap-2 text-xs font-bold text-foreground">
+                <Loader2 className="size-4 animate-spin text-primary" />
                 <span>Subiendo documento...</span>
               </div>
             ) : (
               <>
-                <UploadCloud className="size-6 text-[#5c7c9b]" />
-                <span className="text-xs font-bold text-[#1f2732] dark:text-zinc-100">
+                <UploadCloud className="size-6 text-muted-foreground" />
+                <span className="text-xs font-bold text-foreground">
                   Seleccionar archivo PDF o imagen
                 </span>
-                <span className="text-[10px] font-semibold text-[#94a3b8]">
+                <span className="text-[10px] font-semibold text-muted-foreground">
                   Formatos: .pdf, .jpg, .png (Máx. 10 MB)
                 </span>
               </>

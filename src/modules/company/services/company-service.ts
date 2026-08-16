@@ -38,7 +38,7 @@ export const companyService = {
 
     const finalLocation = profile.location || "Mérida";
 
-    const companyPayload = {
+    const companyPayload: any = {
       company_name: profile.company_name,
       industry: profile.industry || "General",
       fiscal_address: finalLocation || profile.address_details || "Mérida, Yucatán",
@@ -63,20 +63,32 @@ export const companyService = {
       updated_at: new Date().toISOString(),
     };
 
+    if (profile.rfc && profile.rfc.trim() !== "") {
+      companyPayload.rfc = profile.rfc.toUpperCase().trim();
+    }
+    if (profile.fiscal_regime) {
+      companyPayload.entity_type = profile.fiscal_regime;
+    }
+
+    const profileUpdates: any = {
+      full_name: profile.company_name,
+      avatar_url: profile.logo_url || null,
+      location: finalLocation,
+      updated_at: new Date().toISOString(),
+    };
+    if (profile.phone) {
+      profileUpdates.whatsapp_number = profile.phone;
+    }
+
     // Parallel update for base profiles and company_profiles extension
     const [baseRes, updateRes] = await Promise.all([
       supabase
         .from("profiles")
-        .update({
-          full_name: profile.company_name,
-          avatar_url: profile.logo_url || null,
-          location: finalLocation,
-          updated_at: new Date().toISOString(),
-        })
+        .update(profileUpdates)
         .eq("id", userId),
       supabase
         .from("company_profiles")
-        .update(companyPayload as any)
+        .update(companyPayload)
         .eq("id", userId)
         .select("id")
     ]);
@@ -89,8 +101,8 @@ export const companyService = {
         .from("company_profiles")
         .upsert({
           id: userId,
-          rfc: "XAXX010101000",
-          ...(companyPayload as any),
+          rfc: profile.rfc?.toUpperCase().trim() || "XAXX010101000",
+          ...companyPayload,
         });
 
       if (upsertErr) throw upsertErr;

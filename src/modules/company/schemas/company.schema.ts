@@ -15,7 +15,7 @@ export const companyProfileSchema = z.object({
   banner_url: z.string().optional(),
   instagram_url: z.string().optional(),
   facebook_url: z.string().optional(),
-  address_details: z.string().min(3, "La dirección física detallada es requerida para orientar al candidato"),
+  address_details: z.string().optional().or(z.literal("")),
   has_transport: z.boolean().optional(),
   benefit_canteen: z.boolean().optional(),
   benefit_tips: z.boolean().optional(),
