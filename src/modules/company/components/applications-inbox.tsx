@@ -1,22 +1,16 @@
-"use client"
+"use client";
 
-import * as React from "react"
-import { 
-  Search, 
-  Filter, 
-  Mail, 
-  MoreVertical, 
-  Star, 
-  MapPin, 
-  Briefcase, 
+import * as React from "react";
+import {
+  Search,
+  Filter,
+  Star,
+  MapPin,
+  Briefcase,
   Award,
   ExternalLink,
-  ChevronRight,
-  TrendingUp,
-  UserCheck,
   Phone,
   ArrowLeft,
-  BriefcaseIcon,
   Loader2,
   FileText,
   ShieldCheck,
@@ -25,19 +19,45 @@ import {
   Download,
   Save,
   Eye,
-} from "lucide-react"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Textarea } from "@/components/ui/textarea"
-import { Badge } from "@/components/ui/badge"
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog"
-import { toast } from "sonner"
-import { cn } from "@/lib/utils"
-import { useApplicationsInbox, type Applicant } from "../hooks/use-applications-inbox"
-import { requestDocumentAccess, getDocumentAccessStatus, getAuthorizedCandidateDocuments } from "../actions/document-access"
+  MessageSquare,
+  Users,
+  CheckCircle2,
+  XCircle,
+  AlertCircle,
+  GraduationCap,
+  Sparkles,
+  ChevronRight,
+} from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Badge } from "@/components/ui/badge";
+import { Card } from "@/components/ui/card";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from "@/components/ui/dialog";
+import { toast } from "sonner";
+import { cn } from "@/lib/utils";
+import { useApplicationsInbox, type Applicant } from "../hooks/use-applications-inbox";
+import {
+  requestDocumentAccess,
+  getDocumentAccessStatus,
+  getAuthorizedCandidateDocuments,
+} from "../actions/document-access";
 
 export function ApplicationsInbox() {
-  // Assume a default company user id or let Supabase fetch current user inside hook
   const {
     applicants,
     vacancies,
@@ -51,760 +71,832 @@ export function ApplicationsInbox() {
     isLoading,
     handleUpdateStatus,
     getWhatsAppLink,
-    handleContactApplicant,
     handleUpdateNotes,
     handleUpdateRating,
     handleExportCSV,
-  } = useApplicationsInbox()
+  } = useApplicationsInbox();
 
-  const [mobileDetailOpen, setMobileDetailOpen] = React.useState(false)
-  const [docAccessState, setDocAccessState] = React.useState<{ status: string; id?: string } | null>(null)
-  const [isRequestingDocs, setIsRequestingDocs] = React.useState(false)
-  const [noteText, setNoteText] = React.useState("")
-  const [authorizedDocs, setAuthorizedDocs] = React.useState<any[]>([])
-  const [isLoadingDocs, setIsLoadingDocs] = React.useState(false)
-  const [previewDoc, setPreviewDoc] = React.useState<any | null>(null)
+  const [statusFilter, setStatusFilter] = React.useState<string>("all");
+  const [sortBy, setSortBy] = React.useState<"newest" | "rating">("newest");
+  const [mobileDetailOpen, setMobileDetailOpen] = React.useState(false);
+  const [docAccessState, setDocAccessState] = React.useState<{ status: string; id?: string } | null>(null);
+  const [isRequestingDocs, setIsRequestingDocs] = React.useState(false);
+  const [noteText, setNoteText] = React.useState("");
+  const [isSavingNotes, setIsSavingNotes] = React.useState(false);
+  const [authorizedDocs, setAuthorizedDocs] = React.useState<any[]>([]);
+  const [isLoadingDocs, setIsLoadingDocs] = React.useState(false);
+  const [previewDoc, setPreviewDoc] = React.useState<any | null>(null);
 
   React.useEffect(() => {
     if (selectedApplicant) {
-      setNoteText(selectedApplicant.internalNotes || "")
+      setNoteText(selectedApplicant.internalNotes || "");
     }
-  }, [selectedApplicant])
+  }, [selectedApplicant]);
 
-  // Fetch document access request status when selected applicant changes
+  // Load document access status for selected applicant
   React.useEffect(() => {
     async function loadDocStatus() {
       if (selectedApplicant?.id) {
         try {
-          const docReq = await getDocumentAccessStatus(selectedApplicant.id)
+          const docReq = await getDocumentAccessStatus(selectedApplicant.id);
           if (docReq) {
-            setDocAccessState({ status: docReq.status, id: docReq.id })
+            setDocAccessState({ status: docReq.status, id: docReq.id });
           } else {
-            setDocAccessState(null)
+            setDocAccessState(null);
           }
-        } catch (e) {
-          setDocAccessState(null)
+        } catch {
+          setDocAccessState(null);
         }
       } else {
-        setDocAccessState(null)
+        setDocAccessState(null);
       }
     }
-    loadDocStatus()
-  }, [selectedApplicant])
+    loadDocStatus();
+  }, [selectedApplicant]);
 
-  // Fetch authorized documents if status is approved
+  // Load authorized documents if approved
   React.useEffect(() => {
     async function loadAuthorizedDocs() {
-      if (selectedApplicant?.id && selectedApplicant?.candidateId && docAccessState?.status === "approved") {
-        setIsLoadingDocs(true)
+      if (
+        selectedApplicant?.id &&
+        selectedApplicant?.candidateId &&
+        docAccessState?.status === "approved"
+      ) {
+        setIsLoadingDocs(true);
         try {
-          const res = await getAuthorizedCandidateDocuments(selectedApplicant.id, selectedApplicant.candidateId)
+          const res = await getAuthorizedCandidateDocuments(
+            selectedApplicant.id,
+            selectedApplicant.candidateId
+          );
           if (res.authorized) {
-            setAuthorizedDocs(res.documents)
+            setAuthorizedDocs(res.documents);
           } else {
-            setAuthorizedDocs([])
+            setAuthorizedDocs([]);
           }
         } catch (err) {
-          console.error("Error loading authorized documents:", err)
-          setAuthorizedDocs([])
+          console.error("Error loading authorized documents:", err);
+          setAuthorizedDocs([]);
         } finally {
-          setIsLoadingDocs(false)
+          setIsLoadingDocs(false);
         }
       } else {
-        setAuthorizedDocs([])
+        setAuthorizedDocs([]);
       }
     }
-    loadAuthorizedDocs()
-  }, [selectedApplicant, docAccessState?.status])
+    loadAuthorizedDocs();
+  }, [selectedApplicant, docAccessState?.status]);
 
   const handleRequestDocuments = async () => {
-    if (!selectedApplicant) return
-    setIsRequestingDocs(true)
+    if (!selectedApplicant) return;
+    setIsRequestingDocs(true);
     try {
-      const res = await requestDocumentAccess(selectedApplicant.id, selectedApplicant.candidateId)
-      setDocAccessState({ status: res.status, id: res.requestId })
+      const res = await requestDocumentAccess(
+        selectedApplicant.id,
+        selectedApplicant.candidateId
+      );
+      setDocAccessState({ status: res.status, id: res.requestId });
       toast.success("Solicitud de documentos enviada", {
-        description: res.message || "Se ha enviado una notificación al candidato para autorizar el acceso."
-      })
+        description: "Se ha enviado una notificación al candidato para autorizar el acceso.",
+      });
     } catch (err: any) {
       toast.error("Error al solicitar documentos", {
-        description: err.message || "No se pudo procesar la solicitud."
-      })
+        description: err.message || "No se pudo procesar la solicitud.",
+      });
     } finally {
-      setIsRequestingDocs(false)
+      setIsRequestingDocs(false);
     }
-  }
-  const [sortBy, setSortBy] = React.useState<"newest" | "rating">("newest")
+  };
 
-  // Filter and sort roster based on search text, vacancy selector, and sort mode
+  const handleSaveNotes = async () => {
+    if (!selectedApplicant) return;
+    setIsSavingNotes(true);
+    try {
+      await handleUpdateNotes(selectedApplicant.id, noteText);
+      toast.success("Notas guardadas exitosamente");
+    } catch {
+      toast.error("Error al guardar las notas");
+    } finally {
+      setIsSavingNotes(false);
+    }
+  };
+
+  // Pipeline Metrics
+  const metrics = React.useMemo(() => {
+    const total = applicants.length;
+    const pending = applicants.filter((a) => a.status === "Pendiente" || a.status === "En revisión").length;
+    const shortlisted = applicants.filter((a) => a.status === "Preseleccionado").length;
+    const hired = applicants.filter((a) => a.status === "Contratado").length;
+    return { total, pending, shortlisted, hired };
+  }, [applicants]);
+
+  // Filtered & Sorted Applicants
   const filteredApplicants = React.useMemo(() => {
     const list = applicants.filter((app) => {
-      // Search text filter
       const matchesSearch = searchQuery
         ? app.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
           app.headline.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          app.skills.some((s) => s.toLowerCase().includes(searchQuery.toLowerCase()))
-        : true
+          app.skills.some((s) => s.toLowerCase().includes(searchQuery.toLowerCase())) ||
+          app.phone.includes(searchQuery)
+        : true;
 
-      // Vacancy selector filter
-      const matchesVacancy = selectedVacancyId === "all" || app.vacancyId === selectedVacancyId
+      const matchesVacancy = selectedVacancyId === "all" || app.vacancyId === selectedVacancyId;
+      const matchesStatus = statusFilter === "all" || app.status === statusFilter;
 
-      return matchesSearch && matchesVacancy
-    })
+      return matchesSearch && matchesVacancy && matchesStatus;
+    });
 
     if (sortBy === "rating") {
-      return [...list].sort((a, b) => (b.rating || 0) - (a.rating || 0))
+      return [...list].sort((a, b) => (b.rating || 0) - (a.rating || 0));
     }
-    return list
-  }, [applicants, searchQuery, selectedVacancyId, sortBy])
+    return list;
+  }, [applicants, searchQuery, selectedVacancyId, statusFilter, sortBy]);
 
-  const selectApplicantOnMobile = (id: string) => {
-    setSelectedId(id)
-    setMobileDetailOpen(true)
-  }
+  const selectApplicant = (id: string) => {
+    setSelectedId(id);
+    setMobileDetailOpen(true);
+  };
 
-  const handleStatusChangeLocal = async (id: string, status: Applicant["status"]) => {
-    await handleUpdateStatus(id, status)
-  }
-
-  const toggleSortMode = () => {
-    const nextMode = sortBy === "newest" ? "rating" : "newest"
-    setSortBy(nextMode)
-    toast.success(
-      nextMode === "rating" ? "Ordenado por Calificación" : "Ordenado por Más Recientes",
-      {
-        description: nextMode === "rating" ? "Postulantes con mayor número de estrellas primero." : "Postulaciones más recientes primero."
-      }
-    )
-  }
+  const getStatusBadge = (status: Applicant["status"]) => {
+    switch (status) {
+      case "Preseleccionado":
+        return "bg-indigo-500/10 text-indigo-700 dark:text-indigo-300 border-indigo-500/20";
+      case "En revisión":
+        return "bg-amber-500/10 text-amber-700 dark:text-amber-300 border-amber-500/20";
+      case "Contratado":
+        return "bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border-emerald-500/20";
+      case "Descartado":
+        return "bg-rose-500/10 text-rose-700 dark:text-rose-300 border-rose-500/20";
+      default:
+        return "bg-muted text-muted-foreground border-border/60";
+    }
+  };
 
   return (
-    <div className="flex-grow flex h-[calc(100vh-80px)] overflow-hidden bg-background selection:bg-primary/20 animate-in fade-in duration-300">
+    <div className="w-full space-y-5 animate-in fade-in duration-300">
       
-      {/* ================= LEFT COLUMN: APPLICANTS ROSTER (40% width, hidden on mobile if detail is open) ================= */}
-      <div className={`w-full md:w-[40%] flex flex-col border-r border-border/40 bg-card/10 relative h-full ${
-        mobileDetailOpen ? "hidden md:flex" : "flex"
-      }`}>
+      {/* 1. Top Pipeline Metrics Cards */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3.5">
+        <Card className="bg-card border border-border/60 rounded-2xl p-4 shadow-xs flex flex-col justify-between">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-bold text-muted-foreground uppercase tracking-wider">
+              Total Postulantes
+            </span>
+            <div className="size-8 rounded-xl bg-primary/10 text-primary flex items-center justify-center">
+              <Users className="size-4" />
+            </div>
+          </div>
+          <div className="mt-2">
+            <h3 className="text-2xl font-extrabold text-foreground font-mono">{metrics.total}</h3>
+            <p className="text-[11px] font-semibold text-muted-foreground">En todas las ofertas</p>
+          </div>
+        </Card>
+
+        <Card className="bg-card border border-border/60 rounded-2xl p-4 shadow-xs flex flex-col justify-between">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-bold text-amber-600 dark:text-amber-400 uppercase tracking-wider">
+              Por Revisar
+            </span>
+            <div className="size-8 rounded-xl bg-amber-500/10 text-amber-600 dark:text-amber-400 flex items-center justify-center">
+              <Clock className="size-4" />
+            </div>
+          </div>
+          <div className="mt-2">
+            <h3 className="text-2xl font-extrabold text-foreground font-mono">{metrics.pending}</h3>
+            <p className="text-[11px] font-semibold text-muted-foreground">Pendientes & en revisión</p>
+          </div>
+        </Card>
+
+        <Card className="bg-card border border-border/60 rounded-2xl p-4 shadow-xs flex flex-col justify-between">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-bold text-indigo-600 dark:text-indigo-400 uppercase tracking-wider">
+              Preseleccionados
+            </span>
+            <div className="size-8 rounded-xl bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 flex items-center justify-center">
+              <Sparkles className="size-4" />
+            </div>
+          </div>
+          <div className="mt-2">
+            <h3 className="text-2xl font-extrabold text-foreground font-mono">{metrics.shortlisted}</h3>
+            <p className="text-[11px] font-semibold text-muted-foreground">Listos para entrevista</p>
+          </div>
+        </Card>
+
+        <Card className="bg-card border border-border/60 rounded-2xl p-4 shadow-xs flex flex-col justify-between">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-bold text-emerald-600 dark:text-emerald-400 uppercase tracking-wider">
+              Contratados
+            </span>
+            <div className="size-8 rounded-xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center">
+              <CheckCircle2 className="size-4" />
+            </div>
+          </div>
+          <div className="mt-2">
+            <h3 className="text-2xl font-extrabold text-foreground font-mono">{metrics.hired}</h3>
+            <p className="text-[11px] font-semibold text-muted-foreground">Candidatos seleccionados</p>
+          </div>
+        </Card>
+      </div>
+
+      {/* 2. Unified Master-Detail Inbox Card */}
+      <Card className="bg-card border border-border/60 rounded-3xl shadow-xs overflow-hidden">
         
-        {/* Roster Header */}
-        <div className="p-4 sm:p-5 border-b border-border/40 flex flex-col gap-3 bg-background/50 backdrop-blur-sm shrink-0">
-          <div className="flex justify-between items-center gap-2">
-            <span className="text-xs sm:text-sm font-bold text-muted-foreground">Filtrar por Vacante:</span>
-            <div className="flex items-center gap-2">
-              <span className="bg-[#1f2732] dark:bg-zinc-100 text-white dark:text-zinc-900 px-3 py-1 rounded-full font-bold text-xs tracking-wide">
-                {filteredApplicants.length} Encontrados
-              </span>
+        {/* Toolbar Header */}
+        <div className="p-4 sm:p-5 space-y-4 border-b border-border/60">
+          
+          {/* Top Controls: Search, Vacancy Filter & Actions */}
+          <div className="flex flex-col sm:flex-row justify-between items-stretch sm:items-center gap-3">
+            
+            {/* Search Input */}
+            <div className="relative flex-1 max-w-md">
+              <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-muted-foreground size-4 pointer-events-none" />
+              <Input
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Buscar por candidato, habilidades o teléfono..."
+                className="h-10 pl-10 rounded-xl bg-muted/40 border-border/60 text-xs sm:text-sm font-medium"
+              />
+            </div>
+
+            {/* Vacancy Selector & Actions */}
+            <div className="flex flex-wrap items-center gap-2 justify-end">
+              {/* Vacancy Selector */}
+              <div className="min-w-[180px] sm:min-w-[220px]">
+                <Select
+                  value={selectedVacancyId}
+                  onValueChange={(val) => setSelectedVacancyId(val || "all")}
+                >
+                  <SelectTrigger className="h-10 rounded-xl border-border/60 bg-muted/40 text-xs font-semibold">
+                    <SelectValue placeholder="Todas las vacantes" />
+                  </SelectTrigger>
+                  <SelectContent className="rounded-xl border-border/60 bg-popover shadow-lg max-h-64">
+                    <SelectItem value="all" className="text-xs font-semibold rounded-lg cursor-pointer">
+                      Todas las vacantes ({applicants.length})
+                    </SelectItem>
+                    {vacancies.map((vac) => (
+                      <SelectItem key={vac.id} value={vac.id} className="text-xs font-semibold rounded-lg cursor-pointer">
+                        {vac.title}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* Sort Toggle */}
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setSortBy(sortBy === "newest" ? "rating" : "newest")}
+                className={cn(
+                  "h-10 px-3 rounded-xl text-xs font-semibold gap-1.5 border-border/60 cursor-pointer",
+                  sortBy === "rating" && "bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/30"
+                )}
+              >
+                <Star className="size-3.5" />
+                <span className="hidden sm:inline">
+                  {sortBy === "rating" ? "Calificación" : "Recientes"}
+                </span>
+              </Button>
+
+              {/* Export CSV */}
               <Button
                 variant="outline"
                 size="sm"
                 onClick={() => handleExportCSV(filteredApplicants)}
-                title="Exportar postulantes filtrados a CSV / Excel"
-                className="h-8 px-2.5 rounded-full border-border/60 text-xs font-bold gap-1 bg-background hover:bg-muted shadow-none"
+                className="h-10 px-3 rounded-xl text-xs font-semibold gap-1.5 border-border/60 cursor-pointer"
               >
                 <Download className="size-3.5 text-emerald-600 dark:text-emerald-400" />
-                <span className="hidden sm:inline">CSV</span>
+                <span className="hidden sm:inline">Exportar</span>
               </Button>
             </div>
           </div>
 
-          {/* Vacancy Filter Dropdown */}
-          <div className="w-full">
-            <select
-              value={selectedVacancyId}
-              onChange={(e) => setSelectedVacancyId(e.target.value)}
-              className="w-full h-11 px-3.5 bg-muted/40 border border-border/40 rounded-[14px] text-xs sm:text-sm font-bold text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 cursor-pointer"
-            >
-              <option value="all">Todas las vacantes</option>
-              {vacancies.map((vac) => (
-                <option key={vac.id} value={vac.id}>
-                  {vac.title}
-                </option>
-              ))}
-            </select>
+          {/* Status Tabs Row */}
+          <div className="flex flex-wrap gap-1.5 pt-1">
+            {[
+              { id: "all", label: "Todos", count: applicants.length },
+              { id: "Pendiente", label: "Pendientes", count: applicants.filter((a) => a.status === "Pendiente").length },
+              { id: "En revisión", label: "En revisión", count: applicants.filter((a) => a.status === "En revisión").length },
+              { id: "Preseleccionado", label: "Preseleccionados", count: applicants.filter((a) => a.status === "Preseleccionado").length },
+              { id: "Contratado", label: "Contratados", count: applicants.filter((a) => a.status === "Contratado").length },
+              { id: "Descartado", label: "Descartados", count: applicants.filter((a) => a.status === "Descartado").length },
+            ].map((tab) => {
+              const isSelected = statusFilter === tab.id;
+              return (
+                <button
+                  key={tab.id}
+                  type="button"
+                  onClick={() => setStatusFilter(tab.id)}
+                  className={cn(
+                    "px-3 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer select-none",
+                    isSelected
+                      ? "bg-primary text-primary-foreground shadow-2xs"
+                      : "bg-muted/50 hover:bg-muted text-muted-foreground hover:text-foreground"
+                  )}
+                >
+                  <span>{tab.label}</span>
+                  <span
+                    className={cn(
+                      "text-[10px] px-1.5 py-0.2 rounded-full font-mono font-extrabold",
+                      isSelected
+                        ? "bg-primary-foreground/20 text-primary-foreground"
+                        : "bg-background text-muted-foreground"
+                    )}
+                  >
+                    {tab.count}
+                  </span>
+                </button>
+              );
+            })}
           </div>
         </div>
 
-        {/* Search & Filter Mini Pane inside roster */}
-        <div className="px-6 py-4 border-b border-border/30 shrink-0 bg-background/20 flex gap-2.5">
-          <div className="relative flex-grow">
-            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-muted-foreground size-4 pointer-events-none" />
-            <Input 
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-10 pr-3 py-4 h-11 bg-card border-border/60 rounded-[14px] text-sm font-semibold focus-visible:ring-primary/20"
-              placeholder="Buscar por nombre, puesto o habilidad..."
-            />
-          </div>
-          <Button 
-            variant="outline" 
-            size="icon" 
-            onClick={toggleSortMode}
-            title={sortBy === "rating" ? "Ordenado por Calificación" : "Ordenado por Fecha"}
-            className={`size-9 rounded-full border-border/60 shrink-0 shadow-sm transition-all ${
-              sortBy === "rating" ? "bg-amber-500/10 text-amber-600 border-amber-500/30" : "text-muted-foreground hover:text-foreground"
-            }`}
+        {/* Master-Detail Split Grid */}
+        <div className="grid grid-cols-1 md:grid-cols-12 min-h-[580px] max-h-[720px]">
+          
+          {/* Left Column: Candidates Roster (4 or 5 columns on desktop) */}
+          <div
+            className={cn(
+              "md:col-span-5 lg:col-span-4 border-r border-border/60 overflow-y-auto divide-y divide-border/40",
+              mobileDetailOpen ? "hidden md:block" : "block"
+            )}
           >
-            <Filter className="size-3.5" />
-          </Button>
-        </div>
-
-        {/* Candidate Scrollable Cards */}
-        <div className="overflow-y-auto hide-scrollbar flex-grow divide-y divide-border/20">
-          {isLoading ? (
-            <div className="p-12 text-center flex flex-col items-center justify-center gap-3">
-              <Loader2 className="size-8 animate-spin text-primary" />
-              <p className="text-xs text-muted-foreground font-semibold">Cargando postulantes...</p>
-            </div>
-          ) : filteredApplicants.map((applicant) => {
-            const isSelected = applicant.id === selectedId
-            return (
-              <div 
-                key={applicant.id}
-                onClick={() => selectApplicantOnMobile(applicant.id)}
-                className={`p-6 cursor-pointer transition-all duration-300 flex gap-4 ${
-                  isSelected 
-                    ? "bg-card border-l-4 border-primary shadow-sm" 
-                    : "hover:bg-muted/30 border-b border-border/20"
-                }`}
-              >
-                <img 
-                  alt={applicant.name} 
-                  className="h-12 w-12 rounded-xl object-cover border border-border/40 shadow-sm"
-                  src={applicant.avatar} 
-                />
-                
-                <div className="flex-grow min-w-0">
-                  <div className="flex justify-between items-start gap-2">
-                    <h3 className="text-sm font-extrabold text-foreground transition-colors truncate">
-                      {applicant.name}
-                    </h3>
-                    <span className="text-[10px] font-bold text-muted-foreground font-sans shrink-0 whitespace-nowrap">
-                      {applicant.elapsedTime}
-                    </span>
-                  </div>
-                  <p className="text-xs text-muted-foreground font-medium truncate">
-                    {applicant.headline}
-                  </p>
-                  <p className="text-[10px] text-primary font-bold mt-1 truncate">
-                    Vacante: {applicant.vacancyTitle}
-                  </p>
-                  
-                  {/* Status Pills */}
-                  <div className="mt-3">
-                    <span className={`inline-flex px-3 py-1 rounded-full text-[10px] font-extrabold uppercase tracking-wide cursor-default ${
-                      applicant.status === "Preseleccionado" 
-                        ? "bg-indigo-100 text-indigo-800 dark:bg-indigo-950 dark:text-indigo-200" 
-                        : applicant.status === "En revisión"
-                        ? "bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-200"
-                        : applicant.status === "Contratado"
-                        ? "bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-200"
-                        : applicant.status === "Descartado"
-                        ? "bg-rose-100 text-rose-800 dark:bg-rose-950 dark:text-rose-200"
-                        : "bg-slate-100 text-slate-800 dark:bg-slate-900 dark:text-slate-200"
-                    }`}>
-                      {applicant.status}
-                    </span>
-                  </div>
-                </div>
+            {isLoading ? (
+              <div className="p-12 text-center flex flex-col items-center justify-center gap-3">
+                <Loader2 className="size-7 animate-spin text-primary" />
+                <p className="text-xs text-muted-foreground font-semibold">Cargando postulantes...</p>
               </div>
-            )
-          })}
+            ) : filteredApplicants.length === 0 ? (
+              <div className="p-12 text-center flex flex-col items-center justify-center gap-3">
+                <Users className="size-10 stroke-[1.4] text-muted-foreground/50" />
+                <p className="text-sm font-bold text-foreground">No hay postulantes</p>
+                <p className="text-xs text-muted-foreground max-w-xs leading-relaxed">
+                  No se encontraron candidatos que coincidan con la búsqueda o filtro aplicado.
+                </p>
+              </div>
+            ) : (
+              filteredApplicants.map((applicant) => {
+                const isSelected = applicant.id === selectedId;
 
-          {!isLoading && filteredApplicants.length === 0 && (
-            <div className="p-12 text-center flex flex-col items-center justify-center gap-3">
-              <Award className="size-8 text-muted-foreground/30" />
-              <p className="text-xs text-muted-foreground font-medium">No se encontraron postulantes.</p>
-            </div>
-          )}
-        </div>
-      </div>
-
-      {/* ================= RIGHT COLUMN: APPLICANT DETAILS SHOWCASE (60% width, hidden on mobile if detail is closed) ================= */}
-      <div className={`w-full md:w-[60%] bg-muted/10 flex-col relative h-full ${
-        mobileDetailOpen ? "flex" : "hidden md:flex"
-      }`}>
-        
-        {selectedApplicant ? (
-          <>
-            {/* Sticky Detail Header */}
-            <div className="p-6 md:p-8 sticky top-0 bg-background/90 backdrop-blur-xl z-10 border-b border-border/40 shrink-0">
-              
-              {/* Back Button for Mobile Roster */}
-              <button 
-                onClick={() => setMobileDetailOpen(false)}
-                className="flex items-center gap-2 text-xs font-bold text-primary mb-4 md:hidden"
-              >
-                <ArrowLeft className="size-4" /> Volver al listado
-              </button>
-
-              <div className="flex flex-col sm:flex-row justify-between items-start gap-6">
-                
-                <div className="flex gap-6 items-center min-w-0">
-                  <div className="h-20 w-20 rounded-3xl overflow-hidden shadow-md shadow-primary/5 border-2 border-primary/10 flex-shrink-0">
-                    <img 
-                      className="h-full w-full object-cover" 
-                      alt={selectedApplicant.name}
-                      src={selectedApplicant.avatar} 
+                return (
+                  <div
+                    key={applicant.id}
+                    onClick={() => selectApplicant(applicant.id)}
+                    className={cn(
+                      "p-4 transition-all duration-150 cursor-pointer flex gap-3 relative",
+                      isSelected
+                        ? "bg-primary/5 border-l-4 border-primary shadow-2xs"
+                        : "hover:bg-muted/40"
+                    )}
+                  >
+                    {/* Candidate Avatar */}
+                    <img
+                      src={applicant.avatar}
+                      alt={applicant.name}
+                      className="size-12 rounded-xl object-cover border border-border/60 shadow-2xs shrink-0"
                     />
-                  </div>
-                  
-                  <div className="min-w-0">
-                    <h2 className="text-2xl font-extrabold text-foreground tracking-tight truncate">
-                      {selectedApplicant.name}
-                    </h2>
-                    <p className="text-primary font-bold text-xs md:text-sm mt-1 truncate">
-                      {selectedApplicant.headline} • {selectedApplicant.location}
-                    </p>
-                    
-                    {/* Rating Stars */}
-                    <div className="flex items-center gap-1.5 mt-2">
-                      <div className="flex">
-                        {[1, 2, 3, 4, 5].map((star) => (
-                          <Star 
-                            key={star} 
-                            className={`size-3.5 ${star <= selectedApplicant.rating ? "text-amber-500 fill-amber-500" : "text-muted/60"}`} 
-                          />
-                        ))}
+
+                    {/* Candidate Info */}
+                    <div className="min-w-0 flex-1 space-y-1">
+                      <div className="flex items-start justify-between gap-1.5">
+                        <h4 className="text-sm font-bold text-foreground truncate">
+                          {applicant.name}
+                        </h4>
+                        <span className="text-[10px] font-semibold text-muted-foreground shrink-0">
+                          {applicant.elapsedTime}
+                        </span>
                       </div>
-                      <span className="text-[10px] font-bold text-muted-foreground font-sans">
-                        ({selectedApplicant.reviewsCount} Reseñas)
-                      </span>
+
+                      <p className="text-xs text-muted-foreground font-medium truncate">
+                        {applicant.headline || "Candidato"}
+                      </p>
+
+                      <div className="flex items-center gap-1 text-[11px] font-semibold text-primary truncate">
+                        <Briefcase className="size-3 shrink-0" />
+                        <span className="truncate">{applicant.vacancyTitle}</span>
+                      </div>
+
+                      {/* Status and Rating footer */}
+                      <div className="flex items-center justify-between pt-1">
+                        <Badge
+                          variant="outline"
+                          className={cn("text-[10px] px-2 py-0 font-bold rounded-md border", getStatusBadge(applicant.status))}
+                        >
+                          {applicant.status}
+                        </Badge>
+
+                        <div className="flex items-center gap-1 text-xs">
+                          <Star className="size-3 fill-amber-500 text-amber-500" />
+                          <span className="font-mono font-bold text-[11px] text-muted-foreground">
+                            {applicant.rating || 5}.0
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })
+            )}
+          </div>
+
+          {/* Right Column: Candidate Detail Dossier */}
+          <div
+            className={cn(
+              "md:col-span-7 lg:col-span-8 bg-muted/10 overflow-y-auto",
+              mobileDetailOpen ? "block" : "hidden md:block"
+            )}
+          >
+            {selectedApplicant ? (
+              <div className="p-5 sm:p-6 space-y-6">
+                
+                {/* Mobile Back button */}
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setMobileDetailOpen(false)}
+                  className="md:hidden text-xs font-bold gap-1 text-muted-foreground mb-2"
+                >
+                  <ArrowLeft className="size-4" />
+                  <span>Volver a la lista</span>
+                </Button>
+
+                {/* Candidate Hero Card */}
+                <div className="p-5 rounded-2xl bg-card border border-border/60 shadow-xs space-y-4">
+                  <div className="flex flex-col sm:flex-row justify-between items-start gap-4">
+                    
+                    {/* Avatar & Name Info */}
+                    <div className="flex items-center gap-4 min-w-0">
+                      <img
+                        src={selectedApplicant.avatar}
+                        alt={selectedApplicant.name}
+                        className="size-16 rounded-2xl object-cover border-2 border-border/60 shadow-xs shrink-0"
+                      />
+                      <div className="min-w-0 space-y-1">
+                        <div className="flex items-center gap-2">
+                          <h3 className="text-lg font-extrabold text-foreground truncate">
+                            {selectedApplicant.name}
+                          </h3>
+                        </div>
+                        <p className="text-xs sm:text-sm font-semibold text-muted-foreground truncate">
+                          {selectedApplicant.headline}
+                        </p>
+                        <div className="flex items-center gap-2 text-xs text-muted-foreground font-medium">
+                          <MapPin className="size-3 text-primary" />
+                          <span>{selectedApplicant.location}</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Status Select & Actions */}
+                    <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto justify-start sm:justify-end">
+                      <Select
+                        value={selectedApplicant.status}
+                        onValueChange={(val) =>
+                          handleUpdateStatus(selectedApplicant.id, val as Applicant["status"])
+                        }
+                      >
+                        <SelectTrigger className="h-9 min-w-[140px] rounded-xl text-xs font-bold border-border/60 bg-card">
+                          <SelectValue placeholder="Estado" />
+                        </SelectTrigger>
+                        <SelectContent className="rounded-xl border-border/60 bg-popover shadow-lg">
+                          <SelectItem value="Pendiente" className="text-xs font-bold rounded-lg">Pendiente</SelectItem>
+                          <SelectItem value="En revisión" className="text-xs font-bold rounded-lg">En revisión</SelectItem>
+                          <SelectItem value="Preseleccionado" className="text-xs font-bold text-indigo-600 rounded-lg">Preseleccionado</SelectItem>
+                          <SelectItem value="Contratado" className="text-xs font-bold text-emerald-600 rounded-lg">Contratado</SelectItem>
+                          <SelectItem value="Descartado" className="text-xs font-bold text-rose-600 rounded-lg">Descartado</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+
+                  {/* Vacancy & Contact Bar */}
+                  <div className="pt-3 border-t border-border/50 flex flex-wrap items-center justify-between gap-3">
+                    <div className="flex items-center gap-2 text-xs">
+                      <Badge variant="outline" className="font-bold text-[11px] px-2.5 py-0.5 rounded-lg bg-primary/10 text-primary border-primary/20">
+                        {selectedApplicant.vacancyTitle}
+                      </Badge>
+                    </div>
+
+                    {/* Direct Contact Buttons */}
+                    <div className="flex items-center gap-2">
+                      {selectedApplicant.phone && (
+                        <a
+                          href={getWhatsAppLink(selectedApplicant)}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center gap-1.5 h-9 px-4 rounded-xl bg-[#25D366] text-[#062c1e] font-extrabold text-xs shadow-xs hover:opacity-90 transition-opacity cursor-pointer"
+                        >
+                          <MessageSquare className="size-3.5 stroke-[2.5]" />
+                          <span>WhatsApp</span>
+                        </a>
+                      )}
+
+                      {selectedApplicant.phone && (
+                        <a
+                          href={`tel:${selectedApplicant.phone}`}
+                          className="inline-flex items-center gap-1.5 h-9 px-3 rounded-xl border border-border/60 bg-card hover:bg-muted text-xs font-bold text-foreground cursor-pointer transition-colors"
+                        >
+                          <Phone className="size-3.5 text-muted-foreground" />
+                          <span>Llamar</span>
+                        </a>
+                      )}
                     </div>
                   </div>
                 </div>
 
-                {/* Status Dropdown Actions */}
-                <div className="flex flex-wrap gap-2 items-center w-full sm:w-auto">
-                  <select
-                    value={selectedApplicant.status}
-                    onChange={(e) => handleStatusChangeLocal(selectedApplicant.id, e.target.value as Applicant["status"])}
-                    className="h-10 px-3 bg-card border border-border/60 rounded-xl text-xs font-bold text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 shadow-sm"
-                  >
-                    <option value="Pendiente">Pendiente</option>
-                    <option value="En revisión">En revisión</option>
-                    <option value="Preseleccionado">Preseleccionado</option>
-                    <option value="Contratado">Contratado</option>
-                    <option value="Descartado">Descartado</option>
-                  </select>
-                </div>
+                {/* Tabbed Dossier Sections */}
+                <Tabs defaultValue="profile" className="w-full space-y-4">
+                  <TabsList className="h-10 rounded-xl bg-muted/60 p-1 border border-border/50">
+                    <TabsTrigger value="profile" className="rounded-lg text-xs font-bold cursor-pointer">
+                      Perfil & Trayectoria
+                    </TabsTrigger>
+                    <TabsTrigger value="documents" className="rounded-lg text-xs font-bold cursor-pointer">
+                      Documentos Oficiales
+                    </TabsTrigger>
+                    <TabsTrigger value="notes" className="rounded-lg text-xs font-bold cursor-pointer">
+                      Notas Internas
+                    </TabsTrigger>
+                  </TabsList>
 
-              </div>
-            </div>
+                  {/* Tab 1: Profile, Experience & Education */}
+                  <TabsContent value="profile" className="space-y-4 mt-0">
+                    {/* Bio */}
+                    <div className="p-5 rounded-2xl bg-card border border-border/60 shadow-xs space-y-2">
+                      <span className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
+                        Biografía Profesional
+                      </span>
+                      <p className="text-xs sm:text-sm leading-relaxed text-foreground font-medium whitespace-pre-line">
+                        {selectedApplicant.bio || "El candidato no ha agregado una biografía detallada."}
+                      </p>
+                    </div>
 
-            {/* Scrollable Detail Body Content */}
-            <div className="overflow-y-auto hide-scrollbar flex-grow p-6 md:p-8 space-y-8 pb-32">
-              
-              {/* Vacancy Info Banner */}
-              <div className="p-4 bg-primary/5 border border-primary/10 rounded-2xl flex items-center gap-3">
-                <BriefcaseIcon className="size-5 text-primary" />
-                <div>
-                  <p className="text-[10px] font-extrabold text-primary uppercase tracking-wide">Vacante postulada</p>
-                  <p className="text-xs font-bold text-foreground">{selectedApplicant.vacancyTitle}</p>
-                </div>
-              </div>
+                    {/* Skills */}
+                    {selectedApplicant.skills && selectedApplicant.skills.length > 0 && (
+                      <div className="p-5 rounded-2xl bg-card border border-border/60 shadow-xs space-y-2.5">
+                        <span className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
+                          Habilidades & Competencias
+                        </span>
+                        <div className="flex flex-wrap gap-2">
+                          {selectedApplicant.skills.map((skill, idx) => (
+                            <Badge
+                              key={idx}
+                              variant="secondary"
+                              className="px-3 py-1 rounded-xl text-xs font-bold bg-muted border border-border/60 text-foreground"
+                            >
+                              {skill}
+                            </Badge>
+                          ))}
+                        </div>
+                      </div>
+                    )}
 
-              {/* Headline & Bio Section */}
-              <div className="glass-panel p-6 md:p-8 rounded-[24px] shadow-sm relative overflow-hidden bg-background border border-border/50">
-                <div className="absolute top-0 right-0 w-20 h-20 bg-primary/5 rounded-bl-[100px] pointer-events-none"></div>
-                <h3 className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground mb-3 flex items-center gap-1.5">
-                  <Award className="size-3.5 text-indigo-650" /> Biografía Profesional
-                </h3>
-                <p className="text-sm md:text-base leading-relaxed text-foreground font-medium font-sans whitespace-pre-line">
-                  {selectedApplicant.bio}
-                </p>
-              </div>
+                    {/* Work Experience */}
+                    {selectedApplicant.experiences && selectedApplicant.experiences.length > 0 && (
+                      <div className="p-5 rounded-2xl bg-card border border-border/60 shadow-xs space-y-3">
+                        <span className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
+                          Experiencia Laboral
+                        </span>
+                        <div className="space-y-3">
+                          {selectedApplicant.experiences.map((exp, idx) => (
+                            <div key={idx} className="p-3.5 rounded-xl bg-muted/30 border border-border/50 space-y-1">
+                              <div className="flex justify-between items-start gap-2">
+                                <h5 className="text-xs sm:text-sm font-bold text-foreground">{exp.role}</h5>
+                                <Badge variant="outline" className="text-[10px] font-semibold">
+                                  {exp.period}
+                                </Badge>
+                              </div>
+                              <p className="text-xs font-semibold text-muted-foreground">{exp.company}</p>
+                              {exp.description && (
+                                <p className="text-xs text-muted-foreground leading-relaxed pt-1 font-medium">
+                                  {exp.description}
+                                </p>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
 
-              {/* Experience Grid Section */}
-              {selectedApplicant.experiences && selectedApplicant.experiences.length > 0 && (
-                <div className="space-y-4">
-                  <h3 className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5 px-1">
-                    <Briefcase className="size-3.5 text-indigo-650" /> Experiencia Laboral
-                  </h3>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    {selectedApplicant.experiences.map((exp, index) => (
-                      <div key={index} className="bg-card p-6 rounded-[24px] border border-border/60 shadow-sm flex flex-col justify-between hover:border-border transition-colors">
+                    {/* Education */}
+                    {selectedApplicant.education && selectedApplicant.education.length > 0 && (
+                      <div className="p-5 rounded-2xl bg-card border border-border/60 shadow-xs space-y-3">
+                        <span className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
+                          Educación & Estudios
+                        </span>
+                        <div className="space-y-2.5">
+                          {selectedApplicant.education.map((edu, idx) => (
+                            <div key={idx} className="p-3.5 rounded-xl bg-muted/30 border border-border/50 space-y-0.5">
+                              <div className="flex justify-between items-start gap-2">
+                                <h5 className="text-xs sm:text-sm font-bold text-foreground">{edu.degree}</h5>
+                                <Badge variant="outline" className="text-[10px] font-semibold">
+                                  {edu.period}
+                                </Badge>
+                              </div>
+                              <p className="text-xs text-muted-foreground font-semibold">{edu.institution}</p>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </TabsContent>
+
+                  {/* Tab 2: Official Documents Access */}
+                  <TabsContent value="documents" className="space-y-4 mt-0">
+                    <div className="p-5 rounded-2xl bg-card border border-border/60 shadow-xs space-y-4">
+                      <div className="flex items-center gap-2">
+                        <ShieldCheck className="size-5 text-primary" />
                         <div>
-                          <div className="flex justify-between items-start gap-2 mb-1">
-                            <h4 className="font-extrabold text-sm text-foreground">{exp.role}</h4>
-                            <span className="text-[10px] font-bold text-primary px-2.5 py-0.5 bg-primary/5 border border-primary/10 rounded-full shrink-0 font-sans tracking-wide">
-                              {exp.period}
-                            </span>
-                          </div>
-                          <p className="text-xs text-muted-foreground font-semibold mb-3">{exp.company}</p>
-                          <p className="text-xs text-muted-foreground font-medium leading-relaxed font-sans line-clamp-3">
-                            {exp.description}
+                          <h4 className="text-sm font-bold text-foreground">
+                            Expediente Laboral y Verificación K'anPro
+                          </h4>
+                          <p className="text-xs text-muted-foreground font-medium">
+                            Solicita acceso seguro a los documentos oficiales validados del candidato (INE, CURP, Constancia RFC).
                           </p>
                         </div>
                       </div>
-                    ))}
-                  </div>
-                </div>
-              )}
 
-              {/* Education Section */}
-              {selectedApplicant.education && selectedApplicant.education.length > 0 && (
-                <div className="space-y-4">
-                  <h3 className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5 px-1">
-                    <Award className="size-3.5 text-indigo-650" /> Educación & Certificaciones
-                  </h3>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    {selectedApplicant.education.map((edu, index) => (
-                      <div key={index} className="bg-card p-6 rounded-[24px] border border-border/60 shadow-sm flex flex-col justify-between">
-                        <div>
-                          <div className="flex justify-between items-start gap-2 mb-1">
-                            <h4 className="font-extrabold text-sm text-foreground">{edu.degree}</h4>
-                            <span className="text-[10px] font-bold text-primary px-2.5 py-0.5 bg-primary/5 border border-primary/10 rounded-full shrink-0 font-sans tracking-wide">
-                              {edu.period}
-                            </span>
+                      {docAccessState?.status === "approved" ? (
+                        <div className="space-y-3 pt-2">
+                          <div className="flex items-center gap-2 text-xs text-emerald-600 dark:text-emerald-400 font-bold bg-emerald-500/10 p-3 rounded-xl border border-emerald-500/20">
+                            <CheckCircle2 className="size-4 shrink-0" />
+                            <span>Acceso autorizado por el candidato. Documentos listos para consulta.</span>
                           </div>
-                          <p className="text-xs text-muted-foreground font-semibold mb-3">{edu.institution}</p>
-                          {edu.description && (
-                            <p className="text-xs text-muted-foreground font-medium leading-relaxed font-sans line-clamp-3">
-                              {edu.description}
+
+                          {isLoadingDocs ? (
+                            <div className="py-6 text-center">
+                              <Loader2 className="size-6 animate-spin mx-auto text-primary" />
+                            </div>
+                          ) : authorizedDocs.length === 0 ? (
+                            <p className="text-xs text-muted-foreground font-medium py-2">
+                              El candidato no ha subido archivos adjuntos todavía.
                             </p>
+                          ) : (
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                              {authorizedDocs.map((doc) => (
+                                <div
+                                  key={doc.id}
+                                  className="p-3.5 rounded-xl border border-border/60 bg-muted/30 flex items-center justify-between gap-3"
+                                >
+                                  <div className="flex items-center gap-2.5 min-w-0">
+                                    <FileText className="size-4 text-primary shrink-0" />
+                                    <div className="min-w-0">
+                                      <p className="text-xs font-bold text-foreground truncate">
+                                        {doc.file_name || doc.doc_type?.toUpperCase()}
+                                      </p>
+                                      <span className="text-[10px] text-muted-foreground">
+                                        {doc.doc_type}
+                                      </span>
+                                    </div>
+                                  </div>
+
+                                  <div className="flex items-center gap-1 shrink-0">
+                                    {doc.file_url && (
+                                      <Button
+                                        size="icon"
+                                        variant="ghost"
+                                        onClick={() => setPreviewDoc(doc)}
+                                        className="size-8 rounded-lg"
+                                      >
+                                        <Eye className="size-3.5" />
+                                      </Button>
+                                    )}
+                                    {doc.file_url && (
+                                      <a
+                                        href={doc.file_url}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        download
+                                        className="inline-flex items-center justify-center size-8 rounded-lg hover:bg-muted text-muted-foreground hover:text-foreground"
+                                      >
+                                        <Download className="size-3.5" />
+                                      </a>
+                                    )}
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
                           )}
                         </div>
+                      ) : docAccessState?.status === "pending" ? (
+                        <div className="flex items-center gap-2 text-xs text-amber-600 dark:text-amber-400 font-bold bg-amber-500/10 p-3.5 rounded-xl border border-amber-500/20">
+                          <Clock className="size-4 shrink-0" />
+                          <span>Solicitud pendiente de autorización por parte del candidato.</span>
+                        </div>
+                      ) : (
+                        <div className="p-4 rounded-xl bg-muted/40 border border-border/50 space-y-3">
+                          <p className="text-xs text-muted-foreground font-medium">
+                            Por protección de datos (LFPDPPP), el candidato debe autorizar la consulta de sus identificaciones y comprobantes.
+                          </p>
+                          <Button
+                            onClick={handleRequestDocuments}
+                            disabled={isRequestingDocs}
+                            className="h-10 px-5 rounded-xl text-xs font-bold gap-2 bg-primary text-primary-foreground cursor-pointer shadow-xs"
+                          >
+                            {isRequestingDocs ? (
+                              <>
+                                <Loader2 className="size-3.5 animate-spin" />
+                                <span>Enviando solicitud...</span>
+                              </>
+                            ) : (
+                              <>
+                                <Lock className="size-3.5" />
+                                <span>Solicitar Autorización de Documentos</span>
+                              </>
+                            )}
+                          </Button>
+                        </div>
+                      )}
+                    </div>
+                  </TabsContent>
+
+                  {/* Tab 3: Internal Notes */}
+                  <TabsContent value="notes" className="space-y-4 mt-0">
+                    <div className="p-5 rounded-2xl bg-card border border-border/60 shadow-xs space-y-3">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <h4 className="text-sm font-bold text-foreground">
+                            Notas de Entrevista & Seguimiento
+                          </h4>
+                          <p className="text-xs text-muted-foreground font-medium">
+                            Solo visibles para el equipo de reclutamiento de tu empresa.
+                          </p>
+                        </div>
                       </div>
-                    ))}
-                  </div>
-                </div>
-              )}
 
-              {/* Technical Skills Badges Section */}
-              {selectedApplicant.skills && selectedApplicant.skills.length > 0 && (
-                <div className="glass-panel p-6 md:p-8 rounded-[24px] shadow-sm bg-background border border-border/50">
-                  <h3 className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground mb-4 flex items-center gap-1.5">
-                    <TrendingUp className="size-3.5 text-indigo-650" /> Habilidades Técnicas
-                  </h3>
-                  <div className="flex flex-wrap gap-2">
-                    {selectedApplicant.skills.map((skill, index) => (
-                      <span 
-                        key={index}
-                        className="px-4 py-2 bg-primary/5 text-primary rounded-full text-xs font-bold border border-primary/10 hover:bg-primary/10 transition-all cursor-default"
-                      >
-                        {skill}
-                      </span>
-                    ))}
-                  </div>
-                </div>
-              )}
+                      <Textarea
+                        value={noteText}
+                        onChange={(e) => setNoteText(e.target.value)}
+                        placeholder="Escribe impresiones de la entrevista, pretensiones económicas, disponibilidad..."
+                        className="min-h-[140px] rounded-xl bg-muted/30 border-border/60 text-xs sm:text-sm font-medium"
+                      />
 
-              {/* Contact Information */}
-              <div className="glass-panel p-6 md:p-8 rounded-[24px] shadow-sm bg-background border border-border/50 space-y-4">
-                <h3 className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
-                  <Mail className="size-3.5 text-indigo-650" /> Información de Contacto
-                </h3>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs font-medium text-muted-foreground">
-                  {selectedApplicant.email && (
-                    <div>
-                      <span className="font-bold block text-foreground uppercase tracking-wider text-[9px] mb-1">Correo Electrónico</span>
-                      <span>{selectedApplicant.email}</span>
-                    </div>
-                  )}
-                  {selectedApplicant.phone && (
-                    <div>
-                      <span className="font-bold block text-foreground uppercase tracking-wider text-[9px] mb-1">Número de Teléfono</span>
-                      <span>{selectedApplicant.phone}</span>
-                    </div>
-                  )}
-                </div>
-              </div>
-
-              {/* Internal Evaluation Rating & Private Recruiter Notes */}
-              <div className="glass-panel p-6 md:p-8 rounded-[24px] shadow-sm bg-background border border-border/50 space-y-4">
-                <div className="flex items-center justify-between">
-                  <h3 className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
-                    <Star className="size-3.5 text-amber-500 fill-amber-500" /> Evaluación Interna y Notas del Reclutador
-                  </h3>
-                  <Badge variant="outline" className="text-[10px] font-bold text-muted-foreground border-border/60">
-                    Solo visible para tu empresa
-                  </Badge>
-                </div>
-
-                {/* Rating Selector */}
-                <div className="space-y-2">
-                  <span className="text-xs font-extrabold text-foreground block">Calificación del candidato:</span>
-                  <div className="flex items-center gap-1.5">
-                    {[1, 2, 3, 4, 5].map((star) => (
-                      <button
-                        key={star}
-                        type="button"
-                        onClick={() => handleUpdateRating(selectedApplicant.id, star)}
-                        className="p-1 hover:scale-110 transition-transform cursor-pointer"
-                        title={`Calificar con ${star} estrellas`}
-                      >
-                        <Star
-                          className={cn(
-                            "size-5 transition-colors",
-                            star <= (selectedApplicant.internalRating || selectedApplicant.rating || 5)
-                              ? "text-amber-500 fill-amber-500"
-                              : "text-muted-foreground/30"
+                      <div className="flex justify-end">
+                        <Button
+                          onClick={handleSaveNotes}
+                          disabled={isSavingNotes}
+                          className="h-9 px-4 rounded-xl text-xs font-bold gap-1.5 bg-primary text-primary-foreground cursor-pointer shadow-xs"
+                        >
+                          {isSavingNotes ? (
+                            <Loader2 className="size-3.5 animate-spin" />
+                          ) : (
+                            <Save className="size-3.5" />
                           )}
-                        />
-                      </button>
-                    ))}
-                    <span className="text-xs font-bold text-amber-600 dark:text-amber-400 ml-2">
-                      {selectedApplicant.internalRating || selectedApplicant.rating || 5} de 5 Estrellas
-                    </span>
-                  </div>
+                          <span>Guardar Notas</span>
+                        </Button>
+                      </div>
+                    </div>
+                  </TabsContent>
+                </Tabs>
+              </div>
+            ) : (
+              <div className="h-full min-h-[400px] flex flex-col items-center justify-center p-8 text-center space-y-3">
+                <div className="size-14 rounded-2xl bg-primary/10 text-primary flex items-center justify-center">
+                  <Users className="size-7" />
                 </div>
-
-                {/* Private Notes Textarea */}
-                <div className="space-y-2 pt-1">
-                  <span className="text-xs font-extrabold text-foreground block">Notas privadas de entrevista / observaciones:</span>
-                  <Textarea
-                    value={noteText}
-                    onChange={(e) => setNoteText(e.target.value)}
-                    placeholder="Escribe aquí notas sobre la entrevista, sueldo pretendido o impresiones internas..."
-                    className="w-full min-h-[90px] bg-muted/30 border border-border/60 rounded-xl p-3 text-xs font-medium text-foreground focus-visible:ring-primary/20"
-                  />
-                  <div className="flex justify-end pt-1">
-                    <Button
-                      size="sm"
-                      onClick={() => handleUpdateNotes(selectedApplicant.id, noteText)}
-                      className="h-9 px-4 rounded-xl text-xs font-bold bg-primary hover:bg-primary/90 text-primary-foreground gap-1.5 shadow-none"
-                    >
-                      <Save className="size-3.5" />
-                      <span>Guardar Nota Privada</span>
-                    </Button>
-                  </div>
+                <div className="space-y-1">
+                  <h4 className="text-base font-bold text-foreground">
+                    Selecciona un postulante
+                  </h4>
+                  <p className="text-xs text-muted-foreground max-w-sm leading-relaxed">
+                    Haz clic en cualquiera de los candidatos del listado para ver su expediente completo, contactarlo por WhatsApp o gestionar su estatus.
+                  </p>
                 </div>
               </div>
+            )}
+          </div>
+        </div>
+      </Card>
 
-              {/* Document Access Authorization Panel */}
-              <div className="glass-panel p-6 md:p-8 rounded-[24px] shadow-sm bg-background border border-border/50 space-y-4">
-                <div className="flex items-center justify-between">
-                  <h3 className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
-                    <ShieldCheck className="size-3.5 text-indigo-650" /> Expediente y Documentos de Contratación
-                  </h3>
-                  {docAccessState?.status === "approved" && (
-                    <Badge className="bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20 text-[10px] font-bold">
-                      ACCESO AUTORIZADO
-                    </Badge>
-                  )}
-                  {docAccessState?.status === "pending" && (
-                    <Badge variant="outline" className="text-amber-600 border-amber-500/30 bg-amber-500/10 text-[10px] font-bold">
-                      SOLICITUD ENVIADA
-                    </Badge>
-                  )}
-                  {docAccessState?.status === "rejected" && (
-                    <Badge variant="destructive" className="text-[10px] font-bold">
-                      ACCESO DECLINADO
-                    </Badge>
-                  )}
-                </div>
-
-                {!docAccessState && (
-                  <div className="space-y-3">
-                    <p className="text-xs text-muted-foreground">
-                      Por privacidad, la documentación personal del candidato (INE, CURP, RFC) permanece protegida hasta que el candidato autorice compartirla para este proceso de contratación.
-                    </p>
-                    <Button
-                      onClick={handleRequestDocuments}
-                      disabled={isRequestingDocs}
-                      className="w-full sm:w-auto px-6 py-2.5 h-auto rounded-xl text-xs font-bold bg-indigo-600 hover:bg-indigo-700 text-white gap-2"
-                    >
-                      {isRequestingDocs ? <Loader2 className="size-3.5 animate-spin" /> : <FileText className="size-3.5" />}
-                      <span>Solicitar Documentación para Contratación</span>
-                    </Button>
-                  </div>
-                )}
-
-                {docAccessState?.status === "pending" && (
-                  <div className="p-4 rounded-xl bg-amber-500/5 border border-amber-500/20 flex items-start gap-3">
-                    <Clock className="size-4 text-amber-600 dark:text-amber-400 mt-0.5 shrink-0" />
-                    <div>
-                      <h4 className="text-xs font-bold text-foreground">Solicitud Pendiente de Respuesta</h4>
-                      <p className="text-[11px] text-muted-foreground mt-0.5">
-                        Hemos notificado a {selectedApplicant.name}. En cuanto acepte compartir su expediente, se habilitará el acceso a sus documentos verificados.
-                      </p>
-                    </div>
-                  </div>
-                )}
-
-                {docAccessState?.status === "approved" && (
-                  <div className="space-y-3">
-                    <p className="text-xs text-muted-foreground">
-                      El candidato ha otorgado acceso a sus documentos verificados. Puedes visualizarlos o descargarlos a continuación:
-                    </p>
-                    
-                    {isLoadingDocs ? (
-                      <div className="flex items-center gap-2 py-4 text-xs text-muted-foreground">
-                        <Loader2 className="size-4 animate-spin text-primary" />
-                        <span>Generando accesos seguros a los documentos...</span>
-                      </div>
-                    ) : authorizedDocs.length > 0 ? (
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                        {authorizedDocs.map((doc: any) => (
-                          <div key={doc.id} className="p-3.5 rounded-2xl border border-border/60 bg-muted/20 flex items-center justify-between gap-3">
-                            <div className="flex items-center gap-2.5 min-w-0">
-                              <div className="p-2 rounded-xl bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 shrink-0">
-                                <FileText className="size-4" />
-                              </div>
-                              <div className="min-w-0">
-                                <span className="text-xs font-bold block truncate text-foreground">
-                                  {doc.file_name || doc.doc_type}
-                                </span>
-                                <span className="text-[10px] text-muted-foreground font-medium uppercase tracking-wider block">
-                                  {doc.doc_type}
-                                </span>
-                              </div>
-                            </div>
-                            <div className="flex items-center gap-1.5 shrink-0">
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                onClick={() => setPreviewDoc(doc)}
-                                className="h-8 px-2.5 rounded-lg text-xs font-bold gap-1"
-                              >
-                                <Eye className="size-3.5" />
-                                <span>Ver</span>
-                              </Button>
-                              <a href={doc.file_url} target="_blank" rel="noopener noreferrer" download>
-                                <Button
-                                  size="sm"
-                                  variant="ghost"
-                                  className="h-8 w-8 p-0 rounded-lg text-muted-foreground hover:text-foreground"
-                                >
-                                  <Download className="size-3.5" />
-                                </Button>
-                              </a>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    ) : (
-                      <div className="p-3.5 rounded-xl bg-muted/40 border border-border/40 text-xs text-muted-foreground">
-                        El candidato aún no ha adjuntado archivos en su expediente oficial.
-                      </div>
-                    )}
-                  </div>
-                )}
-
-                {docAccessState?.status === "rejected" && (
-                  <div className="p-4 rounded-xl bg-destructive/5 border border-destructive/20 flex items-start gap-3">
-                    <Lock className="size-4 text-destructive mt-0.5 shrink-0" />
-                    <div>
-                      <h4 className="text-xs font-bold text-foreground">Acceso No Otorgado</h4>
-                      <p className="text-[11px] text-muted-foreground mt-0.5">
-                        El candidato ha declinado compartir sus documentos personales para esta vacante.
-                      </p>
-                    </div>
-                  </div>
-                )}
-              </div>
-
-            </div>
-
-            {/* Fixed Bottom Action Controls overlay */}
-            <div className="absolute bottom-0 left-0 right-0 p-6 bg-background/80 backdrop-blur-md border-t border-border/40 flex justify-end gap-4 z-10 shrink-0">
-              <Button 
-                variant="ghost"
-                onClick={() => {
-                  handleStatusChangeLocal(selectedApplicant.id, "Descartado")
-                  toast.warning("Postulación Descartada", { description: "Se ha archivado la postulación." })
-                }}
-                className="px-8 py-5 h-auto rounded-full font-bold text-muted-foreground hover:bg-muted text-xs md:text-sm active:scale-95 transition-all shadow-none"
-              >
-                Descartar
-              </Button>
-              
-              {/* WhatsApp invitation button */}
-              {!selectedApplicant.phone ? (
-                <Button 
-                  onClick={async () => {
-                    await handleContactApplicant(selectedApplicant);
-                    toast.success("Conexión registrada con éxito", {
-                      description: "Se ha establecido la conexión en el sistema y se ha revelado el teléfono del candidato."
-                    });
-                  }}
-                  className="px-8 py-5 h-auto rounded-full font-bold bg-indigo-650 text-white hover:bg-indigo-700 text-xs md:text-sm active:scale-95 transition-all shadow-lg shadow-indigo-500/10 hover:shadow-indigo-500/25 gap-2 animate-pulse"
-                >
-                  <Phone className="size-4" />
-                  <span>Revelar Teléfono & Contactar</span>
-                </Button>
-              ) : selectedApplicant.phone ? (
-                <a
-                  href={getWhatsAppLink(selectedApplicant)}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex"
-                  onClick={() => handleContactApplicant(selectedApplicant)}
-                >
-                  <Button 
-                    className="px-8 py-5 h-auto rounded-full font-bold bg-indigo-600 text-white hover:bg-indigo-700 text-xs md:text-sm active:scale-95 transition-all shadow-lg shadow-indigo-500/10 hover:shadow-indigo-500/25 gap-2"
-                  >
-                    <Phone className="size-4" />
-                    <span>Contactar por WhatsApp</span>
-                  </Button>
-                </a>
+      {/* Document Preview Dialog */}
+      {previewDoc && (
+        <Dialog open={!!previewDoc} onOpenChange={() => setPreviewDoc(null)}>
+          <DialogContent className="max-w-3xl rounded-2xl border-border/60 bg-card">
+            <DialogHeader>
+              <DialogTitle className="text-base font-bold text-foreground flex items-center gap-2">
+                <FileText className="size-4 text-primary" />
+                <span>{previewDoc.file_name || previewDoc.doc_type?.toUpperCase()}</span>
+              </DialogTitle>
+              <DialogDescription className="text-xs text-muted-foreground">
+                Documento validado del expediente laboral
+              </DialogDescription>
+            </DialogHeader>
+            <div className="py-4 max-h-[70vh] overflow-auto flex items-center justify-center">
+              {previewDoc.file_url?.endsWith(".pdf") ? (
+                <iframe
+                  src={previewDoc.file_url}
+                  className="w-full h-[500px] rounded-xl border border-border/60"
+                  title="PDF Preview"
+                />
               ) : (
-                <Button 
-                  disabled
-                  className="px-8 py-5 h-auto rounded-full font-bold bg-muted text-muted-foreground text-xs md:text-sm gap-2"
-                >
-                  <Phone className="size-4" />
-                  <span>Sin Teléfono</span>
-                </Button>
+                <img
+                  src={previewDoc.file_url}
+                  alt="Document Preview"
+                  className="max-h-[500px] max-w-full rounded-xl object-contain border border-border/60"
+                />
               )}
             </div>
-          </>
-        ) : (
-          <div className="flex-grow flex flex-col items-center justify-center p-12 text-center text-muted-foreground">
-            <UserCheck className="size-12 mb-4 text-muted-foreground/30" />
-            <p className="text-sm font-semibold">Selecciona un candidato para ver su perfil completo.</p>
-          </div>
-        )}
-
-      </div>
-
-      {/* Integrated PDF / Document Viewer Modal */}
-      <Dialog open={!!previewDoc} onOpenChange={(open) => !open && setPreviewDoc(null)}>
-        <DialogContent className="max-w-4xl h-[85vh] flex flex-col p-6 rounded-[28px] bg-background border border-border shadow-2xl">
-          <DialogHeader className="flex flex-row items-center justify-between pb-3 border-b border-border/50">
-            <div className="space-y-0.5">
-              <DialogTitle className="text-base font-bold flex items-center gap-2 text-foreground">
-                <FileText className="size-4.5 text-indigo-600 dark:text-indigo-400" />
-                {previewDoc?.file_name || previewDoc?.doc_type || "Documento Verificado"}
-              </DialogTitle>
-              <DialogDescription className="text-xs text-muted-foreground font-medium">
-                Expediente confidencial autorizado para contratación de {selectedApplicant?.name}.
-              </DialogDescription>
-            </div>
-            {previewDoc?.file_url && (
-              <div className="flex items-center gap-2">
-                <a href={previewDoc.file_url} target="_blank" rel="noopener noreferrer">
-                  <Button variant="outline" size="sm" className="rounded-xl text-xs font-bold gap-1.5 h-8">
-                    <ExternalLink className="size-3.5" />
-                    Abrir original
-                  </Button>
-                </a>
-                <a href={previewDoc.file_url} target="_blank" rel="noopener noreferrer" download>
-                  <Button size="sm" className="rounded-xl text-xs font-bold gap-1.5 h-8 bg-primary text-primary-foreground">
-                    <Download className="size-3.5" />
-                    Descargar
-                  </Button>
-                </a>
-              </div>
-            )}
-          </DialogHeader>
-
-          <div className="flex-1 w-full h-full min-h-0 bg-muted/20 rounded-2xl overflow-hidden border border-border/60 mt-3 relative">
-            {previewDoc?.file_url ? (
-              <iframe
-                src={previewDoc.file_url}
-                className="w-full h-full rounded-2xl"
-                title={previewDoc.file_name || "Documento"}
-              />
-            ) : (
-              <div className="flex items-center justify-center h-full text-muted-foreground text-xs font-medium">
-                Cargando vista previa...
-              </div>
-            )}
-          </div>
-        </DialogContent>
-      </Dialog>
-
+          </DialogContent>
+        </Dialog>
+      )}
     </div>
-  )
+  );
 }

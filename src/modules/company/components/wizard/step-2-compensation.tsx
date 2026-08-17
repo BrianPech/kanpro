@@ -1,7 +1,17 @@
 "use client";
 
 import * as React from "react";
-import { DollarSign, MapPin, Gift, Plus, X, Check } from "lucide-react";
+import {
+  DollarSign,
+  MapPin,
+  Gift,
+  Plus,
+  X,
+  Check,
+  Building2,
+  CheckCircle2,
+  Navigation,
+} from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
@@ -22,10 +32,21 @@ import { cn } from "@/lib/utils";
 
 interface Step2CompensationProps {
   form: any;
+  companyLocation?: string;
+  companyName?: string;
 }
 
-export function Step2Compensation({ form }: Step2CompensationProps) {
+export function Step2Compensation({
+  form,
+  companyLocation = "Mérida, Yucatán",
+  companyName = "Tu Empresa",
+}: Step2CompensationProps) {
   const [customBenefit, setCustomBenefit] = React.useState("");
+  const [useProfileLocation, setUseProfileLocation] = React.useState<boolean>(() => {
+    // If the current form location matches or if just starting
+    const currentLoc = form.getFieldValue("location");
+    return !currentLoc || currentLoc === companyLocation;
+  });
 
   const formatMXN = (val: number | null | undefined) => {
     if (val == null || isNaN(val)) return "$0 MXN";
@@ -55,60 +76,162 @@ export function Step2Compensation({ form }: Step2CompensationProps) {
     }
   };
 
+  const handleSelectProfileLocation = () => {
+    setUseProfileLocation(true);
+    form.setFieldValue("location", companyLocation);
+  };
+
+  const handleSelectCustomLocation = () => {
+    setUseProfileLocation(false);
+  };
+
   return (
     <div className="space-y-6">
-      {/* 1. Location & Zone Grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        {/* Location / City */}
-        <form.Field
-          name="location"
-          children={(field: any) => (
-            <div className="space-y-2">
-              <Label htmlFor="location" className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
-                Ciudad / Municipio <span className="text-rose-500">*</span>
-              </Label>
-              <Input
-                id="location"
-                value={field.state.value || ""}
-                onChange={(e) => field.handleChange(e.target.value)}
-                placeholder="Ej. Mérida, Yucatán / Playa del Carmen, Q. Roo"
-                className="h-11 rounded-xl bg-card border-border/60 text-sm font-semibold"
-              />
-              {field.state.meta.errors?.[0] && (
-                <p className="text-xs font-semibold text-rose-500">
-                  {field.state.meta.errors[0]}
-                </p>
-              )}
-            </div>
-          )}
-        />
+      {/* 1. Company Profile Location Integration Banner */}
+      <div className="p-5 rounded-2xl bg-card border border-border/60 shadow-xs space-y-4">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <MapPin className="size-4 text-primary" />
+            <span className="text-xs font-bold uppercase tracking-wider text-foreground">
+              Ubicación del Puesto de Trabajo
+            </span>
+          </div>
+          <span className="text-[11px] font-bold text-muted-foreground">
+            {companyName}
+          </span>
+        </div>
 
-        {/* Zone */}
-        <form.Field
-          name="zone"
-          children={(field: any) => (
-            <div className="space-y-2">
-              <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
-                Zona de Trabajo <span className="text-rose-500">*</span>
-              </Label>
-              <Select
-                value={field.state.value || "Centro Mérida"}
-                onValueChange={(val) => field.handleChange(val)}
-              >
-                <SelectTrigger className="h-11 rounded-xl bg-card border-border/60 text-xs sm:text-sm font-semibold cursor-pointer">
-                  <SelectValue placeholder="Selecciona la zona" />
-                </SelectTrigger>
-                <SelectContent className="rounded-xl border border-border/60 bg-popover shadow-lg max-h-64">
-                  {PRESET_ZONES.map((zone) => (
-                    <SelectItem key={zone} value={zone} className="text-xs font-semibold rounded-lg cursor-pointer">
-                      {zone}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+        {/* Location mode selector pills */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+          <button
+            type="button"
+            onClick={handleSelectProfileLocation}
+            className={cn(
+              "p-3.5 rounded-xl border text-left flex items-start gap-3 transition-all cursor-pointer select-none",
+              useProfileLocation
+                ? "bg-primary/5 border-primary text-foreground shadow-2xs"
+                : "bg-muted/40 hover:bg-muted text-muted-foreground border-border/60"
+            )}
+          >
+            <div
+              className={cn(
+                "size-7 rounded-lg flex items-center justify-center shrink-0 text-xs font-bold",
+                useProfileLocation
+                  ? "bg-primary text-primary-foreground"
+                  : "bg-muted text-muted-foreground"
+              )}
+            >
+              <Building2 className="size-3.5" />
             </div>
-          )}
-        />
+            <div className="min-w-0 flex-1">
+              <div className="flex items-center gap-1.5">
+                <span className="text-xs font-bold text-foreground">
+                  Ubicación de tu Perfil
+                </span>
+                {useProfileLocation && (
+                  <CheckCircle2 className="size-3.5 text-primary" />
+                )}
+              </div>
+              <p className="text-[11px] text-muted-foreground truncate font-medium mt-0.5">
+                {companyLocation || "Mérida, Yucatán"}
+              </p>
+            </div>
+          </button>
+
+          <button
+            type="button"
+            onClick={handleSelectCustomLocation}
+            className={cn(
+              "p-3.5 rounded-xl border text-left flex items-start gap-3 transition-all cursor-pointer select-none",
+              !useProfileLocation
+                ? "bg-primary/5 border-primary text-foreground shadow-2xs"
+                : "bg-muted/40 hover:bg-muted text-muted-foreground border-border/60"
+            )}
+          >
+            <div
+              className={cn(
+                "size-7 rounded-lg flex items-center justify-center shrink-0 text-xs font-bold",
+                !useProfileLocation
+                  ? "bg-primary text-primary-foreground"
+                  : "bg-muted text-muted-foreground"
+              )}
+            >
+              <Navigation className="size-3.5" />
+            </div>
+            <div className="min-w-0 flex-1">
+              <div className="flex items-center gap-1.5">
+                <span className="text-xs font-bold text-foreground">
+                  Otra Sucursal o Municipio
+                </span>
+                {!useProfileLocation && (
+                  <CheckCircle2 className="size-3.5 text-primary" />
+                )}
+              </div>
+              <p className="text-[11px] text-muted-foreground truncate font-medium mt-0.5">
+                Para sucursales en otra zona o ciudad
+              </p>
+            </div>
+          </button>
+        </div>
+
+        {/* Location & Zone Grid */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
+          {/* Location / City */}
+          <form.Field
+            name="location"
+            children={(field: any) => (
+              <div className="space-y-2">
+                <Label htmlFor="location" className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                  Ciudad o Municipio <span className="text-rose-500">*</span>
+                </Label>
+                <Input
+                  id="location"
+                  value={field.state.value || ""}
+                  onChange={(e) => {
+                    field.handleChange(e.target.value);
+                    if (useProfileLocation && e.target.value !== companyLocation) {
+                      setUseProfileLocation(false);
+                    }
+                  }}
+                  placeholder="Ej. Mérida, Yucatán / Playa del Carmen, Q. Roo"
+                  className="h-11 rounded-xl bg-card border-border/60 text-sm font-semibold"
+                />
+                {field.state.meta.errors?.[0] && (
+                  <p className="text-xs font-semibold text-rose-500">
+                    {field.state.meta.errors[0]}
+                  </p>
+                )}
+              </div>
+            )}
+          />
+
+          {/* Zone */}
+          <form.Field
+            name="zone"
+            children={(field: any) => (
+              <div className="space-y-2">
+                <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                  Zona / Área de Trabajo <span className="text-rose-500">*</span>
+                </Label>
+                <Select
+                  value={field.state.value || "Centro Mérida"}
+                  onValueChange={(val) => field.handleChange(val)}
+                >
+                  <SelectTrigger className="h-11 rounded-xl bg-card border-border/60 text-xs sm:text-sm font-semibold cursor-pointer">
+                    <SelectValue placeholder="Selecciona la zona" />
+                  </SelectTrigger>
+                  <SelectContent className="rounded-xl border border-border/60 bg-popover shadow-lg max-h-64">
+                    {PRESET_ZONES.map((zone) => (
+                      <SelectItem key={zone} value={zone} className="text-xs font-semibold rounded-lg cursor-pointer">
+                        {zone}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+          />
+        </div>
       </div>
 
       {/* 2. Salary & Payment Frequency Section */}

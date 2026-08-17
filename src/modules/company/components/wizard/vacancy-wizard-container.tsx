@@ -58,22 +58,48 @@ export function VacancyWizardContainer({
   const [companyProfile, setCompanyProfile] = React.useState<any>(null);
   const [draftLoaded, setDraftLoaded] = React.useState(false);
 
-  // Load company profile for default values (phone, name, verified status)
+  // Load company profile for default values (phone, name, verified status, location)
   React.useEffect(() => {
     async function loadCompany() {
       try {
         const supabase = createClient();
-        const { data: comp } = await supabase
-          .from("company_profiles")
-          .select("company_name, contact_phone, fiscal_address, logo_url, verification_status")
-          .eq("id", userId)
-          .maybeSingle();
+        const [compRes, profRes] = await Promise.all([
+          supabase
+            .from("company_profiles")
+            .select("company_name, contact_phone, fiscal_address, address_details, logo_url, verification_status")
+            .eq("id", userId)
+            .maybeSingle(),
+          supabase
+            .from("profiles")
+            .select("location, full_name, phone")
+            .eq("id", userId)
+            .maybeSingle(),
+        ]);
 
-        if (comp) {
-          setCompanyProfile(comp);
-          // If draft does not have a phone and company has one, pre-fill it
-          if (comp.contact_phone && !form.getFieldValue("contact_phone")) {
+        const comp = compRes.data as any;
+        const prof = profRes.data as any;
+
+        if (comp || prof) {
+          const resolvedLocation =
+            prof?.location ||
+            comp?.address_details ||
+            comp?.fiscal_address ||
+            "Mérida, Yucatán";
+
+          setCompanyProfile({
+            ...comp,
+            resolvedLocation,
+            company_name: comp?.company_name || prof?.full_name || "Tu Empresa",
+          });
+
+          // Pre-fill phone if available and form is empty
+          if (comp?.contact_phone && !form.getFieldValue("contact_phone")) {
             form.setFieldValue("contact_phone", comp.contact_phone);
+          }
+
+          // Pre-fill location if form is creating a new vacancy and using default
+          if (!isEditing && form.getFieldValue("location") === "Mérida, Yucatán" && resolvedLocation) {
+            form.setFieldValue("location", resolvedLocation);
           }
         }
       } catch (err) {
@@ -81,7 +107,7 @@ export function VacancyWizardContainer({
       }
     }
     loadCompany();
-  }, [userId]);
+  }, [userId, isEditing]);
 
   // TanStack Form Instance
   const form = useForm({
@@ -363,7 +389,11 @@ export function VacancyWizardContainer({
           )}
 
           {currentStep === 2 && (
-            <Step2Compensation form={form} />
+            <Step2Compensation
+              form={form}
+              companyLocation={companyProfile?.resolvedLocation || "Mérida, Yucatán"}
+              companyName={companyProfile?.company_name || "Tu Empresa"}
+            />
           )}
 
           {currentStep === 3 && (
