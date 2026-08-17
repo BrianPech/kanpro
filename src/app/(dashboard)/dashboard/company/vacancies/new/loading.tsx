@@ -5,20 +5,26 @@ import { Card } from "@/components/ui/card";
 export default function NewVacancyLoading() {
   return (
     <div className="w-full max-w-4xl mx-auto space-y-6 animate-in fade-in duration-200">
-      <div className="space-y-1.5">
-        <Skeleton className="h-7 w-52 rounded-md" />
-        <Skeleton className="h-4 w-80 rounded-md" />
+      <div className="flex items-center justify-between">
+        <Skeleton className="h-4 w-36 rounded-md" />
       </div>
 
-      <Card className="bg-card border border-border/60 rounded-3xl p-6 sm:p-8 space-y-6 shadow-xs">
-        {/* Step indicator skeleton */}
-        <div className="flex justify-between items-center gap-2 pb-4 border-b border-border/40">
-          <Skeleton className="h-8 w-28 rounded-xl" />
-          <Skeleton className="h-8 w-28 rounded-xl" />
-          <Skeleton className="h-8 w-28 rounded-xl" />
+      {/* Stepper Card Skeleton */}
+      <Card className="bg-card border border-border/60 rounded-2xl p-4 sm:p-5 shadow-xs space-y-3">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+          {Array.from({ length: 4 }).map((_, idx) => (
+            <Skeleton key={idx} className="h-14 w-full rounded-2xl" />
+          ))}
         </div>
+        <Skeleton className="h-1.5 w-full rounded-full" />
+      </Card>
 
-        {/* Form inputs skeleton */}
+      {/* Form Content Card Skeleton */}
+      <Card className="bg-card border border-border/60 rounded-3xl p-6 sm:p-8 space-y-6 shadow-xs">
+        {/* Presets banner skeleton */}
+        <Skeleton className="h-20 w-full rounded-2xl" />
+
+        {/* Inputs skeleton */}
         <div className="space-y-4">
           <div className="space-y-2">
             <Skeleton className="h-4 w-32 rounded-md" />
@@ -34,15 +40,12 @@ export default function NewVacancyLoading() {
               <Skeleton className="h-11 w-full rounded-xl" />
             </div>
           </div>
-          <div className="space-y-2">
-            <Skeleton className="h-4 w-40 rounded-md" />
-            <Skeleton className="h-32 w-full rounded-xl" />
-          </div>
         </div>
 
-        <div className="flex justify-between items-center pt-4 border-t border-border/40">
-          <Skeleton className="h-11 w-28 rounded-xl" />
-          <Skeleton className="h-11 w-36 rounded-xl" />
+        {/* Wizard footer */}
+        <div className="flex justify-between items-center pt-6 border-t border-border/40">
+          <Skeleton className="h-10 w-28 rounded-xl" />
+          <Skeleton className="h-10 w-32 rounded-xl" />
         </div>
       </Card>
     </div>

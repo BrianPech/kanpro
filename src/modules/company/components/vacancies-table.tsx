@@ -28,7 +28,7 @@ import {
   PauseCircle,
   XCircle,
   PlayCircle,
-  User,
+  Users,
   Copy,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -121,27 +121,27 @@ export function VacanciesTable({
         header: ({ column }) => (
           <button
             type="button"
-            className="flex items-center gap-2 font-[800] text-xs sm:text-[13px] uppercase tracking-wider text-[#1f2732] dark:text-zinc-200 hover:text-black dark:hover:text-white transition-colors cursor-pointer select-none"
+            className="flex items-center gap-1.5 font-bold text-[11px] uppercase tracking-wider text-muted-foreground hover:text-foreground transition-colors cursor-pointer select-none"
             onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
           >
             <span>Puesto / Categoría</span>
             {column.getIsSorted() === "asc" ? (
-              <ArrowUp className="size-4 text-[#1f2732] dark:text-zinc-100" />
+              <ArrowUp className="size-3.5 text-foreground" />
             ) : column.getIsSorted() === "desc" ? (
-              <ArrowDown className="size-4 text-[#1f2732] dark:text-zinc-100" />
+              <ArrowDown className="size-3.5 text-foreground" />
             ) : (
-              <ArrowUpDown className="size-4 text-[#5c7c9b]/60" />
+              <ArrowUpDown className="size-3 text-muted-foreground/60" />
             )}
           </button>
         ),
         cell: ({ row }) => {
           const vacancy = row.original;
           return (
-            <div className="flex flex-col gap-1 py-1">
-              <span className="font-[800] text-[15px] sm:text-[16px] text-[#1f2732] dark:text-zinc-100 leading-snug">
+            <div className="flex flex-col gap-0.5 py-1">
+              <Link href={`/dashboard/company/vacancies/${vacancy.id}`} className="font-bold text-sm text-foreground hover:underline line-clamp-1">
                 {vacancy.title}
-              </span>
-              <span className="text-[11px] sm:text-[12px] text-[#5c7c9b] dark:text-zinc-400 font-extrabold uppercase tracking-wider">
+              </Link>
+              <span className="text-[11px] text-muted-foreground font-semibold">
                 {vacancy.category || "General"}
               </span>
             </div>
@@ -153,26 +153,26 @@ export function VacanciesTable({
         header: ({ column }) => (
           <button
             type="button"
-            className="flex items-center gap-2 font-[800] text-xs sm:text-[13px] uppercase tracking-wider text-[#1f2732] dark:text-zinc-200 hover:text-black dark:hover:text-white transition-colors cursor-pointer select-none"
+            className="flex items-center gap-1.5 font-bold text-[11px] uppercase tracking-wider text-muted-foreground hover:text-foreground transition-colors cursor-pointer select-none"
             onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
           >
-            <span>Ubicación / Zona</span>
+            <span>Ubicación</span>
             {column.getIsSorted() === "asc" ? (
-              <ArrowUp className="size-4 text-[#1f2732] dark:text-zinc-100" />
+              <ArrowUp className="size-3.5 text-foreground" />
             ) : column.getIsSorted() === "desc" ? (
-              <ArrowDown className="size-4 text-[#1f2732] dark:text-zinc-100" />
+              <ArrowDown className="size-3.5 text-foreground" />
             ) : (
-              <ArrowUpDown className="size-4 text-[#5c7c9b]/60" />
+              <ArrowUpDown className="size-3 text-muted-foreground/60" />
             )}
           </button>
         ),
         cell: ({ row }) => {
           const vacancy = row.original;
-          const zoneText = vacancy.zone || vacancy.location || "No especificada";
+          const zoneText = vacancy.zone || vacancy.location || "Mérida";
           return (
-            <div className="flex items-center gap-1.5 text-xs sm:text-sm font-semibold text-[#1f2732] dark:text-zinc-200 py-1 max-w-[240px] lg:max-w-[320px]" title={zoneText}>
-              <MapPin className="size-3.5 sm:size-4 text-[#5c7c9b] shrink-0" />
-              <span className="truncate">{zoneText}</span>
+            <div className="flex items-center gap-1 text-xs font-medium text-muted-foreground py-1" title={zoneText}>
+              <MapPin className="size-3 text-muted-foreground shrink-0" />
+              <span className="truncate max-w-[180px]">{zoneText}</span>
             </div>
           );
         },
@@ -182,55 +182,26 @@ export function VacanciesTable({
         header: ({ column }) => (
           <button
             type="button"
-            className="flex items-center gap-1.5 font-[800] text-xs sm:text-[13px] uppercase tracking-wider text-[#1f2732] dark:text-zinc-200 hover:text-black dark:hover:text-white transition-colors cursor-pointer select-none whitespace-nowrap"
+            className="flex items-center gap-1.5 font-bold text-[11px] uppercase tracking-wider text-muted-foreground hover:text-foreground transition-colors cursor-pointer select-none whitespace-nowrap"
             onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
           >
             <span>Candidatos</span>
             {column.getIsSorted() === "asc" ? (
-              <ArrowUp className="size-3.5 sm:size-4 text-[#1f2732] dark:text-zinc-100" />
+              <ArrowUp className="size-3.5 text-foreground" />
             ) : column.getIsSorted() === "desc" ? (
-              <ArrowDown className="size-3.5 sm:size-4 text-[#1f2732] dark:text-zinc-100" />
+              <ArrowDown className="size-3.5 text-foreground" />
             ) : (
-              <ArrowUpDown className="size-3.5 sm:size-4 text-[#5c7c9b]/60" />
+              <ArrowUpDown className="size-3 text-muted-foreground/60" />
             )}
           </button>
         ),
         cell: ({ row }) => {
           const count = row.original.applicants_count ?? 0;
           return (
-            <div className="flex items-center gap-1.5 text-xs sm:text-sm font-bold text-[#1f2732] dark:text-zinc-100 py-1">
-              <User className="size-3.5 text-[#5c7c9b]" />
-              <span>{count}</span>
+            <div className="flex items-center gap-1 text-xs font-bold text-foreground py-1">
+              <Users className="size-3.5 text-muted-foreground" />
+              <span className="font-mono">{count}</span>
             </div>
-          );
-        },
-      },
-      {
-        accessorKey: "expires_at",
-        accessorFn: (row) => row.expires_at || row.featured_until || row.created_at,
-        header: ({ column }) => (
-          <button
-            type="button"
-            className="flex items-center gap-1.5 font-[800] text-xs sm:text-[13px] uppercase tracking-wider text-[#1f2732] dark:text-zinc-200 hover:text-black dark:hover:text-white transition-colors cursor-pointer select-none whitespace-nowrap"
-            onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
-          >
-            <span>Vencimiento</span>
-            {column.getIsSorted() === "asc" ? (
-              <ArrowUp className="size-3.5 sm:size-4 text-[#1f2732] dark:text-zinc-100" />
-            ) : column.getIsSorted() === "desc" ? (
-              <ArrowDown className="size-3.5 sm:size-4 text-[#1f2732] dark:text-zinc-100" />
-            ) : (
-              <ArrowUpDown className="size-3.5 sm:size-4 text-[#5c7c9b]/60" />
-            )}
-          </button>
-        ),
-        cell: ({ row }) => {
-          const expDate = row.original.expires_at || row.original.featured_until;
-          const displayDate = expDate ? formatDate(expDate) : "30 días";
-          return (
-            <span className="text-xs sm:text-sm text-[#5c7c9b] dark:text-zinc-400 font-semibold py-1 block whitespace-nowrap">
-              {displayDate}
-            </span>
           );
         },
       },
@@ -239,23 +210,23 @@ export function VacanciesTable({
         header: ({ column }) => (
           <button
             type="button"
-            className="flex items-center gap-1.5 font-[800] text-xs sm:text-[13px] uppercase tracking-wider text-[#1f2732] dark:text-zinc-200 hover:text-black dark:hover:text-white transition-colors cursor-pointer select-none whitespace-nowrap"
+            className="flex items-center gap-1.5 font-bold text-[11px] uppercase tracking-wider text-muted-foreground hover:text-foreground transition-colors cursor-pointer select-none whitespace-nowrap"
             onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
           >
             <span>Sueldo</span>
             {column.getIsSorted() === "asc" ? (
-              <ArrowUp className="size-3.5 sm:size-4 text-[#1f2732] dark:text-zinc-100" />
+              <ArrowUp className="size-3.5 text-foreground" />
             ) : column.getIsSorted() === "desc" ? (
-              <ArrowDown className="size-3.5 sm:size-4 text-[#1f2732] dark:text-zinc-100" />
+              <ArrowDown className="size-3.5 text-foreground" />
             ) : (
-              <ArrowUpDown className="size-3.5 sm:size-4 text-[#5c7c9b]/60" />
+              <ArrowUpDown className="size-3 text-muted-foreground/60" />
             )}
           </button>
         ),
         cell: ({ row }) => {
           const vacancy = row.original;
           return (
-            <span className="font-[800] text-xs sm:text-sm text-[#1f2732] dark:text-zinc-100 py-1 block whitespace-nowrap">
+            <span className="font-bold text-xs text-foreground font-mono py-1 block whitespace-nowrap">
               {formatSalary(vacancy.salary_min, vacancy.salary_max)}
             </span>
           );
@@ -267,16 +238,16 @@ export function VacanciesTable({
         header: ({ column }) => (
           <button
             type="button"
-            className="flex items-center gap-1.5 font-[800] text-xs sm:text-[13px] uppercase tracking-wider text-[#1f2732] dark:text-zinc-200 hover:text-black dark:hover:text-white transition-colors cursor-pointer select-none whitespace-nowrap"
+            className="flex items-center gap-1.5 font-bold text-[11px] uppercase tracking-wider text-muted-foreground hover:text-foreground transition-colors cursor-pointer select-none whitespace-nowrap"
             onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
           >
             <span>Estado</span>
             {column.getIsSorted() === "asc" ? (
-              <ArrowUp className="size-3.5 sm:size-4 text-[#1f2732] dark:text-zinc-100" />
+              <ArrowUp className="size-3.5 text-foreground" />
             ) : column.getIsSorted() === "desc" ? (
-              <ArrowDown className="size-3.5 sm:size-4 text-[#1f2732] dark:text-zinc-100" />
+              <ArrowDown className="size-3.5 text-foreground" />
             ) : (
-              <ArrowUpDown className="size-3.5 sm:size-4 text-[#5c7c9b]/60" />
+              <ArrowUpDown className="size-3 text-muted-foreground/60" />
             )}
           </button>
         ),
@@ -286,15 +257,15 @@ export function VacanciesTable({
           const isAct = vacancy.is_active && statusText !== "Cerrada";
           return (
             <Badge
-              variant="secondary"
+              variant="outline"
               onClick={() => onToggleActive(vacancy.id, vacancy.is_active)}
               className={cn(
-                "text-[10px] sm:text-[11px] font-extrabold tracking-wider uppercase px-3 py-1 flex items-center w-fit border cursor-pointer hover:opacity-85 select-none rounded-full transition-all whitespace-nowrap",
+                "text-[10px] font-bold px-2.5 py-0.5 rounded-full cursor-pointer hover:opacity-85 select-none transition-all whitespace-nowrap border",
                 statusText === "Cerrada"
-                  ? "bg-rose-500/10 text-rose-700 dark:text-rose-400 border-rose-500/30"
+                  ? "bg-rose-500/10 text-rose-600 dark:text-rose-400 border-rose-500/30"
                   : isAct
-                  ? "bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border-emerald-500/30"
-                  : "bg-zinc-100 text-zinc-600 border-zinc-200 dark:bg-zinc-800 dark:text-zinc-400 dark:border-zinc-700"
+                  ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/30"
+                  : "bg-muted text-muted-foreground border-border/60"
               )}
             >
               {statusText}
@@ -307,23 +278,23 @@ export function VacanciesTable({
         header: ({ column }) => (
           <button
             type="button"
-            className="flex items-center gap-1.5 font-[800] text-xs sm:text-[13px] uppercase tracking-wider text-[#1f2732] dark:text-zinc-200 hover:text-black dark:hover:text-white transition-colors cursor-pointer select-none whitespace-nowrap"
+            className="flex items-center gap-1.5 font-bold text-[11px] uppercase tracking-wider text-muted-foreground hover:text-foreground transition-colors cursor-pointer select-none whitespace-nowrap"
             onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
           >
             <span>Fecha</span>
             {column.getIsSorted() === "asc" ? (
-              <ArrowUp className="size-3.5 sm:size-4 text-[#1f2732] dark:text-zinc-100" />
+              <ArrowUp className="size-3.5 text-foreground" />
             ) : column.getIsSorted() === "desc" ? (
-              <ArrowDown className="size-3.5 sm:size-4 text-[#1f2732] dark:text-zinc-100" />
+              <ArrowDown className="size-3.5 text-foreground" />
             ) : (
-              <ArrowUpDown className="size-3.5 sm:size-4 text-[#5c7c9b]/60" />
+              <ArrowUpDown className="size-3 text-muted-foreground/60" />
             )}
           </button>
         ),
         cell: ({ row }) => {
           const vacancy = row.original;
           return (
-            <span className="text-xs sm:text-sm text-[#5c7c9b] dark:text-zinc-400 font-semibold py-1 block whitespace-nowrap">
+            <span className="text-xs text-muted-foreground font-medium py-1 block whitespace-nowrap">
               {formatDate(vacancy.created_at)}
             </span>
           );
@@ -342,41 +313,41 @@ export function VacanciesTable({
                     <Button
                       variant="ghost"
                       size="icon"
-                      className="h-9 w-9 p-0 rounded-[12px] border border-[#d2dbe5] dark:border-zinc-800 bg-white dark:bg-zinc-900 hover:bg-[#f5f7fa] dark:hover:bg-zinc-800 transition-all cursor-pointer shadow-xs"
+                      className="h-8 w-8 p-0 rounded-lg hover:bg-muted text-muted-foreground hover:text-foreground cursor-pointer"
                     />
                   }
                 >
-                  <MoreHorizontal className="h-4 w-4 text-[#5c7c9b]" />
+                  <MoreHorizontal className="size-4" />
                 </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="rounded-[18px] border border-[#ebeef3] dark:border-zinc-800 bg-popover min-w-[170px] shadow-lg p-2">
+                <DropdownMenuContent align="end" className="rounded-xl border border-border/60 bg-popover min-w-[160px] shadow-lg p-1.5">
                   <DropdownMenuItem
                     render={<Link href={`/dashboard/company/vacancies/${vacancy.id}`} />}
-                    className="cursor-pointer text-xs sm:text-sm font-bold text-[#1f2732] dark:text-zinc-200 rounded-[12px] hover:bg-muted py-3 px-3 gap-3"
+                    className="cursor-pointer text-xs font-semibold rounded-lg hover:bg-muted py-2 px-2.5 gap-2.5"
                   >
-                    <Eye className="size-4 text-[#5c7c9b]" />
+                    <Eye className="size-3.5 text-muted-foreground" />
                     <span>Ver detalles</span>
                   </DropdownMenuItem>
                   <DropdownMenuItem
                     render={<Link href={`/dashboard/company/vacancies/${vacancy.id}/edit`} />}
-                    className="cursor-pointer text-xs sm:text-sm font-bold text-[#1f2732] dark:text-zinc-200 rounded-[12px] hover:bg-muted py-3 px-3 gap-3"
+                    className="cursor-pointer text-xs font-semibold rounded-lg hover:bg-muted py-2 px-2.5 gap-2.5"
                   >
-                    <Edit2 className="size-4 text-[#5c7c9b]" />
+                    <Edit2 className="size-3.5 text-muted-foreground" />
                     <span>Editar</span>
                   </DropdownMenuItem>
                   {onCloneVacancy && (
                     <DropdownMenuItem
                       onSelect={() => onCloneVacancy(vacancy.id)}
-                      className="cursor-pointer text-xs sm:text-sm font-bold text-[#1f2732] dark:text-zinc-200 rounded-[12px] hover:bg-muted py-3 px-3 gap-3"
+                      className="cursor-pointer text-xs font-semibold rounded-lg hover:bg-muted py-2 px-2.5 gap-2.5"
                     >
-                      <Copy className="size-4 text-[#5c7c9b]" />
-                      <span>Duplicar / Clonar</span>
+                      <Copy className="size-3.5 text-muted-foreground" />
+                      <span>Duplicar</span>
                     </DropdownMenuItem>
                   )}
                   <DropdownMenuItem
                     onSelect={() => onDeleteVacancy(vacancy.id)}
-                    className="cursor-pointer text-xs sm:text-sm font-bold text-rose-600 dark:text-rose-400 rounded-[12px] hover:bg-rose-500/10 focus:bg-rose-500/10 py-3 px-3 gap-3"
+                    className="cursor-pointer text-xs font-semibold text-rose-600 dark:text-rose-400 rounded-lg hover:bg-rose-500/10 focus:bg-rose-500/10 py-2 px-2.5 gap-2.5"
                   >
-                    <Trash2 className="size-4 text-rose-500" />
+                    <Trash2 className="size-3.5 text-rose-500" />
                     <span>Eliminar</span>
                   </DropdownMenuItem>
                 </DropdownMenuContent>
@@ -420,49 +391,49 @@ export function VacanciesTable({
   };
 
   return (
-    <div className="space-y-4">
+    <div className="w-full">
       {/* Batch Actions Toolbar */}
       {selectedCount > 0 && (
-        <div className="bg-[#1f2732] dark:bg-zinc-800 text-white p-3.5 sm:px-6 rounded-[20px] flex flex-col sm:flex-row items-center justify-between gap-3 shadow-md animate-in fade-in duration-200">
+        <div className="bg-primary text-primary-foreground p-3 sm:px-5 flex flex-col sm:flex-row items-center justify-between gap-3 border-b border-border/40 animate-in fade-in duration-200">
           <div className="flex items-center gap-2">
-            <CheckSquare className="size-4.5 text-emerald-400" />
-            <span className="text-xs sm:text-sm font-extrabold">
+            <CheckSquare className="size-4 text-emerald-400" />
+            <span className="text-xs font-bold">
               {selectedCount} {selectedCount === 1 ? "vacante seleccionada" : "vacantes seleccionadas"}
             </span>
           </div>
-          <div className="flex items-center gap-2 flex-wrap justify-end">
+          <div className="flex items-center gap-1.5 flex-wrap justify-end">
             <Button
               size="sm"
               variant="secondary"
               onClick={() => handleBatchAction("Activa")}
-              className="h-9 px-3.5 rounded-[12px] bg-emerald-500/20 text-emerald-300 hover:bg-emerald-500/30 border border-emerald-500/30 text-xs font-bold gap-1.5 cursor-pointer"
+              className="h-8 px-3 rounded-lg text-xs font-bold gap-1 cursor-pointer"
             >
-              <PlayCircle className="size-3.5" />
+              <PlayCircle className="size-3.5 text-emerald-500" />
               <span>Activar</span>
             </Button>
             <Button
               size="sm"
               variant="secondary"
               onClick={() => handleBatchAction("Pausada")}
-              className="h-9 px-3.5 rounded-[12px] bg-amber-500/20 text-amber-300 hover:bg-amber-500/30 border border-amber-500/30 text-xs font-bold gap-1.5 cursor-pointer"
+              className="h-8 px-3 rounded-lg text-xs font-bold gap-1 cursor-pointer"
             >
-              <PauseCircle className="size-3.5" />
-              <span>Pausar lote</span>
+              <PauseCircle className="size-3.5 text-amber-500" />
+              <span>Pausar</span>
             </Button>
             <Button
               size="sm"
               variant="secondary"
               onClick={() => handleBatchAction("Cerrada")}
-              className="h-9 px-3.5 rounded-[12px] bg-rose-500/20 text-rose-300 hover:bg-rose-500/30 border border-rose-500/30 text-xs font-bold gap-1.5 cursor-pointer"
+              className="h-8 px-3 rounded-lg text-xs font-bold gap-1 cursor-pointer"
             >
-              <XCircle className="size-3.5" />
-              <span>Cerrar lote</span>
+              <XCircle className="size-3.5 text-rose-500" />
+              <span>Cerrar</span>
             </Button>
             <Button
               size="sm"
               variant="ghost"
               onClick={() => setRowSelection({})}
-              className="h-9 px-3 rounded-[12px] text-xs font-bold text-zinc-300 hover:bg-white/10 hover:text-white cursor-pointer"
+              className="h-8 px-2.5 rounded-lg text-xs font-semibold text-primary-foreground/80 hover:text-primary-foreground hover:bg-primary-foreground/10 cursor-pointer"
             >
               Deseleccionar
             </Button>
@@ -470,16 +441,14 @@ export function VacanciesTable({
         </div>
       )}
 
-      <div className="border border-[#ebeef3] dark:border-zinc-800 rounded-[28px] bg-white dark:bg-[#18181b] overflow-hidden shadow-xs">
-        
-        {/* Table Container */}
-        <div className="overflow-x-auto">
+      {/* Table Container */}
+      <div className="overflow-x-auto">
           <Table className="w-full">
-            <TableHeader className="bg-[#f5f7fa]/80 dark:bg-zinc-900/60 border-b border-[#ebeef3] dark:border-zinc-800">
+            <TableHeader className="bg-muted/40 border-b border-border/60">
               {table.getHeaderGroups().map((headerGroup) => (
                 <TableRow key={headerGroup.id} className="hover:bg-transparent border-none">
                   {headerGroup.headers.map((header) => (
-                    <TableHead key={header.id} className="py-4 px-3 sm:px-4">
+                    <TableHead key={header.id} className="py-3 px-3 sm:px-4">
                       {header.isPlaceholder
                         ? null
                         : flexRender(header.column.columnDef.header, header.getContext())}
@@ -495,12 +464,12 @@ export function VacanciesTable({
                     key={row.id}
                     data-state={row.getIsSelected() && "selected"}
                     className={cn(
-                      "border-b border-[#ebeef3]/60 dark:border-zinc-800/50 transition-colors hover:bg-[#f5f7fa]/60 dark:hover:bg-zinc-900/40",
-                      !row.original.is_active && "opacity-75"
+                      "border-b border-border/40 transition-colors hover:bg-muted/40",
+                      !row.original.is_active && "opacity-80"
                     )}
                   >
                     {row.getVisibleCells().map((cell) => (
-                      <TableCell key={cell.id} className="px-3 sm:px-4 py-3.5">
+                      <TableCell key={cell.id} className="py-3 px-3 sm:px-4">
                         {flexRender(cell.column.columnDef.cell, cell.getContext())}
                       </TableCell>
                     ))}
@@ -508,8 +477,8 @@ export function VacanciesTable({
                 ))
               ) : (
                 <TableRow>
-                  <TableCell colSpan={columns.length} className="h-32 text-center text-sm font-semibold text-[#5c7c9b]">
-                    No hay vacantes disponibles en esta lista.
+                  <TableCell colSpan={columns.length} className="h-24 text-center text-xs font-medium text-muted-foreground">
+                    Sin resultados.
                   </TableCell>
                 </TableRow>
               )}
@@ -517,87 +486,89 @@ export function VacanciesTable({
           </Table>
         </div>
 
-        {/* Pagination Footer */}
-        <div className="flex flex-col sm:flex-row items-center justify-between gap-4 p-5 sm:p-6 border-t border-[#ebeef3] dark:border-zinc-800 bg-[#f5f7fa]/60 dark:bg-zinc-900/30">
-          
-          {/* Total info & Rows per page selector */}
-          <div className="flex items-center gap-4">
-            <span className="text-xs sm:text-sm font-semibold text-[#1f2732] dark:text-zinc-200">
-              Mostrando <span className="font-[800] text-[#1f2732] dark:text-zinc-100">{table.getRowModel().rows.length}</span> de <span className="font-[800] text-[#1f2732] dark:text-zinc-100">{data.length}</span> vacantes
+        {/* Modern Pagination Footer */}
+        <div className="flex flex-col sm:flex-row items-center justify-between gap-3 px-4 py-3 border-t border-border/60 bg-muted/20 text-xs">
+          <div className="flex items-center gap-2 text-muted-foreground font-medium">
+            <span>
+              {table.getFilteredRowModel().rows.length} vacantes en total
             </span>
+            {selectedCount > 0 && (
+              <span className="font-bold text-foreground">
+                ({selectedCount} seleccionadas)
+              </span>
+            )}
+          </div>
 
-            <div className="hidden sm:flex items-center gap-2">
-              <span className="text-xs font-semibold text-[#5c7c9b]">Por página:</span>
+          <div className="flex items-center gap-4">
+            {/* Page Size Selector */}
+            <div className="flex items-center gap-1.5">
+              <span className="text-muted-foreground font-medium">Filas:</span>
               <Select
-                value={`${table.getState().pagination.pageSize}`}
-                onValueChange={(value) => {
-                  table.setPageSize(Number(value));
+                value={String(table.getState().pagination.pageSize)}
+                onValueChange={(val) => {
+                  table.setPageSize(Number(val));
                 }}
               >
-                <SelectTrigger className="h-11 w-[80px] rounded-[14px] text-xs sm:text-sm font-bold bg-white dark:bg-zinc-900 border border-[#d2dbe5] dark:border-zinc-800 text-[#1f2732] dark:text-zinc-100 cursor-pointer">
+                <SelectTrigger className="h-7 w-16 rounded-md border border-border/60 bg-card text-xs font-medium cursor-pointer">
                   <SelectValue placeholder={table.getState().pagination.pageSize} />
                 </SelectTrigger>
-                <SelectContent className="rounded-[16px] border border-[#ebeef3] dark:border-zinc-800">
-                  {[10, 20, 50].map((pageSize) => (
-                    <SelectItem key={pageSize} value={`${pageSize}`} className="text-xs sm:text-sm font-bold cursor-pointer">
+                <SelectContent className="rounded-xl border border-border/60 bg-popover shadow-md">
+                  {[5, 10, 20, 50].map((pageSize) => (
+                    <SelectItem key={pageSize} value={String(pageSize)} className="text-xs cursor-pointer">
                       {pageSize}
                     </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
             </div>
-          </div>
 
-          {/* Pagination Navigation Buttons */}
-          <div className="flex items-center gap-2">
-            <span className="text-xs sm:text-sm font-extrabold text-[#1f2732] dark:text-zinc-200 mr-2">
-              Página {table.getState().pagination.pageIndex + 1} de {table.getPageCount() || 1}
+            {/* Current Page Text */}
+            <span className="text-muted-foreground font-medium">
+              Página <strong className="text-foreground">{table.getState().pagination.pageIndex + 1}</strong> de{" "}
+              <strong className="text-foreground">{table.getPageCount() || 1}</strong>
             </span>
 
-            <Button
-              variant="outline"
-              size="icon"
-              onClick={() => table.setPageIndex(0)}
-              disabled={!table.getCanPreviousPage()}
-              className="h-11 w-11 rounded-[14px] border border-[#d2dbe5] dark:border-zinc-800 bg-white dark:bg-zinc-900 hover:bg-[#f5f7fa] dark:hover:bg-zinc-800 text-[#1f2732] dark:text-zinc-100 cursor-pointer disabled:opacity-40"
-            >
-              <ChevronsLeft className="size-4.5" />
-            </Button>
-
-            <Button
-              variant="outline"
-              size="icon"
-              onClick={() => table.previousPage()}
-              disabled={!table.getCanPreviousPage()}
-              className="h-11 w-11 rounded-[14px] border border-[#d2dbe5] dark:border-zinc-800 bg-white dark:bg-zinc-900 hover:bg-[#f5f7fa] dark:hover:bg-zinc-800 text-[#1f2732] dark:text-zinc-100 cursor-pointer disabled:opacity-40"
-            >
-              <ChevronLeft className="size-4.5" />
-            </Button>
-
-            <Button
-              variant="outline"
-              size="icon"
-              onClick={() => table.nextPage()}
-              disabled={!table.getCanNextPage()}
-              className="h-11 w-11 rounded-[14px] border border-[#d2dbe5] dark:border-zinc-800 bg-white dark:bg-zinc-900 hover:bg-[#f5f7fa] dark:hover:bg-zinc-800 text-[#1f2732] dark:text-zinc-100 cursor-pointer disabled:opacity-40"
-            >
-              <ChevronRight className="size-4.5" />
-            </Button>
-
-            <Button
-              variant="outline"
-              size="icon"
-              onClick={() => table.setPageIndex(table.getPageCount() - 1)}
-              disabled={!table.getCanNextPage()}
-              className="h-11 w-11 rounded-[14px] border border-[#d2dbe5] dark:border-zinc-800 bg-white dark:bg-zinc-900 hover:bg-[#f5f7fa] dark:hover:bg-zinc-800 text-[#1f2732] dark:text-zinc-100 cursor-pointer disabled:opacity-40"
-            >
-              <ChevronsRight className="size-4.5" />
-            </Button>
+            {/* Navigation Arrows */}
+            <div className="flex items-center gap-1">
+              <Button
+                variant="outline"
+                size="icon"
+                className="h-7 w-7 rounded-md border border-border/60 cursor-pointer"
+                onClick={() => table.setPageIndex(0)}
+                disabled={!table.getCanPreviousPage()}
+              >
+                <ChevronsLeft className="size-3.5" />
+              </Button>
+              <Button
+                variant="outline"
+                size="icon"
+                className="h-7 w-7 rounded-md border border-border/60 cursor-pointer"
+                onClick={() => table.previousPage()}
+                disabled={!table.getCanPreviousPage()}
+              >
+                <ChevronLeft className="size-3.5" />
+              </Button>
+              <Button
+                variant="outline"
+                size="icon"
+                className="h-7 w-7 rounded-md border border-border/60 cursor-pointer"
+                onClick={() => table.nextPage()}
+                disabled={!table.getCanNextPage()}
+              >
+                <ChevronRight className="size-3.5" />
+              </Button>
+              <Button
+                variant="outline"
+                size="icon"
+                className="h-7 w-7 rounded-md border border-border/60 cursor-pointer"
+                onClick={() => table.setPageIndex(table.getPageCount() - 1)}
+                disabled={!table.getCanNextPage()}
+              >
+                <ChevronsRight className="size-3.5" />
+              </Button>
+            </div>
           </div>
-
         </div>
-
       </div>
-    </div>
   );
 }
