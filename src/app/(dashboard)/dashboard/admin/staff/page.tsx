@@ -1,21 +1,17 @@
 import { StaffDataTable } from "@/modules/admin/components/staff-data-table";
 import { getAdminStaffMembers } from "@/app/(dashboard)/dashboard/admin/staff/actions";
-import { Badge } from "@/components/ui/badge";
+import { Card } from "@/components/ui/card";
 import {
-  Card,
-  CardAction,
-  CardDescription,
-  CardFooter,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import {
-  ShieldCheckIcon,
-  UserCheckIcon,
-  KeyRoundIcon,
-  UsersIcon,
-  TrendingUpIcon,
+  ShieldCheck,
+  UserCheck,
+  KeyRound,
+  Users,
 } from "lucide-react";
+
+export const metadata = {
+  title: "Administradores y Staff | K'anPro Admin",
+  description: "Gestión de equipo interno, control de roles y permisos granulares en K'anPro.",
+};
 
 export default async function AdminStaffPage() {
   // Fetch real staff data from database
@@ -30,121 +26,89 @@ export default async function AdminStaffPage() {
   );
 
   return (
-    <div className="flex flex-1 flex-col gap-6">
-      {/* Page Title Header */}
-      <div className="flex flex-col gap-1">
-        <h1 className="text-xl font-bold tracking-tight text-foreground sm:text-2xl flex items-center gap-2">
-          <ShieldCheckIcon className="size-6 text-purple-500" />
-          Gestión de Administradores y Personal K’anPro
-        </h1>
-        <p className="text-xs text-muted-foreground">
-          Administre el equipo interno, otorgue o revoque permisos granulares y dé de alta a nuevo personal técnico y operativo.
-        </p>
-      </div>
-
-      {/* KPI Summary Cards */}
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <Card className="rounded-2xl border-border/40 bg-card shadow-xs">
-          <CardHeader>
-            <CardDescription>Personal Registrado</CardDescription>
-            <CardTitle className="text-2xl font-semibold tabular-nums">
+    <div className="flex flex-1 flex-col gap-6 pb-8 animate-in fade-in duration-200">
+      
+      {/* 4 KPI Summary Cards */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3.5">
+        <Card className="bg-card border border-border/60 rounded-2xl p-4 shadow-xs flex flex-col justify-between hover:border-border transition-colors">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-bold text-muted-foreground uppercase tracking-wider">
+              Personal Registrado
+            </span>
+            <div className="size-8 rounded-xl bg-purple-500/10 text-purple-600 dark:text-purple-400 flex items-center justify-center">
+              <Users className="size-4" />
+            </div>
+          </div>
+          <div className="mt-2 space-y-0.5">
+            <h3 className="text-2xl sm:text-3xl font-extrabold text-foreground font-mono">
               {totalStaff}
-            </CardTitle>
-            <CardAction>
-              <Badge variant="outline">
-                <UsersIcon className="size-3.5 text-purple-500" />
-                Equipo K’anPro
-              </Badge>
-            </CardAction>
-          </CardHeader>
-          <CardFooter className="flex-col items-start gap-1.5 text-sm">
-            <div className="line-clamp-1 flex gap-2 font-medium">
-              Control Interno{" "}
-              <TrendingUpIcon className="size-4 text-purple-500" />
-            </div>
-            <div className="text-muted-foreground text-xs">
-              Cuentas administrativas activas
-            </div>
-          </CardFooter>
+            </h3>
+            <p className="text-[11px] font-semibold text-muted-foreground">
+              Equipo interno K'anPro
+            </p>
+          </div>
         </Card>
 
-        <Card className="rounded-2xl border-border/40 bg-card shadow-xs">
-          <CardHeader>
-            <CardDescription>Super Administradores</CardDescription>
-            <CardTitle className="text-2xl font-semibold tabular-nums">
+        <Card className="bg-card border border-border/60 rounded-2xl p-4 shadow-xs flex flex-col justify-between hover:border-border transition-colors">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-bold text-indigo-600 dark:text-indigo-400 uppercase tracking-wider">
+              Super Admins
+            </span>
+            <div className="size-8 rounded-xl bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 flex items-center justify-center">
+              <ShieldCheck className="size-4" />
+            </div>
+          </div>
+          <div className="mt-2 space-y-0.5">
+            <h3 className="text-2xl sm:text-3xl font-extrabold text-foreground font-mono">
               {totalSuperAdmins}
-            </CardTitle>
-            <CardAction>
-              <Badge variant="outline">
-                <ShieldCheckIcon className="size-3.5 text-purple-500" />
-                Acceso Total
-              </Badge>
-            </CardAction>
-          </CardHeader>
-          <CardFooter className="flex-col items-start gap-1.5 text-sm">
-            <div className="line-clamp-1 flex gap-2 font-medium">
-              Dirección General{" "}
-              <ShieldCheckIcon className="size-4 text-purple-500" />
-            </div>
-            <div className="text-muted-foreground text-xs">
-              Gestión global del sistema
-            </div>
-          </CardFooter>
+            </h3>
+            <p className="text-[11px] font-semibold text-muted-foreground">
+              Acceso directivo global
+            </p>
+          </div>
         </Card>
 
-        <Card className="rounded-2xl border-border/40 bg-card shadow-xs">
-          <CardHeader>
-            <CardDescription>Personal Activo</CardDescription>
-            <CardTitle className="text-2xl font-semibold tabular-nums">
-              {activeStaff}
-            </CardTitle>
-            <CardAction>
-              <Badge variant="outline">
-                <UserCheckIcon className="size-3.5 text-green-500" />
-                Operativo
-              </Badge>
-            </CardAction>
-          </CardHeader>
-          <CardFooter className="flex-col items-start gap-1.5 text-sm">
-            <div className="line-clamp-1 flex gap-2 font-medium">
-              Estado Activo{" "}
-              <UserCheckIcon className="size-4 text-green-500" />
+        <Card className="bg-card border border-border/60 rounded-2xl p-4 shadow-xs flex flex-col justify-between hover:border-border transition-colors">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-bold text-emerald-600 dark:text-emerald-400 uppercase tracking-wider">
+              Personal Activo
+            </span>
+            <div className="size-8 rounded-xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center">
+              <UserCheck className="size-4" />
             </div>
-            <div className="text-muted-foreground text-xs">
-              Con acceso al panel admin
-            </div>
-          </CardFooter>
+          </div>
+          <div className="mt-2 space-y-0.5">
+            <h3 className="text-2xl sm:text-3xl font-extrabold text-foreground font-mono">
+              {activeStaff} <span className="text-xs text-muted-foreground font-sans">/ {totalStaff}</span>
+            </h3>
+            <p className="text-[11px] font-semibold text-muted-foreground">
+              Con sesión operativa activa
+            </p>
+          </div>
         </Card>
 
-        <Card className="rounded-2xl border-border/40 bg-card shadow-xs">
-          <CardHeader>
-            <CardDescription>Permisos Concedidos</CardDescription>
-            <CardTitle className="text-2xl font-semibold tabular-nums">
+        <Card className="bg-card border border-border/60 rounded-2xl p-4 shadow-xs flex flex-col justify-between hover:border-border transition-colors">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-bold text-blue-600 dark:text-blue-400 uppercase tracking-wider">
+              Permisos Asignados
+            </span>
+            <div className="size-8 rounded-xl bg-blue-500/10 text-blue-600 dark:text-blue-400 flex items-center justify-center">
+              <KeyRound className="size-4" />
+            </div>
+          </div>
+          <div className="mt-2 space-y-0.5">
+            <h3 className="text-2xl sm:text-3xl font-extrabold text-foreground font-mono">
               {totalPermissionsAssigned}
-            </CardTitle>
-            <CardAction>
-              <Badge variant="outline">
-                <KeyRoundIcon className="size-3.5 text-blue-500" />
-                Granulares
-              </Badge>
-            </CardAction>
-          </CardHeader>
-          <CardFooter className="flex-col items-start gap-1.5 text-sm">
-            <div className="line-clamp-1 flex gap-2 font-medium">
-              Seguridad y Control{" "}
-              <KeyRoundIcon className="size-4 text-blue-500" />
-            </div>
-            <div className="text-muted-foreground text-xs">
-              Reglas de acceso aplicadas
-            </div>
-          </CardFooter>
+            </h3>
+            <p className="text-[11px] font-semibold text-muted-foreground">
+              Reglas de acceso granulares
+            </p>
+          </div>
         </Card>
       </div>
 
       {/* Staff Interactive Table */}
-      <div>
-        <StaffDataTable initialData={staffMembers} />
-      </div>
+      <StaffDataTable initialData={staffMembers} />
     </div>
   );
 }

@@ -1,25 +1,6 @@
-"use client"
+"use client";
 
-import * as React from "react"
-import {
-  closestCenter,
-  DndContext,
-  KeyboardSensor,
-  MouseSensor,
-  TouchSensor,
-  useSensor,
-  useSensors,
-  type DragEndEvent,
-  type UniqueIdentifier,
-} from "@dnd-kit/core"
-import { restrictToVerticalAxis } from "@dnd-kit/modifiers"
-import {
-  arrayMove,
-  SortableContext,
-  useSortable,
-  verticalListSortingStrategy,
-} from "@dnd-kit/sortable"
-import { CSS } from "@dnd-kit/utilities"
+import * as React from "react";
 import {
   useReactTable,
   getCoreRowModel,
@@ -30,19 +11,35 @@ import {
   type ColumnDef,
   type ColumnFiltersState,
   type VisibilityState,
-  type Row,
   type SortingState,
-} from "@tanstack/react-table"
-import { toast } from "sonner"
-import { z } from "zod"
+} from "@tanstack/react-table";
+import { toast } from "sonner";
+import { z } from "zod";
 
 import { startImpersonating } from "@/lib/auth/impersonation";
-import { useIsMobile } from "@/hooks/use-mobile"
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { Badge } from "@/components/ui/badge"
-import { Button } from "@/components/ui/button"
-import { Card } from "@/components/ui/card"
-import { Checkbox } from "@/components/ui/checkbox"
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
+import { Checkbox } from "@/components/ui/checkbox";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import {
   Drawer,
   DrawerClose,
@@ -51,8 +48,7 @@ import {
   DrawerFooter,
   DrawerHeader,
   DrawerTitle,
-  DrawerTrigger,
-} from "@/components/ui/drawer"
+} from "@/components/ui/drawer";
 import {
   DropdownMenu,
   DropdownMenuCheckboxItem,
@@ -60,9 +56,9 @@ import {
   DropdownMenuItem,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
+} from "@/components/ui/dropdown-menu";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import {
   Select,
   SelectContent,
@@ -70,8 +66,7 @@ import {
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select"
-import { Separator } from "@/components/ui/separator"
+} from "@/components/ui/select";
 import {
   Table,
   TableBody,
@@ -79,31 +74,34 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from "@/components/ui/table"
+} from "@/components/ui/table";
 import {
-  Tabs,
-  TabsList,
-  TabsTrigger,
-} from "@/components/ui/tabs"
+  CircleCheck,
+  MoreVertical,
+  SlidersHorizontal,
+  ChevronLeft,
+  ChevronRight,
+  ChevronsLeft,
+  ChevronsRight,
+  ShieldCheck,
+  Building2,
+  User as UserIcon,
+  Mail,
+  Search,
+  Sparkles,
+  UserX,
+  UserCheck,
+  Download,
+  ArrowUpDown,
+  Loader2,
+  Clock,
+} from "lucide-react";
 import {
-  GripVerticalIcon,
-  CircleCheckIcon,
-  LoaderIcon,
-  EllipsisVerticalIcon,
-  Columns3Icon,
-  ChevronDownIcon,
-  ChevronsLeftIcon,
-  ChevronLeftIcon,
-  ChevronRightIcon,
-  ChevronsRightIcon,
-  ShieldCheckIcon,
-  Building2Icon,
-  UserIcon,
-  MailIcon,
-  SearchIcon,
-  UserPlusIcon,
-  SparklesIcon,
-} from "lucide-react"
+  updateUserRole,
+  toggleUserStatus,
+  updateUserProfile,
+} from "@/app/(dashboard)/dashboard/admin/users/actions";
+import { cn } from "@/lib/utils";
 
 export const userSchema = z.object({
   id: z.string(),
@@ -113,634 +111,793 @@ export const userSchema = z.object({
   status: z.string(),
   avatar: z.string().optional(),
   createdAt: z.string(),
-})
+});
 
-export type UserItem = z.infer<typeof userSchema>
-
-function DragHandle({ id }: { id: string }) {
-  const { attributes, listeners } = useSortable({ id })
-
-  return (
-    <Button
-      {...attributes}
-      {...listeners}
-      variant="ghost"
-      size="icon"
-      className="size-7 text-muted-foreground hover:bg-transparent"
-    >
-      <GripVerticalIcon className="size-3 text-muted-foreground" />
-      <span className="sr-only">Arrastrar para ordenar</span>
-    </Button>
-  )
-}
+export type UserItem = z.infer<typeof userSchema>;
 
 function getInitials(name: string) {
-  if (!name) return "US"
-  const parts = name.trim().split(" ")
+  if (!name) return "US";
+  const parts = name.trim().split(" ");
   if (parts.length >= 2) {
-    return (parts[0][0] + parts[1][0]).toUpperCase()
+    return (parts[0][0] + parts[1][0]).toUpperCase();
   }
-  return name.substring(0, 2).toUpperCase()
+  return name.substring(0, 2).toUpperCase();
 }
 
-const columns: ColumnDef<UserItem>[] = [
-  {
-    id: "drag",
-    header: () => null,
-    cell: ({ row }) => <DragHandle id={row.original.id} />,
-  },
-  {
-    id: "select",
-    header: ({ table }) => (
-      <div className="flex items-center justify-center">
-        <Checkbox
-          checked={table.getIsAllPageRowsSelected()}
-          indeterminate={table.getIsSomePageRowsSelected() && !table.getIsAllPageRowsSelected()}
-          onCheckedChange={(value) => table.toggleAllPageRowsSelected(!!value)}
-          aria-label="Seleccionar todo"
-        />
-      </div>
-    ),
-    cell: ({ row }) => (
-      <div className="flex items-center justify-center">
-        <Checkbox
-          checked={row.getIsSelected()}
-          onCheckedChange={(value) => row.toggleSelected(!!value)}
-          aria-label="Seleccionar fila"
-        />
-      </div>
-    ),
-    enableSorting: false,
-    enableHiding: false,
-  },
-  {
-    accessorKey: "name",
-    header: "Usuario",
-    cell: ({ row }) => <UserCellViewer user={row.original} />,
-    enableHiding: false,
-  },
-  {
-    accessorKey: "email",
-    header: "Correo Electrónico",
-    cell: ({ row }) => (
-      <span className="text-sm text-muted-foreground font-medium flex items-center gap-1.5">
-        <MailIcon className="size-3.5 text-muted-foreground/70 shrink-0" />
-        {row.original.email}
-      </span>
-    ),
-  },
-  {
-    accessorKey: "role",
-    header: "Rol en Plataforma",
-    cell: ({ row }) => {
-      const role = row.original.role
-      if (role === "admin") {
-        return (
-          <Badge variant="outline" className="px-2 py-0.5 text-xs font-semibold border-purple-500/30 bg-purple-500/10 text-purple-600 dark:text-purple-400 gap-1 rounded-md">
-            <ShieldCheckIcon className="size-3" />
-            Administrador
-          </Badge>
-        )
-      }
-      if (role === "company") {
-        return (
-          <Badge variant="outline" className="px-2 py-0.5 text-xs font-semibold border-amber-500/30 bg-amber-500/10 text-amber-600 dark:text-amber-400 gap-1 rounded-md">
-            <Building2Icon className="size-3" />
-            Empresa
-          </Badge>
-        )
-      }
-      return (
-        <Badge variant="outline" className="px-2 py-0.5 text-xs font-semibold border-blue-500/30 bg-blue-500/10 text-blue-600 dark:text-blue-400 gap-1 rounded-md">
-          <UserIcon className="size-3" />
-          Candidato
-        </Badge>
-      )
-    },
-  },
-  {
-    accessorKey: "status",
-    header: "Estado",
-    cell: ({ row }) => {
-      const status = row.original.status
-      return (
-        <Badge variant="outline" className="px-2 py-0.5 text-xs font-medium text-muted-foreground gap-1.5 rounded-md">
-          {status === "Activo" || status === "Verified" ? (
-            <CircleCheckIcon className="size-3.5 fill-green-500 text-white dark:fill-green-400" />
-          ) : (
-            <LoaderIcon className="size-3.5 animate-spin text-amber-500" />
-          )}
-          {status === "Verified" || status === "Activo" ? "Activo" : "Pendiente"}
-        </Badge>
-      )
-    },
-  },
-  {
-    accessorKey: "createdAt",
-    header: () => <div className="w-full text-right">Fecha Registro</div>,
-    cell: ({ row }) => (
-      <div className="w-full text-right text-xs font-medium text-muted-foreground">
-        {row.original.createdAt}
-      </div>
-    ),
-  },
-  {
-    id: "actions",
-    cell: ({ row }) => (
-      <DropdownMenu>
-        <DropdownMenuTrigger
-          render={
-            <Button
-              variant="ghost"
-              className="flex size-8 text-muted-foreground data-[state=open]:bg-muted"
-              size="icon"
-            />
-          }
-        >
-          <EllipsisVerticalIcon className="size-4" />
-          <span className="sr-only">Abrir opciones</span>
-        </DropdownMenuTrigger>
-        <DropdownMenuContent align="end" className="w-52 rounded-xl">
-          <DropdownMenuItem
-            className="text-xs font-semibold cursor-pointer text-purple-600 dark:text-purple-400 gap-2"
-            onClick={async () => {
-              try {
-                toast.loading(`Iniciando impersonación de ${row.original.name}...`);
-                const res = await startImpersonating(row.original.id);
-                toast.success(`Impersonando a ${res.targetName}`);
-                window.location.href = res.redirectUrl;
-              } catch (err: unknown) {
-                toast.error((err as Error).message || "Error al impersonar.");
-              }
-            }}
-          >
-            <SparklesIcon className="size-3.5 text-purple-500" />
-            Impersonar (Log in as User)
-          </DropdownMenuItem>
-          <DropdownMenuSeparator />
-          <DropdownMenuItem
-            className="text-xs font-medium cursor-pointer"
-            onClick={() => toast.info(`Viendo perfil de ${row.original.name}`)}
-          >
-            Ver Detalle
-          </DropdownMenuItem>
-          <DropdownMenuItem
-            className="text-xs font-medium cursor-pointer"
-            onClick={() => toast.success(`Rol de ${row.original.name} actualizado`)}
-          >
-            Editar Rol
-          </DropdownMenuItem>
-          <DropdownMenuSeparator />
-          <DropdownMenuItem
-            variant="destructive"
-            className="text-xs font-medium cursor-pointer"
-            onClick={() => toast.error(`Usuario ${row.original.name} desactivado`)}
-          >
-            Desactivar Usuario
-          </DropdownMenuItem>
-        </DropdownMenuContent>
-      </DropdownMenu>
-    ),
-  },
-]
-
-function DraggableRow({ row }: { row: Row<UserItem> }) {
-  const { transform, transition, setNodeRef, isDragging } = useSortable({
-    id: row.original.id,
-  })
-
-  return (
-    <TableRow
-      data-state={row.getIsSelected() && "selected"}
-      data-dragging={isDragging}
-      ref={setNodeRef}
-      className="relative z-0 data-[dragging=true]:z-10 data-[dragging=true]:opacity-80 hover:bg-muted/40 transition-colors"
-      style={{
-        transform: CSS.Transform.toString(transform),
-        transition: transition,
-      }}
-    >
-      {row.getVisibleCells().map((cell) => (
-        <TableCell key={cell.id} className="py-3 px-4">
-          {flexRender(cell.column.columnDef.cell, cell.getContext())}
-        </TableCell>
-      ))}
-    </TableRow>
-  )
+interface UsersDataTableProps {
+  data: UserItem[];
 }
 
-export function UsersDataTable({ data: initialData }: { data: UserItem[] }) {
-  const [data, setData] = React.useState(() => initialData)
-  const [activeRoleTab, setActiveRoleTab] = React.useState("all")
-  const [searchQuery, setSearchQuery] = React.useState("")
-  const [rowSelection, setRowSelection] = React.useState({})
-  const [columnVisibility, setColumnVisibility] = React.useState<VisibilityState>({})
-  const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([])
-  const [sorting, setSorting] = React.useState<SortingState>([])
+export function UsersDataTable({ data: initialData }: UsersDataTableProps) {
+  const [data, setData] = React.useState<UserItem[]>(initialData);
+  const [activeTab, setActiveTab] = React.useState("all");
+  const [searchQuery, setSearchQuery] = React.useState("");
+  const [columnVisibility, setColumnVisibility] = React.useState<VisibilityState>({});
+  const [sorting, setSorting] = React.useState<SortingState>([]);
+  const [pagination, setPagination] = React.useState({
+    pageIndex: 0,
+    pageSize: 10,
+  });
+
+  // Action Modals State
+  const [selectedUser, setSelectedUser] = React.useState<UserItem | null>(null);
+  const [roleModalUser, setRoleModalUser] = React.useState<UserItem | null>(null);
+  const [newSelectedRole, setNewSelectedRole] = React.useState<"admin" | "candidate" | "company">("candidate");
+  const [isUpdatingRole, setIsUpdatingRole] = React.useState(false);
+
+  const [statusDialogUser, setStatusDialogUser] = React.useState<UserItem | null>(null);
+  const [isUpdatingStatus, setIsUpdatingStatus] = React.useState(false);
+
+  const [drawerOpen, setDrawerOpen] = React.useState(false);
+  const [drawerUser, setDrawerUser] = React.useState<UserItem | null>(null);
+  const [drawerName, setDrawerName] = React.useState("");
+  const [drawerRole, setDrawerRole] = React.useState<"admin" | "candidate" | "company">("candidate");
+  const [isSavingDrawer, setIsSavingDrawer] = React.useState(false);
 
   React.useEffect(() => {
-    setData(initialData)
-  }, [initialData])
+    setData(initialData);
+  }, [initialData]);
 
-  const sortableId = React.useId()
-  const sensors = useSensors(
-    useSensor(MouseSensor, {}),
-    useSensor(TouchSensor, {})
-  )
+  // Handle Role Change
+  const handleConfirmRoleChange = async () => {
+    if (!roleModalUser) return;
+    setIsUpdatingRole(true);
+    try {
+      await updateUserRole(roleModalUser.id, newSelectedRole);
+      setData((prev) =>
+        prev.map((u) => (u.id === roleModalUser.id ? { ...u, role: newSelectedRole } : u))
+      );
+      toast.success(`Rol de ${roleModalUser.name} actualizado a ${newSelectedRole === "admin" ? "Administrador" : newSelectedRole === "company" ? "Empresa" : "Candidato"}`);
+      setRoleModalUser(null);
+    } catch (err: unknown) {
+      toast.error((err as Error).message || "Error al actualizar rol");
+    } finally {
+      setIsUpdatingRole(false);
+    }
+  };
 
-  const dataIds = React.useMemo<UniqueIdentifier[]>(
-    () => data?.map(({ id }) => id) || [],
-    [data]
-  )
+  // Handle Status Toggle (Suspend / Activate)
+  const handleConfirmStatusToggle = async () => {
+    if (!statusDialogUser) return;
+    setIsUpdatingStatus(true);
+    const targetStatus = statusDialogUser.status === "Activo" ? "suspended" : "active";
+    try {
+      await toggleUserStatus(statusDialogUser.id, targetStatus);
+      setData((prev) =>
+        prev.map((u) =>
+          u.id === statusDialogUser.id
+            ? { ...u, status: targetStatus === "suspended" ? "Suspendido" : "Activo" }
+            : u
+        )
+      );
+      toast.success(
+        targetStatus === "suspended"
+          ? `Acceso de ${statusDialogUser.name} suspendido correctamente.`
+          : `Cuenta de ${statusDialogUser.name} reactivada.`
+      );
+      setStatusDialogUser(null);
+    } catch (err: unknown) {
+      toast.error((err as Error).message || "Error al cambiar estado");
+    } finally {
+      setIsUpdatingStatus(false);
+    }
+  };
+
+  // Handle Drawer Save
+  const handleSaveDrawer = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!drawerUser) return;
+    setIsSavingDrawer(true);
+    try {
+      await updateUserProfile(drawerUser.id, {
+        fullName: drawerName,
+        role: drawerRole,
+      });
+      setData((prev) =>
+        prev.map((u) =>
+          u.id === drawerUser.id
+            ? { ...u, name: drawerName, role: drawerRole }
+            : u
+        )
+      );
+      toast.success("Perfil de usuario actualizado exitosamente");
+      setDrawerOpen(false);
+    } catch (err: unknown) {
+      toast.error((err as Error).message || "Error al guardar cambios");
+    } finally {
+      setIsSavingDrawer(false);
+    }
+  };
+
+  const openDrawerForUser = (user: UserItem) => {
+    setDrawerUser(user);
+    setDrawerName(user.name);
+    setDrawerRole(user.role);
+    setDrawerOpen(true);
+  };
+
+  const columns = React.useMemo<ColumnDef<UserItem>[]>(
+    () => [
+      {
+        accessorKey: "name",
+        header: ({ column }) => (
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
+            className="-ml-3 h-8 text-xs font-extrabold uppercase tracking-wider text-muted-foreground hover:text-foreground"
+          >
+            <span>Usuario</span>
+            <ArrowUpDown className="size-3 ml-1" />
+          </Button>
+        ),
+        cell: ({ row }) => {
+          const user = row.original;
+          const initials = getInitials(user.name);
+          return (
+            <div
+              onClick={() => openDrawerForUser(user)}
+              className="flex items-center gap-3 cursor-pointer group"
+            >
+              <Avatar className="size-10 rounded-2xl border border-border/60 bg-muted shrink-0 group-hover:ring-2 group-hover:ring-primary/20 transition-all">
+                <AvatarImage src={user.avatar} alt={user.name} />
+                <AvatarFallback className="bg-primary/10 text-primary font-extrabold text-xs">
+                  {initials}
+                </AvatarFallback>
+              </Avatar>
+              <div className="min-w-0">
+                <div className="flex items-center gap-1.5">
+                  <span className="font-extrabold text-sm text-foreground truncate group-hover:text-primary transition-colors">
+                    {user.name}
+                  </span>
+                  {user.role === "admin" && (
+                    <ShieldCheck className="size-3.5 text-purple-500 shrink-0" />
+                  )}
+                </div>
+                <span className="text-xs text-muted-foreground flex items-center gap-1 truncate font-mono">
+                  <Mail className="size-3 text-muted-foreground/70 shrink-0" />
+                  {user.email}
+                </span>
+              </div>
+            </div>
+          );
+        },
+      },
+      {
+        accessorKey: "role",
+        header: "Rol de Cuenta",
+        cell: ({ row }) => {
+          const role = row.original.role;
+          if (role === "admin") {
+            return (
+              <Badge
+                variant="outline"
+                className="px-2.5 py-0.5 text-xs font-bold rounded-xl gap-1.5 border border-purple-500/20 bg-purple-500/10 text-purple-600 dark:text-purple-400"
+              >
+                <ShieldCheck className="size-3" />
+                <span>Administrador</span>
+              </Badge>
+            );
+          }
+          if (role === "company") {
+            return (
+              <Badge
+                variant="outline"
+                className="px-2.5 py-0.5 text-xs font-bold rounded-xl gap-1.5 border border-amber-500/20 bg-amber-500/10 text-amber-600 dark:text-amber-400"
+              >
+                <Building2 className="size-3" />
+                <span>Empresa</span>
+              </Badge>
+            );
+          }
+          return (
+            <Badge
+              variant="outline"
+              className="px-2.5 py-0.5 text-xs font-bold rounded-xl gap-1.5 border border-blue-500/20 bg-blue-500/10 text-blue-600 dark:text-blue-400"
+            >
+              <UserIcon className="size-3" />
+              <span>Candidato</span>
+            </Badge>
+          );
+        },
+      },
+      {
+        accessorKey: "status",
+        header: "Estado",
+        cell: ({ row }) => {
+          const status = row.original.status;
+          if (status === "Suspendido" || status === "suspended") {
+            return (
+              <Badge
+                variant="outline"
+                className="px-2.5 py-0.5 text-xs font-bold border-rose-500/20 bg-rose-500/10 text-rose-600 dark:text-rose-400 gap-1.5 rounded-xl"
+              >
+                <UserX className="size-3" />
+                <span>Suspendido</span>
+              </Badge>
+            );
+          }
+          return (
+            <Badge
+              variant="outline"
+              className="px-2.5 py-0.5 text-xs font-bold border-emerald-500/20 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 gap-1.5 rounded-xl"
+            >
+              <CircleCheck className="size-3" />
+              <span>Activo</span>
+            </Badge>
+          );
+        },
+      },
+      {
+        accessorKey: "createdAt",
+        header: () => <div className="text-right">Fecha Registro</div>,
+        cell: ({ row }) => (
+          <div className="text-right text-xs font-medium text-muted-foreground">
+            {row.original.createdAt}
+          </div>
+        ),
+      },
+      {
+        id: "actions",
+        header: () => <div className="text-right">Acciones</div>,
+        cell: ({ row }) => {
+          const user = row.original;
+
+          return (
+            <div className="flex items-center justify-end gap-1.5">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={async () => {
+                  try {
+                    toast.loading(`Iniciando impersonación de ${user.name}...`);
+                    const res = await startImpersonating(user.id);
+                    toast.success(`Impersonando a ${res.targetName}`);
+                    window.location.href = res.redirectUrl;
+                  } catch (err: unknown) {
+                    toast.error((err as Error).message || "Error al impersonar.");
+                  }
+                }}
+                className="h-8 px-2.5 rounded-xl text-xs font-bold gap-1 text-purple-600 hover:bg-purple-500/10 cursor-pointer border-purple-500/20"
+              >
+                <Sparkles className="size-3" />
+                <span>Impersonar</span>
+              </Button>
+
+              <DropdownMenu>
+                <DropdownMenuTrigger
+                  render={
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="size-8 rounded-xl text-muted-foreground hover:text-foreground cursor-pointer"
+                    />
+                  }
+                >
+                  <MoreVertical className="size-4" />
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-52 rounded-2xl p-1.5 shadow-xl border-border/60">
+                  <DropdownMenuItem
+                    className="text-xs font-bold cursor-pointer gap-2 rounded-xl py-2"
+                    onClick={() => openDrawerForUser(user)}
+                  >
+                    <UserCheck className="size-4 text-primary" />
+                    <span>Ver Detalle & Editar</span>
+                  </DropdownMenuItem>
+
+                  <DropdownMenuItem
+                    className="text-xs font-bold cursor-pointer gap-2 rounded-xl py-2"
+                    onClick={() => {
+                      setRoleModalUser(user);
+                      setNewSelectedRole(user.role);
+                    }}
+                  >
+                    <ShieldCheck className="size-4 text-purple-600" />
+                    <span>Cambiar Rol de Cuenta</span>
+                  </DropdownMenuItem>
+
+                  <DropdownMenuSeparator className="my-1" />
+
+                  {user.status === "Suspendido" ? (
+                    <DropdownMenuItem
+                      className="text-xs font-bold cursor-pointer gap-2 rounded-xl py-2 text-emerald-600"
+                      onClick={() => setStatusDialogUser(user)}
+                    >
+                      <CircleCheck className="size-4" />
+                      <span>Reactivar Usuario</span>
+                    </DropdownMenuItem>
+                  ) : (
+                    <DropdownMenuItem
+                      variant="destructive"
+                      className="text-xs font-bold cursor-pointer gap-2 rounded-xl py-2 text-rose-600"
+                      onClick={() => setStatusDialogUser(user)}
+                    >
+                      <UserX className="size-4" />
+                      <span>Suspender Acceso</span>
+                    </DropdownMenuItem>
+                  )}
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
+          );
+        },
+      },
+    ],
+    []
+  );
+
+  const filteredData = React.useMemo(() => {
+    return data.filter((item) => {
+      if (activeTab !== "all" && item.role !== activeTab) {
+        return false;
+      }
+      if (searchQuery.trim()) {
+        const q = searchQuery.toLowerCase();
+        const matchesName = item.name.toLowerCase().includes(q);
+        const matchesEmail = item.email.toLowerCase().includes(q);
+        if (!matchesName && !matchesEmail) {
+          return false;
+        }
+      }
+      return true;
+    });
+  }, [data, activeTab, searchQuery]);
 
   const table = useReactTable({
-    data,
+    data: filteredData,
     columns,
     state: {
       sorting,
       columnVisibility,
-      rowSelection,
-      columnFilters,
+      pagination,
     },
-    getRowId: (row) => row.id,
-    enableRowSelection: true,
-    onRowSelectionChange: setRowSelection,
     onSortingChange: setSorting,
-    onColumnFiltersChange: setColumnFilters,
+    onPaginationChange: setPagination,
     onColumnVisibilityChange: setColumnVisibility,
     getCoreRowModel: getCoreRowModel(),
-    getFilteredRowModel: getFilteredRowModel(),
-    getPaginationRowModel: getPaginationRowModel(),
     getSortedRowModel: getSortedRowModel(),
-  })
+    getPaginationRowModel: getPaginationRowModel(),
+  });
 
-  function handleDragEnd(event: DragEndEvent) {
-    const { active, over } = event
-    if (active && over && active.id !== over.id) {
-      setData((data) => {
-        const oldIndex = dataIds.indexOf(active.id)
-        const newIndex = dataIds.indexOf(over.id)
-        return arrayMove(data, oldIndex, newIndex)
-      })
-    }
-  }
+  const handleExportCSV = () => {
+    const headers = ["Nombre", "Email", "Rol", "Estado", "Fecha Registro"];
+    const rows = filteredData.map((u) => [
+      `"${u.name}"`,
+      `"${u.email}"`,
+      `"${u.role}"`,
+      `"${u.status}"`,
+      `"${u.createdAt}"`,
+    ]);
 
-  // Synchronize Tab & Select role filtering
-  const handleRoleFilter = (value: string) => {
-    setActiveRoleTab(value)
-    if (value === "all") {
-      table.getColumn("role")?.setFilterValue(undefined)
-    } else {
-      table.getColumn("role")?.setFilterValue(value)
-    }
-  }
+    const csvContent = [headers.join(","), ...rows.map((r) => r.join(","))].join("\n");
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `usuarios_kanpro_${new Date().toISOString().slice(0, 10)}.csv`;
+    link.click();
+    toast.success("Listado de usuarios exportado en CSV");
+  };
 
-  // Handle Search Input (Filter by Name or Email)
-  const handleSearchChange = (value: string) => {
-    setSearchQuery(value)
-    table.getColumn("name")?.setFilterValue(value || undefined)
-  }
+  const roleCounts = React.useMemo(() => {
+    return {
+      all: data.length,
+      candidate: data.filter((u) => u.role === "candidate").length,
+      company: data.filter((u) => u.role === "company").length,
+      admin: data.filter((u) => u.role === "admin").length,
+    };
+  }, [data]);
 
   return (
-    <Card className="@container/card border border-border/20 bg-card p-4 sm:p-6 shadow-xs">
-      <div className="flex flex-col gap-4">
-        
-        {/* Top Controls Header */}
-        <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4">
-          <div className="w-full lg:w-auto">
-            <div className="flex @4xl/main:hidden w-full">
-              <Select value={activeRoleTab} onValueChange={(val) => handleRoleFilter(val || "all")}>
-                <SelectTrigger
-                  className="flex w-full sm:w-fit h-9 text-xs font-semibold"
-                  id="role-selector"
-                >
-                  <SelectValue placeholder="Filtrar por rol" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectGroup>
-                    <SelectItem value="all">Todos los Usuarios</SelectItem>
-                    <SelectItem value="candidate">Candidatos</SelectItem>
-                    <SelectItem value="company">Empresas</SelectItem>
-                    <SelectItem value="admin">Administradores</SelectItem>
-                  </SelectGroup>
-                </SelectContent>
-              </Select>
-            </div>
-            <Tabs
-              value={activeRoleTab}
-              onValueChange={handleRoleFilter}
-              className="hidden @4xl/main:flex w-full lg:w-auto"
-            >
-              <TabsList className="**:data-[slot=badge]:size-5 **:data-[slot=badge]:rounded-full **:data-[slot=badge]:bg-muted-foreground/30 **:data-[slot=badge]:px-1 flex">
-                <TabsTrigger value="all">Todos</TabsTrigger>
-                <TabsTrigger value="candidate">
-                  Candidatos <Badge variant="secondary">{data.filter(u => u.role === "candidate").length}</Badge>
-                </TabsTrigger>
-                <TabsTrigger value="company">
-                  Empresas <Badge variant="secondary">{data.filter(u => u.role === "company").length}</Badge>
-                </TabsTrigger>
-                <TabsTrigger value="admin">
-                  Administradores <Badge variant="secondary">{data.filter(u => u.role === "admin").length}</Badge>
-                </TabsTrigger>
-              </TabsList>
-            </Tabs>
+    <Card className="bg-card border border-border/60 rounded-3xl shadow-xs overflow-hidden">
+      
+      {/* Top Toolbar */}
+      <div className="p-4 sm:p-5 space-y-4 border-b border-border/60">
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
+          <div className="relative flex-1 max-w-md">
+            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 size-4 text-muted-foreground/70" />
+            <Input
+              placeholder="Buscar por nombre o correo electrónico..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="pl-9.5 h-10 rounded-2xl bg-muted/30 border-border/60 text-xs sm:text-sm font-medium focus-visible:ring-primary/20"
+            />
           </div>
 
-          <div className="flex flex-col sm:flex-row items-center gap-2 w-full lg:w-auto justify-end">
-            
-            {/* Search Input Filter */}
-            <div className="relative w-full sm:w-64">
-              <SearchIcon className="absolute left-2.5 top-2.5 size-4 text-muted-foreground" />
-              <Input
-                placeholder="Buscar por nombre o correo..."
-                value={searchQuery}
-                onChange={(e) => handleSearchChange(e.target.value)}
-                className="h-9 w-full pl-9 text-xs rounded-lg"
-              />
-            </div>
+          <div className="flex items-center gap-2 self-end sm:self-auto shrink-0">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleExportCSV}
+              className="h-10 px-3.5 rounded-2xl border-border/60 text-xs font-bold gap-1.5 hover:bg-muted cursor-pointer"
+            >
+              <Download className="size-3.5" />
+              <span>Exportar</span>
+            </Button>
 
-            {/* Column Selector */}
             <DropdownMenu>
               <DropdownMenuTrigger
                 render={
-                  <Button variant="outline" size="sm" className="h-9 px-3 text-xs font-semibold w-full sm:w-auto" />
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="h-10 px-3 rounded-2xl border-border/60 text-xs font-bold gap-1.5 hover:bg-muted cursor-pointer"
+                  />
                 }
               >
-                <Columns3Icon className="size-3.5 mr-1.5" />
-                Columnas
-                <ChevronDownIcon className="size-3.5 ml-1.5" />
+                <SlidersHorizontal className="size-3.5" />
+                <span className="hidden sm:inline">Columnas</span>
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-40 rounded-xl">
+              <DropdownMenuContent align="end" className="w-44 rounded-2xl p-1.5 border-border/60">
                 {table
                   .getAllColumns()
-                  .filter(
-                    (column) =>
-                      typeof column.accessorFn !== "undefined" &&
-                      column.getCanHide()
-                  )
-                  .map((column) => {
-                    return (
-                      <DropdownMenuCheckboxItem
-                        key={column.id}
-                        className="capitalize text-xs"
-                        checked={column.getIsVisible()}
-                        onCheckedChange={(value) =>
-                          column.toggleVisibility(!!value)
-                        }
-                      >
-                        {column.id}
-                      </DropdownMenuCheckboxItem>
-                    )
-                  })}
+                  .filter((column) => column.getCanHide())
+                  .map((column) => (
+                    <DropdownMenuCheckboxItem
+                      key={column.id}
+                      className="capitalize text-xs font-medium rounded-xl py-1.5"
+                      checked={column.getIsVisible()}
+                      onCheckedChange={(value) => column.toggleVisibility(!!value)}
+                    >
+                      {column.id === "name"
+                        ? "Usuario"
+                        : column.id === "role"
+                        ? "Rol"
+                        : column.id === "status"
+                        ? "Estado"
+                        : column.id === "createdAt"
+                        ? "Fecha Registro"
+                        : column.id}
+                    </DropdownMenuCheckboxItem>
+                  ))}
               </DropdownMenuContent>
             </DropdownMenu>
-
-            {/* Action Add User */}
-            <Button
-              size="sm"
-              className="h-9 px-3.5 text-xs font-semibold gap-1.5 bg-primary text-primary-foreground hover:bg-primary/90 w-full sm:w-auto"
-              onClick={() => toast.success("Formulario para registrar nuevo usuario abierto")}
-            >
-              <UserPlusIcon className="size-3.5" />
-              <span>Nuevo Usuario</span>
-            </Button>
           </div>
         </div>
 
-        {/* Data Table Content */}
-        <div className="overflow-hidden rounded-lg border border-border/20">
-          <DndContext
-            collisionDetection={closestCenter}
-            modifiers={[restrictToVerticalAxis]}
-            onDragEnd={handleDragEnd}
-            sensors={sensors}
-            id={sortableId}
-          >
-            <Table>
-              <TableHeader className="sticky top-0 z-10 bg-muted">
-                {table.getHeaderGroups().map((headerGroup) => (
-                  <TableRow key={headerGroup.id}>
-                    {headerGroup.headers.map((header) => {
-                      return (
-                        <TableHead key={header.id} colSpan={header.colSpan} className="text-xs font-semibold">
-                          {header.isPlaceholder
-                            ? null
-                            : flexRender(
-                                header.column.columnDef.header,
-                                header.getContext()
-                              )}
-                        </TableHead>
-                      )
-                    })}
-                  </TableRow>
-                ))}
-              </TableHeader>
-              <TableBody className="**:data-[slot=table-cell]:first:w-8">
-                {table.getRowModel().rows?.length ? (
-                  <SortableContext
-                    items={dataIds}
-                    strategy={verticalListSortingStrategy}
-                  >
-                    {table.getRowModel().rows.map((row) => (
-                      <DraggableRow key={row.id} row={row} />
-                    ))}
-                  </SortableContext>
-                ) : (
-                  <TableRow>
-                    <TableCell
-                      colSpan={columns.length}
-                      className="h-24 text-center text-sm font-medium text-muted-foreground"
-                    >
-                      No se encontraron usuarios registrados.
-                    </TableCell>
-                  </TableRow>
+        {/* Role Filter Pills */}
+        <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar pt-1">
+          {[
+            { key: "all", label: "Todos los Usuarios", count: roleCounts.all },
+            { key: "candidate", label: "Candidatos", count: roleCounts.candidate },
+            { key: "company", label: "Empresas", count: roleCounts.company },
+            { key: "admin", label: "Administradores", count: roleCounts.admin },
+          ].map((pill) => {
+            const isActive = activeTab === pill.key;
+            return (
+              <button
+                key={pill.key}
+                type="button"
+                onClick={() => {
+                  setActiveTab(pill.key);
+                  setPagination((prev) => ({ ...prev, pageIndex: 0 }));
+                }}
+                className={cn(
+                  "px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all shrink-0 cursor-pointer flex items-center gap-2 border",
+                  isActive
+                    ? "bg-foreground text-background border-foreground shadow-2xs"
+                    : "bg-muted/40 text-muted-foreground border-transparent hover:bg-muted hover:text-foreground"
                 )}
-              </TableBody>
-            </Table>
-          </DndContext>
+              >
+                <span>{pill.label}</span>
+                <span
+                  className={cn(
+                    "text-[10px] px-1.5 py-0.2 rounded-md font-mono font-bold",
+                    isActive ? "bg-background/20 text-background" : "bg-muted text-muted-foreground"
+                  )}
+                >
+                  {pill.count}
+                </span>
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* Table View */}
+      <div className="overflow-x-auto">
+        <Table className="w-full">
+          <TableHeader className="bg-muted/30 border-b border-border/60">
+            {table.getHeaderGroups().map((headerGroup) => (
+              <TableRow key={headerGroup.id} className="hover:bg-transparent">
+                {headerGroup.headers.map((header) => (
+                  <TableHead
+                    key={header.id}
+                    className="py-3.5 px-4 sm:px-6 font-extrabold text-xs uppercase tracking-wider text-muted-foreground"
+                  >
+                    {header.isPlaceholder
+                      ? null
+                      : flexRender(header.column.columnDef.header, header.getContext())}
+                  </TableHead>
+                ))}
+              </TableRow>
+            ))}
+          </TableHeader>
+          <TableBody className="divide-y divide-border/40">
+            {table.getRowModel().rows.length === 0 ? (
+              <TableRow>
+                <TableCell
+                  colSpan={columns.length}
+                  className="py-16 text-center text-muted-foreground"
+                >
+                  <div className="flex flex-col items-center justify-center gap-2">
+                    <UserIcon className="size-8 stroke-[1.4] text-muted-foreground/50" />
+                    <p className="text-sm font-bold text-foreground">No se encontraron usuarios</p>
+                    <p className="text-xs text-muted-foreground max-w-sm">
+                      No hay registros que coincidan con la búsqueda o filtro seleccionado.
+                    </p>
+                  </div>
+                </TableCell>
+              </TableRow>
+            ) : (
+              table.getRowModel().rows.map((row) => (
+                <TableRow key={row.id} className="hover:bg-muted/30 transition-colors">
+                  {row.getVisibleCells().map((cell) => (
+                    <TableCell key={cell.id} className="py-3.5 px-4 sm:px-6">
+                      {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                    </TableCell>
+                  ))}
+                </TableRow>
+              ))
+            )}
+          </TableBody>
+        </Table>
+      </div>
+
+      {/* Pagination Footer */}
+      <div className="p-4 border-t border-border/60 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-muted-foreground">
+        <div className="flex items-center gap-2">
+          <span>
+            Página <strong>{table.getState().pagination.pageIndex + 1}</strong> de{" "}
+            <strong>{Math.max(1, table.getPageCount())}</strong>
+          </span>
+          <span className="text-muted-foreground/60">•</span>
+          <span>
+            Mostrando {table.getRowModel().rows.length} de {filteredData.length} usuarios
+          </span>
         </div>
 
-        {/* Footer Pagination */}
-        <div className="flex flex-col sm:flex-row items-center justify-between gap-4 px-2 pt-2">
-          <div className="text-xs text-muted-foreground">
-            {table.getFilteredSelectedRowModel().rows.length} de{" "}
-            {table.getFilteredRowModel().rows.length} fila(s) seleccionadas.
+        <div className="flex items-center gap-1.5">
+          <Button
+            variant="outline"
+            size="icon"
+            onClick={() => table.setPageIndex(0)}
+            disabled={!table.getCanPreviousPage()}
+            className="size-8 rounded-lg border-border/60 cursor-pointer"
+          >
+            <ChevronsLeft className="size-4" />
+          </Button>
+          <Button
+            variant="outline"
+            size="icon"
+            onClick={() => table.previousPage()}
+            disabled={!table.getCanPreviousPage()}
+            className="size-8 rounded-lg border-border/60 cursor-pointer"
+          >
+            <ChevronLeft className="size-4" />
+          </Button>
+          <Button
+            variant="outline"
+            size="icon"
+            onClick={() => table.nextPage()}
+            disabled={!table.getCanNextPage()}
+            className="size-8 rounded-lg border-border/60 cursor-pointer"
+          >
+            <ChevronRight className="size-4" />
+          </Button>
+          <Button
+            variant="outline"
+            size="icon"
+            onClick={() => table.setPageIndex(table.getPageCount() - 1)}
+            disabled={!table.getCanNextPage()}
+            className="size-8 rounded-lg border-border/60 cursor-pointer"
+          >
+            <ChevronsRight className="size-4" />
+          </Button>
+        </div>
+      </div>
+
+      {/* Change Role Modal */}
+      <Dialog open={!!roleModalUser} onOpenChange={(open) => !open && setRoleModalUser(null)}>
+        <DialogContent className="max-w-md rounded-3xl p-6 border-border/60 shadow-2xl">
+          <DialogHeader className="gap-1.5 pb-2">
+            <DialogTitle className="text-base font-extrabold text-foreground flex items-center gap-2">
+              <ShieldCheck className="size-5 text-purple-600" />
+              <span>Cambiar Rol de Usuario</span>
+            </DialogTitle>
+            <DialogDescription className="text-xs text-muted-foreground">
+              Modifique los privilegios asignados para <strong className="text-foreground">{roleModalUser?.name}</strong> ({roleModalUser?.email}).
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-3 py-2">
+            <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+              Seleccionar Nuevo Rol
+            </Label>
+            <Select
+              value={newSelectedRole}
+              onValueChange={(val) => val && setNewSelectedRole(val as any)}
+            >
+              <SelectTrigger className="h-11 w-full rounded-2xl bg-muted/30 border-border/60 text-sm font-medium">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent className="rounded-2xl border-border/60">
+                <SelectGroup>
+                  <SelectItem value="candidate" className="text-xs py-2 font-bold cursor-pointer">
+                    Candidato (Buscador de Empleo)
+                  </SelectItem>
+                  <SelectItem value="company" className="text-xs py-2 font-bold cursor-pointer">
+                    Empresa (Reclutador / Publicador)
+                  </SelectItem>
+                  <SelectItem value="admin" className="text-xs py-2 font-bold cursor-pointer text-purple-600">
+                    Administrador (Acceso Total al Panel)
+                  </SelectItem>
+                </SelectGroup>
+              </SelectContent>
+            </Select>
           </div>
-          <div className="flex items-center gap-6">
-            <div className="hidden sm:flex items-center gap-2">
-              <Label htmlFor="rows-per-page" className="text-xs font-medium">
-                Filas por página
+
+          <DialogFooter className="gap-2 pt-2 border-t border-border/50">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setRoleModalUser(null)}
+              disabled={isUpdatingRole}
+              className="h-10 rounded-xl text-xs font-bold cursor-pointer"
+            >
+              Cancelar
+            </Button>
+            <Button
+              type="button"
+              onClick={handleConfirmRoleChange}
+              disabled={isUpdatingRole}
+              className="h-10 px-5 rounded-xl text-xs font-bold bg-primary text-primary-foreground hover:bg-primary/90 cursor-pointer shadow-xs"
+            >
+              {isUpdatingRole ? <Loader2 className="size-3.5 animate-spin" /> : <ShieldCheck className="size-4" />}
+              <span>Guardar Nuevo Rol</span>
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Suspend / Reactivate Confirmation Dialog */}
+      <AlertDialog open={!!statusDialogUser} onOpenChange={(open) => !open && setStatusDialogUser(null)}>
+        <AlertDialogContent className="rounded-3xl max-w-md p-6 border-border/60 shadow-2xl">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="text-base font-extrabold text-foreground flex items-center gap-2">
+              <UserX className="size-5 text-rose-600" />
+              <span>
+                {statusDialogUser?.status === "Activo"
+                  ? "Suspender Acceso de Usuario"
+                  : "Reactivar Cuenta de Usuario"}
+              </span>
+            </AlertDialogTitle>
+            <AlertDialogDescription className="text-xs text-muted-foreground pt-2 leading-relaxed">
+              {statusDialogUser?.status === "Activo" ? (
+                <>
+                  ¿Está seguro de suspender el acceso de <strong className="text-foreground">{statusDialogUser?.name}</strong>? El usuario no podrá iniciar sesión en la plataforma hasta ser reactivado.
+                </>
+              ) : (
+                <>
+                  ¿Desea reactivar la cuenta de <strong className="text-foreground">{statusDialogUser?.name}</strong> para que vuelva a tener acceso normal a la plataforma?
+                </>
+              )}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter className="gap-2 pt-2">
+            <AlertDialogCancel disabled={isUpdatingStatus} className="h-10 rounded-xl text-xs font-bold cursor-pointer">
+              Cancelar
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleConfirmStatusToggle}
+              disabled={isUpdatingStatus}
+              className={cn(
+                "h-10 rounded-xl text-xs font-bold cursor-pointer shadow-xs",
+                statusDialogUser?.status === "Activo"
+                  ? "bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                  : "bg-emerald-600 text-white hover:bg-emerald-700"
+              )}
+            >
+              {isUpdatingStatus ? "Procesando..." : statusDialogUser?.status === "Activo" ? "Confirmar Suspensión" : "Reactivar Cuenta"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Edit User Detail Drawer */}
+      <Drawer open={drawerOpen} onOpenChange={setDrawerOpen}>
+        <DrawerContent className="p-6 max-w-lg mx-auto rounded-t-3xl border-border/60 bg-card">
+          <DrawerHeader className="p-0 pb-4 text-left">
+            <DrawerTitle className="text-lg font-extrabold text-foreground">
+              Ficha del Usuario: {drawerUser?.name}
+            </DrawerTitle>
+            <DrawerDescription className="text-xs text-muted-foreground">
+              ID: {drawerUser?.id} • Registrado el {drawerUser?.createdAt}
+            </DrawerDescription>
+          </DrawerHeader>
+
+          <form onSubmit={handleSaveDrawer} className="space-y-4 py-2">
+            <div className="space-y-1.5">
+              <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                Nombre Completo
+              </Label>
+              <Input
+                value={drawerName}
+                onChange={(e) => setDrawerName(e.target.value)}
+                required
+                className="h-10 rounded-xl bg-muted/30 border-border/60 text-xs sm:text-sm font-medium"
+              />
+            </div>
+
+            <div className="space-y-1.5">
+              <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                Correo Electrónico
+              </Label>
+              <Input
+                value={drawerUser?.email}
+                disabled
+                className="h-10 rounded-xl bg-muted/20 border-border/40 text-xs sm:text-sm font-mono text-muted-foreground"
+              />
+            </div>
+
+            <div className="space-y-1.5">
+              <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                Rol en la Plataforma
               </Label>
               <Select
-                value={`${table.getState().pagination.pageSize}`}
-                onValueChange={(value) => {
-                  table.setPageSize(Number(value))
-                }}
+                value={drawerRole}
+                onValueChange={(val) => val && setDrawerRole(val as any)}
               >
-                <SelectTrigger size="sm" className="w-16 h-8 text-xs" id="rows-per-page">
-                  <SelectValue placeholder={table.getState().pagination.pageSize} />
+                <SelectTrigger className="h-10 w-full rounded-xl bg-muted/30 border-border/60 text-xs sm:text-sm font-medium">
+                  <SelectValue />
                 </SelectTrigger>
-                <SelectContent side="top">
+                <SelectContent className="rounded-2xl border-border/60">
                   <SelectGroup>
-                    {[10, 20, 30, 40, 50].map((pageSize) => (
-                      <SelectItem key={pageSize} value={`${pageSize}`}>
-                        {pageSize}
-                      </SelectItem>
-                    ))}
+                    <SelectItem value="candidate" className="text-xs py-2 font-bold">Candidato</SelectItem>
+                    <SelectItem value="company" className="text-xs py-2 font-bold">Empresa</SelectItem>
+                    <SelectItem value="admin" className="text-xs py-2 font-bold text-purple-600">Administrador</SelectItem>
                   </SelectGroup>
                 </SelectContent>
               </Select>
             </div>
-            <div className="text-xs font-medium">
-              Página {table.getState().pagination.pageIndex + 1} de{" "}
-              {table.getPageCount()}
-            </div>
-            <div className="flex items-center gap-1.5">
-              <Button
-                variant="outline"
-                size="icon"
-                className="size-8"
-                onClick={() => table.setPageIndex(0)}
-                disabled={!table.getCanPreviousPage()}
-              >
-                <ChevronsLeftIcon className="size-4" />
-              </Button>
-              <Button
-                variant="outline"
-                size="icon"
-                className="size-8"
-                onClick={() => table.previousPage()}
-                disabled={!table.getCanPreviousPage()}
-              >
-                <ChevronLeftIcon className="size-4" />
-              </Button>
-              <Button
-                variant="outline"
-                size="icon"
-                className="size-8"
-                onClick={() => table.nextPage()}
-                disabled={!table.getCanNextPage()}
-              >
-                <ChevronRightIcon className="size-4" />
-              </Button>
-              <Button
-                variant="outline"
-                size="icon"
-                className="size-8"
-                onClick={() => table.setPageIndex(table.getPageCount() - 1)}
-                disabled={!table.getCanNextPage()}
-              >
-                <ChevronsRightIcon className="size-4" />
-              </Button>
-            </div>
-          </div>
-        </div>
 
-      </div>
-    </Card>
-  )
-}
-
-function UserCellViewer({ user }: { user: UserItem }) {
-  const isMobile = useIsMobile()
-  const initials = getInitials(user.name)
-
-  return (
-    <Drawer swipeDirection={isMobile ? "down" : "right"}>
-      <DrawerTrigger
-        render={
-          <Button variant="link" className="w-fit p-0 h-auto text-left font-semibold text-sm text-foreground hover:text-primary gap-2.5" />
-        }
-      >
-        <Avatar className="h-8 w-8 rounded-full border border-border/20 shrink-0">
-          <AvatarImage src={user.avatar} alt={user.name} />
-          <AvatarFallback className="bg-primary/10 text-primary font-bold text-xs">
-            {initials}
-          </AvatarFallback>
-        </Avatar>
-        <div className="flex flex-col text-left">
-          <span className="font-semibold text-sm leading-tight text-foreground">{user.name}</span>
-          <span className="text-xs text-muted-foreground font-normal">{user.email}</span>
-        </div>
-      </DrawerTrigger>
-      <DrawerContent className="rounded-t-2xl md:rounded-l-2xl p-6">
-        <DrawerHeader className="gap-2 px-0 pt-0">
-          <div className="flex items-center gap-3">
-            <Avatar className="h-12 w-12 rounded-full border border-border/20 shrink-0">
-              <AvatarImage src={user.avatar} alt={user.name} />
-              <AvatarFallback className="bg-primary/10 text-primary font-bold text-sm">
-                {initials}
-              </AvatarFallback>
-            </Avatar>
-            <div>
-              <DrawerTitle className="text-xl font-bold tracking-tight">{user.name}</DrawerTitle>
-              <DrawerDescription className="text-sm text-muted-foreground">
-                {user.email}
-              </DrawerDescription>
-            </div>
-          </div>
-        </DrawerHeader>
-        <div className="flex flex-col gap-5 overflow-y-auto px-0 py-4 text-sm">
-          <Separator />
-          <form className="flex flex-col gap-4">
-            <div className="flex flex-col gap-2">
-              <Label htmlFor="user-name" className="text-xs font-semibold">Nombre Completo</Label>
-              <Input id="user-name" defaultValue={user.name} className="h-10 text-sm" />
-            </div>
-            <div className="flex flex-col gap-2">
-              <Label htmlFor="user-email" className="text-xs font-semibold">Correo Electrónico</Label>
-              <Input id="user-email" defaultValue={user.email} className="h-10 text-sm" />
-            </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div className="flex flex-col gap-2">
-                <Label htmlFor="user-role" className="text-xs font-semibold">Rol Asignado</Label>
-                <Select defaultValue={user.role}>
-                  <SelectTrigger id="user-role" className="w-full h-10 text-xs">
-                    <SelectValue placeholder="Seleccionar rol" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectGroup>
-                      <SelectItem value="candidate">Candidato</SelectItem>
-                      <SelectItem value="company">Empresa</SelectItem>
-                      <SelectItem value="admin">Administrador</SelectItem>
-                    </SelectGroup>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="flex flex-col gap-2">
-                <Label htmlFor="user-status" className="text-xs font-semibold">Estado de Cuenta</Label>
-                <Select defaultValue={user.status === "Verified" ? "Activo" : user.status}>
-                  <SelectTrigger id="user-status" className="w-full h-10 text-xs">
-                    <SelectValue placeholder="Seleccionar estado" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectGroup>
-                      <SelectItem value="Activo">Activo</SelectItem>
-                      <SelectItem value="Pendiente">Pendiente</SelectItem>
-                      <SelectItem value="Inactivo">Inactivo</SelectItem>
-                    </SelectGroup>
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
+            <DrawerFooter className="p-0 pt-4 flex flex-row items-center justify-end gap-2">
+              <DrawerClose render={<Button variant="outline" className="h-10 rounded-xl text-xs font-bold cursor-pointer" />}>
+                Cancelar
+              </DrawerClose>
+              <Button
+                type="submit"
+                disabled={isSavingDrawer}
+                className="h-10 px-5 rounded-xl text-xs font-bold bg-primary text-primary-foreground hover:bg-primary/90 cursor-pointer shadow-xs"
+              >
+                {isSavingDrawer ? <Loader2 className="size-3.5 animate-spin" /> : <CircleCheck className="size-4" />}
+                <span>Guardar Cambios</span>
+              </Button>
+            </DrawerFooter>
           </form>
-        </div>
-        <DrawerFooter className="px-0 pt-4 flex flex-row gap-2">
-          <Button
-            className="h-10 px-4 font-semibold text-xs flex-1"
-            onClick={() => toast.success("Perfil de usuario actualizado correctamente")}
-          >
-            Guardar Cambios
-          </Button>
-          <DrawerClose
-            render={
-              <Button variant="outline" className="h-10 px-4 font-semibold text-xs" />
-            }
-          >
-            Cerrar
-          </DrawerClose>
-        </DrawerFooter>
-      </DrawerContent>
-    </Drawer>
-  )
+        </DrawerContent>
+      </Drawer>
+
+    </Card>
+  );
 }

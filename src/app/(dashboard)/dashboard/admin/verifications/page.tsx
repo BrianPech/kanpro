@@ -3,22 +3,19 @@ import {
   getCandidateVerifications,
 } from "./actions";
 import { VerificationWorkbenchClient } from "./verification-workbench-client";
-import { Badge } from "@/components/ui/badge";
+import { Card } from "@/components/ui/card";
 import {
-  Card,
-  CardAction,
-  CardDescription,
-  CardFooter,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import {
-  BadgeCheckIcon,
-  Building2Icon,
-  UserCheckIcon,
-  ShieldCheckIcon,
-  FileCheckIcon,
+  BadgeCheck,
+  Building2,
+  Users,
+  ShieldCheck,
+  Clock,
 } from "lucide-react";
+
+export const metadata = {
+  title: "Verificación de Expedientes | K'anPro Admin",
+  description: "Auditoría fiscal, legal y validación de documentos oficiales en K'anPro.",
+};
 
 export default async function AdminVerificationsPage() {
   // Fetch real verification lists from Supabase
@@ -29,103 +26,96 @@ export default async function AdminVerificationsPage() {
 
   const verifiedCompaniesCount = companies.filter((c) => c.isVerified).length;
   const verifiedCandidatesCount = candidates.filter((c) => c.isVerified).length;
-  const pendingCompaniesCount = companies.filter((c) => !c.isVerified).length;
+  const pendingCompaniesCount = companies.filter((c) => !c.isVerified && c.verificationStatus === "pending").length;
+  const totalAudits = companies.length + candidates.length;
 
   return (
-    <div className="flex flex-1 flex-col gap-6">
-      {/* Page Title & Header */}
-      <div className="flex flex-col gap-1">
-        <h1 className="text-xl font-bold tracking-tight text-foreground sm:text-2xl flex items-center gap-2">
-          <BadgeCheckIcon className="size-6 text-purple-600" />
-          <span>Verificación Manual de Expedientes y Documentos</span>
-        </h1>
-        <p className="text-xs text-muted-foreground">
-          Audite RFC, Cédulas Profesionales, registros patronales y archivos cargados por Empresas y Candidatos en K’anPro.
-        </p>
-      </div>
-
-      {/* KPI Summary Cards */}
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-        <Card className="rounded-2xl border-border/40 bg-card shadow-xs">
-          <CardHeader>
-            <CardDescription>Empresas Verificadas</CardDescription>
-            <CardTitle className="text-2xl font-semibold tabular-nums">
-              {verifiedCompaniesCount} / {companies.length}
-            </CardTitle>
-            <CardAction>
-              <Badge variant="outline">
-                <Building2Icon className="size-3.5 text-blue-500" />
-                Empresas
-              </Badge>
-            </CardAction>
-          </CardHeader>
-          <CardFooter className="flex-col items-start gap-1.5 text-sm">
-            <div className="line-clamp-1 flex gap-2 font-medium">
-              Con Badge Verificado{" "}
-              <ShieldCheckIcon className="size-4 text-emerald-500" />
+    <div className="flex flex-1 flex-col gap-6 pb-8 animate-in fade-in duration-200">
+      
+      {/* 4 KPI Summary Cards */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3.5">
+        <Card className="bg-card border border-border/60 rounded-2xl p-4 shadow-xs flex flex-col justify-between hover:border-border transition-colors">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-bold text-muted-foreground uppercase tracking-wider">
+              Empresas Validadas
+            </span>
+            <div className="size-8 rounded-xl bg-purple-500/10 text-purple-600 dark:text-purple-400 flex items-center justify-center">
+              <Building2 className="size-4" />
             </div>
-            <div className="text-muted-foreground text-xs">
-              Documentación fiscal auditada
-            </div>
-          </CardFooter>
+          </div>
+          <div className="mt-2 space-y-0.5">
+            <h3 className="text-2xl sm:text-3xl font-extrabold text-foreground font-mono">
+              {verifiedCompaniesCount} <span className="text-xs text-muted-foreground font-sans">/ {companies.length}</span>
+            </h3>
+            <p className="text-[11px] font-semibold text-muted-foreground">
+              Con Sello Verificado activo
+            </p>
+          </div>
         </Card>
 
-        <Card className="rounded-2xl border-border/40 bg-card shadow-xs">
-          <CardHeader>
-            <CardDescription>Candidatos Verificados</CardDescription>
-            <CardTitle className="text-2xl font-semibold tabular-nums">
-              {verifiedCandidatesCount} / {candidates.length}
-            </CardTitle>
-            <CardAction>
-              <Badge variant="outline">
-                <UserCheckIcon className="size-3.5 text-purple-500" />
-                Candidatos
-              </Badge>
-            </CardAction>
-          </CardHeader>
-          <CardFooter className="flex-col items-start gap-1.5 text-sm">
-            <div className="line-clamp-1 flex gap-2 font-medium">
-              Expedientes validados{" "}
-              <FileCheckIcon className="size-4 text-purple-500" />
+        <Card className="bg-card border border-border/60 rounded-2xl p-4 shadow-xs flex flex-col justify-between hover:border-border transition-colors">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-bold text-indigo-600 dark:text-indigo-400 uppercase tracking-wider">
+              Candidatos Validados
+            </span>
+            <div className="size-8 rounded-xl bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 flex items-center justify-center">
+              <Users className="size-4" />
             </div>
-            <div className="text-muted-foreground text-xs">
+          </div>
+          <div className="mt-2 space-y-0.5">
+            <h3 className="text-2xl sm:text-3xl font-extrabold text-foreground font-mono">
+              {verifiedCandidatesCount} <span className="text-xs text-muted-foreground font-sans">/ {candidates.length}</span>
+            </h3>
+            <p className="text-[11px] font-semibold text-muted-foreground">
               Cédula e INE verificados
-            </div>
-          </CardFooter>
+            </p>
+          </div>
         </Card>
 
-        <Card className="rounded-2xl border-border/40 bg-card shadow-xs">
-          <CardHeader>
-            <CardDescription>Auditorías Pendientes</CardDescription>
-            <CardTitle className="text-2xl font-semibold tabular-nums">
+        <Card className="bg-card border border-border/60 rounded-2xl p-4 shadow-xs flex flex-col justify-between hover:border-border transition-colors">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-bold text-amber-600 dark:text-amber-400 uppercase tracking-wider">
+              Auditorías Pendientes
+            </span>
+            <div className="size-8 rounded-xl bg-amber-500/10 text-amber-600 dark:text-amber-400 flex items-center justify-center">
+              <Clock className="size-4" />
+            </div>
+          </div>
+          <div className="mt-2 space-y-0.5">
+            <h3 className="text-2xl sm:text-3xl font-extrabold text-foreground font-mono">
               {pendingCompaniesCount}
-            </CardTitle>
-            <CardAction>
-              <Badge variant="outline">
-                <ShieldCheckIcon className="size-3.5 text-amber-500" />
-                Por Revisar
-              </Badge>
-            </CardAction>
-          </CardHeader>
-          <CardFooter className="flex-col items-start gap-1.5 text-sm">
-            <div className="line-clamp-1 flex gap-2 font-medium">
-              Revisión prioritaria{" "}
-              <BadgeCheckIcon className="size-4 text-amber-500" />
+            </h3>
+            <p className="text-[11px] font-semibold text-muted-foreground">
+              Por dictaminar por staff
+            </p>
+          </div>
+        </Card>
+
+        <Card className="bg-card border border-border/60 rounded-2xl p-4 shadow-xs flex flex-col justify-between hover:border-border transition-colors">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-bold text-emerald-600 dark:text-emerald-400 uppercase tracking-wider">
+              Total Expedientes
+            </span>
+            <div className="size-8 rounded-xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center">
+              <ShieldCheck className="size-4" />
             </div>
-            <div className="text-muted-foreground text-xs">
-              Pendientes de dictamen de staff
-            </div>
-          </CardFooter>
+          </div>
+          <div className="mt-2 space-y-0.5">
+            <h3 className="text-2xl sm:text-3xl font-extrabold text-foreground font-mono">
+              {totalAudits}
+            </h3>
+            <p className="text-[11px] font-semibold text-muted-foreground">
+              Entidades en plataforma
+            </p>
+          </div>
         </Card>
       </div>
 
-      {/* Main Interactive Verification Workbench */}
-      <div>
-        <VerificationWorkbenchClient
-          initialCompanies={companies}
-          initialCandidates={candidates}
-        />
-      </div>
+      {/* Main Interactive Verification Workbench with TanStack Table */}
+      <VerificationWorkbenchClient
+        initialCompanies={companies}
+        initialCandidates={candidates}
+      />
     </div>
   );
 }

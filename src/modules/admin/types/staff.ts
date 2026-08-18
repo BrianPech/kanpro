@@ -61,6 +61,16 @@ export const ALL_PERMISSIONS: PermissionDefinition[] = [
   },
 ];
 
+export const STAFF_DEPARTMENTS = [
+  { value: "Operaciones", label: "Operaciones & Logística" },
+  { value: "Validación y Expedientes", label: "Validación & Expedientes" },
+  { value: "Dirección General", label: "Dirección General / Directiva" },
+  { value: "Publicaciones y Vacantes", label: "Publicaciones & Vacantes" },
+  { value: "Atención al Usuario", label: "Atención al Usuario / Soporte" },
+  { value: "Tecnología e Infraestructura", label: "Tecnología & Infraestructura" },
+  { value: "Legal y Cumplimiento", label: "Legal & Cumplimiento" },
+] as const;
+
 export const SUB_ROLE_LABELS: Record<AdminSubRole, { label: string; badgeClass: string; defaultPermissions: AdminPermissionKey[] }> = {
   super_admin: {
     label: "Super Administrador",

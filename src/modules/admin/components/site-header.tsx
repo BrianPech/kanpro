@@ -22,7 +22,6 @@ const routeNames: Record<string, string> = {
   "/dashboard/admin/staff": "Administradores y Personal",
   "/dashboard/admin/staff/new": "Nuevo Administrador",
   "/dashboard/admin/settings": "Configuración del Sistema",
-  "/dashboard/admin/sla": "Monitor de SLAs",
 };
 
 export function SiteHeader() {

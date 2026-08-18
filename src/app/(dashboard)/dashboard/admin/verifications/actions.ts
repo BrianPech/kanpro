@@ -222,6 +222,158 @@ export async function getCompanyVerifications(): Promise<PendingCompanyItem[]> {
 }
 
 /**
+ * Consulta el expediente completo de una empresa específica por su ID.
+ */
+export async function getCompanyVerificationById(companyId: string): Promise<PendingCompanyItem | null> {
+  const { supabase } = await requireAdminAuth();
+
+  const { data: company, error } = await supabase
+    .from("company_profiles")
+    .select("*")
+    .eq("id", companyId)
+    .maybeSingle();
+
+  if (error || !company) {
+    return null;
+  }
+
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("id, email, whatsapp_number, is_verified")
+    .eq("id", companyId)
+    .maybeSingle();
+
+  const { data: dbDocs } = await supabase
+    .from("profile_documents")
+    .select("*")
+    .eq("owner_id", companyId);
+
+  const uploadedDocs: ProfileDocumentItem[] = [];
+  if (dbDocs && dbDocs.length > 0) {
+    for (const doc of dbDocs) {
+      uploadedDocs.push(await toAdminDocumentItem(supabase, doc));
+    }
+  }
+
+  const docMap = new Map(uploadedDocs.map((d) => [d.docType, d.fileUrl]));
+
+  return {
+    id: company.id,
+    companyName: company.company_name,
+    legalName: company.legal_name || undefined,
+    rfc: company.rfc || "Sin RFC registrado",
+    entityType: (company.entity_type as string) || undefined,
+    fiscalAddress: company.fiscal_address || undefined,
+    addressDetails: company.address_details || undefined,
+    industry: company.industry || "General",
+    companySize: company.company_size || undefined,
+    operationHours: company.operation_hours || undefined,
+    websiteUrl: company.website_url || undefined,
+    imssPatronalRegistry: company.imss_patronal_registry || undefined,
+    repseRegistry: company.repse_registry || undefined,
+    legalRepName: company.legal_rep_name || undefined,
+    verificationStatus: (company.verification_status as PendingCompanyItem["verificationStatus"]) || "pending",
+    isVerified: profile?.is_verified || false,
+    contactEmail: company.corporate_email || profile?.email || "Sin correo",
+    contactPhone: company.contact_phone || profile?.whatsapp_number || "Sin teléfono",
+    dbUploadedDocuments: uploadedDocs,
+    documents: {
+      rfcConstanciaUrl: docMap.get("constancia_situacion_fiscal"),
+      imssRegistryUrl: docMap.get("imss_registry"),
+      repseUrl: docMap.get("repse"),
+      legalRepIdUrl: docMap.get("legal_rep_id"),
+      proofOfAddressUrl: docMap.get("proof_of_address"),
+      actaConstitutivaUrl: docMap.get("acta_constitutiva"),
+    },
+    createdAt: company.created_at
+      ? new Date(company.created_at).toLocaleDateString("es-ES", {
+          day: "numeric",
+          month: "short",
+          year: "numeric",
+        })
+      : "Reciente",
+    updatedAt: company.updated_at || new Date().toISOString(),
+  };
+}
+
+/**
+ * Consulta el expediente completo de un candidato específico por su ID.
+ */
+export async function getCandidateVerificationById(candidateId: string): Promise<PendingCandidateItem | null> {
+  const { supabase } = await requireAdminAuth();
+
+  const { data: candidate, error } = await supabase
+    .from("candidate_profiles")
+    .select("*")
+    .eq("id", candidateId)
+    .maybeSingle();
+
+  if (error || !candidate) {
+    return null;
+  }
+
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("id, full_name, email, whatsapp_number, is_verified")
+    .eq("id", candidateId)
+    .maybeSingle();
+
+  const { data: privateProfile } = await supabase
+    .from("candidate_private_profiles")
+    .select("id, curp, rfc, cedula_profesional")
+    .eq("id", candidateId)
+    .maybeSingle();
+
+  const { data: dbDocs } = await supabase
+    .from("profile_documents")
+    .select("*")
+    .eq("owner_id", candidateId);
+
+  const uploadedDocs: ProfileDocumentItem[] = [];
+  if (dbDocs && dbDocs.length > 0) {
+    for (const doc of dbDocs) {
+      uploadedDocs.push(await toAdminDocumentItem(supabase, doc));
+    }
+  }
+
+  const docMap = new Map(uploadedDocs.map((d) => [d.docType, d.fileUrl]));
+
+  return {
+    id: candidate.id,
+    fullName: profile?.full_name || "Candidato K’anPro",
+    email: profile?.email || "Sin correo",
+    phone: profile?.whatsapp_number || "Sin teléfono",
+    candidateType: (candidate.candidate_type as PendingCandidateItem["candidateType"]) || "operativo",
+    specializationArea: candidate.specialization_area || undefined,
+    yearsExperience: candidate.years_experience || undefined,
+    cedulaProfesional: privateProfile?.cedula_profesional || undefined,
+    rfc: privateProfile?.rfc || undefined,
+    curp: privateProfile?.curp || undefined,
+    headline: candidate.headline || undefined,
+    bio: candidate.bio || undefined,
+    preferredZone: candidate.preferred_zone || undefined,
+    tradeDescription: candidate.trade_description || undefined,
+    skills: Array.isArray(candidate.skills) ? (candidate.skills as string[]) : undefined,
+    isVerified: profile?.is_verified || false,
+    dbUploadedDocuments: uploadedDocs,
+    documents: {
+      cedulaUrl: docMap.get("cedula_profesional"),
+      curpDocUrl: docMap.get("curp"),
+      cvUrl: docMap.get("cv"),
+      ineUrl: docMap.get("ine_passport"),
+      portfolioUrl: Array.isArray(candidate.portfolio_links) ? (candidate.portfolio_links[0] as string) : undefined,
+    },
+    createdAt: candidate.created_at
+      ? new Date(candidate.created_at).toLocaleDateString("es-ES", {
+          day: "numeric",
+          month: "short",
+          year: "numeric",
+        })
+      : "Reciente",
+  };
+}
+
+/**
  * Consulta la lista de candidatos para auditoría de expedientes profesionales desde Supabase (incluyendo profile_documents).
  */
 export async function getCandidateVerifications(): Promise<PendingCandidateItem[]> {
