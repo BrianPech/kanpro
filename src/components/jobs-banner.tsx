@@ -18,7 +18,7 @@ export function JobsBanner() {
         </h3>
 
         <Link
-          href="/discovery"
+          href="/dashboard/candidate/discovery"
           className="z-10 bg-background text-primary hover:bg-background/90 font-semibold h-12 px-8 rounded-full text-sm tracking-[0.24px] transition-all duration-200 inline-flex items-center gap-2"
         >
           <span>Explorar ofertas</span>

@@ -9,9 +9,9 @@ export function Footer() {
     {
       title: "Para Empresas",
       links: [
-        { label: "Cómo publicar", href: "/discovery" },
-        { label: "Catálogo de candidatos", href: "/discovery" },
-        { label: "Sello de Calidad", href: "/discovery" },
+        { label: "Cómo publicar", href: "/register/company" },
+        { label: "Catálogo de candidatos", href: "/register/company" },
+        { label: "Sello de Calidad", href: "/register/company" },
         { label: "Zonas de cobertura", href: "#features" },
         { label: "Planes locales", href: "#pricing" },
       ],
@@ -20,7 +20,7 @@ export function Footer() {
       title: "Para Candidatos",
       links: [
         { label: "Crear CV Digital", href: "/register/candidate" },
-        { label: "Buscar ofertas", href: "/discovery" },
+        { label: "Buscar ofertas", href: "/dashboard/candidate/discovery" },
         { label: "Control de Privacidad", href: "#features" },
         { label: "Preguntas Frecuentes", href: "#" },
       ],

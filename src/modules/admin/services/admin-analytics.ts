@@ -101,7 +101,7 @@ export async function getAdminDashboardMetrics(): Promise<AdminDashboardMetrics>
             : "Reciente",
           status: "active",
           statusLabel: "En Vivo",
-          actionUrl: `/discovery`,
+          actionUrl: `/dashboard/candidate/discovery?jobId=${vac.id}`,
           actionLabel: "Ver Vacante",
         });
       });

@@ -105,7 +105,7 @@ export function CtaBanner() {
             <Button 
               variant="outline"
               className="h-12 px-6 rounded-full border border-border hover:bg-muted text-foreground font-semibold text-sm tracking-[0.24px] transition-all duration-200 cursor-pointer" 
-              render={<Link href="/discovery" />}
+              render={<Link href="/register/company" />}
             >
               Explorar Candidatos
             </Button>

@@ -129,7 +129,7 @@ export function Navbar() {
                         <div className="text-[10px] text-muted-foreground mt-0.5">Sube una oferta de empleo local en segundos sin complicaciones.</div>
                       </div>
                     </NavigationMenuLink>
-                    <NavigationMenuLink render={<Link href="/discovery" className="flex items-start gap-3 hover:bg-muted/50 cursor-pointer" />}>
+                    <NavigationMenuLink render={<Link href="/register/company" className="flex items-start gap-3 hover:bg-muted/50 cursor-pointer" />}>
                       <div className="size-8 rounded-lg bg-amber-500/10 text-amber-600 dark:text-amber-400 flex items-center justify-center shrink-0">
                         <Search className="size-4.5" />
                       </div>
@@ -156,7 +156,7 @@ export function Navbar() {
                     Encontrar Trabajo
                   </NavigationMenuTrigger>
                   <NavigationMenuContent className="w-[320px] p-2 flex flex-col gap-1 md:w-[320px]">
-                    <NavigationMenuLink render={<Link href="/discovery" className="flex items-start gap-3 hover:bg-muted/50 cursor-pointer" />}>
+                    <NavigationMenuLink render={<Link href="/dashboard/candidate/discovery" className="flex items-start gap-3 hover:bg-muted/50 cursor-pointer" />}>
                       <div className="size-8 rounded-lg bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0">
                         <Briefcase className="size-4.5" />
                       </div>
@@ -235,7 +235,7 @@ export function Navbar() {
                 {/* Flat Link: Explorar */}
                 <NavigationMenuItem>
                   <NavigationMenuLink
-                    render={<Link href="/discovery" />}
+                    render={<Link href="/dashboard/candidate/discovery" />}
                     className={cn(navigationMenuTriggerStyle(), "bg-transparent hover:bg-muted/40 text-muted-foreground hover:text-foreground focus:text-foreground cursor-pointer")}
                   >
                     Explorar
@@ -299,7 +299,7 @@ export function Navbar() {
 
                 <nav className="flex flex-col gap-1 py-4">
                   <Link 
-                    href="/discovery" 
+                    href="/dashboard/candidate/discovery" 
                     onClick={() => setOpenMobile(false)}
                     className="flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-muted/50 font-medium text-foreground text-sm transition-all"
                   >

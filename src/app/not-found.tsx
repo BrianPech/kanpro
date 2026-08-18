@@ -20,7 +20,7 @@ export default function NotFound() {
           <Home className="mr-2 h-4 w-4" />
           Ir al Inicio
         </Button>
-        <Button render={<Link href="/discovery" />} variant="outline" className="rounded-full px-6">
+        <Button render={<Link href="/dashboard/candidate/discovery" />} variant="outline" className="rounded-full px-6">
           Explorar Vacantes
         </Button>
       </div>

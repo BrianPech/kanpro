@@ -49,7 +49,7 @@ export function ContactForm() {
           Gracias por contactarnos. Hemos recibido tu mensaje y te responderemos a la brevedad posible.
         </p>
         <Link
-          href="/discovery"
+          href="/"
           className="text-[15px] font-semibold text-primary hover:text-primary/80 transition-colors mt-4"
         >
           Volver al inicio
@@ -60,7 +60,7 @@ export function ContactForm() {
 
   return (
     <div className="w-full max-w-[480px] flex flex-col gap-8">
-      <Link href="/discovery" className="flex items-center gap-2 text-[14px] font-semibold text-muted-foreground hover:text-foreground transition-colors w-fit">
+      <Link href="/" className="flex items-center gap-2 text-[14px] font-semibold text-muted-foreground hover:text-foreground transition-colors w-fit">
         <ArrowLeft className="h-4 w-4" />
         Volver
       </Link>
