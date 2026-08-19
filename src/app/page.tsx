@@ -1,14 +1,14 @@
 "use client";
 
 import React from "react";
-import { Navbar } from "@/components/navbar";
-import { HeroSection } from "@/components/hero-section";
-import { FeaturesSection } from "@/components/features-section";
-import { HowItWorks } from "@/components/how-it-works";
-import { CtaBanner } from "@/components/cta-banner";
-import { PricingSection } from "@/components/pricing-section";
-import { JobsBanner } from "@/components/jobs-banner";
-import { Footer } from "@/components/footer";
+import { Navbar } from "@/components/marketing/navbar";
+import { HeroSection } from "@/components/marketing/hero-section";
+import { FeaturesSection } from "@/components/marketing/features-section";
+import { HowItWorks } from "@/components/marketing/how-it-works";
+import { CtaBanner } from "@/components/marketing/cta-banner";
+import { PricingSection } from "@/components/marketing/pricing-section";
+import { JobsBanner } from "@/components/marketing/jobs-banner";
+import { Footer } from "@/components/marketing/footer";
 
 export default function Home() {
 

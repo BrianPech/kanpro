@@ -1,4 +1,4 @@
-import { NewStaffFormClient } from "./new-staff-form-client";
+import { NewStaffFormClient } from "@/modules/admin/components/new-staff-form";
 
 export const metadata = {
   title: "Dar de Alta Staff | K'anPro Admin",

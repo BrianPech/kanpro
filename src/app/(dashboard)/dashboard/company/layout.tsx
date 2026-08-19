@@ -1,9 +1,9 @@
 import * as React from "react";
 import { SidebarProvider, SidebarInset } from "@/components/ui/sidebar";
-import { CompanySidebar } from "@/components/dashboard/company-sidebar";
+import { CompanySidebar } from "@/modules/company/components/navigation/company-sidebar";
 import { getDashboardSession } from "@/modules/auth/services/dashboard-session";
-import { DashboardTopbar } from "@/components/dashboard/dashboard-topbar";
-import { CompanyBottomNav } from "@/components/dashboard/company-bottom-nav";
+import { CompanyTopbar } from "@/modules/company/components/navigation/company-topbar";
+import { CompanyBottomNav } from "@/modules/company/components/navigation/company-bottom-nav";
 import { ScrollArea } from "@/components/ui/scroll-area";
 
 export default async function CompanyDashboardLayout({
@@ -25,7 +25,7 @@ export default async function CompanyDashboardLayout({
     >
       <CompanySidebar variant="inset" />
       <SidebarInset className="flex flex-1 flex-col overflow-hidden bg-background">
-        <DashboardTopbar
+        <CompanyTopbar
           userName={userName}
           userInitials={userInitials}
           plan={plan}

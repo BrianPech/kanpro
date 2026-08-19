@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import { getSupportTicketById } from "@/app/(dashboard)/dashboard/admin/support/actions";
-import { TicketWorkbenchClient } from "./ticket-workbench-client";
+import { TicketWorkbenchClient } from "@/modules/admin/components/ticket-workbench";
 import { Button } from "@/components/ui/button";
 import { ArrowLeftIcon } from "lucide-react";
 

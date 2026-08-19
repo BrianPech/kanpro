@@ -4,7 +4,7 @@ import * as React from "react";
 import { ChevronLeft, Edit2, Trash2, AlertTriangle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { useVacancyManager, type VacancyRow } from "@/hooks/use-vacancy-manager";
+import { useVacancyManager, type VacancyRow } from "@/modules/company/hooks/use-vacancy-manager";
 import { createClient } from "@/lib/supabase/client";
 import { toast } from "sonner";
 import Link from "next/link";

@@ -2,7 +2,7 @@ import {
   getCompanyVerifications,
   getCandidateVerifications,
 } from "./actions";
-import { VerificationWorkbenchClient } from "./verification-workbench-client";
+import { VerificationWorkbenchClient } from "@/modules/admin/components/verification-workbench";
 import { Card } from "@/components/ui/card";
 import {
   BadgeCheck,

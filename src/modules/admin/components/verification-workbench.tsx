@@ -51,7 +51,7 @@ import {
   reviewCompanyVerification,
   reviewCandidateVerification,
   reviewProfileDocument,
-} from "./actions";
+} from "@/app/(dashboard)/dashboard/admin/verifications/actions";
 import {
   BadgeCheck,
   Building2,

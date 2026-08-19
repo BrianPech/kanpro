@@ -126,3 +126,5 @@ export function DashboardTopbar({
     </header>
   );
 }
+
+export { DashboardTopbar as CompanyTopbar };

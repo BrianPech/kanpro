@@ -57,7 +57,7 @@ import {
 } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
 import Link from "next/link";
-import type { VacancyRow } from "@/hooks/use-vacancy-manager";
+import type { VacancyRow } from "@/modules/company/hooks/use-vacancy-manager";
 
 export interface VacancyTableItem extends VacancyRow {
   applicants_count?: number;

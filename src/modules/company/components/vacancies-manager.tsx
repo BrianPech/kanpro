@@ -24,7 +24,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Card } from "@/components/ui/card";
-import { useVacancyManager, type VacancyRow } from "@/hooks/use-vacancy-manager";
+import { useVacancyManager, type VacancyRow } from "@/modules/company/hooks/use-vacancy-manager";
 import { VacanciesTable } from "./vacancies-table";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";

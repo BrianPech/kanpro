@@ -31,7 +31,7 @@ import {
   SidebarMenuItem,
   SidebarFooter,
 } from "@/components/ui/sidebar";
-import { NavUser } from "@/components/nav-user";
+import { NavUser } from "@/components/shared/nav-user";
 import { cn } from "@/lib/utils";
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {

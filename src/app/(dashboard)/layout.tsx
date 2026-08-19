@@ -1,7 +1,7 @@
 import * as React from "react";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import { ImpersonationProvider } from "@/components/impersonation-provider";
+import { ImpersonationProvider } from "@/components/providers/impersonation-provider";
 
 export default async function DashboardTopLayout({
   children,

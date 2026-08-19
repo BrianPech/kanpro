@@ -1,6 +1,6 @@
 import { notFound, redirect } from "next/navigation";
 import { getCompanyVerificationById, getCandidateVerificationById } from "../actions";
-import { CompanyAuditClient } from "./company-audit-client";
+import { CompanyAuditClient } from "@/modules/admin/components/company-audit-view";
 
 export const metadata = {
   title: "Auditoría de Expediente | K'anPro Admin",

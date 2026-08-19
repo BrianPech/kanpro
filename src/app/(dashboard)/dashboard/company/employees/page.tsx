@@ -1,6 +1,6 @@
 import { createClient } from "@/lib/supabase/server"
 import { redirect } from "next/navigation"
-import { CompanyEmployeesView } from "./employees-client"
+import { CompanyEmployeesView } from "@/modules/company/components/company-employees-view"
 
 export const metadata = {
   title: "Empleados Contratados | K'anPro",

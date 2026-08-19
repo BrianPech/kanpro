@@ -26,7 +26,7 @@ import {
   SidebarMenuItem,
   SidebarFooter,
 } from "@/components/ui/sidebar";
-import { NavUser } from "@/components/nav-user";
+import { NavUser } from "@/components/shared/nav-user";
 import { usePathname } from "next/navigation";
 import Link from "next/link";
 import { cn } from "@/lib/utils";

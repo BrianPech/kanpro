@@ -1,6 +1,6 @@
 import * as React from "react";
 import { getImpersonationState } from "@/lib/auth/impersonation";
-import { ImpersonationBanner } from "./impersonation-banner";
+import { ImpersonationBanner } from "@/components/shared/impersonation-banner";
 
 interface ImpersonationProviderProps {
   children: React.ReactNode;

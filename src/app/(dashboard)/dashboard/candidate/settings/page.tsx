@@ -1,7 +1,7 @@
 import * as React from "react";
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
-import { CandidateSettingsClient } from "./candidate-settings-client";
+import { CandidateSettingsClient } from "@/modules/candidate/components/candidate-settings-client";
 
 export default async function CandidateSettingsPage() {
   const supabase = await createClient();

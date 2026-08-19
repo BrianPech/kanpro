@@ -1,9 +1,9 @@
 import * as React from "react";
 import { SidebarProvider, SidebarInset } from "@/components/ui/sidebar";
-import { CandidateSidebar } from "@/components/dashboard/candidate-sidebar";
+import { CandidateSidebar } from "@/modules/candidate/components/navigation/candidate-sidebar";
 import { getDashboardSession } from "@/modules/auth/services/dashboard-session";
-import { CandidateTopbar } from "@/components/dashboard/candidate-topbar";
-import { CandidateBottomNav } from "@/components/dashboard/candidate-bottom-nav";
+import { CandidateTopbar } from "@/modules/candidate/components/navigation/candidate-topbar";
+import { CandidateBottomNav } from "@/modules/candidate/components/navigation/candidate-bottom-nav";
 import { ScrollArea } from "@/components/ui/scroll-area";
 
 export default async function CandidateDashboardLayout({

@@ -49,7 +49,7 @@ import {
   type ProfileDocumentItem,
   reviewCompanyVerification,
   reviewProfileDocument,
-} from "../actions";
+} from "@/app/(dashboard)/dashboard/admin/verifications/actions";
 
 interface CompanyAuditClientProps {
   company: PendingCompanyItem;
