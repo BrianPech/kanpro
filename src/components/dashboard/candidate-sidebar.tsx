@@ -28,7 +28,9 @@ import { usePathname } from "next/navigation";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
 
-export function CandidateSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
+export function CandidateSidebar({
+  ...props
+}: React.ComponentProps<typeof Sidebar>) {
   const pathname = usePathname();
 
   const navigation = [
@@ -37,10 +39,10 @@ export function CandidateSidebar({ ...props }: React.ComponentProps<typeof Sideb
       url: "/dashboard/candidate",
       icon: LayoutDashboard,
     },
-    { 
-      title: "Explorar Empleos", 
-      url: "/dashboard/candidate/discovery", 
-      icon: Compass 
+    {
+      title: "Explorar Empleos",
+      url: "/dashboard/candidate/discovery",
+      icon: Compass,
     },
     {
       title: "Mis Postulaciones",
@@ -52,10 +54,10 @@ export function CandidateSidebar({ ...props }: React.ComponentProps<typeof Sideb
       url: "/dashboard/candidate/documents",
       icon: ShieldCheck,
     },
-    { 
-      title: "Mi Perfil Profesional", 
-      url: "/dashboard/candidate/profile", 
-      icon: User 
+    {
+      title: "Mi Perfil Profesional",
+      url: "/dashboard/candidate/profile",
+      icon: User,
     },
   ];
 
@@ -74,7 +76,7 @@ export function CandidateSidebar({ ...props }: React.ComponentProps<typeof Sideb
 
   return (
     <Sidebar variant="inset" {...props}>
-      <SidebarHeader className="border-b border-sidebar-border/60 py-3">
+      <SidebarHeader className=" py-3">
         <SidebarMenu>
           <SidebarMenuItem>
             <SidebarMenuButton
@@ -86,8 +88,12 @@ export function CandidateSidebar({ ...props }: React.ComponentProps<typeof Sideb
                 <Kanban className="size-4" />
               </div>
               <div className="grid flex-1 text-left text-sm leading-tight">
-                <span className="truncate font-bold tracking-tight text-sidebar-foreground">K&apos;anPro</span>
-                <span className="truncate text-xs text-muted-foreground font-medium">Portal Candidato</span>
+                <span className="truncate font-bold tracking-tight text-sidebar-foreground">
+                  K&apos;anPro
+                </span>
+                <span className="truncate text-xs text-muted-foreground font-medium">
+                  Portal Candidato
+                </span>
               </div>
             </SidebarMenuButton>
           </SidebarMenuItem>
@@ -116,7 +122,7 @@ export function CandidateSidebar({ ...props }: React.ComponentProps<typeof Sideb
                       className={cn(
                         "h-9 rounded-lg px-2.5 gap-2.5 text-sm font-medium transition-all",
                         isActive &&
-                          "bg-sidebar-accent text-sidebar-accent-foreground font-semibold"
+                          "bg-sidebar-accent text-sidebar-accent-foreground font-semibold",
                       )}
                     >
                       <item.icon className="size-4 shrink-0" />
@@ -146,7 +152,7 @@ export function CandidateSidebar({ ...props }: React.ComponentProps<typeof Sideb
                       className={cn(
                         "h-9 rounded-lg px-2.5 gap-2.5 text-xs font-medium text-muted-foreground hover:text-foreground transition-all",
                         isActive &&
-                          "bg-sidebar-accent text-sidebar-accent-foreground font-semibold"
+                          "bg-sidebar-accent text-sidebar-accent-foreground font-semibold",
                       )}
                     >
                       <item.icon className="size-3.5 shrink-0" />
@@ -160,7 +166,7 @@ export function CandidateSidebar({ ...props }: React.ComponentProps<typeof Sideb
         </SidebarGroup>
       </SidebarContent>
 
-      <SidebarFooter className="border-t border-sidebar-border/60 p-2">
+      <SidebarFooter className="p-2">
         <NavUser />
       </SidebarFooter>
     </Sidebar>

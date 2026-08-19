@@ -3,18 +3,13 @@
 import * as React from "react";
 import { useState, useMemo } from "react";
 import {
-  FileCheck,
   ShieldCheck,
   User,
-  Calendar,
-  CreditCard,
   Mail,
-  Phone,
   Camera,
   FileText,
   UploadCloud,
   CheckCircle2,
-  AlertCircle,
   Plus,
   Trash2,
   ExternalLink,
@@ -26,16 +21,19 @@ import {
   Sparkles,
   Lock,
   Loader2,
-  Download
+  Download,
+  Check,
+  Info,
+  Save
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Badge } from "@/components/ui/badge";
 import { createClient } from "@/lib/supabase/client";
 import { candidateProfileService } from "../services/candidate-profile";
 import { candidateDocumentsService, type CandidateDocumentType, type CandidateDocument } from "../services/candidate-documents";
-import { respondDocumentAccessRequest } from "@/modules/company/actions/document-access";
 import { FormTextField, FormDateField, FormCurpField, FormPhoneField } from "@/components/form";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import {
   Dialog,
@@ -45,6 +43,12 @@ import {
   DialogDescription,
   DialogFooter
 } from "@/components/ui/dialog";
+import {
+  Tabs,
+  TabsList,
+  TabsTrigger,
+  TabsContent
+} from "@/components/ui/tabs";
 
 interface CourseItem {
   id: string;
@@ -73,7 +77,8 @@ export function CandidateDocumentsView() {
   const [targetDocType, setTargetDocType] = useState<CandidateDocumentType | null>(null);
   const [isUploading, setIsUploading] = useState(false);
   const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
-  const [activeTab, setActiveTab] = useState<"mandatory" | "optional">("mandatory");
+  const [isSaving, setIsSaving] = useState(false);
+  const [activeTab, setActiveTab] = useState<string>("identity");
 
   // Profile text & status fields state
   const [fullName, setFullName] = useState("");
@@ -82,7 +87,6 @@ export function CandidateDocumentsView() {
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
   const [profilePhotoUrl, setProfilePhotoUrl] = useState<string | null>(null);
-  const [acceptedTerms, setAcceptedTerms] = useState(true);
 
   // Optional lists state
   const [courses, setCourses] = useState<CourseItem[]>([]);
@@ -100,20 +104,6 @@ export function CandidateDocumentsView() {
       return await candidateDocumentsService.list(userId);
     },
     enabled: !!userId,
-  });
-
-  // Access requests mutation
-  const accessRequestMutation = useMutation({
-    mutationFn: async ({ requestId, status }: { requestId: string; status: "approved" | "rejected" }) => {
-      return await respondDocumentAccessRequest(requestId, status);
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['candidate-documents'] });
-      toast.success("Solicitud de acceso a documentos actualizada");
-    },
-    onError: (err: any) => {
-      toast.error(err.message || "Error al actualizar la solicitud");
-    },
   });
 
   // Fetch profile details on mount
@@ -134,30 +124,30 @@ export function CandidateDocumentsView() {
 
           if (Array.isArray(profile.education)) {
             setCourses(
-              (profile.education as any[]).map((ed: any, idx: number) => ({
-                id: ed.id || `edu-${idx}`,
-                title: ed.degree || ed.title || "Formación",
-                institution: ed.school || ed.institution || "Institución",
+              (profile.education as Array<Record<string, unknown>>).map((ed, idx) => ({
+                id: (ed.id as string) || `edu-${idx}`,
+                title: (ed.degree as string) || (ed.title as string) || "Formación",
+                institution: (ed.school as string) || (ed.institution as string) || "Institución",
               }))
             );
           }
 
           if (Array.isArray(profile.certifications)) {
             setCertifications(
-              (profile.certifications as any[]).map((cert: any, idx: number) => ({
-                id: cert.id || `cert-${idx}`,
-                name: cert.name || cert.title || "Certificación",
-                issuer: cert.issuer || cert.institution || "Organismo",
+              (profile.certifications as Array<Record<string, unknown>>).map((cert, idx) => ({
+                id: (cert.id as string) || `cert-${idx}`,
+                name: (cert.name as string) || (cert.title as string) || "Certificación",
+                issuer: (cert.issuer as string) || (cert.institution as string) || "Organismo",
               }))
             );
           }
 
           if (Array.isArray(profile.languages)) {
             setLanguages(
-              (profile.languages as any[]).map((lang: any, idx: number) => ({
-                id: lang.id || `lang-${idx}`,
-                language: typeof lang === "string" ? lang : lang.language || lang.name || "Idioma",
-                level: lang.level || "Intermedio (B1-B2)",
+              (profile.languages as Array<Record<string, unknown> | string>).map((lang, idx) => ({
+                id: (typeof lang === "object" && lang && (lang.id as string)) || `lang-${idx}`,
+                language: typeof lang === "string" ? lang : (lang.language as string) || (lang.name as string) || "Idioma",
+                level: (typeof lang === "object" && lang && (lang.level as string)) || "Intermedio (B1-B2)",
               }))
             );
           }
@@ -167,18 +157,18 @@ export function CandidateDocumentsView() {
             if (typeof firstLink === "string") {
               setPortfolioUrl(firstLink);
             } else if (firstLink && typeof firstLink === "object" && "url" in firstLink) {
-              setPortfolioUrl(String((firstLink as Record<string, any>).url || ""));
+              setPortfolioUrl(String((firstLink as Record<string, unknown>).url || ""));
             }
           }
         }
-      } catch (err) {
+      } catch (err: unknown) {
         console.error("Error loading candidate profile in documents view:", err);
       }
     }
     loadCandidateProfile();
-  }, []);
+  }, [supabase]);
 
-  // Directly derive documents from query data (Zero useEffect / Zero setState loops)
+  // Derived Documents
   const officialIdDoc = useMemo(
     () => documents.find((doc) => doc.doc_type === "ine_passport") || null,
     [documents]
@@ -203,10 +193,11 @@ export function CandidateDocumentsView() {
   // UI Modals
   const [previewData, setPreviewData] = useState<{ name: string; type: string; url?: string | null; isPdf?: boolean } | null>(null);
   const [isLoadingPreview, setIsLoadingPreview] = useState(false);
-  const [isTermsModalOpen, setIsTermsModalOpen] = useState(false);
-  const [isSuccessAlert, setIsSuccessAlert] = useState(false);
+  const [isAddCourseModalOpen, setIsAddCourseModalOpen] = useState(false);
+  const [isAddCertModalOpen, setIsAddCertModalOpen] = useState(false);
+  const [isAddLangModalOpen, setIsAddLangModalOpen] = useState(false);
 
-  // New course / certification / language draft inputs
+  // New item inputs
   const [newCourseTitle, setNewCourseTitle] = useState("");
   const [newCourseInst, setNewCourseInst] = useState("");
   const [newCertName, setNewCertName] = useState("");
@@ -214,8 +205,8 @@ export function CandidateDocumentsView() {
   const [newLangName, setNewLangName] = useState("Inglés");
   const [newLangLevel, setNewLangLevel] = useState("Intermedio (B2)");
 
-  // Progress Calculations
-  const mandatoryCompleted = [
+  // Progress Calculations (4 Key Pillars)
+  const identityScore = [
     Boolean(fullName.trim()),
     Boolean(birthDate),
     Boolean(curp.trim().length === 18),
@@ -223,21 +214,27 @@ export function CandidateDocumentsView() {
     Boolean(email.trim()),
     Boolean(phone.trim()),
     Boolean(profilePhotoUrl),
-    Boolean(acceptedTerms),
-  ].filter(Boolean).length;
+  ].filter(Boolean).length; // Max 7
 
-  const optionalCompleted = [
-    Boolean(proofAddressDoc),
+  const workDocsScore = [
     Boolean(cvDoc),
+    Boolean(proofAddressDoc),
     workCertificates.length > 0,
     recommendationLetters.length > 0,
+  ].filter(Boolean).length; // Max 4
+
+  const meritsScore = [
     courses.length > 0,
     certifications.length > 0,
     languages.length > 0,
-    Boolean(portfolioUrl),
-  ].filter(Boolean).length;
+    Boolean(portfolioUrl.trim()),
+  ].filter(Boolean).length; // Max 4
 
-  const totalProgressPercent = Math.round(((mandatoryCompleted * 2) + optionalCompleted) / 24 * 100);
+  // Weighted score to 100%
+  const totalScore = Math.min(
+    100,
+    Math.round((identityScore / 7) * 50 + (workDocsScore / 4) * 35 + (meritsScore / 4) * 15)
+  );
 
   // Trigger file selection for a specific document category
   const requestFileUpload = (docType: CandidateDocumentType) => {
@@ -258,7 +255,9 @@ export function CandidateDocumentsView() {
     try {
       await candidateDocumentsService.upload(userId, docType, file, isMultiple);
       await queryClient.invalidateQueries({ queryKey: ['candidate-documents', userId] });
-      toast.success("Documento cargado con éxito.");
+      toast.success("Documento cargado con éxito.", {
+        description: `Se guardó "${file.name}" en tu expediente digital.`
+      });
     } catch (error: unknown) {
       toast.error((error as Error).message || "No se pudo cargar el documento.");
     } finally {
@@ -290,9 +289,9 @@ export function CandidateDocumentsView() {
     try {
       await candidateDocumentsService.delete(doc.id, doc.file_url);
       await queryClient.invalidateQueries({ queryKey: ['candidate-documents', userId] });
-      toast.success("Documento eliminado.");
-    } catch (err: any) {
-      toast.error(err?.message || "Error al eliminar el documento.");
+      toast.success("Documento eliminado del expediente.");
+    } catch (err: unknown) {
+      toast.error((err as Error)?.message || "Error al eliminar el documento.");
     }
   };
 
@@ -309,7 +308,7 @@ export function CandidateDocumentsView() {
         url: signedUrl,
         isPdf,
       });
-    } catch (err) {
+    } catch {
       toast.error("No se pudo cargar la vista previa.");
     } finally {
       setIsLoadingPreview(false);
@@ -320,42 +319,46 @@ export function CandidateDocumentsView() {
     if (!newCourseTitle.trim()) return;
     setCourses((prev) => [
       ...prev,
-      { id: Date.now().toString(), title: newCourseTitle, institution: newCourseInst || "Institución" }
+      { id: Date.now().toString(), title: newCourseTitle.trim(), institution: newCourseInst.trim() || "Institución" }
     ]);
     setNewCourseTitle("");
     setNewCourseInst("");
-    toast.success("Curso agregado.");
+    setIsAddCourseModalOpen(false);
+    toast.success("Curso agregado al expediente.");
   };
 
   const handleAddCertification = () => {
     if (!newCertName.trim()) return;
     setCertifications((prev) => [
       ...prev,
-      { id: Date.now().toString(), name: newCertName, issuer: newCertIssuer || "Organismo Emisor" }
+      { id: Date.now().toString(), name: newCertName.trim(), issuer: newCertIssuer.trim() || "Organismo Emisor" }
     ]);
     setNewCertName("");
     setNewCertIssuer("");
-    toast.success("Certificación agregada.");
+    setIsAddCertModalOpen(false);
+    toast.success("Certificación agregada al expediente.");
   };
 
   const handleAddLanguage = () => {
     if (!newLangName.trim()) return;
     setLanguages((prev) => [
       ...prev,
-      { id: Date.now().toString(), language: newLangName, level: newLangLevel }
+      { id: Date.now().toString(), language: newLangName.trim(), level: newLangLevel }
     ]);
-    toast.success("Idioma agregado.");
+    setIsAddLangModalOpen(false);
+    toast.success("Idioma agregado al expediente.");
   };
 
   const handleSaveProgress = async () => {
+    setIsSaving(true);
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (user) {
         await candidateProfileService.updateProfile(user.id, {
-          full_name: fullName,
-          whatsapp_number: phone,
+          full_name: fullName.trim(),
+          whatsapp_number: phone.trim(),
           avatar_url: profilePhotoUrl,
-          curp: curp,
+          curp: curp.trim(),
           birth_date: birthDate,
           education: courses.map((c) => ({
             degree: c.title,
@@ -374,20 +377,29 @@ export function CandidateDocumentsView() {
           portfolio_links: portfolioUrl ? [portfolioUrl] : [],
         });
       }
-      toast.success("Expediente guardado", {
-        description: "Tus documentos, certificaciones e información personal han sido actualizados con éxito."
+      toast.success("Expediente digital guardado", {
+        description: "Toda tu información personal, documentos y méritos están sincronizados."
       });
-      setIsSuccessAlert(true);
-      setTimeout(() => setIsSuccessAlert(false), 4000);
     } catch (err) {
       console.error("Error saving candidate documents progress:", err);
       toast.error("Error al guardar los cambios en el expediente");
+    } finally {
+      setIsSaving(false);
     }
   };
 
+  const getDossierLevel = (score: number) => {
+    if (score >= 85) return { label: "Expediente Certificado", color: "emerald", badge: "Prioridad Máxima" };
+    if (score >= 50) return { label: "Expediente en Progreso", color: "amber", badge: "Verificación Parcial" };
+    return { label: "Expediente Básico", color: "zinc", badge: "Requisitos Pendientes" };
+  };
+
+  const levelInfo = getDossierLevel(totalScore);
+
   return (
-    <div className="min-h-full p-4 sm:p-6 lg:p-8 max-w-6xl mx-auto space-y-6">
-      {/* Hidden File Inputs for real document & avatar uploads */}
+    <div className="min-h-full max-w-6xl mx-auto space-y-6 pb-24 md:pb-12 animate-in fade-in duration-300">
+      
+      {/* Hidden File Inputs */}
       <input
         ref={fileInputRef}
         type="file"
@@ -403,881 +415,932 @@ export function CandidateDocumentsView() {
         onChange={handleAvatarSelected}
       />
 
-      {/* 1. Header & Progress Banner */}
-      <div className="bg-white dark:bg-zinc-900 rounded-[28px] sm:rounded-[32px] p-6 sm:p-8 border border-[#ebeef3] dark:border-zinc-800 shadow-xs relative overflow-hidden">
-        <div className="absolute -top-12 -right-12 w-48 h-48 bg-gradient-to-br from-emerald-500/10 via-blue-500/5 to-transparent rounded-full blur-2xl pointer-events-none" />
+      {/* 1. Header Hero Banner */}
+      <div className="bg-card text-card-foreground rounded-3xl p-6 sm:p-8 border border-border shadow-xs relative overflow-hidden">
+        <div className="absolute top-0 right-0 w-96 h-96 bg-primary/5 rounded-full blur-3xl pointer-events-none -mr-20 -mt-20" />
         
         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6 relative z-10">
-          <div className="space-y-2">
-            <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-[#1f2732]/5 dark:bg-zinc-800 text-[#1f2732] dark:text-zinc-200 text-xs font-bold">
-              <ShieldCheck className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
-              <span>Verificación de Candidato K&apos;anPro</span>
+          <div className="space-y-3">
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary/10 text-primary text-xs font-bold border border-primary/20">
+              <ShieldCheck className="size-4" />
+              <span>Expediente Digital Laboral</span>
             </div>
-            <h1 className="text-2xl sm:text-3xl font-[800] text-[#1f2732] dark:text-zinc-50 tracking-tight">
-              Expediente Digital y Documentación
+            
+            <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-foreground">
+              Documentación y Certificación
             </h1>
-            <p className="text-[#5c7c9b] dark:text-zinc-400 text-sm sm:text-[15px] font-medium max-w-2xl">
-              Sube tus documentos requeridos para certificar tu perfil. Las empresas otorgan prioridad de contratación a candidatos con expediente verificado.
+            
+            <p className="text-muted-foreground text-sm font-medium max-w-2xl leading-relaxed">
+              Centraliza tus documentos oficiales, CV y méritos profesionales. Las empresas del Sureste otorgan prioridad a candidatos con expediente verificado.
             </p>
           </div>
 
-          {/* Quick Metrics */}
-          <div className="bg-[#f8fafc] dark:bg-zinc-800/60 p-5 rounded-[24px] border border-[#ebeef3] dark:border-zinc-700/60 min-w-[280px] space-y-3">
+          {/* Dossier Health Card */}
+          <div className="bg-muted/50 dark:bg-zinc-800/40 p-5 rounded-2xl border border-border/80 min-w-[280px] sm:min-w-[320px] space-y-3">
             <div className="flex items-center justify-between">
-              <span className="text-xs font-bold uppercase tracking-wider text-[#5c7c9b] dark:text-zinc-400">
+              <span className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
                 Nivel de Expediente
               </span>
-              <span className="text-lg font-[900] text-[#1f2732] dark:text-zinc-100">
-                {totalProgressPercent}%
-              </span>
+              <div className="flex items-center gap-1.5">
+                <span className="text-xl font-extrabold tabular-nums text-foreground">
+                  {totalScore}%
+                </span>
+              </div>
             </div>
 
             {/* Progress Bar */}
-            <div className="w-full h-2.5 bg-[#ebeef3] dark:bg-zinc-700 rounded-full overflow-hidden">
+            <div className="w-full h-2.5 bg-muted rounded-full overflow-hidden">
               <div
-                className="h-full bg-gradient-to-r from-emerald-500 to-emerald-600 transition-all duration-500 rounded-full"
-                style={{ width: `${totalProgressPercent}%` }}
+                className={`h-full transition-all duration-500 rounded-full ${
+                  totalScore >= 85
+                    ? "bg-emerald-500"
+                    : totalScore >= 50
+                    ? "bg-amber-500"
+                    : "bg-primary"
+                }`}
+                style={{ width: `${totalScore}%` }}
               />
             </div>
 
-            <div className="flex items-center justify-between text-xs font-bold pt-1 border-t border-[#ebeef3] dark:border-zinc-700/60">
-              <span className="text-emerald-600 dark:text-emerald-400 flex items-center gap-1">
-                <CheckCircle2 className="w-3.5 h-3.5" />
-                {mandatoryCompleted}/8 Obligatorios
+            <div className="flex items-center justify-between text-xs font-semibold pt-1 text-muted-foreground border-t border-border/60">
+              <span className="flex items-center gap-1 text-foreground font-bold">
+                <CheckCircle2 className="size-3.5 text-emerald-500" />
+                {levelInfo.label}
               </span>
-              <span className="text-[#5c7c9b] dark:text-zinc-400">
-                {optionalCompleted}/8 Opcionales
+              <span className="text-primary font-bold">
+                {levelInfo.badge}
               </span>
             </div>
           </div>
         </div>
 
-        {/* Success Alert Toast */}
-        {isSuccessAlert && (
-          <div className="mt-5 p-4 rounded-[18px] bg-emerald-500/10 border border-emerald-500/20 text-emerald-700 dark:text-emerald-300 text-sm font-bold flex items-center gap-3 animate-in fade-in slide-in-from-top-2 duration-300">
-            <CheckCircle2 className="w-5 h-5 shrink-0" />
-            <span>¡Expediente actualizado exitosamente! Los cambios han sido guardados en la base de datos.</span>
-          </div>
-        )}
-      </div>
-
-      {/* 2. Navigation Tabs */}
-      <div className="flex items-center gap-2 border-b border-[#ebeef3] dark:border-zinc-800 pb-1">
-        <button
-          onClick={() => setActiveTab("mandatory")}
-          className={`flex items-center gap-2 px-5 py-3 rounded-t-[18px] text-sm sm:text-base font-bold transition-all cursor-pointer border-b-2 ${
-            activeTab === "mandatory"
-              ? "border-[#1f2732] dark:border-zinc-100 text-[#1f2732] dark:text-zinc-50 bg-white dark:bg-zinc-900 shadow-2xs"
-              : "border-transparent text-[#5c7c9b] dark:text-zinc-400 hover:text-[#1f2732] dark:hover:text-zinc-200"
-          }`}
-        >
-          <Lock className="w-4 h-4 text-rose-500" />
-          <span>Requisitos Obligatorios</span>
-          <span className="px-2 py-0.5 rounded-full text-xs bg-rose-500/10 text-rose-600 font-extrabold ml-1">
-            {mandatoryCompleted}/8
-          </span>
-        </button>
-
-        <button
-          onClick={() => setActiveTab("optional")}
-          className={`flex items-center gap-2 px-5 py-3 rounded-t-[18px] text-sm sm:text-base font-bold transition-all cursor-pointer border-b-2 ${
-            activeTab === "optional"
-              ? "border-[#1f2732] dark:border-zinc-100 text-[#1f2732] dark:text-zinc-50 bg-white dark:bg-zinc-900 shadow-2xs"
-              : "border-transparent text-[#5c7c9b] dark:text-zinc-400 hover:text-[#1f2732] dark:hover:text-zinc-200"
-          }`}
-        >
-          <Sparkles className="w-4 h-4 text-amber-500" />
-          <span>Documentos Opcionales y Méritos</span>
-          <span className="px-2 py-0.5 rounded-full text-xs bg-amber-500/10 text-amber-600 font-extrabold ml-1">
-            {optionalCompleted}/8
-          </span>
-        </button>
-      </div>
-
-      {/* 3. TAB CONTENT: MANDATORY REQUIREMENTS */}
-      {activeTab === "mandatory" && (
-        <div className="space-y-6">
-          <div className="bg-amber-500/10 border border-amber-500/20 rounded-[22px] p-4 text-xs sm:text-sm text-amber-800 dark:text-amber-300 font-medium flex items-center gap-3">
-            <AlertCircle className="w-5 h-5 shrink-0 text-amber-600 dark:text-amber-400" />
-            <span>
-              Todos estos elementos son requeridos por norma oficial para postulaciones formales en K&apos;anPro.
-            </span>
+        {/* Global Save Trigger Toolbar */}
+        <div className="mt-6 pt-5 border-t border-border/60 flex flex-col sm:flex-row items-center justify-between gap-4">
+          <div className="flex items-center gap-2 text-xs text-muted-foreground">
+            <Info className="size-4 text-primary shrink-0" />
+            <span>Tus documentos se transmiten con cifrado de extremo a extremo en Supabase Storage.</span>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {/* Obligatorio 1: Nombre Completo */}
-            <div className="bg-white dark:bg-zinc-900 p-6 rounded-[24px] border border-[#ebeef3] dark:border-zinc-800 space-y-3">
-              <FormTextField
-                id="docFullName"
-                label="1. Nombre Completo"
-                required
-                value={fullName}
-                onChange={(e) => setFullName(e.target.value)}
-                hintText="Nombre(s) y Apellidos como en identificación"
-                prefixIcon={<User className="w-4 h-4 text-[#5c7c9b]" />}
-                helperText="Nombre oficial registrado para postulaciones formales."
-              />
-            </div>
-
-            {/* Obligatorio 2: Fecha de Nacimiento */}
-            <div className="bg-white dark:bg-zinc-900 p-6 rounded-[24px] border border-[#ebeef3] dark:border-zinc-800 space-y-3">
-              <FormDateField
-                id="docBirthDate"
-                label="2. Fecha de Nacimiento"
-                required
-                value={birthDate}
-                onChange={(val) => setBirthDate(val)}
-                helperText="Cargado directamente de tu cuenta o modifícalo si es necesario."
-              />
-            </div>
-
-            {/* Obligatorio 3: CURP */}
-            <div className="bg-white dark:bg-zinc-900 p-6 rounded-[24px] border border-[#ebeef3] dark:border-zinc-800 space-y-3">
-              <FormCurpField
-                id="docCurp"
-                label="3. CURP Oficial"
-                required
-                value={curp}
-                onChange={(val) => setCurp(val)}
-                helperText="Clave Única de Registro de Población (18 caracteres en mayúsculas)."
-              />
-            </div>
-
-            {/* Obligatorio 4: Identificación Oficial Vigente */}
-            <div className="bg-white dark:bg-zinc-900 p-6 rounded-[24px] border border-[#ebeef3] dark:border-zinc-800 space-y-3">
-              <div className="flex items-center justify-between">
-                <label className="text-sm font-bold text-[#1f2732] dark:text-zinc-200 flex items-center gap-2">
-                  <FileCheck className="w-4 h-4 text-[#5c7c9b]" />
-                  <span>4. Identificación Oficial Vigente</span>
-                </label>
-                <span className="text-[11px] font-extrabold px-2 py-0.5 rounded-md bg-rose-500/10 text-rose-600">
-                  Obligatorio
-                </span>
-              </div>
-
-              {officialIdDoc ? (
-                <div className="p-4 rounded-[16px] bg-[#f8fafc] dark:bg-zinc-800/60 border border-[#ebeef3] dark:border-zinc-700 flex items-center justify-between">
-                  <div className="flex items-center gap-3 overflow-hidden">
-                    <div className="w-10 h-10 rounded-xl bg-emerald-500/10 text-emerald-600 flex items-center justify-center shrink-0">
-                      <FileText className="w-5 h-5" />
-                    </div>
-                    <div className="truncate">
-                      <p className="text-sm font-bold text-[#1f2732] dark:text-zinc-200 truncate">
-                        {officialIdDoc.file_name}
-                      </p>
-                      <p className="text-xs text-emerald-600 dark:text-emerald-400 font-semibold flex items-center gap-1">
-                        <CheckCircle2 className="w-3 h-3" /> INE / Pasaporte Adjunto
-                      </p>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-1 shrink-0">
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => handleOpenPreview(officialIdDoc, "Identificación Oficial")}
-                      className="h-8 w-8 p-0 rounded-lg text-[#5c7c9b] hover:text-[#1f2732] cursor-pointer"
-                      title="Ver documento"
-                    >
-                      <Eye className="w-4 h-4" />
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => handleDeleteDocument(officialIdDoc)}
-                      className="h-8 w-8 p-0 rounded-lg text-rose-500 hover:text-rose-600 cursor-pointer"
-                      title="Eliminar documento"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </Button>
-                  </div>
-                </div>
-              ) : (
-                <button
-                  type="button"
-                  onClick={() => requestFileUpload("ine_passport")}
-                  disabled={isUploading}
-                  className="w-full p-5 border-2 border-dashed border-[#ebeef3] dark:border-zinc-700 rounded-[18px] flex flex-col items-center justify-center text-center gap-2 hover:bg-[#f8fafc] dark:hover:bg-zinc-800/40 transition-colors cursor-pointer"
-                >
-                  {isUploading && targetDocType === "ine_passport" ? (
-                    <Loader2 className="w-8 h-8 text-primary animate-spin" />
-                  ) : (
-                    <UploadCloud className="w-8 h-8 text-[#5c7c9b]" />
-                  )}
-                  <span className="text-xs font-bold text-[#1f2732] dark:text-zinc-200">
-                    {isUploading && targetDocType === "ine_passport"
-                      ? "Subiendo documento..."
-                      : "Subir INE, Pasaporte o Cédula Profesional (PDF o Imagen)"}
-                  </span>
-                </button>
-              )}
-            </div>
-
-            {/* Obligatorio 5: Correo Electrónico */}
-            <div className="bg-white dark:bg-zinc-900 p-6 rounded-[24px] border border-[#ebeef3] dark:border-zinc-800 space-y-3">
-              <FormTextField
-                id="docEmail"
-                label="5. Correo Electrónico"
-                required
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                hintText="candidato@correo.com"
-                prefixIcon={<Mail className="w-4 h-4 text-[#5c7c9b]" />}
-                helperText="Correo vinculado para notificaciones y accesos autorizados."
-              />
-            </div>
-
-            {/* Obligatorio 6: Teléfono Celular */}
-            <div className="bg-white dark:bg-zinc-900 p-6 rounded-[24px] border border-[#ebeef3] dark:border-zinc-800 space-y-3">
-              <FormPhoneField
-                id="docPhone"
-                label="6. Teléfono Celular de Contacto"
-                required
-                value={phone}
-                onChange={(val) => setPhone(val)}
-                helperText="Número directo para coordinación de entrevistas."
-              />
-            </div>
-
-            {/* Obligatorio 7: Fotografía de Perfil */}
-            <div className="bg-white dark:bg-zinc-900 p-6 rounded-[24px] border border-[#ebeef3] dark:border-zinc-800 space-y-3">
-              <div className="flex items-center justify-between">
-                <label className="text-sm font-bold text-[#1f2732] dark:text-zinc-200 flex items-center gap-2">
-                  <Camera className="w-4 h-4 text-[#5c7c9b]" />
-                  <span>7. Fotografía de Perfil</span>
-                </label>
-                <span className="text-[11px] font-extrabold px-2 py-0.5 rounded-md bg-rose-500/10 text-rose-600">
-                  Obligatorio
-                </span>
-              </div>
-
-              <div className="flex items-center gap-4">
-                {profilePhotoUrl ? (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img
-                    src={profilePhotoUrl}
-                    alt="Foto de Perfil"
-                    className="w-16 h-16 rounded-full object-cover border-2 border-emerald-500 shadow-xs shrink-0"
-                  />
-                ) : (
-                  <div className="w-16 h-16 rounded-full bg-[#f8fafc] dark:bg-zinc-800 border-2 border-dashed border-[#ebeef3] flex items-center justify-center text-[#5c7c9b] shrink-0">
-                    <User className="w-7 h-7" />
-                  </div>
-                )}
-                <div className="space-y-1">
-                  <p className="text-xs font-semibold text-[#5c7c9b] dark:text-zinc-400">
-                    Foto formal de rostro despejado y fondo claro.
-                  </p>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    disabled={isUploadingAvatar}
-                    onClick={() => avatarInputRef.current?.click()}
-                    className="h-8 rounded-lg text-xs font-bold border-[#ebeef3] dark:border-zinc-700 cursor-pointer"
-                  >
-                    {isUploadingAvatar ? (
-                      <>
-                        <Loader2 className="w-3.5 h-3.5 mr-1.5 animate-spin" />
-                        <span>Subiendo...</span>
-                      </>
-                    ) : (
-                      <span>{profilePhotoUrl ? "Cambiar Fotografía" : "Subir Fotografía"}</span>
-                    )}
-                  </Button>
-                </div>
-              </div>
-            </div>
-
-            {/* Obligatorio 8: Términos y Condiciones */}
-            <div className="bg-white dark:bg-zinc-900 p-6 rounded-[24px] border border-[#ebeef3] dark:border-zinc-800 space-y-3">
-              <div className="flex items-center justify-between">
-                <label className="text-sm font-bold text-[#1f2732] dark:text-zinc-200 flex items-center gap-2">
-                  <ShieldCheck className="w-4 h-4 text-[#5c7c9b]" />
-                  <span>8. Legales y Privacidad</span>
-                </label>
-                <span className="text-[11px] font-extrabold px-2 py-0.5 rounded-md bg-rose-500/10 text-rose-600">
-                  Obligatorio
-                </span>
-              </div>
-
-              <div className="p-4 rounded-[16px] bg-[#f8fafc] dark:bg-zinc-800/60 border border-[#ebeef3] dark:border-zinc-700 flex items-start gap-3">
-                <input
-                  type="checkbox"
-                  id="acceptTermsCheck"
-                  checked={acceptedTerms}
-                  onChange={(e) => setAcceptedTerms(e.target.checked)}
-                  className="mt-1 h-4 w-4 rounded border-gray-300 text-emerald-600 focus:ring-emerald-500 cursor-pointer"
-                />
-                <label htmlFor="acceptTermsCheck" className="text-xs text-[#5c7c9b] leading-relaxed cursor-pointer select-none">
-                  Acepto el resguardo y verificación de mis documentos según el{" "}
-                  <button
-                    type="button"
-                    onClick={() => setIsTermsModalOpen(true)}
-                    className="text-[#1f2732] dark:text-zinc-200 font-bold underline"
-                  >
-                    Aviso de Privacidad y Términos de K&apos;anPro
-                  </button>
-                  .
-                </label>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* 4. TAB CONTENT: OPTIONAL REQUIREMENTS & MERITS */}
-      {activeTab === "optional" && (
-        <div className="space-y-6">
-          <div className="bg-emerald-500/10 border border-emerald-500/20 rounded-[22px] p-4 text-xs sm:text-sm text-emerald-800 dark:text-emerald-300 font-medium flex items-center gap-3">
-            <Sparkles className="w-5 h-5 shrink-0 text-emerald-600 dark:text-emerald-400" />
-            <span>
-              La documentación opcional destaca tu expediente ante reclutadores y acelera los procesos de contratación.
-            </span>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {/* Opcional 1: Comprobante de Domicilio */}
-            <div className="bg-white dark:bg-zinc-900 p-6 rounded-[24px] border border-[#ebeef3] dark:border-zinc-800 space-y-3">
-              <div className="flex items-center justify-between">
-                <label className="text-sm font-bold text-[#1f2732] dark:text-zinc-200">
-                  1. Comprobante de Domicilio
-                </label>
-                <span className="text-[11px] font-bold px-2 py-0.5 rounded-md bg-[#f5f7fa] dark:bg-zinc-800 text-[#5c7c9b]">
-                  Opcional
-                </span>
-              </div>
-              {proofAddressDoc ? (
-                <div className="p-4 rounded-[16px] bg-[#f8fafc] dark:bg-zinc-800/60 border border-[#ebeef3] dark:border-zinc-700 flex items-center justify-between">
-                  <div className="flex items-center gap-3 overflow-hidden">
-                    <FileText className="w-5 h-5 text-emerald-600 shrink-0" />
-                    <span className="text-sm font-bold text-[#1f2732] dark:text-zinc-200 truncate">
-                      {proofAddressDoc.file_name}
-                    </span>
-                  </div>
-                  <div className="flex items-center gap-1">
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => handleOpenPreview(proofAddressDoc, "Comprobante de Domicilio")}
-                      className="h-8 w-8 p-0 text-[#5c7c9b] hover:text-[#1f2732] cursor-pointer"
-                      title="Ver archivo"
-                    >
-                      <Eye className="w-4 h-4" />
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => handleDeleteDocument(proofAddressDoc)}
-                      className="h-8 w-8 p-0 text-rose-500 hover:text-rose-600 cursor-pointer"
-                      title="Eliminar archivo"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </Button>
-                  </div>
-                </div>
-              ) : (
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() => requestFileUpload("proof_of_address")}
-                  disabled={isUploading}
-                  className="w-full h-12 rounded-[14px] border-dashed border-[#ebeef3] dark:border-zinc-700 text-xs font-bold text-[#5c7c9b] cursor-pointer"
-                >
-                  {isUploading && targetDocType === "proof_of_address" ? (
-                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                  ) : (
-                    <Plus className="w-4 h-4 mr-2" />
-                  )}
-                  <span>Adjuntar CFE, Agua o Predial (PDF o Imagen)</span>
-                </Button>
-              )}
-            </div>
-
-            {/* Opcional 2: Currículum Vitae */}
-            <div className="bg-white dark:bg-zinc-900 p-6 rounded-[24px] border border-[#ebeef3] dark:border-zinc-800 space-y-3">
-              <div className="flex items-center justify-between">
-                <label className="text-sm font-bold text-[#1f2732] dark:text-zinc-200">
-                  2. Currículum Vitae (CV)
-                </label>
-                <span className="text-[11px] font-bold px-2 py-0.5 rounded-md bg-[#f5f7fa] dark:bg-zinc-800 text-[#5c7c9b]">
-                  Opcional
-                </span>
-              </div>
-              {cvDoc ? (
-                <div className="p-4 rounded-[16px] bg-[#f8fafc] dark:bg-zinc-800/60 border border-[#ebeef3] dark:border-zinc-700 flex items-center justify-between">
-                  <div className="flex items-center gap-3 overflow-hidden">
-                    <FileText className="w-5 h-5 text-emerald-600 shrink-0" />
-                    <span className="text-sm font-bold text-[#1f2732] dark:text-zinc-200 truncate">
-                      {cvDoc.file_name}
-                    </span>
-                  </div>
-                  <div className="flex items-center gap-1">
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => handleOpenPreview(cvDoc, "Currículum Vitae")}
-                      className="h-8 w-8 p-0 text-[#5c7c9b] hover:text-[#1f2732] cursor-pointer"
-                      title="Ver CV"
-                    >
-                      <Eye className="w-4 h-4" />
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => handleDeleteDocument(cvDoc)}
-                      className="h-8 w-8 p-0 text-rose-500 hover:text-rose-600 cursor-pointer"
-                      title="Eliminar CV"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </Button>
-                  </div>
-                </div>
-              ) : (
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() => requestFileUpload("cv")}
-                  disabled={isUploading}
-                  className="w-full h-12 rounded-[14px] border-dashed border-[#ebeef3] dark:border-zinc-700 text-xs font-bold text-[#5c7c9b] cursor-pointer"
-                >
-                  {isUploading && targetDocType === "cv" ? (
-                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                  ) : (
-                    <Plus className="w-4 h-4 mr-2" />
-                  )}
-                  <span>Subir CV en formato PDF</span>
-                </Button>
-              )}
-            </div>
-
-            {/* Opcional 3: Constancias Laborales */}
-            <div className="bg-white dark:bg-zinc-900 p-6 rounded-[24px] border border-[#ebeef3] dark:border-zinc-800 space-y-3">
-              <div className="flex items-center justify-between">
-                <label className="text-sm font-bold text-[#1f2732] dark:text-zinc-200 flex items-center gap-2">
-                  <Briefcase className="w-4 h-4 text-[#5c7c9b]" />
-                  <span>3. Constancias Laborales</span>
-                </label>
-                <span className="text-[11px] font-bold px-2 py-0.5 rounded-md bg-[#f5f7fa] dark:bg-zinc-800 text-[#5c7c9b]">
-                  {workCertificates.length} adjuntas
-                </span>
-              </div>
-              <div className="space-y-2">
-                {workCertificates.map((doc) => (
-                  <div key={doc.id} className="p-3.5 rounded-[14px] bg-[#f8fafc] dark:bg-zinc-800/60 border border-[#ebeef3] dark:border-zinc-700 flex items-center justify-between text-xs font-bold text-[#1f2732] dark:text-zinc-200">
-                    <span className="truncate">{doc.file_name}</span>
-                    <div className="flex items-center gap-1">
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => handleOpenPreview(doc, "Constancia Laboral")}
-                        className="h-7 w-7 p-0 text-[#5c7c9b] hover:text-[#1f2732] cursor-pointer"
-                      >
-                        <Eye className="w-3.5 h-3.5" />
-                      </Button>
-                      <button
-                        onClick={() => handleDeleteDocument(doc)}
-                        className="text-rose-500 hover:text-rose-600 cursor-pointer p-1"
-                      >
-                        <Trash2 className="w-3.5 h-3.5" />
-                      </button>
-                    </div>
-                  </div>
-                ))}
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  onClick={() => requestFileUpload("work_certificate")}
-                  disabled={isUploading}
-                  className="w-full h-10 rounded-[12px] text-xs font-bold border-dashed border-[#ebeef3] dark:border-zinc-700 text-[#5c7c9b] cursor-pointer"
-                >
-                  <Plus className="w-3.5 h-3.5 mr-1.5" /> Agregar Constancia Laboral (PDF o Imagen)
-                </Button>
-              </div>
-            </div>
-
-            {/* Opcional 4: Cartas de Recomendación */}
-            <div className="bg-white dark:bg-zinc-900 p-6 rounded-[24px] border border-[#ebeef3] dark:border-zinc-800 space-y-3">
-              <div className="flex items-center justify-between">
-                <label className="text-sm font-bold text-[#1f2732] dark:text-zinc-200 flex items-center gap-2">
-                  <FileText className="w-4 h-4 text-[#5c7c9b]" />
-                  <span>4. Cartas de Recomendación</span>
-                </label>
-                <span className="text-[11px] font-bold px-2 py-0.5 rounded-md bg-[#f5f7fa] dark:bg-zinc-800 text-[#5c7c9b]">
-                  {recommendationLetters.length} adjuntas
-                </span>
-              </div>
-              <div className="space-y-2">
-                {recommendationLetters.map((doc) => (
-                  <div key={doc.id} className="p-3.5 rounded-[14px] bg-[#f8fafc] dark:bg-zinc-800/60 border border-[#ebeef3] dark:border-zinc-700 flex items-center justify-between text-xs font-bold text-[#1f2732] dark:text-zinc-200">
-                    <span className="truncate">{doc.file_name}</span>
-                    <div className="flex items-center gap-1">
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => handleOpenPreview(doc, "Carta de Recomendación")}
-                        className="h-7 w-7 p-0 text-[#5c7c9b] hover:text-[#1f2732] cursor-pointer"
-                      >
-                        <Eye className="w-3.5 h-3.5" />
-                      </Button>
-                      <button
-                        onClick={() => handleDeleteDocument(doc)}
-                        className="text-rose-500 hover:text-rose-600 cursor-pointer p-1"
-                      >
-                        <Trash2 className="w-3.5 h-3.5" />
-                      </button>
-                    </div>
-                  </div>
-                ))}
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  onClick={() => requestFileUpload("recommendation_letter")}
-                  disabled={isUploading}
-                  className="w-full h-10 rounded-[12px] text-xs font-bold border-dashed border-[#ebeef3] dark:border-zinc-700 text-[#5c7c9b] cursor-pointer"
-                >
-                  <Plus className="w-3.5 h-3.5 mr-1.5" /> Agregar Carta de Recomendación (PDF o Imagen)
-                </Button>
-              </div>
-            </div>
-
-            {/* Opcional 5: Certificados o Cursos */}
-            <div className="bg-white dark:bg-zinc-900 p-6 rounded-[24px] border border-[#ebeef3] dark:border-zinc-800 space-y-4">
-              <div className="flex items-center justify-between">
-                <label className="text-sm font-bold text-[#1f2732] dark:text-zinc-200 flex items-center gap-2">
-                  <Award className="w-4 h-4 text-[#5c7c9b]" />
-                  <span>5. Certificados o Cursos</span>
-                </label>
-                <span className="text-[11px] font-bold px-2 py-0.5 rounded-md bg-[#f5f7fa] dark:bg-zinc-800 text-[#5c7c9b]">
-                  {courses.length} registrados
-                </span>
-              </div>
-
-              <div className="space-y-2">
-                {courses.map((item) => (
-                  <div key={item.id} className="p-3.5 rounded-[14px] bg-[#f8fafc] dark:bg-zinc-800/60 border border-[#ebeef3] dark:border-zinc-700 flex items-center justify-between">
-                    <div>
-                      <p className="text-xs font-bold text-[#1f2732] dark:text-zinc-200">{item.title}</p>
-                      <p className="text-[11px] text-[#5c7c9b] font-medium">{item.institution}</p>
-                    </div>
-                    <button
-                      onClick={() => setCourses((prev) => prev.filter((c) => c.id !== item.id))}
-                      className="text-rose-500 hover:text-rose-600 cursor-pointer p-1"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </button>
-                  </div>
-                ))}
-              </div>
-
-              <div className="pt-2 border-t border-[#ebeef3] dark:border-zinc-800 space-y-2">
-                <Input
-                  type="text"
-                  placeholder="Nombre del curso o taller"
-                  value={newCourseTitle}
-                  onChange={(e) => setNewCourseTitle(e.target.value)}
-                  className="h-10 bg-[#f8fafc] dark:bg-zinc-800/60 text-xs rounded-xl"
-                />
-                <div className="flex gap-2">
-                  <Input
-                    type="text"
-                    placeholder="Institución o Escuela"
-                    value={newCourseInst}
-                    onChange={(e) => setNewCourseInst(e.target.value)}
-                    className="h-10 bg-[#f8fafc] dark:bg-zinc-800/60 text-xs rounded-xl flex-1"
-                  />
-                  <Button
-                    type="button"
-                    onClick={handleAddCourse}
-                    className="h-10 px-4 bg-[#1f2732] dark:bg-zinc-100 text-white dark:text-zinc-900 text-xs font-bold rounded-xl cursor-pointer"
-                  >
-                    Agregar
-                  </Button>
-                </div>
-              </div>
-            </div>
-
-            {/* Opcional 6: Certificaciones Técnicas */}
-            <div className="bg-white dark:bg-zinc-900 p-6 rounded-[24px] border border-[#ebeef3] dark:border-zinc-800 space-y-4">
-              <div className="flex items-center justify-between">
-                <label className="text-sm font-bold text-[#1f2732] dark:text-zinc-200 flex items-center gap-2">
-                  <ShieldCheck className="w-4 h-4 text-[#5c7c9b]" />
-                  <span>6. Certificaciones Técnicas</span>
-                </label>
-                <span className="text-[11px] font-bold px-2 py-0.5 rounded-md bg-[#f5f7fa] dark:bg-zinc-800 text-[#5c7c9b]">
-                  {certifications.length} registradas
-                </span>
-              </div>
-
-              <div className="space-y-2">
-                {certifications.map((item) => (
-                  <div key={item.id} className="p-3.5 rounded-[14px] bg-[#f8fafc] dark:bg-zinc-800/60 border border-[#ebeef3] dark:border-zinc-700 flex items-center justify-between">
-                    <div>
-                      <p className="text-xs font-bold text-[#1f2732] dark:text-zinc-200">{item.name}</p>
-                      <p className="text-[11px] text-[#5c7c9b] font-medium">{item.issuer}</p>
-                    </div>
-                    <button
-                      onClick={() => setCertifications((prev) => prev.filter((c) => c.id !== item.id))}
-                      className="text-rose-500 hover:text-rose-600 cursor-pointer p-1"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </button>
-                  </div>
-                ))}
-              </div>
-
-              <div className="pt-2 border-t border-[#ebeef3] dark:border-zinc-800 space-y-2">
-                <Input
-                  type="text"
-                  placeholder="Nombre de la Certificación (ej. CONOCER, AWS, Cisco)"
-                  value={newCertName}
-                  onChange={(e) => setNewCertName(e.target.value)}
-                  className="h-10 bg-[#f8fafc] dark:bg-zinc-800/60 text-xs rounded-xl"
-                />
-                <div className="flex gap-2">
-                  <Input
-                    type="text"
-                    placeholder="Organismo Emisor"
-                    value={newCertIssuer}
-                    onChange={(e) => setNewCertIssuer(e.target.value)}
-                    className="h-10 bg-[#f8fafc] dark:bg-zinc-800/60 text-xs rounded-xl flex-1"
-                  />
-                  <Button
-                    type="button"
-                    onClick={handleAddCertification}
-                    className="h-10 px-4 bg-[#1f2732] dark:bg-zinc-100 text-white dark:text-zinc-900 text-xs font-bold rounded-xl cursor-pointer"
-                  >
-                    Agregar
-                  </Button>
-                </div>
-              </div>
-            </div>
-
-            {/* Opcional 7: Idiomas Dominados */}
-            <div className="bg-white dark:bg-zinc-900 p-6 rounded-[24px] border border-[#ebeef3] dark:border-zinc-800 space-y-4">
-              <div className="flex items-center justify-between">
-                <label className="text-sm font-bold text-[#1f2732] dark:text-zinc-200 flex items-center gap-2">
-                  <Globe className="w-4 h-4 text-[#5c7c9b]" />
-                  <span>7. Idiomas</span>
-                </label>
-                <span className="text-[11px] font-bold px-2 py-0.5 rounded-md bg-[#f5f7fa] dark:bg-zinc-800 text-[#5c7c9b]">
-                  {languages.length} registrados
-                </span>
-              </div>
-
-              <div className="space-y-2">
-                {languages.map((item) => (
-                  <div key={item.id} className="p-3.5 rounded-[14px] bg-[#f8fafc] dark:bg-zinc-800/60 border border-[#ebeef3] dark:border-zinc-700 flex items-center justify-between">
-                    <div>
-                      <p className="text-xs font-bold text-[#1f2732] dark:text-zinc-200">{item.language}</p>
-                      <p className="text-[11px] text-[#5c7c9b] font-medium">{item.level}</p>
-                    </div>
-                    <button
-                      onClick={() => setLanguages((prev) => prev.filter((l) => l.id !== item.id))}
-                      className="text-rose-500 hover:text-rose-600 cursor-pointer p-1"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </button>
-                  </div>
-                ))}
-              </div>
-
-              <div className="pt-2 border-t border-[#ebeef3] dark:border-zinc-800 flex gap-2">
-                <Input
-                  type="text"
-                  placeholder="Idioma (ej. Inglés, Francés, Maya)"
-                  value={newLangName}
-                  onChange={(e) => setNewLangName(e.target.value)}
-                  className="h-10 bg-[#f8fafc] dark:bg-zinc-800/60 text-xs rounded-xl flex-1"
-                />
-                <select
-                  value={newLangLevel}
-                  onChange={(e) => setNewLangLevel(e.target.value)}
-                  className="h-10 px-3 bg-[#f8fafc] dark:bg-zinc-800 border border-[#ebeef3] dark:border-zinc-700 text-xs font-semibold rounded-xl text-[#1f2732] dark:text-zinc-100"
-                >
-                  <option value="Básico (A1-A2)">Básico (A1-A2)</option>
-                  <option value="Intermedio (B1-B2)">Intermedio (B1-B2)</option>
-                  <option value="Avanzado (C1)">Avanzado (C1)</option>
-                  <option value="Nativo">Nativo</option>
-                </select>
-                <Button
-                  type="button"
-                  onClick={handleAddLanguage}
-                  className="h-10 px-3 bg-[#1f2732] dark:bg-zinc-100 text-white dark:text-zinc-900 text-xs font-bold rounded-xl cursor-pointer"
-                >
-                  <Plus className="w-4 h-4" />
-                </Button>
-              </div>
-            </div>
-
-            {/* Opcional 8: Portafolio de Trabajos */}
-            <div className="bg-white dark:bg-zinc-900 p-6 rounded-[24px] border border-[#ebeef3] dark:border-zinc-800 space-y-3">
-              <div className="flex items-center justify-between">
-                <label className="text-sm font-bold text-[#1f2732] dark:text-zinc-200 flex items-center gap-2">
-                  <ExternalLink className="w-4 h-4 text-[#5c7c9b]" />
-                  <span>8. Portafolio de Trabajos</span>
-                </label>
-                <span className="text-[11px] font-bold px-2 py-0.5 rounded-md bg-[#f5f7fa] dark:bg-zinc-800 text-[#5c7c9b]">
-                  Opcional
-                </span>
-              </div>
-
-              <div className="space-y-3">
-                <div>
-                  <label className="text-xs font-semibold text-[#5c7c9b]">Enlace Web / Sitio Portafolio / GitHub</label>
-                  <Input
-                    type="url"
-                    value={portfolioUrl}
-                    onChange={(e) => setPortfolioUrl(e.target.value)}
-                    placeholder="https://miportafolio.com"
-                    className="h-11 bg-[#f8fafc] dark:bg-zinc-800/60 border-[#ebeef3] dark:border-zinc-700 rounded-[14px] text-xs font-semibold mt-1"
-                  />
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* 5. Sticky Bottom Actions Bar */}
-      <div className="bg-white/80 dark:bg-zinc-900/80 backdrop-blur-md p-4 rounded-[24px] border border-[#ebeef3] dark:border-zinc-800 shadow-lg flex items-center justify-between gap-4 sticky bottom-4 z-20">
-        <div className="flex items-center gap-2 text-xs sm:text-sm font-bold text-[#1f2732] dark:text-zinc-200">
-          <ShieldCheck className="w-5 h-5 text-emerald-600 shrink-0" />
-          <span className="hidden sm:inline">Requisitos Obligatorios:</span>
-          <span className="text-emerald-600 dark:text-emerald-400 font-extrabold">
-            {mandatoryCompleted} de 8 completos
-          </span>
-        </div>
-
-        <div className="flex items-center gap-3">
           <Button
-            type="button"
             onClick={handleSaveProgress}
-            className="h-12 px-6 bg-[#1f2732] dark:bg-zinc-100 hover:bg-[#2c3847] dark:hover:bg-zinc-200 text-white dark:text-zinc-900 font-extrabold text-sm rounded-[16px] shadow-xs cursor-pointer active:scale-98 transition-all"
+            disabled={isSaving}
+            className="w-full sm:w-auto h-11 px-6 rounded-xl font-bold text-xs sm:text-sm bg-primary text-primary-foreground hover:bg-primary/90 shadow-xs gap-2 cursor-pointer transition-all"
           >
+            {isSaving ? <Loader2 className="size-4 animate-spin" /> : <Save className="size-4" />}
             Guardar Expediente
           </Button>
         </div>
       </div>
 
-      {/* MODAL 1: Real Document Preview Modal */}
-      <Dialog open={!!previewData} onOpenChange={(open) => !open && setPreviewData(null)}>
-        <DialogContent className="sm:max-w-[540px] rounded-[28px] bg-white dark:bg-zinc-900 border border-[#ebeef3] dark:border-zinc-800 p-6 space-y-4">
-          <DialogHeader>
-            <DialogTitle className="text-lg font-bold text-[#1f2732] dark:text-zinc-50 flex items-center gap-2">
-              <FileText className="w-5 h-5 text-emerald-600" />
-              <span>{previewData?.type}</span>
-            </DialogTitle>
-            <DialogDescription className="text-xs text-[#5c7c9b] truncate">
-              {previewData?.name}
-            </DialogDescription>
-          </DialogHeader>
+      {/* 2. Main Tabbed Organization */}
+      <Tabs defaultValue="identity" value={activeTab} onValueChange={setActiveTab} className="space-y-6">
+        <TabsList className="grid grid-cols-2 md:grid-cols-4 w-full h-auto p-1.5 bg-muted/60 rounded-2xl border border-border/60 gap-1">
+          <TabsTrigger
+            value="identity"
+            className="rounded-xl py-2.5 text-xs sm:text-sm font-bold flex items-center justify-center gap-2 data-[state=active]:bg-card data-[state=active]:text-foreground data-[state=active]:shadow-xs"
+          >
+            <User className="size-4 text-primary shrink-0" />
+            <span>Identidad & INE</span>
+            {identityScore === 7 && <CheckCircle2 className="size-3.5 text-emerald-500" />}
+          </TabsTrigger>
 
-          {isLoadingPreview ? (
-            <div className="p-12 text-center flex flex-col items-center justify-center gap-3">
-              <Loader2 className="w-8 h-8 animate-spin text-primary" />
-              <p className="text-xs font-semibold text-[#5c7c9b]">Cargando vista previa segura...</p>
-            </div>
-          ) : previewData?.url ? (
-            <div className="space-y-4">
-              <div className="p-4 bg-[#f8fafc] dark:bg-zinc-800/50 border border-[#ebeef3] dark:border-zinc-700 rounded-[20px] text-center space-y-3">
-                {previewData.isPdf ? (
-                  <div className="w-14 h-14 rounded-full bg-rose-500/10 text-rose-600 flex items-center justify-center mx-auto">
-                    <FileText className="w-7 h-7" />
+          <TabsTrigger
+            value="work_docs"
+            className="rounded-xl py-2.5 text-xs sm:text-sm font-bold flex items-center justify-center gap-2 data-[state=active]:bg-card data-[state=active]:text-foreground data-[state=active]:shadow-xs"
+          >
+            <FileText className="size-4 text-blue-500 shrink-0" />
+            <span>CV & Constancias</span>
+            {cvDoc && <CheckCircle2 className="size-3.5 text-emerald-500" />}
+          </TabsTrigger>
+
+          <TabsTrigger
+            value="merits"
+            className="rounded-xl py-2.5 text-xs sm:text-sm font-bold flex items-center justify-center gap-2 data-[state=active]:bg-card data-[state=active]:text-foreground data-[state=active]:shadow-xs"
+          >
+            <Award className="size-4 text-amber-500 shrink-0" />
+            <span>Cursos & Méritos</span>
+            {meritsScore > 0 && <span className="text-[11px] font-bold text-muted-foreground">({courses.length + certifications.length})</span>}
+          </TabsTrigger>
+
+          <TabsTrigger
+            value="security"
+            className="rounded-xl py-2.5 text-xs sm:text-sm font-bold flex items-center justify-center gap-2 data-[state=active]:bg-card data-[state=active]:text-foreground data-[state=active]:shadow-xs"
+          >
+            <Lock className="size-4 text-emerald-500 shrink-0" />
+            <span>Permisos & Empresas</span>
+          </TabsTrigger>
+        </TabsList>
+
+        {/* ========================================================================================================= */}
+        {/* TAB 1: IDENTIDAD & CONTACTO */}
+        {/* ========================================================================================================= */}
+        <TabsContent value="identity" className="space-y-6 focus-visible:outline-none">
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+            
+            {/* Left Col: Photo & INE Dropzone (5 cols) */}
+            <div className="lg:col-span-5 space-y-6">
+              {/* Profile Avatar Card */}
+              <div className="bg-card p-6 rounded-3xl border border-border shadow-xs flex flex-col items-center text-center space-y-4">
+                <div className="relative group cursor-pointer" onClick={() => avatarInputRef.current?.click()}>
+                  <div className="size-28 sm:size-32 rounded-full bg-muted flex items-center justify-center overflow-hidden border-4 border-card shadow-md transition-all group-hover:opacity-90">
+                    {profilePhotoUrl ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img src={profilePhotoUrl} alt={fullName} className="size-full object-cover" />
+                    ) : (
+                      <span className="text-3xl font-extrabold text-foreground">
+                        {fullName ? fullName.trim()[0].toUpperCase() : "C"}
+                      </span>
+                    )}
                   </div>
-                ) : (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img
-                    src={previewData.url}
-                    alt={previewData.name}
-                    className="max-h-64 mx-auto rounded-xl object-contain shadow-xs"
-                  />
-                )}
-                <div>
-                  <p className="text-sm font-bold text-[#1f2732] dark:text-zinc-100">
-                    Documento listo para consulta
-                  </p>
-                  <p className="text-xs text-[#5c7c9b]">
-                    Almacenado de forma segura en el repositorio de K&apos;anPro.
-                  </p>
+                  <div className="absolute bottom-1 right-1 p-2 bg-primary text-primary-foreground rounded-full shadow-md hover:scale-105 transition-transform">
+                    {isUploadingAvatar ? <Loader2 className="size-4 animate-spin" /> : <Camera className="size-4" />}
+                  </div>
                 </div>
-              </div>
 
-              <div className="flex gap-2">
-                <Button
-                  type="button"
-                  onClick={() => window.open(previewData.url!, "_blank")}
-                  className="flex-1 h-11 bg-[#1f2732] hover:bg-[#2c3847] text-white text-xs font-bold rounded-[14px] flex items-center justify-center gap-2 cursor-pointer"
-                >
-                  <Download className="w-4 h-4" />
-                  <span>Abrir / Descargar</span>
-                </Button>
+                <div>
+                  <h3 className="text-base font-extrabold text-foreground">{fullName || "Tu Nombre"}</h3>
+                  <p className="text-xs text-muted-foreground font-medium mt-0.5">Fotografía Oficial para Reclutadores</p>
+                </div>
+
                 <Button
                   type="button"
                   variant="outline"
-                  onClick={() => setPreviewData(null)}
-                  className="h-11 px-5 rounded-[14px] text-xs font-bold cursor-pointer"
+                  size="sm"
+                  onClick={() => avatarInputRef.current?.click()}
+                  disabled={isUploadingAvatar}
+                  className="rounded-xl text-xs font-bold gap-1.5 cursor-pointer"
                 >
-                  Cerrar
+                  <Camera className="size-3.5" />
+                  {profilePhotoUrl ? "Cambiar Fotografía" : "Subir Fotografía"}
                 </Button>
               </div>
+
+              {/* Official ID (INE / Pasaporte) Card */}
+              <DocumentUploadCard
+                title="Identificación Oficial (INE / Pasaporte)"
+                description="Requerido para cotejo de identidad y contratación formal."
+                document={officialIdDoc}
+                docType="ine_passport"
+                isUploading={isUploading && targetDocType === "ine_passport"}
+                onRequestUpload={requestFileUpload}
+                onOpenPreview={(doc) => handleOpenPreview(doc, "Identificación Oficial (INE)")}
+                onDeleteDocument={handleDeleteDocument}
+                required
+              />
             </div>
-          ) : (
-            <div className="p-8 bg-[#f8fafc] dark:bg-zinc-800/50 border border-[#ebeef3] dark:border-zinc-700 rounded-[20px] text-center space-y-3">
-              <div className="w-14 h-14 rounded-full bg-emerald-500/10 text-emerald-600 flex items-center justify-center mx-auto">
-                <CheckCircle2 className="w-7 h-7" />
+
+            {/* Right Col: Personal Verification Fields (7 cols) */}
+            <div className="lg:col-span-7 bg-card p-6 sm:p-8 rounded-3xl border border-border shadow-xs space-y-5">
+              <div className="flex items-center justify-between pb-3 border-b border-border/60">
+                <div className="flex items-center gap-2.5">
+                  <div className="p-2 rounded-xl bg-primary/10 text-primary">
+                    <User className="size-4.5" />
+                  </div>
+                  <div>
+                    <h3 className="text-base font-bold text-foreground">Datos Personales Oficiales</h3>
+                    <p className="text-xs text-muted-foreground">Utilizados para emitir contratos y trámites de RRHH.</p>
+                  </div>
+                </div>
               </div>
-              <p className="text-sm font-bold text-[#1f2732] dark:text-zinc-100">
-                Documento registrado en expediente
-              </p>
+
+              <div className="space-y-4">
+                <FormTextField
+                  id="docFullName"
+                  label="Nombre Completo Oficial"
+                  required
+                  value={fullName}
+                  onChange={(e) => setFullName(e.target.value)}
+                  hintText="Nombre(s) y Apellidos como en tu INE"
+                  prefixIcon={<User className="size-4 text-muted-foreground" />}
+                  helperText="Nombre oficial registrado para postulaciones formales."
+                />
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <FormCurpField
+                    id="docCurp"
+                    label="CURP Oficial (18 caracteres)"
+                    required
+                    value={curp}
+                    onChange={(val) => setCurp(val)}
+                    helperText="Clave Única de Registro de Población."
+                  />
+
+                  <FormDateField
+                    id="docBirthDate"
+                    label="Fecha de Nacimiento"
+                    required
+                    value={birthDate}
+                    onChange={(val) => setBirthDate(val)}
+                    helperText="Cargado directamente de tu cuenta."
+                  />
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <FormTextField
+                    id="docEmail"
+                    label="Correo Electrónico"
+                    required
+                    type="email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    hintText="candidato@correo.com"
+                    prefixIcon={<Mail className="size-4 text-muted-foreground" />}
+                    helperText="Vinculado a notificaciones y ofertas."
+                  />
+
+                  <FormPhoneField
+                    id="docPhone"
+                    label="WhatsApp / Celular"
+                    required
+                    value={phone}
+                    onChange={(val) => setPhone(val)}
+                    helperText="Contacto directo para entrevistas."
+                  />
+                </div>
+              </div>
+            </div>
+
+          </div>
+        </TabsContent>
+
+        {/* ========================================================================================================= */}
+        {/* TAB 2: CV Y CONSTANCIAS LABORALES */}
+        {/* ========================================================================================================= */}
+        <TabsContent value="work_docs" className="space-y-6 focus-visible:outline-none">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            
+            {/* 1. CV Digital */}
+            <DocumentUploadCard
+              title="Currículum Vitae (CV)"
+              description="Formato PDF preferentemente. Las empresas revisan este documento para conocer tu trayectoria."
+              document={cvDoc}
+              docType="cv"
+              isUploading={isUploading && targetDocType === "cv"}
+              onRequestUpload={requestFileUpload}
+              onOpenPreview={(doc) => handleOpenPreview(doc, "Currículum Vitae")}
+              onDeleteDocument={handleDeleteDocument}
+              required
+            />
+
+            {/* 2. Comprobante de Domicilio */}
+            <DocumentUploadCard
+              title="Comprobante de Domicilio"
+              description="CFE, Agua o Telefonía no mayor a 3 meses. Acredita tu residencia en la zona de trabajo."
+              document={proofAddressDoc}
+              docType="proof_of_address"
+              isUploading={isUploading && targetDocType === "proof_of_address"}
+              onRequestUpload={requestFileUpload}
+              onOpenPreview={(doc) => handleOpenPreview(doc, "Comprobante de Domicilio")}
+              onDeleteDocument={handleDeleteDocument}
+            />
+
+            {/* 3. Constancias Laborales */}
+            <div className="bg-card p-6 rounded-3xl border border-border shadow-xs space-y-4 flex flex-col justify-between">
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <div className="p-2 rounded-xl bg-blue-500/10 text-blue-600 dark:text-blue-400">
+                      <Briefcase className="size-4.5" />
+                    </div>
+                    <h4 className="text-base font-bold text-foreground">Constancias Laborales</h4>
+                  </div>
+                  <Badge variant="secondary" className="text-xs font-bold rounded-lg">
+                    {workCertificates.length} adjuntas
+                  </Badge>
+                </div>
+                <p className="text-xs text-muted-foreground leading-relaxed">
+                  Cartas de finiquito, constancias de empleo o cartas de recomendación laboral de empresas previas.
+                </p>
+              </div>
+
+              {workCertificates.length > 0 && (
+                <div className="space-y-2 max-h-48 overflow-y-auto pr-1">
+                  {workCertificates.map((doc) => (
+                    <div key={doc.id} className="p-3 rounded-xl bg-muted/50 border border-border/80 flex items-center justify-between gap-3">
+                      <div className="flex items-center gap-2.5 truncate">
+                        <FileText className="size-4 text-primary shrink-0" />
+                        <span className="text-xs font-semibold text-foreground truncate">{doc.file_name}</span>
+                      </div>
+                      <div className="flex items-center gap-1 shrink-0">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => handleOpenPreview(doc, "Constancia Laboral")}
+                          className="size-7 rounded-lg text-muted-foreground hover:text-foreground"
+                        >
+                          <Eye className="size-3.5" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => handleDeleteDocument(doc)}
+                          className="size-7 rounded-lg text-destructive hover:text-destructive/80"
+                        >
+                          <Trash2 className="size-3.5" />
+                        </Button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+
               <Button
+                type="button"
                 variant="outline"
-                onClick={() => setPreviewData(null)}
-                className="w-full h-11 rounded-[14px] text-xs font-bold cursor-pointer mt-2"
+                onClick={() => requestFileUpload("work_certificate")}
+                disabled={isUploading}
+                className="w-full rounded-xl text-xs font-bold gap-1.5 h-10 border-dashed hover:border-solid cursor-pointer"
               >
-                Cerrar
+                <Plus className="size-4" />
+                <span>Agregar Constancia Laboral</span>
               </Button>
             </div>
-          )}
+
+            {/* 4. Cartas de Recomendación */}
+            <div className="bg-card p-6 rounded-3xl border border-border shadow-xs space-y-4 flex flex-col justify-between">
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <div className="p-2 rounded-xl bg-amber-500/10 text-amber-600 dark:text-amber-400">
+                      <Award className="size-4.5" />
+                    </div>
+                    <h4 className="text-base font-bold text-foreground">Cartas de Recomendación</h4>
+                  </div>
+                  <Badge variant="secondary" className="text-xs font-bold rounded-lg">
+                    {recommendationLetters.length} adjuntas
+                  </Badge>
+                </div>
+                <p className="text-xs text-muted-foreground leading-relaxed">
+                  Cartas personales o de antiguos jefes directos que respalden tu ética de trabajo y confiabilidad.
+                </p>
+              </div>
+
+              {recommendationLetters.length > 0 && (
+                <div className="space-y-2 max-h-48 overflow-y-auto pr-1">
+                  {recommendationLetters.map((doc) => (
+                    <div key={doc.id} className="p-3 rounded-xl bg-muted/50 border border-border/80 flex items-center justify-between gap-3">
+                      <div className="flex items-center gap-2.5 truncate">
+                        <FileText className="size-4 text-primary shrink-0" />
+                        <span className="text-xs font-semibold text-foreground truncate">{doc.file_name}</span>
+                      </div>
+                      <div className="flex items-center gap-1 shrink-0">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => handleOpenPreview(doc, "Carta de Recomendación")}
+                          className="size-7 rounded-lg text-muted-foreground hover:text-foreground"
+                        >
+                          <Eye className="size-3.5" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => handleDeleteDocument(doc)}
+                          className="size-7 rounded-lg text-destructive hover:text-destructive/80"
+                        >
+                          <Trash2 className="size-3.5" />
+                        </Button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => requestFileUpload("recommendation_letter")}
+                disabled={isUploading}
+                className="w-full rounded-xl text-xs font-bold gap-1.5 h-10 border-dashed hover:border-solid cursor-pointer"
+              >
+                <Plus className="size-4" />
+                <span>Agregar Carta de Recomendación</span>
+              </Button>
+            </div>
+
+          </div>
+        </TabsContent>
+
+        {/* ========================================================================================================= */}
+        {/* TAB 3: MÉRITOS, CURSOS E IDIOMAS */}
+        {/* ========================================================================================================= */}
+        <TabsContent value="merits" className="space-y-6 focus-visible:outline-none">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            
+            {/* Cursos y Talleres */}
+            <div className="bg-card p-6 rounded-3xl border border-border shadow-xs space-y-4">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2.5">
+                  <div className="p-2 rounded-xl bg-primary/10 text-primary">
+                    <Award className="size-4.5" />
+                  </div>
+                  <div>
+                    <h4 className="text-base font-bold text-foreground">Cursos y Talleres</h4>
+                    <p className="text-xs text-muted-foreground">Diplomados o capacitaciones realizadas.</p>
+                  </div>
+                </div>
+                <Button
+                  size="sm"
+                  onClick={() => setIsAddCourseModalOpen(true)}
+                  className="rounded-xl text-xs font-bold gap-1 h-8 px-3 cursor-pointer"
+                >
+                  <Plus className="size-3.5" />
+                  Agregar
+                </Button>
+              </div>
+
+              {courses.length === 0 ? (
+                <div className="p-6 rounded-2xl bg-muted/40 border border-dashed border-border text-center text-xs text-muted-foreground">
+                  Aún no has registrado cursos. Agrega diplomados o talleres para sumar méritos.
+                </div>
+              ) : (
+                <div className="space-y-2.5">
+                  {courses.map((course) => (
+                    <div key={course.id} className="p-3.5 rounded-xl bg-muted/40 border border-border flex items-center justify-between gap-3">
+                      <div>
+                        <p className="text-xs font-bold text-foreground">{course.title}</p>
+                        <p className="text-[11px] text-muted-foreground font-medium">{course.institution}</p>
+                      </div>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => setCourses((prev) => prev.filter((c) => c.id !== course.id))}
+                        className="size-7 rounded-lg text-muted-foreground hover:text-destructive"
+                      >
+                        <Trash2 className="size-3.5" />
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* Certificaciones y Licencias */}
+            <div className="bg-card p-6 rounded-3xl border border-border shadow-xs space-y-4">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2.5">
+                  <div className="p-2 rounded-xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">
+                    <ShieldCheck className="size-4.5" />
+                  </div>
+                  <div>
+                    <h4 className="text-base font-bold text-foreground">Certificaciones Oficiales</h4>
+                    <p className="text-xs text-muted-foreground">Distintivo H, Primeros Auxilios, etc.</p>
+                  </div>
+                </div>
+                <Button
+                  size="sm"
+                  onClick={() => setIsAddCertModalOpen(true)}
+                  className="rounded-xl text-xs font-bold gap-1 h-8 px-3 cursor-pointer"
+                >
+                  <Plus className="size-3.5" />
+                  Agregar
+                </Button>
+              </div>
+
+              {certifications.length === 0 ? (
+                <div className="p-6 rounded-2xl bg-muted/40 border border-dashed border-border text-center text-xs text-muted-foreground">
+                  No hay certificaciones registradas.
+                </div>
+              ) : (
+                <div className="space-y-2.5">
+                  {certifications.map((cert) => (
+                    <div key={cert.id} className="p-3.5 rounded-xl bg-muted/40 border border-border flex items-center justify-between gap-3">
+                      <div>
+                        <p className="text-xs font-bold text-foreground">{cert.name}</p>
+                        <p className="text-[11px] text-muted-foreground font-medium">{cert.issuer}</p>
+                      </div>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => setCertifications((prev) => prev.filter((c) => c.id !== cert.id))}
+                        className="size-7 rounded-lg text-muted-foreground hover:text-destructive"
+                      >
+                        <Trash2 className="size-3.5" />
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* Idiomas */}
+            <div className="bg-card p-6 rounded-3xl border border-border shadow-xs space-y-4">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2.5">
+                  <div className="p-2 rounded-xl bg-blue-500/10 text-blue-600 dark:text-blue-400">
+                    <Globe className="size-4.5" />
+                  </div>
+                  <div>
+                    <h4 className="text-base font-bold text-foreground">Idiomas</h4>
+                    <p className="text-xs text-muted-foreground">Nivel conversacional y dominio.</p>
+                  </div>
+                </div>
+                <Button
+                  size="sm"
+                  onClick={() => setIsAddLangModalOpen(true)}
+                  className="rounded-xl text-xs font-bold gap-1 h-8 px-3 cursor-pointer"
+                >
+                  <Plus className="size-3.5" />
+                  Agregar
+                </Button>
+              </div>
+
+              {languages.length === 0 ? (
+                <div className="p-6 rounded-2xl bg-muted/40 border border-dashed border-border text-center text-xs text-muted-foreground">
+                  Registra los idiomas que dominas (Ej. Inglés B2, Maya, etc.).
+                </div>
+              ) : (
+                <div className="flex flex-wrap gap-2">
+                  {languages.map((lang) => (
+                    <div key={lang.id} className="inline-flex items-center gap-2 px-3 py-1.5 rounded-xl bg-muted/60 border border-border text-xs font-bold text-foreground">
+                      <span>{lang.language}</span>
+                      <span className="text-[11px] text-muted-foreground font-semibold">({lang.level})</span>
+                      <button
+                        type="button"
+                        onClick={() => setLanguages((prev) => prev.filter((l) => l.id !== lang.id))}
+                        className="text-muted-foreground hover:text-destructive ml-1"
+                      >
+                        <X className="size-3" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* Portafolio Digital */}
+            <div className="bg-card p-6 rounded-3xl border border-border shadow-xs space-y-4">
+              <div className="flex items-center gap-2.5">
+                <div className="p-2 rounded-xl bg-purple-500/10 text-purple-600 dark:text-purple-400">
+                  <Sparkles className="size-4.5" />
+                </div>
+                <div>
+                  <h4 className="text-base font-bold text-foreground">Portafolio Digital o Web</h4>
+                  <p className="text-xs text-muted-foreground">Muestra tus proyectos anteriores, fotos o enlace a LinkedIn.</p>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <Input
+                  value={portfolioUrl}
+                  onChange={(e) => setPortfolioUrl(e.target.value)}
+                  placeholder="https://behance.net/mi-perfil o LinkedIn"
+                  className="rounded-xl text-xs h-10 bg-background"
+                />
+                {portfolioUrl && (
+                  <a
+                    href={portfolioUrl.startsWith("http") ? portfolioUrl : `https://${portfolioUrl}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="shrink-0"
+                  >
+                    <Button variant="outline" size="icon" className="size-10 rounded-xl">
+                      <ExternalLink className="size-4" />
+                    </Button>
+                  </a>
+                )}
+              </div>
+            </div>
+
+          </div>
+        </TabsContent>
+
+        {/* ========================================================================================================= */}
+        {/* TAB 4: PERMISOS Y PRIVACIDAD */}
+        {/* ========================================================================================================= */}
+        <TabsContent value="security" className="space-y-6 focus-visible:outline-none">
+          <div className="grid grid-cols-1 md:grid-cols-12 gap-6">
+            
+            {/* Information Card */}
+            <div className="md:col-span-6 bg-card p-6 sm:p-8 rounded-3xl border border-border shadow-xs space-y-4">
+              <div className="flex items-center gap-3">
+                <div className="p-3 rounded-2xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">
+                  <ShieldCheck className="size-6" />
+                </div>
+                <div>
+                  <h3 className="text-base font-bold text-foreground">Protocolo de Privacidad K&apos;anPro</h3>
+                  <p className="text-xs text-muted-foreground">Seguridad según la Ley Federal de Protección de Datos Personales.</p>
+                </div>
+              </div>
+
+              <p className="text-xs text-muted-foreground leading-relaxed">
+                Tus documentos privados (CURP, Identificación y Comprobantes) están protegidos mediante políticas RLS y únicamente se comparten con empresas verificadas a las que decidas postularte formalmente.
+              </p>
+
+              <div className="space-y-2.5 pt-2">
+                <div className="flex items-start gap-2.5 text-xs text-foreground font-medium">
+                  <Check className="size-4 text-emerald-500 shrink-0 mt-0.5" />
+                  <span>Acceso revocado automáticamente al finalizar el proceso de selección.</span>
+                </div>
+                <div className="flex items-start gap-2.5 text-xs text-foreground font-medium">
+                  <Check className="size-4 text-emerald-500 shrink-0 mt-0.5" />
+                  <span>URLs temporales protegidas con token de vencimiento a los 60 minutos.</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Terms and Authorization Acceptance Card */}
+            <div className="md:col-span-6 bg-card p-6 sm:p-8 rounded-3xl border border-border shadow-xs space-y-4 flex flex-col justify-between">
+              <div className="space-y-3">
+                <div className="flex items-center gap-3">
+                  <div className="p-3 rounded-2xl bg-primary/10 text-primary">
+                    <Lock className="size-6" />
+                  </div>
+                  <div>
+                    <h3 className="text-base font-bold text-foreground">Consentimiento de Verificación</h3>
+                    <p className="text-xs text-muted-foreground">Autorización para validación documental.</p>
+                  </div>
+                </div>
+
+                <p className="text-xs text-muted-foreground leading-relaxed">
+                  Al mantener activo este interruptor, autorizas a K&apos;anPro a cotejar la validez de tu expediente con los departamentos de Recursos Humanos de las empresas contratantes.
+                </p>
+              </div>
+
+              <div className="p-4 rounded-2xl bg-muted/50 border border-border flex items-center justify-between">
+                <span className="text-xs font-bold text-foreground">Estado de Autorización</span>
+                <Badge className="bg-emerald-500/10 text-emerald-600 border-emerald-500/20 font-bold text-xs">
+                  Vigente y Activo
+                </Badge>
+              </div>
+            </div>
+
+          </div>
+        </TabsContent>
+      </Tabs>
+
+      {/* ========================================================================================================= */}
+      {/* MODALS */}
+      {/* ========================================================================================================= */}
+
+      {/* 1. Document Preview Modal */}
+      <Dialog open={!!previewData} onOpenChange={(open) => !open && setPreviewData(null)}>
+        <DialogContent className="sm:max-w-3xl max-h-[90vh] flex flex-col p-0 rounded-3xl bg-card border border-border shadow-2xl overflow-hidden">
+          <DialogHeader className="p-5 border-b border-border flex flex-row items-center justify-between">
+            <div>
+              <DialogTitle className="text-base font-bold text-foreground">
+                {previewData?.type || "Vista Previa de Documento"}
+              </DialogTitle>
+              <DialogDescription className="text-xs text-muted-foreground truncate max-w-sm mt-0.5">
+                {previewData?.name}
+              </DialogDescription>
+            </div>
+            {previewData?.url && (
+              <a
+                href={previewData.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                download={previewData.name}
+              >
+                <Button size="sm" variant="outline" className="rounded-xl text-xs font-bold gap-1.5">
+                  <Download className="size-3.5" />
+                  Descargar
+                </Button>
+              </a>
+            )}
+          </DialogHeader>
+
+          <div className="p-6 flex-1 min-h-[400px] flex items-center justify-center bg-muted/20 overflow-auto">
+            {isLoadingPreview ? (
+              <div className="flex flex-col items-center gap-2 text-muted-foreground text-xs">
+                <Loader2 className="size-6 animate-spin text-primary" />
+                <span>Cargando documento cifrado...</span>
+              </div>
+            ) : previewData?.url ? (
+              previewData.isPdf ? (
+                <iframe
+                  src={`${previewData.url}#toolbar=0`}
+                  className="w-full h-[500px] rounded-xl border border-border"
+                  title="PDF Preview"
+                />
+              ) : (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  src={previewData.url}
+                  alt={previewData.name}
+                  className="max-h-[500px] w-auto object-contain rounded-xl shadow-xs"
+                />
+              )
+            ) : (
+              <div className="text-center text-xs text-muted-foreground">
+                No se pudo generar la vista previa del documento.
+              </div>
+            )}
+          </div>
         </DialogContent>
       </Dialog>
 
-      {/* MODAL 2: Terms & Privacy Modal */}
-      <Dialog open={isTermsModalOpen} onOpenChange={setIsTermsModalOpen}>
-        <DialogContent className="sm:max-w-[540px] rounded-[28px] bg-white dark:bg-zinc-900 border border-[#ebeef3] dark:border-zinc-800 p-6 space-y-4 max-h-[85vh] overflow-y-auto">
+      {/* 2. Add Course Modal */}
+      <Dialog open={isAddCourseModalOpen} onOpenChange={setIsAddCourseModalOpen}>
+        <DialogContent className="sm:max-w-md rounded-3xl bg-card border border-border p-6 space-y-4">
           <DialogHeader>
-            <DialogTitle className="text-lg font-bold text-[#1f2732] dark:text-zinc-50">
-              Términos, Condiciones y Aviso de Privacidad
-            </DialogTitle>
-            <DialogDescription className="text-xs text-[#5c7c9b]">
-              K&apos;anPro Plataforma de Reclutamiento y Empleo
-            </DialogDescription>
+            <DialogTitle className="text-base font-bold text-foreground">Agregar Curso o Diplomado</DialogTitle>
           </DialogHeader>
-
-          <div className="text-xs text-[#3e546d] dark:text-zinc-300 space-y-3 leading-relaxed border-t border-b border-[#ebeef3] dark:border-zinc-800 py-4">
-            <p className="font-bold text-[#1f2732] dark:text-zinc-100">1. Protección de Datos Personales</p>
-            <p>
-              Tus documentos e información sensible (CURP, Identificación Oficial y comprobantes) son resguardados bajo estándares estrictos de cifrado de extremo a extremo. Únicamente serán compartidos con empresas registradas ante las cuales postules explícitamente tu vacante.
-            </p>
-            <p className="font-bold text-[#1f2732] dark:text-zinc-100">2. Veracidad de la Información</p>
-            <p>
-              El candidato garantiza que los datos proporcionados son veraces y corresponden a su titularidad legal. La alteración o falsificación de documentos cancelará la cuenta de usuario de inmediato.
-            </p>
+          <div className="space-y-3">
+            <div>
+              <label className="text-xs font-bold text-muted-foreground">Nombre del Curso / Formación *</label>
+              <Input
+                value={newCourseTitle}
+                onChange={(e) => setNewCourseTitle(e.target.value)}
+                placeholder="Ej. Diplomado en Manejo Higiénico de Alimentos"
+                className="mt-1 text-xs rounded-xl"
+              />
+            </div>
+            <div>
+              <label className="text-xs font-bold text-muted-foreground">Institución Educativa / Empresa</label>
+              <Input
+                value={newCourseInst}
+                onChange={(e) => setNewCourseInst(e.target.value)}
+                placeholder="Ej. Instituto Gastronómico de Mérida"
+                className="mt-1 text-xs rounded-xl"
+              />
+            </div>
           </div>
-
-          <DialogFooter>
-            <Button
-              type="button"
-              onClick={() => setIsTermsModalOpen(false)}
-              className="w-full h-11 bg-[#1f2732] text-white font-bold text-xs rounded-[14px] cursor-pointer"
-            >
-              Entendido y Aceptado
+          <DialogFooter className="gap-2 pt-2">
+            <Button variant="ghost" size="sm" onClick={() => setIsAddCourseModalOpen(false)} className="rounded-xl text-xs">
+              Cancelar
+            </Button>
+            <Button size="sm" onClick={handleAddCourse} className="rounded-xl text-xs font-bold">
+              Guardar Curso
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* 3. Add Certification Modal */}
+      <Dialog open={isAddCertModalOpen} onOpenChange={setIsAddCertModalOpen}>
+        <DialogContent className="sm:max-w-md rounded-3xl bg-card border border-border p-6 space-y-4">
+          <DialogHeader>
+            <DialogTitle className="text-base font-bold text-foreground">Agregar Certificación Oficial</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3">
+            <div>
+              <label className="text-xs font-bold text-muted-foreground">Nombre de la Certificación *</label>
+              <Input
+                value={newCertName}
+                onChange={(e) => setNewCertName(e.target.value)}
+                placeholder="Ej. Distintivo H, Certificación CONOCER"
+                className="mt-1 text-xs rounded-xl"
+              />
+            </div>
+            <div>
+              <label className="text-xs font-bold text-muted-foreground">Organismo Emisor / Autoridad</label>
+              <Input
+                value={newCertIssuer}
+                onChange={(e) => setNewCertIssuer(e.target.value)}
+                placeholder="Ej. Secretaría de Turismo (SECTUR)"
+                className="mt-1 text-xs rounded-xl"
+              />
+            </div>
+          </div>
+          <DialogFooter className="gap-2 pt-2">
+            <Button variant="ghost" size="sm" onClick={() => setIsAddCertModalOpen(false)} className="rounded-xl text-xs">
+              Cancelar
+            </Button>
+            <Button size="sm" onClick={handleAddCertification} className="rounded-xl text-xs font-bold">
+              Guardar Certificación
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* 4. Add Language Modal */}
+      <Dialog open={isAddLangModalOpen} onOpenChange={setIsAddLangModalOpen}>
+        <DialogContent className="sm:max-w-md rounded-3xl bg-card border border-border p-6 space-y-4">
+          <DialogHeader>
+            <DialogTitle className="text-base font-bold text-foreground">Agregar Idioma</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3">
+            <div>
+              <label className="text-xs font-bold text-muted-foreground">Idioma *</label>
+              <Input
+                value={newLangName}
+                onChange={(e) => setNewLangName(e.target.value)}
+                placeholder="Ej. Inglés, Francés, Maya"
+                className="mt-1 text-xs rounded-xl"
+              />
+            </div>
+            <div>
+              <label className="text-xs font-bold text-muted-foreground">Nivel de Dominio</label>
+              <select
+                value={newLangLevel}
+                onChange={(e) => setNewLangLevel(e.target.value)}
+                className="w-full h-10 px-3 mt-1 bg-background border border-border rounded-xl text-xs font-medium focus:outline-none focus:ring-2 focus:ring-primary/20"
+              >
+                <option value="Básico (A1-A2)">Básico (A1-A2)</option>
+                <option value="Intermedio (B1-B2)">Intermedio (B1-B2)</option>
+                <option value="Avanzado / Profesional (C1-C2)">Avanzado / Profesional (C1-C2)</option>
+                <option value="Nativo / Bilingüe">Nativo / Bilingüe</option>
+              </select>
+            </div>
+          </div>
+          <DialogFooter className="gap-2 pt-2">
+            <Button variant="ghost" size="sm" onClick={() => setIsAddLangModalOpen(false)} className="rounded-xl text-xs">
+              Cancelar
+            </Button>
+            <Button size="sm" onClick={handleAddLanguage} className="rounded-xl text-xs font-bold">
+              Guardar Idioma
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
     </div>
   );
 }
+
+/**
+ * Reusable Modern Document Card Component
+ */
+function DocumentUploadCard({
+  title,
+  description,
+  document,
+  docType,
+  isUploading,
+  onRequestUpload,
+  onOpenPreview,
+  onDeleteDocument,
+  required = false,
+}: {
+  title: string;
+  description: string;
+  document: CandidateDocument | null;
+  docType: CandidateDocumentType;
+  isUploading: boolean;
+  onRequestUpload: (type: CandidateDocumentType) => void;
+  onOpenPreview: (doc: CandidateDocument) => void;
+  onDeleteDocument: (doc: CandidateDocument) => void;
+  required?: boolean;
+}) {
+  return (
+    <div className="bg-card p-6 rounded-3xl border border-border shadow-xs space-y-4 flex flex-col justify-between">
+      <div className="space-y-2">
+        <div className="flex items-center justify-between gap-2">
+          <h4 className="text-base font-bold text-foreground">{title}</h4>
+          {required && (
+            <Badge variant="outline" className="text-[10px] font-extrabold text-primary border-primary/30 bg-primary/5 rounded-md">
+              Requerido
+            </Badge>
+          )}
+        </div>
+        <p className="text-xs text-muted-foreground leading-relaxed">{description}</p>
+      </div>
+
+      {document ? (
+        <div className="p-4 rounded-2xl bg-muted/40 border border-border flex items-center justify-between gap-3">
+          <div className="flex items-center gap-3 overflow-hidden">
+            <div className="size-10 rounded-xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0">
+              <FileText className="size-5" />
+            </div>
+            <div className="truncate">
+              <p className="text-xs font-bold text-foreground truncate">{document.file_name}</p>
+              <p className="text-[11px] text-emerald-600 dark:text-emerald-400 font-bold flex items-center gap-1 mt-0.5">
+                <CheckCircle2 className="size-3" /> Documento Verificado
+              </p>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-1 shrink-0">
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => onOpenPreview(document)}
+              className="size-8 rounded-lg text-muted-foreground hover:text-foreground cursor-pointer"
+              title="Vista previa"
+            >
+              <Eye className="size-4" />
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => onDeleteDocument(document)}
+              className="size-8 rounded-lg text-destructive hover:text-destructive/80 cursor-pointer"
+              title="Eliminar documento"
+            >
+              <Trash2 className="size-4" />
+            </Button>
+          </div>
+        </div>
+      ) : (
+        <button
+          type="button"
+          onClick={() => onRequestUpload(docType)}
+          disabled={isUploading}
+          className="w-full p-6 border-2 border-dashed border-border/80 hover:border-primary/50 hover:bg-primary/5 rounded-2xl flex flex-col items-center justify-center text-center gap-2 transition-all cursor-pointer group"
+        >
+          {isUploading ? (
+            <Loader2 className="size-7 text-primary animate-spin" />
+          ) : (
+            <UploadCloud className="size-7 text-muted-foreground group-hover:text-primary transition-colors" />
+          )}
+          <span className="text-xs font-bold text-foreground group-hover:text-primary transition-colors">
+            {isUploading ? "Cargando archivo..." : "Haz clic para subir documento (PDF o Imagen)"}
+          </span>
+          <span className="text-[11px] text-muted-foreground">Máximo 10 MB</span>
+        </button>
+      )}
+    </div>
+  );
+}
+

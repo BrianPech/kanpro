@@ -2,6 +2,7 @@ import { createClient } from "@/lib/supabase/server"
 
 export interface CandidateApplication {
   id: string
+  vacancy_id?: string
   position: string
   location: string
   company: string
@@ -261,6 +262,7 @@ export async function getCandidateDashboardData(): Promise<CandidateDashboardDat
 
     return {
       id: app.id,
+      vacancy_id: vacancy?.id || (app as any).vacancy_id || "",
       position: vacancy?.title || "Posición",
       location: vacancy?.location || vacancy?.modality || "Remoto",
       company: companyName,

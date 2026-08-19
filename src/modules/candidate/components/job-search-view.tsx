@@ -1,3 +1,4 @@
+/* eslint-disable @next/next/no-img-element */
 "use client";
 
 import * as React from "react";
@@ -13,7 +14,17 @@ import {
   SearchX, 
   WifiOff, 
   CheckCircle2, 
-  ListX 
+  ListX,
+  MapPin,
+  DollarSign,
+  Tag,
+  Building2,
+  Share2,
+  MessageCircle,
+  ExternalLink,
+  Loader2,
+  Sparkles,
+  Check
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -32,6 +43,7 @@ export interface SearchVacancy {
   title: string;
   companyName: string;
   companyLogo: string | null;
+  companyPhone?: string | null;
   location: string;
   employmentType: string;
   formattedSalary: string;
@@ -39,7 +51,11 @@ export interface SearchVacancy {
   category: string;
   description?: string;
   skills?: string[];
+  benefits?: string[];
+  requirements?: string | null;
   zone?: string;
+  modality?: string;
+  createdAt?: string;
 }
 
 interface JobSearchViewProps {
@@ -67,8 +83,14 @@ export function JobSearchView({ initialVacancies = [], onBack }: JobSearchViewPr
   const [searchQuery, setSearchQuery] = React.useState<string>("");
   const [activeFilters, setActiveFilters] = React.useState<string[]>([]);
   const [savedJobIds, setSavedJobIds] = React.useState<Set<string>>(new Set());
+  const [appliedJobIds, setAppliedJobIds] = React.useState<Set<string>>(new Set());
 
-  // UI state
+  // Detail Modal State
+  const [selectedJob, setSelectedJob] = React.useState<SearchVacancy | null>(null);
+  const [isDetailOpen, setIsDetailOpen] = React.useState<boolean>(false);
+  const [isApplying, setIsApplying] = React.useState<boolean>(false);
+
+  // Filter Modal State
   const [isFilterOpen, setIsFilterOpen] = React.useState<boolean>(false);
 
   // Debounced search trigger
@@ -81,15 +103,19 @@ export function JobSearchView({ initialVacancies = [], onBack }: JobSearchViewPr
     return () => clearTimeout(handler);
   }, [searchQuery]);
 
-  // Load saved vacancies and user location preference from Supabase on mount
+  // Load saved vacancies and applications from Supabase on mount
   React.useEffect(() => {
-    async function loadUserPreferences() {
+    async function loadUserData() {
       try {
         const { data: { user } } = await supabase.auth.getUser();
         if (user) {
-          const [{ data: savedData }, { data: profile }] = await Promise.all([
+          const [{ data: savedData }, { data: appliedData }, { data: profile }] = await Promise.all([
             supabase
               .from("saved_vacancies")
+              .select("vacancy_id")
+              .eq("candidate_id", user.id),
+            supabase
+              .from("applications")
               .select("vacancy_id")
               .eq("candidate_id", user.id),
             supabase
@@ -100,7 +126,11 @@ export function JobSearchView({ initialVacancies = [], onBack }: JobSearchViewPr
           ]);
 
           if (savedData) {
-            setSavedJobIds(new Set(savedData.map((r: any) => r.vacancy_id)));
+            setSavedJobIds(new Set(savedData.map((r: { vacancy_id: string }) => r.vacancy_id)));
+          }
+
+          if (appliedData) {
+            setAppliedJobIds(new Set(appliedData.map((a: { vacancy_id: string }) => a.vacancy_id)));
           }
 
           if (profile?.location) {
@@ -115,8 +145,8 @@ export function JobSearchView({ initialVacancies = [], onBack }: JobSearchViewPr
         console.error("Error loading candidate preferences:", err);
       }
     }
-    loadUserPreferences();
-  }, [supabase]);
+    loadUserData();
+  }, [supabase, activeFilters.length]);
 
   // TanStack Query for dynamic search
   const { data: vacancies = initialVacancies, isLoading, isError: hasError, refetch } = useQuery({
@@ -133,9 +163,76 @@ export function JobSearchView({ initialVacancies = [], onBack }: JobSearchViewPr
     initialData: initialVacancies,
   });
 
+  // Handle URL query param ?jobId=...
+  const urlJobId = searchParams.get("jobId");
+  React.useEffect(() => {
+    if (!urlJobId) {
+      return;
+    }
+
+    if (selectedJob && selectedJob.id === urlJobId) {
+      return;
+    }
+
+    // 1. Look up in current vacancies list or initialVacancies
+    const foundInList = vacancies.find((v) => v.id === urlJobId) || initialVacancies.find((v) => v.id === urlJobId);
+    if (foundInList) {
+      queueMicrotask(() => {
+        setSelectedJob(foundInList);
+        setIsDetailOpen(true);
+      });
+      return;
+    }
+
+    // 2. Fetch directly from Supabase if not in memory
+    let isCancelled = false;
+    jobSearchService.getVacancyById(urlJobId)
+      .then((job) => {
+        if (!isCancelled) {
+          if (job) {
+            setSelectedJob(job);
+            setIsDetailOpen(true);
+          } else {
+            toast.error("No se encontró la vacante solicitada");
+          }
+        }
+      })
+      .catch((err) => {
+        if (!isCancelled) {
+          console.error("Error fetching vacancy by ID:", err);
+          toast.error("Error al cargar los detalles de la vacante");
+        }
+      });
+
+    return () => {
+      isCancelled = true;
+    };
+  }, [urlJobId, vacancies, initialVacancies, selectedJob]);
+
+  // Open detail modal and sync URL
+  const handleOpenDetail = (job: SearchVacancy) => {
+    setSelectedJob(job);
+    setIsDetailOpen(true);
+    
+    const params = new URLSearchParams(searchParams.toString());
+    params.set("jobId", job.id);
+    router.push(`?${params.toString()}`, { scroll: false });
+  };
+
+  // Close detail modal and remove jobId from URL
+  const handleCloseDetail = (open: boolean) => {
+    setIsDetailOpen(open);
+    if (!open) {
+      const params = new URLSearchParams(searchParams.toString());
+      params.delete("jobId");
+      const nextQuery = params.toString();
+      router.push(nextQuery ? `?${nextQuery}` : window.location.pathname, { scroll: false });
+    }
+  };
+
   // Instant in-memory filter for current search query & active filters
   const filteredVacancies = React.useMemo(() => {
-    return vacancies.filter((vac: any) => {
+    return vacancies.filter((vac: SearchVacancy) => {
       const searchableContent = [
         vac.title,
         vac.companyName,
@@ -205,6 +302,64 @@ export function JobSearchView({ initialVacancies = [], onBack }: JobSearchViewPr
     }
   };
 
+  // Apply to selected vacancy
+  const handleApply = async () => {
+    if (!selectedJob) return;
+
+    try {
+      setIsApplying(true);
+      const { data: { user } } = await supabase.auth.getUser();
+      
+      if (!user) {
+        toast.error("Inicia sesión como candidato para postularte");
+        return;
+      }
+
+      // Check if already applied
+      if (appliedJobIds.has(selectedJob.id)) {
+        toast.info("Ya te has postulado a esta vacante");
+        return;
+      }
+
+      const { error } = await supabase.from("applications").insert({
+        candidate_id: user.id,
+        vacancy_id: selectedJob.id,
+        status: "Pendiente",
+      });
+
+      if (error) {
+        if (error.code === "23505") {
+          setAppliedJobIds((prev) => new Set(prev).add(selectedJob.id));
+          toast.info("Ya te has postulado a este empleo");
+          return;
+        }
+        throw error;
+      }
+
+      setAppliedJobIds((prev) => new Set(prev).add(selectedJob.id));
+      toast.success("¡Postulación enviada con éxito!", {
+        description: `Tu perfil fue compartido con ${selectedJob.companyName}.`
+      });
+    } catch (err: unknown) {
+      console.error("Error applying to vacancy:", err);
+      const errMsg = err instanceof Error ? err.message : "Error al enviar la postulación";
+      toast.error(errMsg);
+    } finally {
+      setIsApplying(false);
+    }
+  };
+
+  // Share vacancy link
+  const handleShareVacancy = (job: SearchVacancy) => {
+    const url = `${window.location.origin}/dashboard/candidate/discovery?jobId=${job.id}`;
+    if (typeof navigator !== "undefined" && navigator.clipboard) {
+      navigator.clipboard.writeText(url);
+      toast.success("Enlace copiado al portapapeles");
+    } else {
+      toast.info(`Enlace: ${url}`);
+    }
+  };
+
   // Add / remove filter chips
   const addFilter = (filterText: string) => {
     const clean = filterText.trim();
@@ -236,12 +391,14 @@ export function JobSearchView({ initialVacancies = [], onBack }: JobSearchViewPr
     return searchQuery.trim().length > 0 || activeFilters.length > 0;
   }, [searchQuery, activeFilters]);
 
+  const isSelectedJobApplied = selectedJob ? appliedJobIds.has(selectedJob.id) : false;
+  const isSelectedJobSaved = selectedJob ? savedJobIds.has(selectedJob.id) : false;
+
   return (
     <div className="flex-grow min-h-full bg-transparent dark:bg-zinc-950 px-6 sm:px-10 lg:px-14 pt-4 pb-28 md:pb-8 max-w-5xl mx-auto w-full animate-in fade-in duration-300">
       
       {/* 1. Header Search Bar Row */}
       <div className="flex items-center gap-3.5 py-2">
-        {/* Back Button Container */}
         <button
           onClick={handleBack}
           aria-label="Regresar"
@@ -250,7 +407,6 @@ export function JobSearchView({ initialVacancies = [], onBack }: JobSearchViewPr
           <ArrowLeft className="w-[22px] h-[22px] stroke-[2.4]" />
         </button>
 
-        {/* Search Input Bar */}
         <div className="flex-1 h-[54px] bg-white dark:bg-zinc-900 rounded-[27px] px-5 flex items-center gap-3 border border-[#ebeef3] dark:border-zinc-800 shadow-2xs focus-within:border-[#344558] dark:focus-within:border-zinc-400 transition-all">
           <Search className="w-5 h-5 text-[#7d99b3] dark:text-zinc-400 shrink-0" />
           <input
@@ -271,7 +427,6 @@ export function JobSearchView({ initialVacancies = [], onBack }: JobSearchViewPr
           )}
         </div>
 
-        {/* Filter Tune Button */}
         <button
           onClick={() => setIsFilterOpen(true)}
           aria-label="Filtros"
@@ -315,7 +470,7 @@ export function JobSearchView({ initialVacancies = [], onBack }: JobSearchViewPr
         </div>
       )}
 
-      {/* 3. Recommended Tags (shown initially when no search or filter active) */}
+      {/* 3. Recommended Tags */}
       {!hasSearched && !isLoading && (
         <div className="pt-6 space-y-4">
           <h2 className="text-[18px] sm:text-[20px] font-[800] tracking-[-0.4px] text-[#2f3c4b] dark:text-fiord-50">
@@ -346,10 +501,9 @@ export function JobSearchView({ initialVacancies = [], onBack }: JobSearchViewPr
         </div>
       )}
 
-      {/* 5. Main Results View / States */}
+      {/* 5. Main Results View */}
       <div className="pt-4 space-y-4">
         {isLoading ? (
-          /* Skeleton Loader */
           <div className="space-y-4">
             {[1, 2, 3, 4].map((i) => (
               <div
@@ -365,7 +519,6 @@ export function JobSearchView({ initialVacancies = [], onBack }: JobSearchViewPr
             ))}
           </div>
         ) : hasError ? (
-          /* Connection / Database Error Card */
           <div className="py-14 px-6 flex flex-col items-center justify-center text-center space-y-4">
             <WifiOff className="w-12 h-12 text-rose-500" />
             <h3 className="text-[18px] font-bold text-[#1f2732] dark:text-zinc-100">
@@ -376,7 +529,7 @@ export function JobSearchView({ initialVacancies = [], onBack }: JobSearchViewPr
             </p>
             <Button
               onClick={() => {
-                setDebouncedQuery(searchQuery);
+                refetch();
               }}
               className="mt-2 bg-[#1f2732] hover:bg-[#2f3c4b] text-white rounded-[14px] text-sm font-bold px-6 py-3 flex items-center gap-2"
             >
@@ -385,7 +538,6 @@ export function JobSearchView({ initialVacancies = [], onBack }: JobSearchViewPr
             </Button>
           </div>
         ) : filteredVacancies.length === 0 ? (
-          /* Empty Search Results Card */
           <div className="py-14 px-6 flex flex-col items-center justify-center text-center space-y-4">
             <div className="w-18 h-18 rounded-full bg-[#f5f7fa] dark:bg-zinc-900 flex items-center justify-center text-[#7d99b3] shrink-0">
               <SearchX className="w-9 h-9 stroke-[1.75]" />
@@ -409,20 +561,19 @@ export function JobSearchView({ initialVacancies = [], onBack }: JobSearchViewPr
             </button>
           </div>
         ) : (
-          /* Populated Results List */
           <div className="space-y-4">
             {filteredVacancies.map((job) => {
+              const isApplied = appliedJobIds.has(job.id);
+              
               const isSaved = savedJobIds.has(job.id);
               
               if (job.isFeatured) {
-                /* Promoted / Featured Dark Card */
                 return (
                   <div
                     key={job.id}
-                    onClick={() => router.push(`/dashboard/candidate/discovery?jobId=${job.id}`)}
-                    className="p-5 sm:p-6 bg-[#2f3c4b] dark:bg-fiord-950 text-white rounded-[22px] flex items-center justify-between gap-4 shadow-[0_8px_16px_rgba(31,39,50,0.12)] hover:bg-[#253240] transition-all cursor-pointer"
+                    onClick={() => handleOpenDetail(job)}
+                    className="p-5 sm:p-6 bg-[#2f3c4b] dark:bg-fiord-950 text-white rounded-[22px] flex items-center justify-between gap-4 shadow-[0_8px_16px_rgba(31,39,50,0.12)] hover:bg-[#253240] transition-all cursor-pointer group"
                   >
-                    {/* Left: Icon box */}
                     <div className="w-14 h-14 rounded-[14px] bg-[#344558] flex items-center justify-center text-white shrink-0 font-bold text-sm overflow-hidden">
                       {job.companyLogo ? (
                         <img src={job.companyLogo} alt={job.companyName} className="w-full h-full object-cover rounded-[14px]" />
@@ -431,17 +582,22 @@ export function JobSearchView({ initialVacancies = [], onBack }: JobSearchViewPr
                       )}
                     </div>
 
-                    {/* Center: Details */}
                     <div className="flex-1 min-w-0">
-                      <h4 className="text-[17px] sm:text-[19px] font-bold text-white tracking-[-0.3px] truncate">
-                        {job.title}
-                      </h4>
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <h4 className="text-[17px] sm:text-[19px] font-bold text-white tracking-[-0.3px] truncate">
+                          {job.title}
+                        </h4>
+                        {isApplied && (
+                          <span className="inline-flex items-center gap-1 text-[11px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 px-2 py-0.5 rounded-full">
+                            <Check className="w-3 h-3" /> Postulado
+                          </span>
+                        )}
+                      </div>
                       <p className="text-[14px] text-[#aabccf] font-semibold truncate mt-1">
                         {job.companyName} • {job.location}
                       </p>
                     </div>
 
-                    {/* Right: Bookmark & Salary */}
                     <div className="flex flex-col items-end justify-center shrink-0 gap-2">
                       <button
                         onClick={(e) => { e.stopPropagation(); toggleBookmark(job.id); }}
@@ -458,14 +614,12 @@ export function JobSearchView({ initialVacancies = [], onBack }: JobSearchViewPr
                 );
               }
 
-              /* Standard Light Card */
               return (
                 <div
                   key={job.id}
-                  onClick={() => router.push(`/dashboard/candidate/discovery?jobId=${job.id}`)}
-                  className="p-5 sm:p-6 bg-[#f5f7fa] dark:bg-zinc-900 border border-[#ebeef3] dark:border-zinc-800 rounded-[20px] flex items-center justify-between gap-4 shadow-2xs hover:bg-[#ebeef3]/60 dark:hover:bg-zinc-800/60 transition-all cursor-pointer"
+                  onClick={() => handleOpenDetail(job)}
+                  className="p-5 sm:p-6 bg-[#f5f7fa] dark:bg-zinc-900 border border-[#ebeef3] dark:border-zinc-800 rounded-[20px] flex items-center justify-between gap-4 shadow-2xs hover:bg-[#ebeef3]/60 dark:hover:bg-zinc-800/60 transition-all cursor-pointer group"
                 >
-                  {/* Left: Icon box */}
                   <div className="w-14 h-14 rounded-[14px] bg-[#ebeef3] dark:bg-zinc-800 text-[#3e546d] dark:text-zinc-300 flex items-center justify-center shrink-0 font-bold text-sm overflow-hidden">
                     {job.companyLogo ? (
                       <img src={job.companyLogo} alt={job.companyName} className="w-full h-full object-cover rounded-[14px]" />
@@ -474,17 +628,22 @@ export function JobSearchView({ initialVacancies = [], onBack }: JobSearchViewPr
                     )}
                   </div>
 
-                  {/* Center: Details */}
                   <div className="flex-1 min-w-0">
-                    <h4 className="text-[17px] sm:text-[19px] font-bold text-[#1f2732] dark:text-zinc-100 tracking-[-0.3px] truncate">
-                      {job.title}
-                    </h4>
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <h4 className="text-[17px] sm:text-[19px] font-bold text-[#1f2732] dark:text-zinc-100 tracking-[-0.3px] truncate">
+                        {job.title}
+                      </h4>
+                      {isApplied && (
+                        <span className="inline-flex items-center gap-1 text-[11px] font-bold bg-emerald-100 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800/60 px-2 py-0.5 rounded-full">
+                          <Check className="w-3 h-3" /> Postulado
+                        </span>
+                      )}
+                    </div>
                     <p className="text-[14px] text-[#5c7c9b] dark:text-zinc-400 font-semibold truncate mt-1">
                       {job.companyName} • {job.location}
                     </p>
                   </div>
 
-                  {/* Right: Bookmark & Salary */}
                   <div className="flex flex-col items-end justify-center shrink-0 gap-2">
                     <button
                       onClick={(e) => { e.stopPropagation(); toggleBookmark(job.id); }}
@@ -504,7 +663,166 @@ export function JobSearchView({ initialVacancies = [], onBack }: JobSearchViewPr
         )}
       </div>
 
-      {/* 6. Filter Modal Dialog */}
+      {/* 6. Vacancy Detail Modal Dialog */}
+      <Dialog open={isDetailOpen} onOpenChange={handleCloseDetail}>
+        <DialogContent className="sm:max-w-2xl max-h-[90vh] flex flex-col p-0 overflow-hidden rounded-[28px] bg-white dark:bg-zinc-900 border border-[#ebeef3] dark:border-zinc-800 shadow-2xl">
+          {selectedJob && (
+            <>
+              <div className="p-6 sm:p-7 pb-4 border-b border-[#ebeef3] dark:border-zinc-800 bg-[#fbfcfd] dark:bg-zinc-900/70">
+                <div className="flex items-start justify-between gap-4">
+                  <div className="flex items-center gap-4 min-w-0">
+                    <div className="w-16 h-16 rounded-2xl bg-[#ebeef3] dark:bg-zinc-800 flex items-center justify-center text-[#344558] dark:text-zinc-200 shrink-0 font-extrabold text-xl overflow-hidden border border-[#ebeef3] dark:border-zinc-700 shadow-xs">
+                      {selectedJob.companyLogo ? (
+                        <img src={selectedJob.companyLogo} alt={selectedJob.companyName} className="w-full h-full object-cover" />
+                      ) : (
+                        <Building2 className="w-8 h-8 text-[#5c7c9b] dark:text-zinc-400" />
+                      )}
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="text-[13px] font-bold text-[#5c7c9b] dark:text-zinc-400 uppercase tracking-wide truncate">
+                          {selectedJob.companyName}
+                        </span>
+                        {selectedJob.isFeatured && (
+                          <span className="inline-flex items-center gap-1 text-[11px] font-extrabold bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20 px-2 py-0.5 rounded-full">
+                            <Sparkles className="w-3 h-3 fill-amber-500 text-amber-500" /> Destacado
+                          </span>
+                        )}
+                      </div>
+                      <DialogTitle className="text-[20px] sm:text-[23px] font-[800] text-[#1f2732] dark:text-zinc-50 leading-snug mt-1">
+                        {selectedJob.title}
+                      </DialogTitle>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-1.5 shrink-0 pt-1">
+                    <button
+                      onClick={() => handleShareVacancy(selectedJob)}
+                      aria-label="Compartir vacante"
+                      className="w-9 h-9 rounded-full bg-white dark:bg-zinc-800 border border-[#ebeef3] dark:border-zinc-700 flex items-center justify-center text-[#5c7c9b] dark:text-zinc-300 hover:text-[#1f2732] dark:hover:text-white transition-all cursor-pointer active:scale-95 shadow-2xs"
+                    >
+                      <Share2 className="w-4 h-4" />
+                    </button>
+                    <button
+                      onClick={() => toggleBookmark(selectedJob.id)}
+                      aria-label="Guardar vacante"
+                      className="w-9 h-9 rounded-full bg-white dark:bg-zinc-800 border border-[#ebeef3] dark:border-zinc-700 flex items-center justify-center text-[#5c7c9b] dark:text-zinc-300 hover:text-amber-500 transition-all cursor-pointer active:scale-95 shadow-2xs"
+                    >
+                      <Bookmark
+                        className={`w-4 h-4 ${
+                          isSelectedJobSaved ? "fill-amber-400 text-amber-400" : ""
+                        }`}
+                      />
+                    </button>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 mt-5">
+                  <div className="bg-white dark:bg-zinc-800/80 border border-[#ebeef3] dark:border-zinc-700/70 p-2.5 rounded-xl flex items-center gap-2">
+                    <MapPin className="w-4 h-4 text-[#5c7c9b] dark:text-zinc-400 shrink-0" />
+                    <span className="text-xs font-semibold text-[#1f2732] dark:text-zinc-200 truncate">{selectedJob.location}</span>
+                  </div>
+                  <div className="bg-white dark:bg-zinc-800/80 border border-[#ebeef3] dark:border-zinc-700/70 p-2.5 rounded-xl flex items-center gap-2">
+                    <Briefcase className="w-4 h-4 text-[#5c7c9b] dark:text-zinc-400 shrink-0" />
+                    <span className="text-xs font-semibold text-[#1f2732] dark:text-zinc-200 truncate">{selectedJob.employmentType}</span>
+                  </div>
+                  <div className="bg-white dark:bg-zinc-800/80 border border-[#ebeef3] dark:border-zinc-700/70 p-2.5 rounded-xl flex items-center gap-2">
+                    <DollarSign className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
+                    <span className="text-xs font-bold text-[#1f2732] dark:text-zinc-100 truncate">{selectedJob.formattedSalary}</span>
+                  </div>
+                  <div className="bg-white dark:bg-zinc-800/80 border border-[#ebeef3] dark:border-zinc-700/70 p-2.5 rounded-xl flex items-center gap-2">
+                    <Tag className="w-4 h-4 text-[#5c7c9b] dark:text-zinc-400 shrink-0" />
+                    <span className="text-xs font-semibold text-[#1f2732] dark:text-zinc-200 truncate">{selectedJob.category}</span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex-1 overflow-y-auto p-6 sm:p-7 space-y-6 max-h-[calc(90vh-230px)]">
+                <div className="space-y-2.5">
+                  <h4 className="text-[15px] font-bold text-[#1f2732] dark:text-zinc-100">Descripción del puesto</h4>
+                  <div className="text-[14px] text-[#4b5563] dark:text-zinc-300 leading-relaxed font-normal whitespace-pre-line bg-[#f8fafc] dark:bg-zinc-800/40 p-4 rounded-2xl border border-[#ebeef3] dark:border-zinc-800">
+                    {selectedJob.description?.trim() ? selectedJob.description : "No hay una descripción detallada proporcionada para este puesto."}
+                  </div>
+                </div>
+
+                {selectedJob.skills && selectedJob.skills.length > 0 && (
+                  <div className="space-y-2.5">
+                    <h4 className="text-[15px] font-bold text-[#1f2732] dark:text-zinc-100">Habilidades y Requisitos</h4>
+                    <div className="flex flex-wrap gap-2">
+                      {selectedJob.skills.map((skill, idx) => (
+                        <span key={idx} className="px-3.5 py-1.5 bg-[#f5f7fa] dark:bg-zinc-800 border border-[#ebeef3] dark:border-zinc-700 rounded-full text-xs font-bold text-[#344558] dark:text-zinc-200">{skill}</span>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {selectedJob.requirements && (
+                  <div className="space-y-2.5">
+                    <h4 className="text-[15px] font-bold text-[#1f2732] dark:text-zinc-100">Requisitos Adicionales</h4>
+                    <div className="text-[14px] text-[#4b5563] dark:text-zinc-300 leading-relaxed bg-[#f8fafc] dark:bg-zinc-800/40 p-4 rounded-2xl border border-[#ebeef3] dark:border-zinc-800 whitespace-pre-line">{selectedJob.requirements}</div>
+                  </div>
+                )}
+
+                {selectedJob.benefits && selectedJob.benefits.length > 0 && (
+                  <div className="space-y-2.5">
+                    <h4 className="text-[15px] font-bold text-[#1f2732] dark:text-zinc-100">Beneficios</h4>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                      {selectedJob.benefits.map((benefit, idx) => (
+                        <div key={idx} className="flex items-center gap-2 text-xs font-semibold text-[#344558] dark:text-zinc-300 bg-[#f8fafc] dark:bg-zinc-800/40 p-2.5 rounded-xl border border-[#ebeef3] dark:border-zinc-800">
+                          <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0" />
+                          <span className="truncate">{benefit}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              <div className="p-4 sm:p-5 border-t border-[#ebeef3] dark:border-zinc-800 bg-[#fbfcfd] dark:bg-zinc-900/90 flex flex-col sm:flex-row items-center gap-3">
+                {selectedJob.companyPhone && (
+                  <a
+                    href={`https://wa.me/${selectedJob.companyPhone.replace(/[^0-9]/g, "")}?text=${encodeURIComponent(`¡Hola! Vi la vacante de "${selectedJob.title}" en K'anPro y me interesa solicitar más información.`)}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="w-full sm:w-auto h-12 px-5 bg-[#25D366] hover:bg-[#20ba59] text-white rounded-2xl text-sm font-bold flex items-center justify-center gap-2 shadow-xs transition-all active:scale-95 cursor-pointer shrink-0"
+                  >
+                    <MessageCircle className="w-5 h-5" />
+                    <span>WhatsApp</span>
+                    <ExternalLink className="w-3.5 h-3.5 opacity-80" />
+                  </a>
+                )}
+
+                {isSelectedJobApplied ? (
+                  <div className="w-full flex-1 h-12 bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800 text-emerald-700 dark:text-emerald-400 rounded-2xl flex items-center justify-center gap-2 text-sm font-bold select-none">
+                    <CheckCircle2 className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
+                    <span>Ya te has postulado a este empleo</span>
+                  </div>
+                ) : (
+                  <Button
+                    onClick={handleApply}
+                    disabled={isApplying}
+                    className="w-full flex-1 h-12 bg-[#1f2732] dark:bg-zinc-100 hover:bg-[#2f3c4b] dark:hover:bg-zinc-200 text-white dark:text-zinc-900 rounded-2xl text-sm font-bold flex items-center justify-center gap-2 shadow-xs transition-all active:scale-95 cursor-pointer"
+                  >
+                    {isApplying ? (
+                      <>
+                        <Loader2 className="w-5 h-5 animate-spin" />
+                        <span>Enviando postulación...</span>
+                      </>
+                    ) : (
+                      <>
+                        <CheckCircle2 className="w-5 h-5" />
+                        <span>Postularme ahora</span>
+                      </>
+                    )}
+                  </Button>
+                )}
+              </div>
+            </>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* 7. Filter Modal Dialog */}
       <Dialog open={isFilterOpen} onOpenChange={setIsFilterOpen}>
         <DialogContent className="sm:max-w-[460px] rounded-t-[32px] sm:rounded-3xl bg-white dark:bg-zinc-900 border border-[#ebeef3] dark:border-zinc-800 p-6 sm:p-8">
           <DialogHeader className="flex flex-row items-center justify-between pb-3 border-b border-[#ebeef3] dark:border-zinc-800">
@@ -514,11 +832,8 @@ export function JobSearchView({ initialVacancies = [], onBack }: JobSearchViewPr
           </DialogHeader>
 
           <div className="py-5 space-y-6">
-            {/* Ubicación Filter Section */}
             <div className="space-y-3">
-              <h4 className="text-[16px] font-bold text-[#2f3c4b] dark:text-zinc-200">
-                Ubicación
-              </h4>
+              <h4 className="text-[16px] font-bold text-[#2f3c4b] dark:text-zinc-200">Ubicación</h4>
               <div className="flex flex-wrap gap-2.5">
                 {["Playa del Carmen", "Cancún", "Tulum", "Mérida"].map((loc) => {
                   const isSel = activeFilters.includes(loc);
@@ -539,11 +854,8 @@ export function JobSearchView({ initialVacancies = [], onBack }: JobSearchViewPr
               </div>
             </div>
 
-            {/* Tipo de Empleo Filter Section */}
             <div className="space-y-3">
-              <h4 className="text-[16px] font-bold text-[#2f3c4b] dark:text-zinc-200">
-                Tipo de Empleo
-              </h4>
+              <h4 className="text-[16px] font-bold text-[#2f3c4b] dark:text-zinc-200">Tipo de Empleo</h4>
               <div className="flex flex-wrap gap-2.5">
                 {["Tiempo Completo", "Medio Tiempo", "Turno Nocturno"].map((type) => {
                   const isSel = activeFilters.includes(type);
@@ -582,7 +894,6 @@ export function JobSearchView({ initialVacancies = [], onBack }: JobSearchViewPr
           </div>
         </DialogContent>
       </Dialog>
-
     </div>
   );
 }

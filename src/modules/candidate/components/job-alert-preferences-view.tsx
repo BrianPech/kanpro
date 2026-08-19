@@ -62,23 +62,48 @@ export function JobAlertPreferencesView({ onBack }: JobAlertPreferencesViewProps
       try {
         const { data: { user } } = await supabase.auth.getUser();
         if (user) {
-          const { data: profile } = await supabase
-            .from("profiles")
-            .select("job_alerts_enabled, category, location" as any)
-            .eq("id", user.id)
-            .single();
+          const [{ data: baseProfile }, { data: candProfile }] = await Promise.all([
+            supabase
+              .from("profiles")
+              .select("location")
+              .eq("id", user.id)
+              .maybeSingle(),
+            supabase
+              .from("candidate_profiles")
+              .select("job_alerts_enabled, preferred_zone, specialization_area, social_links")
+              .eq("id", user.id)
+              .maybeSingle()
+          ]);
 
-          if (profile) {
-            const p = profile as any;
-            if (p.job_alerts_enabled !== undefined && p.job_alerts_enabled !== null) {
-              setAlertsEnabled(!!p.job_alerts_enabled);
+          if (candProfile) {
+            if (candProfile.job_alerts_enabled !== undefined && candProfile.job_alerts_enabled !== null) {
+              setAlertsEnabled(!!candProfile.job_alerts_enabled);
             }
-            if (p.category) {
-              setSelectedCategories([p.category]);
+            const metadataAlerts = (candProfile.social_links as any)?.alert_preferences;
+            if (metadataAlerts) {
+              if (Array.isArray(metadataAlerts.categories) && metadataAlerts.categories.length > 0) {
+                setSelectedCategories(metadataAlerts.categories);
+              }
+              if (Array.isArray(metadataAlerts.locations) && metadataAlerts.locations.length > 0) {
+                setSelectedLocations(metadataAlerts.locations);
+              }
+              if (metadataAlerts.min_salary) {
+                setMinSalaryExpectation(Number(metadataAlerts.min_salary));
+              }
+              if (metadataAlerts.frequency) {
+                setAlertFrequency(metadataAlerts.frequency);
+              }
+            } else {
+              if (candProfile.specialization_area) {
+                setSelectedCategories([candProfile.specialization_area]);
+              }
+              if (candProfile.preferred_zone || baseProfile?.location) {
+                const loc = candProfile.preferred_zone || baseProfile?.location;
+                if (loc) setSelectedLocations([loc]);
+              }
             }
-            if (p.location) {
-              setSelectedLocations([p.location]);
-            }
+          } else if (baseProfile?.location) {
+            setSelectedLocations([baseProfile.location]);
           }
         }
       } catch (err) {
@@ -127,28 +152,74 @@ export function JobAlertPreferencesView({ onBack }: JobAlertPreferencesViewProps
     setIsSaving(true);
     try {
       const { data: { user } } = await supabase.auth.getUser();
-      if (user) {
-        const primaryCat = selectedCategories[0] || "Hotelería & Recepción";
-        const primaryLoc = selectedLocations[0] || "Playa del Carmen, Q. Roo";
+      if (!user) throw new Error("No hay usuario autenticado");
 
-        await (supabase.from as any)("profiles")
+      const primaryCat = selectedCategories[0] || "Hotelería & Recepción";
+      const primaryLoc = selectedLocations[0] || "Playa del Carmen, Q. Roo";
+
+      // 1. Get existing social_links to preserve other metadata
+      const { data: existingCand } = await supabase
+        .from("candidate_profiles")
+        .select("social_links")
+        .eq("id", user.id)
+        .maybeSingle();
+
+      const existingSocial = (existingCand?.social_links as Record<string, any>) || {};
+      const updatedSocial = {
+        ...existingSocial,
+        alert_preferences: {
+          categories: selectedCategories,
+          locations: selectedLocations,
+          min_salary: minSalaryExpectation,
+          frequency: alertFrequency,
+          updated_at: new Date().toISOString(),
+        }
+      };
+
+      // 2. Persist to candidate_profiles
+      const { error: candError } = await supabase
+        .from("candidate_profiles")
+        .upsert({
+          id: user.id,
+          job_alerts_enabled: alertsEnabled,
+          specialization_area: primaryCat,
+          preferred_zone: primaryLoc,
+          social_links: updatedSocial as any,
+          updated_at: new Date().toISOString(),
+        });
+
+      if (candError) {
+        console.warn("Warning updating candidate_profiles alert preferences:", candError.message || candError);
+      }
+
+      // 3. Update base profile location and auth metadata
+      try {
+        await supabase
+          .from("profiles")
           .update({
-            job_alerts_enabled: alertsEnabled,
-            category: primaryCat,
             location: primaryLoc,
             updated_at: new Date().toISOString(),
           })
           .eq("id", user.id);
+
+        await supabase.auth.updateUser({
+          data: {
+            job_alerts_enabled: alertsEnabled,
+            alert_preferences: updatedSocial.alert_preferences,
+          }
+        });
+      } catch (e) {
+        console.warn("Non-fatal sync with auth metadata:", e);
       }
 
-      showToast("Preferencias de alertas guardadas");
+      showToast("Preferencias de alertas guardadas con éxito");
       setTimeout(() => {
         handleBack();
       }, 700);
-    } catch (err) {
+    } catch (err: any) {
       console.error("Error saving preferences:", err);
       showToast("Error al guardar en la base de datos");
-    } fontally: {
+    } finally {
       setIsSaving(false);
     }
   };

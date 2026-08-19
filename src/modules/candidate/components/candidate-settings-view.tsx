@@ -20,7 +20,12 @@ import {
   MapPin,
   Crosshair,
   Loader2,
-  Sparkles
+  Sparkles,
+  Mail,
+  MessageCircle,
+  ExternalLink,
+  Copy,
+  Check
 } from "lucide-react";
 import {
   Dialog,
@@ -31,6 +36,7 @@ import {
   DialogFooter
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { createClient } from "@/lib/supabase/client";
@@ -61,9 +67,20 @@ export function CandidateSettingsView() {
   const [isLocating, setIsLocating] = React.useState<boolean>(false);
   const [isSavingLocation, setIsSavingLocation] = React.useState<boolean>(false);
 
+  // Support modal state
+  const [isSupportOpen, setIsSupportOpen] = React.useState<boolean>(false);
+  const [copiedEmail, setCopiedEmail] = React.useState<boolean>(false);
+
   // Logout modal state
   const [isLogoutOpen, setIsLogoutOpen] = React.useState<boolean>(false);
   const [isLoggingOut, setIsLoggingOut] = React.useState<boolean>(false);
+
+  const handleCopyEmail = () => {
+    navigator.clipboard.writeText("soporte@kanpro.mx");
+    setCopiedEmail(true);
+    toast.success("Correo copiado al portapapeles: soporte@kanpro.mx");
+    setTimeout(() => setCopiedEmail(false), 2000);
+  };
 
   // Fetch candidate profile and saved jobs count securely & concurrently from Supabase on mount
   React.useEffect(() => {
@@ -354,12 +371,12 @@ export function CandidateSettingsView() {
         <SettingsRow
           icon={<Lock className="w-[25px] h-[25px] text-[#3e546d] dark:text-zinc-300 stroke-[1.8]" />}
           title="Privacidad y Seguridad"
-          onClick={() => {}}
+          onClick={() => router.push("/dashboard/candidate/settings")}
         />
         <SettingsRow
           icon={<HelpCircle className="w-[25px] h-[25px] text-[#3e546d] dark:text-zinc-300 stroke-[1.8]" />}
           title="Centro de Ayuda y Soporte"
-          onClick={() => {}}
+          onClick={() => setIsSupportOpen(true)}
         />
       </div>
 
@@ -370,7 +387,11 @@ export function CandidateSettingsView() {
           title="Idioma"
           trailingText="Español"
           showChevron={false}
-          onClick={() => {}}
+          onClick={() => {
+            toast.info("Idioma de la plataforma", {
+              description: "K'anPro está configurado actualmente en Español (Latinoamérica)."
+            });
+          }}
         />
         <SettingsRow
           icon={<LogOut className="w-[25px] h-[25px] text-rose-500 stroke-[1.8]" />}
@@ -381,7 +402,144 @@ export function CandidateSettingsView() {
         />
       </div>
 
-      {/* 7. Logout Confirmation Dialog */}
+      {/* 7. Help & Support Dialog */}
+      <Dialog open={isSupportOpen} onOpenChange={setIsSupportOpen}>
+        <DialogContent className="sm:max-w-[480px] rounded-[28px] bg-white dark:bg-zinc-900 border border-[#ebeef3] dark:border-zinc-800 p-6 sm:p-8 max-h-[90vh] overflow-y-auto">
+          <DialogHeader className="space-y-2">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-2xl bg-emerald-500/10 dark:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0">
+                <HelpCircle className="w-5 h-5" />
+              </div>
+              <DialogTitle className="text-[20px] font-bold text-[#1f2732] dark:text-zinc-50">
+                Centro de Ayuda y Soporte
+              </DialogTitle>
+            </div>
+            <DialogDescription className="text-[14px] text-[#5c7c9b] dark:text-zinc-400 leading-relaxed">
+              ¿Tienes dudas o necesitas asistencia con tu cuenta o postulaciones? Nuestro equipo está listo para ayudarte.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="py-4 space-y-4">
+            {/* Contact Channels */}
+            <div className="space-y-3">
+              <span className="text-xs font-bold text-[#7d99b3] uppercase tracking-wider">
+                Canales de Atención Directa
+              </span>
+
+              {/* WhatsApp Support */}
+              <div className="p-4 bg-emerald-500/10 border border-emerald-500/20 rounded-[20px] space-y-3">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2.5">
+                    <div className="w-8 h-8 rounded-full bg-emerald-600 text-white flex items-center justify-center shrink-0">
+                      <MessageCircle className="w-4 h-4" />
+                    </div>
+                    <div>
+                      <h4 className="text-sm font-bold text-[#1f2732] dark:text-zinc-100">WhatsApp de Soporte</h4>
+                      <p className="text-xs text-emerald-700 dark:text-emerald-300 font-medium">+52 999 123 4567 • Lun a Vie 9:00 - 18:00</p>
+                    </div>
+                  </div>
+                  <Badge variant="outline" className="border-emerald-500/30 text-emerald-700 dark:text-emerald-300 text-[10px]">
+                    En línea
+                  </Badge>
+                </div>
+                <a
+                  href={`https://wa.me/529991234567?text=${encodeURIComponent("Hola Soporte K'anPro, necesito ayuda con mi cuenta de candidato.")}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="block w-full"
+                >
+                  <Button className="w-full h-10 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-[12px] flex items-center justify-center gap-2 border-none cursor-pointer">
+                    <MessageCircle className="w-3.5 h-3.5" />
+                    <span>Escribir por WhatsApp</span>
+                    <ExternalLink className="w-3.5 h-3.5" />
+                  </Button>
+                </a>
+              </div>
+
+              {/* Email Support */}
+              <div className="p-4 bg-[#f5f7fa] dark:bg-zinc-800/60 border border-[#ebeef3] dark:border-zinc-800 rounded-[20px] flex items-center justify-between gap-3">
+                <div className="flex items-center gap-3 min-w-0">
+                  <div className="w-8 h-8 rounded-full bg-[#1f2732] dark:bg-zinc-700 text-white flex items-center justify-center shrink-0">
+                    <Mail className="w-4 h-4" />
+                  </div>
+                  <div className="min-w-0">
+                    <h4 className="text-xs font-bold text-[#7d99b3] uppercase">Correo de Soporte</h4>
+                    <p className="text-sm font-extrabold text-[#1f2732] dark:text-zinc-100 truncate">
+                      soporte@kanpro.mx
+                    </p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-1.5 shrink-0">
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    onClick={handleCopyEmail}
+                    className="h-8 px-2.5 rounded-lg text-xs font-bold text-[#344558] dark:text-zinc-200 border-[#ebeef3] dark:border-zinc-700 cursor-pointer"
+                  >
+                    {copiedEmail ? <Check className="w-3.5 h-3.5 text-emerald-500" /> : <Copy className="w-3.5 h-3.5" />}
+                    <span className="ml-1">{copiedEmail ? "Copiado" : "Copiar"}</span>
+                  </Button>
+                  <a href="mailto:soporte@kanpro.mx?subject=Soporte%20K'anPro%20Candidato">
+                    <Button
+                      type="button"
+                      size="sm"
+                      className="h-8 px-2.5 rounded-lg text-xs font-bold bg-[#1f2732] dark:bg-zinc-100 text-white dark:text-zinc-900 cursor-pointer"
+                    >
+                      <ExternalLink className="w-3.5 h-3.5" />
+                    </Button>
+                  </a>
+                </div>
+              </div>
+            </div>
+
+            {/* FAQ Section */}
+            <div className="space-y-2.5 pt-2 border-t border-[#ebeef3] dark:border-zinc-800">
+              <span className="text-xs font-bold text-[#7d99b3] uppercase tracking-wider">
+                Preguntas Frecuentes
+              </span>
+              <div className="space-y-2">
+                <div className="p-3 bg-[#f5f7fa] dark:bg-zinc-800/40 rounded-[14px]">
+                  <h5 className="text-xs font-bold text-[#1f2732] dark:text-zinc-200">
+                    ¿Cómo me postulo a una vacante?
+                  </h5>
+                  <p className="text-[12px] text-[#5c7c9b] dark:text-zinc-400 mt-1 leading-relaxed">
+                    Ingresa a la sección de Explorar o Inicio, haz clic en la oferta de tu interés y presiona &quot;Postularme ahora&quot;.
+                  </p>
+                </div>
+                <div className="p-3 bg-[#f5f7fa] dark:bg-zinc-800/40 rounded-[14px]">
+                  <h5 className="text-xs font-bold text-[#1f2732] dark:text-zinc-200">
+                    ¿Cómo validar mis documentos?
+                  </h5>
+                  <p className="text-[12px] text-[#5c7c9b] dark:text-zinc-400 mt-1 leading-relaxed">
+                    Dirígete a &quot;Mi CV y Documentos&quot; para cargar tu identificación oficial (INE) y CURP para obtener verificación.
+                  </p>
+                </div>
+                <div className="p-3 bg-[#f5f7fa] dark:bg-zinc-800/40 rounded-[14px]">
+                  <h5 className="text-xs font-bold text-[#1f2732] dark:text-zinc-200">
+                    ¿Cómo activar las alertas de empleo?
+                  </h5>
+                  <p className="text-[12px] text-[#5c7c9b] dark:text-zinc-400 mt-1 leading-relaxed">
+                    En la opción &quot;Alertas de empleo&quot; selecciona tus sectores preferidos, zonas y rango salarial deseado.
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <DialogFooter className="pt-2 border-t border-[#ebeef3] dark:border-zinc-800">
+            <Button
+              variant="outline"
+              onClick={() => setIsSupportOpen(false)}
+              className="w-full h-11 rounded-[14px] border-[#ebeef3] dark:border-zinc-700 text-[#1f2732] dark:text-zinc-200 font-bold text-sm cursor-pointer"
+            >
+              Cerrar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* 8. Logout Confirmation Dialog */}
       <Dialog open={isLogoutOpen} onOpenChange={setIsLogoutOpen}>
         <DialogContent className="sm:max-w-[440px] rounded-[28px] bg-white dark:bg-zinc-900 border border-[#ebeef3] dark:border-zinc-800 p-6 sm:p-8">
           <DialogHeader className="space-y-2">

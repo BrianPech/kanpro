@@ -53,6 +53,13 @@ interface CandidateApplicationsViewProps {
   initialData: CandidateDashboardData;
 }
 
+function formatSalary(min?: number | null, max?: number | null): string {
+  if (min && max) return `$${min.toLocaleString()} - $${max.toLocaleString()} MXN`;
+  if (min) return `Desde $${min.toLocaleString()} MXN`;
+  if (max) return `Hasta $${max.toLocaleString()} MXN`;
+  return "Sueldo no especificado";
+}
+
 export function CandidateApplicationsView({ initialData }: CandidateApplicationsViewProps) {
   const router = useRouter();
   const { profile, applications } = initialData;
@@ -350,7 +357,7 @@ export function CandidateApplicationsView({ initialData }: CandidateApplications
                   {selectedApp.company} • {selectedApp.location}
                 </p>
                 <p className="text-[16px] font-[800] text-[#344558] dark:text-zinc-200 mt-2">
-                  Sueldo competitivo
+                  {formatSalary(selectedApp.salary_min, selectedApp.salary_max)}
                 </p>
               </div>
 
@@ -418,9 +425,16 @@ export function CandidateApplicationsView({ initialData }: CandidateApplications
             <div className="pt-3">
               <Button
                 variant="outline"
-                onClick={() => setIsSheetOpen(false)}
-                aria-label="Cerrar modal de detalles"
-                className="w-full h-12 rounded-[16px] border-[#ebeef3] dark:border-zinc-700 text-[#1f2732] dark:text-zinc-200 font-bold text-sm cursor-pointer"
+                onClick={() => {
+                  setIsSheetOpen(false);
+                  if (selectedApp.vacancy_id) {
+                    router.push(`/dashboard/candidate/discovery?jobId=${selectedApp.vacancy_id}`);
+                  } else {
+                    router.push("/dashboard/candidate/discovery");
+                  }
+                }}
+                aria-label="Ver ficha de la vacante"
+                className="w-full h-12 rounded-[16px] border-[#ebeef3] dark:border-zinc-700 text-[#1f2732] dark:text-zinc-200 font-bold text-sm cursor-pointer hover:bg-[#f5f7fa] dark:hover:bg-zinc-800"
               >
                 Ver Ficha de la Vacante
               </Button>
@@ -444,13 +458,6 @@ function CandidateApplicationsTable({
   const [sorting, setSorting] = React.useState<SortingState>([
     { id: "created_at", desc: true },
   ]);
-
-  const formatSalary = (min?: number | null, max?: number | null) => {
-    if (min && max) return `$${min.toLocaleString()} - $${max.toLocaleString()} MXN`;
-    if (min) return `Desde $${min.toLocaleString()} MXN`;
-    if (max) return `Hasta $${max.toLocaleString()} MXN`;
-    return "No especificado";
-  };
 
   const columns = React.useMemo<ColumnDef<CandidateApplication>[]>(
     () => [

@@ -49,42 +49,64 @@ export function SavedJobsView({ onBack }: SavedJobsViewProps) {
         return;
       }
 
-      // Fetch active vacancies for demo / saved vacancies
-      const { data: vacancies } = await supabase
-        .from("vacancies")
+      // Fetch saved vacancies for current candidate
+      const { data: savedRows, error: savedError } = await supabase
+        .from("saved_vacancies")
         .select(`
           id,
-          title,
-          location,
-          modality,
-          employment_type,
-          salary_min,
-          salary_max,
-          is_featured,
-          company_id
+          vacancy_id,
+          created_at,
+          vacancy:vacancies (
+            id,
+            title,
+            location,
+            modality,
+            employment_type,
+            salary_min,
+            salary_max,
+            is_featured,
+            is_promoted,
+            company_id
+          )
         `)
-        .eq("status", "Activa")
-        .limit(10);
+        .eq("candidate_id", user.id)
+        .order("created_at", { ascending: false });
 
-      // Fetch companies
-      const companies: Record<string, string> = {};
-      if (vacancies && vacancies.length > 0) {
-        const companyIds = Array.from(new Set(vacancies.map((v: any) => v.company_id).filter(Boolean)));
-        if (companyIds.length > 0) {
-          const { data: compProfiles } = await supabase
-            .from("company_profiles")
-            .select("id, company_name")
-            .in("id", companyIds);
-          
-          if (compProfiles) {
-            compProfiles.forEach((c: any) => {
-              companies[c.id] = c.company_name || "Empresa";
-            });
-          }
+      if (savedError) {
+        console.error("Error fetching saved_vacancies:", savedError);
+        setHasError(true);
+        setIsLoading(false);
+        return;
+      }
+
+      const validSaved = (savedRows || []).filter((row: any) => row.vacancy != null);
+
+      // Fetch company profiles
+      const companyIds = Array.from(
+        new Set(validSaved.map((row: any) => row.vacancy.company_id).filter(Boolean))
+      ) as string[];
+
+      const companies: Record<string, { company_name: string; logo_url: string | null }> = {};
+      if (companyIds.length > 0) {
+        const { data: compProfiles } = await supabase
+          .from("company_profiles")
+          .select("id, company_name, logo_url")
+          .in("id", companyIds);
+        
+        if (compProfiles) {
+          compProfiles.forEach((c: any) => {
+            companies[c.id] = {
+              company_name: c.company_name || "Empresa",
+              logo_url: c.logo_url || null,
+            };
+          });
         }
       }
 
-      const formattedList: SavedVacancy[] = (vacancies || []).map((vac: any) => {
+      const formattedList: SavedVacancy[] = validSaved.map((row: any) => {
+        const vac = row.vacancy;
+        const comp = companies[vac.company_id];
+
         let formattedSalary = "";
         const min = Number(vac.salary_min);
         const max = Number(vac.salary_max);
@@ -101,12 +123,12 @@ export function SavedJobsView({ onBack }: SavedJobsViewProps) {
         return {
           id: vac.id,
           title: vac.title,
-          companyName: companies[vac.company_id] || "Empresa",
-          companyLogo: null,
+          companyName: comp?.company_name || "Empresa",
+          companyLogo: comp?.logo_url || null,
           location: vac.location || vac.modality || "Remoto",
           employmentType: vac.employment_type || vac.modality || "Tiempo Completo",
           formattedSalary,
-          isPromoted: !!vac.is_featured,
+          isPromoted: !!(vac.is_promoted || vac.is_featured),
         };
       });
 
@@ -138,9 +160,31 @@ export function SavedJobsView({ onBack }: SavedJobsViewProps) {
     }, 2500);
   };
 
-  const handleRemoveSaved = (id: string) => {
+  const handleRemoveSaved = async (id: string) => {
+    const previous = savedVacancies;
     setSavedVacancies((prev) => prev.filter((v) => v.id !== id));
     showToast("Vacante removida de tus favoritos");
+
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      const { error } = await supabase
+        .from("saved_vacancies")
+        .delete()
+        .eq("candidate_id", user.id)
+        .eq("vacancy_id", id);
+
+      if (error) {
+        console.error("Error removing saved vacancy:", error);
+        setSavedVacancies(previous);
+        showToast("Error al remover la vacante");
+      }
+    } catch (err) {
+      console.error("Error removing saved vacancy:", err);
+      setSavedVacancies(previous);
+      showToast("Error al remover la vacante");
+    }
   };
 
   return (
@@ -257,10 +301,14 @@ export function SavedJobsView({ onBack }: SavedJobsViewProps) {
                 >
                   <div className="flex items-start justify-between gap-4">
                     <div className="flex items-start gap-4 min-w-0">
-                      <div className={`w-14 h-14 rounded-[14px] flex items-center justify-center shrink-0 ${
+                      <div className={`w-14 h-14 rounded-[14px] flex items-center justify-center shrink-0 overflow-hidden ${
                         vacancy.isPromoted ? "bg-[#344558] text-white" : "bg-[#ebeef3] dark:bg-zinc-800 text-[#3e546d] dark:text-zinc-300"
                       }`}>
-                        <Briefcase className="w-7 h-7" />
+                        {vacancy.companyLogo ? (
+                          <img src={vacancy.companyLogo} alt={vacancy.companyName} className="w-full h-full object-cover rounded-[14px]" />
+                        ) : (
+                          <Briefcase className="w-7 h-7" />
+                        )}
                       </div>
                       <div className="min-w-0">
                         <h3 className={`text-[17px] sm:text-[19px] font-bold tracking-[-0.3px] truncate ${

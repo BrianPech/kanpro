@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { 
   Briefcase, 
@@ -11,6 +11,7 @@ import {
 import { toast } from "sonner";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { createClient } from "@/lib/supabase/client";
 import type { CandidateDashboardData } from "@/modules/candidate/services/candidate-dashboard";
 
 export interface CandidateDashboardViewProps {
@@ -20,23 +21,105 @@ export interface CandidateDashboardViewProps {
 export function CandidateDashboardView({
   initialData,
 }: CandidateDashboardViewProps) {
+  const supabase = createClient();
   const [savedJobIds, setSavedJobIds] = useState<Set<string>>(new Set());
 
   const featuredVacancies = initialData?.featuredVacancies || [];
   const nearbyVacancies = initialData?.nearbyVacancies || [];
 
-  const toggleBookmark = (id: string) => {
-    setSavedJobIds((prev) => {
-      const next = new Set(prev);
-      if (next.has(id)) {
-        next.delete(id);
+  // Load saved vacancies for the authenticated candidate on mount
+  useEffect(() => {
+    let isMounted = true;
+    async function loadSavedVacancies() {
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) return;
+
+        const { data: savedData, error } = await supabase
+          .from("saved_vacancies")
+          .select("vacancy_id")
+          .eq("candidate_id", user.id);
+
+        if (error) {
+          console.error("Error loading saved vacancies:", error);
+          return;
+        }
+
+        if (savedData && isMounted) {
+          setSavedJobIds(new Set(savedData.map((r: any) => r.vacancy_id)));
+        }
+      } catch (err) {
+        console.error("Error fetching saved job ids:", err);
+      }
+    }
+
+    loadSavedVacancies();
+    return () => {
+      isMounted = false;
+    };
+  }, [supabase]);
+
+  const toggleBookmark = async (id: string) => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        toast.error("Inicia sesión para guardar vacantes");
+        return;
+      }
+
+      const isCurrentlySaved = savedJobIds.has(id);
+
+      // Optimistic update
+      setSavedJobIds((prev) => {
+        const next = new Set(prev);
+        if (isCurrentlySaved) {
+          next.delete(id);
+        } else {
+          next.add(id);
+        }
+        return next;
+      });
+
+      if (isCurrentlySaved) {
+        const { error } = await supabase
+          .from("saved_vacancies")
+          .delete()
+          .eq("candidate_id", user.id)
+          .eq("vacancy_id", id);
+
+        if (error) {
+          console.error("Error removing saved vacancy:", error);
+          setSavedJobIds((prev) => new Set(prev).add(id));
+          toast.error("Error al remover de guardados");
+          return;
+        }
+
         toast.info("Empleo removido de guardados");
       } else {
-        next.add(id);
+        const { error } = await supabase
+          .from("saved_vacancies")
+          .insert({
+            candidate_id: user.id,
+            vacancy_id: id,
+          });
+
+        if (error) {
+          console.error("Error saving vacancy:", error);
+          setSavedJobIds((prev) => {
+            const next = new Set(prev);
+            next.delete(id);
+            return next;
+          });
+          toast.error("Error al guardar el empleo");
+          return;
+        }
+
         toast.success("Empleo guardado en favoritos");
       }
-      return next;
-    });
+    } catch (err) {
+      console.error("Error toggling bookmark:", err);
+      toast.error("Error al actualizar la lista de guardados");
+    }
   };
 
   const handleRefresh = () => {
