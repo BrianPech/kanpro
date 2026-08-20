@@ -292,7 +292,7 @@ export function SavedJobsView({ onBack }: SavedJobsViewProps) {
               {savedVacancies.map((vacancy) => (
                 <div
                   key={vacancy.id}
-                  onClick={() => router.push(`/dashboard/candidate/discovery?jobId=${vacancy.id}`)}
+                  onClick={() => router.push(`/dashboard/candidate/vacancies/${vacancy.id}`)}
                   className={`p-5 sm:p-6 rounded-[22px] space-y-4 transition-all cursor-pointer ${
                     vacancy.isPromoted
                       ? "bg-[#2f3c4b] dark:bg-fiord-950 text-white shadow-md"

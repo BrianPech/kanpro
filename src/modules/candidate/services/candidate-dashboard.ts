@@ -1,6 +1,9 @@
-import { createClient } from "@/lib/supabase/server"
+import { createClient } from "@/lib/supabase/server";
+import { parseLocation, cleanCityName } from "@/lib/formatters";
+import { getCoordsForZone, haversineDistanceKm, GEO_CONFIG } from "@/config/geo";
 
 export interface CandidateApplication {
+
   id: string
   vacancy_id?: string
   position: string
@@ -25,11 +28,21 @@ export interface VacancyItem {
   companyName: string
   companyLogo: string | null
   location: string
+  zone?: string
+  city?: string
   employmentType: string
   formattedSalary: string
   isFeatured: boolean
   category: string
+  createdAt?: string
+  distanceKm?: number | null
+  distanceBadge?: string | null
+  salary_min?: number | null
+  salary_max?: number | null
+  modality?: string
+  skills?: string[]
 }
+
 
 export interface CandidateDashboardData {
   profile: {
@@ -175,7 +188,7 @@ export async function getCandidateDashboardData(): Promise<CandidateDashboardDat
       is_active,
       zone
     `)
-    .or("status.eq.Activa,status.eq.activa,is_active.eq.true")
+    .or("is_active.eq.true,status.eq.Activa,status.eq.activa,status.eq.published,status.eq.Publicada")
     .order("created_at", { ascending: false });
 
   if (vacErr) {
@@ -286,6 +299,15 @@ export async function getCandidateDashboardData(): Promise<CandidateDashboardDat
   ).length
   const hired = formattedApplications.filter((app) => app.status === "Contratado").length
 
+  // 7. Sort vacancies by real geographic proximity and city match
+  const candidateLocation = profileData?.location || "";
+  const parsedCandidateLoc = parseLocation(candidateLocation);
+  const candidateCity = cleanCityName(parsedCandidateLoc.city);
+  const candidateCoords =
+    getCoordsForZone(candidateLocation) ||
+    getCoordsForZone(parsedCandidateLoc.zone) ||
+    (GEO_CONFIG[candidateCity]?.coords ?? null);
+
   // Helper formatter for vacancy items
   const formatVacancyItem = (vac: any): VacancyItem => {
     const compInfo = companies[vac.company_id]
@@ -305,56 +327,108 @@ export async function getCandidateDashboardData(): Promise<CandidateDashboardDat
       formattedSalary = "Sueldo no especificado"
     }
 
+    const cleanCity = cleanCityName(vac.location || "");
+    const displayLocation = vac.zone && cleanCity
+      ? `${vac.zone}, ${cleanCity}`
+      : vac.location || vac.zone || vac.modality || "Ubicación no especificada";
+
+    let distanceBadge: string | null = null;
+    let distanceKm: number | null = null;
+
+    if (candidateCoords) {
+      const vacCoords =
+        getCoordsForZone(`${cleanCity} - ${vac.zone || ""}`) ||
+        getCoordsForZone(vac.zone) ||
+        getCoordsForZone(cleanCity) ||
+        (GEO_CONFIG[cleanCity]?.coords ?? null);
+
+      if (vacCoords) {
+        distanceKm = haversineDistanceKm(candidateCoords.lat, candidateCoords.lng, vacCoords.lat, vacCoords.lng);
+        if (distanceKm < 1.5) {
+          distanceBadge = "< 1.5 km (Misma zona)";
+        } else if (distanceKm < 10) {
+          distanceBadge = `${distanceKm.toFixed(1)} km cerca`;
+        } else if (distanceKm < 35) {
+          distanceBadge = `${distanceKm.toFixed(0)} km (${cleanCity})`;
+        } else {
+          distanceBadge = `${distanceKm.toFixed(0)} km`;
+        }
+      }
+    } else if (candidateCity && cleanCity.toLowerCase() === candidateCity.toLowerCase()) {
+      distanceBadge = `En tu ciudad (${cleanCity})`;
+    }
+
     return {
       id: vac.id,
       title: vac.title,
       companyName: compName,
       companyLogo: compLogo,
-      location: vac.location || vac.modality || "Remoto",
-      employmentType: vac.employment_type || vac.modality || "Full-time",
+      location: displayLocation,
+      zone: vac.zone || "",
+      city: cleanCity,
+      employmentType: vac.employment_type || vac.modality || "Tiempo Completo",
       formattedSalary,
-      isFeatured: !!vac.is_promoted,
-      category: vac.category || "General"
+      isFeatured: !!(vac.is_promoted || vac.is_featured),
+      category: vac.category || "General",
+      createdAt: vac.created_at,
+      distanceKm,
+      distanceBadge,
+      salary_min: min || null,
+      salary_max: max || null,
+      modality: vac.modality || "Presencial",
+      skills: vac.skills || []
     }
   }
 
-  // 7. Sort vacancies by location proximity without discarding any active vacancy
-  const candidateLocation = profileData?.location || "";
-  const normalizedCandidateLoc = candidateLocation
-    .toLowerCase()
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .replace(/rr/g, "r")
-    .replace(/ll/g, "l");
 
   // Featured vacancies (promoted or top vacancies)
-  const promotedList = allActiveVacancies.filter((v: any) => v.is_promoted);
+  const promotedList = allActiveVacancies.filter((v: any) => v.is_promoted || v.is_featured);
   const featuredDb = promotedList.length > 0 ? promotedList : allActiveVacancies.slice(0, 4);
 
-  // Nearby vacancies: sort vacancies matching candidate location first, then remaining
+  // Nearby vacancies: sorted accurately using Haversine distance and city match
   const sortedNearbyDb = [...allActiveVacancies].sort((a: any, b: any) => {
-    if (!normalizedCandidateLoc) return 0;
+    // 1. If candidate has known GPS / Zone coordinates, calculate true Haversine distance
+    if (candidateCoords) {
+      const cityA = cleanCityName(a.location || "");
+      const cityB = cleanCityName(b.location || "");
 
-    const locA = (a.location + " " + (a.zone || ""))
-      .toLowerCase()
-      .normalize("NFD")
-      .replace(/[\u0300-\u036f]/g, "")
-      .replace(/rr/g, "r")
-      .replace(/ll/g, "l");
+      const coordsA =
+        getCoordsForZone(`${cityA} - ${a.zone || ""}`) ||
+        getCoordsForZone(a.zone) ||
+        getCoordsForZone(cityA) ||
+        (GEO_CONFIG[cityA]?.coords ?? null);
 
-    const locB = (b.location + " " + (b.zone || ""))
-      .toLowerCase()
-      .normalize("NFD")
-      .replace(/[\u0300-\u036f]/g, "")
-      .replace(/rr/g, "r")
-      .replace(/ll/g, "l");
+      const coordsB =
+        getCoordsForZone(`${cityB} - ${b.zone || ""}`) ||
+        getCoordsForZone(b.zone) ||
+        getCoordsForZone(cityB) ||
+        (GEO_CONFIG[cityB]?.coords ?? null);
 
-    const matchA = locA.includes(normalizedCandidateLoc) || normalizedCandidateLoc.includes(locA);
-    const matchB = locB.includes(normalizedCandidateLoc) || normalizedCandidateLoc.includes(locB);
+      if (coordsA && coordsB) {
+        const distA = haversineDistanceKm(candidateCoords.lat, candidateCoords.lng, coordsA.lat, coordsA.lng);
+        const distB = haversineDistanceKm(candidateCoords.lat, candidateCoords.lng, coordsB.lat, coordsB.lng);
+        if (Math.abs(distA - distB) > 0.2) {
+          return distA - distB;
+        }
+      } else if (coordsA && !coordsB) {
+        return -1;
+      } else if (!coordsA && coordsB) {
+        return 1;
+      }
+    }
 
-    if (matchA && !matchB) return -1;
-    if (!matchA && matchB) return 1;
-    return 0;
+    // 2. City-level match fallback
+    if (candidateCity) {
+      const cityA = cleanCityName(a.location || "");
+      const cityB = cleanCityName(b.location || "");
+      const matchA = cityA.toLowerCase() === candidateCity.toLowerCase();
+      const matchB = cityB.toLowerCase() === candidateCity.toLowerCase();
+      if (matchA && !matchB) return -1;
+      if (!matchA && matchB) return 1;
+    }
+
+    // 3. Keep newer vacancies first
+    return new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime();
   });
 
   const featuredVacancies = featuredDb.map(formatVacancyItem);

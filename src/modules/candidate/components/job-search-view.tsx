@@ -36,7 +36,9 @@ import {
 import { useQuery } from "@tanstack/react-query";
 import { createClient } from "@/lib/supabase/client";
 import { jobSearchService, matchFuzzy } from "../services/job-search";
+import { parseLocation } from "@/lib/formatters";
 import { toast } from "sonner";
+
 
 export interface SearchVacancy {
   id: string;
@@ -85,11 +87,6 @@ export function JobSearchView({ initialVacancies = [], onBack }: JobSearchViewPr
   const [savedJobIds, setSavedJobIds] = React.useState<Set<string>>(new Set());
   const [appliedJobIds, setAppliedJobIds] = React.useState<Set<string>>(new Set());
 
-  // Detail Modal State
-  const [selectedJob, setSelectedJob] = React.useState<SearchVacancy | null>(null);
-  const [isDetailOpen, setIsDetailOpen] = React.useState<boolean>(false);
-  const [isApplying, setIsApplying] = React.useState<boolean>(false);
-
   // Filter Modal State
   const [isFilterOpen, setIsFilterOpen] = React.useState<boolean>(false);
 
@@ -134,10 +131,10 @@ export function JobSearchView({ initialVacancies = [], onBack }: JobSearchViewPr
           }
 
           if (profile?.location) {
-            const knownLocations = ["Playa del Carmen", "Cancún", "Tulum", "Mérida"];
-            const matched = knownLocations.find((loc) => profile.location?.includes(loc));
-            if (matched && activeFilters.length === 0) {
-              setActiveFilters([matched]);
+            const parsedLoc = parseLocation(profile.location);
+            const userCity = parsedLoc.city;
+            if (userCity && activeFilters.length === 0) {
+              setActiveFilters([userCity]);
             }
           }
         }
@@ -163,72 +160,19 @@ export function JobSearchView({ initialVacancies = [], onBack }: JobSearchViewPr
     initialData: initialVacancies,
   });
 
-  // Handle URL query param ?jobId=...
+  // Handle URL query param ?jobId=... by redirecting to dedicated vacancy page
   const urlJobId = searchParams.get("jobId");
   React.useEffect(() => {
-    if (!urlJobId) {
-      return;
+    if (urlJobId) {
+      router.push(`/dashboard/candidate/vacancies/${urlJobId}`);
     }
+  }, [urlJobId, router]);
 
-    if (selectedJob && selectedJob.id === urlJobId) {
-      return;
-    }
-
-    // 1. Look up in current vacancies list or initialVacancies
-    const foundInList = vacancies.find((v) => v.id === urlJobId) || initialVacancies.find((v) => v.id === urlJobId);
-    if (foundInList) {
-      queueMicrotask(() => {
-        setSelectedJob(foundInList);
-        setIsDetailOpen(true);
-      });
-      return;
-    }
-
-    // 2. Fetch directly from Supabase if not in memory
-    let isCancelled = false;
-    jobSearchService.getVacancyById(urlJobId)
-      .then((job) => {
-        if (!isCancelled) {
-          if (job) {
-            setSelectedJob(job);
-            setIsDetailOpen(true);
-          } else {
-            toast.error("No se encontró la vacante solicitada");
-          }
-        }
-      })
-      .catch((err) => {
-        if (!isCancelled) {
-          console.error("Error fetching vacancy by ID:", err);
-          toast.error("Error al cargar los detalles de la vacante");
-        }
-      });
-
-    return () => {
-      isCancelled = true;
-    };
-  }, [urlJobId, vacancies, initialVacancies, selectedJob]);
-
-  // Open detail modal and sync URL
+  // Navigate to dedicated vacancy page
   const handleOpenDetail = (job: SearchVacancy) => {
-    setSelectedJob(job);
-    setIsDetailOpen(true);
-    
-    const params = new URLSearchParams(searchParams.toString());
-    params.set("jobId", job.id);
-    router.push(`?${params.toString()}`, { scroll: false });
+    router.push(`/dashboard/candidate/vacancies/${job.id}`);
   };
 
-  // Close detail modal and remove jobId from URL
-  const handleCloseDetail = (open: boolean) => {
-    setIsDetailOpen(open);
-    if (!open) {
-      const params = new URLSearchParams(searchParams.toString());
-      params.delete("jobId");
-      const nextQuery = params.toString();
-      router.push(nextQuery ? `?${nextQuery}` : window.location.pathname, { scroll: false });
-    }
-  };
 
   // Instant in-memory filter for current search query & active filters
   const filteredVacancies = React.useMemo(() => {
@@ -302,56 +246,9 @@ export function JobSearchView({ initialVacancies = [], onBack }: JobSearchViewPr
     }
   };
 
-  // Apply to selected vacancy
-  const handleApply = async () => {
-    if (!selectedJob) return;
-
-    try {
-      setIsApplying(true);
-      const { data: { user } } = await supabase.auth.getUser();
-      
-      if (!user) {
-        toast.error("Inicia sesión como candidato para postularte");
-        return;
-      }
-
-      // Check if already applied
-      if (appliedJobIds.has(selectedJob.id)) {
-        toast.info("Ya te has postulado a esta vacante");
-        return;
-      }
-
-      const { error } = await supabase.from("applications").insert({
-        candidate_id: user.id,
-        vacancy_id: selectedJob.id,
-        status: "Pendiente",
-      });
-
-      if (error) {
-        if (error.code === "23505") {
-          setAppliedJobIds((prev) => new Set(prev).add(selectedJob.id));
-          toast.info("Ya te has postulado a este empleo");
-          return;
-        }
-        throw error;
-      }
-
-      setAppliedJobIds((prev) => new Set(prev).add(selectedJob.id));
-      toast.success("¡Postulación enviada con éxito!", {
-        description: `Tu perfil fue compartido con ${selectedJob.companyName}.`
-      });
-    } catch (err: unknown) {
-      console.error("Error applying to vacancy:", err);
-      const errMsg = err instanceof Error ? err.message : "Error al enviar la postulación";
-      toast.error(errMsg);
-    } finally {
-      setIsApplying(false);
-    }
-  };
-
   // Share vacancy link
   const handleShareVacancy = (job: SearchVacancy) => {
-    const url = `${window.location.origin}/dashboard/candidate/discovery?jobId=${job.id}`;
+    const url = `${window.location.origin}/dashboard/candidate/vacancies/${job.id}`;
     if (typeof navigator !== "undefined" && navigator.clipboard) {
       navigator.clipboard.writeText(url);
       toast.success("Enlace copiado al portapapeles");
@@ -390,9 +287,6 @@ export function JobSearchView({ initialVacancies = [], onBack }: JobSearchViewPr
   const hasSearched = React.useMemo(() => {
     return searchQuery.trim().length > 0 || activeFilters.length > 0;
   }, [searchQuery, activeFilters]);
-
-  const isSelectedJobApplied = selectedJob ? appliedJobIds.has(selectedJob.id) : false;
-  const isSelectedJobSaved = selectedJob ? savedJobIds.has(selectedJob.id) : false;
 
   return (
     <div className="flex-grow min-h-full bg-transparent dark:bg-zinc-950 px-6 sm:px-10 lg:px-14 pt-4 pb-28 md:pb-8 max-w-5xl mx-auto w-full animate-in fade-in duration-300">
@@ -663,166 +557,7 @@ export function JobSearchView({ initialVacancies = [], onBack }: JobSearchViewPr
         )}
       </div>
 
-      {/* 6. Vacancy Detail Modal Dialog */}
-      <Dialog open={isDetailOpen} onOpenChange={handleCloseDetail}>
-        <DialogContent className="sm:max-w-2xl max-h-[90vh] flex flex-col p-0 overflow-hidden rounded-[28px] bg-white dark:bg-zinc-900 border border-[#ebeef3] dark:border-zinc-800 shadow-2xl">
-          {selectedJob && (
-            <>
-              <div className="p-6 sm:p-7 pb-4 border-b border-[#ebeef3] dark:border-zinc-800 bg-[#fbfcfd] dark:bg-zinc-900/70">
-                <div className="flex items-start justify-between gap-4">
-                  <div className="flex items-center gap-4 min-w-0">
-                    <div className="w-16 h-16 rounded-2xl bg-[#ebeef3] dark:bg-zinc-800 flex items-center justify-center text-[#344558] dark:text-zinc-200 shrink-0 font-extrabold text-xl overflow-hidden border border-[#ebeef3] dark:border-zinc-700 shadow-xs">
-                      {selectedJob.companyLogo ? (
-                        <img src={selectedJob.companyLogo} alt={selectedJob.companyName} className="w-full h-full object-cover" />
-                      ) : (
-                        <Building2 className="w-8 h-8 text-[#5c7c9b] dark:text-zinc-400" />
-                      )}
-                    </div>
-                    <div className="min-w-0 flex-1">
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <span className="text-[13px] font-bold text-[#5c7c9b] dark:text-zinc-400 uppercase tracking-wide truncate">
-                          {selectedJob.companyName}
-                        </span>
-                        {selectedJob.isFeatured && (
-                          <span className="inline-flex items-center gap-1 text-[11px] font-extrabold bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20 px-2 py-0.5 rounded-full">
-                            <Sparkles className="w-3 h-3 fill-amber-500 text-amber-500" /> Destacado
-                          </span>
-                        )}
-                      </div>
-                      <DialogTitle className="text-[20px] sm:text-[23px] font-[800] text-[#1f2732] dark:text-zinc-50 leading-snug mt-1">
-                        {selectedJob.title}
-                      </DialogTitle>
-                    </div>
-                  </div>
-
-                  <div className="flex items-center gap-1.5 shrink-0 pt-1">
-                    <button
-                      onClick={() => handleShareVacancy(selectedJob)}
-                      aria-label="Compartir vacante"
-                      className="w-9 h-9 rounded-full bg-white dark:bg-zinc-800 border border-[#ebeef3] dark:border-zinc-700 flex items-center justify-center text-[#5c7c9b] dark:text-zinc-300 hover:text-[#1f2732] dark:hover:text-white transition-all cursor-pointer active:scale-95 shadow-2xs"
-                    >
-                      <Share2 className="w-4 h-4" />
-                    </button>
-                    <button
-                      onClick={() => toggleBookmark(selectedJob.id)}
-                      aria-label="Guardar vacante"
-                      className="w-9 h-9 rounded-full bg-white dark:bg-zinc-800 border border-[#ebeef3] dark:border-zinc-700 flex items-center justify-center text-[#5c7c9b] dark:text-zinc-300 hover:text-amber-500 transition-all cursor-pointer active:scale-95 shadow-2xs"
-                    >
-                      <Bookmark
-                        className={`w-4 h-4 ${
-                          isSelectedJobSaved ? "fill-amber-400 text-amber-400" : ""
-                        }`}
-                      />
-                    </button>
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 mt-5">
-                  <div className="bg-white dark:bg-zinc-800/80 border border-[#ebeef3] dark:border-zinc-700/70 p-2.5 rounded-xl flex items-center gap-2">
-                    <MapPin className="w-4 h-4 text-[#5c7c9b] dark:text-zinc-400 shrink-0" />
-                    <span className="text-xs font-semibold text-[#1f2732] dark:text-zinc-200 truncate">{selectedJob.location}</span>
-                  </div>
-                  <div className="bg-white dark:bg-zinc-800/80 border border-[#ebeef3] dark:border-zinc-700/70 p-2.5 rounded-xl flex items-center gap-2">
-                    <Briefcase className="w-4 h-4 text-[#5c7c9b] dark:text-zinc-400 shrink-0" />
-                    <span className="text-xs font-semibold text-[#1f2732] dark:text-zinc-200 truncate">{selectedJob.employmentType}</span>
-                  </div>
-                  <div className="bg-white dark:bg-zinc-800/80 border border-[#ebeef3] dark:border-zinc-700/70 p-2.5 rounded-xl flex items-center gap-2">
-                    <DollarSign className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
-                    <span className="text-xs font-bold text-[#1f2732] dark:text-zinc-100 truncate">{selectedJob.formattedSalary}</span>
-                  </div>
-                  <div className="bg-white dark:bg-zinc-800/80 border border-[#ebeef3] dark:border-zinc-700/70 p-2.5 rounded-xl flex items-center gap-2">
-                    <Tag className="w-4 h-4 text-[#5c7c9b] dark:text-zinc-400 shrink-0" />
-                    <span className="text-xs font-semibold text-[#1f2732] dark:text-zinc-200 truncate">{selectedJob.category}</span>
-                  </div>
-                </div>
-              </div>
-
-              <div className="flex-1 overflow-y-auto p-6 sm:p-7 space-y-6 max-h-[calc(90vh-230px)]">
-                <div className="space-y-2.5">
-                  <h4 className="text-[15px] font-bold text-[#1f2732] dark:text-zinc-100">Descripción del puesto</h4>
-                  <div className="text-[14px] text-[#4b5563] dark:text-zinc-300 leading-relaxed font-normal whitespace-pre-line bg-[#f8fafc] dark:bg-zinc-800/40 p-4 rounded-2xl border border-[#ebeef3] dark:border-zinc-800">
-                    {selectedJob.description?.trim() ? selectedJob.description : "No hay una descripción detallada proporcionada para este puesto."}
-                  </div>
-                </div>
-
-                {selectedJob.skills && selectedJob.skills.length > 0 && (
-                  <div className="space-y-2.5">
-                    <h4 className="text-[15px] font-bold text-[#1f2732] dark:text-zinc-100">Habilidades y Requisitos</h4>
-                    <div className="flex flex-wrap gap-2">
-                      {selectedJob.skills.map((skill, idx) => (
-                        <span key={idx} className="px-3.5 py-1.5 bg-[#f5f7fa] dark:bg-zinc-800 border border-[#ebeef3] dark:border-zinc-700 rounded-full text-xs font-bold text-[#344558] dark:text-zinc-200">{skill}</span>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                {selectedJob.requirements && (
-                  <div className="space-y-2.5">
-                    <h4 className="text-[15px] font-bold text-[#1f2732] dark:text-zinc-100">Requisitos Adicionales</h4>
-                    <div className="text-[14px] text-[#4b5563] dark:text-zinc-300 leading-relaxed bg-[#f8fafc] dark:bg-zinc-800/40 p-4 rounded-2xl border border-[#ebeef3] dark:border-zinc-800 whitespace-pre-line">{selectedJob.requirements}</div>
-                  </div>
-                )}
-
-                {selectedJob.benefits && selectedJob.benefits.length > 0 && (
-                  <div className="space-y-2.5">
-                    <h4 className="text-[15px] font-bold text-[#1f2732] dark:text-zinc-100">Beneficios</h4>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-                      {selectedJob.benefits.map((benefit, idx) => (
-                        <div key={idx} className="flex items-center gap-2 text-xs font-semibold text-[#344558] dark:text-zinc-300 bg-[#f8fafc] dark:bg-zinc-800/40 p-2.5 rounded-xl border border-[#ebeef3] dark:border-zinc-800">
-                          <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0" />
-                          <span className="truncate">{benefit}</span>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-              </div>
-
-              <div className="p-4 sm:p-5 border-t border-[#ebeef3] dark:border-zinc-800 bg-[#fbfcfd] dark:bg-zinc-900/90 flex flex-col sm:flex-row items-center gap-3">
-                {selectedJob.companyPhone && (
-                  <a
-                    href={`https://wa.me/${selectedJob.companyPhone.replace(/[^0-9]/g, "")}?text=${encodeURIComponent(`¡Hola! Vi la vacante de "${selectedJob.title}" en K'anPro y me interesa solicitar más información.`)}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="w-full sm:w-auto h-12 px-5 bg-[#25D366] hover:bg-[#20ba59] text-white rounded-2xl text-sm font-bold flex items-center justify-center gap-2 shadow-xs transition-all active:scale-95 cursor-pointer shrink-0"
-                  >
-                    <MessageCircle className="w-5 h-5" />
-                    <span>WhatsApp</span>
-                    <ExternalLink className="w-3.5 h-3.5 opacity-80" />
-                  </a>
-                )}
-
-                {isSelectedJobApplied ? (
-                  <div className="w-full flex-1 h-12 bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800 text-emerald-700 dark:text-emerald-400 rounded-2xl flex items-center justify-center gap-2 text-sm font-bold select-none">
-                    <CheckCircle2 className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
-                    <span>Ya te has postulado a este empleo</span>
-                  </div>
-                ) : (
-                  <Button
-                    onClick={handleApply}
-                    disabled={isApplying}
-                    className="w-full flex-1 h-12 bg-[#1f2732] dark:bg-zinc-100 hover:bg-[#2f3c4b] dark:hover:bg-zinc-200 text-white dark:text-zinc-900 rounded-2xl text-sm font-bold flex items-center justify-center gap-2 shadow-xs transition-all active:scale-95 cursor-pointer"
-                  >
-                    {isApplying ? (
-                      <>
-                        <Loader2 className="w-5 h-5 animate-spin" />
-                        <span>Enviando postulación...</span>
-                      </>
-                    ) : (
-                      <>
-                        <CheckCircle2 className="w-5 h-5" />
-                        <span>Postularme ahora</span>
-                      </>
-                    )}
-                  </Button>
-                )}
-              </div>
-            </>
-          )}
-        </DialogContent>
-      </Dialog>
-
-      {/* 7. Filter Modal Dialog */}
+      {/* Filter Modal Dialog */}
       <Dialog open={isFilterOpen} onOpenChange={setIsFilterOpen}>
         <DialogContent className="sm:max-w-[460px] rounded-t-[32px] sm:rounded-3xl bg-white dark:bg-zinc-900 border border-[#ebeef3] dark:border-zinc-800 p-6 sm:p-8">
           <DialogHeader className="flex flex-row items-center justify-between pb-3 border-b border-[#ebeef3] dark:border-zinc-800">

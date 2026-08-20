@@ -26,6 +26,7 @@ import { Switch } from "@/components/ui/switch";
 import { cn } from "@/lib/utils";
 import Link from "next/link";
 import { motion } from "framer-motion";
+import { MarkdownRenderer } from "@/components/ui/markdown-renderer";
 
 export interface CompanyInfo {
   id?: string;
@@ -318,12 +319,12 @@ export function VacancyPreview({
               </h2>
             </div>
 
-            <div className="space-y-4">
+            <div className="space-y-3">
               <p className="text-xs font-extrabold uppercase tracking-wider text-fiord-450 dark:text-fiord-500">
                 Descripción General
               </p>
-              <div className="text-sm md:text-base text-fiord-800 dark:text-fiord-200 leading-relaxed font-medium whitespace-pre-line bg-fiord-50/40 dark:bg-fiord-900/20 border border-fiord-100/60 dark:border-fiord-800/40 p-5 rounded-2xl">
-                {vacancy.description || "Sin descripción proporcionada."}
+              <div className="bg-fiord-50/40 dark:bg-fiord-900/20 border border-fiord-100/60 dark:border-fiord-800/40 p-5 rounded-2xl">
+                <MarkdownRenderer content={vacancy.description} />
               </div>
             </div>
 

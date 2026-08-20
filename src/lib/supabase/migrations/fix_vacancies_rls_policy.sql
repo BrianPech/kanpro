@@ -6,4 +6,5 @@ CREATE POLICY "Anyone can view active vacancies"
 ON public.vacancies
 FOR SELECT
 TO public
-USING (is_active = true AND (status IN ('Activa', 'activa', 'published')));
+USING (is_active = true OR status IN ('Activa', 'activa', 'published', 'Publicada', 'active'));
+

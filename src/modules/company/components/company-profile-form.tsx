@@ -77,7 +77,8 @@ import { FormPhoneField, FormRfcField } from "@/components/form";
 import { toast } from "sonner";
 import { motion } from "framer-motion";
 import { cn } from "@/lib/utils";
-import { GEO_CONFIG, findNearestCityAndZone } from "@/config/geo";
+import { GEO_CONFIG, findNearestCityAndZone, cleanCityName } from "@/config/geo";
+
 
 export interface InitialProfile {
   company_name?: string | null;
@@ -174,13 +175,14 @@ export function CompanyProfileForm({
         console.warn("Reverse geocoding fetch fallback:", e);
       }
 
-      setValue("location", detectedCity, { shouldValidate: true, shouldDirty: true });
+      const cleanedCity = cleanCityName(detectedCity);
+      setValue("location", cleanedCity, { shouldValidate: true, shouldDirty: true });
       if (detectedStreet) {
         setValue("address_details", detectedStreet, { shouldValidate: true, shouldDirty: true });
       }
 
       setGpsDetectedInfo({
-        city: detectedCity,
+        city: cleanedCity,
         address: detectedStreet || nearestZone,
       });
 

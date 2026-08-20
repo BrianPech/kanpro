@@ -34,6 +34,8 @@ import { Step4Publication } from "./step-4-publication";
 import { createClient } from "@/lib/supabase/client";
 import { useDebouncedCallback } from "@tanstack/react-pacer";
 import { revalidateVacancies } from "../../actions/vacancies";
+import { parseLocation, cleanCityName } from "@/lib/formatters";
+import { GEO_CONFIG } from "@/config/geo";
 import Link from "next/link";
 
 const DRAFT_STORAGE_KEY = "kanpro_vacancy_draft_v2";
@@ -80,15 +82,19 @@ export function VacancyWizardContainer({
         const prof = profRes.data as any;
 
         if (comp || prof) {
-          const resolvedLocation =
-            prof?.location ||
-            comp?.address_details ||
-            comp?.fiscal_address ||
-            "Mérida, Yucatán";
+          const rawLoc = prof?.location || comp?.fiscal_address || comp?.address_details;
+          const parsed = parseLocation(rawLoc);
+          const cleanCity = parsed.city || "Mérida";
+          const cleanZone = parsed.zone || (cleanCity === "Mérida" ? "Centro Mérida" : "Centro");
+          const stateName = GEO_CONFIG[cleanCity]?.state;
+          const stateDisplay = stateName === "Quintana Roo" ? "Q. Roo" : stateName || "Yucatán";
+          const resolvedLocationDisplay = `${cleanCity}, ${stateDisplay}`;
 
           setCompanyProfile({
             ...comp,
-            resolvedLocation,
+            resolvedCity: cleanCity,
+            resolvedZone: cleanZone,
+            resolvedLocation: resolvedLocationDisplay,
             company_name: comp?.company_name || prof?.full_name || "Tu Empresa",
           });
 
@@ -97,9 +103,14 @@ export function VacancyWizardContainer({
             form.setFieldValue("contact_phone", comp.contact_phone);
           }
 
-          // Pre-fill location if form is creating a new vacancy and using default
-          if (!isEditing && form.getFieldValue("location") === "Mérida, Yucatán" && resolvedLocation) {
-            form.setFieldValue("location", resolvedLocation);
+          // Pre-fill location & zone if form is creating a new vacancy and using default or dirty street address
+          if (!isEditing) {
+            const currentLoc = form.getFieldValue("location");
+            const isStreetAddress = /^(calle|av\.|avenida|carretera|carr\.|diag\.|diagonal|sm\b|mz\b|lote|c\.)/i.test(currentLoc || "");
+            if (!currentLoc || currentLoc === "Mérida, Yucatán" || currentLoc === "Mérida" || isStreetAddress) {
+              form.setFieldValue("location", cleanCity);
+              form.setFieldValue("zone", cleanZone);
+            }
           }
         }
       } catch (err) {
@@ -108,6 +119,8 @@ export function VacancyWizardContainer({
     }
     loadCompany();
   }, [userId, isEditing]);
+
+
 
   // TanStack Form Instance
   const form = useForm({
@@ -278,6 +291,7 @@ export function VacancyWizardContainer({
         currency: "MXN",
         description: values.description,
         benefits: values.benefits,
+        skills: values.skills || [],
         requirements: values.description, // backward compatible
         is_active: publishNow,
         status: publishNow ? "Activa" : "Borrador",
@@ -392,6 +406,8 @@ export function VacancyWizardContainer({
             <Step2Compensation
               form={form}
               companyLocation={companyProfile?.resolvedLocation || "Mérida, Yucatán"}
+              companyCity={companyProfile?.resolvedCity || "Mérida"}
+              companyZone={companyProfile?.resolvedZone || "Centro Mérida"}
               companyName={companyProfile?.company_name || "Tu Empresa"}
             />
           )}

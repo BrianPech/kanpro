@@ -1,170 +1,137 @@
 "use client";
 
-import React, { useState } from "react";
+import React from "react";
 import Link from "next/link";
-import { Check } from "lucide-react";
+import { Check, ArrowRight, Building2, UserCheck } from "lucide-react";
+import { Button } from "@/components/ui/button";
 
 export function PricingSection() {
-  const [activePricingTab, setActivePricingTab] = useState<"candidate" | "company">("candidate");
-
-  const candidateFeatures = [
-    "CV Digital Premium estructurado",
-    "Ubicación visible por zona de cobertura",
-    "Control de Privacidad (oculta/muestra tu número)",
-    "Botón de postulación directa por WhatsApp",
-    "Acceso a vacantes exclusivas de la zona",
+  const candidateList = [
+    "CV Digital Profesional estructurado para el Sureste",
+    "Filtro de vacantes por cercanía geográfica (< 3 km)",
+    "Expediente Laboral Digital (INE, CURP, comprobante)",
+    "Postulaciones ilimitadas en 1 solo clic",
+    "Contacto directo por WhatsApp con la empresa",
+    "Control de privacidad empresa por empresa (LFPDPPP)",
+    "100% Gratuito de por vida — Sin cargos ocultos",
   ];
 
-  const companyFeatures = [
-    "Publicación instantánea de vacantes",
-    "Exploración ilimitada del catálogo de candidatos",
-    "Filtros avanzados por zona, sector y habilidades",
-    "Acceso directo a WhatsApp en un solo click",
-    "Opción de solicitar Sello de Calidad K'anPro",
+  const companyList = [
+    "Publicación asistida con Wizard en 4 pasos",
+    "Configuración de prestaciones de ley y superiores mexicanas",
+    "Applications Inbox & Pipeline con calificaciones internas",
+    "Contacto directo e inmediato al WhatsApp del aspirante",
+    "Solicitud de acceso seguro a documentos del expediente",
+    "Auditoría y Sello de Verificación Legal SAT (13 Puntos)",
+    "0% de comisiones por contratación o colocación",
   ];
 
   return (
-    <section id="pricing" className="relative overflow-hidden bg-background py-12 md:py-[88px] border-t border-border">
-      
-      {/* Centered purple/indigo radial glow */}
-      <div className="absolute top-12 left-1/2 -translate-x-1/2 w-[650px] h-[350px] rounded-full bg-primary/10 blur-[100px] pointer-events-none" />
-
-      {/* Grid Pattern Overlay */}
-      <div 
-        className="absolute inset-0 opacity-[0.25] dark:opacity-[0.15] pointer-events-none" 
-        style={{ 
-          backgroundImage: "linear-gradient(to right, rgba(99,102,241,0.06) 1px, transparent 1px), linear-gradient(to bottom, rgba(99,102,241,0.06) 1px, transparent 1px)", 
-          backgroundSize: "32px 32px" 
-        }} 
-      />
-
-      <div className="container mx-auto px-6 max-w-6xl relative z-10">
+    <section id="tarifas" className="py-16 sm:py-24 border-b border-border bg-background">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-12 text-left">
         
-        {/* Section Header */}
-        <div className="text-center max-w-3xl mx-auto mb-10 md:mb-16 space-y-4">
-          <h2 className="font-sans font-medium text-3xl md:text-[40px] leading-[1.2] tracking-[-0.4px] text-foreground">
-            Planes Simples y Directos
+        {/* Header Block */}
+        <div className="space-y-2 max-w-3xl">
+          <span className="text-[11px] font-mono font-bold tracking-widest text-muted-foreground uppercase">
+            [05] CONTRATO DE TARIFAS TRANSPARENTES
+          </span>
+          <h2 className="text-2xl sm:text-4xl font-black tracking-tight text-foreground font-sans">
+            Acceso directo. 0% de comisión sobre el salario.
           </h2>
-          <p className="text-muted-foreground text-sm sm:text-base max-w-xl mx-auto">
-            Sin comisiones por contratación. Elige tu perfil para comenzar a conectar de inmediato en el sureste.
+          <p className="text-xs sm:text-sm text-muted-foreground font-mono">
+            No retenemos porcentajes sobre el sueldo de los trabajadores ni cobramos comisión por contratación a los negocios.
           </p>
         </div>
 
-        {/* Tab Toggle pill selector (Mobile-Only) */}
-        <div className="flex md:hidden justify-center mb-8">
-          <div className="inline-flex p-1 rounded-full bg-muted/50 border border-border shrink-0">
-            <button
-              onClick={() => setActivePricingTab("candidate")}
-              className={`px-5 py-2 rounded-full text-xs font-semibold transition-all duration-300 ${
-                activePricingTab === "candidate"
-                  ? "bg-background text-foreground shadow-sm"
-                  : "text-muted-foreground hover:text-foreground bg-transparent"
-              }`}
-            >
-              Para Trabajar
-            </button>
-            <button
-              onClick={() => setActivePricingTab("company")}
-              className={`px-5 py-2 rounded-full text-xs font-semibold transition-all duration-300 ${
-                activePricingTab === "company"
-                  ? "bg-background text-foreground shadow-sm"
-                  : "text-muted-foreground hover:text-foreground bg-transparent"
-              }`}
-            >
-              Para Contratar
-            </button>
-          </div>
-        </div>
-
-        {/* Pricing Cards Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-5 md:gap-8 max-w-4xl mx-auto items-stretch">
+        {/* 2 Honest Pricing Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-5xl">
           
-          {/* Candidate Card (Para Trabajar) */}
-          <div className={`bg-card border border-border/80 dark:border-border/10 rounded-[20px] p-8 relative flex-col justify-between min-h-[520px] transition-colors duration-200 ${
-            activePricingTab === "candidate" ? "flex" : "hidden md:flex"
-          }`}>
+          {/* Candidate Card */}
+          <div className="p-6 sm:p-8 rounded-2xl border border-border bg-card flex flex-col justify-between space-y-8 shadow-2xs">
             <div className="space-y-6">
               <div className="space-y-2">
-                <h3 className="text-[24px] font-medium leading-[1.33] text-foreground">Candidato</h3>
-                <p className="text-xs text-muted-foreground">Para personas buscando empleo local</p>
-              </div>
-
-              <p className="text-xs sm:text-sm text-muted-foreground leading-relaxed">
-                Crea tu CV Digital Premium, destaca tu zona en Mérida o Playa del Carmen y conecta directamente con empleadores locales en WhatsApp.
-              </p>
-
-              <div className="border-t border-border/50 my-6" />
-
-              <div className="space-y-4">
-                <div className="text-[10px] font-bold text-foreground uppercase tracking-widest">
-                  El plan Candidato incluye:
+                <div className="flex items-center justify-between">
+                  <div className="size-9 rounded-lg bg-muted flex items-center justify-center text-foreground">
+                    <UserCheck className="size-4.5" />
+                  </div>
+                  <span className="font-mono text-[10px] font-bold text-emerald-700 dark:text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded">
+                    SIEMPRE GRATIS
+                  </span>
                 </div>
-                <ul className="space-y-3">
-                  {candidateFeatures.map((feature, index) => (
-                    <li key={index} className="flex items-start gap-3">
-                      <Check className="size-4 text-primary shrink-0 mt-0.5" />
-                      <span className="text-xs sm:text-sm text-muted-foreground leading-snug">{feature}</span>
-                    </li>
-                  ))}
-                </ul>
+                <h3 className="text-xl font-bold text-foreground font-sans">
+                  Para Candidatos y Trabajadores
+                </h3>
+                <p className="text-xs text-muted-foreground font-mono">
+                  Para profesionistas y operativos en Mérida, Playa del Carmen, Cancún y Tulum.
+                </p>
               </div>
+
+              <div className="flex items-baseline gap-2 py-3 border-y border-border">
+                <span className="text-4xl font-black font-mono text-foreground">$0</span>
+                <span className="text-xs font-mono text-muted-foreground">MXN / Siempre gratis de por vida</span>
+              </div>
+
+              <ul className="space-y-2.5">
+                {candidateList.map((item, i) => (
+                  <li key={i} className="flex items-start gap-2.5 text-xs text-foreground font-medium">
+                    <Check className="size-3.5 text-emerald-600 dark:text-emerald-400 shrink-0 mt-0.5 stroke-[2.5]" />
+                    <span className="leading-snug">{item}</span>
+                  </li>
+                ))}
+              </ul>
             </div>
 
-            <div className="pt-8">
-              <Link
-                href="/register/candidate"
-                className="bg-secondary hover:bg-secondary/80 text-secondary-foreground font-semibold h-12 rounded-full text-center w-full flex items-center justify-center transition-all text-sm tracking-[0.24px]"
-              >
-                Comenzar como Profesional
-              </Link>
-            </div>
+            <Button
+              render={<Link href="/register/candidate" />}
+              className="w-full h-11 rounded-xl border border-border bg-card hover:bg-muted text-foreground font-mono font-bold text-xs cursor-pointer shadow-2xs"
+            >
+              <span>Crear Cuenta de Candidato</span>
+              <ArrowRight className="size-3.5 ml-1.5" />
+            </Button>
           </div>
 
-          {/* Company Card (Para Contratar - Popular) */}
-          <div className={`bg-primary text-primary-foreground rounded-[20px] p-8 relative flex-col justify-between min-h-[520px] transition-colors duration-200 ${
-            activePricingTab === "company" ? "flex" : "hidden md:flex"
-          }`}>
-            
-            {/* POPULAR badge */}
-            <span className="bg-background text-primary font-semibold text-[10px] px-3 py-1 rounded-full absolute -top-3 right-8 tracking-wider uppercase">
-              Popular
-            </span>
-
+          {/* Company Card */}
+          <div className="p-6 sm:p-8 rounded-2xl border-2 border-foreground bg-card flex flex-col justify-between space-y-8 shadow-sm">
             <div className="space-y-6">
               <div className="space-y-2">
-                <h3 className="text-[24px] font-medium leading-[1.33] text-primary-foreground">Empresa</h3>
-                <p className="text-xs text-primary-foreground/80">Para negocios, hoteles y comercios locales</p>
-              </div>
-
-              <p className="text-xs sm:text-sm text-primary-foreground/90 leading-relaxed">
-                Encuentra candidatos de confianza, filtra por fraccionamiento o sector y contáctalos de manera directa e inmediata sin pagar tarifas.
-              </p>
-
-              <div className="border-t border-primary-foreground/20 my-6" />
-
-              <div className="space-y-4">
-                <div className="text-[10px] font-bold text-primary-foreground/80 uppercase tracking-widest">
-                  El plan Empresa incluye:
+                <div className="flex items-center justify-between">
+                  <div className="size-9 rounded-lg bg-foreground text-background flex items-center justify-center">
+                    <Building2 className="size-4.5" />
+                  </div>
+                  <span className="font-mono text-[10px] font-bold text-foreground bg-muted border border-border px-2 py-0.5 rounded">
+                    EMPRESAS SURESTE
+                  </span>
                 </div>
-                <ul className="space-y-3">
-                  {companyFeatures.map((feature, index) => (
-                    <li key={index} className="flex items-start gap-3">
-                      <Check className="size-4 text-primary-foreground shrink-0 mt-0.5" />
-                      <span className="text-xs sm:text-sm text-primary-foreground/90 leading-snug">{feature}</span>
-                    </li>
-                  ))}
-                </ul>
+                <h3 className="text-xl font-bold text-foreground font-sans">
+                  Para Empresas y Negocios
+                </h3>
+                <p className="text-xs text-muted-foreground font-mono">
+                  Para restaurantes, hoteles, talleres, constructoras, comercios y corporativos.
+                </p>
               </div>
+
+              <div className="flex items-baseline gap-2 py-3 border-y border-border">
+                <span className="text-4xl font-black font-mono text-foreground">0%</span>
+                <span className="text-xs font-mono text-muted-foreground">Comisión por contratación</span>
+              </div>
+
+              <ul className="space-y-2.5">
+                {companyList.map((item, i) => (
+                  <li key={i} className="flex items-start gap-2.5 text-xs text-foreground font-medium">
+                    <Check className="size-3.5 text-foreground shrink-0 mt-0.5 stroke-[2.5]" />
+                    <span className="leading-snug">{item}</span>
+                  </li>
+                ))}
+              </ul>
             </div>
 
-            <div className="pt-8">
-              <Link
-                href="/register/company"
-                className="bg-background text-foreground hover:bg-background/90 font-semibold h-12 rounded-full text-center w-full flex items-center justify-center transition-all text-sm tracking-[0.24px]"
-              >
-                Comenzar como Empresa
-              </Link>
-            </div>
+            <Button
+              render={<Link href="/register/company" />}
+              className="w-full h-11 rounded-xl bg-foreground text-background hover:bg-foreground/90 font-mono font-bold text-xs cursor-pointer gap-1.5 shadow-2xs"
+            >
+              <span>Registrar Empresa y Publicar</span>
+              <ArrowRight className="size-3.5" />
+            </Button>
           </div>
 
         </div>

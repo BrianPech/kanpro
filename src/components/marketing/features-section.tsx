@@ -46,7 +46,7 @@ export function FeaturesSection() {
             <div className="size-12 rounded-[12px] bg-primary/10 flex items-center justify-center text-primary mb-6">
               <Users className="size-6" />
             </div>
-            <h3 className="text-[20px] font-medium leading-[1.4] text-foreground mb-3">Sello de Calidad K'anPro</h3>
+            <h3 className="text-[20px] font-medium leading-[1.4] text-foreground mb-3">Sello de Calidad K&apos;anPro</h3>
             <p className="text-[14px] font-normal leading-[1.43] text-muted-foreground">
               Revisamos y validamos manualmente los perfiles locales para asegurar que las empresas conecten con personas reales y confiables.
             </p>

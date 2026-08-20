@@ -3,7 +3,10 @@
  * Enforces unified data contracts across database storage and UI display.
  */
 
-import { GEO_CONFIG } from "@/config/geo";
+import { GEO_CONFIG, cleanCityName } from "@/config/geo";
+export { cleanCityName };
+
+
 
 // ==========================================
 // 1. DATE NORMALIZATION & FORMATTING
@@ -177,6 +180,7 @@ export function normalizeLocation(city: string | null | undefined, zone: string 
   return `${cleanCity} - ${cleanZone}`;
 }
 
+
 /**
  * Parses composite location string `Ciudad - Zona` into structured `{ city, zone }`.
  */
@@ -185,29 +189,31 @@ export function parseLocation(locationStr: string | null | undefined): { city: s
     return { city: "Mérida", zone: "Centro Mérida" };
   }
 
-  if (locationStr.includes(" - ")) {
-    const parts = locationStr.split(" - ");
-    const city = parts[0].trim();
-    const zone = parts.slice(1).join(" - ").trim();
+  const trimmed = locationStr.trim();
+
+  if (trimmed.includes(" - ")) {
+    const parts = trimmed.split(" - ");
+    const rawCity = parts[0].trim();
+    const rawZone = parts.slice(1).join(" - ").trim();
+    const city = cleanCityName(rawCity);
+    const availableZones = Object.keys(GEO_CONFIG[city]?.zones || {});
+    const defaultZone = availableZones[0] || (city === "Mérida" ? "Centro Mérida" : "Centro");
     return {
-      city: city || "Mérida",
-      zone: zone || "Centro Mérida"
+      city,
+      zone: rawZone || defaultZone,
     };
   }
 
-  // Match city directly
-  const lower = locationStr.toLowerCase();
-  for (const cityKey of Object.keys(GEO_CONFIG)) {
-    if (lower.includes(cityKey.toLowerCase())) {
-      return {
-        city: cityKey,
-        zone: Object.keys(GEO_CONFIG[cityKey]?.zones || {})[0] || "Centro"
-      };
-    }
-  }
+  const city = cleanCityName(trimmed);
+  const availableZones = Object.keys(GEO_CONFIG[city]?.zones || {});
+  const defaultZone = availableZones[0] || (city === "Mérida" ? "Centro Mérida" : "Centro");
 
-  return { city: locationStr.trim(), zone: "Centro" };
+  return {
+    city,
+    zone: defaultZone,
+  };
 }
+
 
 // ==========================================
 // 5. SALARY & CURRENCY FORMATTING

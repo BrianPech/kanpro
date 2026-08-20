@@ -2,7 +2,7 @@
 
 import React from "react";
 import Link from "next/link";
-import { ArrowRight, Sparkles, Hotel, ChefHat, MessageSquare, Users, Briefcase, MapPin, Kanban } from "lucide-react";
+import { ArrowRight, Sparkles, Building2, UserCheck, MessageSquare, ShieldCheck, MapPin, Kanban } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { OrbitingCircles } from "@/components/ui/orbiting-circles";
 import { cn } from "@/lib/utils";
@@ -24,7 +24,7 @@ function OrbitingIconWithLabel({
     <div className="relative flex items-center justify-center">
       {/* Icon Circle */}
       <div className={cn(
-        "flex size-10 items-center justify-center rounded-full border border-border bg-card dark:bg-card/90 dark:border-border/10 shadow-[0_2px_8px_rgba(0,0,0,0.04)] text-foreground/80 transition-transform hover:scale-110 z-20",
+        "flex size-10 items-center justify-center rounded-full border border-border bg-card shadow-xs text-foreground/80 transition-transform hover:scale-110 z-20",
         iconClass
       )}>
         {icon}
@@ -40,20 +40,18 @@ function OrbitingIconWithLabel({
         >
           {labelPosition === "right" && (
             <>
-              {/* Arrow pointing left */}
-              <div className="size-1.5 rotate-45 border-b border-l border-border dark:border-border/15 bg-card dark:bg-[#16181a] -mr-[4px] z-10" />
-              <div className="bg-card dark:bg-[#16181a] border border-border dark:border-border/15 text-foreground dark:text-neutral-200 text-[10px] font-semibold px-2.5 py-0.5 rounded-full whitespace-nowrap shadow-sm">
+              <div className="size-1.5 rotate-45 border-b border-l border-border bg-card -mr-[4px] z-10" />
+              <div className="bg-card border border-border text-foreground text-[10px] font-bold px-2.5 py-0.5 rounded-full whitespace-nowrap shadow-xs">
                 {label}
               </div>
             </>
           )}
           {labelPosition === "left" && (
             <>
-              <div className="bg-card dark:bg-[#16181a] border border-border dark:border-border/15 text-foreground dark:text-neutral-200 text-[10px] font-semibold px-2.5 py-0.5 rounded-full whitespace-nowrap shadow-sm">
+              <div className="bg-card border border-border text-foreground text-[10px] font-bold px-2.5 py-0.5 rounded-full whitespace-nowrap shadow-xs">
                 {label}
               </div>
-              {/* Arrow pointing right */}
-              <div className="size-1.5 rotate-45 border-t border-r border-border dark:border-border/15 bg-card dark:bg-[#16181a] -ml-[4px] z-10" />
+              <div className="size-1.5 rotate-45 border-t border-r border-border bg-card -ml-[4px] z-10" />
             </>
           )}
         </div>
@@ -64,13 +62,14 @@ function OrbitingIconWithLabel({
 
 export function CtaBanner() {
   return (
-    <section className="container mx-auto px-6 py-16 md:py-24" id="cta-banner">
-      <div className="relative rounded-[24px] bg-card border border-border/80 dark:border-border/10 overflow-hidden min-h-[480px] grid grid-cols-1 lg:grid-cols-12 gap-8 p-6 sm:p-12 lg:p-16 items-center">
+    <section className="container mx-auto px-4 sm:px-6 py-16 sm:py-24" id="cta-banner">
+      <div className="relative rounded-[32px] bg-card border border-border/80 overflow-hidden min-h-[460px] grid grid-cols-1 lg:grid-cols-12 gap-8 p-6 sm:p-12 lg:p-16 items-center shadow-sm">
         
-        {/* Subtle Stripe / Grid Overlay */}
-        <div className="absolute inset-0 text-neutral-900/[0.01] dark:text-white/[0.02] pointer-events-none" 
+        {/* Subtle Background Pattern */}
+        <div 
+          className="absolute inset-0 opacity-[0.03] dark:opacity-[0.05] pointer-events-none" 
           style={{
-            backgroundImage: "repeating-linear-gradient(45deg, currentColor 0px, currentColor 1px, transparent 1px, transparent 12px)",
+            backgroundImage: "radial-gradient(circle at 1px 1px, currentColor 1px, transparent 0)",
             backgroundSize: "24px 24px"
           }} 
         />
@@ -78,98 +77,90 @@ export function CtaBanner() {
         {/* Left Column: Copy & Actions */}
         <div className="lg:col-span-6 flex flex-col justify-center text-left relative z-10 space-y-6">
           {/* Badge */}
-          <div className="inline-flex items-center gap-1.5 self-start bg-primary/10 dark:bg-primary/20 border border-primary/20 text-primary text-xs font-semibold px-3 py-1 rounded-full">
-            <Sparkles className="size-3.5 fill-primary/10" />
-            <span>Nuestra Plataforma</span>
+          <div className="inline-flex items-center gap-1.5 self-start bg-primary/10 border border-primary/20 text-primary text-xs font-bold px-3.5 py-1 rounded-full">
+            <Sparkles className="size-3.5" />
+            <span>Únete a la Red de Empleo del Sureste</span>
           </div>
 
           {/* Heading */}
-          <h2 className="text-2xl sm:text-4xl lg:text-5xl font-bold tracking-tight text-foreground leading-[1.15]">
-            ¿Listo para contratar en <span className="text-primary">Mérida o Playa del Carmen</span>?
+          <h2 className="text-2xl sm:text-4xl lg:text-5xl font-extrabold tracking-tight text-foreground leading-[1.12]">
+            ¿Listo para transformar tu forma de{" "}
+            <span className="text-primary">contratar o trabajar</span>?
           </h2>
 
           {/* Subheading */}
-          <p className="text-muted-foreground text-sm sm:text-base font-normal leading-relaxed max-w-xl">
-            Conectamos de forma directa al mejor talento de la región con hoteles, restaurantes, spas y comercios locales. Sin intermediarios, sin burocracia y directo a WhatsApp.
+          <p className="text-muted-foreground text-xs sm:text-base font-medium leading-relaxed max-w-xl">
+            Conectamos en tiempo real a empresas y talento local en Mérida, Playa del Carmen, Cancún y la Riviera Maya. Sin intermediarios, sin comisiones y con verificación digital.
           </p>
 
           {/* CTAs */}
-          <div className="flex flex-col sm:flex-row gap-3.5 pt-2">
+          <div className="flex flex-col sm:flex-row gap-3 pt-2">
             <Button 
-              className="h-12 px-6 rounded-full bg-primary hover:bg-primary/95 text-primary-foreground font-semibold text-sm tracking-[0.24px] transition-all duration-200 border-none shadow-lg shadow-primary/25 flex items-center justify-center gap-2 group cursor-pointer" 
               render={<Link href="/register/company" />}
+              className="h-12 px-7 rounded-2xl bg-primary hover:bg-primary/90 text-primary-foreground font-bold text-xs sm:text-sm shadow-xs flex items-center justify-center gap-2 cursor-pointer" 
             >
-              Publicar Vacante Gratis
-              <ArrowRight className="size-4 transition-transform group-hover:translate-x-1" />
+              <Building2 className="size-4" />
+              <span>Publicar Vacante Gratis</span>
+              <ArrowRight className="size-4" />
             </Button>
+            
             <Button 
+              render={<Link href="/register/candidate" />}
               variant="outline"
-              className="h-12 px-6 rounded-full border border-border hover:bg-muted text-foreground font-semibold text-sm tracking-[0.24px] transition-all duration-200 cursor-pointer" 
-              render={<Link href="/register/company" />}
+              className="h-12 px-7 rounded-2xl border-border/80 hover:bg-muted text-foreground font-bold text-xs sm:text-sm cursor-pointer gap-2" 
             >
-              Explorar Candidatos
+              <UserCheck className="size-4 text-emerald-600 dark:text-emerald-400" />
+              <span>Crear CV de Candidato</span>
             </Button>
           </div>
         </div>
 
-        {/* Right Column: Orbiting Circles Graphic */}
-        <div className="lg:col-span-6 flex items-center justify-center relative min-h-[380px] lg:min-h-[440px] overflow-hidden">
+        {/* Right Column: Orbiting Graphic */}
+        <div className="lg:col-span-6 flex items-center justify-center relative min-h-[340px] lg:min-h-[400px] overflow-hidden">
           
           {/* Ambient Glow */}
-          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[280px] h-[280px] rounded-full bg-primary/10 dark:bg-primary/5 blur-[80px] pointer-events-none" />
+          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[280px] h-[280px] rounded-full bg-primary/10 blur-[80px] pointer-events-none" />
 
-          {/* Scaled Graphic Container */}
-          <div className="absolute inset-0 flex items-center justify-center scale-[0.8] sm:scale-95 lg:scale-100 xl:scale-105 transition-transform duration-300">
+          {/* Graphic Container */}
+          <div className="absolute inset-0 flex items-center justify-center scale-[0.8] sm:scale-95 lg:scale-100 transition-transform duration-300">
             
-            {/* Outer Circle (Radius 160) */}
-            <OrbitingCircles radius={160} duration={28} reverse={true} iconSize={40}>
+            {/* Outer Circle */}
+            <OrbitingCircles radius={150} duration={26} reverse={true} iconSize={40}>
               <OrbitingIconWithLabel 
-                icon={<MessageSquare className="size-5" />} 
+                icon={<MessageSquare className="size-5 text-emerald-500" />} 
                 label="WhatsApp Directo" 
                 labelPosition="right"
-                iconClass="text-emerald-500 bg-emerald-500/10 border-emerald-500/20 shadow-emerald-500/5 dark:bg-emerald-500/20"
+                iconClass="bg-emerald-500/10 border-emerald-500/20"
               />
               <OrbitingIconWithLabel 
-                icon={<Users className="size-5" />} 
-                label="Candidatos Activos" 
+                icon={<ShieldCheck className="size-5 text-amber-500" />} 
+                label="Verificación SAT" 
                 labelPosition="left"
-                iconClass="text-primary bg-primary/10 border-primary/20 shadow-primary/5 dark:bg-primary/20"
+                iconClass="bg-amber-500/10 border-amber-500/20"
               />
               <OrbitingIconWithLabel 
-                icon={<MapPin className="size-5" />} 
-                label="Filtro por Zona" 
+                icon={<MapPin className="size-5 text-primary" />} 
+                label="Filtro por Colonia" 
                 labelPosition="right"
-                iconClass="text-amber-500 bg-amber-500/10 border-amber-500/20 shadow-amber-500/5 dark:bg-amber-500/20"
-              />
-              <OrbitingIconWithLabel 
-                icon={<Briefcase className="size-5" />} 
-                iconClass="text-blue-500 bg-blue-500/10 border-blue-500/20 shadow-blue-500/5 dark:bg-blue-500/20"
+                iconClass="bg-primary/10 border-primary/20"
               />
             </OrbitingCircles>
 
-            {/* Inner Circle (Radius 88) */}
-            <OrbitingCircles radius={88} duration={20} reverse={false} iconSize={40}>
+            {/* Inner Circle */}
+            <OrbitingCircles radius={80} duration={18} reverse={false} iconSize={36}>
               <OrbitingIconWithLabel 
-                icon={<Hotel className="size-5" />} 
-                label="Hotelería" 
-                labelPosition="left"
-                iconClass="text-purple-500 bg-purple-500/10 border-purple-500/20 shadow-purple-500/5 dark:bg-purple-500/20"
+                icon={<Building2 className="size-4.5 text-primary" />} 
+                iconClass="bg-primary/10 border-primary/20"
               />
               <OrbitingIconWithLabel 
-                icon={<ChefHat className="size-5" />} 
-                label="Gastronomía" 
-                labelPosition="right"
-                iconClass="text-orange-500 bg-orange-500/10 border-orange-500/20 shadow-orange-500/5 dark:bg-orange-500/20"
-              />
-              <OrbitingIconWithLabel 
-                icon={<Sparkles className="size-5" />} 
-                iconClass="text-teal-500 bg-teal-500/10 border-teal-500/20 shadow-teal-500/5 dark:bg-teal-500/20"
+                icon={<UserCheck className="size-4.5 text-emerald-500" />} 
+                iconClass="bg-emerald-500/10 border-emerald-500/20"
               />
             </OrbitingCircles>
 
-            {/* Center Brand Icon */}
-            <div className="relative z-30 flex size-16 items-center justify-center rounded-[20px] bg-gradient-to-tr from-primary to-primary-bright shadow-[0_0_35px_rgba(73,79,223,0.35)] text-primary-foreground border border-white/10 dark:border-white/5 transition-transform hover:scale-105 duration-300">
-              <Kanban className="size-7 fill-white/10" />
+            {/* Center Logo Icon */}
+            <div className="relative z-30 flex size-14 items-center justify-center rounded-2xl bg-primary text-primary-foreground shadow-md transition-transform hover:scale-105 duration-200">
+              <Kanban className="size-7" />
             </div>
 
           </div>

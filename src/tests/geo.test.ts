@@ -3,7 +3,10 @@ import {
   GEO_CONFIG,
   findNearestCityAndZone,
   getCoordsForZone,
-  resolveLocationFromCoords
+  resolveLocationFromCoords,
+  getCitiesList,
+  getZonesForCity,
+  cleanCityName,
 } from "@/config/geo";
 
 describe("Geographical Configuration & Coordinate Resolvers", () => {
@@ -62,4 +65,51 @@ describe("Geographical Configuration & Coordinate Resolvers", () => {
     expect(result.city).toBe("Felipe Carrillo Puerto");
     expect(result.displayLocation).toContain("Felipe Carrillo Puerto");
   });
+
+  test("getCitiesList returns properly structured list of cities across states", () => {
+    const list = getCitiesList();
+    expect(list.length).toBeGreaterThan(15);
+    const cancun = list.find((c) => c.name === "Cancún");
+    expect(cancun).toBeDefined();
+    expect(cancun?.state).toBe("Quintana Roo");
+    expect(cancun?.label).toContain("Cancún, Q. Roo");
+
+    const merida = list.find((c) => c.name === "Mérida");
+    expect(merida).toBeDefined();
+    expect(merida?.state).toBe("Yucatán");
+  });
+
+  test("getZonesForCity dynamically returns zones for each specific municipality", () => {
+    const meridaZones = getZonesForCity("Mérida");
+    expect(meridaZones).toContain("Centro Mérida");
+    expect(meridaZones).toContain("Altabrisa");
+    expect(meridaZones).toContain("Caucel");
+
+    const cancunZones = getZonesForCity("Cancún");
+    expect(cancunZones).toContain("Centro");
+    expect(cancunZones).toContain("Zona Hotelera");
+    expect(cancunZones).toContain("Puerto Cancún");
+
+    const playaZones = getZonesForCity("Playa del Carmen");
+    expect(playaZones).toContain("Centro");
+    expect(playaZones).toContain("Playacar");
+    expect(playaZones).toContain("Villas del Sol");
+
+    const customZones = getZonesForCity("Ciudad Desconocida");
+    expect(customZones).toContain("Centro");
+    expect(customZones).toContain("Zona Norte");
+  });
+
+  test("cleanCityName extracts valid city and sanitizes dirty/street addresses", () => {
+    expect(cleanCityName("Mérida, Yucatán")).toBe("Mérida");
+    expect(cleanCityName("Playa del Carmen, Q. Roo")).toBe("Playa del Carmen");
+    expect(cleanCityName("Cancún - Zona Hotelera")).toBe("Cancún");
+    expect(cleanCityName("Calle 10 Norte, Playa del Carmen, Q. Roo")).toBe("Playa del Carmen");
+    expect(cleanCityName("Av. Bonampak SM 4, Cancún")).toBe("Cancún");
+    expect(cleanCityName("Calle 68 #123 x 45 y 47")).toBe("Mérida");
+    expect(cleanCityName("Calle 68")).toBe("Mérida");
+    expect(cleanCityName("Tulum, Quintana Roo")).toBe("Tulum");
+    expect(cleanCityName("Valladolid - Sisal")).toBe("Valladolid");
+  });
 });
+

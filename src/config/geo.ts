@@ -588,3 +588,121 @@ export async function resolveLocationFromCoords(
     displayLocation: `${nearest.city} - ${nearest.zone}`
   };
 }
+
+export interface CityOption {
+  name: string;
+  state: "Quintana Roo" | "Yucatán" | "Campeche" | "Nacional";
+  label: string;
+}
+
+/**
+ * Returns all structured cities/municipalities grouped and formatted for Select components.
+ */
+export function getCitiesList(): CityOption[] {
+  return Object.entries(GEO_CONFIG).map(([cityName, info]) => {
+    const stateAbbr =
+      info.state === "Quintana Roo"
+        ? "Q. Roo"
+        : info.state === "Yucatán"
+        ? "Yucatán"
+        : info.state === "Campeche"
+        ? "Campeche"
+        : info.state;
+
+    return {
+      name: cityName,
+      state: info.state,
+      label: `${cityName}, ${stateAbbr}`,
+    };
+  });
+}
+
+/**
+ * Returns dynamic zone list for a given city from GEO_CONFIG with fallback.
+ */
+export function getZonesForCity(cityName: string | null | undefined): string[] {
+  if (!cityName) {
+    return Object.keys(GEO_CONFIG["Mérida"].zones);
+  }
+
+  const clean = cityName.trim();
+
+  // 1. Direct match
+  if (GEO_CONFIG[clean]) {
+    return Object.keys(GEO_CONFIG[clean].zones);
+  }
+
+  // 2. Case-insensitive or partial match
+  const lower = clean.toLowerCase();
+  for (const [key, info] of Object.entries(GEO_CONFIG)) {
+    if (lower.includes(key.toLowerCase()) || key.toLowerCase().includes(lower)) {
+      return Object.keys(info.zones);
+    }
+  }
+
+  // 3. Fallback for custom or unlisted city
+  return [
+    "Centro",
+    "Zona Norte",
+    "Zona Sur",
+    "Zona Oriente",
+    "Zona Poniente",
+    "Zona Industrial",
+    "Otra Zona",
+  ];
+}
+
+/**
+ * Cleans messy or street-polluted location strings to extract the valid City name.
+ * If raw is "Calle 10, Playa del Carmen", returns "Playa del Carmen".
+ * If raw is "Calle 68" (no city), returns "Mérida".
+ */
+export function cleanCityName(rawLoc: string | null | undefined): string {
+  if (!rawLoc) return "Mérida";
+  const trimmed = rawLoc.trim();
+
+  // If it's composite "City - Zone"
+  if (trimmed.includes(" - ")) {
+    const parts = trimmed.split(" - ");
+    return cleanCityName(parts[0]);
+  }
+
+  // If it's "City, State"
+  if (trimmed.includes(",")) {
+    const parts = trimmed.split(",");
+    const cityPart = parts[0].trim();
+    const matched = Object.keys(GEO_CONFIG).find(
+      (c) => c.toLowerCase() === cityPart.toLowerCase()
+    );
+    if (matched) return matched;
+  }
+
+  const lower = trimmed.toLowerCase();
+
+  // 1. Exact match against known GEO_CONFIG cities
+  for (const key of Object.keys(GEO_CONFIG)) {
+    if (lower === key.toLowerCase()) {
+      return key;
+    }
+  }
+
+  // 2. Substring search for all known cities (sorted by longest name first)
+  const sortedCityKeys = Object.keys(GEO_CONFIG).sort((a, b) => b.length - a.length);
+  for (const key of sortedCityKeys) {
+    const lowerKey = key.toLowerCase();
+    // Match as word or substring
+    if (lower.includes(lowerKey)) {
+      return key;
+    }
+  }
+
+  // 3. If it looks like a street address without a known city (starts with Calle, Av, etc.), fallback to Mérida
+  if (/^(calle|av\.|avenida|carretera|carr\.|diag\.|diagonal|sm\b|mz\b|lote|c\.)/i.test(lower)) {
+    return "Mérida";
+  }
+
+  return trimmed;
+}
+
+
+

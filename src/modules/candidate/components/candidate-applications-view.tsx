@@ -428,7 +428,7 @@ export function CandidateApplicationsView({ initialData }: CandidateApplications
                 onClick={() => {
                   setIsSheetOpen(false);
                   if (selectedApp.vacancy_id) {
-                    router.push(`/dashboard/candidate/discovery?jobId=${selectedApp.vacancy_id}`);
+                    router.push(`/dashboard/candidate/vacancies/${selectedApp.vacancy_id}`);
                   } else {
                     router.push("/dashboard/candidate/discovery");
                   }
