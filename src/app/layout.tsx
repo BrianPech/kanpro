@@ -69,22 +69,21 @@ export default function RootLayout({
     <html
       lang="es"
       suppressHydrationWarning
-      className={cn("h-full", "antialiased", geistSans.variable, geistMono.variable, "font-sans", inter.variable, "light")}
+      className={cn("h-full", "antialiased", geistSans.variable, geistMono.variable, "font-sans", inter.variable)}
     >
       <body className="min-h-full flex flex-col" suppressHydrationWarning>
         <QueryProvider>
           <TooltipProvider>
             <ThemeProvider
               attribute="class"
-              defaultTheme="light"
-              forcedTheme="light"
-              enableSystem={false}
+              defaultTheme="system"
+              enableSystem
               disableTransitionOnChange
             >
               {children}
             </ThemeProvider>
             <WhatsAppSupportWidget />
-            <Toaster richColors theme="light" />
+            <Toaster richColors />
           </TooltipProvider>
         </QueryProvider>
       </body>

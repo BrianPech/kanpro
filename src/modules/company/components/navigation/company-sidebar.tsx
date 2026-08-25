@@ -45,6 +45,7 @@ import { usePathname } from "next/navigation";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { CompanySettingsModal } from "../company-settings-dialog";
 
 export function CompanySidebar({
   ...props
@@ -176,6 +177,7 @@ export function CompanySidebar({
       title: "Configuración",
       url: "/dashboard/company/settings",
       icon: Settings,
+      isModal: true,
     },
     {
       title: "Soporte K'anPro",
@@ -302,6 +304,29 @@ export function CompanySidebar({
           {secondaryNav.map((item) => {
             const isActive = pathname === item.url;
             const isPrimaryAction = item.title === "Publicar Oferta";
+
+            if (item.isModal) {
+              return (
+                <SidebarMenuItem key={item.title}>
+                  <CompanySettingsModal
+                    trigger={
+                      <SidebarMenuButton
+                        tooltip={item.title}
+                        className={cn(
+                          "h-9 rounded-xl px-2.5 gap-2.5 text-xs font-semibold transition-all cursor-pointer",
+                          isActive
+                            ? "bg-sidebar-accent text-sidebar-accent-foreground font-bold shadow-xs"
+                            : "text-muted-foreground hover:bg-sidebar-accent/50 hover:text-sidebar-foreground",
+                        )}
+                      >
+                        <item.icon className="size-4 shrink-0" />
+                        <span>{item.title}</span>
+                      </SidebarMenuButton>
+                    }
+                  />
+                </SidebarMenuItem>
+              );
+            }
 
             return (
               <SidebarMenuItem key={item.title}>
