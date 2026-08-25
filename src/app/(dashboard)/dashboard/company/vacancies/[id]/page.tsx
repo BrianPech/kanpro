@@ -195,20 +195,20 @@ export default function VacancyDetailPage({ params }: PageProps) {
   if (!vacancy) {
     return (
       <div className="max-w-4xl mx-auto p-6 md:p-8 text-center space-y-6 py-20 animate-in fade-in duration-300">
-        <div className="size-16 rounded-2xl bg-fiord-100 dark:bg-fiord-900 text-fiord-600 dark:text-fiord-300 flex items-center justify-center mx-auto text-2xl">
+        <div className="size-16 rounded-2xl bg-muted text-muted-foreground flex items-center justify-center mx-auto text-2xl">
           ⚠️
         </div>
         <div className="space-y-2">
-          <h2 className="text-xl font-bold text-fiord-950 dark:text-fiord-50">
+          <h2 className="text-xl font-bold text-foreground">
             Oferta no encontrada
           </h2>
-          <p className="text-xs font-semibold text-fiord-500 dark:text-fiord-400 max-w-md mx-auto leading-relaxed">
+          <p className="text-xs font-semibold text-muted-foreground max-w-md mx-auto leading-relaxed">
             La vacante que intentas visualizar no existe o ha sido eliminada permanentemente.
           </p>
         </div>
         <Button
           render={<Link href="/dashboard/company/vacancies" />}
-          className="rounded-xl px-6 h-11 bg-fiord-950 hover:bg-fiord-900 dark:bg-fiord-50 dark:hover:bg-fiord-100 text-white dark:text-fiord-950 font-bold text-xs uppercase tracking-wider"
+          className="rounded-xl px-6 h-11 font-bold text-xs uppercase tracking-wider"
         >
           Volver a vacantes
         </Button>
@@ -221,9 +221,9 @@ export default function VacancyDetailPage({ params }: PageProps) {
       {/* Top Header Control Toolbar */}
       <div className="flex items-center justify-between gap-4 max-w-6xl mx-auto px-2">
         <Button
-          variant="ghost"
+          variant="outline"
           render={<Link href="/dashboard/company/vacancies" />}
-          className="text-xs font-bold text-fiord-600 dark:text-fiord-400 hover:text-fiord-950 dark:hover:text-fiord-50 hover:bg-fiord-100/60 gap-2 px-3.5 h-10 rounded-xl border border-fiord-100 dark:border-fiord-800 bg-white dark:bg-fiord-950 shadow-xs"
+          className="text-xs font-bold gap-2 px-3.5 h-10 rounded-xl bg-card border-border shadow-xs"
         >
           <ChevronLeft className="size-4" />
           Volver a vacantes
@@ -233,9 +233,9 @@ export default function VacancyDetailPage({ params }: PageProps) {
           <Button
             variant="outline"
             render={<Link href={`/dashboard/company/vacancies/${vacancy.id}/edit`} />}
-            className="h-10 px-4 rounded-xl border-fiord-200 dark:border-fiord-800 text-fiord-900 dark:text-fiord-100 bg-white dark:bg-fiord-900/30 hover:bg-fiord-50 font-bold text-xs gap-2 shadow-xs"
+            className="h-10 px-4 rounded-xl border-border bg-card font-bold text-xs gap-2 shadow-xs"
           >
-            <Edit2 className="size-3.5 text-blue-600 dark:text-blue-400" />
+            <Edit2 className="size-3.5 text-primary" />
             Editar Vacante
           </Button>
 
@@ -246,30 +246,30 @@ export default function VacancyDetailPage({ params }: PageProps) {
                   variant="outline"
                   size="icon"
                   disabled={deleting}
-                  className="h-10 w-10 rounded-xl border-red-200/70 text-red-600 hover:bg-red-50 dark:border-red-900/50 dark:text-red-400 shrink-0"
+                  className="h-10 w-10 rounded-xl border-destructive/30 text-destructive hover:bg-destructive/10 shrink-0"
                   title="Eliminar vacante"
                 />
               }
             >
               <Trash2 className="size-4" />
             </AlertDialogTrigger>
-            <AlertDialogContent className="rounded-2xl bg-white dark:bg-fiord-950 border-fiord-200 dark:border-fiord-800">
+            <AlertDialogContent className="rounded-2xl bg-card border-border">
               <AlertDialogHeader>
-                <AlertDialogTitle className="text-lg font-extrabold text-fiord-950 dark:text-fiord-50 flex items-center gap-2">
-                  <AlertTriangle className="size-5 text-red-500" />
+                <AlertDialogTitle className="text-lg font-extrabold text-foreground flex items-center gap-2">
+                  <AlertTriangle className="size-5 text-destructive" />
                   ¿Eliminar vacante?
                 </AlertDialogTitle>
-                <AlertDialogDescription className="text-xs font-semibold text-fiord-600 dark:text-fiord-400 leading-relaxed">
+                <AlertDialogDescription className="text-xs font-semibold text-muted-foreground leading-relaxed">
                   Esta acción eliminará la oferta &quot;{vacancy.title}&quot; de forma permanente. Los candidatos ya no podrán verla ni postularse.
                 </AlertDialogDescription>
               </AlertDialogHeader>
               <AlertDialogFooter>
-                <AlertDialogCancel className="rounded-xl text-xs font-bold border-fiord-200">
+                <AlertDialogCancel className="rounded-xl text-xs font-bold border-border">
                   Cancelar
                 </AlertDialogCancel>
                 <AlertDialogAction
                   onClick={handleDeleteVacancy}
-                  className="rounded-xl text-xs font-bold bg-red-600 hover:bg-red-700 text-white"
+                  className="rounded-xl text-xs font-bold bg-destructive hover:bg-destructive/90 text-destructive-foreground"
                 >
                   Eliminar
                 </AlertDialogAction>

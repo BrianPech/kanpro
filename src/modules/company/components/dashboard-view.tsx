@@ -144,7 +144,7 @@ export function DashboardView({
   }
   const monthlyAnalytics = directMonthly || analytics?.monthlyAnalytics || {
     goalPercent: 0,
-    pieData: [{ name: "Sin Vacantes", value: 100, color: "#7d99b3" }]
+    pieData: [{ name: "Sin Vacantes", value: 100, color: "var(--muted-foreground)" }]
   }
 
   const containerVariants = {
@@ -248,8 +248,8 @@ export function DashboardView({
                   <AreaChart data={weeklyAnalytics.flowData} margin={{ top: 5, right: 5, left: -25, bottom: 0 }}>
                     <defs>
                       <linearGradient id="colorCandidatos" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="5%" stopColor="var(--color-fiord-500)" stopOpacity={0.4} />
-                        <stop offset="95%" stopColor="var(--color-fiord-500)" stopOpacity={0.0} />
+                        <stop offset="5%" stopColor="var(--primary)" stopOpacity={0.4} />
+                        <stop offset="95%" stopColor="var(--primary)" stopOpacity={0.0} />
                       </linearGradient>
                     </defs>
                     <XAxis 
@@ -274,7 +274,7 @@ export function DashboardView({
                     <Area 
                       type="monotone" 
                       dataKey="candidatos" 
-                      stroke="var(--color-fiord-500)" 
+                      stroke="var(--primary)" 
                       strokeWidth={2} 
                       fillOpacity={1} 
                       fill="url(#colorCandidatos)" 

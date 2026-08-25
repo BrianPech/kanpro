@@ -95,10 +95,10 @@ export function DeleteAccountModal({
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
-      <DialogContent className="sm:max-w-[520px] rounded-[28px] p-6 sm:p-8 bg-background border-border/80 shadow-2xl">
+      <DialogContent className="sm:max-w-[520px] rounded-2xl p-6 sm:p-8 bg-background border-border/80 shadow-2xl">
         <DialogHeader className="space-y-3 text-left">
           <div className="flex items-center gap-3">
-            <div className="p-3 bg-destructive/10 text-destructive rounded-2xl shrink-0">
+            <div className="p-3 bg-destructive/10 text-destructive rounded-xl shrink-0">
               <ShieldAlert className="h-6 w-6" />
             </div>
             <div>
@@ -129,7 +129,7 @@ export function DeleteAccountModal({
               value={reason}
               onChange={(e) => setReason(e.target.value)}
               disabled={isSubmitting}
-              className="min-h-[70px] rounded-[16px] bg-muted/40 text-sm focus-visible:ring-destructive/30 border-border/60 resize-none"
+              className="min-h-[70px] rounded-xl bg-muted/40 text-sm focus-visible:ring-destructive/30 border-border/60 resize-none"
             />
           </div>
 
@@ -166,7 +166,7 @@ export function DeleteAccountModal({
                   value={confirmText}
                   onChange={(e) => setConfirmText(e.target.value)}
                   disabled={isSubmitting}
-                  className="h-11 rounded-[14px] bg-background border-border/80 focus-visible:ring-destructive/30 font-medium"
+                  className="h-11 rounded-xl bg-background border-border/80 focus-visible:ring-destructive/30 font-medium"
                 />
               </TabsContent>
 
@@ -180,7 +180,7 @@ export function DeleteAccountModal({
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   disabled={isSubmitting}
-                  className="h-11 rounded-[14px] bg-background border-border/80 focus-visible:ring-destructive/30"
+                  className="h-11 rounded-xl bg-background border-border/80 focus-visible:ring-destructive/30"
                 />
               </TabsContent>
             </Tabs>
@@ -200,7 +200,7 @@ export function DeleteAccountModal({
             variant="outline"
             onClick={handleClose}
             disabled={isSubmitting}
-            className="rounded-full h-11 px-5 border-border/70 font-semibold"
+            className="rounded-xl h-11 px-5 border-border/70 font-semibold"
           >
             Cancelar
           </Button>
@@ -209,7 +209,7 @@ export function DeleteAccountModal({
             variant="destructive"
             onClick={handleDeleteAccount}
             disabled={!isValid || isSubmitting}
-            className="rounded-full h-11 px-6 font-semibold bg-destructive hover:bg-destructive/90 text-destructive-foreground shadow-md shadow-destructive/20 disabled:opacity-50"
+            className="rounded-xl h-11 px-6 font-semibold bg-destructive hover:bg-destructive/90 text-destructive-foreground shadow-md shadow-destructive/20 disabled:opacity-50"
           >
             {isSubmitting ? (
               <>

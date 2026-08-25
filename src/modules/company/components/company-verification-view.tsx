@@ -321,7 +321,7 @@ export function CompanyVerificationView({
         <div className="space-y-1">
           <div className="flex items-center gap-3 flex-wrap">
             <h1 className="text-2xl sm:text-3xl font-[800] tracking-tight text-foreground flex items-center gap-3">
-              <Building2 className="size-7 text-[#5c7c9b]" />
+              <Building2 className="size-7 text-primary" />
               Verificación Legal de Empresa
             </h1>
             <Badge variant="outline" className="bg-amber-500/10 text-amber-700 dark:text-amber-300 border-amber-500/20 font-bold px-3 py-1 rounded-full text-xs">
@@ -336,28 +336,28 @@ export function CompanyVerificationView({
         {/* Global Status Pill */}
         <div>
           {verificationStatus === "approved" && (
-            <Badge className="bg-emerald-500/10 border border-emerald-500/20 text-emerald-700 dark:text-emerald-400 px-4 py-2 rounded-2xl text-xs sm:text-sm font-bold flex items-center gap-2">
+            <Badge className="bg-emerald-500/10 border border-emerald-500/20 text-emerald-700 dark:text-emerald-400 px-4 py-2 rounded-full text-xs sm:text-sm font-bold flex items-center gap-2">
               <ShieldCheck className="size-4.5 text-emerald-600 dark:text-emerald-400" />
               Empresa Verificada
             </Badge>
           )}
 
           {verificationStatus === "pending" && (
-            <Badge className="bg-amber-500/10 border border-amber-500/20 text-amber-700 dark:text-amber-400 px-4 py-2 rounded-2xl text-xs sm:text-sm font-bold flex items-center gap-2">
+            <Badge className="bg-amber-500/10 border border-amber-500/20 text-amber-700 dark:text-amber-400 px-4 py-2 rounded-full text-xs sm:text-sm font-bold flex items-center gap-2">
               <Clock className="size-4.5 text-amber-600 dark:text-amber-400" />
               Expediente en Revisión
             </Badge>
           )}
 
           {verificationStatus === "rejected" && (
-            <Badge className="bg-rose-500/10 border border-rose-500/20 text-rose-700 dark:text-rose-400 px-4 py-2 rounded-2xl text-xs sm:text-sm font-bold flex items-center gap-2">
+            <Badge className="bg-rose-500/10 border border-rose-500/20 text-rose-700 dark:text-rose-400 px-4 py-2 rounded-full text-xs sm:text-sm font-bold flex items-center gap-2">
               <AlertCircle className="size-4.5 text-rose-600 dark:text-rose-400" />
               Acción Requerida
             </Badge>
           )}
 
           {verificationStatus === "unsubmitted" && (
-            <Badge className="bg-muted border border-border text-muted-foreground px-4 py-2 rounded-2xl text-xs sm:text-sm font-bold flex items-center gap-2">
+            <Badge className="bg-muted border border-border text-muted-foreground px-4 py-2 rounded-full text-xs sm:text-sm font-bold flex items-center gap-2">
               <FileText className="size-4.5 text-muted-foreground" />
               Pendiente de Envío
             </Badge>
@@ -367,7 +367,7 @@ export function CompanyVerificationView({
 
       {/* STATUS BANNER CALLOUT */}
       {verificationStatus === "approved" && (
-        <div className="flex items-center gap-4 p-5 rounded-[22px] bg-emerald-500/10 border border-emerald-500/20 text-emerald-800 dark:text-emerald-300">
+        <div className="flex items-center gap-4 p-5 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-800 dark:text-emerald-300">
           <ShieldCheck className="size-7 shrink-0 text-emerald-600 dark:text-emerald-400" />
           <div className="text-xs sm:text-sm font-semibold leading-relaxed">
             <span className="font-extrabold">¡Tu perfil empresarial está 100% verificado!</span> Tus ofertas laborales cuentan con la insignia de confianza corporativa activa en el Sureste.
@@ -376,7 +376,7 @@ export function CompanyVerificationView({
       )}
 
       {verificationStatus === "pending" && (
-        <div className="flex items-start gap-4 p-5 rounded-[22px] bg-amber-500/10 border border-amber-500/20 text-amber-800 dark:text-amber-300">
+        <div className="flex items-start gap-4 p-5 rounded-2xl bg-amber-500/10 border border-amber-500/20 text-amber-800 dark:text-amber-300">
           <Clock className="size-6 shrink-0 mt-0.5 text-amber-600 dark:text-amber-400 animate-pulse" />
           <div className="text-xs sm:text-sm font-semibold leading-relaxed">
             <span className="font-extrabold">Tu expediente digital está siendo auditado.</span> Nuestro equipo legal está revisando los 13 requisitos corporativos. Recibirás una notificación una vez validado.
@@ -385,11 +385,11 @@ export function CompanyVerificationView({
       )}
 
       {/* PROGRESS TRACKER CARD */}
-      <Card className="bg-card border border-border/40 rounded-[28px] p-6 sm:p-7 space-y-4 shadow-xs">
+      <Card className="bg-card border border-border/40 rounded-2xl p-6 sm:p-7 space-y-4 shadow-xs">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
           <div>
             <h3 className="text-sm sm:text-base font-extrabold text-foreground flex items-center gap-2">
-              <FileCheck className="size-5 text-[#5c7c9b]" />
+              <FileCheck className="size-5 text-primary" />
               Progreso del Expediente Legal
             </h3>
             <p className="text-xs text-muted-foreground font-semibold mt-0.5">
@@ -429,7 +429,7 @@ export function CompanyVerificationView({
       </Card>
 
       {/* SECTION 1: DATOS FISCALES Y CORPORATIVOS */}
-      <Card className="bg-card border border-border/40 rounded-[28px] p-6 sm:p-8 space-y-6 shadow-xs">
+      <Card className="bg-card border border-border/40 rounded-2xl p-6 sm:p-8 space-y-6 shadow-xs">
         <div className="flex items-center gap-3 pb-3 border-b border-border/40">
           <div className="size-10 rounded-2xl bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 flex items-center justify-center shrink-0">
             <Building2 className="size-5" />
@@ -459,10 +459,10 @@ export function CompanyVerificationView({
               }}
               disabled={isReadOnly}
             >
-              <SelectTrigger className="h-12 bg-background border-border/40 rounded-[14px] px-4 text-sm font-semibold">
+              <SelectTrigger className="h-12 bg-background border-border/40 rounded-xl px-4 text-sm font-semibold">
                 <SelectValue placeholder="Selecciona el régimen" />
               </SelectTrigger>
-              <SelectContent className="rounded-2xl">
+              <SelectContent className="rounded-xl">
                 <SelectItem value="persona_moral">Persona Moral (Empresa / Sociedad)</SelectItem>
                 <SelectItem value="persona_fisica">Persona Física con Actividad Empresarial</SelectItem>
               </SelectContent>
@@ -475,14 +475,14 @@ export function CompanyVerificationView({
               1. Denominación o Razón Social *
             </Label>
             <div className="relative">
-              <Building2 className="absolute left-4 top-1/2 -translate-y-1/2 size-4.5 text-[#5c7c9b] pointer-events-none" />
+              <Building2 className="absolute left-4 top-1/2 -translate-y-1/2 size-4.5 text-muted-foreground pointer-events-none" />
               <Input
                 type="text"
                 placeholder="Ej. Operadora de Hoteles de la Riviera S.A. de C.V."
                 value={legalName}
                 onChange={(e) => setLegalName(e.target.value)}
                 disabled={isReadOnly}
-                className="h-12 bg-background border-border/40 rounded-[14px] pl-11 pr-4 text-sm font-semibold"
+                className="h-12 bg-background border-border/40 rounded-xl pl-11 pr-4 text-sm font-semibold"
               />
             </div>
           </div>
@@ -493,14 +493,14 @@ export function CompanyVerificationView({
               6. Nombre Comercial de la Marca *
             </Label>
             <div className="relative">
-              <Briefcase className="absolute left-4 top-1/2 -translate-y-1/2 size-4.5 text-[#5c7c9b] pointer-events-none" />
+              <Briefcase className="absolute left-4 top-1/2 -translate-y-1/2 size-4.5 text-muted-foreground pointer-events-none" />
               <Input
                 type="text"
                 placeholder="Ej. Hotel Riviera Maya Resort"
                 value={companyName}
                 onChange={(e) => setCompanyName(e.target.value)}
                 disabled={isReadOnly}
-                className="h-12 bg-background border-border/40 rounded-[14px] pl-11 pr-4 text-sm font-semibold"
+                className="h-12 bg-background border-border/40 rounded-xl pl-11 pr-4 text-sm font-semibold"
               />
             </div>
           </div>
@@ -516,7 +516,7 @@ export function CompanyVerificationView({
               </span>
             </div>
             <div className="relative">
-              <FileCheck className="absolute left-4 top-1/2 -translate-y-1/2 size-4.5 text-[#5c7c9b] pointer-events-none" />
+              <FileCheck className="absolute left-4 top-1/2 -translate-y-1/2 size-4.5 text-muted-foreground pointer-events-none" />
               <Input
                 type="text"
                 placeholder={fiscalRegime === "persona_moral" ? "OHR120315ABC" : "GARM850612ABC"}
@@ -525,7 +525,7 @@ export function CompanyVerificationView({
                 maxLength={fiscalRegime === "persona_moral" ? 12 : 13}
                 disabled={isReadOnly}
                 className={cn(
-                  "h-12 bg-background border-border/40 rounded-[14px] pl-11 pr-4 text-sm font-semibold uppercase tracking-wider",
+                  "h-12 bg-background border-border/40 rounded-xl pl-11 pr-4 text-sm font-semibold uppercase tracking-wider",
                   rfc.trim().length > 0 && !isRfcValid && "border-destructive/60"
                 )}
               />
@@ -543,10 +543,10 @@ export function CompanyVerificationView({
               7. Giro o Actividad Económica *
             </Label>
             <Select value={industry} onValueChange={(val) => setIndustry(val || "")} disabled={isReadOnly}>
-              <SelectTrigger className="h-12 bg-background border-border/40 rounded-[14px] px-4 text-sm font-semibold">
+              <SelectTrigger className="h-12 bg-background border-border/40 rounded-xl px-4 text-sm font-semibold">
                 <SelectValue placeholder="Selecciona el sector" />
               </SelectTrigger>
-              <SelectContent className="rounded-2xl">
+              <SelectContent className="rounded-xl">
                 <SelectItem value="Hotelería, Turismo y Gastronomía">Hotelería, Turismo y Gastronomía</SelectItem>
                 <SelectItem value="Comercio y Retail">Comercio y Retail</SelectItem>
                 <SelectItem value="Construcción e Inmobiliaria">Construcción e Inmobiliaria</SelectItem>
@@ -567,14 +567,14 @@ export function CompanyVerificationView({
               5. Domicilio Fiscal Completo *
             </Label>
             <div className="relative">
-              <MapPin className="absolute left-4 top-1/2 -translate-y-1/2 size-4.5 text-[#5c7c9b] pointer-events-none" />
+              <MapPin className="absolute left-4 top-1/2 -translate-y-1/2 size-4.5 text-muted-foreground pointer-events-none" />
               <Input
                 type="text"
                 placeholder="Calle, Número exterior/interior, Colonia, C.P., Ciudad y Estado"
                 value={fiscalAddress}
                 onChange={(e) => setFiscalAddress(e.target.value)}
                 disabled={isReadOnly}
-                className="h-12 bg-background border-border/40 rounded-[14px] pl-11 pr-4 text-sm font-semibold"
+                className="h-12 bg-background border-border/40 rounded-xl pl-11 pr-4 text-sm font-semibold"
               />
             </div>
           </div>
@@ -585,14 +585,14 @@ export function CompanyVerificationView({
               8. Nombre del Representante Legal *
             </Label>
             <div className="relative">
-              <UserCheck className="absolute left-4 top-1/2 -translate-y-1/2 size-4.5 text-[#5c7c9b] pointer-events-none" />
+              <UserCheck className="absolute left-4 top-1/2 -translate-y-1/2 size-4.5 text-muted-foreground pointer-events-none" />
               <Input
                 type="text"
                 placeholder="Nombre(s) y Apellidos completos"
                 value={legalRepName}
                 onChange={(e) => setLegalRepName(e.target.value)}
                 disabled={isReadOnly}
-                className="h-12 bg-background border-border/40 rounded-[14px] pl-11 pr-4 text-sm font-semibold"
+                className="h-12 bg-background border-border/40 rounded-xl pl-11 pr-4 text-sm font-semibold"
               />
             </div>
           </div>
@@ -603,14 +603,14 @@ export function CompanyVerificationView({
               11. Correo Electrónico Corporativo *
             </Label>
             <div className="relative">
-              <Mail className="absolute left-4 top-1/2 -translate-y-1/2 size-4.5 text-[#5c7c9b] pointer-events-none" />
+              <Mail className="absolute left-4 top-1/2 -translate-y-1/2 size-4.5 text-muted-foreground pointer-events-none" />
               <Input
                 type="email"
                 placeholder="ejemplo@empresa.com"
                 value={corporateEmail}
                 onChange={(e) => setCorporateEmail(e.target.value)}
                 disabled={isReadOnly}
-                className="h-12 bg-background border-border/40 rounded-[14px] pl-11 pr-4 text-sm font-semibold"
+                className="h-12 bg-background border-border/40 rounded-xl pl-11 pr-4 text-sm font-semibold"
               />
             </div>
           </div>
@@ -621,14 +621,14 @@ export function CompanyVerificationView({
               12. Número Telefónico de Contacto *
             </Label>
             <div className="relative">
-              <Phone className="absolute left-4 top-1/2 -translate-y-1/2 size-4.5 text-[#5c7c9b] pointer-events-none" />
+              <Phone className="absolute left-4 top-1/2 -translate-y-1/2 size-4.5 text-muted-foreground pointer-events-none" />
               <Input
                 type="tel"
                 placeholder="+52 999 123 4567"
                 value={contactPhone}
                 onChange={(e) => setContactPhone(e.target.value)}
                 disabled={isReadOnly}
-                className="h-12 bg-background border-border/40 rounded-[14px] pl-11 pr-4 text-sm font-semibold"
+                className="h-12 bg-background border-border/40 rounded-xl pl-11 pr-4 text-sm font-semibold"
               />
             </div>
           </div>
@@ -636,7 +636,7 @@ export function CompanyVerificationView({
       </Card>
 
       {/* SECTION 2: DOCUMENTOS OFICIALES */}
-      <Card className="bg-card border border-border/40 rounded-[28px] p-6 sm:p-8 space-y-6 shadow-xs">
+      <Card className="bg-card border border-border/40 rounded-2xl p-6 sm:p-8 space-y-6 shadow-xs">
         <div className="flex items-center gap-3 pb-3 border-b border-border/40">
           <div className="size-10 rounded-2xl bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 flex items-center justify-center shrink-0">
             <FileText className="size-5" />
@@ -703,7 +703,7 @@ export function CompanyVerificationView({
       </Card>
 
       {/* SECTION 3: TÉRMINOS Y CONDICIONES Y AVISO DE PRIVACIDAD */}
-      <Card className="bg-card border border-border/40 rounded-[28px] p-6 sm:p-8 space-y-4 shadow-xs">
+      <Card className="bg-card border border-border/40 rounded-2xl p-6 sm:p-8 space-y-4 shadow-xs">
         <div className="flex items-center gap-3 pb-3 border-b border-border/40">
           <div className="size-10 rounded-2xl bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 flex items-center justify-center shrink-0">
             <Lock className="size-5" />
@@ -741,14 +741,14 @@ export function CompanyVerificationView({
       </Card>
 
       {/* BOTTOM ACTION BAR */}
-      <div className="flex flex-col sm:flex-row items-center justify-between gap-4 p-6 bg-card border border-border/40 rounded-[28px] shadow-sm">
+      <div className="flex flex-col sm:flex-row items-center justify-between gap-4 p-6 bg-card border border-border/40 rounded-2xl shadow-sm">
         <div className="flex items-center gap-3 w-full sm:w-auto">
           <Button
             type="button"
             variant="outline"
             onClick={handleSaveDraft}
             disabled={isSaving || isSubmitting || isReadOnly}
-            className="w-full sm:w-auto rounded-2xl px-6 h-12 text-xs font-bold gap-2"
+            className="w-full sm:w-auto rounded-xl px-6 h-11 text-xs font-bold gap-2"
           >
             {isSaving ? <Loader2 className="size-4 animate-spin" /> : <Save className="size-4" />}
             <span>Guardar Borrador</span>
@@ -760,7 +760,7 @@ export function CompanyVerificationView({
             type="button"
             onClick={handleSubmitVerification}
             disabled={isSubmitting || isSaving || completedCount < totalCount || isReadOnly}
-            className="w-full sm:w-auto rounded-2xl px-8 h-12 text-xs font-bold bg-[#1f2732] dark:bg-zinc-100 text-white dark:text-zinc-900 hover:bg-[#253240] dark:hover:bg-zinc-200 gap-2 shadow-xs"
+            className="w-full sm:w-auto rounded-xl px-8 h-11 text-xs font-bold bg-primary text-primary-foreground hover:bg-primary/90 gap-2 shadow-xs"
           >
             {isSubmitting ? (
               <>
@@ -779,10 +779,10 @@ export function CompanyVerificationView({
 
       {/* PDF PREVIEW MODAL WITH SECURE SIGNED URL */}
       <Dialog open={!!previewDoc} onOpenChange={(open) => !open && setPreviewDoc(null)}>
-        <DialogContent className="sm:max-w-[700px] max-h-[90vh] overflow-y-auto rounded-3xl bg-background border border-border/40 p-6 space-y-4">
+        <DialogContent className="sm:max-w-[700px] max-h-[90vh] overflow-y-auto rounded-2xl bg-background border border-border/40 p-6 space-y-4">
           <DialogHeader>
             <DialogTitle className="text-lg font-bold text-foreground flex items-center gap-2">
-              <FileText className="size-5 text-[#5c7c9b]" />
+              <FileText className="size-5 text-primary" />
               {previewDoc?.title}
             </DialogTitle>
             <DialogDescription className="text-xs text-muted-foreground font-medium">
@@ -790,7 +790,7 @@ export function CompanyVerificationView({
             </DialogDescription>
           </DialogHeader>
 
-          <div className="p-4 bg-muted/30 border border-border/40 rounded-2xl flex flex-col items-center justify-center text-center space-y-4">
+          <div className="p-4 bg-muted/30 border border-border/40 rounded-xl flex flex-col items-center justify-center text-center space-y-4">
             {previewDoc?.url && (
               <div className="w-full space-y-4">
                 {previewDoc.fileName.toLowerCase().endsWith(".pdf") ? (
@@ -814,7 +814,7 @@ export function CompanyVerificationView({
                     href={previewDoc.url}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="inline-flex items-center gap-2 px-5 py-2.5 bg-[#1f2732] dark:bg-zinc-100 text-white dark:text-zinc-900 rounded-xl text-xs font-bold shadow-xs hover:bg-[#253240]"
+                    className="inline-flex items-center gap-2 px-5 py-2.5 bg-primary text-primary-foreground rounded-xl text-xs font-bold shadow-xs hover:bg-primary/90"
                   >
                     <span>Abrir en Pestaña Completa</span>
                     <ExternalLink className="size-3.5" />
@@ -853,7 +853,7 @@ function DocumentUploadCard({
   const fileInputRef = React.useRef<HTMLInputElement | null>(null);
 
   return (
-    <div className="p-5 bg-card border border-border/40 rounded-[20px] space-y-4 flex flex-col justify-between">
+    <div className="p-5 bg-card border border-border/40 rounded-xl space-y-4 flex flex-col justify-between">
       <div>
         <div className="flex items-start justify-between gap-2">
           <div>
@@ -880,7 +880,7 @@ function DocumentUploadCard({
         {doc ? (
           <div className="mt-4 p-3 bg-muted/40 border border-border/40 rounded-xl flex items-center justify-between gap-3 shadow-2xs">
             <div className="flex items-center gap-2.5 min-w-0">
-              <FileText className="size-6 text-[#5c7c9b] shrink-0" />
+              <FileText className="size-6 text-primary shrink-0" />
               <div className="min-w-0">
                 <p className="text-xs font-bold text-foreground truncate">
                   {doc.file_name}
@@ -905,7 +905,7 @@ function DocumentUploadCard({
               <button
                 type="button"
                 onClick={onDelete}
-                className="p-1.5 text-rose-500 hover:text-rose-600 transition-colors cursor-pointer"
+                className="p-1.5 text-destructive hover:text-destructive/80 transition-colors cursor-pointer"
                 title="Eliminar Documento"
               >
                 <Trash2 className="size-4" />

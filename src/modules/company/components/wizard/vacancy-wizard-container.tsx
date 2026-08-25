@@ -389,7 +389,7 @@ export function VacancyWizardContainer({
       </Card>
 
       {/* 3. Main Form Content Card */}
-      <Card className="bg-card border border-border/60 rounded-3xl p-5 sm:p-8 shadow-xs space-y-6">
+      <Card className="bg-card border border-border/60 rounded-2xl p-5 sm:p-8 shadow-xs space-y-6">
         <form
           onSubmit={(e) => {
             e.preventDefault();

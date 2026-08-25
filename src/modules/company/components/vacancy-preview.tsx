@@ -177,13 +177,13 @@ export function VacancyPreview({
       {/* ========================================================================= */}
       {/* HEADER DE LA VACANTE (BANNER + AVATAR OVERLAP + BOTONES DE ACCIÓN)      */}
       {/* ========================================================================= */}
-      <Card className="p-0 overflow-hidden bg-white dark:bg-fiord-950 border border-fiord-100 dark:border-fiord-800/80 rounded-3xl shadow-xs">
+      <Card className="p-0 overflow-hidden bg-card border border-border rounded-2xl shadow-xs">
         {/* Banner Superior Edge-to-Edge */}
-        <div className="h-44 md:h-52 w-full bg-gradient-to-r from-fiord-800 via-fiord-900 to-fiord-950 dark:from-slate-900 dark:via-fiord-950 dark:to-black relative">
-          <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-fiord-500/10 via-transparent to-transparent pointer-events-none" />
+        <div className="h-44 md:h-52 w-full bg-gradient-to-r from-primary/80 via-primary to-primary/90 text-primary-foreground relative">
+          <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-white/10 via-transparent to-transparent pointer-events-none" />
           
           {isPreviewMode && (
-            <div className="absolute top-4 right-4 bg-fiord-950/80 backdrop-blur-md text-white text-[10px] font-extrabold uppercase tracking-widest px-3.5 py-1.5 rounded-full border border-white/10">
+            <div className="absolute top-4 right-4 bg-background/85 backdrop-blur-md text-foreground text-[10px] font-extrabold uppercase tracking-widest px-3.5 py-1.5 rounded-full border border-border/60">
               Vista Previa en Tiempo Real
             </div>
           )}
@@ -196,21 +196,21 @@ export function VacancyPreview({
             {/* Avatar Superpuesto + Contenedor de Texto */}
             <div className="flex flex-col sm:flex-row sm:items-end gap-5">
               {/* Solo el Avatar sube con -mt-14 md:-mt-16 */}
-              <Avatar className="-mt-14 md:-mt-16 size-24 md:size-28 rounded-2xl border-4 border-white dark:border-fiord-950 shadow-md bg-white dark:bg-fiord-900 shrink-0 overflow-hidden relative z-10">
+              <Avatar className="-mt-14 md:-mt-16 size-24 md:size-28 rounded-2xl border-4 border-background shadow-md bg-card shrink-0 overflow-hidden relative z-10">
                 <AvatarImage
                   src={company?.logo_url || ""}
                   alt={company?.company_name || "Logo empresa"}
                   className="object-cover"
                 />
-                <AvatarFallback className="bg-fiord-100 dark:bg-fiord-900 text-fiord-900 dark:text-fiord-100 font-black text-2xl rounded-xl">
+                <AvatarFallback className="bg-muted text-foreground font-black text-2xl rounded-xl">
                   {companyInitials}
                 </AvatarFallback>
               </Avatar>
 
-              {/* Nombre de la Empresa y Vacante (Totalmente visible y fuera del banner) */}
+              {/* Nombre de la Empresa y Vacante */}
               <div className="space-y-1 pt-2">
                 <div className="flex items-center gap-2 flex-wrap">
-                  <span className="text-sm font-bold text-fiord-950 dark:text-fiord-50">
+                  <span className="text-sm font-bold text-foreground">
                     {company?.company_name || "Empresa Aliada"}
                   </span>
                   {vacancy.is_active !== undefined && (
@@ -218,25 +218,25 @@ export function VacancyPreview({
                       className={cn(
                         "text-[10px] font-extrabold uppercase tracking-wider px-2.5 py-0.5 rounded-full border shadow-none",
                         vacancy.is_active
-                          ? "bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-400 border-emerald-200 dark:border-emerald-800"
-                          : "bg-fiord-100 dark:bg-fiord-900 text-fiord-700 dark:text-fiord-300 border-fiord-200 dark:border-fiord-800"
+                          ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20"
+                          : "bg-muted text-muted-foreground border-border"
                       )}
                     >
                       {vacancy.is_active ? "● Activa" : "○ Pausada"}
                     </Badge>
                   )}
                 </div>
-                <h1 className="text-2xl md:text-3xl font-extrabold text-fiord-950 dark:text-fiord-50 tracking-tight leading-tight">
+                <h1 className="text-2xl md:text-3xl font-extrabold text-foreground tracking-tight leading-tight">
                   {vacancy.title || "Título del Puesto"}
                 </h1>
-                <div className="flex items-center gap-3 text-xs font-semibold text-fiord-500 dark:text-fiord-400 flex-wrap pt-0.5">
+                <div className="flex items-center gap-3 text-xs font-semibold text-muted-foreground flex-wrap pt-0.5">
                   <span className="flex items-center gap-1">
-                    <MapPin className="size-3.5 text-red-500 shrink-0" />
+                    <MapPin className="size-3.5 text-rose-500 shrink-0" />
                     {vacancy.zone || vacancy.location || company?.location || "Mérida - Centro"}
                   </span>
                   <span>•</span>
                   <span className="flex items-center gap-1">
-                    <Clock className="size-3.5 text-fiord-400 shrink-0" />
+                    <Clock className="size-3.5 text-muted-foreground shrink-0" />
                     {formatDate(vacancy.created_at)}
                   </span>
                 </div>
@@ -251,19 +251,19 @@ export function VacancyPreview({
                     <Button
                       onClick={onEdit}
                       variant="outline"
-                      className="h-11 px-5 rounded-full border-fiord-200 dark:border-fiord-800 text-fiord-900 dark:text-fiord-100 font-bold text-xs gap-2 hover:bg-fiord-50 shadow-xs"
+                      className="h-10 px-4 rounded-xl font-bold text-xs gap-2 shadow-xs"
                     >
-                      <Edit2 className="size-3.5 text-blue-600 dark:text-blue-400" />
+                      <Edit2 className="size-3.5 text-primary" />
                       Editar Vacante
                     </Button>
                   )}
                   {onToggleActive && (
-                    <div className="flex items-center gap-2.5 px-4 h-11 rounded-full bg-fiord-50 dark:bg-fiord-900/40 border border-fiord-100 dark:border-fiord-800">
+                    <div className="flex items-center gap-2.5 px-3.5 h-10 rounded-xl bg-muted/50 border border-border">
                       <Switch
                         checked={Boolean(vacancy.is_active)}
                         onCheckedChange={onToggleActive}
                       />
-                      <span className="text-xs font-bold text-fiord-900 dark:text-fiord-100 select-none">
+                      <span className="text-xs font-bold text-foreground select-none">
                         {vacancy.is_active ? "Activa" : "Pausada"}
                       </span>
                     </div>
@@ -278,10 +278,8 @@ export function VacancyPreview({
                       if (onSave) onSave();
                     }}
                     className={cn(
-                      "h-11 px-4 rounded-full border-fiord-200 dark:border-fiord-800 font-bold text-xs gap-2 shadow-xs transition-colors",
-                      isBookmarked
-                        ? "bg-fiord-100 dark:bg-fiord-900 text-fiord-950 dark:text-white"
-                        : "bg-white dark:bg-fiord-950 text-fiord-700 dark:text-fiord-300 hover:bg-fiord-50"
+                      "h-10 px-4 rounded-xl font-bold text-xs gap-2 shadow-xs transition-colors",
+                      isBookmarked && "bg-muted text-foreground"
                     )}
                   >
                     <Bookmark className={cn("size-4", isBookmarked && "fill-current")} />
@@ -290,7 +288,7 @@ export function VacancyPreview({
 
                   <Button
                     onClick={onApply}
-                    className="h-11 px-7 rounded-full bg-fiord-950 hover:bg-fiord-900 dark:bg-fiord-50 dark:hover:bg-fiord-100 text-white dark:text-fiord-950 font-bold text-xs uppercase tracking-wider shadow-sm transition-all active:scale-95"
+                    className="h-10 px-6 rounded-xl font-bold text-xs uppercase tracking-wider shadow-sm transition-all active:scale-95"
                   >
                     Postularme
                   </Button>
@@ -309,34 +307,34 @@ export function VacancyPreview({
         
         {/* COLUMNA IZQUIERDA (lg:col-span-8) */}
         <div className="lg:col-span-8 space-y-6">
-          <Card className="bg-white dark:bg-fiord-950 border border-fiord-100 dark:border-fiord-800/80 rounded-2xl p-6 md:p-8 shadow-xs space-y-6">
-            <div className="flex items-center gap-2.5 pb-4 border-b border-fiord-100 dark:border-fiord-800/60">
-              <div className="size-8 rounded-xl bg-blue-50 dark:bg-blue-950/40 text-blue-600 dark:text-blue-400 flex items-center justify-center shrink-0">
+          <Card className="bg-card border border-border rounded-2xl p-6 md:p-8 shadow-xs space-y-6">
+            <div className="flex items-center gap-2.5 pb-4 border-b border-border/60">
+              <div className="size-8 rounded-xl bg-primary/10 text-primary flex items-center justify-center shrink-0">
                 <Sparkles className="size-4" />
               </div>
-              <h2 className="text-lg font-extrabold text-fiord-950 dark:text-fiord-50 tracking-tight">
+              <h2 className="text-lg font-extrabold text-foreground tracking-tight">
                 Acerca del empleo
               </h2>
             </div>
 
             <div className="space-y-3">
-              <p className="text-xs font-extrabold uppercase tracking-wider text-fiord-450 dark:text-fiord-500">
+              <p className="text-xs font-extrabold uppercase tracking-wider text-muted-foreground">
                 Descripción General
               </p>
-              <div className="bg-fiord-50/40 dark:bg-fiord-900/20 border border-fiord-100/60 dark:border-fiord-800/40 p-5 rounded-2xl">
+              <div className="bg-muted/30 border border-border/50 p-5 rounded-xl">
                 <MarkdownRenderer content={vacancy.description} />
               </div>
             </div>
 
             {responsibilitiesList.length > 0 && (
               <div className="space-y-3 pt-2">
-                <h3 className="text-xs font-extrabold uppercase tracking-wider text-fiord-450 dark:text-fiord-500">
+                <h3 className="text-xs font-extrabold uppercase tracking-wider text-muted-foreground">
                   Responsabilidades y Funciones
                 </h3>
-                <ul className="list-disc list-inside space-y-2 text-sm text-fiord-800 dark:text-fiord-200 font-medium pl-1">
+                <ul className="list-disc list-inside space-y-2 text-sm text-foreground/90 font-medium pl-1">
                   {responsibilitiesList.map((item, idx) => (
                     <li key={idx} className="leading-relaxed">
-                      <span className="text-fiord-900 dark:text-fiord-100">{item}</span>
+                      <span>{item}</span>
                     </li>
                   ))}
                 </ul>
@@ -345,15 +343,15 @@ export function VacancyPreview({
 
             {skillsList.length > 0 && (
               <div className="space-y-3 pt-2">
-                <h3 className="text-xs font-extrabold uppercase tracking-wider text-fiord-450 dark:text-fiord-500 flex items-center gap-1.5">
-                  <Tag className="size-3.5 text-fiord-500" />
+                <h3 className="text-xs font-extrabold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
+                  <Tag className="size-3.5 text-muted-foreground" />
                   Habilidades Requeridas
                 </h3>
                 <div className="flex flex-wrap gap-2">
                   {skillsList.map((skill, idx) => (
                     <Badge
                       key={idx}
-                      className="rounded-full bg-fiord-100/70 dark:bg-fiord-900 text-fiord-900 dark:text-fiord-100 border border-fiord-200/60 dark:border-fiord-800 px-4 py-1.5 text-xs font-bold shadow-none"
+                      className="rounded-lg bg-muted text-foreground border border-border px-3 py-1 text-xs font-bold shadow-none"
                     >
                       {skill}
                     </Badge>
@@ -363,8 +361,8 @@ export function VacancyPreview({
             )}
 
             {benefitsList.length > 0 && (
-              <div className="space-y-3 pt-2 border-t border-fiord-100 dark:border-fiord-800/60">
-                <h3 className="text-xs font-extrabold uppercase tracking-wider text-fiord-450 dark:text-fiord-500 flex items-center gap-1.5">
+              <div className="space-y-3 pt-2 border-t border-border/60">
+                <h3 className="text-xs font-extrabold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
                   <Gift className="size-3.5 text-emerald-600 dark:text-emerald-400" />
                   Beneficios e Incentivos
                 </h3>
@@ -372,7 +370,7 @@ export function VacancyPreview({
                   {benefitsList.map((benefit, idx) => (
                     <div
                       key={idx}
-                      className="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl bg-emerald-50/60 dark:bg-emerald-950/30 border border-emerald-200/60 dark:border-emerald-800/60 text-xs font-bold text-emerald-900 dark:text-emerald-200"
+                      className="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-xs font-bold text-emerald-800 dark:text-emerald-300"
                     >
                       <CheckCircle2 className="size-3.5 text-emerald-600 dark:text-emerald-400 shrink-0" />
                       <span>{benefit}</span>
@@ -384,26 +382,26 @@ export function VacancyPreview({
           </Card>
 
           {/* ACERCA DE LA EMPRESA */}
-          <Card className="bg-white dark:bg-fiord-950 border border-fiord-100 dark:border-fiord-800/80 rounded-2xl p-6 md:p-8 shadow-xs space-y-5">
+          <Card className="bg-card border border-border rounded-2xl p-6 md:p-8 shadow-xs space-y-5">
             <div className="flex items-center gap-4">
-              <Avatar className="size-14 rounded-2xl border border-fiord-200/60 dark:border-fiord-800 bg-white dark:bg-fiord-900 shrink-0 overflow-hidden">
+              <Avatar className="size-14 rounded-xl border border-border bg-card shrink-0 overflow-hidden">
                 <AvatarImage src={company?.logo_url || ""} alt={company?.company_name || ""} />
-                <AvatarFallback className="bg-fiord-100 dark:bg-fiord-900 text-fiord-950 dark:text-fiord-100 font-extrabold text-base">
+                <AvatarFallback className="bg-muted text-foreground font-extrabold text-base">
                   {companyInitials}
                 </AvatarFallback>
               </Avatar>
 
               <div>
-                <h3 className="text-base font-extrabold text-fiord-950 dark:text-fiord-50">
+                <h3 className="text-base font-extrabold text-foreground">
                   Acerca de {company?.company_name || "la Empresa"}
                 </h3>
-                <p className="text-xs font-semibold text-fiord-500 dark:text-fiord-400">
+                <p className="text-xs font-semibold text-muted-foreground">
                   {company?.industry || "Empresa empleadora"} • {company?.location || "Mérida - Centro"}
                 </p>
               </div>
             </div>
 
-            <p className="text-xs md:text-sm text-fiord-700 dark:text-fiord-300 font-medium leading-relaxed">
+            <p className="text-xs md:text-sm text-muted-foreground font-medium leading-relaxed">
               {company?.description ||
                 "Empresa comprometida con el desarrollo del talento local en la región. Ofrece oportunidades de crecimiento y ambiente laboral colaborativo."}
             </p>
@@ -418,7 +416,7 @@ export function VacancyPreview({
                   }
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="inline-flex items-center gap-1.5 text-xs font-bold text-blue-600 dark:text-blue-400 hover:underline"
+                  className="inline-flex items-center gap-1.5 text-xs font-bold text-primary hover:underline"
                 >
                   <Globe className="size-3.5" />
                   <span>Visitar sitio web / LinkedIn</span>
@@ -430,68 +428,68 @@ export function VacancyPreview({
 
         {/* COLUMNA DERECHA / SIDEBAR (lg:col-span-4) */}
         <div className="lg:col-span-4 space-y-6">
-          <Card className="bg-white dark:bg-fiord-950 border border-fiord-100 dark:border-fiord-800/80 rounded-2xl p-6 shadow-xs space-y-6">
-            <div className="space-y-1 pb-5 border-b border-fiord-100 dark:border-fiord-800/80">
-              <p className="text-xs font-extrabold uppercase tracking-wider text-fiord-450 dark:text-fiord-500">
+          <Card className="bg-card border border-border rounded-2xl p-6 shadow-xs space-y-6">
+            <div className="space-y-1 pb-5 border-b border-border/80">
+              <p className="text-xs font-extrabold uppercase tracking-wider text-muted-foreground">
                 Sueldo estimado mensual
               </p>
-              <p className="text-2xl font-black text-fiord-950 dark:text-fiord-50 tracking-tight">
+              <p className="text-2xl font-black text-foreground tracking-tight">
                 {formatSalary(vacancy.salary_min, vacancy.salary_max)}
               </p>
             </div>
 
             <div className="space-y-4">
               <div className="flex items-start gap-3">
-                <div className="size-9 rounded-xl bg-fiord-50 dark:bg-fiord-900 text-fiord-700 dark:text-fiord-300 flex items-center justify-center shrink-0 mt-0.5">
+                <div className="size-9 rounded-xl bg-muted text-foreground flex items-center justify-center shrink-0 mt-0.5">
                   <Briefcase className="size-4" />
                 </div>
                 <div>
-                  <p className="text-[10px] font-bold uppercase tracking-wider text-fiord-450 dark:text-fiord-500">
+                  <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
                     Sector / Categoría
                   </p>
-                  <p className="text-xs font-bold text-fiord-900 dark:text-fiord-100 mt-0.5">
+                  <p className="text-xs font-bold text-foreground mt-0.5">
                     {vacancy.category || company?.industry || "General"}
                   </p>
                 </div>
               </div>
 
               <div className="flex items-start gap-3">
-                <div className="size-9 rounded-xl bg-blue-50 dark:bg-blue-950/40 text-blue-600 dark:text-blue-400 flex items-center justify-center shrink-0 mt-0.5">
+                <div className="size-9 rounded-xl bg-primary/10 text-primary flex items-center justify-center shrink-0 mt-0.5">
                   <Clock className="size-4" />
                 </div>
                 <div>
-                  <p className="text-[10px] font-bold uppercase tracking-wider text-fiord-450 dark:text-fiord-500">
+                  <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
                     Tipo de Jornada
                   </p>
-                  <p className="text-xs font-bold text-fiord-900 dark:text-fiord-100 mt-0.5">
+                  <p className="text-xs font-bold text-foreground mt-0.5">
                     {vacancy.employment_type || "Tiempo Completo"}
                   </p>
                 </div>
               </div>
 
               <div className="flex items-start gap-3">
-                <div className="size-9 rounded-xl bg-violet-50 dark:bg-violet-950/40 text-violet-600 dark:text-violet-400 flex items-center justify-center shrink-0 mt-0.5">
+                <div className="size-9 rounded-xl bg-violet-500/10 text-violet-600 dark:text-violet-400 flex items-center justify-center shrink-0 mt-0.5">
                   <Building2 className="size-4" />
                 </div>
                 <div>
-                  <p className="text-[10px] font-bold uppercase tracking-wider text-fiord-450 dark:text-fiord-500">
+                  <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
                     Modalidad
                   </p>
-                  <p className="text-xs font-bold text-fiord-900 dark:text-fiord-100 mt-0.5">
+                  <p className="text-xs font-bold text-foreground mt-0.5">
                     {vacancy.modality || "Presencial"}
                   </p>
                 </div>
               </div>
 
               <div className="flex items-start gap-3">
-                <div className="size-9 rounded-xl bg-red-50 dark:bg-red-950/40 text-red-600 dark:text-red-400 flex items-center justify-center shrink-0 mt-0.5">
+                <div className="size-9 rounded-xl bg-rose-500/10 text-rose-600 dark:text-rose-400 flex items-center justify-center shrink-0 mt-0.5">
                   <MapPin className="size-4" />
                 </div>
                 <div>
-                  <p className="text-[10px] font-bold uppercase tracking-wider text-fiord-450 dark:text-fiord-500">
+                  <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
                     Ubicación Exacta
                   </p>
-                  <p className="text-xs font-bold text-fiord-900 dark:text-fiord-100 mt-0.5 leading-snug">
+                  <p className="text-xs font-bold text-foreground mt-0.5 leading-snug">
                     {vacancy.zone || vacancy.location || company?.location || "Mérida - Centro"}
                   </p>
                 </div>
@@ -499,14 +497,14 @@ export function VacancyPreview({
 
               {company?.phone && (
                 <div className="flex items-start gap-3">
-                  <div className="size-9 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0 mt-0.5">
+                  <div className="size-9 rounded-xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0 mt-0.5">
                     <Phone className="size-4" />
                   </div>
                   <div>
-                    <p className="text-[10px] font-bold uppercase tracking-wider text-fiord-450 dark:text-fiord-500">
+                    <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
                       Contacto WhatsApp
                     </p>
-                    <p className="text-xs font-bold text-fiord-900 dark:text-fiord-100 mt-0.5">
+                    <p className="text-xs font-bold text-foreground mt-0.5">
                       {company.phone}
                     </p>
                   </div>
@@ -516,12 +514,12 @@ export function VacancyPreview({
           </Card>
 
           {otherVacancies.length > 0 && (
-            <Card className="bg-white dark:bg-fiord-950 border border-fiord-100 dark:border-fiord-800/80 rounded-2xl p-6 shadow-xs space-y-4">
+            <Card className="bg-card border border-border rounded-2xl p-6 shadow-xs space-y-4">
               <div className="flex items-center justify-between">
-                <h3 className="text-xs font-extrabold uppercase tracking-wider text-fiord-950 dark:text-fiord-50">
+                <h3 className="text-xs font-extrabold uppercase tracking-wider text-foreground">
                   Otras vacantes activas
                 </h3>
-                <Badge className="bg-fiord-100 dark:bg-fiord-900 text-fiord-800 dark:text-fiord-200 text-[10px] font-bold px-2 py-0.5 rounded-full border-none">
+                <Badge className="bg-muted text-muted-foreground text-[10px] font-bold px-2 py-0.5 rounded-full border-none">
                   {otherVacancies.length}
                 </Badge>
               </div>
@@ -531,15 +529,15 @@ export function VacancyPreview({
                   <Link
                     key={job.id}
                     href={`/dashboard/company/vacancies/${job.id}`}
-                    className="block p-3 rounded-xl hover:bg-fiord-50 dark:hover:bg-fiord-900/40 transition-colors border border-transparent hover:border-fiord-100 dark:hover:border-fiord-800 space-y-1 group"
+                    className="block p-3 rounded-xl hover:bg-muted/60 transition-colors border border-transparent hover:border-border space-y-1 group"
                   >
                     <div className="flex items-center justify-between">
-                      <p className="text-xs font-bold text-fiord-900 dark:text-fiord-100 group-hover:text-blue-600 transition-colors">
+                      <p className="text-xs font-bold text-foreground group-hover:text-primary transition-colors">
                         {job.title}
                       </p>
-                      <ChevronRight className="size-3.5 text-fiord-400 group-hover:translate-x-0.5 transition-transform" />
+                      <ChevronRight className="size-3.5 text-muted-foreground group-hover:translate-x-0.5 transition-transform" />
                     </div>
-                    <p className="text-[11px] font-semibold text-fiord-450 dark:text-fiord-500">
+                    <p className="text-[11px] font-semibold text-muted-foreground">
                       📍 {job.location || "Mérida"}
                     </p>
                   </Link>
@@ -548,8 +546,8 @@ export function VacancyPreview({
 
               <Button
                 render={<Link href="/dashboard/company/vacancies" />}
-                variant="ghost"
-                className="w-full h-10 rounded-xl text-xs font-bold text-fiord-700 dark:text-fiord-300 hover:bg-fiord-50 dark:hover:bg-fiord-900/40 border border-fiord-100 dark:border-fiord-800 mt-2"
+                variant="outline"
+                className="w-full h-10 rounded-xl text-xs font-bold mt-2"
               >
                 Ver todas las vacantes
               </Button>

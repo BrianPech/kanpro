@@ -85,7 +85,7 @@ export function CompanyBottomNav() {
     <div className="md:hidden fixed bottom-3 sm:bottom-4 left-1/2 -translate-x-1/2 z-50 w-[calc(100%-24px)] max-w-[450px]">
       <nav
         aria-label="Navegación principal móvil de la empresa"
-        className="h-[64px] px-3 bg-white dark:bg-zinc-900 rounded-[32px] border border-[#ebeef3] dark:border-zinc-800 shadow-[0_10px_24px_rgba(0,0,0,0.08),0_-2px_8px_rgba(0,0,0,0.02)] flex items-center justify-around transition-all duration-300 select-none"
+        className="h-[64px] px-3 bg-card/95 backdrop-blur-md rounded-full border border-border shadow-lg flex items-center justify-around transition-all duration-300 select-none"
       >
         {navItems.map((item) => {
           const isSelected = item.isActive;
@@ -97,8 +97,8 @@ export function CompanyBottomNav() {
               aria-current={isSelected ? "page" : undefined}
               className={`flex items-center justify-center cursor-pointer transition-all duration-250 ease-in-out active:scale-95 ${
                 isSelected
-                  ? "bg-[#1f2732] dark:bg-zinc-100 text-white dark:text-zinc-900 rounded-[22px] px-4 py-2.5 shadow-xs"
-                  : "bg-transparent text-[#5c7c9b] dark:text-zinc-400 hover:text-[#3e546d] dark:hover:text-zinc-200 px-3 py-2"
+                  ? "bg-primary text-primary-foreground rounded-full px-4 py-2.5 shadow-xs"
+                  : "bg-transparent text-muted-foreground hover:text-foreground px-3 py-2"
               }`}
             >
               <div className="flex items-center justify-center shrink-0">
@@ -106,7 +106,7 @@ export function CompanyBottomNav() {
               </div>
 
               {isSelected && (
-                <span className="ml-2 text-[14px] sm:text-[15px] font-extrabold tracking-[-0.2px] text-white dark:text-zinc-900 leading-none whitespace-nowrap animate-in fade-in zoom-in-95 duration-200">
+                <span className="ml-2 text-[14px] sm:text-[15px] font-extrabold tracking-tight text-primary-foreground leading-none whitespace-nowrap animate-in fade-in zoom-in-95 duration-200">
                   {item.label}
                 </span>
               )}

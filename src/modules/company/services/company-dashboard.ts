@@ -245,7 +245,14 @@ export async function getCompanyDashboardData() {
       categoryCounts[cat] = (categoryCounts[cat] || 0) + 1
     })
 
-    const fiordColors = ["#3e546d", "#5c7c9b", "#aabccf", "#7d99b3", "#475569", "#64748b"]
+    const chartPalette = [
+      "var(--chart-1, #3b82f6)",
+      "var(--chart-2, #10b981)",
+      "var(--chart-3, #f59e0b)",
+      "var(--chart-4, #8b5cf6)",
+      "var(--chart-5, #ec4899)",
+      "var(--muted-foreground, #64748b)"
+    ]
     let pieData: { name: string; value: number; color: string }[] = []
 
     const sortedCategories = Object.entries(categoryCounts).sort((a, b) => b[1] - a[1])
@@ -254,11 +261,11 @@ export async function getCompanyDashboardData() {
       pieData = sortedCategories.slice(0, 4).map(([name, count], index) => ({
         name,
         value: Math.round((count / totalCompanyVacs) * 100),
-        color: fiordColors[index % fiordColors.length],
+        color: chartPalette[index % chartPalette.length],
       }))
     } else {
       pieData = [
-        { name: "Sin Vacantes", value: 100, color: "#94a3b8" }
+        { name: "Sin Vacantes", value: 100, color: "var(--muted-foreground, #94a3b8)" }
       ]
     }
 
@@ -324,9 +331,9 @@ export async function getCompanyDashboardData() {
     },
     monthlyAnalytics: {
       pieData: [
-        { name: "Operativo", value: 60, color: "#3e546d" },
-        { name: "Comercial", value: 30, color: "#5c7c9b" },
-        { name: "Servicio", value: 10, color: "#aabccf" },
+        { name: "Operativo", value: 60, color: "var(--chart-1, #3b82f6)" },
+        { name: "Comercial", value: 30, color: "var(--chart-2, #10b981)" },
+        { name: "Servicio", value: 10, color: "var(--chart-3, #f59e0b)" },
       ],
       goalPercent: 100,
     },

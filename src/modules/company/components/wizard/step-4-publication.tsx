@@ -181,7 +181,7 @@ export function Step4Publication({
         </div>
 
         {/* Realistic Candidate Card Simulation */}
-        <Card className="bg-card border-2 border-primary/30 rounded-3xl p-5 sm:p-6 shadow-md space-y-4 relative overflow-hidden">
+        <Card className="bg-card border-2 border-primary/30 rounded-2xl p-5 sm:p-6 shadow-md space-y-4 relative overflow-hidden">
           {/* Header row */}
           <div className="flex items-start justify-between gap-3">
             <div className="flex items-start gap-3">

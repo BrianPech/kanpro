@@ -436,23 +436,23 @@ async function compressImageForUpload(
         {/* TRUST / VALIDATION BADGE BANNER            */}
         {/* ========================================== */}
         {initialProfile?.is_validated ? (
-          <div className="flex items-center gap-3.5 p-5 rounded-[20px] bg-emerald-500/10 border border-emerald-500/20 text-emerald-700 dark:text-emerald-400 shadow-2xs">
+          <div className="flex items-center gap-3.5 p-5 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-700 dark:text-emerald-400 shadow-2xs">
             <ShieldCheck className="size-6 shrink-0" />
             <div className="text-xs sm:text-sm font-semibold leading-relaxed">
               <span className="font-extrabold">Empresa Verificada</span>. Tu negocio ha sido validado por el equipo de K&apos;anPro. Tienes insignia de confianza activa en tu perfil público y tus ofertas tendrán prioridad en el feed de candidatos.
             </div>
           </div>
         ) : (
-          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 p-5 rounded-[20px] bg-[#f5f7fa] dark:bg-zinc-900/60 border border-[#ebeef3] dark:border-zinc-800 text-[#3e546d] dark:text-zinc-300 shadow-2xs">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 p-5 rounded-2xl bg-muted/40 border border-border text-muted-foreground shadow-2xs">
             <div className="flex items-center gap-3.5">
-              <ShieldCheck className="size-6 shrink-0 text-[#5c7c9b]" />
+              <ShieldCheck className="size-6 shrink-0 text-muted-foreground" />
               <div className="text-xs sm:text-sm font-semibold leading-relaxed">
-                <span className="font-extrabold text-[#1f2732] dark:text-zinc-100">Verificación de Cuenta (Persona Moral)</span>. Completa la información legal y sube los 13 documentos obligatorios para obtener la insignia de confianza corporativa.
+                <span className="font-extrabold text-foreground">Verificación de Cuenta (Persona Moral)</span>. Completa la información legal y sube los 13 documentos obligatorios para obtener la insignia de confianza corporativa.
               </div>
             </div>
             <Button
               render={<Link href="/dashboard/company/verification" />}
-              className="h-10 px-5 rounded-[14px] bg-[#1f2732] dark:bg-zinc-100 hover:bg-[#253240] dark:hover:bg-zinc-200 text-white dark:text-zinc-900 text-xs font-bold shrink-0 cursor-pointer shadow-sm"
+              className="h-10 px-5 rounded-xl bg-primary text-primary-foreground hover:bg-primary/90 text-xs font-bold shrink-0 cursor-pointer shadow-sm"
             >
               Ir a Verificación
             </Button>
@@ -462,16 +462,16 @@ async function compressImageForUpload(
         {/* ========================================== */}
         {/* SECTION 1: MARCA E IDENTIDAD VISUAL        */}
         {/* ========================================== */}
-        <Card className="bg-white dark:bg-[#18181b] border border-[#ebeef3] dark:border-zinc-800 rounded-[28px] overflow-hidden shadow-xs">
+        <Card className="bg-card border border-border rounded-2xl overflow-hidden shadow-xs">
           {/* Header Banner Uploader */}
-          <div className="relative h-48 sm:h-56 bg-slate-100 dark:bg-zinc-900 border-b border-[#ebeef3] dark:border-zinc-800 overflow-hidden group">
+          <div className="relative h-48 sm:h-56 bg-muted/50 border-b border-border overflow-hidden group">
             {bannerUrl ? (
               <img src={bannerUrl} alt="Portada" className="w-full h-full object-cover" />
             ) : (
-              <div className="w-full h-full flex flex-col items-center justify-center text-[#5c7c9b] dark:text-zinc-500 p-4">
+              <div className="w-full h-full flex flex-col items-center justify-center text-muted-foreground p-4">
                 <ImageIcon className="size-10 stroke-[1.2]" />
-                <span className="text-xs font-extrabold uppercase tracking-wider mt-2 text-[#1f2732] dark:text-zinc-300">Imagen de Portada / Banner Comercial</span>
-                <p className="text-xs text-[#5c7c9b] dark:text-zinc-400 font-semibold mt-1">Recomendado: 1200x400px (Restaurante, Hotel, Local)</p>
+                <span className="text-xs font-extrabold uppercase tracking-wider mt-2 text-foreground">Imagen de Portada / Banner Comercial</span>
+                <p className="text-xs text-muted-foreground font-semibold mt-1">Recomendado: 1200x400px (Restaurante, Hotel, Local)</p>
               </div>
             )}
             
@@ -479,7 +479,7 @@ async function compressImageForUpload(
               <Button
                 type="button"
                 disabled={isSaving || isUploadingBanner}
-                className="h-10 rounded-[14px] text-xs sm:text-sm font-bold bg-[#1f2732] dark:bg-zinc-100 text-white dark:text-zinc-900 hover:bg-[#253240] dark:hover:bg-zinc-200 flex items-center gap-2 shadow-md relative cursor-pointer"
+                className="h-10 rounded-xl text-xs sm:text-sm font-bold bg-primary text-primary-foreground hover:bg-primary/90 flex items-center gap-2 shadow-md relative cursor-pointer"
               >
                 {isUploadingBanner ? (
                   <>
@@ -506,16 +506,16 @@ async function compressImageForUpload(
           <div className="p-6 md:p-8 pt-0 -mt-16 flex flex-col md:flex-row gap-6 items-center md:items-start text-center md:text-left relative z-10">
             {/* Logo uploader circular box */}
             <div className="relative group">
-              <div className="w-32 h-32 rounded-full bg-white dark:bg-[#18181b] border-4 border-white dark:border-[#18181b] shadow-md flex flex-col items-center justify-center cursor-pointer overflow-hidden relative">
+              <div className="w-32 h-32 rounded-full bg-card border-4 border-card shadow-md flex flex-col items-center justify-center cursor-pointer overflow-hidden relative">
                 {isUploadingLogo ? (
                   <div className="flex flex-col items-center justify-center">
-                    <Loader2 className="size-8 animate-spin text-[#1f2732] dark:text-zinc-100" />
+                    <Loader2 className="size-8 animate-spin text-foreground" />
                     <span className="text-[9px] font-bold mt-1 text-muted-foreground">Subiendo...</span>
                   </div>
                 ) : logoUrl ? (
                   <img src={logoUrl} alt="Logo" className="w-full h-full object-cover" />
                 ) : (
-                  <div className="flex flex-col items-center justify-center text-[#5c7c9b] dark:text-zinc-400">
+                  <div className="flex flex-col items-center justify-center text-muted-foreground">
                     <Camera className="size-7" />
                     <span className="text-[10px] font-extrabold uppercase mt-1">Logo</span>
                   </div>
@@ -532,7 +532,7 @@ async function compressImageForUpload(
               </div>
 
               {/* Float edit button */}
-              <div className="absolute bottom-1 right-1 bg-[#1f2732] dark:bg-zinc-100 text-white dark:text-zinc-900 p-2 rounded-full shadow-md cursor-pointer active:scale-95 transition-transform">
+              <div className="absolute bottom-1 right-1 bg-primary text-primary-foreground p-2 rounded-full shadow-md cursor-pointer active:scale-95 transition-transform">
                 {isUploadingLogo ? <Loader2 className="size-4 animate-spin" /> : <Edit3 className="size-4" />}
                 <input
                   type="file"
@@ -547,15 +547,15 @@ async function compressImageForUpload(
             {/* Title / Info */}
             <div className="flex-grow pt-16 md:pt-20 space-y-1.5">
               <div className="flex items-center gap-2 flex-wrap justify-center md:justify-start">
-                <h3 className="text-[18px] sm:text-[20px] font-[800] text-[#1f2732] dark:text-zinc-100 tracking-tight flex items-center gap-2">
-                  <Sparkles className="size-5 text-[#5c7c9b] shrink-0" />
+                <h3 className="text-[18px] sm:text-[20px] font-[800] text-foreground tracking-tight flex items-center gap-2">
+                  <Sparkles className="size-5 text-primary shrink-0" />
                   Identidad de Marca
                 </h3>
                 <Badge variant="outline" className="bg-sky-500/10 text-sky-700 dark:text-sky-300 border-sky-500/20 font-bold px-3 py-0.5 rounded-full text-[11px]">
                   🌐 Pública (Visible para candidatos)
                 </Badge>
               </div>
-              <p className="text-xs sm:text-sm text-[#5c7c9b] dark:text-zinc-400 font-semibold leading-relaxed max-w-lg">
+              <p className="text-xs sm:text-sm text-muted-foreground font-semibold leading-relaxed max-w-lg">
                 Sube tu logotipo comercial e imagen de portada para destacar en el feed de candidatos.
               </p>
             </div>
@@ -565,21 +565,21 @@ async function compressImageForUpload(
         {/* ========================================== */}
         {/* SECTION 2: DATOS GENERALES Y REDES         */}
         {/* ========================================== */}
-        <Card className="bg-white dark:bg-[#18181b] border border-[#ebeef3] dark:border-zinc-800 rounded-[28px] p-6 sm:p-8 space-y-6 shadow-xs">
+        <Card className="bg-card border border-border rounded-2xl p-6 sm:p-8 space-y-6 shadow-xs">
           
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {/* Commercial Name Input */}
             <div className="space-y-2.5">
-              <label className="block text-[14px] sm:text-[15px] font-extrabold text-[#3e546d] dark:text-zinc-200">
+              <label className="block text-[14px] sm:text-[15px] font-extrabold text-foreground">
                 Nombre Comercial *
               </label>
               <div className="relative">
-                <Building2 className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-[#5c7c9b] dark:text-zinc-400 pointer-events-none" />
+                <Building2 className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground pointer-events-none" />
                 <Input
                   type="text"
                   placeholder="Ej. Restaurante La Costa"
                   {...register("company_name")}
-                  className="w-full h-14 bg-white dark:bg-zinc-900 border border-[#ebeef3] dark:border-zinc-800 rounded-[16px] pl-11 pr-4 text-[15px] sm:text-[16px] font-[600] text-[#1f2732] dark:text-zinc-100 placeholder-[#94a3b8] focus-visible:ring-2 focus-visible:ring-[#1f2732] transition-all outline-none"
+                  className="w-full h-12 bg-background border border-border rounded-xl pl-11 pr-4 text-sm font-semibold text-foreground placeholder:text-muted-foreground focus-visible:ring-2 focus-visible:ring-ring transition-all outline-none"
                 />
               </div>
               {errors.company_name && (
@@ -591,7 +591,7 @@ async function compressImageForUpload(
 
             {/* Industry Sector Dropdown Select */}
             <div className="space-y-2.5">
-              <label className="block text-[14px] sm:text-[15px] font-extrabold text-[#3e546d] dark:text-zinc-200">
+              <label className="block text-[14px] sm:text-[15px] font-extrabold text-foreground">
                 Sector Industrial *
               </label>
               <Select
@@ -600,10 +600,10 @@ async function compressImageForUpload(
                   setValue("industry", value || "", { shouldValidate: true })
                 }
               >
-                <SelectTrigger className="w-full h-14 bg-white dark:bg-zinc-900 border border-[#ebeef3] dark:border-zinc-800 rounded-[16px] px-4 text-[15px] sm:text-[16px] font-[600] text-[#1f2732] dark:text-zinc-100 focus:ring-2 focus:ring-[#1f2732] transition-all outline-none shadow-none cursor-pointer">
+                <SelectTrigger className="w-full h-12 bg-background border border-border rounded-xl px-4 text-sm font-semibold text-foreground focus:ring-2 focus:ring-ring transition-all outline-none shadow-none cursor-pointer">
                   <SelectValue placeholder="Selecciona un sector" />
                 </SelectTrigger>
-                <SelectContent className="rounded-[16px] border border-[#ebeef3] dark:border-zinc-800 bg-popover text-sm font-semibold">
+                <SelectContent className="rounded-xl border border-border bg-popover text-sm font-semibold">
                   <SelectItem value="Tecnología">Tecnología & Software</SelectItem>
                   <SelectItem value="Finanzas">Finanzas & Banca</SelectItem>
                   <SelectItem value="Salud">Salud & Bienestar</SelectItem>
@@ -637,17 +637,17 @@ async function compressImageForUpload(
 
             {/* Company Size Input */}
             <div className="space-y-2.5">
-              <label className="block text-[14px] sm:text-[15px] font-extrabold text-[#3e546d] dark:text-zinc-200">
+              <label className="block text-[14px] sm:text-[15px] font-extrabold text-foreground">
                 Tamaño de la Empresa
               </label>
               <Select
                 value={watch("company_size") || ""}
                 onValueChange={(value) => setValue("company_size", value || undefined)}
               >
-                <SelectTrigger className="w-full h-14 bg-white dark:bg-zinc-900 border border-[#ebeef3] dark:border-zinc-800 rounded-[16px] px-4 text-[15px] sm:text-[16px] font-[600] text-[#1f2732] dark:text-zinc-100 focus:ring-2 focus:ring-[#1f2732] transition-all outline-none shadow-none cursor-pointer">
+                <SelectTrigger className="w-full h-12 bg-background border border-border rounded-xl px-4 text-sm font-semibold text-foreground focus:ring-2 focus:ring-ring transition-all outline-none shadow-none cursor-pointer">
                   <SelectValue placeholder="Selecciona el tamaño" />
                 </SelectTrigger>
-                <SelectContent className="rounded-[16px] border border-[#ebeef3] dark:border-zinc-800 bg-popover text-sm font-semibold">
+                <SelectContent className="rounded-xl border border-border bg-popover text-sm font-semibold">
                   <SelectItem value="1-10">1 - 10 empleados</SelectItem>
                   <SelectItem value="11-50">11 - 50 empleados</SelectItem>
                   <SelectItem value="51-200">51 - 200 empleados</SelectItem>
@@ -662,7 +662,7 @@ async function compressImageForUpload(
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {/* Fiscal Regime Select */}
             <div className="space-y-2.5">
-              <label className="block text-[14px] sm:text-[15px] font-extrabold text-[#3e546d] dark:text-zinc-200">
+              <label className="block text-[14px] sm:text-[15px] font-extrabold text-foreground">
                 Régimen Fiscal / Tipo de Persona *
               </label>
               <Select
@@ -675,10 +675,10 @@ async function compressImageForUpload(
                   }
                 }}
               >
-                <SelectTrigger className="w-full h-14 bg-white dark:bg-zinc-900 border border-[#ebeef3] dark:border-zinc-800 rounded-[16px] px-4 text-[15px] sm:text-[16px] font-[600] text-[#1f2732] dark:text-zinc-100 focus:ring-2 focus:ring-[#1f2732] transition-all outline-none shadow-none cursor-pointer">
+                <SelectTrigger className="w-full h-12 bg-background border border-border rounded-xl px-4 text-sm font-semibold text-foreground focus:ring-2 focus:ring-ring transition-all outline-none shadow-none cursor-pointer">
                   <SelectValue placeholder="Selecciona Régimen Fiscal" />
                 </SelectTrigger>
-                <SelectContent className="rounded-[16px] border border-[#ebeef3] dark:border-zinc-800 bg-popover text-sm font-semibold">
+                <SelectContent className="rounded-xl border border-border bg-popover text-sm font-semibold">
                   <SelectItem value="persona_moral">Persona Moral (12 Caracteres)</SelectItem>
                   <SelectItem value="persona_fisica">Persona Física (13 Caracteres)</SelectItem>
                 </SelectContent>
@@ -697,51 +697,51 @@ async function compressImageForUpload(
             />
           </div>
 
-          <div className="h-px bg-[#ebeef3] dark:bg-zinc-800 w-full" />
+          <div className="h-px bg-border w-full" />
 
           {/* Social Media & Web Channels */}
           <div className="space-y-4">
-            <h4 className="text-sm font-extrabold text-[#1f2732] dark:text-zinc-100 uppercase tracking-wider">Canales Digitales</h4>
+            <h4 className="text-sm font-extrabold text-foreground uppercase tracking-wider">Canales Digitales</h4>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               
               {/* Website Input */}
               <div className="space-y-2">
-                <label className="block text-xs font-bold uppercase tracking-wider text-[#5c7c9b] dark:text-zinc-400">Sitio Web</label>
+                <label className="block text-xs font-bold uppercase tracking-wider text-muted-foreground">Sitio Web</label>
                 <div className="relative">
-                  <Globe className="absolute left-3.5 top-1/2 -translate-y-1/2 size-4.5 text-[#5c7c9b] dark:text-zinc-400 pointer-events-none" />
+                  <Globe className="absolute left-3.5 top-1/2 -translate-y-1/2 size-4.5 text-muted-foreground pointer-events-none" />
                   <Input
                     type="text"
                     placeholder="https://miempresa.com"
                     {...register("website")}
-                    className="w-full h-12 bg-white dark:bg-zinc-900 border border-[#ebeef3] dark:border-zinc-800 rounded-[14px] pl-10 pr-4 text-sm font-semibold text-[#1f2732] dark:text-zinc-100 placeholder-[#94a3b8] focus-visible:ring-2 focus-visible:ring-[#1f2732] transition-all outline-none"
+                    className="w-full h-11 bg-background border border-border rounded-xl pl-10 pr-4 text-sm font-semibold text-foreground placeholder:text-muted-foreground focus-visible:ring-2 focus-visible:ring-ring transition-all outline-none"
                   />
                 </div>
               </div>
 
               {/* Instagram Input */}
               <div className="space-y-2">
-                <label className="block text-xs font-bold uppercase tracking-wider text-[#5c7c9b] dark:text-zinc-400">Instagram</label>
+                <label className="block text-xs font-bold uppercase tracking-wider text-muted-foreground">Instagram</label>
                 <div className="relative">
-                  <InstagramIcon className="absolute left-3.5 top-1/2 -translate-y-1/2 size-4.5 text-[#5c7c9b] dark:text-zinc-400 pointer-events-none" />
+                  <InstagramIcon className="absolute left-3.5 top-1/2 -translate-y-1/2 size-4.5 text-muted-foreground pointer-events-none" />
                   <Input
                     type="text"
                     placeholder="https://instagram.com/perfil"
                     {...register("instagram_url")}
-                    className="w-full h-12 bg-white dark:bg-zinc-900 border border-[#ebeef3] dark:border-zinc-800 rounded-[14px] pl-10 pr-4 text-sm font-semibold text-[#1f2732] dark:text-zinc-100 placeholder-[#94a3b8] focus-visible:ring-2 focus-visible:ring-[#1f2732] transition-all outline-none"
+                    className="w-full h-11 bg-background border border-border rounded-xl pl-10 pr-4 text-sm font-semibold text-foreground placeholder:text-muted-foreground focus-visible:ring-2 focus-visible:ring-ring transition-all outline-none"
                   />
                 </div>
               </div>
 
               {/* Facebook Input */}
               <div className="space-y-2">
-                <label className="block text-xs font-bold uppercase tracking-wider text-[#5c7c9b] dark:text-zinc-400">Facebook</label>
+                <label className="block text-xs font-bold uppercase tracking-wider text-muted-foreground">Facebook</label>
                 <div className="relative">
-                  <FacebookIcon className="absolute left-3.5 top-1/2 -translate-y-1/2 size-4.5 text-[#5c7c9b] dark:text-zinc-400 pointer-events-none" />
+                  <FacebookIcon className="absolute left-3.5 top-1/2 -translate-y-1/2 size-4.5 text-muted-foreground pointer-events-none" />
                   <Input
                     type="text"
                     placeholder="https://facebook.com/pagina"
                     {...register("facebook_url")}
-                    className="w-full h-12 bg-white dark:bg-zinc-900 border border-[#ebeef3] dark:border-zinc-800 rounded-[14px] pl-10 pr-4 text-sm font-semibold text-[#1f2732] dark:text-zinc-100 placeholder-[#94a3b8] focus-visible:ring-2 focus-visible:ring-[#1f2732] transition-all outline-none"
+                    className="w-full h-11 bg-background border border-border rounded-xl pl-10 pr-4 text-sm font-semibold text-foreground placeholder:text-muted-foreground focus-visible:ring-2 focus-visible:ring-ring transition-all outline-none"
                   />
                 </div>
               </div>
@@ -753,16 +753,16 @@ async function compressImageForUpload(
         {/* ========================================== */}
         {/* SECTION 3: LOGÍSTICA Y MOVILIDAD          */}
         {/* ========================================== */}
-        <Card className="bg-white dark:bg-[#18181b] border border-[#ebeef3] dark:border-zinc-800 rounded-[28px] p-6 sm:p-8 space-y-6 shadow-xs">
-          <div className="flex items-center gap-3 pb-3 border-b border-[#ebeef3] dark:border-zinc-800">
-            <div className="size-10 rounded-2xl bg-indigo-500/10 dark:bg-indigo-500/20 text-indigo-600 dark:text-indigo-400 flex items-center justify-center shrink-0">
+        <Card className="bg-card border border-border rounded-2xl p-6 sm:p-8 space-y-6 shadow-xs">
+          <div className="flex items-center gap-3 pb-3 border-b border-border">
+            <div className="size-10 rounded-xl bg-primary/10 text-primary flex items-center justify-center shrink-0">
               <MapPin className="size-5" />
             </div>
             <div>
-              <h4 className="text-[16px] sm:text-[18px] font-[800] text-[#1f2732] dark:text-zinc-100 tracking-tight">
+              <h4 className="text-[16px] sm:text-[18px] font-[800] text-foreground tracking-tight">
                 Logística y Ubicación de la Empresa
               </h4>
-              <p className="text-xs text-[#5c7c9b] dark:text-zinc-400 font-semibold mt-0.5">
+              <p className="text-xs text-muted-foreground font-semibold mt-0.5">
                 Ubicación de la sede principal o sucursal operada en la región.
               </p>
             </div>
@@ -770,7 +770,7 @@ async function compressImageForUpload(
 
           {/* Dynamic Active Location Status Banner */}
           {(watch("location") || watch("address_details")) ? (
-            <div className="p-4 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-800 dark:text-emerald-300 flex items-center justify-between gap-3 text-xs font-semibold animate-in fade-in duration-300">
+            <div className="p-4 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-800 dark:text-emerald-300 flex items-center justify-between gap-3 text-xs font-semibold animate-in fade-in duration-300">
               <div className="flex items-center gap-2.5 min-w-0">
                 <CheckCircle2 className="size-4.5 text-emerald-600 dark:text-emerald-400 shrink-0" />
                 <div className="truncate">
@@ -787,7 +787,7 @@ async function compressImageForUpload(
                 "text-[10px] font-bold px-2.5 py-0.5 rounded-full shrink-0 shadow-none",
                 gpsDetectedInfo && gpsDetectedInfo.city === watch("location")
                   ? "bg-emerald-600 text-white"
-                  : "bg-indigo-600 text-white"
+                  : "bg-primary text-primary-foreground"
               )}>
                 {gpsDetectedInfo && gpsDetectedInfo.city === watch("location") ? "Ubicación Activa" : "Registrada"}
               </Badge>
@@ -798,22 +798,22 @@ async function compressImageForUpload(
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {/* Flexible City & State Input */}
             <div className="space-y-2.5">
-              <label className="block text-[14px] sm:text-[15px] font-extrabold text-[#3e546d] dark:text-zinc-200">
+              <label className="block text-[14px] sm:text-[15px] font-extrabold text-foreground">
                 Ciudad Principal / Sede *
               </label>
               <div className="relative">
-                <MapPin className="absolute left-4 top-1/2 -translate-y-1/2 size-4 text-[#5c7c9b] dark:text-zinc-400 pointer-events-none" />
+                <MapPin className="absolute left-4 top-1/2 -translate-y-1/2 size-4 text-muted-foreground pointer-events-none" />
                 <Input
                   type="text"
                   placeholder="Ej. Mérida, Yucatán o escribe tu ciudad..."
                   {...register("location")}
-                  className="w-full h-14 bg-white dark:bg-zinc-900 border border-[#ebeef3] dark:border-zinc-800 rounded-[16px] pl-11 pr-4 text-[15px] sm:text-[16px] font-[600] text-[#1f2732] dark:text-zinc-100 placeholder-[#94a3b8] focus-visible:ring-2 focus-visible:ring-primary/20 transition-all outline-none"
+                  className="w-full h-12 bg-background border border-border rounded-xl pl-11 pr-4 text-sm font-semibold text-foreground placeholder:text-muted-foreground focus-visible:ring-2 focus-visible:ring-ring transition-all outline-none"
                 />
               </div>
 
               {/* Quick Select City Pills */}
               <div className="flex flex-wrap items-center gap-1.5 pt-1">
-                <span className="text-[11px] font-bold text-[#5c7c9b] dark:text-zinc-400 mr-1">Rápidos:</span>
+                <span className="text-[11px] font-bold text-muted-foreground mr-1">Rápidos:</span>
                 {[
                   "Felipe Carrillo Puerto, Q. Roo",
                   "Playa del Carmen, Q. Roo",
@@ -852,14 +852,14 @@ async function compressImageForUpload(
 
             {/* Detailed Street Address / Crossings */}
             <div className="space-y-2.5">
-              <label className="block text-[14px] sm:text-[15px] font-extrabold text-[#3e546d] dark:text-zinc-200">
+              <label className="block text-[14px] sm:text-[15px] font-extrabold text-foreground">
                 Dirección Detallada / Referencias *
               </label>
               <Input
                 type="text"
                 placeholder="Ej. Calle 10 Norte entre Av. 15 y 20, Col. Centro"
                 {...register("address_details")}
-                className="w-full h-14 bg-white dark:bg-zinc-900 border border-[#ebeef3] dark:border-zinc-800 rounded-[16px] px-4 text-[15px] sm:text-[16px] font-[600] text-[#1f2732] dark:text-zinc-100 placeholder-[#94a3b8] focus-visible:ring-2 focus-visible:ring-primary/20 transition-all outline-none"
+                className="w-full h-12 bg-background border border-border rounded-xl px-4 text-sm font-semibold text-foreground placeholder:text-muted-foreground focus-visible:ring-2 focus-visible:ring-ring transition-all outline-none"
               />
               {errors.address_details && (
                 <p className="text-xs sm:text-sm font-semibold text-rose-500">
@@ -870,36 +870,34 @@ async function compressImageForUpload(
           </div>
 
           {/* GPS Detection Button placed at the END */}
-          <div className="pt-3 border-t border-[#ebeef3] dark:border-zinc-800 flex justify-end">
+          <div className="pt-3 border-t border-border flex justify-end">
             <Button
               type="button"
               variant="outline"
               onClick={handleDetectLocation}
               disabled={isLocating}
-              className="w-full sm:w-auto h-12 px-6 bg-primary/5 hover:bg-primary/10 border-primary/20 text-primary font-bold text-xs sm:text-sm rounded-[16px] flex items-center justify-center gap-2.5 transition-all active:scale-95 shadow-none"
+              className="w-full sm:w-auto h-11 px-5 bg-primary/5 hover:bg-primary/10 border-primary/20 text-primary font-bold text-xs sm:text-sm rounded-xl flex items-center justify-center gap-2.5 transition-all active:scale-95 shadow-none"
             >
               {isLocating ? (
-                <Loader2 className="size-4.5 animate-spin" />
+                <Loader2 className="size-4 animate-spin" />
               ) : (
-                <Navigation className="size-4.5 text-primary" />
+                <Navigation className="size-4 text-primary" />
               )}
               <span>{isLocating ? "Detectando ubicación actual..." : "Detectar mi ubicación actual"}</span>
             </Button>
           </div>
         </Card>
 
-
-
         {/* ========================================== */}
         {/* SECTION 5: BIO COMERCIAL                   */}
         {/* ========================================== */}
-        <Card className="bg-white dark:bg-[#18181b] border border-[#ebeef3] dark:border-zinc-800 rounded-[28px] p-6 sm:p-8 space-y-4 shadow-xs">
+        <Card className="bg-card border border-border rounded-2xl p-6 sm:p-8 space-y-4 shadow-xs">
           <div className="flex justify-between items-end">
             <div className="space-y-1">
-              <h4 className="text-[16px] sm:text-[18px] font-[800] text-[#1f2732] dark:text-zinc-100 tracking-tight">
+              <h4 className="text-[16px] sm:text-[18px] font-[800] text-foreground tracking-tight">
                 Bio Comercial
               </h4>
-              <p className="text-xs sm:text-sm text-[#5c7c9b] dark:text-zinc-400 font-semibold leading-relaxed">
+              <p className="text-xs sm:text-sm text-muted-foreground font-semibold leading-relaxed">
                 Describe la misión, ambiente de trabajo y cultura de tu empresa.
               </p>
             </div>
@@ -909,7 +907,7 @@ async function compressImageForUpload(
                 "text-xs font-bold transition-colors",
                 isWarningCount
                   ? "text-rose-500 dark:text-rose-400"
-                  : "text-[#5c7c9b] dark:text-zinc-400"
+                  : "text-muted-foreground"
               )}
             >
               {charCount} / 300
@@ -921,7 +919,7 @@ async function compressImageForUpload(
             maxLength={300}
             placeholder="Describe brevemente tu organización, cultura de trabajo y lo que ofreces..."
             {...register("description")}
-            className="w-full min-h-[140px] bg-white dark:bg-zinc-900 border border-[#ebeef3] dark:border-zinc-800 rounded-[20px] p-5 text-[15px] sm:text-[16px] font-[600] leading-relaxed text-[#1f2732] dark:text-zinc-100 placeholder-[#94a3b8] focus-visible:ring-2 focus-visible:ring-[#1f2732] transition-all resize-none shadow-none"
+            className="w-full min-h-[140px] bg-background border border-border rounded-xl p-4 text-sm font-medium leading-relaxed text-foreground placeholder:text-muted-foreground focus-visible:ring-2 focus-visible:ring-ring transition-all resize-none shadow-none"
           />
           {errors.description && (
             <p className="text-xs sm:text-sm font-semibold text-rose-500">
@@ -931,7 +929,7 @@ async function compressImageForUpload(
         </Card>
 
         {/* FOOTER ACTIONS BAR */}
-        <div className="flex items-center justify-end gap-4 pt-4">
+        <div className="flex items-center justify-end gap-3 pt-4">
           <Button
             type="button"
             variant="outline"
@@ -941,7 +939,7 @@ async function compressImageForUpload(
                 description: "Se han restaurado los valores anteriores de tu perfil.",
               });
             }}
-            className="h-14 rounded-[18px] font-bold bg-white dark:bg-zinc-900 hover:bg-[#f5f7fa] dark:hover:bg-zinc-800 text-[#1f2732] dark:text-zinc-200 border border-[#d2dbe5] dark:border-zinc-800 text-sm sm:text-base px-6 transition-all shadow-none cursor-pointer flex items-center gap-2"
+            className="h-11 rounded-xl font-bold bg-background hover:bg-muted text-foreground border border-border text-xs sm:text-sm px-5 transition-all shadow-none cursor-pointer flex items-center gap-2"
           >
             <RefreshCw className="size-4" />
             Descartar
@@ -949,12 +947,12 @@ async function compressImageForUpload(
           <Button
             type="submit"
             disabled={isSaving}
-            className="h-14 rounded-[18px] font-bold bg-[#1f2732] dark:bg-zinc-100 hover:bg-[#253240] dark:hover:bg-zinc-200 text-white dark:text-zinc-900 text-base px-8 transition-all border-none cursor-pointer shadow-md active:scale-95 flex items-center gap-2"
+            className="h-11 rounded-xl font-bold bg-primary text-primary-foreground hover:bg-primary/90 text-xs sm:text-sm px-6 transition-all border-none cursor-pointer shadow-md active:scale-95 flex items-center gap-2"
           >
             {isSaving ? (
-              <Loader2 className="size-5 animate-spin" />
+              <Loader2 className="size-4 animate-spin" />
             ) : (
-              <Save className="size-5" />
+              <Save className="size-4" />
             )}
             {isSaving ? "Guardando..." : "Guardar Perfil"}
           </Button>

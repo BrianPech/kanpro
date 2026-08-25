@@ -298,7 +298,7 @@ export function ApplicationsInbox() {
       </div>
 
       {/* 2. Unified Master-Detail Inbox Card */}
-      <Card className="bg-card border border-border/60 rounded-3xl shadow-xs overflow-hidden">
+      <Card className="bg-card border border-border/60 rounded-2xl shadow-xs overflow-hidden">
         
         {/* Toolbar Header */}
         <div className="p-4 sm:p-5 space-y-4 border-b border-border/60">

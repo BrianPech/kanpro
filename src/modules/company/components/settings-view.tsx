@@ -282,7 +282,7 @@ export function CompanySettingsView({
                   className={cn(
                     "flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl text-xs font-bold transition-all text-left cursor-pointer whitespace-nowrap lg:whitespace-normal shrink-0 lg:shrink",
                     isSecActive
-                      ? "bg-[#1f2732] dark:bg-zinc-100 text-white dark:text-zinc-900 shadow-xs"
+                      ? "bg-primary text-primary-foreground shadow-xs"
                       : "text-muted-foreground hover:text-foreground hover:bg-muted/60"
                   )}
                 >
@@ -301,7 +301,7 @@ export function CompanySettingsView({
           {/* 1. PREFERENCIAS DEL SISTEMA                               */}
           {/* ========================================================= */}
           <section id="system-preferences" className="scroll-mt-6 space-y-4">
-            <Card className="rounded-[24px] border border-border/40 bg-card shadow-xs">
+            <Card className="rounded-2xl border border-border/40 bg-card shadow-xs">
               <CardHeader className="pb-3">
                 <div className="flex items-center gap-3">
                   <div className="size-10 rounded-2xl bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 flex items-center justify-center shrink-0">
@@ -326,7 +326,7 @@ export function CompanySettingsView({
                       className={cn(
                         "flex flex-col items-center justify-center p-3.5 rounded-xl border text-xs font-bold gap-2 transition-all cursor-pointer",
                         theme === "light"
-                          ? "border-[#1f2732] dark:border-zinc-100 bg-[#1f2732]/5 dark:bg-zinc-100/10 text-foreground shadow-2xs"
+                          ? "border-primary bg-primary/10 text-foreground shadow-2xs"
                           : "border-border/40 hover:bg-muted/50 text-muted-foreground"
                       )}
                     >
@@ -339,7 +339,7 @@ export function CompanySettingsView({
                       className={cn(
                         "flex flex-col items-center justify-center p-3.5 rounded-xl border text-xs font-bold gap-2 transition-all cursor-pointer",
                         theme === "dark"
-                          ? "border-[#1f2732] dark:border-zinc-100 bg-[#1f2732]/5 dark:bg-zinc-100/10 text-foreground shadow-2xs"
+                          ? "border-primary bg-primary/10 text-foreground shadow-2xs"
                           : "border-border/40 hover:bg-muted/50 text-muted-foreground"
                       )}
                     >
@@ -352,7 +352,7 @@ export function CompanySettingsView({
                       className={cn(
                         "flex flex-col items-center justify-center p-3.5 rounded-xl border text-xs font-bold gap-2 transition-all cursor-pointer",
                         theme === "system"
-                          ? "border-[#1f2732] dark:border-zinc-100 bg-[#1f2732]/5 dark:bg-zinc-100/10 text-foreground shadow-2xs"
+                          ? "border-primary bg-primary/10 text-foreground shadow-2xs"
                           : "border-border/40 hover:bg-muted/50 text-muted-foreground"
                       )}
                     >
@@ -371,7 +371,7 @@ export function CompanySettingsView({
           <section id="security-access" className="scroll-mt-6 space-y-4">
             <div className="pb-1">
               <h2 className="text-lg font-extrabold text-foreground flex items-center gap-2">
-                <Key className="size-5 text-[#5c7c9b]" />
+                <Key className="size-5 text-primary" />
                 Seguridad y Acceso de la Cuenta
               </h2>
               <p className="text-xs text-muted-foreground font-semibold mt-0.5">
@@ -391,7 +391,7 @@ export function CompanySettingsView({
           <section id="recruitment-controls" className="scroll-mt-6 space-y-4">
             <div className="pb-1">
               <h2 className="text-lg font-extrabold text-foreground flex items-center gap-2">
-                <Briefcase className="size-5 text-[#5c7c9b]" />
+                <Briefcase className="size-5 text-primary" />
                 Control de Reclutamiento & Alertas
               </h2>
               <p className="text-xs text-muted-foreground font-semibold mt-0.5">
@@ -400,7 +400,7 @@ export function CompanySettingsView({
             </div>
 
             {/* Pausa Global de Reclutamiento */}
-            <Card className="rounded-[24px] border border-border/40 bg-card shadow-xs p-6 space-y-4">
+            <Card className="rounded-2xl border border-border/40 bg-card shadow-xs p-6 space-y-4">
               <div className="flex items-center justify-between gap-4">
                 <div className="flex items-start gap-3.5">
                   <div className={cn(
@@ -435,7 +435,7 @@ export function CompanySettingsView({
             </Card>
 
             {/* Canal de Contacto Preferido */}
-            <Card className="rounded-[24px] border border-border/40 bg-card shadow-xs p-6 space-y-4">
+            <Card className="rounded-2xl border border-border/40 bg-card shadow-xs p-6 space-y-4">
               <div className="flex items-center gap-3 pb-2 border-b border-border/40">
                 <div className="size-10 rounded-2xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0">
                   <MessageCircle className="size-5" />
@@ -483,7 +483,7 @@ export function CompanySettingsView({
                   className={cn(
                     "flex flex-col justify-between p-4.5 rounded-2xl border cursor-pointer transition-all select-none space-y-3",
                     contactChannel === "phone"
-                      ? "border-[#1f2732] dark:border-zinc-100 bg-[#1f2732]/5 dark:bg-zinc-100/10 shadow-xs ring-1 ring-foreground/20"
+                      ? "border-primary bg-primary/10 shadow-xs ring-1 ring-primary/20"
                       : "border-border/40 hover:border-border bg-background"
                   )}
                 >
@@ -509,7 +509,7 @@ export function CompanySettingsView({
                   className={cn(
                     "flex flex-col justify-between p-4.5 rounded-2xl border cursor-pointer transition-all select-none space-y-3",
                     contactChannel === "inbox"
-                      ? "border-[#1f2732] dark:border-zinc-100 bg-[#1f2732]/5 dark:bg-zinc-100/10 shadow-xs ring-1 ring-foreground/20"
+                      ? "border-primary bg-primary/10 shadow-xs ring-1 ring-primary/20"
                       : "border-border/40 hover:border-border bg-background"
                   )}
                 >
@@ -532,7 +532,7 @@ export function CompanySettingsView({
             </Card>
 
             {/* Alertas y Notificaciones */}
-            <Card className="rounded-[24px] border border-border/40 bg-card shadow-xs p-6 space-y-4">
+            <Card className="rounded-2xl border border-border/40 bg-card shadow-xs p-6 space-y-4">
               <div className="flex items-center gap-3 pb-2 border-b border-border/40">
                 <div className="size-10 rounded-2xl bg-amber-500/10 text-amber-600 dark:text-amber-400 flex items-center justify-center shrink-0">
                   <Bell className="size-5" />
@@ -591,7 +591,7 @@ export function CompanySettingsView({
           <section id="subscription-billing" className="scroll-mt-6 space-y-4">
             <div className="pb-1">
               <h2 className="text-lg font-extrabold text-foreground flex items-center gap-2">
-                <CreditCard className="size-5 text-[#5c7c9b]" />
+                <CreditCard className="size-5 text-primary" />
                 Suscripción & Facturación
               </h2>
               <p className="text-xs text-muted-foreground font-semibold mt-0.5">
@@ -600,7 +600,7 @@ export function CompanySettingsView({
             </div>
 
             {/* Promotional Founder Banner */}
-            <Card className="rounded-[24px] p-6 sm:p-8 bg-gradient-to-br from-primary/10 via-background to-emerald-500/10 border border-primary/20 space-y-4 shadow-xs">
+            <Card className="rounded-2xl p-6 sm:p-8 bg-gradient-to-br from-primary/10 via-background to-emerald-500/10 border border-primary/20 space-y-4 shadow-xs">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                 <div className="space-y-1.5">
                   <div className="flex items-center gap-2 text-primary font-bold text-xs uppercase tracking-wider">
@@ -630,7 +630,7 @@ export function CompanySettingsView({
             </Card>
 
             {/* Invoices & Subscription Table */}
-            <Card className="rounded-[24px] border border-border/40 bg-card shadow-xs p-6 space-y-4">
+            <Card className="rounded-2xl border border-border/40 bg-card shadow-xs p-6 space-y-4">
               <div className="flex items-center gap-3 pb-2 border-b border-border/40">
                 <div className="size-10 rounded-2xl bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 flex items-center justify-center shrink-0">
                   <CreditCard className="size-5" />
@@ -654,7 +654,7 @@ export function CompanySettingsView({
           <section id="company-privacy" className="scroll-mt-6 space-y-4">
             <div className="pb-1">
               <h2 className="text-lg font-extrabold text-foreground flex items-center gap-2">
-                <Building2 className="size-5 text-[#5c7c9b]" />
+                <Building2 className="size-5 text-primary" />
                 Empresa y Privacidad
               </h2>
               <p className="text-xs text-muted-foreground font-semibold mt-0.5">
@@ -663,7 +663,7 @@ export function CompanySettingsView({
             </div>
 
             {/* Perfil Público y Verificación */}
-            <Card className="rounded-[24px] border border-border/40 bg-card shadow-xs">
+            <Card className="rounded-2xl border border-border/40 bg-card shadow-xs">
               <CardHeader>
                 <div className="flex items-center gap-3">
                   <div className="size-10 rounded-2xl bg-primary/10 text-primary flex items-center justify-center shrink-0">
@@ -699,7 +699,7 @@ export function CompanySettingsView({
             </Card>
 
             {/* Danger Zone */}
-            <Card className="rounded-[24px] border-destructive/20 bg-destructive/5 shadow-xs">
+            <Card className="rounded-2xl border-destructive/20 bg-destructive/5 shadow-xs">
               <CardHeader>
                 <div className="flex items-center gap-3">
                   <div className="size-10 rounded-2xl bg-destructive/10 text-destructive flex items-center justify-center shrink-0">

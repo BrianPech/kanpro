@@ -3,6 +3,7 @@
 import React, { useState } from "react";
 import { Laptop, Smartphone, Loader2, LogOut, CheckCircle2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
 import { toast } from "sonner";
 import { revokeOtherSessions } from "../services/account-security-service";
 
@@ -33,7 +34,7 @@ export function ActiveSessionsCard() {
   };
 
   return (
-    <div className="glass-card rounded-[24px] p-6 md:p-8 space-y-6">
+    <Card className="rounded-2xl border border-border/40 bg-card p-6 md:p-8 space-y-6 shadow-xs">
       {/* Header */}
       <div className="flex items-center justify-between border-b border-border/40 pb-4">
         <div className="flex items-center gap-3">
@@ -113,7 +114,7 @@ export function ActiveSessionsCard() {
           variant="outline"
           onClick={handleRevokeOthers}
           disabled={isRevoking || otherSessionsRevoked}
-          className="rounded-full h-11 px-6 font-semibold border-border/60 hover:bg-destructive/10 hover:text-destructive hover:border-destructive/30 transition-all flex items-center gap-2"
+          className="rounded-xl h-11 px-6 font-semibold border-border/60 hover:bg-destructive/10 hover:text-destructive hover:border-destructive/30 transition-all flex items-center gap-2"
         >
           {isRevoking ? (
             <>
@@ -128,6 +129,6 @@ export function ActiveSessionsCard() {
           )}
         </Button>
       </div>
-    </div>
+    </Card>
   );
 }
