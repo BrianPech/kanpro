@@ -22,7 +22,7 @@ export default async function CompanyEmployeesPage() {
   const { data: userVacs } = await supabase
     .from("vacancies")
     .select("id")
-    .eq("company_id", user.id)
+    .or(`company_id.eq.${user.id},recruiter_id.eq.${user.id}`)
 
   const vacIds = (userVacs || []).map((v) => v.id)
 
@@ -30,48 +30,73 @@ export default async function CompanyEmployeesPage() {
 
   if (vacIds.length > 0) {
     // 2. Fetch hired and terminated applications for those vacancies
-    const { data: apps } = await (supabase.from as any)("applications")
+    const { data: apps, error } = await supabase
+      .from("applications")
       .select(`
         id,
         status,
         notes,
         applied_at,
-        created_at,
-        vacancy:vacancies(id, title, category, location, zone),
-        candidate:candidate_profiles(
+        vacancies (
+          id,
+          title,
+          category,
+          location,
+          zone
+        ),
+        candidate_profiles (
           id,
           skills,
-          profiles:id(full_name, location, avatar_url, whatsapp_number)
+          profiles (
+            id,
+            full_name,
+            location,
+            avatar_url,
+            whatsapp_number
+          )
         )
       `)
       .in("vacancy_id", vacIds)
       .in("status", ["Contratado", "hired", "accepted", "Baja", "Finalizado"])
       .order("applied_at", { ascending: false })
 
+    if (error) {
+      console.error("[CompanyEmployeesPage] Error loading employees:", error)
+    }
+
     rawApplications = apps || []
   }
 
   const employees = (rawApplications || []).map((app: any) => {
-    const candProfile = Array.isArray(app.candidate?.profiles)
-      ? app.candidate.profiles[0]
-      : app.candidate?.profiles || {}
+    const candidateObj = app.candidate_profiles || app.candidate
+    const candidateProfile = Array.isArray(candidateObj)
+      ? candidateObj[0]
+      : candidateObj || {}
 
-    const vacancyData = Array.isArray(app.vacancy)
-      ? app.vacancy[0]
-      : app.vacancy || {}
+    const baseProfileObj = candidateProfile?.profiles
+    const candProfile = Array.isArray(baseProfileObj)
+      ? baseProfileObj[0]
+      : baseProfileObj || {}
+
+    const vacancyObj = app.vacancies || app.vacancy
+    const vacancyData = Array.isArray(vacancyObj)
+      ? vacancyObj[0]
+      : vacancyObj || {}
 
     return {
       id: app.id,
-      candidate_id: app.candidate?.id || app.id,
+      candidate_id: candidateProfile?.id || app.id,
       full_name: candProfile.full_name || "Candidato Contratado",
       phone: candProfile.whatsapp_number || candProfile.phone || "",
       avatar_url: candProfile.avatar_url || null,
-      location: candProfile.location || app.candidate?.preferred_zone || "Riviera Maya",
+      location: candProfile.location || vacancyData.location || "Riviera Maya",
       vacancy_title: vacancyData.title || "Puesto General",
       vacancy_category: vacancyData.category || "General",
-      hired_date: app.applied_at || app.created_at,
+      hired_date: app.applied_at || new Date().toISOString(),
       notes: app.notes || "",
-      status: (app.status === "Baja" || app.status === "Finalizado" ? "Baja" : "Contratado") as "Contratado" | "Baja",
+      status: (app.status === "Baja" || app.status === "Finalizado"
+        ? "Baja"
+        : "Contratado") as "Contratado" | "Baja",
     }
   })
 
