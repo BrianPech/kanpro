@@ -12,6 +12,15 @@ import {
   Settings,
   HelpCircle,
   PlusCircle,
+  Clock,
+  ShieldAlert,
+  FileCheck2,
+  CreditCard,
+  ChevronDown,
+  Plane,
+  Star,
+  FileSpreadsheet,
+  Sparkles,
 } from "lucide-react";
 
 import {
@@ -26,10 +35,16 @@ import {
   SidebarMenuItem,
   SidebarFooter,
 } from "@/components/ui/sidebar";
+import {
+  Collapsible,
+  CollapsibleTrigger,
+  CollapsibleContent,
+} from "@/components/ui/collapsible";
 import { NavUser } from "@/components/shared/nav-user";
 import { usePathname } from "next/navigation";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
+import { ScrollArea } from "@/components/ui/scroll-area";
 
 export function CompanySidebar({
   ...props
@@ -38,17 +53,26 @@ export function CompanySidebar({
 
   const sections = [
     {
-      label: "General",
+      label: "Inicio & Analítica",
+      isCollapsible: true,
+      defaultOpen: true,
       items: [
         {
-          title: "Dashboard",
+          title: "Dashboard General",
           url: "/dashboard/company",
           icon: LayoutDashboard,
+        },
+        {
+          title: "Centro de Reportes",
+          url: "/dashboard/company/reports",
+          icon: FileSpreadsheet,
         },
       ],
     },
     {
-      label: "Reclutamiento",
+      label: "Atracción de Talento",
+      isCollapsible: true,
+      defaultOpen: true,
       items: [
         {
           title: "Mis Vacantes",
@@ -56,19 +80,77 @@ export function CompanySidebar({
           icon: Briefcase,
         },
         {
-          title: "Postulantes",
+          title: "Postulantes & Selección",
           url: "/dashboard/company/applications",
           icon: Users,
         },
         {
-          title: "Colaboradores",
+          title: "Radar de Talento",
+          url: "/dashboard/company/radar",
+          icon: Sparkles,
+        },
+      ],
+    },
+    {
+      label: "Gestión de Personal",
+      isCollapsible: true,
+      defaultOpen: true,
+      items: [
+        {
+          title: "Plantilla de Empleados",
           url: "/dashboard/company/employees",
           icon: UserCheck,
+        },
+        {
+          title: "Contratos & Bajas",
+          url: "/dashboard/company/contracts",
+          icon: FileCheck2,
+        },
+        {
+          title: "Evaluaciones 360",
+          url: "/dashboard/company/evaluations",
+          icon: Star,
+        },
+      ],
+    },
+    {
+      label: "Operaciones & Asistencia",
+      isCollapsible: true,
+      defaultOpen: true,
+      items: [
+        {
+          title: "Asistencia & Checador",
+          url: "/dashboard/company/attendance",
+          icon: Clock,
+        },
+        {
+          title: "Vacaciones & Permisos",
+          url: "/dashboard/company/leaves",
+          icon: Plane,
+        },
+        {
+          title: "Incidencias Laborales",
+          url: "/dashboard/company/incidents",
+          icon: ShieldAlert,
+        },
+      ],
+    },
+    {
+      label: "Compensaciones",
+      isCollapsible: true,
+      defaultOpen: true,
+      items: [
+        {
+          title: "Nómina & Pagos",
+          url: "/dashboard/company/payroll",
+          icon: CreditCard,
         },
       ],
     },
     {
       label: "Mi Empresa",
+      isCollapsible: true,
+      defaultOpen: true,
       items: [
         {
           title: "Perfil Corporativo",
@@ -104,7 +186,7 @@ export function CompanySidebar({
 
   return (
     <Sidebar variant="inset" {...props}>
-      <SidebarHeader className="py-3">
+      <SidebarHeader className="py-3 shrink-0">
         <SidebarMenu>
           <SidebarMenuItem>
             <SidebarMenuButton
@@ -112,7 +194,7 @@ export function CompanySidebar({
               render={<Link href="/dashboard/company" />}
               className="hover:bg-sidebar-accent"
             >
-              <div className="flex aspect-square size-8 items-center justify-center rounded-lg bg-primary text-primary-foreground">
+              <div className="flex aspect-square size-8 items-center justify-center rounded-lg bg-primary text-primary-foreground shadow-xs">
                 <Kanban className="size-4" />
               </div>
               <div className="grid flex-1 text-left text-sm leading-tight">
@@ -128,76 +210,125 @@ export function CompanySidebar({
         </SidebarMenu>
       </SidebarHeader>
 
-      <SidebarContent className="px-2 py-2">
-        {sections.map((section) => (
-          <SidebarGroup key={section.label} className="p-0 mb-3">
-            <SidebarGroupLabel className="text-xs font-semibold text-muted-foreground/70 px-2">
-              {section.label}
-            </SidebarGroupLabel>
-            <SidebarGroupContent>
-              <SidebarMenu className="gap-1">
-                {section.items.map((item) => {
-                  const isActive =
-                    pathname === item.url ||
-                    (pathname.startsWith(item.url) &&
-                      !["/dashboard/company"].includes(item.url));
+      <SidebarContent className="p-0 overflow-hidden flex-1 min-h-0">
+        <ScrollArea className="h-full w-full px-2 py-2">
+          {sections.map((section) => {
+            if (section.isCollapsible) {
+              return (
+                <Collapsible
+                  key={section.label}
+                  defaultOpen={section.defaultOpen}
+                  className="group/collapsible mb-2.5"
+                >
+                  <SidebarGroup className="p-0">
+                    <CollapsibleTrigger className="w-full flex items-center justify-between px-2.5 py-1.5 cursor-pointer select-none rounded-lg hover:bg-sidebar-accent/50 transition-colors">
+                      <SidebarGroupLabel className="text-[11px] font-extrabold uppercase tracking-wider text-muted-foreground/80 pointer-events-none p-0 cursor-pointer">
+                        {section.label}
+                      </SidebarGroupLabel>
+                      <ChevronDown className="size-3.5 text-muted-foreground/60 transition-transform duration-200 group-data-[state=closed]/collapsible:-rotate-90" />
+                    </CollapsibleTrigger>
+                    <CollapsibleContent>
+                      <SidebarGroupContent className="pt-1">
+                        <SidebarMenu className="gap-0.5">
+                          {section.items.map((item) => {
+                            const isActive = pathname === item.url;
 
-                  return (
-                    <SidebarMenuItem key={item.title}>
-                      <SidebarMenuButton
-                        render={<Link href={item.url} />}
-                        isActive={isActive}
-                        tooltip={item.title}
-                        className={cn(
-                          "h-9 rounded-lg px-2.5 gap-2.5 text-sm font-medium transition-all",
-                          isActive &&
-                            "bg-sidebar-accent text-sidebar-accent-foreground font-semibold",
-                        )}
-                      >
-                        <item.icon className="size-4 shrink-0" />
-                        <span>{item.title}</span>
-                      </SidebarMenuButton>
-                    </SidebarMenuItem>
-                  );
-                })}
-              </SidebarMenu>
-            </SidebarGroupContent>
-          </SidebarGroup>
-        ))}
+                            return (
+                              <SidebarMenuItem key={item.title}>
+                                <SidebarMenuButton
+                                  render={<Link href={item.url} />}
+                                  isActive={isActive}
+                                  tooltip={item.title}
+                                  className={cn(
+                                    "h-9 rounded-xl px-2.5 gap-2.5 text-xs font-semibold transition-all",
+                                    isActive
+                                      ? "bg-sidebar-accent text-sidebar-accent-foreground font-bold shadow-xs"
+                                      : "text-muted-foreground hover:bg-sidebar-accent/50 hover:text-sidebar-foreground",
+                                  )}
+                                >
+                                  <item.icon className="size-4 shrink-0" />
+                                  <span>{item.title}</span>
+                                </SidebarMenuButton>
+                              </SidebarMenuItem>
+                            );
+                          })}
+                        </SidebarMenu>
+                      </SidebarGroupContent>
+                    </CollapsibleContent>
+                  </SidebarGroup>
+                </Collapsible>
+              );
+            }
 
-        <SidebarGroup className="mt-auto">
-          <SidebarGroupLabel className="text-xs font-semibold text-muted-foreground/70 px-2">
-            Acciones Rápidas
-          </SidebarGroupLabel>
-          <SidebarGroupContent>
-            <SidebarMenu className="gap-1">
-              {secondaryNav.map((item) => {
-                const isActive = pathname === item.url;
-                return (
-                  <SidebarMenuItem key={item.title}>
-                    <SidebarMenuButton
-                      render={<Link href={item.url} />}
-                      isActive={isActive}
-                      tooltip={item.title}
-                      className={cn(
-                        "h-9 rounded-lg px-2.5 gap-2.5 text-xs font-medium text-muted-foreground hover:text-foreground transition-all",
-                        isActive &&
-                          "bg-sidebar-accent text-sidebar-accent-foreground font-semibold",
-                      )}
-                    >
-                      <item.icon className="size-3.5 shrink-0" />
-                      <span>{item.title}</span>
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
-                );
-              })}
-            </SidebarMenu>
-          </SidebarGroupContent>
-        </SidebarGroup>
+            return (
+              <SidebarGroup key={section.label} className="p-0 mb-2.5">
+                <SidebarGroupLabel className="text-[11px] font-extrabold uppercase tracking-wider text-muted-foreground/80 px-2.5">
+                  {section.label}
+                </SidebarGroupLabel>
+                <SidebarGroupContent>
+                  <SidebarMenu className="gap-0.5">
+                    {section.items.map((item) => {
+                      const isActive = pathname === item.url;
+
+                      return (
+                        <SidebarMenuItem key={item.title}>
+                          <SidebarMenuButton
+                            render={<Link href={item.url} />}
+                            isActive={isActive}
+                            tooltip={item.title}
+                            className={cn(
+                              "h-9 rounded-xl px-2.5 gap-2.5 text-xs font-semibold transition-all",
+                              isActive
+                                ? "bg-sidebar-accent text-sidebar-accent-foreground font-bold shadow-xs"
+                                : "text-muted-foreground hover:bg-sidebar-accent/50 hover:text-sidebar-foreground",
+                            )}
+                          >
+                            <item.icon className="size-4 shrink-0" />
+                            <span>{item.title}</span>
+                          </SidebarMenuButton>
+                        </SidebarMenuItem>
+                      );
+                    })}
+                  </SidebarMenu>
+                </SidebarGroupContent>
+              </SidebarGroup>
+            );
+          })}
+        </ScrollArea>
       </SidebarContent>
 
-      <SidebarFooter className="p-2">
-        <NavUser />
+      <SidebarFooter className="border-t border-sidebar-border p-2 shrink-0 bg-sidebar space-y-1">
+        <SidebarMenu className="gap-0.5">
+          {secondaryNav.map((item) => {
+            const isActive = pathname === item.url;
+            const isPrimaryAction = item.title === "Publicar Oferta";
+
+            return (
+              <SidebarMenuItem key={item.title}>
+                <SidebarMenuButton
+                  render={<Link href={item.url} />}
+                  isActive={isActive}
+                  tooltip={item.title}
+                  className={cn(
+                    "h-9 rounded-xl px-2.5 gap-2.5 text-xs font-semibold transition-all",
+                    isPrimaryAction
+                      ? "bg-primary text-primary-foreground hover:bg-primary/90 font-bold shadow-xs mb-1"
+                      : isActive
+                      ? "bg-sidebar-accent text-sidebar-accent-foreground font-bold shadow-xs"
+                      : "text-muted-foreground hover:bg-sidebar-accent/50 hover:text-sidebar-foreground",
+                  )}
+                >
+                  <item.icon className="size-4 shrink-0" />
+                  <span>{item.title}</span>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+            );
+          })}
+        </SidebarMenu>
+
+        <div className="pt-1 border-t border-sidebar-border">
+          <NavUser />
+        </div>
       </SidebarFooter>
     </Sidebar>
   );

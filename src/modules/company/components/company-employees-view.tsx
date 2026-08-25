@@ -647,7 +647,14 @@ export function CompanyEmployeesView({ userId, initialEmployees }: CompanyEmploy
                             >
                               <MoreHorizontal className="size-4" />
                             </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end" className="rounded-xl border border-border/60 bg-popover min-w-[170px] shadow-lg p-1.5">
+                            <DropdownMenuContent align="end" className="rounded-xl border border-border/60 bg-popover min-w-[190px] shadow-lg p-1.5">
+                              <DropdownMenuItem
+                                render={<Link href={`/dashboard/company/employees/${emp.id}`} className="cursor-pointer text-xs font-extrabold py-2 px-2.5 gap-2 text-primary" />}
+                              >
+                                <Sparkles className="size-3.5 text-primary" />
+                                <span>Ver Expediente 360</span>
+                              </DropdownMenuItem>
+
                               {emp.phone && (
                                 <DropdownMenuItem
                                   render={
@@ -752,7 +759,13 @@ export function CompanyEmployeesView({ userId, initialEmployees }: CompanyEmploy
                         >
                           <MoreHorizontal className="size-4" />
                         </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end" className="rounded-xl border border-border/60 bg-popover min-w-[170px] shadow-lg p-1.5">
+                        <DropdownMenuContent align="end" className="rounded-xl border border-border/60 bg-popover min-w-[190px] shadow-lg p-1.5">
+                          <DropdownMenuItem
+                            render={<Link href={`/dashboard/company/employees/${emp.id}`} className="cursor-pointer text-xs font-extrabold py-2 px-2.5 gap-2 text-primary" />}
+                          >
+                            <Sparkles className="size-3.5 text-primary" />
+                            <span>Ver Expediente 360</span>
+                          </DropdownMenuItem>
                           <DropdownMenuItem
                             onSelect={() => handleOpenDateDialog(emp)}
                             className="cursor-pointer text-xs font-semibold rounded-lg hover:bg-muted py-2 px-2.5 gap-2"

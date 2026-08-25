@@ -24,6 +24,13 @@ import { NotificationBell } from "@/modules/notifications/components/notificatio
 
 const companyRouteNames: Record<string, string> = {
   "/dashboard/company": "Dashboard",
+  "/dashboard/company/attendance": "Asistencia y Checador",
+  "/dashboard/company/incidents": "Incidencias Laborales",
+  "/dashboard/company/contracts": "Contratos y Vencimientos",
+  "/dashboard/company/leaves": "Vacaciones y Permisos",
+  "/dashboard/company/evaluations": "Evaluaciones 360",
+  "/dashboard/company/payroll": "Nómina y Dispersión",
+  "/dashboard/company/reports": "Centro de Reportes",
   "/dashboard/company/vacancies": "Mis Vacantes",
   "/dashboard/company/vacancies/new": "Publicar Oferta",
   "/dashboard/company/applications": "Postulantes",

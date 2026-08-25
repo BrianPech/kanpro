@@ -56,6 +56,7 @@ import {
   getDocumentAccessStatus,
   getAuthorizedCandidateDocuments,
 } from "../actions/document-access";
+import { HireCandidateWizardModal } from "./recruitment/hire-candidate-wizard-modal";
 
 export function ApplicationsInbox() {
   const {
@@ -81,6 +82,7 @@ export function ApplicationsInbox() {
   const [mobileDetailOpen, setMobileDetailOpen] = React.useState(false);
   const [docAccessState, setDocAccessState] = React.useState<{ status: string; id?: string } | null>(null);
   const [isRequestingDocs, setIsRequestingDocs] = React.useState(false);
+  const [isHireWizardOpen, setIsHireWizardOpen] = React.useState(false);
   const [noteText, setNoteText] = React.useState("");
   const [isSavingNotes, setIsSavingNotes] = React.useState(false);
   const [authorizedDocs, setAuthorizedDocs] = React.useState<any[]>([]);
@@ -548,6 +550,15 @@ export function ApplicationsInbox() {
 
                     {/* Status Select & Actions */}
                     <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto justify-start sm:justify-end">
+                      <Button
+                        size="sm"
+                        onClick={() => setIsHireWizardOpen(true)}
+                        className="h-9 px-3.5 rounded-xl bg-gradient-to-r from-primary via-indigo-600 to-primary text-primary-foreground font-extrabold text-xs shadow-xs hover:opacity-95 flex items-center gap-1.5 cursor-pointer"
+                      >
+                        <Sparkles className="size-3.5" />
+                        <span>Contratar & Generar Expediente</span>
+                      </Button>
+
                       <Select
                         value={selectedApplicant.status}
                         onValueChange={(val) =>
@@ -896,6 +907,26 @@ export function ApplicationsInbox() {
             </div>
           </DialogContent>
         </Dialog>
+      )}
+
+      {/* Hire Candidate Wizard Modal */}
+      {selectedApplicant && (
+        <HireCandidateWizardModal
+          isOpen={isHireWizardOpen}
+          onOpenChange={setIsHireWizardOpen}
+          candidate={{
+            id: selectedApplicant.id,
+            name: selectedApplicant.name,
+            phone: selectedApplicant.phone,
+            email: selectedApplicant.email,
+            vacancyTitle: selectedApplicant.vacancyTitle,
+            vacancyId: selectedApplicant.vacancyId,
+            candidateId: selectedApplicant.candidateId,
+          }}
+          onHiringCompleted={({ employeeName }) => {
+            handleUpdateStatus(selectedApplicant.id, "Contratado");
+          }}
+        />
       )}
     </div>
   );
