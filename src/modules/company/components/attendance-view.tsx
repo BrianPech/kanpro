@@ -1,6 +1,16 @@
 "use client";
 
-import React, { useState } from "react";
+import * as React from "react";
+import {
+  useReactTable,
+  getCoreRowModel,
+  getSortedRowModel,
+  getFilteredRowModel,
+  getPaginationRowModel,
+  flexRender,
+  type ColumnDef,
+  type SortingState,
+} from "@tanstack/react-table";
 import {
   Clock,
   UserCheck,
@@ -12,6 +22,7 @@ import {
   Filter,
   CheckCircle2,
   ChevronRight,
+  ChevronLeft,
   Plus,
   ArrowLeft,
   Building2,
@@ -25,6 +36,13 @@ import {
   ShieldCheck,
   Eye,
   ShieldAlert,
+  ArrowUpDown,
+  ArrowUp,
+  ArrowDown,
+  RotateCcw,
+  MoreHorizontal,
+  X,
+  SlidersHorizontal,
 } from "lucide-react";
 import Link from "next/link";
 import { Card } from "@/components/ui/card";
@@ -33,12 +51,35 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import {
+  Empty,
+  EmptyHeader,
+  EmptyMedia,
+  EmptyTitle,
+  EmptyDescription,
+  EmptyContent,
+} from "@/components/ui/empty";
+import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+  DropdownMenuSeparator,
+} from "@/components/ui/dropdown-menu";
 import {
   Dialog,
   DialogContent,
@@ -78,51 +119,57 @@ export function AttendanceView({
   companyName,
   workDate,
 }: AttendanceViewProps) {
-  const [records, setRecords] = useState<AttendanceRecord[]>(initialRecords);
-  const [stats, setStats] = useState<AttendanceOverviewStats>(initialStats);
-  const [searchQuery, setSearchQuery] = useState("");
-  const [statusFilter, setStatusFilter] = useState("all");
-  const [methodFilter, setMethodFilter] = useState("all");
-  const [deptFilter, setDeptFilter] = useState("all");
+  const [records, setRecords] = React.useState<AttendanceRecord[]>(initialRecords);
+  const [stats, setStats] = React.useState<AttendanceOverviewStats>(initialStats);
+  const [searchQuery, setSearchQuery] = React.useState("");
+
+  // Filters state (all unified inside the table header)
+  const [statusFilter, setStatusFilter] = React.useState<string>("all");
+  const [methodFilter, setMethodFilter] = React.useState<string>("all");
+  const [deptFilter, setDeptFilter] = React.useState<string>("all");
+
+  // TanStack sorting state
+  const [sorting, setSorting] = React.useState<SortingState>([
+    { id: "checkInTime", desc: false },
+  ]);
 
   // Modals state
-  const [isMobileSheetOpen, setIsMobileSheetOpen] = useState(false);
-  const [isQrKioskOpen, setIsQrKioskOpen] = useState(false);
-  const [isManualModalOpen, setIsManualModalOpen] = useState(false);
-  const [selectedEmployeeForDossier, setSelectedEmployeeForDossier] = useState<AttendanceRecord | null>(null);
-  const [selectedRecordForJustification, setSelectedRecordForJustification] = useState<AttendanceRecord | null>(null);
-  const [selectedRecordForOvertime, setSelectedRecordForOvertime] = useState<AttendanceRecord | null>(null);
-  const [isExporting, setIsExporting] = useState(false);
+  const [isMobileSheetOpen, setIsMobileSheetOpen] = React.useState(false);
+  const [isQrKioskOpen, setIsQrKioskOpen] = React.useState(false);
+  const [isManualModalOpen, setIsManualModalOpen] = React.useState(false);
+  const [selectedEmployeeForDossier, setSelectedEmployeeForDossier] =
+    React.useState<AttendanceRecord | null>(null);
+  const [selectedRecordForJustification, setSelectedRecordForJustification] =
+    React.useState<AttendanceRecord | null>(null);
+  const [selectedRecordForOvertime, setSelectedRecordForOvertime] =
+    React.useState<AttendanceRecord | null>(null);
+  const [isExporting, setIsExporting] = React.useState(false);
 
   // Manual Check-in Form
-  const [manualName, setManualName] = useState("");
-  const [manualTime, setManualTime] = useState("08:00");
-  const [manualStatus, setManualStatus] = useState<AttendanceStatus>("presente");
+  const [manualName, setManualName] = React.useState("");
+  const [manualTime, setManualTime] = React.useState("08:00");
+  const [manualStatus, setManualStatus] =
+    React.useState<AttendanceStatus>("presente");
 
-  const filteredRecords = records.filter((item) => {
-    const query = searchQuery.toLowerCase();
-    const matchesSearch =
-      item.employeeName.toLowerCase().includes(query) ||
-      item.jobTitle.toLowerCase().includes(query) ||
-      item.department.toLowerCase().includes(query);
+  const getInitials = (name: string) => {
+    return name
+      .split(" ")
+      .map((part) => part[0])
+      .join("")
+      .toUpperCase()
+      .slice(0, 2);
+  };
 
-    const matchesStatus =
-      statusFilter === "all" ? true : item.status === statusFilter;
-
-    const matchesMethod =
-      methodFilter === "all" ? true : item.checkInMethod === methodFilter;
-
-    const matchesDept =
-      deptFilter === "all" ? true : item.department === deptFilter;
-
-    return matchesSearch && matchesStatus && matchesMethod && matchesDept;
-  });
-
-  const departments = Array.from(new Set(records.map((a) => a.department)));
+  const departmentsList = React.useMemo(() => {
+    const set = new Set<string>();
+    records.forEach((r) => {
+      if (r.department) set.add(r.department);
+    });
+    return Array.from(set);
+  }, [records]);
 
   const handleRecordCreated = (newRecord: AttendanceRecord) => {
     setRecords((prev) => [newRecord, ...prev]);
-    // Recalculate stats
     setStats((prev) => {
       const isPresent = newRecord.status === "presente";
       const isLate = newRecord.status === "retardo";
@@ -144,7 +191,10 @@ export function AttendanceView({
         if (r.id === recordId) {
           return {
             ...r,
-            status: decision === "aprobada" ? "falta_justificada" : "falta_injustificada",
+            status:
+              decision === "aprobada"
+                ? "falta_justificada"
+                : "falta_injustificada",
             justification: r.justification
               ? {
                   ...r.justification,
@@ -192,7 +242,11 @@ export function AttendanceView({
       workDate,
       scheduledCheckIn: "08:00",
       scheduledCheckOut: "17:00",
-      checkInTime: manualStatus === "falta_injustificada" || manualStatus === "falta_justificada" ? null : manualTime,
+      checkInTime:
+        manualStatus === "falta_injustificada" ||
+        manualStatus === "falta_justificada"
+          ? null
+          : manualTime,
       checkOutTime: null,
       breakStartTime: null,
       breakEndTime: null,
@@ -213,43 +267,105 @@ export function AttendanceView({
 
   const handleExport = () => {
     setIsExporting(true);
-    setTimeout(() => {
+    try {
+      const headers = [
+        "Colaborador",
+        "Puesto",
+        "Departamento",
+        "Fecha",
+        "Turno Entrada",
+        "Turno Salida",
+        "Entrada Real",
+        "Salida Real",
+        "Método",
+        "Distancia GPS (m)",
+        "Retardo (min)",
+        "Horas Extra",
+        "Estatus",
+      ];
+
+      const rows = filteredRecords.map((r) => [
+        `"${r.employeeName.replace(/"/g, '""')}"`,
+        `"${r.jobTitle.replace(/"/g, '""')}"`,
+        `"${r.department.replace(/"/g, '""')}"`,
+        r.workDate,
+        r.scheduledCheckIn,
+        r.scheduledCheckOut,
+        r.checkInTime || "--:--",
+        r.checkOutTime || "--:--",
+        r.checkInMethod,
+        r.checkInLocation?.distanceToBranchMeters || 0,
+        r.delayMinutes || 0,
+        r.overtimeHours || 0,
+        r.status,
+      ]);
+
+      const csvContent =
+        "data:text/csv;charset=utf-8,\uFEFF" +
+        [headers.join(","), ...rows.map((e) => e.join(","))].join("\n");
+
+      const encodedUri = encodeURI(csvContent);
+      const link = document.createElement("a");
+      link.setAttribute("href", encodedUri);
+      link.setAttribute(
+        "download",
+        `Asistencia_${companyName.toLowerCase().replace(/\s+/g, "_")}_${workDate}.csv`
+      );
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+
+      toast.success("Reporte General de Asistencia descargado con éxito");
+    } catch {
+      toast.error("Error al exportar reporte de asistencia");
+    } finally {
       setIsExporting(false);
-      toast.success("Reporte General de Asistencia descargado", {
-        description: `Archivo de asistencia del día (${workDate}) generado con éxito.`,
-      });
-    }, 1000);
+    }
   };
 
   const getStatusBadge = (status: AttendanceStatus, delayMinutes?: number) => {
     switch (status) {
       case "presente":
         return (
-          <Badge className="bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border-none text-xs font-extrabold px-2.5 py-0.5 rounded-lg">
+          <Badge className="bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border border-emerald-500/20 text-xs font-bold px-2.5 py-0.5 rounded-lg select-none">
+            <span className="size-1.5 rounded-full bg-emerald-500 mr-1.5 inline-block" />
             Puntual
           </Badge>
         );
       case "retardo":
         return (
-          <Badge className="bg-amber-500/15 text-amber-700 dark:text-amber-300 border-none text-xs font-extrabold px-2.5 py-0.5 rounded-lg">
-            {`Retardo (+${delayMinutes || 15} min)`}
+          <Badge className="bg-amber-500/15 text-amber-700 dark:text-amber-300 border border-amber-500/20 text-xs font-bold px-2.5 py-0.5 rounded-lg select-none">
+            <span className="size-1.5 rounded-full bg-amber-500 mr-1.5 inline-block" />
+            {`Retardo (+${delayMinutes || 15}m)`}
           </Badge>
         );
       case "falta_justificada":
         return (
-          <Badge className="bg-blue-500/15 text-blue-600 dark:text-blue-400 border-none text-xs font-extrabold px-2.5 py-0.5 rounded-lg">
+          <Badge className="bg-blue-500/15 text-blue-700 dark:text-blue-300 border border-blue-500/20 text-xs font-bold px-2.5 py-0.5 rounded-lg select-none">
+            <span className="size-1.5 rounded-full bg-blue-500 mr-1.5 inline-block" />
             Falta Justificada
           </Badge>
         );
       case "falta_injustificada":
         return (
-          <Badge className="bg-destructive/15 text-destructive border-none text-xs font-extrabold px-2.5 py-0.5 rounded-lg">
+          <Badge className="bg-destructive/15 text-destructive border border-destructive/20 text-xs font-bold px-2.5 py-0.5 rounded-lg select-none">
+            <span className="size-1.5 rounded-full bg-destructive mr-1.5 inline-block" />
             Falta Injustificada
+          </Badge>
+        );
+      case "vacaciones":
+        return (
+          <Badge className="bg-purple-500/15 text-purple-700 dark:text-purple-300 border border-purple-500/20 text-xs font-bold px-2.5 py-0.5 rounded-lg select-none">
+            <span className="size-1.5 rounded-full bg-purple-500 mr-1.5 inline-block" />
+            Vacaciones LFT
           </Badge>
         );
       default:
         return (
-          <Badge variant="outline" className="text-xs font-bold px-2.5 py-0.5 rounded-lg">
+          <Badge
+            variant="outline"
+            className="text-xs font-bold px-2.5 py-0.5 rounded-lg border-border/40 select-none"
+          >
             Descanso
           </Badge>
         );
@@ -260,59 +376,496 @@ export function AttendanceView({
     switch (method) {
       case "gps":
         return (
-          <span className="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-600 dark:text-emerald-400">
+          <Badge
+            variant="outline"
+            className="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 border-emerald-500/25 px-2 py-0.5 rounded-md"
+          >
             <MapPin className="size-3" />
             <span>GPS Geocerca</span>
-          </span>
+          </Badge>
         );
       case "qr":
         return (
-          <span className="inline-flex items-center gap-1 text-[11px] font-bold text-indigo-600 dark:text-indigo-400">
+          <Badge
+            variant="outline"
+            className="inline-flex items-center gap-1 text-[11px] font-bold text-indigo-600 dark:text-indigo-400 bg-indigo-500/10 border-indigo-500/25 px-2 py-0.5 rounded-md"
+          >
             <QrCode className="size-3" />
             <span>QR Kiosco</span>
-          </span>
+          </Badge>
         );
       default:
         return (
-          <span className="inline-flex items-center gap-1 text-[11px] font-bold text-muted-foreground">
+          <Badge
+            variant="outline"
+            className="inline-flex items-center gap-1 text-[11px] font-bold text-muted-foreground bg-muted/40 border-border/40 px-2 py-0.5 rounded-md"
+          >
             <span>Manual RH</span>
-          </span>
+          </Badge>
         );
     }
   };
 
+  // Filtered records logic
+  const filteredRecords = React.useMemo(() => {
+    return records.filter((item) => {
+      const query = searchQuery.toLowerCase();
+      const matchesSearch = query
+        ? item.employeeName.toLowerCase().includes(query) ||
+          item.jobTitle.toLowerCase().includes(query) ||
+          item.department.toLowerCase().includes(query)
+        : true;
+
+      let matchesStatus = true;
+      if (statusFilter === "presente") {
+        matchesStatus = item.status === "presente";
+      } else if (statusFilter === "retardo") {
+        matchesStatus = item.status === "retardo";
+      } else if (statusFilter === "ausencias") {
+        matchesStatus =
+          item.status === "falta_injustificada" ||
+          item.status === "falta_justificada";
+      } else if (statusFilter === "overtime") {
+        matchesStatus = item.overtimeHours > 0;
+      } else if (statusFilter !== "all") {
+        matchesStatus = item.status === statusFilter;
+      }
+
+      const matchesMethod =
+        methodFilter === "all" ? true : item.checkInMethod === methodFilter;
+
+      const matchesDept =
+        deptFilter === "all" ? true : item.department === deptFilter;
+
+      return matchesSearch && matchesStatus && matchesMethod && matchesDept;
+    });
+  }, [records, searchQuery, statusFilter, methodFilter, deptFilter]);
+
+  const isFiltered =
+    searchQuery.trim().length > 0 ||
+    statusFilter !== "all" ||
+    methodFilter !== "all" ||
+    deptFilter !== "all";
+
+  const handleClearFilters = () => {
+    setSearchQuery("");
+    setStatusFilter("all");
+    setMethodFilter("all");
+    setDeptFilter("all");
+    setSorting([{ id: "checkInTime", desc: false }]);
+  };
+
+  // TanStack Table Column Definitions
+  const columns = React.useMemo<ColumnDef<AttendanceRecord>[]>(
+    () => [
+      {
+        accessorKey: "employeeName",
+        id: "employeeName",
+        header: ({ column }) => (
+          <button
+            type="button"
+            className="flex items-center gap-1.5 font-extrabold text-[11px] uppercase tracking-wider text-muted-foreground hover:text-foreground transition-colors cursor-pointer select-none py-1 group"
+            onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
+          >
+            <span>Colaborador</span>
+            {column.getIsSorted() === "asc" ? (
+              <ArrowUp className="size-3.5 text-primary" />
+            ) : column.getIsSorted() === "desc" ? (
+              <ArrowDown className="size-3.5 text-primary" />
+            ) : (
+              <ArrowUpDown className="size-3.5 opacity-40 group-hover:opacity-80 transition-opacity" />
+            )}
+          </button>
+        ),
+        cell: ({ row }) => {
+          const item = row.original;
+          return (
+            <div className="flex items-center gap-3 py-1 min-w-[210px]">
+              <Avatar
+                onClick={() => setSelectedEmployeeForDossier(item)}
+                className="size-10 rounded-2xl border border-border/40 shrink-0 cursor-pointer hover:ring-2 hover:ring-primary/40 transition-all shadow-2xs"
+              >
+                <AvatarImage src={item.avatarUrl || ""} alt={item.employeeName} />
+                <AvatarFallback className="rounded-2xl font-extrabold text-xs bg-primary/10 text-primary">
+                  {getInitials(item.employeeName)}
+                </AvatarFallback>
+              </Avatar>
+
+              <div className="min-w-0 space-y-0.5">
+                <button
+                  type="button"
+                  onClick={() => setSelectedEmployeeForDossier(item)}
+                  className="text-xs sm:text-sm font-bold text-foreground hover:text-primary transition-colors truncate block text-left cursor-pointer"
+                >
+                  {item.employeeName}
+                </button>
+                <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground font-medium truncate">
+                  <span className="truncate">{item.jobTitle}</span>
+                  <span>•</span>
+                  <Badge
+                    variant="outline"
+                    className="text-[10px] font-semibold px-1.5 py-0 rounded-md border-border/30 bg-muted/40"
+                  >
+                    {item.department}
+                  </Badge>
+                </div>
+              </div>
+            </div>
+          );
+        },
+      },
+      {
+        accessorKey: "scheduledCheckIn",
+        id: "schedule",
+        header: ({ column }) => (
+          <button
+            type="button"
+            className="flex items-center gap-1.5 font-extrabold text-[11px] uppercase tracking-wider text-muted-foreground hover:text-foreground transition-colors cursor-pointer select-none py-1 group"
+            onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
+          >
+            <span>Horario Pactado</span>
+            {column.getIsSorted() === "asc" ? (
+              <ArrowUp className="size-3.5 text-primary" />
+            ) : column.getIsSorted() === "desc" ? (
+              <ArrowDown className="size-3.5 text-primary" />
+            ) : (
+              <ArrowUpDown className="size-3.5 opacity-40 group-hover:opacity-80 transition-opacity" />
+            )}
+          </button>
+        ),
+        cell: ({ row }) => {
+          const item = row.original;
+          return (
+            <div className="py-1">
+              <span className="font-mono text-xs font-bold text-foreground block">
+                {item.scheduledCheckIn} - {item.scheduledCheckOut}
+              </span>
+              <span className="text-[10px] text-muted-foreground font-semibold">
+                Jornada Regular
+              </span>
+            </div>
+          );
+        },
+      },
+      {
+        accessorKey: "checkInTime",
+        id: "checkInTime",
+        header: ({ column }) => (
+          <button
+            type="button"
+            className="flex items-center gap-1.5 font-extrabold text-[11px] uppercase tracking-wider text-muted-foreground hover:text-foreground transition-colors cursor-pointer select-none py-1 group"
+            onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
+          >
+            <span>Entrada / Salida Real</span>
+            {column.getIsSorted() === "asc" ? (
+              <ArrowUp className="size-3.5 text-primary" />
+            ) : column.getIsSorted() === "desc" ? (
+              <ArrowDown className="size-3.5 text-primary" />
+            ) : (
+              <ArrowUpDown className="size-3.5 opacity-40 group-hover:opacity-80 transition-opacity" />
+            )}
+          </button>
+        ),
+        cell: ({ row }) => {
+          const item = row.original;
+          return (
+            <div className="py-1 space-y-0.5">
+              <div className="flex items-center gap-2 font-mono text-xs">
+                <span className="font-extrabold text-foreground">
+                  {item.checkInTime || "--:--"}
+                </span>
+                <span className="text-muted-foreground font-bold">→</span>
+                <span className="font-semibold text-muted-foreground">
+                  {item.checkOutTime || "--:--"}
+                </span>
+              </div>
+              {item.checkInLocation && (
+                <span className="text-[10px] font-semibold text-emerald-600 dark:text-emerald-400 block">
+                  GPS: {item.checkInLocation.distanceToBranchMeters}m de sucursal
+                </span>
+              )}
+            </div>
+          );
+        },
+      },
+      {
+        accessorKey: "checkInMethod",
+        id: "checkInMethod",
+        header: ({ column }) => (
+          <button
+            type="button"
+            className="flex items-center gap-1.5 font-extrabold text-[11px] uppercase tracking-wider text-muted-foreground hover:text-foreground transition-colors cursor-pointer select-none py-1 group"
+            onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
+          >
+            <span>Método</span>
+            {column.getIsSorted() === "asc" ? (
+              <ArrowUp className="size-3.5 text-primary" />
+            ) : column.getIsSorted() === "desc" ? (
+              <ArrowDown className="size-3.5 text-primary" />
+            ) : (
+              <ArrowUpDown className="size-3.5 opacity-40 group-hover:opacity-80 transition-opacity" />
+            )}
+          </button>
+        ),
+        cell: ({ row }) => {
+          return <div className="py-1">{getMethodBadge(row.original.checkInMethod)}</div>;
+        },
+      },
+      {
+        accessorKey: "overtimeHours",
+        id: "overtimeHours",
+        header: ({ column }) => (
+          <button
+            type="button"
+            className="flex items-center gap-1.5 font-extrabold text-[11px] uppercase tracking-wider text-muted-foreground hover:text-foreground transition-colors cursor-pointer select-none py-1 group"
+            onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
+          >
+            <span>Horas Extra</span>
+            {column.getIsSorted() === "asc" ? (
+              <ArrowUp className="size-3.5 text-primary" />
+            ) : column.getIsSorted() === "desc" ? (
+              <ArrowDown className="size-3.5 text-primary" />
+            ) : (
+              <ArrowUpDown className="size-3.5 opacity-40 group-hover:opacity-80 transition-opacity" />
+            )}
+          </button>
+        ),
+        cell: ({ row }) => {
+          const item = row.original;
+          const hasOvertime = item.overtimeHours > 0;
+
+          if (!hasOvertime) {
+            return (
+              <span className="text-xs font-mono text-muted-foreground/60 py-1 block">
+                0.0h
+              </span>
+            );
+          }
+
+          return (
+            <div className="py-1">
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => setSelectedRecordForOvertime(item)}
+                className={cn(
+                  "h-7 px-2.5 rounded-lg text-xs font-bold flex items-center gap-1 cursor-pointer transition-all",
+                  item.overtimeStatus === "autorizado"
+                    ? "bg-indigo-500/15 text-indigo-700 dark:text-indigo-300 border-indigo-500/30"
+                    : "bg-indigo-500/10 text-indigo-600 hover:bg-indigo-500/20 border-indigo-500/30"
+                )}
+              >
+                <Sparkles className="size-3" />
+                <span>{`+${item.overtimeHours}h (${item.overtimeStatus === "autorizado" ? "Autorizado" : "Revisar"})`}</span>
+              </Button>
+            </div>
+          );
+        },
+      },
+      {
+        accessorKey: "status",
+        id: "status",
+        header: ({ column }) => (
+          <button
+            type="button"
+            className="flex items-center gap-1.5 font-extrabold text-[11px] uppercase tracking-wider text-muted-foreground hover:text-foreground transition-colors cursor-pointer select-none py-1 group"
+            onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
+          >
+            <span>Estatus Asistencia</span>
+            {column.getIsSorted() === "asc" ? (
+              <ArrowUp className="size-3.5 text-primary" />
+            ) : column.getIsSorted() === "desc" ? (
+              <ArrowDown className="size-3.5 text-primary" />
+            ) : (
+              <ArrowUpDown className="size-3.5 opacity-40 group-hover:opacity-80 transition-opacity" />
+            )}
+          </button>
+        ),
+        cell: ({ row }) => {
+          const item = row.original;
+          return (
+            <div className="py-1">
+              {getStatusBadge(item.status, item.delayMinutes)}
+            </div>
+          );
+        },
+      },
+      {
+        id: "actions",
+        header: () => (
+          <span className="font-extrabold text-[11px] uppercase tracking-wider text-muted-foreground block text-right pr-2">
+            Acciones
+          </span>
+        ),
+        cell: ({ row }) => {
+          const item = row.original;
+          const isAbsent =
+            item.status === "falta_injustificada" ||
+            item.status === "falta_justificada";
+
+          return (
+            <div className="flex items-center justify-end gap-1 py-1">
+              {/* Justification Quick Action */}
+              {isAbsent && (
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => setSelectedRecordForJustification(item)}
+                  className={cn(
+                    "h-8 px-2.5 rounded-lg text-xs font-bold flex items-center gap-1 cursor-pointer",
+                    item.status === "falta_justificada"
+                      ? "border-blue-500/30 text-blue-600 bg-blue-500/10 hover:bg-blue-500/20"
+                      : "border-destructive/30 text-destructive hover:bg-destructive/10"
+                  )}
+                  title="Revisar o Registrar Justificación Médica / LFT"
+                >
+                  <ShieldAlert className="size-3.5" />
+                  <span className="hidden xl:inline">
+                    {item.status === "falta_justificada"
+                      ? "Ver Justificante"
+                      : "Justificar"}
+                  </span>
+                </Button>
+              )}
+
+              {/* Dossier Quick Action Button */}
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => setSelectedEmployeeForDossier(item)}
+                className="size-8 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted p-1 cursor-pointer transition-colors"
+                title="Ver Kardex / Calendario Mensual de Asistencia"
+              >
+                <Eye className="size-4" />
+              </Button>
+
+              <DropdownMenu>
+                <DropdownMenuTrigger
+                  render={
+                    <button className="size-8 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted p-1 cursor-pointer transition-colors flex items-center justify-center" />
+                  }
+                >
+                  <MoreHorizontal className="size-4" />
+                </DropdownMenuTrigger>
+                <DropdownMenuContent
+                  align="end"
+                  className="rounded-xl border border-border/50 bg-popover min-w-[210px] shadow-lg p-1.5"
+                >
+                  <DropdownMenuItem
+                    onSelect={() => setSelectedEmployeeForDossier(item)}
+                    className="cursor-pointer text-xs font-semibold py-2 px-2.5 gap-2 text-foreground hover:bg-muted"
+                  >
+                    <Eye className="size-3.5 text-muted-foreground" />
+                    <span>Ver Expediente Mensual 360</span>
+                  </DropdownMenuItem>
+
+                  {isAbsent && (
+                    <DropdownMenuItem
+                      onSelect={() => setSelectedRecordForJustification(item)}
+                      className="cursor-pointer text-xs font-semibold py-2 px-2.5 gap-2 text-blue-600 dark:text-blue-400 hover:bg-blue-500/10"
+                    >
+                      <ShieldAlert className="size-3.5" />
+                      <span>
+                        {item.status === "falta_justificada"
+                          ? "Consultar Justificante Aprobado"
+                          : "Capturar Justificación LFT"}
+                      </span>
+                    </DropdownMenuItem>
+                  )}
+
+                  <DropdownMenuItem
+                    onSelect={() => setSelectedRecordForOvertime(item)}
+                    className="cursor-pointer text-xs font-semibold py-2 px-2.5 gap-2 text-indigo-600 dark:text-indigo-400 hover:bg-indigo-500/10"
+                  >
+                    <Sparkles className="size-3.5" />
+                    <span>Gestionar Horas Extra</span>
+                  </DropdownMenuItem>
+
+                  <DropdownMenuSeparator className="my-1 border-border/40" />
+
+                  <DropdownMenuItem
+                    onSelect={() => {
+                      setManualName(item.employeeName);
+                      setManualTime(item.checkInTime || "08:00");
+                      setManualStatus(item.status);
+                      setIsManualModalOpen(true);
+                    }}
+                    className="cursor-pointer text-xs font-semibold py-2 px-2.5 gap-2 text-muted-foreground hover:text-foreground"
+                  >
+                    <Clock className="size-3.5" />
+                    <span>Ajustar Marca Manual</span>
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
+          );
+        },
+      },
+    ],
+    []
+  );
+
+  // TanStack Table Instance
+  const table = useReactTable({
+    data: filteredRecords,
+    columns,
+    state: {
+      sorting,
+    },
+    onSortingChange: setSorting,
+    getCoreRowModel: getCoreRowModel(),
+    getSortedRowModel: getSortedRowModel(),
+    getFilteredRowModel: getFilteredRowModel(),
+    getPaginationRowModel: getPaginationRowModel(),
+    initialState: {
+      pagination: {
+        pageSize: 15,
+      },
+    },
+  });
+
+  const tableRows = table.getRowModel().rows;
+
   return (
-    <div className="p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto space-y-6 sm:space-y-8 animate-in fade-in duration-300">
-      {/* Header Ejecutivo */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-2 border-b border-border/40">
-        <div className="space-y-1">
+    <div className="space-y-6 w-full pb-16 font-sans animate-in fade-in duration-300">
+      {/* 1. Header Ejecutivo & Acciones Operativas */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
           <div className="flex items-center gap-2">
-            <Link
-              href="/dashboard/company"
-              className="text-xs font-bold text-muted-foreground hover:text-foreground flex items-center gap-1 transition-colors"
-            >
-              <ArrowLeft className="size-3.5" />
-              <span>Volver al Dashboard</span>
-            </Link>
+            <h1 className="text-2xl sm:text-3xl font-[800] text-foreground tracking-tight flex items-center gap-2.5">
+              <span>Control de Asistencia & Checador</span>
+              <Badge
+                variant="outline"
+                className="text-xs font-bold font-mono px-2 py-0.5 rounded-lg border-border/40"
+              >
+                {records.length} Colaboradores
+              </Badge>
+            </h1>
           </div>
-          <h1 className="text-2xl sm:text-3xl font-extrabold text-foreground tracking-tight flex items-center gap-2.5">
-            <Clock className="size-7 text-indigo-600 dark:text-indigo-400" />
-            {`Control de Asistencia • ${companyName}`}
-          </h1>
-          <p className="text-xs sm:text-sm text-muted-foreground font-semibold">
-            {`Monitoreo de entradas por GPS, QR del establecimiento, retardos automáticos y justificaciones.`}
+          <p className="text-xs sm:text-sm text-muted-foreground font-medium mt-1">
+            {`Monitoreo de entradas por GPS, QR del establecimiento, retardos automáticos y justificaciones • ${companyName} (${workDate}).`}
           </p>
         </div>
 
-        <div className="flex items-center gap-2.5 flex-wrap">
+        <div className="flex items-center gap-2 flex-wrap">
           <Button
             variant="outline"
             size="sm"
             onClick={() => setIsQrKioskOpen(true)}
-            className="rounded-xl text-xs font-bold h-10 px-3.5 border-border/70 shadow-xs flex items-center gap-1.5"
+            className="h-9 font-semibold text-xs rounded-xl px-3.5 flex items-center gap-2 border-border/50 hover:bg-muted/40 cursor-pointer"
           >
             <QrCode className="size-4 text-indigo-600 dark:text-indigo-400" />
-            <span>Kiosco QR Establecimiento</span>
+            <span>Kiosco QR</span>
+          </Button>
+
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setIsManualModalOpen(true)}
+            className="h-9 font-semibold text-xs rounded-xl px-3.5 flex items-center gap-1.5 border-border/50 hover:bg-muted/40 cursor-pointer"
+          >
+            <Plus className="size-4" />
+            <span>Entrada Manual</span>
           </Button>
 
           <Button
@@ -320,16 +873,16 @@ export function AttendanceView({
             size="sm"
             onClick={handleExport}
             disabled={isExporting}
-            className="rounded-xl text-xs font-bold h-10 px-3.5 border-border/70 shadow-xs flex items-center gap-1.5"
+            className="h-9 font-semibold text-xs rounded-xl px-3.5 flex items-center gap-2 border-border/50 hover:bg-muted/40 cursor-pointer"
           >
-            <Download className="size-3.5" />
-            <span>{isExporting ? "Generando..." : "Exportar Reporte"}</span>
+            <Download className="size-4 text-emerald-600 dark:text-emerald-400" />
+            <span>{isExporting ? "Generando..." : "Exportar CSV"}</span>
           </Button>
 
           <Button
             size="sm"
             onClick={() => setIsMobileSheetOpen(true)}
-            className="rounded-xl text-xs font-bold h-10 px-4 bg-primary text-primary-foreground hover:bg-primary/90 shadow-xs flex items-center gap-1.5"
+            className="h-9 font-bold text-xs rounded-xl px-4 flex items-center gap-2 bg-primary text-primary-foreground hover:bg-primary/90 shadow-xs cursor-pointer"
           >
             <Smartphone className="size-4" />
             <span>Checador Móvil</span>
@@ -337,235 +890,419 @@ export function AttendanceView({
         </div>
       </div>
 
-      {/* KPI Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <Card className="rounded-2xl border border-border/40 bg-card p-5 space-y-2 shadow-xs">
-          <div className="flex items-center justify-between text-xs font-bold text-muted-foreground">
-            <span>Puntualidad del Turno</span>
-            <Badge className="bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border-none text-[10px]">
+      {/* 2. Top Summary KPI Cards */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4">
+        <Card className="bg-card border border-border/40 rounded-2xl p-4 flex flex-col justify-between">
+          <div className="flex items-center justify-between">
+            <span className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider">
+              Puntualidad del Turno
+            </span>
+            <Badge className="bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-none text-[10px] font-extrabold px-2 py-0.2 rounded-md">
               Tolerancia 15m
             </Badge>
           </div>
-          <div className="text-2xl sm:text-3xl font-extrabold text-foreground">
-            {stats.punctualityRate}%
+          <div className="mt-2">
+            <h3 className="text-2xl font-extrabold text-foreground font-mono">
+              {stats.punctualityRate}%
+            </h3>
+            <p className="text-[10px] font-semibold text-muted-foreground mt-0.5">
+              Índice de puntualidad global
+            </p>
           </div>
-          <p className="text-[11px] text-muted-foreground font-medium">
-            Índice de puntualidad global
-          </p>
         </Card>
 
-        <Card className="rounded-2xl border border-border/40 bg-card p-5 space-y-2 shadow-xs">
-          <div className="flex items-center justify-between text-xs font-bold text-muted-foreground">
-            <span>Presentes Hoy</span>
-            <UserCheck className="size-4 text-emerald-600 dark:text-emerald-400" />
+        <Card className="bg-card border border-border/40 rounded-2xl p-4 flex flex-col justify-between">
+          <div className="flex items-center justify-between">
+            <span className="text-[11px] font-bold text-emerald-600 dark:text-emerald-400 uppercase tracking-wider">
+              Presentes Hoy
+            </span>
+            <div className="size-8 rounded-lg bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center">
+              <UserCheck className="size-4" />
+            </div>
           </div>
-          <div className="text-2xl sm:text-3xl font-extrabold text-foreground">
-            {stats.presentCount}
+          <div className="mt-2">
+            <h3 className="text-2xl font-extrabold text-emerald-600 dark:text-emerald-400 font-mono">
+              {stats.presentCount}
+            </h3>
+            <p className="text-[10px] font-semibold text-muted-foreground mt-0.5">
+              Entradas registradas puntualmente
+            </p>
           </div>
-          <p className="text-[11px] text-muted-foreground font-medium">
-            Entradas puntuales registradas
-          </p>
         </Card>
 
-        <Card className="rounded-2xl border border-border/40 bg-card p-5 space-y-2 shadow-xs">
-          <div className="flex items-center justify-between text-xs font-bold text-muted-foreground">
-            <span>Llegadas Tarde</span>
-            <Clock className="size-4 text-amber-600 dark:text-amber-400" />
+        <Card className="bg-card border border-border/40 rounded-2xl p-4 flex flex-col justify-between">
+          <div className="flex items-center justify-between">
+            <span className="text-[11px] font-bold text-amber-600 dark:text-amber-400 uppercase tracking-wider">
+              Llegadas Tarde
+            </span>
+            <div className="size-8 rounded-lg bg-amber-500/10 text-amber-600 dark:text-amber-400 flex items-center justify-center">
+              <Clock className="size-4" />
+            </div>
           </div>
-          <div className="text-2xl sm:text-3xl font-extrabold text-foreground">
-            {stats.lateCount}
+          <div className="mt-2">
+            <h3 className="text-2xl font-extrabold text-foreground font-mono">
+              {stats.lateCount}
+            </h3>
+            <p className="text-[10px] font-semibold text-muted-foreground mt-0.5">
+              Fuera de tolerancia LFT
+            </p>
           </div>
-          <p className="text-[11px] text-muted-foreground font-medium">
-            Registros fuera de tolerancia
-          </p>
         </Card>
 
-        <Card className="rounded-2xl border border-border/40 bg-card p-5 space-y-2 shadow-xs">
-          <div className="flex items-center justify-between text-xs font-bold text-muted-foreground">
-            <span>Ausencias</span>
-            <UserX className="size-4 text-destructive" />
+        <Card className="bg-card border border-border/40 rounded-2xl p-4 flex flex-col justify-between">
+          <div className="flex items-center justify-between">
+            <span className="text-[11px] font-bold text-destructive uppercase tracking-wider">
+              Ausencias
+            </span>
+            <div className="size-8 rounded-lg bg-destructive/10 text-destructive flex items-center justify-center">
+              <UserX className="size-4" />
+            </div>
           </div>
-          <div className="text-2xl sm:text-3xl font-extrabold text-foreground">
-            {stats.unjustifiedAbsences + stats.justifiedAbsences}
+          <div className="mt-2">
+            <h3 className="text-2xl font-extrabold text-destructive font-mono">
+              {stats.unjustifiedAbsences + stats.justifiedAbsences}
+            </h3>
+            <p className="text-[10px] font-semibold text-muted-foreground mt-0.5">
+              {`${stats.justifiedAbsences} justificadas • ${stats.unjustifiedAbsences} injustificadas`}
+            </p>
           </div>
-          <p className="text-[11px] text-muted-foreground font-medium">
-            {`${stats.justifiedAbsences} justificadas • ${stats.unjustifiedAbsences} injustificadas`}
-          </p>
         </Card>
       </div>
 
-      {/* Main Attendance Table */}
-      <Card className="rounded-2xl border border-border/40 bg-card p-5 sm:p-6 space-y-5 shadow-xs">
-        {/* Filters and Search Bar */}
-        <div className="flex flex-col lg:flex-row gap-3 items-stretch lg:items-center justify-between">
-          <div className="relative flex-1 max-w-md">
-            <Search className="size-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
-            <Input
-              placeholder="Buscar colaborador, puesto o departamento..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-9 h-10 rounded-xl bg-background border-border/80 text-xs font-medium"
-            />
+      {/* 3. Master TanStack DataTable Card */}
+      <Card className="bg-card border border-border/50 rounded-3xl overflow-hidden shadow-xs">
+        
+        {/* Unified Toolbar & Filters inside Card Header */}
+        <div className="p-4 sm:p-5 border-b border-border/40 space-y-3.5 bg-muted/10">
+          
+          {/* Top Row: Search & Info */}
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
+            
+            {/* Search Input */}
+            <div className="relative flex-1 max-w-lg">
+              <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-muted-foreground size-4 pointer-events-none" />
+              <Input
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Buscar por colaborador, puesto, departamento o método..."
+                className="h-10 pl-10 pr-9 bg-background border-border/50 rounded-xl text-xs sm:text-sm font-medium focus-visible:ring-1 focus-visible:ring-primary"
+              />
+              {searchQuery && (
+                <button
+                  onClick={() => setSearchQuery("")}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground cursor-pointer"
+                >
+                  <X className="size-3.5" />
+                </button>
+              )}
+            </div>
+
+            {/* Quick Sort Helper */}
+            <div className="hidden sm:flex items-center gap-1.5 text-xs text-muted-foreground font-medium">
+              <ArrowUpDown className="size-3.5 text-primary" />
+              <span>Haz clic en los encabezados para ordenar</span>
+            </div>
           </div>
 
-          <div className="flex items-center gap-2 flex-wrap">
-            <Select
-              value={statusFilter}
-              onValueChange={(val) => val && setStatusFilter(val)}
-            >
-              <SelectTrigger className="h-10 w-36 rounded-xl bg-background border-border/80 text-xs font-medium">
-                <SelectValue placeholder="Estatus" />
-              </SelectTrigger>
-              <SelectContent className="rounded-xl">
-                <SelectItem value="all">Todos los estatus</SelectItem>
-                <SelectItem value="presente">Puntuales</SelectItem>
-                <SelectItem value="retardo">Retardos</SelectItem>
-                <SelectItem value="falta_injustificada">Faltas Injustificadas</SelectItem>
-                <SelectItem value="falta_justificada">Faltas Justificadas</SelectItem>
-              </SelectContent>
-            </Select>
+          {/* Filter Row: Status Segmented Tabs + Dept Select + Method Select + Clear */}
+          <div className="flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-3 pt-1 border-t border-border/30">
+            
+            {/* Status Segmented Tabs */}
+            <div className="inline-flex p-1 rounded-xl bg-muted/60 border border-border/40 shrink-0 flex-wrap gap-1">
+              <button
+                type="button"
+                onClick={() => setStatusFilter("all")}
+                className={cn(
+                  "px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer",
+                  statusFilter === "all"
+                    ? "bg-background text-foreground shadow-2xs"
+                    : "text-muted-foreground hover:text-foreground"
+                )}
+              >
+                Todos ({records.length})
+              </button>
+              <button
+                type="button"
+                onClick={() => setStatusFilter("presente")}
+                className={cn(
+                  "px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5",
+                  statusFilter === "presente"
+                    ? "bg-background text-emerald-600 dark:text-emerald-400 shadow-2xs"
+                    : "text-muted-foreground hover:text-foreground"
+                )}
+              >
+                <span className="size-1.5 rounded-full bg-emerald-500 inline-block" />
+                <span>Puntuales ({stats.presentCount})</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setStatusFilter("retardo")}
+                className={cn(
+                  "px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5",
+                  statusFilter === "retardo"
+                    ? "bg-background text-amber-600 dark:text-amber-400 shadow-2xs"
+                    : "text-muted-foreground hover:text-foreground"
+                )}
+              >
+                <span className="size-1.5 rounded-full bg-amber-500 inline-block" />
+                <span>Retardos ({stats.lateCount})</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setStatusFilter("ausencias")}
+                className={cn(
+                  "px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5",
+                  statusFilter === "ausencias"
+                    ? "bg-background text-destructive shadow-2xs"
+                    : "text-muted-foreground hover:text-foreground"
+                )}
+              >
+                <span className="size-1.5 rounded-full bg-destructive inline-block" />
+                <span>Ausencias ({stats.unjustifiedAbsences + stats.justifiedAbsences})</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setStatusFilter("overtime")}
+                className={cn(
+                  "px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5",
+                  statusFilter === "overtime"
+                    ? "bg-background text-indigo-600 dark:text-indigo-400 shadow-2xs"
+                    : "text-muted-foreground hover:text-foreground"
+                )}
+              >
+                <Sparkles className="size-3 text-indigo-500" />
+                <span>Horas Extra</span>
+              </button>
+            </div>
 
-            <Select
-              value={methodFilter}
-              onValueChange={(val) => val && setMethodFilter(val)}
-            >
-              <SelectTrigger className="h-10 w-36 rounded-xl bg-background border-border/80 text-xs font-medium">
-                <SelectValue placeholder="Método" />
-              </SelectTrigger>
-              <SelectContent className="rounded-xl">
-                <SelectItem value="all">Todos los métodos</SelectItem>
-                <SelectItem value="gps">GPS Geocerca</SelectItem>
-                <SelectItem value="qr">QR Kiosco</SelectItem>
-                <SelectItem value="manual">Manual RH</SelectItem>
-              </SelectContent>
-            </Select>
+            {/* Selectors Group */}
+            <div className="flex items-center gap-2 flex-wrap sm:flex-nowrap">
+              {/* Department Select */}
+              <div className="w-full sm:w-[200px]">
+                <Select
+                  value={deptFilter}
+                  onValueChange={(val) => setDeptFilter(val || "all")}
+                >
+                  <SelectTrigger className="h-9 w-full rounded-xl border-border/50 bg-background text-xs font-semibold">
+                    <SelectValue placeholder="Todos los departamentos">
+                      {deptFilter === "all"
+                        ? `Departamentos (${departmentsList.length})`
+                        : deptFilter}
+                    </SelectValue>
+                  </SelectTrigger>
+                  <SelectContent className="rounded-xl border-border/50 bg-popover shadow-lg">
+                    <SelectItem
+                      value="all"
+                      className="text-xs font-semibold rounded-lg cursor-pointer"
+                    >
+                      Todos los departamentos ({departmentsList.length})
+                    </SelectItem>
+                    {departmentsList.map((d) => (
+                      <SelectItem
+                        key={d}
+                        value={d}
+                        className="text-xs font-semibold rounded-lg cursor-pointer"
+                      >
+                        {d}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
 
-            <Button
-              size="sm"
-              variant="outline"
-              onClick={() => setIsManualModalOpen(true)}
-              className="rounded-xl text-xs font-bold h-10 px-3 border-border/70 flex items-center gap-1"
-            >
-              <Plus className="size-3.5" />
-              <span>Entrada Manual</span>
-            </Button>
+              {/* Method Select */}
+              <div className="w-full sm:w-[170px]">
+                <Select
+                  value={methodFilter}
+                  onValueChange={(val) => setMethodFilter(val || "all")}
+                >
+                  <SelectTrigger className="h-9 w-full rounded-xl border-border/50 bg-background text-xs font-semibold">
+                    <SelectValue placeholder="Método">
+                      {methodFilter === "all"
+                        ? "Todos los métodos"
+                        : methodFilter === "gps"
+                        ? "GPS Geocerca"
+                        : methodFilter === "qr"
+                        ? "QR Kiosco"
+                        : "Manual RH"}
+                    </SelectValue>
+                  </SelectTrigger>
+                  <SelectContent className="rounded-xl border-border/50 bg-popover shadow-lg">
+                    <SelectItem
+                      value="all"
+                      className="text-xs font-semibold rounded-lg cursor-pointer"
+                    >
+                      Todos los métodos
+                    </SelectItem>
+                    <SelectItem
+                      value="gps"
+                      className="text-xs font-semibold rounded-lg cursor-pointer text-emerald-600"
+                    >
+                      GPS Geocerca
+                    </SelectItem>
+                    <SelectItem
+                      value="qr"
+                      className="text-xs font-semibold rounded-lg cursor-pointer text-indigo-600"
+                    >
+                      QR Kiosco
+                    </SelectItem>
+                    <SelectItem
+                      value="manual"
+                      className="text-xs font-semibold rounded-lg cursor-pointer text-muted-foreground"
+                    >
+                      Manual RH
+                    </SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {isFiltered && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={handleClearFilters}
+                  className="h-9 px-2.5 text-xs font-bold text-muted-foreground hover:text-foreground gap-1 cursor-pointer shrink-0"
+                >
+                  <RotateCcw className="size-3.5" />
+                  <span className="hidden sm:inline">Limpiar</span>
+                </Button>
+              )}
+            </div>
           </div>
         </div>
 
-        {/* Table Records */}
-        {filteredRecords.length === 0 ? (
-          <div className="p-8 text-center bg-muted/20 rounded-xl border border-dashed border-border/60 space-y-2">
-            <p className="text-xs text-muted-foreground">
-              No se encontraron registros de asistencia que coincidan con los filtros.
-            </p>
-          </div>
-        ) : (
-          <div className="space-y-3">
-            {filteredRecords.map((item) => {
-              const isAbsent = item.status === "falta_injustificada" || item.status === "falta_justificada";
-              const hasOvertime = item.overtimeHours > 0;
-
-              return (
-                <div
-                  key={item.id}
-                  className="p-4 rounded-xl border border-border/50 bg-background hover:border-border transition-all flex flex-col md:flex-row md:items-center justify-between gap-4"
+        {/* 4. Table Body & Empty State */}
+        <div className="relative min-h-[300px]">
+          {tableRows.length === 0 ? (
+            <Empty className="py-16">
+              <EmptyHeader>
+                <EmptyMedia
+                  variant="icon"
+                  className="bg-primary/10 text-primary"
                 >
-                  <div className="flex items-start gap-3.5 min-w-0">
-                    <Avatar className="size-11 rounded-xl shrink-0 border border-border/40">
-                      <AvatarImage src={item.avatarUrl || ""} />
-                      <AvatarFallback className="rounded-xl text-xs font-bold bg-muted text-muted-foreground">
-                        {item.employeeName.slice(0, 2).toUpperCase()}
-                      </AvatarFallback>
-                    </Avatar>
-
-                    <div className="space-y-1 min-w-0">
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <h4 className="text-sm font-extrabold text-foreground truncate">
-                          {item.employeeName}
-                        </h4>
-                        <span className="text-xs text-muted-foreground font-medium truncate">
-                          • {item.jobTitle} ({item.department})
-                        </span>
-                        {getMethodBadge(item.checkInMethod)}
-                      </div>
-
-                      <div className="flex items-center gap-3 text-xs text-muted-foreground font-semibold flex-wrap">
-                        <span>Turno: {item.scheduledCheckIn} - {item.scheduledCheckOut}</span>
-                        <span>•</span>
-                        <span>Entrada: <strong className="text-foreground">{item.checkInTime || "--:--"}</strong></span>
-                        {item.checkOutTime && (
-                          <>
-                            <span>•</span>
-                            <span>Salida: <strong className="text-foreground">{item.checkOutTime}</strong></span>
-                          </>
-                        )}
-                        {item.checkInLocation && (
-                          <>
-                            <span>•</span>
-                            <span className="text-emerald-600 dark:text-emerald-400 font-bold">
-                              GPS: {item.checkInLocation.distanceToBranchMeters}m de sucursal
-                            </span>
-                          </>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="flex items-center gap-2.5 self-end md:self-center shrink-0 flex-wrap">
-                    {getStatusBadge(item.status, item.delayMinutes)}
-
-                    {/* Overtime tag or button */}
-                    {hasOvertime && (
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => setSelectedRecordForOvertime(item)}
-                        className={cn(
-                          "h-8 px-2.5 rounded-lg text-xs font-bold border-indigo-500/30 flex items-center gap-1",
-                          item.overtimeStatus === "autorizado"
-                            ? "bg-indigo-500/15 text-indigo-600 dark:text-indigo-400 border-none"
-                            : "bg-indigo-500/10 text-indigo-600 hover:bg-indigo-500/20"
-                        )}
-                      >
-                        <Sparkles className="size-3" />
-                        <span>{`+${item.overtimeHours}h Extra (${item.overtimeStatus === "autorizado" ? "Autorizado" : "Revisar"})`}</span>
-                      </Button>
-                    )}
-
-                    {/* Justification button if absent */}
-                    {isAbsent && (
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => setSelectedRecordForJustification(item)}
-                        className={cn(
-                          "h-8 px-2.5 rounded-lg text-xs font-bold flex items-center gap-1",
-                          item.status === "falta_justificada"
-                            ? "border-blue-500/30 text-blue-600 bg-blue-500/10"
-                            : "border-destructive/30 text-destructive hover:bg-destructive/10"
-                        )}
-                      >
-                        <ShieldAlert className="size-3" />
-                        <span>{item.status === "falta_justificada" ? "Ver Justificación" : "Justificar Falta"}</span>
-                      </Button>
-                    )}
-
-                    {/* Dossier button */}
-                    <Button
-                      size="sm"
-                      variant="ghost"
-                      onClick={() => setSelectedEmployeeForDossier(item)}
-                      className="h-8 px-2.5 text-xs font-bold text-muted-foreground hover:text-foreground rounded-lg flex items-center gap-1"
+                  <Clock className="size-5" />
+                </EmptyMedia>
+                <EmptyTitle>
+                  {isFiltered
+                    ? "No se encontraron registros"
+                    : "No hay checadas registradas"}
+                </EmptyTitle>
+                <EmptyDescription>
+                  {isFiltered
+                    ? "No hay marcas de checador que coincidan con la búsqueda o filtros aplicados. Intenta restablecer los filtros."
+                    : "Los colaboradores comenzarán a registrar sus entradas por GPS o QR durante el turno activo."}
+                </EmptyDescription>
+              </EmptyHeader>
+              <EmptyContent>
+                {isFiltered ? (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={handleClearFilters}
+                    className="rounded-xl font-bold text-xs h-9 px-4 cursor-pointer border-border/50 gap-1.5"
+                  >
+                    <RotateCcw className="size-3.5" />
+                    <span>Restablecer Filtros</span>
+                  </Button>
+                ) : (
+                  <Button
+                    size="sm"
+                    onClick={() => setIsManualModalOpen(true)}
+                    className="rounded-xl font-bold text-xs h-9 px-4 cursor-pointer gap-1.5 bg-primary text-primary-foreground"
+                  >
+                    <Plus className="size-3.5" />
+                    <span>Registrar Entrada Manual</span>
+                  </Button>
+                )}
+              </EmptyContent>
+            </Empty>
+          ) : (
+            <div className="overflow-x-auto">
+              <Table className="w-full">
+                <TableHeader className="bg-muted/30 border-b border-border/40">
+                  {table.getHeaderGroups().map((headerGroup) => (
+                    <TableRow
+                      key={headerGroup.id}
+                      className="hover:bg-transparent"
                     >
-                      <Eye className="size-3.5" />
-                      <span>Expediente</span>
+                      {headerGroup.headers.map((header) => (
+                        <TableHead
+                          key={header.id}
+                          className="py-3 px-4 sm:px-6"
+                        >
+                          {header.isPlaceholder
+                            ? null
+                            : flexRender(
+                                header.column.columnDef.header,
+                                header.getContext()
+                              )}
+                        </TableHead>
+                      ))}
+                    </TableRow>
+                  ))}
+                </TableHeader>
+                <TableBody className="divide-y divide-border/30">
+                  {tableRows.map((row) => (
+                    <TableRow
+                      key={row.id}
+                      className="hover:bg-muted/25 transition-colors group"
+                    >
+                      {row.getVisibleCells().map((cell) => (
+                        <TableCell
+                          key={cell.id}
+                          className="py-3 px-4 sm:px-6"
+                        >
+                          {flexRender(
+                            cell.column.columnDef.cell,
+                            cell.getContext()
+                          )}
+                        </TableCell>
+                      ))}
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+
+              {/* Table Footer with Summary and Pagination */}
+              <div className="p-3.5 px-4 sm:px-6 border-t border-border/30 bg-muted/10 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-muted-foreground font-medium">
+                <span>
+                  Mostrando <strong>{tableRows.length}</strong> de{" "}
+                  <strong>{filteredRecords.length}</strong> colaboradores
+                </span>
+
+                {/* Pagination Controls */}
+                {table.getPageCount() > 1 && (
+                  <div className="flex items-center gap-1.5">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => table.previousPage()}
+                      disabled={!table.getCanPreviousPage()}
+                      className="h-8 px-2.5 rounded-lg text-xs"
+                    >
+                      <ChevronLeft className="size-3.5 mr-1" />
+                      <span>Anterior</span>
+                    </Button>
+                    <span className="px-2 font-semibold">
+                      Página {table.getState().pagination.pageIndex + 1} de{" "}
+                      {table.getPageCount()}
+                    </span>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => table.nextPage()}
+                      disabled={!table.getCanNextPage()}
+                      className="h-8 px-2.5 rounded-lg text-xs"
+                    >
+                      <span>Siguiente</span>
+                      <ChevronRight className="size-3.5 ml-1" />
                     </Button>
                   </div>
-                </div>
-              );
-            })}
-          </div>
-        )}
+                )}
+              </div>
+            </div>
+          )}
+        </div>
       </Card>
 
       {/* Modal 1: Mobile Check-in Sheet */}
@@ -607,27 +1344,31 @@ export function AttendanceView({
         onAuthorize={handleAuthorizeOvertime}
       />
 
-      {/* Modal: Entrada Manual */}
+      {/* Modal: Entrada Manual RH */}
       <Dialog open={isManualModalOpen} onOpenChange={setIsManualModalOpen}>
-        <DialogContent className="sm:max-w-[440px] rounded-2xl p-6 bg-card border-border/80">
+        <DialogContent className="sm:max-w-[460px] rounded-3xl p-6 bg-card border-border/80 shadow-2xl">
           <form onSubmit={handleAddManualCheckIn} className="space-y-4">
             <DialogHeader className="space-y-1.5 text-left">
-              <DialogTitle className="text-lg font-extrabold text-foreground">
-                Registrar Entrada Manual RH
+              <DialogTitle className="text-lg font-extrabold text-foreground flex items-center gap-2">
+                <Clock className="size-5 text-primary" />
+                <span>Registrar Entrada Manual RH</span>
               </DialogTitle>
               <DialogDescription className="text-xs text-muted-foreground">
-                Añade o ajusta el registro de checador para un colaborador.
+                Añade o ajusta la marca de checador para un colaborador del turno.
               </DialogDescription>
             </DialogHeader>
 
-            <div className="space-y-3">
+            <div className="space-y-3.5 pt-1">
               <div className="space-y-1.5">
-                <Label htmlFor="att-manual-name" className="text-xs font-bold text-foreground">
+                <Label
+                  htmlFor="att-manual-name"
+                  className="text-xs font-bold text-foreground"
+                >
                   Nombre del Colaborador *
                 </Label>
                 <Input
                   id="att-manual-name"
-                  placeholder="Ej. Roberto Sánchez"
+                  placeholder="Ej. Roberto Sánchez Gómez"
                   value={manualName}
                   onChange={(e) => setManualName(e.target.value)}
                   className="h-10 rounded-xl bg-background border-border/80 text-xs font-medium"
@@ -637,7 +1378,10 @@ export function AttendanceView({
 
               <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-1.5">
-                  <Label htmlFor="att-manual-time" className="text-xs font-bold text-foreground">
+                  <Label
+                    htmlFor="att-manual-time"
+                    className="text-xs font-bold text-foreground"
+                  >
                     Hora de Entrada
                   </Label>
                   <Input
@@ -645,7 +1389,10 @@ export function AttendanceView({
                     type="time"
                     value={manualTime}
                     onChange={(e) => setManualTime(e.target.value)}
-                    disabled={manualStatus === "falta_injustificada" || manualStatus === "falta_justificada"}
+                    disabled={
+                      manualStatus === "falta_injustificada" ||
+                      manualStatus === "falta_justificada"
+                    }
                     className="h-10 rounded-xl bg-background border-border/80 text-xs font-medium"
                   />
                 </div>
@@ -656,34 +1403,50 @@ export function AttendanceView({
                   </Label>
                   <Select
                     value={manualStatus}
-                    onValueChange={(val) => val && setManualStatus(val as AttendanceStatus)}
+                    onValueChange={(val) =>
+                      val && setManualStatus(val as AttendanceStatus)
+                    }
                   >
                     <SelectTrigger className="h-10 rounded-xl bg-background border-border/80 text-xs font-medium">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent className="rounded-xl">
-                      <SelectItem value="presente">Puntual</SelectItem>
-                      <SelectItem value="retardo">Retardo</SelectItem>
-                      <SelectItem value="falta_injustificada">Falta Injustificada</SelectItem>
-                      <SelectItem value="falta_justificada">Falta Justificada</SelectItem>
+                      <SelectItem value="presente" className="text-xs font-semibold text-emerald-600">
+                        Puntual
+                      </SelectItem>
+                      <SelectItem value="retardo" className="text-xs font-semibold text-amber-600">
+                        Retardo
+                      </SelectItem>
+                      <SelectItem
+                        value="falta_injustificada"
+                        className="text-xs font-semibold text-rose-600"
+                      >
+                        Falta Injustificada
+                      </SelectItem>
+                      <SelectItem
+                        value="falta_justificada"
+                        className="text-xs font-semibold text-blue-600"
+                      >
+                        Falta Justificada
+                      </SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
               </div>
             </div>
 
-            <DialogFooter className="flex flex-col-reverse sm:flex-row gap-2 pt-2">
+            <DialogFooter className="flex flex-col-reverse sm:flex-row gap-2 pt-3 border-t border-border/40">
               <Button
                 type="button"
                 variant="outline"
                 onClick={() => setIsManualModalOpen(false)}
-                className="rounded-xl text-xs font-bold h-10 px-4"
+                className="rounded-xl text-xs font-bold h-10 px-4 cursor-pointer"
               >
                 Cancelar
               </Button>
               <Button
                 type="submit"
-                className="rounded-xl text-xs font-bold h-10 px-5 bg-primary text-primary-foreground hover:bg-primary/90 shadow-xs"
+                className="rounded-xl text-xs font-bold h-10 px-5 bg-primary text-primary-foreground hover:bg-primary/90 shadow-xs cursor-pointer"
               >
                 Guardar Registro
               </Button>
