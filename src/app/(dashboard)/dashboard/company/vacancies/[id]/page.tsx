@@ -26,7 +26,7 @@ import {
 } from "@/components/ui/alert-dialog";
 
 interface PageProps {
-  params: React.Usable<{ id: string }>;
+  params: Promise<{ id: string }>;
 }
 
 export default function VacancyDetailPage({ params }: PageProps) {

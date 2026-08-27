@@ -1,6 +1,7 @@
 "use server";
 
 import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { revalidatePath } from "next/cache";
 import type { AdminSubRole, AdminStaffStatus, AdminPermissionKey, AdminStaffItem } from "@/modules/admin/types/staff";
 
@@ -29,10 +30,11 @@ async function requireAdminAuth() {
 }
 
 export async function getAdminStaffMembers(): Promise<AdminStaffItem[]> {
-  const { supabase } = await requireAdminAuth();
+  await requireAdminAuth();
+  const supabaseAdmin = createAdminClient();
 
   // Fetch admin profiles
-  const { data: adminProfiles, error: profileErr } = await supabase
+  const { data: adminProfiles, error: profileErr } = await supabaseAdmin
     .from("profiles")
     .select("id, full_name, email, whatsapp_number, avatar_url, role, created_at, updated_at")
     .eq("role", "admin")
@@ -44,7 +46,7 @@ export async function getAdminStaffMembers(): Promise<AdminStaffItem[]> {
   }
 
   // Fetch staff metadata table
-  const { data: staffMembers } = await supabase
+  const { data: staffMembers } = await supabaseAdmin
     .from("admin_staff_members")
     .select("*");
 
@@ -93,90 +95,154 @@ export async function createAdminStaffMember(formData: {
   permissions: AdminPermissionKey[];
   notes?: string;
 }) {
-  const { supabase } = await requireAdminAuth();
+  await requireAdminAuth();
 
   const cleanEmail = formData.email.trim().toLowerCase();
+  const cleanName = formData.name.trim();
+  const cleanPhone = formData.whatsappNumber?.trim() || "";
+  const cleanPassword = formData.password?.trim();
+
+  if (!cleanEmail || !cleanName) {
+    throw new Error("Nombre y correo electrónico institucional son requeridos.");
+  }
+
+  const supabaseAdmin = createAdminClient();
 
   // Check if profile exists with this email
-  const { data: existingProfile } = await supabase
+  const { data: existingProfile, error: profileCheckErr } = await supabaseAdmin
     .from("profiles")
-    .select("id, role")
+    .select("id, role, email")
     .eq("email", cleanEmail)
     .maybeSingle();
 
-  let targetProfileId: string;
+  if (profileCheckErr) {
+    throw new Error(`Error al verificar existencia del usuario: ${profileCheckErr.message}`);
+  }
 
   if (existingProfile) {
-    targetProfileId = existingProfile.id;
-    // Upgrade profile to admin
-    await supabase
-      .from("profiles")
-      .update({
-        role: "admin",
-        full_name: formData.name,
-        whatsapp_number: formData.whatsappNumber,
-      })
-      .eq("id", targetProfileId);
-  } else {
-    // Attempt Auth SignUp if password provided, or generate UUID profile
-    if (formData.password && formData.password.trim().length >= 6) {
-      const { data: authData, error: authErr } = await supabase.auth.signUp({
-        email: cleanEmail,
-        password: formData.password.trim(),
-        options: {
-          data: {
-            full_name: formData.name,
-            role: "admin",
-          },
-        },
-      });
-
-      if (authErr) {
-        // Fallback to direct profile creation if auth signup returns existing session or error
-        targetProfileId = crypto.randomUUID();
-      } else {
-        targetProfileId = authData.user?.id || crypto.randomUUID();
-      }
-    } else {
-      targetProfileId = crypto.randomUUID();
+    // If existing user has role 'candidate' or 'company', reject explicitly
+    if (existingProfile.role === "candidate" || existingProfile.role === "company") {
+      throw new Error(
+        "Este correo ya está registrado como candidato o empresa. Para otorgar acceso administrativo, utilice un flujo explícito de promoción."
+      );
     }
 
-    const { error: insertProfileErr } = await supabase.from("profiles").upsert(
-      {
-        id: targetProfileId,
-        email: cleanEmail,
-        full_name: formData.name,
-        whatsapp_number: formData.whatsappNumber,
-        role: "admin",
-        is_verified: true,
-        updated_at: new Date().toISOString(),
-      },
-      { onConflict: "id" }
+    // If existing user is already an admin, update profile info and staff metadata
+    if (existingProfile.role === "admin") {
+      const targetProfileId = existingProfile.id;
+
+      const { error: updateProfileErr } = await supabaseAdmin
+        .from("profiles")
+        .update({
+          full_name: cleanName,
+          whatsapp_number: cleanPhone,
+          updated_at: new Date().toISOString(),
+        })
+        .eq("id", targetProfileId);
+
+      if (updateProfileErr) {
+        throw new Error(`Error al actualizar el perfil de administrador: ${updateProfileErr.message}`);
+      }
+
+      const { error: staffErr } = await supabaseAdmin
+        .from("admin_staff_members")
+        .upsert(
+          {
+            profile_id: targetProfileId,
+            sub_role: formData.subRole,
+            department: formData.department,
+            permissions: formData.permissions,
+            status: "active",
+            notes: formData.notes || "Actualización de personal administrativo",
+            updated_at: new Date().toISOString(),
+          },
+          { onConflict: "profile_id" }
+        );
+
+      if (staffErr) {
+        throw new Error(`Error al asignar metadata administrativa: ${staffErr.message}`);
+      }
+
+      revalidatePath("/dashboard/admin/staff");
+      return { success: true, profileId: targetProfileId };
+    }
+
+    throw new Error(
+      "Este correo ya está registrado como candidato o empresa. Para otorgar acceso administrativo, utilice un flujo explícito de promoción."
     );
+  }
+
+  // New user creation: password is required and must be at least 6 characters
+  if (!cleanPassword || cleanPassword.length < 6) {
+    throw new Error("La contraseña para el nuevo administrador debe tener al menos 6 caracteres.");
+  }
+
+  // Create user in Supabase Auth via Admin API
+  const { data: authData, error: authErr } = await supabaseAdmin.auth.admin.createUser({
+    email: cleanEmail,
+    password: cleanPassword,
+    email_confirm: true,
+    user_metadata: {
+      full_name: cleanName,
+      whatsapp_number: cleanPhone,
+    },
+  });
+
+  if (authErr || !authData?.user) {
+    throw new Error(`Error al registrar credenciales de administrador: ${authErr?.message || "Desconocido"}`);
+  }
+
+  const targetProfileId = authData.user.id;
+
+  // Transactional promotion with compensatory rollback
+  try {
+    // Explicitly promote profile to admin role
+    const { error: insertProfileErr } = await supabaseAdmin
+      .from("profiles")
+      .upsert(
+        {
+          id: targetProfileId,
+          email: cleanEmail,
+          full_name: cleanName,
+          whatsapp_number: cleanPhone,
+          role: "admin",
+          is_verified: true,
+          updated_at: new Date().toISOString(),
+        },
+        { onConflict: "id" }
+      );
 
     if (insertProfileErr) {
       throw new Error(`Error al crear el perfil de administrador: ${insertProfileErr.message}`);
     }
-  }
 
-  // Insert or Upsert into admin_staff_members
-  const { error: staffErr } = await supabase
-    .from("admin_staff_members")
-    .upsert(
-      {
-        profile_id: targetProfileId,
-        sub_role: formData.subRole,
-        department: formData.department,
-        permissions: formData.permissions,
-        status: "active",
-        notes: formData.notes || "Nuevo alta de personal",
-        updated_at: new Date().toISOString(),
-      },
-      { onConflict: "profile_id" }
-    );
+    // Insert or Upsert into admin_staff_members
+    const { error: staffErr } = await supabaseAdmin
+      .from("admin_staff_members")
+      .upsert(
+        {
+          profile_id: targetProfileId,
+          sub_role: formData.subRole,
+          department: formData.department,
+          permissions: formData.permissions,
+          status: "active",
+          notes: formData.notes || "Nuevo alta de personal",
+          updated_at: new Date().toISOString(),
+        },
+        { onConflict: "profile_id" }
+      );
 
-  if (staffErr) {
-    throw new Error(`Error al asignar metadata administrativa: ${staffErr.message}`);
+    if (staffErr) {
+      throw new Error(`Error al asignar metadata administrativa: ${staffErr.message}`);
+    }
+  } catch (operationErr) {
+    // Compensatory Rollback: clean up auth user if created during this operation
+    try {
+      await supabaseAdmin.auth.admin.deleteUser(targetProfileId);
+    } catch (rollbackErr) {
+      console.error(`Error en rollback compensatorio eliminando usuario ${targetProfileId}:`, rollbackErr);
+    }
+    throw operationErr;
   }
 
   revalidatePath("/dashboard/admin/staff");
@@ -196,15 +262,17 @@ export async function updateAdminStaffMember(
     notes?: string;
   }
 ) {
-  const { supabase } = await requireAdminAuth();
+  await requireAdminAuth();
+  const supabaseAdmin = createAdminClient();
 
   // Update profile basic info
-  const { error: profileErr } = await supabase
+  const { error: profileErr } = await supabaseAdmin
     .from("profiles")
     .update({
       full_name: formData.name,
       email: formData.email,
       whatsapp_number: formData.whatsappNumber,
+      updated_at: new Date().toISOString(),
     })
     .eq("id", profileId);
 
@@ -213,7 +281,7 @@ export async function updateAdminStaffMember(
   }
 
   // Update admin staff metadata
-  const { error: staffErr } = await supabase
+  const { error: staffErr } = await supabaseAdmin
     .from("admin_staff_members")
     .upsert(
       {
@@ -237,9 +305,10 @@ export async function updateAdminStaffMember(
 }
 
 export async function toggleAdminStaffStatus(profileId: string, status: AdminStaffStatus) {
-  const { supabase } = await requireAdminAuth();
+  await requireAdminAuth();
+  const supabaseAdmin = createAdminClient();
 
-  const { error } = await supabase
+  const { error } = await supabaseAdmin
     .from("admin_staff_members")
     .upsert(
       {
@@ -259,17 +328,19 @@ export async function toggleAdminStaffStatus(profileId: string, status: AdminSta
 }
 
 export async function deleteAdminStaffMember(profileId: string) {
-  const { supabase, user } = await requireAdminAuth();
+  const { user } = await requireAdminAuth();
 
   if (user.id === profileId) {
     throw new Error("No puede dar de baja su propio usuario administrador.");
   }
 
+  const supabaseAdmin = createAdminClient();
+
   // Remove from admin_staff_members
-  await supabase.from("admin_staff_members").delete().eq("profile_id", profileId);
+  await supabaseAdmin.from("admin_staff_members").delete().eq("profile_id", profileId);
 
   // Downgrade profile role to candidate to revoke admin permissions safely
-  const { error } = await supabase
+  const { error } = await supabaseAdmin
     .from("profiles")
     .update({ role: "candidate" })
     .eq("id", profileId);

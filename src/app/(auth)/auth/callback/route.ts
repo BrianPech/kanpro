@@ -24,16 +24,13 @@ export async function GET(request: NextRequest) {
       let role = profile?.role;
 
       // 2. If user profile does NOT have a role in profiles, resolve role from searchParams or user metadata (defaulting to 'candidate')
+      // Security Invariant: Only 'candidate' or 'company' can be assigned via public callback. 'admin' is strictly prohibited.
       if (!role) {
         const metaRole = data.user.user_metadata?.role;
-        const assignedRole =
-          searchRole === "admin" ||
-          searchRole === "company" ||
-          searchRole === "candidate"
+        const assignedRole: "candidate" | "company" =
+          searchRole === "company" || searchRole === "candidate"
             ? searchRole
-            : metaRole === "admin" ||
-              metaRole === "company" ||
-              metaRole === "candidate"
+            : metaRole === "company" || metaRole === "candidate"
             ? metaRole
             : "candidate";
 

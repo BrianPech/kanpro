@@ -1,6 +1,5 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import type { UserRole } from "@/modules/auth/types/auth.types";
 import type { User } from "@supabase/supabase-js";
 
 export interface AuthenticatedAdmin {
@@ -12,7 +11,7 @@ export interface AuthenticatedAdmin {
     role?: string;
     full_name?: string | null;
     avatar_url?: string | null;
-    [key: string]: any;
+    [key: string]: unknown;
   };
 }
 
@@ -39,13 +38,11 @@ export async function requireAdmin(): Promise<AuthenticatedAdmin> {
     .eq("id", user.id)
     .maybeSingle();
 
-  const effectiveRole = (profile?.role ||
-    user.user_metadata?.role ||
-    "candidate") as UserRole;
-
-  if (effectiveRole !== "admin") {
+  // Strict enforcement: profile MUST exist in database and have role === 'admin'
+  if (!profile || profile.role !== "admin") {
+    const fallbackRole = profile?.role === "company" ? "company" : "candidate";
     redirect(
-      effectiveRole === "company"
+      fallbackRole === "company"
         ? "/dashboard/company"
         : "/dashboard/candidate/discovery"
     );
@@ -54,11 +51,6 @@ export async function requireAdmin(): Promise<AuthenticatedAdmin> {
   return {
     user,
     role: "admin",
-    profile: profile || {
-      id: user.id,
-      email: user.email,
-      role: "admin",
-      full_name: user.user_metadata?.full_name || "Admin",
-    },
+    profile,
   };
 }

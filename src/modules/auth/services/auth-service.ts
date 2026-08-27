@@ -23,25 +23,21 @@ export const authService = {
     if (authError) throw authError;
 
     if (authData.user) {
-      // Leer el rol de la metadata del usuario
-      let role: UserRole | undefined = authData.user.user_metadata?.role as
-        | UserRole
-        | undefined;
+      // 1. Authoritative check from profiles table
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("role")
+        .eq("id", authData.user.id)
+        .maybeSingle();
 
-      // Fallback: Si no hay rol en metadata, verificar en la tabla profiles
-      if (!role) {
-        const { data: profile } = await supabase
-          .from("profiles")
-          .select("role")
-          .eq("id", authData.user.id)
-          .maybeSingle();
-
-        if (profile?.role) {
-          role = profile.role as UserRole;
-        }
+      let role: UserRole = "candidate";
+      if (profile?.role === "admin" || profile?.role === "company" || profile?.role === "candidate") {
+        role = profile.role as UserRole;
+      } else {
+        const metaRole = authData.user.user_metadata?.role;
+        role = metaRole === "company" ? "company" : "candidate";
       }
 
-      role = role || "candidate";
       return { user: authData.user, session: authData.session, role };
     }
 
@@ -221,23 +217,21 @@ export const authService = {
     if (error) throw error;
 
     if (data.user) {
-      let role: UserRole | undefined = data.user.user_metadata?.role as
-        | UserRole
-        | undefined;
+      // 1. Authoritative check from profiles table
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("role")
+        .eq("id", data.user.id)
+        .maybeSingle();
 
-      if (!role) {
-        const { data: profile } = await supabase
-          .from("profiles")
-          .select("role")
-          .eq("id", data.user.id)
-          .maybeSingle();
-
-        if (profile?.role) {
-          role = profile.role as UserRole;
-        }
+      let role: UserRole = "candidate";
+      if (profile?.role === "admin" || profile?.role === "company" || profile?.role === "candidate") {
+        role = profile.role as UserRole;
+      } else {
+        const metaRole = data.user.user_metadata?.role;
+        role = metaRole === "company" ? "company" : "candidate";
       }
 
-      role = role || "candidate";
       return { user: data.user, session: data.session, role };
     }
 

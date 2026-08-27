@@ -85,16 +85,23 @@ export async function updateSession(request: NextRequest) {
     return supabaseResponse
   }
 
-  // 2. Authenticated users: fetch role from database profile, falling back to user_metadata
-  let role: UserRole = (user.user_metadata?.role as UserRole) || 'candidate'
+  // 2. Authenticated users: fetch role strictly from database profile
   const { data: profile } = await supabase
     .from('profiles')
     .select('role')
     .eq('id', user.id)
     .maybeSingle()
 
+  // Strict role resolution: only allow 'admin' if verified in database profile
+  let role: UserRole = 'candidate'
   if (profile?.role) {
     role = profile.role as UserRole
+  } else {
+    // If profile is not yet created, only allow 'company' from metadata, never 'admin'
+    const metaRole = user.user_metadata?.role
+    if (metaRole === 'company') {
+      role = 'company'
+    }
   }
 
   const roleDashboard =

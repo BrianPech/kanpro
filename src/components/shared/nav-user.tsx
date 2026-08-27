@@ -87,7 +87,7 @@ export function NavUser({
           const email = authUser.email || profile?.email || "usuario@kanpro.com";
           const avatar =
             profile?.avatar_url || authUser.user_metadata?.avatar_url || "";
-          const role = (profile?.role || authUser.user_metadata?.role || "candidate") as NavUserData["role"];
+          const role = (profile?.role || (authUser.user_metadata?.role === "company" ? "company" : "candidate")) as NavUserData["role"];
 
           setUserData({ name, email, avatar, role });
         }
