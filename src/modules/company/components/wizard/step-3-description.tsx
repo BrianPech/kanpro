@@ -69,33 +69,33 @@ export function Step3Description({ form }: Step3DescriptionProps) {
   };
 
   return (
-    <div className="space-y-8">
-      {/* 1. Editor Enriquecido para Descripción y Responsabilidades */}
+    <div className="space-y-6">
+      {/* 1. Editor Enriquecido de Descripción */}
       <form.Field name="description">
         {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
         {(field: any) => (
-          <Field data-invalid={Boolean(field.state.meta.errors?.length)} className="space-y-2.5">
+          <Field data-invalid={Boolean(field.state.meta.errors?.length)} className="space-y-2">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <div className="size-6 rounded-lg bg-primary/10 text-primary flex items-center justify-center shrink-0">
-                  <FileText className="size-3.5" />
-                </div>
-                <FieldLabel htmlFor="description" className="text-xs font-bold uppercase tracking-wider text-foreground">
+                <FileText className="size-4 text-primary" />
+                <FieldLabel htmlFor="description" className="text-sm font-semibold text-foreground">
                   Descripción del Puesto & Responsabilidades <span className="text-rose-500">*</span>
                 </FieldLabel>
               </div>
-              <span className="text-[11px] text-muted-foreground font-medium">
-                Soporta formato enriquecido y listas
+              <span className="text-xs text-muted-foreground font-medium">
+                Editor enriquecido (Markdown)
               </span>
             </div>
-            <RichTextEditor
-              value={field.state.value || ""}
-              onChange={(html) => field.handleChange(html)}
-              placeholder="Describe detalladamente las funciones principales, actividades del día a día y qué esperas del candidato ideal..."
-              minHeight="280px"
-            />
+            <div className="rounded-2xl border border-border/80 overflow-hidden shadow-2xs">
+              <RichTextEditor
+                value={field.state.value || ""}
+                onChange={(html) => field.handleChange(html)}
+                placeholder="Describe detalladamente las funciones principales, responsabilidades del puesto y el perfil general del candidato..."
+                minHeight="260px"
+              />
+            </div>
             <FieldDescription className="text-xs text-muted-foreground">
-              Una descripción estructurada con viñetas claras permite a los candidatos evaluar rápidamente su afinidad con el puesto.
+              Una descripción organizada y clara con viñetas facilita la postulación de candidatos idóneos.
             </FieldDescription>
             {field.state.meta.errors?.[0] && (
               <FieldError>{field.state.meta.errors[0]}</FieldError>
@@ -105,7 +105,7 @@ export function Step3Description({ form }: Step3DescriptionProps) {
       </form.Field>
 
       {/* 2. Experiencia y Escolaridad en 2 Columnas */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 pt-2 border-t border-border/50">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-5 sm:gap-6 pt-2 border-t border-border/60">
         {/* Experiencia Laboral */}
         <form.Field name="experience_required">
           {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
@@ -113,7 +113,7 @@ export function Step3Description({ form }: Step3DescriptionProps) {
             <Field data-invalid={Boolean(field.state.meta.errors?.length)} className="space-y-2">
               <div className="flex items-center gap-2">
                 <Award className="size-3.5 text-muted-foreground" />
-                <FieldLabel className="text-xs font-bold uppercase tracking-wider text-foreground">
+                <FieldLabel className="text-sm font-semibold text-foreground">
                   Experiencia Laboral Requerida
                 </FieldLabel>
               </div>
@@ -121,15 +121,15 @@ export function Step3Description({ form }: Step3DescriptionProps) {
                 value={field.state.value || "Sin experiencia previa"}
                 onValueChange={(val) => field.handleChange(val)}
               >
-                <SelectTrigger className="h-12 rounded-xl bg-background border-border/70 text-sm font-semibold cursor-pointer shadow-2xs">
+                <SelectTrigger className="h-11 w-full rounded-2xl bg-input/50 border border-border/80 px-3.5 text-sm font-medium cursor-pointer shadow-2xs">
                   <SelectValue placeholder="Selecciona la experiencia" />
                 </SelectTrigger>
-                <SelectContent className="rounded-xl border border-border/60 bg-popover shadow-xl">
+                <SelectContent className="rounded-2xl border border-border/60 bg-popover shadow-xl">
                   {EXPERIENCE_LEVELS.map((exp) => (
                     <SelectItem
                       key={exp}
                       value={exp}
-                      className="text-xs font-semibold rounded-lg cursor-pointer py-2.5"
+                      className="text-xs font-semibold rounded-xl cursor-pointer py-2.5"
                     >
                       {exp}
                     </SelectItem>
@@ -150,7 +150,7 @@ export function Step3Description({ form }: Step3DescriptionProps) {
             <Field data-invalid={Boolean(field.state.meta.errors?.length)} className="space-y-2">
               <div className="flex items-center gap-2">
                 <GraduationCap className="size-3.5 text-muted-foreground" />
-                <FieldLabel className="text-xs font-bold uppercase tracking-wider text-foreground">
+                <FieldLabel className="text-sm font-semibold text-foreground">
                   Nivel de Estudios Mínimo
                 </FieldLabel>
               </div>
@@ -158,15 +158,15 @@ export function Step3Description({ form }: Step3DescriptionProps) {
                 value={field.state.value || "Indistinto"}
                 onValueChange={(val) => field.handleChange(val)}
               >
-                <SelectTrigger className="h-12 rounded-xl bg-background border-border/70 text-sm font-semibold cursor-pointer shadow-2xs">
+                <SelectTrigger className="h-11 w-full rounded-2xl bg-input/50 border border-border/80 px-3.5 text-sm font-medium cursor-pointer shadow-2xs">
                   <SelectValue placeholder="Selecciona el nivel de estudios" />
                 </SelectTrigger>
-                <SelectContent className="rounded-xl border border-border/60 bg-popover shadow-xl">
+                <SelectContent className="rounded-2xl border border-border/60 bg-popover shadow-xl">
                   {EDUCATION_LEVELS.map((edu) => (
                     <SelectItem
                       key={edu}
                       value={edu}
-                      className="text-xs font-semibold rounded-lg cursor-pointer py-2.5"
+                      className="text-xs font-semibold rounded-xl cursor-pointer py-2.5"
                     >
                       {edu}
                     </SelectItem>
@@ -188,19 +188,17 @@ export function Step3Description({ form }: Step3DescriptionProps) {
           const skillsList: string[] = field.state.value || [];
 
           return (
-            <Field className="space-y-4 pt-2 border-t border-border/50">
+            <Field className="space-y-3 pt-2 border-t border-border/60">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                  <div className="size-6 rounded-lg bg-primary/10 text-primary flex items-center justify-center shrink-0">
-                    <Tag className="size-3.5" />
-                  </div>
-                  <FieldLabel className="text-xs font-bold uppercase tracking-wider text-foreground">
+                  <Tag className="size-4 text-primary" />
+                  <FieldLabel className="text-sm font-semibold text-foreground">
                     Habilidades & Competencias Clave ({skillsList.length} agregadas)
                   </FieldLabel>
                 </div>
               </div>
               <FieldDescription className="text-xs text-muted-foreground">
-                Agrega palabras clave sobre las competencias deseadas para mejorar el match automático con los candidatos:
+                Agrega palabras clave sobre las competencias deseadas para mejorar la coincidencia con los candidatos:
               </FieldDescription>
 
               {/* Chips de Habilidades Seleccionadas */}
@@ -210,7 +208,7 @@ export function Step3Description({ form }: Step3DescriptionProps) {
                     <Badge
                       key={skill}
                       variant="secondary"
-                      className="px-3.5 py-1.5 rounded-xl font-bold text-xs gap-2 bg-background border border-border/70 text-foreground shadow-2xs"
+                      className="px-3 py-1.5 rounded-xl font-bold text-xs gap-2 bg-input/40 border border-border/80 text-foreground shadow-2xs"
                     >
                       <span>{skill}</span>
                       <button
@@ -227,7 +225,7 @@ export function Step3Description({ form }: Step3DescriptionProps) {
               )}
 
               {/* Sugerencias Rápidas */}
-              <div className="space-y-1.5">
+              <div className="space-y-1.5 pt-1">
                 <span className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider flex items-center gap-1">
                   <Sparkles className="size-3 text-primary" />
                   <span>Sugerencias Populares (clic para agregar):</span>
@@ -240,7 +238,7 @@ export function Step3Description({ form }: Step3DescriptionProps) {
                       variant="outline"
                       size="sm"
                       onClick={() => handleAddSuggestedSkill(field, suggestion)}
-                      className="h-7 px-3 rounded-lg text-xs font-medium text-muted-foreground hover:text-primary hover:border-primary/50 transition-all cursor-pointer"
+                      className="h-7 px-2.5 rounded-lg text-xs font-medium text-muted-foreground hover:text-primary hover:border-primary/50 transition-all cursor-pointer"
                     >
                       + {suggestion}
                     </Button>
@@ -260,14 +258,14 @@ export function Step3Description({ form }: Step3DescriptionProps) {
                     }
                   }}
                   placeholder="Escribe otra habilidad o competencia y presiona Enter..."
-                  className="h-11 rounded-xl bg-background border-border/70 text-xs font-medium shadow-2xs"
+                  className="h-11 rounded-2xl bg-input/50 border border-border/80 px-3.5 text-xs font-medium shadow-2xs"
                 />
                 <Button
                   type="button"
                   variant="outline"
                   onClick={() => handleAddSkill(field)}
                   disabled={!skillInput.trim()}
-                  className="h-11 px-5 rounded-xl text-xs font-bold shrink-0 cursor-pointer"
+                  className="h-11 px-4 rounded-2xl text-xs font-bold shrink-0 cursor-pointer"
                 >
                   <Plus className="size-4 mr-1" />
                   <span>Agregar</span>

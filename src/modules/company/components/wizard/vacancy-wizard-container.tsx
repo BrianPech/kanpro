@@ -10,9 +10,6 @@ import {
   Save,
   RotateCcw,
   Loader2,
-  Briefcase,
-  MapPin,
-  FileText,
   Check,
   Eye,
 } from "lucide-react";
@@ -25,8 +22,6 @@ import {
   StepperTrigger,
   StepperIndicator,
   StepperTitle,
-  StepperDescription,
-  StepperSeparator,
   StepperPanel,
   StepperContent,
 } from "@/components/reui/stepper";
@@ -44,7 +39,6 @@ import {
   vacancyWizardSchema,
   type VacancyWizardValues,
 } from "../../schemas/vacancy-wizard.schema";
-import { type VacancyPreset } from "../../data/vacancy-presets";
 import { Step1Basic } from "./step-1-basic";
 import { Step2Compensation } from "./step-2-compensation";
 import { Step3Description } from "./step-3-description";
@@ -63,26 +57,18 @@ export const WIZARD_STEPS = [
   {
     id: 1,
     label: "Puesto",
-    sublabel: "Rol y Jornada",
-    icon: Briefcase,
   },
   {
     id: 2,
     label: "Ubicación & Sueldo",
-    sublabel: "Zona y Beneficios",
-    icon: MapPin,
   },
   {
     id: 3,
     label: "Descripción",
-    sublabel: "Detalles y Requisitos",
-    icon: FileText,
   },
   {
     id: 4,
     label: "Publicación",
-    sublabel: "Contacto y Preview",
-    icon: Send,
   },
 ];
 
@@ -264,27 +250,6 @@ export function VacancyWizardContainer({
   React.useEffect(() => {
     saveDraftDebounced(form.state.values);
   }, [form.state.values, saveDraftDebounced]);
-
-  // Apply quick preset
-  const handleApplyPreset = (preset: VacancyPreset) => {
-    form.setFieldValue("title", preset.title);
-    form.setFieldValue("category", preset.category);
-    form.setFieldValue("employment_type", preset.employment_type);
-    form.setFieldValue("shift_schedule", preset.shift_schedule);
-    form.setFieldValue("salary_min", preset.salary_min);
-    form.setFieldValue("salary_max", preset.salary_max);
-    form.setFieldValue("payment_frequency", preset.payment_frequency);
-    form.setFieldValue("benefits", preset.benefits);
-    form.setFieldValue("description", preset.description);
-    form.setFieldValue("skills", preset.skills);
-    form.setFieldValue("experience_required", preset.experience_required);
-    form.setFieldValue("education_level", preset.education_level);
-
-    toast.success(`Plantilla aplicada: ${preset.name}`, {
-      description:
-        "Puedes ajustar cualquiera de los datos según las necesidades de tu empresa.",
-    });
-  };
 
   // Validate current step before advancing
   const validateStep = (step: number): boolean => {
@@ -539,7 +504,7 @@ export function VacancyWizardContainer({
   }, [formValues, vacancyId]);
 
   return (
-    <div className="w-full max-w-5xl mx-auto space-y-6 animate-in fade-in duration-300 pb-16 font-sans">
+    <div className="w-full max-w-4xl mx-auto space-y-6 animate-in fade-in duration-300 pb-16 font-sans">
       {/* 1. Header Toolbar */}
       <div className="flex items-center justify-between gap-4">
         <Link
@@ -557,7 +522,7 @@ export function VacancyWizardContainer({
             variant="outline"
             size="sm"
             onClick={() => setShowPreviewDrawer(true)}
-            className="h-8 px-3 rounded-xl text-xs font-semibold text-foreground border-border/70 hover:bg-muted gap-1.5 cursor-pointer shadow-2xs"
+            className="h-8 px-3 rounded-xl text-xs font-semibold text-foreground border-border/80 hover:bg-muted gap-1.5 cursor-pointer shadow-2xs"
           >
             <Eye className="size-3.5 text-primary" />
             <span>Vista Previa</span>
@@ -578,20 +543,19 @@ export function VacancyWizardContainer({
         </div>
       </div>
 
-      {/* 2. Modern Multi-step Stepper Component */}
+      {/* 2. Minimalist Reference Stepper */}
       <Stepper
         value={currentStep}
         onValueChange={handleStepChange}
         className="space-y-6"
       >
-        {/* Stepper Navigation Bar */}
-        <Card className="bg-card border border-border/60 rounded-3xl p-2 sm:p-3 shadow-xs">
-          <StepperNav className="gap-1 sm:gap-2">
+        {/* Stepper Navigation: Centered Minimalist Row matching Reference Image */}
+        <div className="py-2">
+          <StepperNav className="flex items-center justify-between max-w-xl mx-auto px-4 gap-2">
             {WIZARD_STEPS.map((step) => {
               const isCompleted = currentStep > step.id;
               const isCurrent = currentStep === step.id;
               const isAccessible = step.id <= maxAccessibleStep;
-              const Icon = step.icon;
 
               return (
                 <StepperItem
@@ -599,90 +563,65 @@ export function VacancyWizardContainer({
                   step={step.id}
                   completed={isCompleted}
                   disabled={!isAccessible}
-                  className="flex-1"
+                  className="flex-1 flex flex-col items-center"
                 >
                   <StepperTrigger
                     className={cn(
-                      "w-full justify-start p-2 sm:p-3 rounded-2xl transition-all select-none text-left cursor-pointer",
-                      isCurrent
-                        ? "bg-primary text-primary-foreground shadow-xs"
-                        : isCompleted
-                        ? "hover:bg-muted/60 text-foreground"
-                        : "text-muted-foreground hover:bg-muted/30 opacity-70",
-                      !isAccessible && "cursor-not-allowed opacity-50"
+                      "flex flex-col items-center gap-2 p-1.5 rounded-xl transition-all cursor-pointer select-none group w-full",
+                      !isAccessible && "cursor-not-allowed opacity-45"
                     )}
                   >
+                    {/* Circular Indicator matching reference */}
                     <StepperIndicator
                       className={cn(
-                        "size-8 rounded-xl font-bold text-xs shrink-0 transition-colors",
+                        "size-9 sm:size-10 rounded-full font-bold text-xs sm:text-sm flex items-center justify-center transition-all shadow-2xs border-2 shrink-0",
                         isCurrent
-                          ? "bg-primary-foreground/20 text-primary-foreground"
+                          ? "bg-foreground text-background border-foreground ring-4 ring-foreground/10"
                           : isCompleted
-                          ? "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400"
-                          : "bg-muted text-muted-foreground"
+                          ? "bg-foreground text-background border-foreground"
+                          : "bg-muted text-muted-foreground border-transparent"
                       )}
                     >
                       {isCompleted ? (
                         <Check className="size-4 stroke-[3]" />
                       ) : (
-                        <Icon className="size-4" />
+                        <span>{step.id}</span>
                       )}
                     </StepperIndicator>
 
-                    <div className="flex flex-col min-w-0 pr-1">
-                      <span
-                        className={cn(
-                          "text-[10px] font-extrabold uppercase tracking-wider",
-                          isCurrent
-                            ? "text-primary-foreground/80"
-                            : "text-muted-foreground"
-                        )}
-                      >
-                        Paso {step.id}
-                      </span>
-                      <StepperTitle
-                        className={cn(
-                          "text-xs sm:text-sm font-bold truncate leading-tight mt-0.5",
-                          isCurrent
-                            ? "text-primary-foreground font-extrabold"
-                            : "text-foreground"
-                        )}
-                      >
-                        {step.label}
-                      </StepperTitle>
-                      <StepperDescription
-                        className={cn(
-                          "text-[11px] truncate hidden md:block mt-0.5",
-                          isCurrent
-                            ? "text-primary-foreground/75"
-                            : "text-muted-foreground"
-                        )}
-                      >
-                        {step.sublabel}
-                      </StepperDescription>
-                    </div>
+                    {/* Step Title Underneath */}
+                    <StepperTitle
+                      className={cn(
+                        "text-xs sm:text-sm text-center leading-tight transition-colors whitespace-nowrap",
+                        isCurrent
+                          ? "text-foreground font-bold"
+                          : isCompleted
+                          ? "text-foreground/90 font-semibold"
+                          : "text-muted-foreground font-normal"
+                      )}
+                    >
+                      {step.label}
+                    </StepperTitle>
                   </StepperTrigger>
-
-                  <StepperSeparator className="hidden lg:block self-center mx-1" />
                 </StepperItem>
               );
             })}
           </StepperNav>
-        </Card>
+        </div>
 
-        {/* 3. Main Form Panel Card */}
-        <Card className="bg-card border border-border/60 rounded-3xl p-6 sm:p-10 shadow-xs">
+        {/* 3. Main Form Card Container */}
+        <Card className="bg-card border border-border/80 rounded-3xl p-6 sm:p-10 shadow-xs">
           <form
             onSubmit={(e) => {
               e.preventDefault();
               e.stopPropagation();
             }}
-            className="space-y-8"
+            className="space-y-6"
           >
             <StepperPanel>
               {/* Step 1: Puesto y Datos Básicos */}
               <StepperContent value={1}>
-                <Step1Basic form={form} onApplyPreset={handleApplyPreset} />
+                <Step1Basic form={form} />
               </StepperContent>
 
               {/* Step 2: Ubicación & Compensación */}
@@ -713,7 +652,7 @@ export function VacancyWizardContainer({
             </StepperPanel>
 
             {/* 4. Wizard Footer Action Controls */}
-            <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4 pt-6 border-t border-border/50">
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4 pt-6 border-t border-border/60">
               {/* Left Action Button */}
               {currentStep > 1 ? (
                 <Button
@@ -721,7 +660,7 @@ export function VacancyWizardContainer({
                   variant="outline"
                   onClick={handlePrevStep}
                   disabled={isSubmitting}
-                  className="h-12 px-6 rounded-2xl font-bold text-xs gap-2 cursor-pointer order-2 sm:order-1 border-border/70 hover:bg-muted"
+                  className="h-11 px-5 rounded-2xl font-bold text-xs gap-2 cursor-pointer order-2 sm:order-1 border-border/80 hover:bg-muted"
                 >
                   <ArrowLeft className="size-4" />
                   <span>Paso Anterior</span>
@@ -731,7 +670,7 @@ export function VacancyWizardContainer({
                   type="button"
                   variant="ghost"
                   render={<Link href="/dashboard/company/vacancies" />}
-                  className="h-12 px-5 rounded-2xl font-semibold text-xs text-muted-foreground hover:text-foreground cursor-pointer order-2 sm:order-1"
+                  className="h-11 px-5 rounded-2xl font-semibold text-xs text-muted-foreground hover:text-foreground cursor-pointer order-2 sm:order-1"
                 >
                   Cancelar
                 </Button>
@@ -743,7 +682,7 @@ export function VacancyWizardContainer({
                   <Button
                     type="button"
                     onClick={handleNextStep}
-                    className="h-12 px-7 rounded-2xl font-bold text-sm gap-2 bg-primary text-primary-foreground hover:bg-primary/90 shadow-xs cursor-pointer w-full sm:w-auto"
+                    className="h-11 px-6 rounded-2xl font-bold text-sm gap-2 bg-primary text-primary-foreground hover:bg-primary/90 shadow-2xs cursor-pointer w-full sm:w-auto"
                   >
                     <span>Continuar al Paso {currentStep + 1}</span>
                     <ArrowRight className="size-4" />
@@ -756,7 +695,7 @@ export function VacancyWizardContainer({
                       variant="outline"
                       disabled={isSubmitting}
                       onClick={() => handleFinalSubmit(false)}
-                      className="h-12 px-6 rounded-2xl font-bold text-xs sm:text-sm gap-2 border-border/70 hover:bg-muted cursor-pointer shadow-2xs"
+                      className="h-11 px-5 rounded-2xl font-bold text-xs sm:text-sm gap-2 border-border/80 hover:bg-muted cursor-pointer shadow-2xs"
                     >
                       <Save className="size-4 text-muted-foreground" />
                       <span>Guardar Borrador</span>
@@ -767,7 +706,7 @@ export function VacancyWizardContainer({
                       type="button"
                       disabled={isSubmitting}
                       onClick={() => handleFinalSubmit(true)}
-                      className="h-12 px-7 rounded-2xl font-extrabold text-xs sm:text-sm gap-2 bg-primary text-primary-foreground hover:bg-primary/90 shadow-md cursor-pointer"
+                      className="h-11 px-6 rounded-2xl font-bold text-xs sm:text-sm gap-2 bg-primary text-primary-foreground hover:bg-primary/90 shadow-xs cursor-pointer"
                     >
                       {isSubmitting ? (
                         <>

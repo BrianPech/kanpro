@@ -42,47 +42,45 @@ export function Step4Publication({
     : "";
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-6">
       {/* 1. Canal de Postulación & Contacto WhatsApp */}
-      <div className="space-y-6">
+      <div className="space-y-5">
         <div className="flex items-center gap-2">
-          <div className="size-6 rounded-lg bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0">
-            <Phone className="size-3.5" />
-          </div>
-          <span className="text-xs font-bold uppercase tracking-wider text-foreground">
+          <Phone className="size-4 text-emerald-600 dark:text-emerald-400" />
+          <span className="text-sm font-semibold text-foreground">
             Canal de Postulación & Contacto Directo <span className="text-rose-500">*</span>
           </span>
         </div>
 
-        {/* Selector de Canal Preferente con 3 Cards */}
+        {/* Selector de Canal Preferente */}
         <form.Field name="preferred_contact_method">
           {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
           {(field: any) => {
             const activeMethod = field.state.value || "whatsapp";
 
             return (
-              <Field className="space-y-3">
+              <Field className="space-y-2.5">
                 <FieldLabel className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
-                  ¿Cómo prefieres recibir a los candidatos?
+                  ¿Cómo prefieres recibir las solicitudes de los candidatos?
                 </FieldLabel>
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                   {[
                     {
                       value: "whatsapp",
                       title: "WhatsApp Directo",
-                      desc: "Los candidatos te escriben al instante por WhatsApp",
+                      desc: "Los candidatos te contactan de inmediato por WhatsApp",
                       icon: MessageSquare,
                     },
                     {
                       value: "platform",
                       title: "Bandeja K'anPro",
-                      desc: "Gestión y revisión de CVs dentro de tu panel",
+                      desc: "Gestión y filtrado de solicitudes en tu panel",
                       icon: Layers,
                     },
                     {
                       value: "both",
                       title: "Ambos Canales",
-                      desc: "Máxima captación: WhatsApp y plataforma",
+                      desc: "Máxima captación: WhatsApp directo y plataforma",
                       icon: Sparkles,
                     },
                   ].map((m) => {
@@ -97,8 +95,8 @@ export function Step4Publication({
                         className={cn(
                           "p-4 rounded-2xl border text-left flex flex-col justify-between gap-3 transition-all cursor-pointer select-none",
                           isSelected
-                            ? "bg-primary/5 border-primary text-foreground shadow-xs ring-1 ring-primary/30"
-                            : "bg-background hover:bg-muted/40 text-muted-foreground border-border/70"
+                            ? "bg-primary/5 border-primary text-foreground shadow-2xs ring-1 ring-primary/30"
+                            : "bg-input/30 hover:bg-input/60 text-muted-foreground border-border/80"
                         )}
                       >
                         <div className="flex items-center justify-between w-full">
@@ -138,11 +136,11 @@ export function Step4Publication({
           {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
           {(field: any) => (
             <Field data-invalid={Boolean(field.state.meta.errors?.length)} className="space-y-2">
-              <FieldLabel htmlFor="contact_phone" className="text-xs font-bold uppercase tracking-wider text-foreground">
+              <FieldLabel htmlFor="contact_phone" className="text-sm font-semibold text-foreground">
                 WhatsApp del Reclutador (10 dígitos) <span className="text-rose-500">*</span>
               </FieldLabel>
               <div className="relative max-w-md">
-                <span className="absolute left-4 top-1/2 -translate-y-1/2 text-sm font-bold text-muted-foreground">
+                <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-sm font-bold text-muted-foreground">
                   🇲🇽 +52
                 </span>
                 <Input
@@ -150,22 +148,22 @@ export function Step4Publication({
                   value={field.state.value || ""}
                   onChange={(e) => field.handleChange(e.target.value)}
                   placeholder="999 123 4567"
-                  className="h-12 pl-20 rounded-xl bg-background border-border/70 text-base font-semibold font-mono shadow-2xs"
+                  className="h-11 w-full pl-20 pr-3.5 rounded-2xl bg-input/50 border border-border/80 text-sm font-medium font-mono shadow-2xs"
                   maxLength={15}
                 />
               </div>
               <FieldDescription className="text-xs text-muted-foreground">
-                Número donde se recibirán las consultas de candidatos calificados.
+                Número oficial donde los candidatos enviarán sus postulaciones y dudas del puesto.
               </FieldDescription>
               {field.state.meta.errors?.[0] && (
                 <FieldError>{field.state.meta.errors[0]}</FieldError>
               )}
 
               {whatsappTestUrl && (
-                <div className="pt-2 flex items-center justify-between max-w-md">
+                <div className="pt-1.5 flex items-center justify-between max-w-md">
                   <span className="text-xs text-emerald-600 dark:text-emerald-400 font-semibold flex items-center gap-1.5">
-                    <CheckCircle2 className="size-4" />
-                    <span>Número listo para recibir postulaciones</span>
+                    <CheckCircle2 className="size-3.5" />
+                    <span>Número configurado</span>
                   </span>
                   <a
                     href={whatsappTestUrl}
@@ -184,16 +182,16 @@ export function Step4Publication({
       </div>
 
       {/* 2. Banner de Vista Previa con Drawer de shadcn */}
-      <Card className="p-6 rounded-2xl bg-muted/20 border border-primary/30 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-5 shadow-xs">
+      <Card className="p-5 rounded-2xl bg-input/20 border border-border/80 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-2xs">
         <div className="space-y-1">
           <div className="flex items-center gap-2">
             <Eye className="size-4 text-primary" />
-            <h4 className="text-sm sm:text-base font-bold text-foreground">
+            <h4 className="text-sm font-bold text-foreground">
               Revisar Ficha Completa de la Vacante
             </h4>
           </div>
           <p className="text-xs text-muted-foreground leading-relaxed max-w-xl">
-            Abre la vista previa en el componente Drawer interactivo para comprobar cómo verán los candidatos la descripción, sueldo, requisitos y datos de contacto antes de publicar.
+            Abre la vista previa en el componente Drawer interactivo para comprobar cómo verán los candidatos la descripción, sueldo, requisitos y contacto antes de publicar.
           </p>
         </div>
 
@@ -201,9 +199,9 @@ export function Step4Publication({
           type="button"
           onClick={onOpenPreviewDrawer}
           variant="outline"
-          className="h-11 px-5 rounded-xl font-bold text-xs gap-2 border-primary/50 text-primary hover:bg-primary/10 cursor-pointer shrink-0 shadow-xs"
+          className="h-11 px-5 rounded-2xl font-bold text-xs gap-2 border-border/80 hover:bg-muted cursor-pointer shrink-0 shadow-2xs"
         >
-          <Eye className="size-4" />
+          <Eye className="size-4 text-primary" />
           <span>Ver en Drawer</span>
         </Button>
       </Card>
