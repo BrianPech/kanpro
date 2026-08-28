@@ -1,202 +1,205 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React from "react";
 import Link from "next/link";
-import { Kanban, ArrowUpRight, Menu, X, LayoutDashboard } from "lucide-react";
-import { createClient } from "@/lib/supabase/client";
-import type { User } from "@supabase/supabase-js";
+import {
+  Kanban,
+  Briefcase,
+  Users,
+  CreditCard,
+  Compass,
+  Sparkles,
+  UserCheck,
+  ArrowRight,
+} from "lucide-react";
+import {
+  NavigationMenu,
+  NavigationMenuList,
+  NavigationMenuItem,
+  NavigationMenuTrigger,
+  NavigationMenuContent,
+  NavigationMenuLink,
+} from "@/components/ui/navigation-menu";
 
 export function Navbar() {
-  const [user, setUser] = useState<User | null>(null);
-  const [role, setRole] = useState<string | null>(null);
-  const [mobileOpen, setMobileOpen] = useState(false);
-
-  useEffect(() => {
-    const supabase = createClient();
-    async function getSession() {
-      try {
-        const { data: { user } } = await supabase.auth.getUser();
-        setUser(user);
-        if (user) {
-          const { data: profile } = await supabase
-            .from("profiles")
-            .select("role")
-            .eq("id", user.id)
-            .single();
-          setRole(profile?.role || "candidate");
-        }
-      } catch {
-        // silent
-      }
-    }
-    getSession();
-  }, []);
-
-  const dashboardUrl = role === "admin"
-    ? "/dashboard/admin"
-    : role === "company"
-      ? "/dashboard/company"
-      : "/dashboard/candidate";
-
   return (
-    <header className="sticky top-0 z-50 bg-white/95 backdrop-blur-md border-b border-[var(--color-fiord-200)]">
-      <div className="max-w-[1240px] mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex items-center justify-between h-16 sm:h-[68px]">
-          
-          {/* Brand Wordmark with Fiord Glyph */}
-          <Link href="/" className="flex items-center gap-3 group">
-            <div className="size-8 rounded-full bg-[var(--color-fiord-950)] text-white flex items-center justify-center font-bold transition-transform group-hover:scale-95 shadow-xs">
-              <Kanban className="size-4.5" />
-            </div>
-            <div className="flex items-baseline gap-2">
-              <span className="text-xl font-bold tracking-[-0.5px] text-[var(--color-fiord-950)] font-sans">
-                K&apos;anPro
-              </span>
-              <span className="text-[10px] font-mono tracking-widest text-[var(--color-fiord-600)] uppercase font-semibold hidden sm:inline">
-                SURESTE
-              </span>
-            </div>
-          </Link>
-
-          {/* Desktop Center Nav */}
-          <nav className="hidden lg:flex items-center gap-8 text-[14px] font-semibold text-[var(--color-fiord-700)]">
-            <Link href="#empresas" className="hover:text-[var(--color-fiord-950)] transition-colors">
-              Empresas
-            </Link>
-            <Link href="#candidatos" className="hover:text-[var(--color-fiord-950)] transition-colors">
-              Candidatos
-            </Link>
-            <Link href="#verificacion" className="hover:text-[var(--color-fiord-950)] transition-colors">
-              Verificación SAT
-            </Link>
-            <Link href="#planes" className="hover:text-[var(--color-fiord-950)] transition-colors">
-              Tarifas
-            </Link>
-            <Link href="#faq" className="hover:text-[var(--color-fiord-950)] transition-colors">
-              FAQ
-            </Link>
-          </nav>
-
-          {/* Right Action Group */}
-          <div className="hidden md:flex items-center gap-3">
-            {user ? (
-              <Link
-                href={dashboardUrl}
-                className="h-10 px-5 rounded-full bg-[var(--color-fiord-950)] text-white hover:bg-[var(--color-fiord-900)] text-[14px] font-semibold flex items-center gap-1.5 transition-colors shadow-xs"
-              >
-                <LayoutDashboard className="size-4" />
-                <span>Panel {role === "company" ? "Empresa" : "Candidato"}</span>
-                <ArrowUpRight className="size-4" />
-              </Link>
-            ) : (
-              <>
-                <Link
-                  href="/login"
-                  className="text-[14px] font-semibold text-[var(--color-fiord-700)] hover:text-[var(--color-fiord-950)] px-3 py-2 transition-colors"
-                >
-                  Iniciar sesión
-                </Link>
-                <Link
-                  href="/register/candidate"
-                  className="h-10 px-4.5 rounded-full border border-[var(--color-fiord-200)] bg-white hover:bg-[var(--color-fiord-50)] text-[var(--color-fiord-950)] text-[13px] font-semibold flex items-center transition-colors shadow-2xs"
-                >
-                  Soy Candidato
-                </Link>
-                <Link
-                  href="/register/company"
-                  className="h-10 px-5 rounded-full bg-[var(--color-fiord-950)] text-white hover:bg-[var(--color-fiord-900)] text-[13px] font-semibold flex items-center gap-1 transition-colors shadow-xs"
-                >
-                  <span>Publicar vacante</span>
-                  <ArrowUpRight className="size-3.5" />
-                </Link>
-              </>
-            )}
+    <header className="sticky top-0 z-50 w-full backdrop-blur-md transition-all">
+      <div className="mx-auto flex h-20 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
+        {/* 1. Identidad de marca (Izquierda): Logo + Nombre con enlace a '/' */}
+        <Link
+          href="/"
+          className="group flex items-center gap-3 transition-opacity hover:opacity-90"
+        >
+          <div className="flex size-10 items-center justify-center rounded-xl bg-slate-900 text-white shadow-sm transition-transform duration-200 group-hover:scale-105">
+            <Kanban className="size-5" />
           </div>
+          <span className="font-sans text-xl font-bold tracking-tight text-slate-900">
+            K’anPro
+          </span>
+        </Link>
 
-          {/* Mobile Hamburger */}
-          <button
-            onClick={() => setMobileOpen(!mobileOpen)}
-            className="lg:hidden p-2 rounded-full text-[var(--color-fiord-950)] hover:bg-[var(--color-fiord-50)] transition-colors"
-            aria-label="Toggle navigation"
+        {/* 2. Menú Central: Navegación por perfil y propuesta de valor */}
+        <div className="hidden lg:flex items-center">
+          <NavigationMenu align="center">
+            <NavigationMenuList className="gap-1">
+              {/* Sección: Para Empresas */}
+              <NavigationMenuItem>
+                <NavigationMenuTrigger className="bg-transparent font-medium text-slate-700 hover:bg-slate-900/5 hover:text-slate-950 focus:bg-slate-900/5">
+                  Para Empresas
+                </NavigationMenuTrigger>
+                <NavigationMenuContent className="w-[380px] p-2">
+                  <div className="flex flex-col gap-1">
+                    {/* Publicación de Vacantes */}
+                    <NavigationMenuLink
+                      href="/register/company"
+                      className="group flex items-start gap-3.5 rounded-xl p-3 text-left transition-colors hover:bg-slate-100/90"
+                    >
+                      <div className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-blue-50 text-blue-600 transition-colors group-hover:bg-blue-100">
+                        <Briefcase className="size-4.5" />
+                      </div>
+                      <div className="flex flex-col gap-0.5">
+                        <span className="text-sm font-semibold text-slate-900 leading-tight">
+                          Publicación de Vacantes
+                        </span>
+                        <p className="text-xs text-slate-500 leading-relaxed">
+                          Anuncia tus ofertas y recibe postulaciones filtradas y directas por WhatsApp.
+                        </p>
+                      </div>
+                    </NavigationMenuLink>
+
+                    {/* Búsqueda de Talento */}
+                    <NavigationMenuLink
+                      href="#candidatos"
+                      className="group flex items-start gap-3.5 rounded-xl p-3 text-left transition-colors hover:bg-slate-100/90"
+                    >
+                      <div className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-emerald-50 text-emerald-600 transition-colors group-hover:bg-emerald-100">
+                        <Users className="size-4.5" />
+                      </div>
+                      <div className="flex flex-col gap-0.5">
+                        <span className="text-sm font-semibold text-slate-900 leading-tight">
+                          Búsqueda de Talento
+                        </span>
+                        <p className="text-xs text-slate-500 leading-relaxed">
+                          Explora perfiles verificados y disponibles en Mérida y la Riviera Maya.
+                        </p>
+                      </div>
+                    </NavigationMenuLink>
+
+                    {/* Planes y Tarifas */}
+                    <NavigationMenuLink
+                      href="#planes"
+                      className="group flex items-start gap-3.5 rounded-xl p-3 text-left transition-colors hover:bg-slate-100/90"
+                    >
+                      <div className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-amber-50 text-amber-600 transition-colors group-hover:bg-amber-100">
+                        <CreditCard className="size-4.5" />
+                      </div>
+                      <div className="flex flex-col gap-0.5">
+                        <span className="text-sm font-semibold text-slate-900 leading-tight">
+                          Planes y Tarifas
+                        </span>
+                        <p className="text-xs text-slate-500 leading-relaxed">
+                          Tarifas claras sin comisiones por contratación ni cobros ocultos.
+                        </p>
+                      </div>
+                    </NavigationMenuLink>
+                  </div>
+                </NavigationMenuContent>
+              </NavigationMenuItem>
+
+              {/* Sección: Para Candidatos */}
+              <NavigationMenuItem>
+                <NavigationMenuTrigger className="bg-transparent font-medium text-slate-700 hover:bg-slate-900/5 hover:text-slate-950 focus:bg-slate-900/5">
+                  Para Candidatos
+                </NavigationMenuTrigger>
+                <NavigationMenuContent className="w-[380px] p-2">
+                  <div className="flex flex-col gap-1">
+                    {/* Explorar Vacantes */}
+                    <NavigationMenuLink
+                      href="#vacantes"
+                      className="group flex items-start gap-3.5 rounded-xl p-3 text-left transition-colors hover:bg-slate-100/90"
+                    >
+                      <div className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-indigo-50 text-indigo-600 transition-colors group-hover:bg-indigo-100">
+                        <Compass className="size-4.5" />
+                      </div>
+                      <div className="flex flex-col gap-0.5">
+                        <span className="text-sm font-semibold text-slate-900 leading-tight">
+                          Explorar Vacantes
+                        </span>
+                        <p className="text-xs text-slate-500 leading-relaxed">
+                          Acceso directo al catálogo público de empleos en Mérida y el Sureste.
+                        </p>
+                      </div>
+                    </NavigationMenuLink>
+
+                    {/* Cómo Funciona la Postulación */}
+                    <NavigationMenuLink
+                      href="#como-funciona"
+                      className="group flex items-start gap-3.5 rounded-xl p-3 text-left transition-colors hover:bg-slate-100/90"
+                    >
+                      <div className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-teal-50 text-teal-600 transition-colors group-hover:bg-teal-100">
+                        <Sparkles className="size-4.5" />
+                      </div>
+                      <div className="flex flex-col gap-0.5">
+                        <span className="text-sm font-semibold text-slate-900 leading-tight">
+                          ¿Cómo Postularme?
+                        </span>
+                        <p className="text-xs text-slate-500 leading-relaxed">
+                          Conexión directa por WhatsApp con empresas, sin intermediarios.
+                        </p>
+                      </div>
+                    </NavigationMenuLink>
+
+                    {/* Crear Expediente */}
+                    <NavigationMenuLink
+                      href="/register/candidate"
+                      className="group flex items-start gap-3.5 rounded-xl p-3 text-left transition-colors hover:bg-slate-100/90"
+                    >
+                      <div className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-purple-50 text-purple-600 transition-colors group-hover:bg-purple-100">
+                        <UserCheck className="size-4.5" />
+                      </div>
+                      <div className="flex flex-col gap-0.5">
+                        <span className="text-sm font-semibold text-slate-900 leading-tight">
+                          Crear Expediente
+                        </span>
+                        <p className="text-xs text-slate-500 leading-relaxed">
+                          Genera tu perfil digital verificado gratis para postularte en un clic.
+                        </p>
+                      </div>
+                    </NavigationMenuLink>
+                  </div>
+                </NavigationMenuContent>
+              </NavigationMenuItem>
+
+              {/* Enlace directo: Precios */}
+              <NavigationMenuItem>
+                <NavigationMenuLink
+                  href="#planes"
+                  className="inline-flex h-9 items-center justify-center rounded-2xl px-3 py-1.5 text-sm font-medium text-slate-700 transition-all hover:bg-slate-900/5 hover:text-slate-950 focus:bg-slate-900/5 focus-visible:outline-none"
+                >
+                  Precios
+                </NavigationMenuLink>
+              </NavigationMenuItem>
+            </NavigationMenuList>
+          </NavigationMenu>
+        </div>
+
+        {/* 3. Extremo derecho: Acceso y Conversión (CTAs) */}
+        <div className="flex items-center gap-2.5">
+          <Link
+            href="/login"
+            className="inline-flex h-9.5 items-center justify-center rounded-xl px-3.5 text-sm font-medium text-slate-700 transition-colors hover:bg-slate-900/5 hover:text-slate-950"
           >
-            {mobileOpen ? <X className="size-6" /> : <Menu className="size-6" />}
-          </button>
-
+            Iniciar Sesión
+          </Link>
+          <Link
+            href="/register"
+            className="inline-flex h-9.5 items-center justify-center gap-1.5 rounded-xl bg-primary px-4 text-sm font-semibold text-primary-foreground shadow-sm transition-all hover:bg-primary/90 hover:shadow active:scale-[0.98]"
+          >
+            <span>Registrarse</span>
+            <ArrowRight className="size-3.5" />
+          </Link>
         </div>
       </div>
-
-      {/* Mobile Drawer */}
-      {mobileOpen && (
-        <div className="lg:hidden bg-white border-b border-[var(--color-fiord-200)] px-6 py-6 space-y-4 shadow-lg text-left">
-          <nav className="flex flex-col gap-3 text-[15px] font-semibold text-[var(--color-fiord-800)]">
-            <Link
-              href="#empresas"
-              onClick={() => setMobileOpen(false)}
-              className="py-2 border-b border-[var(--color-fiord-100)]"
-            >
-              Para Empresas
-            </Link>
-            <Link
-              href="#candidatos"
-              onClick={() => setMobileOpen(false)}
-              className="py-2 border-b border-[var(--color-fiord-100)]"
-            >
-              Para Candidatos
-            </Link>
-            <Link
-              href="#verificacion"
-              onClick={() => setMobileOpen(false)}
-              className="py-2 border-b border-[var(--color-fiord-100)]"
-            >
-              Verificación SAT y Expediente
-            </Link>
-            <Link
-              href="#planes"
-              onClick={() => setMobileOpen(false)}
-              className="py-2 border-b border-[var(--color-fiord-100)]"
-            >
-              Tarifas sin comisiones
-            </Link>
-            <Link
-              href="#faq"
-              onClick={() => setMobileOpen(false)}
-              className="py-2"
-            >
-              Preguntas frecuentes
-            </Link>
-          </nav>
-
-          <div className="pt-3 flex flex-col gap-2.5">
-            {user ? (
-              <Link
-                href={dashboardUrl}
-                onClick={() => setMobileOpen(false)}
-                className="w-full h-11 rounded-full bg-[var(--color-fiord-950)] text-white font-semibold text-[14px] flex items-center justify-center shadow-xs"
-              >
-                Ir a mi Panel ({role === "company" ? "Empresa" : "Candidato"})
-              </Link>
-            ) : (
-              <>
-                <Link
-                  href="/login"
-                  onClick={() => setMobileOpen(false)}
-                  className="w-full h-11 rounded-full border border-[var(--color-fiord-200)] text-[var(--color-fiord-950)] font-semibold text-[14px] flex items-center justify-center hover:bg-[var(--color-fiord-50)]"
-                >
-                  Iniciar sesión
-                </Link>
-                <Link
-                  href="/register/company"
-                  onClick={() => setMobileOpen(false)}
-                  className="w-full h-11 rounded-full bg-[var(--color-fiord-950)] text-white font-semibold text-[14px] flex items-center justify-center gap-1.5 shadow-xs"
-                >
-                  <span>Publicar vacante como Empresa</span>
-                  <ArrowUpRight className="size-4" />
-                </Link>
-              </>
-            )}
-          </div>
-        </div>
-      )}
     </header>
   );
 }
