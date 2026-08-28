@@ -1,32 +1,37 @@
-# BRIEFING — 2026-08-26T11:00:46Z
+# BRIEFING — 2026-08-27T10:41:05Z
 
 ## Mission
-Orchestrate the complete security hardening of the K'anPro admin creation flow and fix P0/P1 privilege escalation vulnerabilities.
+Implement a verifiable Defense-in-Depth RBAC architecture across PostgreSQL RLS/triggers, centralized server guards, 33 server actions, cryptographic impersonation, billing/PII protection, UI synchronization, and adversarial test suite per Phase 0 Blueprint and Phase 1 10-step plan.
 
 ## 🔒 My Identity
 - Archetype: sentinel
 - Working directory: /Users/brianpech/Developer/Commercial/kanpro/.agents/sentinel
-- Orchestrator: 6cecd5f4-330f-445f-9d8e-dc58c11455a5
-- Victory Auditor: baf9a16f-40d3-4a4d-9f4f-127a33366046
+- Orchestrator: 2cc9893f-6efd-44ed-b85b-6f912ce3f931
+- Victory Auditor: to be spawned on victory claim
 
 ## 🔒 Key Constraints
 - No technical decisions — relay only
 - Victory Audit is MANDATORY before reporting completion
-- Must route to teamwork_preview_orchestrator for multi-agent execution
+- Defense-in-Depth: authorization at DB (PostgreSQL RLS + SECURITY DEFINER), Backend (Server Actions + central guards), Lifecycle, and UI
+- Zero modification/skipping of existing 93 tests
+- Mandatory STOP CONDITION on architectural conflict
+- Generate docs/security/RBAC_HARDENING_BLUEPRINT.md and docs/security/RBAC_HARDENING_FINAL_AUDIT.md
 
 ## User Context
-- **Last user request**: Complete security hardening of admin creation flow and fix P0/P1 vulnerabilities (handle_new_user, createAdminStaffMember, auth/callback, dashboard-session, 12 test cases).
+- **Last user request**: Verifiable Defense-in-Depth RBAC implementation (Fase 0 Blueprint + Fase 1 10-step implementation + 33-case adversarial test suite).
 - **Pending clarifications**: none
-- **Delivered results**: [Hardened handle_new_user SQL migration, Server-only admin client, Refactored createAdminStaffMember with rollback, Sanitized auth callback & session, Admin bootstrap runbook, 12 AC automated security tests (100% pass), Clean typecheck, lint, and build]
+- **Delivered results**: previous audit reports in docs/security/
 
 ## Project Status
-- **Phase**: complete
+- **Phase**: in progress
 
 ## Victory Audit Status
-- **Triggered**: yes
-- **Verdict**: VICTORY CONFIRMED
+- **Triggered**: no
+- **Verdict**: pending
 - **Retry count**: 0
 
 ## Artifact Index
-- /Users/brianpech/Developer/Commercial/kanpro/.agents/ORIGINAL_REQUEST.md — Verbatim user request
-- /Users/brianpech/Developer/Commercial/kanpro/ORIGINAL_REQUEST.md — Verbatim user request at workspace root
+- /Users/brianpech/Developer/Commercial/kanpro/.agents/ORIGINAL_REQUEST.md — Authoritative user requests
+- /Users/brianpech/Developer/Commercial/kanpro/docs/security/RBAC_HARDENING_BLUEPRINT.md — Phase 0 Blueprint
+- /Users/brianpech/Developer/Commercial/kanpro/docs/security/RBAC_HARDENING_FINAL_AUDIT.md — Phase 1 Final Audit
+
