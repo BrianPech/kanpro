@@ -8,7 +8,7 @@ import {
   DEFAULT_WIZARD_VALUES,
 } from "../vacancy-wizard.schema";
 import { VACANCY_PRESETS } from "../../data/vacancy-presets";
-import { WIZARD_STEPS } from "../../components/wizard/step-indicator";
+import { WIZARD_STEPS } from "../../components/wizard/vacancy-wizard-container";
 
 describe("Vacancy Wizard Validation Schemas", () => {
   describe("Step 1: Puesto y Datos Básicos", () => {

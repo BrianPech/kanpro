@@ -94,6 +94,7 @@ import { cn } from "@/lib/utils";
 import { createClient } from "@/lib/supabase/client";
 import { useVacancyManager, type VacancyRow } from "@/modules/company/hooks/use-vacancy-manager";
 import { cloneVacancyAction } from "../actions/vacancies";
+import { VacancyPreviewDrawer } from "./vacancy-preview-drawer";
 
 export interface VacancyItem extends VacancyRow {
   applicants_count?: number;
@@ -101,6 +102,7 @@ export interface VacancyItem extends VacancyRow {
 
 export function VacanciesManager({ userId }: { userId: string }) {
   const [vacancies, setVacancies] = React.useState<VacancyItem[]>([]);
+  const [previewVacancy, setPreviewVacancy] = React.useState<VacancyItem | null>(null);
   const [searchQuery, setSearchQuery] = React.useState("");
   const [deletingVacancyId, setDeletingVacancyId] = React.useState<string | null>(null);
 
@@ -207,7 +209,7 @@ export function VacanciesManager({ userId }: { userId: string }) {
     return !name || name === "Nueva Empresa" || !addr;
   }, [profile, loadingProfile]);
 
-  const handleToggleActive = async (vacancyId: string, currentActive: boolean) => {
+  const handleToggleActive = React.useCallback(async (vacancyId: string, currentActive: boolean) => {
     const nextState = !currentActive;
     try {
       const success = await toggleVacancyStatus(vacancyId, nextState);
@@ -223,6 +225,15 @@ export function VacanciesManager({ userId }: { userId: string }) {
               : v
           )
         );
+        setPreviewVacancy((prev) =>
+          prev && prev.id === vacancyId
+            ? {
+                ...prev,
+                is_active: nextState,
+                status: nextState ? "Activa" : "Cerrada",
+              }
+            : prev
+        );
         toast.success(
           nextState ? "Vacante activada con éxito" : "Vacante pausada",
           {
@@ -232,30 +243,30 @@ export function VacanciesManager({ userId }: { userId: string }) {
           }
         );
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
       toast.error("Error al actualizar la vacante", {
-        description: err.message,
+        description: (err as Error).message,
       });
     }
-  };
+  }, [toggleVacancyStatus]);
 
-  const confirmDeleteVacancy = async (id: string) => {
+  const confirmDeleteVacancy = React.useCallback(async (id: string) => {
     try {
       const success = await deleteVacancy(id);
       if (success) {
         setVacancies((prev) => prev.filter((v) => v.id !== id));
         toast.success("Vacante eliminada con éxito");
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
       toast.error("Error al eliminar la vacante", {
-        description: err.message,
+        description: (err as Error).message,
       });
     } finally {
       setDeletingVacancyId(null);
     }
-  };
+  }, [deleteVacancy]);
 
-  const handleCloneVacancy = async (id: string) => {
+  const handleCloneVacancy = React.useCallback(async (id: string) => {
     try {
       toast.loading("Duplicando vacante...", { id: "clone-vac" });
       const res = await cloneVacancyAction(id);
@@ -266,13 +277,13 @@ export function VacanciesManager({ userId }: { userId: string }) {
         });
         await loadVacancies();
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
       toast.error("Error al duplicar vacante", {
         id: "clone-vac",
-        description: err.message || "No se pudo duplicar la vacante.",
+        description: (err as Error).message || "No se pudo duplicar la vacante.",
       });
     }
-  };
+  }, [loadVacancies]);
 
   const handleBatchStatusChange = async (
     ids: string[],
@@ -745,13 +756,13 @@ export function VacanciesManager({ userId }: { userId: string }) {
           const vacancy = row.original;
           return (
             <div className="flex items-center justify-end gap-1 py-1">
-              {/* Eye Button: View Vacancy Details */}
+              {/* Eye Button: View Vacancy Details in Drawer */}
               <Button
                 variant="ghost"
                 size="icon"
-                render={<Link href={`/dashboard/company/vacancies/${vacancy.id}`} />}
+                onClick={() => setPreviewVacancy(vacancy)}
                 className="size-8 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted p-1 cursor-pointer transition-colors"
-                title="Ver detalle de la vacante"
+                title="Vista previa rápida de la vacante"
               >
                 <Eye className="size-4" />
               </Button>
@@ -784,12 +795,20 @@ export function VacanciesManager({ userId }: { userId: string }) {
                   className="rounded-xl border border-border/50 bg-popover min-w-[190px] shadow-lg p-1.5"
                 >
                   <DropdownMenuItem
+                    onSelect={() => setPreviewVacancy(vacancy)}
+                    className="cursor-pointer text-xs font-semibold rounded-lg hover:bg-muted py-2 px-2.5 gap-2 text-foreground"
+                  >
+                    <Eye className="size-3.5 text-primary" />
+                    <span>Vista previa rápida</span>
+                  </DropdownMenuItem>
+
+                  <DropdownMenuItem
                     render={
                       <Link href={`/dashboard/company/vacancies/${vacancy.id}`} />
                     }
                     className="cursor-pointer text-xs font-semibold rounded-lg hover:bg-muted py-2 px-2.5 gap-2"
                   >
-                    <Eye className="size-3.5 text-muted-foreground" />
+                    <ExternalLink className="size-3.5 text-muted-foreground" />
                     <span>Ver detalle público</span>
                   </DropdownMenuItem>
 
@@ -860,7 +879,7 @@ export function VacanciesManager({ userId }: { userId: string }) {
         },
       },
     ],
-    []
+    [handleCloneVacancy, handleToggleActive]
   );
 
   // TanStack Table Instance
@@ -1324,8 +1343,19 @@ export function VacanciesManager({ userId }: { userId: string }) {
                     <TableRow
                       key={row.id}
                       data-state={row.getIsSelected() && "selected"}
+                      onClick={(e) => {
+                        const target = e.target as HTMLElement;
+                        if (
+                          target.closest(
+                            "button, a, input, [role='checkbox'], [data-slot='dropdown-menu-trigger']"
+                          )
+                        ) {
+                          return;
+                        }
+                        setPreviewVacancy(row.original);
+                      }}
                       className={cn(
-                        "hover:bg-muted/25 transition-colors group",
+                        "hover:bg-muted/30 transition-colors group cursor-pointer",
                         !row.original.is_active && "opacity-75 bg-muted/5"
                       )}
                     >
@@ -1422,6 +1452,16 @@ export function VacanciesManager({ userId }: { userId: string }) {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Vacancy Preview Drawer */}
+      <VacancyPreviewDrawer
+        vacancy={previewVacancy}
+        open={!!previewVacancy}
+        onOpenChange={(open) => !open && setPreviewVacancy(null)}
+        onToggleActive={handleToggleActive}
+        formatSalary={formatSalary}
+        formatDate={formatDate}
+      />
     </div>
   );
 }

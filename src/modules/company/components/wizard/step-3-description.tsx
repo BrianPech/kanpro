@@ -1,11 +1,16 @@
 "use client";
 
 import * as React from "react";
-import { FileText, Award, GraduationCap, Plus, X, Tag } from "lucide-react";
-import { Label } from "@/components/ui/label";
+import { FileText, Award, GraduationCap, Plus, X, Tag, Sparkles } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import {
+  Field,
+  FieldLabel,
+  FieldDescription,
+  FieldError,
+} from "@/components/ui/field";
 import {
   Select,
   SelectContent,
@@ -19,13 +24,26 @@ import {
   EDUCATION_LEVELS,
 } from "../../schemas/vacancy-wizard.schema";
 
+const SUGGESTED_SKILLS = [
+  "Atención al cliente",
+  "Puntualidad",
+  "Trabajo en equipo",
+  "Manejo de caja",
+  "Comunicación asertiva",
+  "Resolución de problemas",
+  "Organización",
+  "Actitud de servicio",
+];
+
 interface Step3DescriptionProps {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   form: any;
 }
 
 export function Step3Description({ form }: Step3DescriptionProps) {
   const [skillInput, setSkillInput] = React.useState("");
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const handleAddSkill = (field: any) => {
     const trimmed = skillInput.trim();
     if (!trimmed) return;
@@ -36,147 +54,202 @@ export function Step3Description({ form }: Step3DescriptionProps) {
     setSkillInput("");
   };
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const handleAddSuggestedSkill = (field: any, skill: string) => {
+    const current: string[] = field.state.value || [];
+    if (!current.includes(skill)) {
+      field.handleChange([...current, skill]);
+    }
+  };
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const handleRemoveSkill = (field: any, skillToRemove: string) => {
     const current: string[] = field.state.value || [];
-    field.handleChange(current.filter((s) => s !== skillToRemove));
+    field.handleChange(current.filter((s: string) => s !== skillToRemove));
   };
 
   return (
-    <div className="space-y-6">
-      {/* 1. Tiptap Rich Text Editor */}
-      <form.Field
-        name="description"
-        children={(field: any) => (
-          <div className="space-y-2">
+    <div className="space-y-8">
+      {/* 1. Editor Enriquecido para Descripción y Responsabilidades */}
+      <form.Field name="description">
+        {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
+        {(field: any) => (
+          <Field data-invalid={Boolean(field.state.meta.errors?.length)} className="space-y-2.5">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <FileText className="size-4 text-primary" />
-                <Label htmlFor="description" className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                <div className="size-6 rounded-lg bg-primary/10 text-primary flex items-center justify-center shrink-0">
+                  <FileText className="size-3.5" />
+                </div>
+                <FieldLabel htmlFor="description" className="text-xs font-bold uppercase tracking-wider text-foreground">
                   Descripción del Puesto & Responsabilidades <span className="text-rose-500">*</span>
-                </Label>
+                </FieldLabel>
               </div>
               <span className="text-[11px] text-muted-foreground font-medium">
-                Editor enriquecido (Markdown)
+                Soporta formato enriquecido y listas
               </span>
             </div>
             <RichTextEditor
               value={field.state.value || ""}
               onChange={(html) => field.handleChange(html)}
-              placeholder="Describe detalladamente las tareas diarias, ambiente de trabajo y qué esperas del candidato..."
-              minHeight="220px"
+              placeholder="Describe detalladamente las funciones principales, actividades del día a día y qué esperas del candidato ideal..."
+              minHeight="280px"
             />
+            <FieldDescription className="text-xs text-muted-foreground">
+              Una descripción estructurada con viñetas claras permite a los candidatos evaluar rápidamente su afinidad con el puesto.
+            </FieldDescription>
             {field.state.meta.errors?.[0] && (
-              <p className="text-xs font-semibold text-rose-500">
-                {field.state.meta.errors[0]}
-              </p>
+              <FieldError>{field.state.meta.errors[0]}</FieldError>
             )}
-          </div>
+          </Field>
         )}
-      />
+      </form.Field>
 
-      {/* 2. Experience & Education Level Grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        {/* Experience Required */}
-        <form.Field
-          name="experience_required"
-          children={(field: any) => (
-            <div className="space-y-2">
+      {/* 2. Experiencia y Escolaridad en 2 Columnas */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 pt-2 border-t border-border/50">
+        {/* Experiencia Laboral */}
+        <form.Field name="experience_required">
+          {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
+          {(field: any) => (
+            <Field data-invalid={Boolean(field.state.meta.errors?.length)} className="space-y-2">
               <div className="flex items-center gap-2">
-                <Award className="size-4 text-muted-foreground" />
-                <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                <Award className="size-3.5 text-muted-foreground" />
+                <FieldLabel className="text-xs font-bold uppercase tracking-wider text-foreground">
                   Experiencia Laboral Requerida
-                </Label>
+                </FieldLabel>
               </div>
               <Select
                 value={field.state.value || "Sin experiencia previa"}
                 onValueChange={(val) => field.handleChange(val)}
               >
-                <SelectTrigger className="h-11 rounded-xl bg-card border-border/60 text-xs sm:text-sm font-semibold cursor-pointer">
+                <SelectTrigger className="h-12 rounded-xl bg-background border-border/70 text-sm font-semibold cursor-pointer shadow-2xs">
                   <SelectValue placeholder="Selecciona la experiencia" />
                 </SelectTrigger>
-                <SelectContent className="rounded-xl border border-border/60 bg-popover shadow-lg">
+                <SelectContent className="rounded-xl border border-border/60 bg-popover shadow-xl">
                   {EXPERIENCE_LEVELS.map((exp) => (
-                    <SelectItem key={exp} value={exp} className="text-xs font-semibold rounded-lg cursor-pointer">
+                    <SelectItem
+                      key={exp}
+                      value={exp}
+                      className="text-xs font-semibold rounded-lg cursor-pointer py-2.5"
+                    >
                       {exp}
                     </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
-            </div>
+              {field.state.meta.errors?.[0] && (
+                <FieldError>{field.state.meta.errors[0]}</FieldError>
+              )}
+            </Field>
           )}
-        />
+        </form.Field>
 
-        {/* Education Level */}
-        <form.Field
-          name="education_level"
-          children={(field: any) => (
-            <div className="space-y-2">
+        {/* Nivel de Estudios */}
+        <form.Field name="education_level">
+          {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
+          {(field: any) => (
+            <Field data-invalid={Boolean(field.state.meta.errors?.length)} className="space-y-2">
               <div className="flex items-center gap-2">
-                <GraduationCap className="size-4 text-muted-foreground" />
-                <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                <GraduationCap className="size-3.5 text-muted-foreground" />
+                <FieldLabel className="text-xs font-bold uppercase tracking-wider text-foreground">
                   Nivel de Estudios Mínimo
-                </Label>
+                </FieldLabel>
               </div>
               <Select
                 value={field.state.value || "Indistinto"}
                 onValueChange={(val) => field.handleChange(val)}
               >
-                <SelectTrigger className="h-11 rounded-xl bg-card border-border/60 text-xs sm:text-sm font-semibold cursor-pointer">
+                <SelectTrigger className="h-12 rounded-xl bg-background border-border/70 text-sm font-semibold cursor-pointer shadow-2xs">
                   <SelectValue placeholder="Selecciona el nivel de estudios" />
                 </SelectTrigger>
-                <SelectContent className="rounded-xl border border-border/60 bg-popover shadow-lg">
+                <SelectContent className="rounded-xl border border-border/60 bg-popover shadow-xl">
                   {EDUCATION_LEVELS.map((edu) => (
-                    <SelectItem key={edu} value={edu} className="text-xs font-semibold rounded-lg cursor-pointer">
+                    <SelectItem
+                      key={edu}
+                      value={edu}
+                      className="text-xs font-semibold rounded-lg cursor-pointer py-2.5"
+                    >
                       {edu}
                     </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
-            </div>
+              {field.state.meta.errors?.[0] && (
+                <FieldError>{field.state.meta.errors[0]}</FieldError>
+              )}
+            </Field>
           )}
-        />
+        </form.Field>
       </div>
 
-      {/* 3. Skills Tags Input */}
-      <form.Field
-        name="skills"
-        children={(field: any) => {
+      {/* 3. Habilidades y Competencias Clave */}
+      <form.Field name="skills">
+        {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
+        {(field: any) => {
           const skillsList: string[] = field.state.value || [];
 
           return (
-            <div className="space-y-3 p-4 rounded-2xl bg-muted/30 border border-border/60">
-              <div className="flex items-center gap-2">
-                <Tag className="size-4 text-primary" />
-                <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
-                  Habilidades & Competencias Clave ({skillsList.length})
-                </Label>
+            <Field className="space-y-4 pt-2 border-t border-border/50">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <div className="size-6 rounded-lg bg-primary/10 text-primary flex items-center justify-center shrink-0">
+                    <Tag className="size-3.5" />
+                  </div>
+                  <FieldLabel className="text-xs font-bold uppercase tracking-wider text-foreground">
+                    Habilidades & Competencias Clave ({skillsList.length} agregadas)
+                  </FieldLabel>
+                </div>
               </div>
-              <p className="text-xs text-muted-foreground font-medium">
-                Agrega palabras clave sobre las competencias deseadas para mejorar el match con candidatos:
-              </p>
+              <FieldDescription className="text-xs text-muted-foreground">
+                Agrega palabras clave sobre las competencias deseadas para mejorar el match automático con los candidatos:
+              </FieldDescription>
 
-              {/* Skills Chips */}
-              <div className="flex flex-wrap gap-2 min-h-[32px]">
-                {skillsList.map((skill) => (
-                  <Badge
-                    key={skill}
-                    variant="secondary"
-                    className="px-3 py-1 rounded-xl font-bold text-xs gap-1.5 bg-card border border-border/60 text-foreground shadow-2xs"
-                  >
-                    <span>{skill}</span>
-                    <button
-                      type="button"
-                      onClick={() => handleRemoveSkill(field, skill)}
-                      className="text-muted-foreground hover:text-rose-500 cursor-pointer ml-0.5"
+              {/* Chips de Habilidades Seleccionadas */}
+              {skillsList.length > 0 && (
+                <div className="flex flex-wrap gap-2 pt-1">
+                  {skillsList.map((skill) => (
+                    <Badge
+                      key={skill}
+                      variant="secondary"
+                      className="px-3.5 py-1.5 rounded-xl font-bold text-xs gap-2 bg-background border border-border/70 text-foreground shadow-2xs"
                     >
-                      <X className="size-3" />
-                    </button>
-                  </Badge>
-                ))}
+                      <span>{skill}</span>
+                      <button
+                        type="button"
+                        onClick={() => handleRemoveSkill(field, skill)}
+                        className="text-muted-foreground hover:text-rose-500 cursor-pointer"
+                        aria-label={`Eliminar ${skill}`}
+                      >
+                        <X className="size-3.5" />
+                      </button>
+                    </Badge>
+                  ))}
+                </div>
+              )}
+
+              {/* Sugerencias Rápidas */}
+              <div className="space-y-1.5">
+                <span className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider flex items-center gap-1">
+                  <Sparkles className="size-3 text-primary" />
+                  <span>Sugerencias Populares (clic para agregar):</span>
+                </span>
+                <div className="flex flex-wrap gap-1.5">
+                  {SUGGESTED_SKILLS.filter((s) => !skillsList.includes(s)).map((suggestion) => (
+                    <Button
+                      key={suggestion}
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => handleAddSuggestedSkill(field, suggestion)}
+                      className="h-7 px-3 rounded-lg text-xs font-medium text-muted-foreground hover:text-primary hover:border-primary/50 transition-all cursor-pointer"
+                    >
+                      + {suggestion}
+                    </Button>
+                  ))}
+                </div>
               </div>
 
-              {/* Input for adding new skill */}
-              <div className="flex gap-2 pt-1">
+              {/* Campo para Escribir Nueva Habilidad */}
+              <div className="flex gap-2.5 pt-1">
                 <Input
                   value={skillInput}
                   onChange={(e) => setSkillInput(e.target.value)}
@@ -186,24 +259,24 @@ export function Step3Description({ form }: Step3DescriptionProps) {
                       handleAddSkill(field);
                     }
                   }}
-                  placeholder="Ej. Manejo de caja, Puntualidad, Distintivo H..."
-                  className="h-10 rounded-xl bg-card border-border/60 text-xs font-medium"
+                  placeholder="Escribe otra habilidad o competencia y presiona Enter..."
+                  className="h-11 rounded-xl bg-background border-border/70 text-xs font-medium shadow-2xs"
                 />
                 <Button
                   type="button"
                   variant="outline"
                   onClick={() => handleAddSkill(field)}
                   disabled={!skillInput.trim()}
-                  className="h-10 px-4 rounded-xl text-xs font-bold shrink-0 cursor-pointer"
+                  className="h-11 px-5 rounded-xl text-xs font-bold shrink-0 cursor-pointer"
                 >
-                  <Plus className="size-3.5 mr-1" />
-                  <span>Agregar Skill</span>
+                  <Plus className="size-4 mr-1" />
+                  <span>Agregar</span>
                 </Button>
               </div>
-            </div>
+            </Field>
           );
         }}
-      />
+      </form.Field>
     </div>
   );
 }

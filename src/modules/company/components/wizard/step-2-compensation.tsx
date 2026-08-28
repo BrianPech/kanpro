@@ -6,18 +6,20 @@ import {
   MapPin,
   Gift,
   Plus,
-  X,
   Check,
   Building2,
   CheckCircle2,
   Navigation,
   Loader2,
-  Sparkles,
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import {
+  Field,
+  FieldLabel,
+  FieldDescription,
+  FieldError,
+} from "@/components/ui/field";
 import {
   Select,
   SelectContent,
@@ -29,7 +31,6 @@ import {
 } from "@/components/ui/select";
 import {
   PRESET_BENEFITS,
-  type VacancyWizardValues,
 } from "../../schemas/vacancy-wizard.schema";
 import {
   getCitiesList,
@@ -42,6 +43,7 @@ import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 
 interface Step2CompensationProps {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   form: any;
   companyLocation?: string;
   companyCity?: string;
@@ -73,7 +75,6 @@ export function Step2Compensation({
   }`;
 
   const currentCityValue = form.state?.values?.location || form.getFieldValue("location") || resolvedCompanyCity;
-  const currentZoneValue = form.state?.values?.zone || form.getFieldValue("zone") || resolvedCompanyZone;
 
   const [useProfileLocation, setUseProfileLocation] = React.useState<boolean>(() => {
     const curr = form.getFieldValue("location");
@@ -87,10 +88,9 @@ export function Step2Compensation({
       if (!curr || curr === "Mérida, Yucatán" || curr === "Mérida" || curr === companyLocation) {
         form.setFieldValue("location", resolvedCompanyCity);
         form.setFieldValue("zone", resolvedCompanyZone);
-        setUseProfileLocation(true);
       }
     }
-  }, [companyCity, companyZone, resolvedCompanyCity, resolvedCompanyZone, companyLocation]);
+  }, [companyCity, companyZone, resolvedCompanyCity, resolvedCompanyZone, companyLocation, form]);
 
   // Cities grouped by state
   const cities = React.useMemo(() => getCitiesList(), []);
@@ -107,15 +107,7 @@ export function Step2Compensation({
     return Array.from(set);
   }, [currentCityValue]);
 
-  const formatMXN = (val: number | null | undefined) => {
-    if (val == null || isNaN(val)) return "$0 MXN";
-    return new Intl.NumberFormat("es-MX", {
-      style: "currency",
-      currency: "MXN",
-      maximumFractionDigits: 0,
-    }).format(val);
-  };
-
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const handleAddCustomBenefit = (field: any) => {
     const trimmed = customBenefit.trim();
     if (!trimmed) return;
@@ -126,10 +118,11 @@ export function Step2Compensation({
     setCustomBenefit("");
   };
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const toggleBenefit = (field: any, benefit: string) => {
     const current: string[] = field.state.value || [];
     if (current.includes(benefit)) {
-      field.handleChange(current.filter((b) => b !== benefit));
+      field.handleChange(current.filter((b: string) => b !== benefit));
     } else {
       field.handleChange([...current, benefit]);
     }
@@ -142,7 +135,6 @@ export function Step2Compensation({
     form.setFieldValue("location", resolvedCompanyCity);
     form.setFieldValue("zone", resolvedCompanyZone);
   };
-
 
   const handleSelectCustomLocation = () => {
     setUseProfileLocation(false);
@@ -220,7 +212,7 @@ export function Step2Compensation({
         toast.success("Ubicación GPS detectada", {
           description: `Se configuró: ${resolved.displayLocation}`,
         });
-      } catch (e) {
+      } catch {
         setIsLocating(false);
         toast.error("No se pudo resolver la ubicación exacta", {
           description: "Selecciona la ciudad y zona de la lista.",
@@ -249,53 +241,55 @@ export function Step2Compensation({
   };
 
   return (
-    <div className="space-y-6">
-      {/* 1. Company Profile Location Integration Banner */}
-      <div className="p-5 rounded-2xl bg-card border border-border/60 shadow-xs space-y-4">
+    <div className="space-y-8">
+      {/* 1. Ubicación del Puesto */}
+      <div className="space-y-4">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <MapPin className="size-4 text-primary" />
+            <div className="size-6 rounded-lg bg-primary/10 text-primary flex items-center justify-center shrink-0">
+              <MapPin className="size-3.5" />
+            </div>
             <span className="text-xs font-bold uppercase tracking-wider text-foreground">
               Ubicación del Puesto de Trabajo
             </span>
           </div>
-          <span className="text-[11px] font-bold text-muted-foreground">
+          <span className="text-xs font-semibold text-muted-foreground">
             {companyName}
           </span>
         </div>
 
-        {/* Location mode selector pills */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+        {/* Tarjetas de Selección de Modalidad de Ubicación */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <button
             type="button"
             onClick={handleSelectProfileLocation}
             className={cn(
-              "p-3.5 rounded-xl border text-left flex items-start gap-3 transition-all cursor-pointer select-none",
+              "p-4 rounded-2xl border text-left flex items-start gap-3.5 transition-all cursor-pointer select-none",
               useProfileLocation
-                ? "bg-primary/5 border-primary text-foreground shadow-2xs"
-                : "bg-muted/40 hover:bg-muted text-muted-foreground border-border/60"
+                ? "bg-primary/5 border-primary text-foreground shadow-xs ring-1 ring-primary/30"
+                : "bg-background hover:bg-muted/40 text-muted-foreground border-border/70"
             )}
           >
             <div
               className={cn(
-                "size-7 rounded-lg flex items-center justify-center shrink-0 text-xs font-bold",
+                "size-9 rounded-xl flex items-center justify-center shrink-0 text-xs font-bold transition-colors",
                 useProfileLocation
                   ? "bg-primary text-primary-foreground"
                   : "bg-muted text-muted-foreground"
               )}
             >
-              <Building2 className="size-3.5" />
+              <Building2 className="size-4" />
             </div>
             <div className="min-w-0 flex-1">
               <div className="flex items-center gap-1.5">
-                <span className="text-xs font-bold text-foreground">
-                  Ubicación de tu Perfil
+                <span className="text-sm font-bold text-foreground">
+                  Ubicación Principal de la Empresa
                 </span>
                 {useProfileLocation && (
-                  <CheckCircle2 className="size-3.5 text-primary" />
+                  <CheckCircle2 className="size-4 text-primary" />
                 )}
               </div>
-              <p className="text-[11px] text-muted-foreground truncate font-semibold mt-0.5">
+              <p className="text-xs text-muted-foreground truncate font-medium mt-1">
                 {companyLocationDisplay} • {resolvedCompanyZone}
               </p>
             </div>
@@ -305,49 +299,49 @@ export function Step2Compensation({
             type="button"
             onClick={handleSelectCustomLocation}
             className={cn(
-              "p-3.5 rounded-xl border text-left flex items-start gap-3 transition-all cursor-pointer select-none",
+              "p-4 rounded-2xl border text-left flex items-start gap-3.5 transition-all cursor-pointer select-none",
               !useProfileLocation
-                ? "bg-primary/5 border-primary text-foreground shadow-2xs"
-                : "bg-muted/40 hover:bg-muted text-muted-foreground border-border/60"
+                ? "bg-primary/5 border-primary text-foreground shadow-xs ring-1 ring-primary/30"
+                : "bg-background hover:bg-muted/40 text-muted-foreground border-border/70"
             )}
           >
             <div
               className={cn(
-                "size-7 rounded-lg flex items-center justify-center shrink-0 text-xs font-bold",
+                "size-9 rounded-xl flex items-center justify-center shrink-0 text-xs font-bold transition-colors",
                 !useProfileLocation
                   ? "bg-primary text-primary-foreground"
                   : "bg-muted text-muted-foreground"
               )}
             >
-              <Navigation className="size-3.5" />
+              <Navigation className="size-4" />
             </div>
             <div className="min-w-0 flex-1">
               <div className="flex items-center gap-1.5">
-                <span className="text-xs font-bold text-foreground">
+                <span className="text-sm font-bold text-foreground">
                   Otra Sucursal o Municipio
                 </span>
                 {!useProfileLocation && (
-                  <CheckCircle2 className="size-3.5 text-primary" />
+                  <CheckCircle2 className="size-4 text-primary" />
                 )}
               </div>
-              <p className="text-[11px] text-muted-foreground truncate font-medium mt-0.5">
-                Para sucursales en otra zona o ciudad
+              <p className="text-xs text-muted-foreground truncate font-medium mt-1">
+                Para sucursales en otra zona o municipio
               </p>
             </div>
           </button>
         </div>
 
-        {/* Location & Dynamic Zone Grid */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
-          {/* Location / City Selector */}
-          <form.Field
-            name="location"
-            children={(field: any) => (
-              <div className="space-y-2">
+        {/* Ciudad y Zona en 2 Columnas */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 pt-1">
+          {/* Ciudad o Municipio */}
+          <form.Field name="location">
+            {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
+            {(field: any) => (
+              <Field data-invalid={Boolean(field.state.meta.errors?.length)} className="space-y-2">
                 <div className="flex items-center justify-between">
-                  <Label htmlFor="location" className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                  <FieldLabel htmlFor="location" className="text-xs font-bold uppercase tracking-wider text-foreground">
                     Ciudad o Municipio <span className="text-rose-500">*</span>
-                  </Label>
+                  </FieldLabel>
                   {isCustomCityInput && (
                     <button
                       type="button"
@@ -355,9 +349,9 @@ export function Step2Compensation({
                         setIsCustomCityInput(false);
                         field.handleChange("Mérida");
                       }}
-                      className="text-[10px] font-bold text-primary hover:underline cursor-pointer"
+                      className="text-xs font-bold text-primary hover:underline cursor-pointer"
                     >
-                      Volver a lista de ciudades
+                      Volver a lista
                     </button>
                   )}
                 </div>
@@ -367,56 +361,56 @@ export function Step2Compensation({
                     value={field.state.value || resolvedCompanyCity}
                     onValueChange={handleCitySelectChange}
                   >
-                    <SelectTrigger className="h-11 rounded-xl bg-card border-border/60 text-xs sm:text-sm font-semibold cursor-pointer">
+                    <SelectTrigger className="h-12 rounded-xl bg-background border-border/70 text-sm font-semibold cursor-pointer shadow-2xs">
                       <SelectValue placeholder="Selecciona Ciudad o Municipio" />
                     </SelectTrigger>
                     <SelectContent className="rounded-xl border border-border/60 bg-popover shadow-xl max-h-72">
                       <SelectGroup>
-                        <SelectLabel className="text-[11px] font-extrabold text-primary uppercase tracking-wider px-2 py-1">
+                        <SelectLabel className="text-[11px] font-extrabold text-primary uppercase tracking-wider px-2 py-1.5">
                           Quintana Roo
                         </SelectLabel>
                         {qrooCities.map((c) => (
-                          <SelectItem key={c.name} value={c.name} className="text-xs font-semibold rounded-lg cursor-pointer">
+                          <SelectItem key={c.name} value={c.name} className="text-xs font-semibold rounded-lg cursor-pointer py-2">
                             {c.name}
                           </SelectItem>
                         ))}
                       </SelectGroup>
 
                       <SelectGroup>
-                        <SelectLabel className="text-[11px] font-extrabold text-primary uppercase tracking-wider px-2 py-1">
+                        <SelectLabel className="text-[11px] font-extrabold text-primary uppercase tracking-wider px-2 py-1.5">
                           Yucatán
                         </SelectLabel>
                         {yucCities.map((c) => (
-                          <SelectItem key={c.name} value={c.name} className="text-xs font-semibold rounded-lg cursor-pointer">
+                          <SelectItem key={c.name} value={c.name} className="text-xs font-semibold rounded-lg cursor-pointer py-2">
                             {c.name}
                           </SelectItem>
                         ))}
                       </SelectGroup>
 
                       <SelectGroup>
-                        <SelectLabel className="text-[11px] font-extrabold text-primary uppercase tracking-wider px-2 py-1">
+                        <SelectLabel className="text-[11px] font-extrabold text-primary uppercase tracking-wider px-2 py-1.5">
                           Campeche
                         </SelectLabel>
                         {campCities.map((c) => (
-                          <SelectItem key={c.name} value={c.name} className="text-xs font-semibold rounded-lg cursor-pointer">
+                          <SelectItem key={c.name} value={c.name} className="text-xs font-semibold rounded-lg cursor-pointer py-2">
                             {c.name}
                           </SelectItem>
                         ))}
                       </SelectGroup>
 
                       <SelectGroup>
-                        <SelectLabel className="text-[11px] font-extrabold text-primary uppercase tracking-wider px-2 py-1">
+                        <SelectLabel className="text-[11px] font-extrabold text-primary uppercase tracking-wider px-2 py-1.5">
                           Nacional
                         </SelectLabel>
                         {nacCities.map((c) => (
-                          <SelectItem key={c.name} value={c.name} className="text-xs font-semibold rounded-lg cursor-pointer">
+                          <SelectItem key={c.name} value={c.name} className="text-xs font-semibold rounded-lg cursor-pointer py-2">
                             {c.name}
                           </SelectItem>
                         ))}
                       </SelectGroup>
 
                       <SelectGroup>
-                        <SelectItem value="__custom__" className="text-xs font-bold text-primary rounded-lg cursor-pointer border-t border-border/40 mt-1">
+                        <SelectItem value="__custom__" className="text-xs font-bold text-primary rounded-lg cursor-pointer border-t border-border/40 mt-1 py-2.5">
                           ✍️ Escribir otra ciudad...
                         </SelectItem>
                       </SelectGroup>
@@ -435,14 +429,14 @@ export function Step2Compensation({
                         }
                       }}
                       placeholder="Escribe la ciudad o municipio..."
-                      className="h-11 rounded-xl bg-card border-border/60 text-sm font-semibold"
+                      className="h-12 rounded-xl bg-background border-border/70 text-sm font-semibold shadow-2xs"
                       autoFocus
                     />
                     <Button
                       type="button"
                       variant="outline"
                       onClick={handleCustomCityApply}
-                      className="h-11 px-4 rounded-xl text-xs font-bold shrink-0 cursor-pointer"
+                      className="h-12 px-5 rounded-xl text-xs font-bold shrink-0 cursor-pointer"
                     >
                       Aplicar
                     </Button>
@@ -450,27 +444,25 @@ export function Step2Compensation({
                 )}
 
                 {field.state.meta.errors?.[0] && (
-                  <p className="text-xs font-semibold text-rose-500">
-                    {field.state.meta.errors[0]}
-                  </p>
+                  <FieldError>{field.state.meta.errors[0]}</FieldError>
                 )}
-              </div>
+              </Field>
             )}
-          />
+          </form.Field>
 
-          {/* Dynamic Zone Selector */}
-          <form.Field
-            name="zone"
-            children={(field: any) => {
+          {/* Zona o Área */}
+          <form.Field name="zone">
+            {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
+            {(field: any) => {
               const activeVal = field.state.value || availableZones[0] || "Centro";
               const isListed = availableZones.includes(activeVal);
 
               return (
-                <div className="space-y-2">
+                <Field data-invalid={Boolean(field.state.meta.errors?.length)} className="space-y-2">
                   <div className="flex items-center justify-between">
-                    <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                    <FieldLabel className="text-xs font-bold uppercase tracking-wider text-foreground">
                       Zona / Área de Trabajo <span className="text-rose-500">*</span>
-                    </Label>
+                    </FieldLabel>
                     {(isCustomZoneInput || !isListed) && (
                       <button
                         type="button"
@@ -478,9 +470,9 @@ export function Step2Compensation({
                           setIsCustomZoneInput(false);
                           field.handleChange(availableZones[0] || "Centro");
                         }}
-                        className="text-[10px] font-bold text-primary hover:underline cursor-pointer"
+                        className="text-xs font-bold text-primary hover:underline cursor-pointer"
                       >
-                        Volver a lista de zonas
+                        Volver a lista
                       </button>
                     )}
                   </div>
@@ -490,16 +482,16 @@ export function Step2Compensation({
                       value={activeVal}
                       onValueChange={handleZoneSelectChange}
                     >
-                      <SelectTrigger className="h-11 rounded-xl bg-card border-border/60 text-xs sm:text-sm font-semibold cursor-pointer">
+                      <SelectTrigger className="h-12 rounded-xl bg-background border-border/70 text-sm font-semibold cursor-pointer shadow-2xs">
                         <SelectValue placeholder="Selecciona la zona" />
                       </SelectTrigger>
-                      <SelectContent className="rounded-xl border border-border/60 bg-popover shadow-xl max-h-64">
+                      <SelectContent className="rounded-xl border border-border/60 bg-popover shadow-xl max-h-72">
                         <SelectGroup>
-                          <SelectLabel className="text-[10px] font-extrabold text-muted-foreground uppercase tracking-wider px-2 py-1">
-                            Zonas en {currentCityValue || "la ciudad"}
+                          <SelectLabel className="text-[10px] font-extrabold text-muted-foreground uppercase tracking-wider px-2 py-1.5">
+                            Zonas disponibles en {currentCityValue || "la ciudad"}
                           </SelectLabel>
                           {availableZones.map((z) => (
-                            <SelectItem key={z} value={z} className="text-xs font-semibold rounded-lg cursor-pointer">
+                            <SelectItem key={z} value={z} className="text-xs font-semibold rounded-lg cursor-pointer py-2">
                               {z}
                             </SelectItem>
                           ))}
@@ -515,14 +507,14 @@ export function Step2Compensation({
                           field.handleChange(e.target.value);
                         }}
                         placeholder="Ej. Fraccionamiento Los Álamos, Supermanzana 15..."
-                        className="h-11 rounded-xl bg-card border-border/60 text-sm font-semibold"
+                        className="h-12 rounded-xl bg-background border-border/70 text-sm font-semibold shadow-2xs"
                         autoFocus
                       />
                       <Button
                         type="button"
                         variant="outline"
                         onClick={handleCustomZoneApply}
-                        className="h-11 px-4 rounded-xl text-xs font-bold shrink-0 cursor-pointer"
+                        className="h-12 px-5 rounded-xl text-xs font-bold shrink-0 cursor-pointer"
                       >
                         Aplicar
                       </Button>
@@ -530,14 +522,12 @@ export function Step2Compensation({
                   )}
 
                   {field.state.meta.errors?.[0] && (
-                    <p className="text-xs font-semibold text-rose-500">
-                      {field.state.meta.errors[0]}
-                    </p>
+                    <FieldError>{field.state.meta.errors[0]}</FieldError>
                   )}
-                </div>
+                </Field>
               );
             }}
-          />
+          </form.Field>
         </div>
 
         {/* GPS Quick Detect Footer */}
@@ -564,32 +554,33 @@ export function Step2Compensation({
         </div>
       </div>
 
-
-      {/* 2. Salary & Payment Frequency Section */}
-      <div className="p-5 rounded-2xl bg-muted/40 border border-border/60 space-y-4">
+      {/* 2. Propuesta Salarial */}
+      <div className="space-y-4 pt-2 border-t border-border/50">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <DollarSign className="size-4 text-emerald-600 dark:text-emerald-400" />
+            <div className="size-6 rounded-lg bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0">
+              <DollarSign className="size-3.5" />
+            </div>
             <span className="text-xs font-bold uppercase tracking-wider text-foreground">
               Propuesta Salarial (Pesos Mexicanos MXN)
             </span>
           </div>
-          <span className="text-[11px] font-bold text-muted-foreground">
-            Neto o Bruto mensual
+          <span className="text-xs text-muted-foreground font-semibold">
+            Rango mensual neto o bruto
           </span>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          {/* Salary Min */}
-          <form.Field
-            name="salary_min"
-            children={(field: any) => (
-              <div className="space-y-1.5">
-                <Label htmlFor="salary_min" className="text-xs font-semibold text-muted-foreground">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+          {/* Sueldo Mínimo */}
+          <form.Field name="salary_min">
+            {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
+            {(field: any) => (
+              <Field data-invalid={Boolean(field.state.meta.errors?.length)} className="space-y-2">
+                <FieldLabel htmlFor="salary_min" className="text-xs font-bold uppercase tracking-wider text-foreground">
                   Sueldo Mínimo
-                </Label>
+                </FieldLabel>
                 <div className="relative">
-                  <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-xs font-bold text-muted-foreground">$</span>
+                  <span className="absolute left-4 top-1/2 -translate-y-1/2 text-sm font-bold text-muted-foreground">$</span>
                   <Input
                     id="salary_min"
                     type="number"
@@ -597,23 +588,26 @@ export function Step2Compensation({
                     value={field.state.value ?? ""}
                     onChange={(e) => field.handleChange(e.target.value ? Number(e.target.value) : null)}
                     placeholder="10,000"
-                    className="h-11 pl-8 rounded-xl bg-card border-border/60 font-mono font-bold text-sm"
+                    className="h-12 pl-9 rounded-xl bg-background border-border/70 font-mono font-bold text-base shadow-2xs"
                   />
                 </div>
-              </div>
+                {field.state.meta.errors?.[0] && (
+                  <FieldError>{field.state.meta.errors[0]}</FieldError>
+                )}
+              </Field>
             )}
-          />
+          </form.Field>
 
-          {/* Salary Max */}
-          <form.Field
-            name="salary_max"
-            children={(field: any) => (
-              <div className="space-y-1.5">
-                <Label htmlFor="salary_max" className="text-xs font-semibold text-muted-foreground">
+          {/* Sueldo Máximo */}
+          <form.Field name="salary_max">
+            {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
+            {(field: any) => (
+              <Field data-invalid={Boolean(field.state.meta.errors?.length)} className="space-y-2">
+                <FieldLabel htmlFor="salary_max" className="text-xs font-bold uppercase tracking-wider text-foreground">
                   Sueldo Máximo
-                </Label>
+                </FieldLabel>
                 <div className="relative">
-                  <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-xs font-bold text-muted-foreground">$</span>
+                  <span className="absolute left-4 top-1/2 -translate-y-1/2 text-sm font-bold text-muted-foreground">$</span>
                   <Input
                     id="salary_max"
                     type="number"
@@ -621,23 +615,26 @@ export function Step2Compensation({
                     value={field.state.value ?? ""}
                     onChange={(e) => field.handleChange(e.target.value ? Number(e.target.value) : null)}
                     placeholder="14,000"
-                    className="h-11 pl-8 rounded-xl bg-card border-border/60 font-mono font-bold text-sm"
+                    className="h-12 pl-9 rounded-xl bg-background border-border/70 font-mono font-bold text-base shadow-2xs"
                   />
                 </div>
-              </div>
+                {field.state.meta.errors?.[0] && (
+                  <FieldError>{field.state.meta.errors[0]}</FieldError>
+                )}
+              </Field>
             )}
-          />
+          </form.Field>
         </div>
 
-        {/* Payment Frequency Pills */}
-        <form.Field
-          name="payment_frequency"
-          children={(field: any) => (
-            <div className="space-y-2 pt-1">
-              <Label className="text-xs font-semibold text-muted-foreground">
+        {/* Frecuencia de Pago: Botones Segmentados */}
+        <form.Field name="payment_frequency">
+          {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
+          {(field: any) => (
+            <Field data-invalid={Boolean(field.state.meta.errors?.length)} className="space-y-2 pt-1">
+              <FieldLabel className="text-xs font-bold uppercase tracking-wider text-foreground">
                 Frecuencia de Pago
-              </Label>
-              <div className="grid grid-cols-3 gap-2">
+              </FieldLabel>
+              <div className="grid grid-cols-3 gap-3">
                 {[
                   { value: "semanal", label: "Semanal" },
                   { value: "quincenal", label: "Quincenal" },
@@ -650,10 +647,10 @@ export function Step2Compensation({
                       type="button"
                       onClick={() => field.handleChange(freq.value)}
                       className={cn(
-                        "h-10 rounded-xl font-bold text-xs transition-all border cursor-pointer select-none",
+                        "h-12 rounded-xl font-bold text-sm transition-all border cursor-pointer select-none",
                         isSelected
                           ? "bg-primary text-primary-foreground border-primary shadow-xs"
-                          : "bg-card hover:bg-muted text-muted-foreground border-border/60"
+                          : "bg-background hover:bg-muted text-muted-foreground border-border/70"
                       )}
                     >
                       {freq.label}
@@ -661,33 +658,35 @@ export function Step2Compensation({
                   );
                 })}
               </div>
-            </div>
+            </Field>
           )}
-        />
+        </form.Field>
       </div>
 
-      {/* 3. Benefits & Perks Interactive Badges */}
-      <form.Field
-        name="benefits"
-        children={(field: any) => {
+      {/* 3. Prestaciones y Beneficios */}
+      <form.Field name="benefits">
+        {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
+        {(field: any) => {
           const selectedBenefits: string[] = field.state.value || [];
 
           return (
-            <div className="space-y-3">
+            <Field className="space-y-4 pt-2 border-t border-border/50">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                  <Gift className="size-4 text-primary" />
-                  <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                  <div className="size-6 rounded-lg bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0">
+                    <Gift className="size-3.5" />
+                  </div>
+                  <FieldLabel className="text-xs font-bold uppercase tracking-wider text-foreground">
                     Prestaciones y Beneficios ({selectedBenefits.length} seleccionados)
-                  </Label>
+                  </FieldLabel>
                 </div>
               </div>
-              <p className="text-xs text-muted-foreground font-medium">
+              <FieldDescription className="text-xs text-muted-foreground">
                 Haz clic en las prestaciones que ofrece tu empresa para destacarlas en el perfil de la oferta:
-              </p>
+              </FieldDescription>
 
-              {/* Preset Badges Grid */}
-              <div className="flex flex-wrap gap-2 pt-1">
+              {/* Matriz de Chips de Beneficios */}
+              <div className="flex flex-wrap gap-2.5 pt-1">
                 {PRESET_BENEFITS.map((benefit) => {
                   const isChecked = selectedBenefits.includes(benefit);
                   return (
@@ -696,21 +695,21 @@ export function Step2Compensation({
                       type="button"
                       onClick={() => toggleBenefit(field, benefit)}
                       className={cn(
-                        "px-3 py-1.5 rounded-xl text-xs font-semibold border flex items-center gap-1.5 transition-all cursor-pointer select-none",
+                        "px-4 py-2.5 rounded-xl text-xs font-semibold border flex items-center gap-2 transition-all cursor-pointer select-none shadow-2xs",
                         isChecked
-                          ? "bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border-emerald-500/40 shadow-xs"
-                          : "bg-card hover:bg-muted text-muted-foreground border-border/60"
+                          ? "bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border-emerald-500/50 shadow-xs ring-1 ring-emerald-500/20"
+                          : "bg-background hover:bg-muted/60 text-foreground border-border/70"
                       )}
                     >
-                      {isChecked && <Check className="size-3.5 stroke-[3]" />}
+                      {isChecked && <Check className="size-4 stroke-[3] text-emerald-600 dark:text-emerald-400" />}
                       <span>{benefit}</span>
                     </button>
                   );
                 })}
               </div>
 
-              {/* Custom Benefit Input */}
-              <div className="flex gap-2 pt-2">
+              {/* Agregar Beneficio Personalizado */}
+              <div className="flex gap-2.5 pt-2">
                 <Input
                   value={customBenefit}
                   onChange={(e) => setCustomBenefit(e.target.value)}
@@ -720,24 +719,24 @@ export function Step2Compensation({
                       handleAddCustomBenefit(field);
                     }
                   }}
-                  placeholder="Escribe otro beneficio personalizado y presiona Enter..."
-                  className="h-10 rounded-xl bg-card border-border/60 text-xs font-medium"
+                  placeholder="Escribe otro beneficio adicional y presiona Enter..."
+                  className="h-11 rounded-xl bg-background border-border/70 text-xs font-medium shadow-2xs"
                 />
                 <Button
                   type="button"
                   variant="outline"
                   onClick={() => handleAddCustomBenefit(field)}
                   disabled={!customBenefit.trim()}
-                  className="h-10 px-4 rounded-xl text-xs font-bold shrink-0 cursor-pointer"
+                  className="h-11 px-5 rounded-xl text-xs font-bold shrink-0 cursor-pointer"
                 >
-                  <Plus className="size-3.5 mr-1" />
+                  <Plus className="size-4 mr-1" />
                   <span>Agregar</span>
                 </Button>
               </div>
-            </div>
+            </Field>
           );
         }}
-      />
+      </form.Field>
     </div>
   );
 }

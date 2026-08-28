@@ -3,7 +3,7 @@
 import * as React from "react"
 import { Dialog as DialogPrimitive } from "@base-ui/react/dialog"
 
-import { cn } from "@/lib/utils"
+import { cn, isNonButtonRender } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { XIcon } from "lucide-react"
 
@@ -11,16 +11,52 @@ function Dialog({ ...props }: DialogPrimitive.Root.Props) {
   return <DialogPrimitive.Root data-slot="dialog" {...props} />
 }
 
-function DialogTrigger({ ...props }: DialogPrimitive.Trigger.Props) {
-  return <DialogPrimitive.Trigger data-slot="dialog-trigger" {...props} />
+function DialogTrigger({
+  nativeButton,
+  render,
+  ...props
+}: DialogPrimitive.Trigger.Props) {
+  const resolvedNativeButton =
+    nativeButton !== undefined
+      ? nativeButton
+      : isNonButtonRender(render)
+        ? false
+        : undefined
+
+  return (
+    <DialogPrimitive.Trigger
+      data-slot="dialog-trigger"
+      nativeButton={resolvedNativeButton}
+      render={render}
+      {...props}
+    />
+  )
 }
 
 function DialogPortal({ ...props }: DialogPrimitive.Portal.Props) {
   return <DialogPrimitive.Portal data-slot="dialog-portal" {...props} />
 }
 
-function DialogClose({ ...props }: DialogPrimitive.Close.Props) {
-  return <DialogPrimitive.Close data-slot="dialog-close" {...props} />
+function DialogClose({
+  nativeButton,
+  render,
+  ...props
+}: DialogPrimitive.Close.Props) {
+  const resolvedNativeButton =
+    nativeButton !== undefined
+      ? nativeButton
+      : isNonButtonRender(render)
+        ? false
+        : undefined
+
+  return (
+    <DialogPrimitive.Close
+      data-slot="dialog-close"
+      nativeButton={resolvedNativeButton}
+      render={render}
+      {...props}
+    />
+  )
 }
 
 function DialogOverlay({

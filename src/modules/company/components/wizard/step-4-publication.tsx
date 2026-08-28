@@ -4,47 +4,35 @@ import * as React from "react";
 import {
   Phone,
   MessageSquare,
-  Sparkles,
-  MapPin,
-  Briefcase,
   Eye,
   CheckCircle2,
   ExternalLink,
-  DollarSign,
-  Calendar,
-  Gift,
-  Building,
+  Sparkles,
+  Layers,
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Switch } from "@/components/ui/switch";
+import {
+  Field,
+  FieldLabel,
+  FieldDescription,
+  FieldError,
+} from "@/components/ui/field";
 import { type VacancyWizardValues } from "../../schemas/vacancy-wizard.schema";
 import { cn } from "@/lib/utils";
 
 interface Step4PublicationProps {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   form: any;
-  companyName?: string;
-  isVerified?: boolean;
+  onOpenPreviewDrawer?: () => void;
 }
 
 export function Step4Publication({
   form,
-  companyName = "K'anPro Empresa",
-  isVerified = true,
+  onOpenPreviewDrawer,
 }: Step4PublicationProps) {
   const values: VacancyWizardValues = form.state.values;
-
-  const formatMXN = (val: number | null | undefined) => {
-    if (val == null || isNaN(val)) return "$0 MXN";
-    return new Intl.NumberFormat("es-MX", {
-      style: "currency",
-      currency: "MXN",
-      maximumFractionDigits: 0,
-    }).format(val);
-  };
 
   const cleanPhone = (values.contact_phone || "").replace(/\D/g, "");
   const whatsappTestUrl = cleanPhone
@@ -54,214 +42,171 @@ export function Step4Publication({
     : "";
 
   return (
-    <div className="space-y-6">
-      {/* 1. Recruiter Contact Details */}
-      <div className="p-5 rounded-2xl bg-muted/40 border border-border/60 space-y-4">
+    <div className="space-y-8">
+      {/* 1. Canal de Postulación & Contacto WhatsApp */}
+      <div className="space-y-6">
         <div className="flex items-center gap-2">
-          <Phone className="size-4 text-emerald-600 dark:text-emerald-400" />
-          <Label className="text-xs font-bold uppercase tracking-wider text-foreground">
-            Canal de Postulación & Contacto WhatsApp <span className="text-rose-500">*</span>
-          </Label>
+          <div className="size-6 rounded-lg bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0">
+            <Phone className="size-3.5" />
+          </div>
+          <span className="text-xs font-bold uppercase tracking-wider text-foreground">
+            Canal de Postulación & Contacto Directo <span className="text-rose-500">*</span>
+          </span>
         </div>
-        <p className="text-xs text-muted-foreground font-medium">
-          Los candidatos podrán contactar al reclutador directamente por WhatsApp o postularse a través de la plataforma:
-        </p>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-1">
-          {/* Phone Input */}
-          <form.Field
-            name="contact_phone"
-            children={(field: any) => (
-              <div className="space-y-1.5">
-                <Label htmlFor="contact_phone" className="text-xs font-semibold text-muted-foreground">
-                  WhatsApp del Reclutador (10 dígitos)
-                </Label>
-                <div className="relative">
-                  <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-xs font-bold text-muted-foreground">
-                    +52
-                  </span>
-                  <Input
-                    id="contact_phone"
-                    value={field.state.value || ""}
-                    onChange={(e) => field.handleChange(e.target.value)}
-                    placeholder="999 123 4567"
-                    className="h-11 pl-12 rounded-xl bg-card border-border/60 text-sm font-semibold font-mono"
-                    maxLength={15}
-                  />
-                </div>
-                {field.state.meta.errors?.[0] && (
-                  <p className="text-xs font-semibold text-rose-500">
-                    {field.state.meta.errors[0]}
-                  </p>
-                )}
-              </div>
-            )}
-          />
+        {/* Selector de Canal Preferente con 3 Cards */}
+        <form.Field name="preferred_contact_method">
+          {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
+          {(field: any) => {
+            const activeMethod = field.state.value || "whatsapp";
 
-          {/* Preferred Contact Method */}
-          <form.Field
-            name="preferred_contact_method"
-            children={(field: any) => (
-              <div className="space-y-1.5">
-                <Label className="text-xs font-semibold text-muted-foreground">
-                  Canal Preferente
-                </Label>
-                <div className="grid grid-cols-3 gap-1.5 pt-0.5">
+            return (
+              <Field className="space-y-3">
+                <FieldLabel className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                  ¿Cómo prefieres recibir a los candidatos?
+                </FieldLabel>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                   {[
-                    { value: "whatsapp", label: "WhatsApp" },
-                    { value: "platform", label: "Plataforma" },
-                    { value: "both", label: "Ambos" },
-                  ].map((method) => {
-                    const isSelected = field.state.value === method.value;
+                    {
+                      value: "whatsapp",
+                      title: "WhatsApp Directo",
+                      desc: "Los candidatos te escriben al instante por WhatsApp",
+                      icon: MessageSquare,
+                    },
+                    {
+                      value: "platform",
+                      title: "Bandeja K'anPro",
+                      desc: "Gestión y revisión de CVs dentro de tu panel",
+                      icon: Layers,
+                    },
+                    {
+                      value: "both",
+                      title: "Ambos Canales",
+                      desc: "Máxima captación: WhatsApp y plataforma",
+                      icon: Sparkles,
+                    },
+                  ].map((m) => {
+                    const isSelected = activeMethod === m.value;
+                    const Icon = m.icon;
+
                     return (
                       <button
-                        key={method.value}
+                        key={m.value}
                         type="button"
-                        onClick={() => field.handleChange(method.value)}
+                        onClick={() => field.handleChange(m.value)}
                         className={cn(
-                          "h-10 rounded-xl font-bold text-xs transition-all border cursor-pointer select-none",
+                          "p-4 rounded-2xl border text-left flex flex-col justify-between gap-3 transition-all cursor-pointer select-none",
                           isSelected
-                            ? "bg-primary text-primary-foreground border-primary shadow-xs"
-                            : "bg-card hover:bg-muted text-muted-foreground border-border/60"
+                            ? "bg-primary/5 border-primary text-foreground shadow-xs ring-1 ring-primary/30"
+                            : "bg-background hover:bg-muted/40 text-muted-foreground border-border/70"
                         )}
                       >
-                        {method.label}
+                        <div className="flex items-center justify-between w-full">
+                          <div
+                            className={cn(
+                              "size-9 rounded-xl flex items-center justify-center font-bold text-xs",
+                              isSelected
+                                ? "bg-primary text-primary-foreground"
+                                : "bg-muted text-muted-foreground"
+                            )}
+                          >
+                            <Icon className="size-4" />
+                          </div>
+                          {isSelected && (
+                            <CheckCircle2 className="size-4 text-primary" />
+                          )}
+                        </div>
+                        <div>
+                          <p className="text-sm font-bold text-foreground">
+                            {m.title}
+                          </p>
+                          <p className="text-xs text-muted-foreground mt-0.5 leading-relaxed">
+                            {m.desc}
+                          </p>
+                        </div>
                       </button>
                     );
                   })}
                 </div>
+              </Field>
+            );
+          }}
+        </form.Field>
+
+        {/* Input de Teléfono WhatsApp */}
+        <form.Field name="contact_phone">
+          {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
+          {(field: any) => (
+            <Field data-invalid={Boolean(field.state.meta.errors?.length)} className="space-y-2">
+              <FieldLabel htmlFor="contact_phone" className="text-xs font-bold uppercase tracking-wider text-foreground">
+                WhatsApp del Reclutador (10 dígitos) <span className="text-rose-500">*</span>
+              </FieldLabel>
+              <div className="relative max-w-md">
+                <span className="absolute left-4 top-1/2 -translate-y-1/2 text-sm font-bold text-muted-foreground">
+                  🇲🇽 +52
+                </span>
+                <Input
+                  id="contact_phone"
+                  value={field.state.value || ""}
+                  onChange={(e) => field.handleChange(e.target.value)}
+                  placeholder="999 123 4567"
+                  className="h-12 pl-20 rounded-xl bg-background border-border/70 text-base font-semibold font-mono shadow-2xs"
+                  maxLength={15}
+                />
               </div>
-            )}
-          />
-        </div>
+              <FieldDescription className="text-xs text-muted-foreground">
+                Número donde se recibirán las consultas de candidatos calificados.
+              </FieldDescription>
+              {field.state.meta.errors?.[0] && (
+                <FieldError>{field.state.meta.errors[0]}</FieldError>
+              )}
 
-        {whatsappTestUrl && (
-          <div className="pt-2 flex items-center justify-between">
-            <span className="text-xs text-emerald-600 dark:text-emerald-400 font-semibold flex items-center gap-1.5">
-              <CheckCircle2 className="size-4" />
-              <span>Número listo para recibir mensajes directos</span>
-            </span>
-            <a
-              href={whatsappTestUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-xs font-bold text-primary hover:underline flex items-center gap-1 cursor-pointer"
-            >
-              <span>Probar enlace</span>
-              <ExternalLink className="size-3" />
-            </a>
-          </div>
-        )}
+              {whatsappTestUrl && (
+                <div className="pt-2 flex items-center justify-between max-w-md">
+                  <span className="text-xs text-emerald-600 dark:text-emerald-400 font-semibold flex items-center gap-1.5">
+                    <CheckCircle2 className="size-4" />
+                    <span>Número listo para recibir postulaciones</span>
+                  </span>
+                  <a
+                    href={whatsappTestUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-xs font-bold text-primary hover:underline flex items-center gap-1 cursor-pointer"
+                  >
+                    <span>Probar enlace</span>
+                    <ExternalLink className="size-3" />
+                  </a>
+                </div>
+              )}
+            </Field>
+          )}
+        </form.Field>
       </div>
 
-      {/* 2. Informational Banner about publishing / draft */}
-      <div className="p-4 rounded-2xl bg-card border border-border/60 flex items-center justify-between gap-4 shadow-xs">
-        <div className="space-y-0.5">
-          <p className="text-sm font-bold text-foreground">
-            Opciones de Publicación
-          </p>
-          <p className="text-xs text-muted-foreground font-medium">
-            Al finalizar, puedes elegir entre <strong>Publicar Vacante Ahora</strong> (visible inmediatamente en el feed de empleo) o <strong>Guardar como Borrador</strong> (pausada para revisarla más tarde).
-          </p>
-        </div>
-      </div>
-
-      {/* 3. Real-time Live Preview Section */}
-      <div className="space-y-3 pt-2">
-        <div className="flex items-center justify-between">
+      {/* 2. Banner de Vista Previa con Drawer de shadcn */}
+      <Card className="p-6 rounded-2xl bg-muted/20 border border-primary/30 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-5 shadow-xs">
+        <div className="space-y-1">
           <div className="flex items-center gap-2">
             <Eye className="size-4 text-primary" />
-            <span className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
-              Vista Previa en Vivo (Feed del Candidato)
-            </span>
+            <h4 className="text-sm sm:text-base font-bold text-foreground">
+              Revisar Ficha Completa de la Vacante
+            </h4>
           </div>
-          <span className="text-[11px] text-muted-foreground font-medium">
-            Así se verá tu vacante publicada
-          </span>
+          <p className="text-xs text-muted-foreground leading-relaxed max-w-xl">
+            Abre la vista previa en el componente Drawer interactivo para comprobar cómo verán los candidatos la descripción, sueldo, requisitos y datos de contacto antes de publicar.
+          </p>
         </div>
 
-        {/* Realistic Candidate Card Simulation */}
-        <Card className="bg-card border-2 border-primary/30 rounded-2xl p-5 sm:p-6 shadow-md space-y-4 relative overflow-hidden">
-          {/* Header row */}
-          <div className="flex items-start justify-between gap-3">
-            <div className="flex items-start gap-3">
-              <div className="size-12 rounded-2xl bg-primary/10 text-primary flex items-center justify-center font-extrabold text-base shrink-0">
-                <Building className="size-6" />
-              </div>
-              <div className="space-y-1">
-                <div className="flex items-center gap-2">
-                  <span className="text-xs font-extrabold text-foreground">
-                    {companyName}
-                  </span>
-                  {isVerified && (
-                    <Badge variant="outline" className="bg-emerald-500/10 border-emerald-500/30 text-emerald-600 dark:text-emerald-400 text-[10px] px-2 py-0 font-bold rounded-full">
-                      Verificada
-                    </Badge>
-                  )}
-                </div>
-                <h3 className="text-base sm:text-lg font-extrabold text-foreground leading-snug">
-                  {values.title || "Título del Puesto"}
-                </h3>
-              </div>
-            </div>
-            <Badge className="bg-primary text-primary-foreground text-xs font-bold px-3 py-1 rounded-full shrink-0">
-              {values.employment_type || "Tiempo Completo"}
-            </Badge>
-          </div>
-
-          {/* Meta specs row */}
-          <div className="flex flex-wrap gap-2 pt-1 text-xs">
-            <div className="flex items-center gap-1.5 font-bold text-foreground bg-muted/60 px-3 py-1 rounded-xl border border-border/50">
-              <DollarSign className="size-3.5 text-emerald-600 dark:text-emerald-400" />
-              <span className="font-mono">
-                {formatMXN(values.salary_min)} - {formatMXN(values.salary_max)} MXN ({values.payment_frequency})
-              </span>
-            </div>
-            <div className="flex items-center gap-1.5 font-semibold text-muted-foreground bg-muted/40 px-3 py-1 rounded-xl border border-border/40">
-              <MapPin className="size-3.5 text-primary" />
-              <span>{values.zone || "Centro Mérida"}, {values.location || "Mérida"}</span>
-            </div>
-          </div>
-
-          {/* Benefits pills */}
-          {values.benefits && values.benefits.length > 0 && (
-            <div className="space-y-1.5 pt-1">
-              <span className="text-[10px] uppercase tracking-wider font-extrabold text-muted-foreground">Prestaciones Destacadas:</span>
-              <div className="flex flex-wrap gap-1.5">
-                {values.benefits.slice(0, 4).map((b, idx) => (
-                  <Badge
-                    key={idx}
-                    variant="outline"
-                    className="text-[11px] font-semibold bg-muted/30 border-border/60 text-muted-foreground px-2.5 py-0.5 rounded-lg"
-                  >
-                    {b}
-                  </Badge>
-                ))}
-                {values.benefits.length > 4 && (
-                  <Badge variant="outline" className="text-[11px] font-bold text-primary px-2 py-0.5 rounded-lg">
-                    +{values.benefits.length - 4} más
-                  </Badge>
-                )}
-              </div>
-            </div>
-          )}
-
-          {/* Mock Action Button in Preview */}
-          <div className="pt-3 border-t border-border/40 flex items-center justify-between">
-            <span className="text-[11px] text-muted-foreground font-medium">
-              Turno: <strong className="text-foreground">{values.shift_schedule || "Matutino"}</strong>
-            </span>
-            <Button
-              size="sm"
-              disabled
-              className="bg-[#25D366] text-[#062c1e] font-extrabold text-xs h-9 px-4 rounded-xl gap-1.5 shadow-xs opacity-90"
-            >
-              <MessageSquare className="size-3.5 stroke-[2.5]" />
-              <span>Postularme por WhatsApp</span>
-            </Button>
-          </div>
-        </Card>
-      </div>
+        <Button
+          type="button"
+          onClick={onOpenPreviewDrawer}
+          variant="outline"
+          className="h-11 px-5 rounded-xl font-bold text-xs gap-2 border-primary/50 text-primary hover:bg-primary/10 cursor-pointer shrink-0 shadow-xs"
+        >
+          <Eye className="size-4" />
+          <span>Ver en Drawer</span>
+        </Button>
+      </Card>
     </div>
   );
 }

@@ -3,16 +3,32 @@
 import * as React from "react"
 import { AlertDialog as AlertDialogPrimitive } from "@base-ui/react/alert-dialog"
 
-import { cn } from "@/lib/utils"
+import { cn, isNonButtonRender } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 
 function AlertDialog({ ...props }: AlertDialogPrimitive.Root.Props) {
   return <AlertDialogPrimitive.Root data-slot="alert-dialog" {...props} />
 }
 
-function AlertDialogTrigger({ ...props }: AlertDialogPrimitive.Trigger.Props) {
+function AlertDialogTrigger({
+  nativeButton,
+  render,
+  ...props
+}: AlertDialogPrimitive.Trigger.Props) {
+  const resolvedNativeButton =
+    nativeButton !== undefined
+      ? nativeButton
+      : isNonButtonRender(render)
+        ? false
+        : undefined
+
   return (
-    <AlertDialogPrimitive.Trigger data-slot="alert-dialog-trigger" {...props} />
+    <AlertDialogPrimitive.Trigger
+      data-slot="alert-dialog-trigger"
+      nativeButton={resolvedNativeButton}
+      render={render}
+      {...props}
+    />
   )
 }
 

@@ -58,6 +58,7 @@ import {
 import { cn } from "@/lib/utils";
 import Link from "next/link";
 import type { VacancyRow } from "@/modules/company/hooks/use-vacancy-manager";
+import { VacancyPreviewDrawer } from "./vacancy-preview-drawer";
 
 export interface VacancyTableItem extends VacancyRow {
   applicants_count?: number;
@@ -82,10 +83,24 @@ export function VacanciesTable({
   formatSalary,
   formatDate,
 }: VacanciesTableProps) {
+  const [previewVacancy, setPreviewVacancy] = React.useState<VacancyTableItem | null>(null);
   const [sorting, setSorting] = React.useState<SortingState>([
     { id: "created_at", desc: true },
   ]);
   const [rowSelection, setRowSelection] = React.useState<RowSelectionState>({});
+
+  const handleToggleActiveLocal = (id: string, currentActive: boolean) => {
+    onToggleActive(id, currentActive);
+    setPreviewVacancy((prev) =>
+      prev && prev.id === id
+        ? {
+            ...prev,
+            is_active: !currentActive,
+            status: !currentActive ? "Activa" : "Cerrada",
+          }
+        : prev
+    );
+  };
 
   const columns = React.useMemo<ColumnDef<VacancyTableItem>[]>(
     () => [
@@ -318,13 +333,20 @@ export function VacanciesTable({
                 >
                   <MoreHorizontal className="size-4" />
                 </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="rounded-xl border border-border/60 bg-popover min-w-[160px] shadow-lg p-1.5">
+                <DropdownMenuContent align="end" className="rounded-xl border border-border/60 bg-popover min-w-[170px] shadow-lg p-1.5">
+                  <DropdownMenuItem
+                    onSelect={() => setPreviewVacancy(vacancy)}
+                    className="cursor-pointer text-xs font-semibold rounded-lg hover:bg-muted py-2 px-2.5 gap-2.5 text-foreground"
+                  >
+                    <Eye className="size-3.5 text-primary" />
+                    <span>Vista previa rápida</span>
+                  </DropdownMenuItem>
                   <DropdownMenuItem
                     render={<Link href={`/dashboard/company/vacancies/${vacancy.id}`} />}
                     className="cursor-pointer text-xs font-semibold rounded-lg hover:bg-muted py-2 px-2.5 gap-2.5"
                   >
                     <Eye className="size-3.5 text-muted-foreground" />
-                    <span>Ver detalles</span>
+                    <span>Ver ficha completa</span>
                   </DropdownMenuItem>
                   <DropdownMenuItem
                     render={<Link href={`/dashboard/company/vacancies/${vacancy.id}/edit`} />}
@@ -462,8 +484,19 @@ export function VacanciesTable({
                   <TableRow
                     key={row.id}
                     data-state={row.getIsSelected() && "selected"}
+                    onClick={(e) => {
+                      const target = e.target as HTMLElement;
+                      if (
+                        target.closest(
+                          "button, a, input, [role='checkbox'], [data-slot='dropdown-menu-trigger']"
+                        )
+                      ) {
+                        return;
+                      }
+                      setPreviewVacancy(row.original);
+                    }}
                     className={cn(
-                      "border-b border-border/40 transition-colors hover:bg-muted/40",
+                      "border-b border-border/40 transition-colors hover:bg-muted/40 cursor-pointer",
                       !row.original.is_active && "opacity-80"
                     )}
                   >
@@ -568,6 +601,16 @@ export function VacanciesTable({
             </div>
           </div>
         </div>
+
+        {/* Vacancy Preview Drawer */}
+        <VacancyPreviewDrawer
+          vacancy={previewVacancy}
+          open={!!previewVacancy}
+          onOpenChange={(open) => !open && setPreviewVacancy(null)}
+          onToggleActive={handleToggleActiveLocal}
+          formatSalary={formatSalary}
+          formatDate={formatDate}
+        />
       </div>
   );
 }
