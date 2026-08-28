@@ -61,7 +61,6 @@ import type { VacancyRow } from "@/modules/company/hooks/use-vacancy-manager";
 
 export interface VacancyTableItem extends VacancyRow {
   applicants_count?: number;
-  expires_at?: string | null;
 }
 
 interface VacanciesTableProps {

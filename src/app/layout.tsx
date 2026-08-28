@@ -2,21 +2,34 @@ import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import { cn } from "@/lib/utils";
 
-const inter = { variable: "font-sans" };
 const geistSans = { variable: "font-geist-sans" };
 const geistMono = { variable: "font-geist-mono" };
 
 export const metadata: Metadata = {
   title: {
     default: "K'anPro | Vinculación Laboral Express en el Sureste de México",
-    template: "%s | K'anPro"
+    template: "%s | K'anPro",
   },
-  description: "Encuentra empleo local o contrata personal verificado en Mérida, Playa del Carmen y la Riviera Maya en minutos. Conexión directa por WhatsApp, sin intermediarios ni comisiones.",
-  keywords: ["empleo", "mérida", "yucatán", "playa del carmen", "riviera maya", "trabajo", "contratación", "whatsapp", "reclutamiento", "personal verificado", "cv digital"],
+  description:
+    "Encuentra empleo local o contrata personal verificado en Mérida, Playa del Carmen y la Riviera Maya en minutos. Conexión directa por WhatsApp, sin intermediarios ni comisiones.",
+  keywords: [
+    "empleo",
+    "mérida",
+    "yucatán",
+    "playa del carmen",
+    "riviera maya",
+    "trabajo",
+    "contratación",
+    "whatsapp",
+    "reclutamiento",
+    "personal verificado",
+    "cv digital",
+  ],
   authors: [{ name: "K'anPro Team" }],
   openGraph: {
     title: "K'anPro | Vinculación Laboral Express en el Sureste de México",
-    description: "Conectamos candidatos locales con empresas en Mérida y Playa del Carmen de forma directa por WhatsApp. Sin comisiones ni intermediarios.",
+    description:
+      "Conectamos candidatos locales con empresas en Mérida y Playa del Carmen de forma directa por WhatsApp. Sin comisiones ni intermediarios.",
     url: "https://kanpro.mx",
     siteName: "K'anPro",
     locale: "es_MX",
@@ -27,15 +40,16 @@ export const metadata: Metadata = {
         width: 1200,
         height: 630,
         alt: "K'anPro - Conexión Laboral Directa",
-      }
-    ]
+      },
+    ],
   },
   twitter: {
     card: "summary_large_image",
     title: "K'anPro | Vinculación Laboral Express en el Sureste",
-    description: "Vinculación laboral directa y sin fricciones por WhatsApp en Mérida y la Riviera Maya.",
+    description:
+      "Vinculación laboral directa y sin fricciones por WhatsApp en Mérida y la Riviera Maya.",
     images: ["https://kanpro.mx/og-image.png"],
-  }
+  },
 };
 
 export const viewport: Viewport = {
@@ -50,6 +64,9 @@ import { ThemeProvider } from "@/components/providers/theme-provider";
 import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { WhatsAppSupportWidget } from "@/components/marketing/whatsapp-support-widget";
+import { Inter } from "next/font/google";
+
+const inter = Inter({subsets:['latin'],variable:'--font-sans'});
 
 export default function RootLayout({
   children,
@@ -60,7 +77,14 @@ export default function RootLayout({
     <html
       lang="es"
       suppressHydrationWarning
-      className={cn("h-full", "antialiased", geistSans.variable, geistMono.variable, "font-sans", inter.variable)}
+      className={cn(
+        "h-full",
+        "antialiased",
+        geistSans.variable,
+        geistMono.variable,
+        "font-sans",
+        inter.variable,
+      )}
     >
       <body className="min-h-full flex flex-col" suppressHydrationWarning>
         <QueryProvider>

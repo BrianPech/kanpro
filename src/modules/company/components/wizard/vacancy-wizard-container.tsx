@@ -68,7 +68,7 @@ export function VacancyWizardContainer({
         const [compRes, profRes] = await Promise.all([
           supabase
             .from("company_profiles")
-            .select("company_name, contact_phone, fiscal_address, address_details, logo_url, verification_status")
+            .select("company_name, contact_phone, fiscal_address, address_details, logo_url, verification_status, subscription_plan")
             .eq("id", userId)
             .maybeSingle(),
           supabase
@@ -278,21 +278,57 @@ export function VacancyWizardContainer({
     try {
       const supabase = createClient();
 
+      // Check active vacancy plan limits if publishing
+      if (publishNow) {
+        const plan = companyProfile?.subscription_plan || "basic";
+        let maxAllowed = 3;
+        if (plan === "pro") maxAllowed = 15;
+        if (plan === "enterprise") maxAllowed = Infinity;
+
+        if (maxAllowed !== Infinity) {
+          let countQuery = supabase
+            .from("vacancies")
+            .select("id", { count: "exact", head: true })
+            .eq("company_id", userId)
+            .eq("is_active", true);
+
+          if (isEditing && vacancyId) {
+            countQuery = countQuery.neq("id", vacancyId);
+          }
+
+          const { count: activeCount } = await countQuery;
+
+          if ((activeCount || 0) >= maxAllowed) {
+            throw new Error(`Has alcanzado el límite de ${maxAllowed} vacantes activas de tu Plan ${plan.toUpperCase()}. Actualiza a Plan PRO en Configuración o guarda como borrador.`);
+          }
+        }
+      }
+
       const payload: any = {
         company_id: userId,
         recruiter_id: userId,
         title: values.title.trim(),
         category: values.category,
         employment_type: values.employment_type,
+        shift_schedule: values.shift_schedule || "Matutino (Mañana)",
+        positions_available: Number(values.positions_available) || 1,
         location: values.location,
         zone: values.zone,
-        salary_min: values.salary_min || null,
-        salary_max: values.salary_max || null,
+        modality: "Presencial",
+        salary_min: values.salary_min !== undefined ? values.salary_min : null,
+        salary_max: values.salary_max !== undefined ? values.salary_max : null,
         currency: "MXN",
+        payment_frequency: values.payment_frequency || "quincenal",
         description: values.description,
-        benefits: values.benefits,
-        skills: values.skills || [],
-        requirements: values.description, // backward compatible
+        requirements: values.description,
+        experience_required: values.experience_required || "Sin experiencia previa",
+        education_level: values.education_level || "Indistinto",
+        benefits: Array.isArray(values.benefits) ? values.benefits : [],
+        skills: Array.isArray(values.skills) ? values.skills : [],
+        tags: Array.isArray(values.skills) ? values.skills : [],
+        contact_phone: values.contact_phone || null,
+        contact_email: values.contact_email || null,
+        preferred_contact_method: values.preferred_contact_method || "whatsapp",
         is_active: publishNow,
         status: publishNow ? "Activa" : "Borrador",
       };

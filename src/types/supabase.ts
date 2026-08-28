@@ -875,10 +875,15 @@ export type Database = {
           benefits: string[] | null
           category: string
           company_id: string
+          contact_email: string | null
+          contact_phone: string | null
           created_at: string
           currency: string | null
           description: string
+          education_level: string
           employment_type: string
+          experience_required: string
+          expires_at: string | null
           featured_until: string | null
           id: string
           is_active: boolean
@@ -886,10 +891,14 @@ export type Database = {
           is_promoted: boolean
           location: string
           modality: string
+          payment_frequency: string
+          positions_available: number
+          preferred_contact_method: string
           recruiter_id: string
           requirements: string | null
           salary_max: number | null
           salary_min: number | null
+          shift_schedule: string
           skills: string[] | null
           status: string
           tags: string[] | null
@@ -901,10 +910,15 @@ export type Database = {
           benefits?: string[] | null
           category: string
           company_id: string
+          contact_email?: string | null
+          contact_phone?: string | null
           created_at?: string
           currency?: string | null
           description: string
+          education_level?: string
           employment_type: string
+          experience_required?: string
+          expires_at?: string | null
           featured_until?: string | null
           id?: string
           is_active?: boolean
@@ -912,10 +926,14 @@ export type Database = {
           is_promoted?: boolean
           location?: string
           modality?: string
+          payment_frequency?: string
+          positions_available?: number
+          preferred_contact_method?: string
           recruiter_id: string
           requirements?: string | null
           salary_max?: number | null
           salary_min?: number | null
+          shift_schedule?: string
           skills?: string[] | null
           status?: string
           tags?: string[] | null
@@ -927,10 +945,15 @@ export type Database = {
           benefits?: string[] | null
           category?: string
           company_id?: string
+          contact_email?: string | null
+          contact_phone?: string | null
           created_at?: string
           currency?: string | null
           description?: string
+          education_level?: string
           employment_type?: string
+          experience_required?: string
+          expires_at?: string | null
           featured_until?: string | null
           id?: string
           is_active?: boolean
@@ -938,10 +961,14 @@ export type Database = {
           is_promoted?: boolean
           location?: string
           modality?: string
+          payment_frequency?: string
+          positions_available?: number
+          preferred_contact_method?: string
           recruiter_id?: string
           requirements?: string | null
           salary_max?: number | null
           salary_min?: number | null
+          shift_schedule?: string
           skills?: string[] | null
           status?: string
           tags?: string[] | null

@@ -45,16 +45,25 @@ export interface VacancyPreviewData {
   title: string;
   category?: string | null;
   employment_type?: string | null;
+  shift_schedule?: string | null;
+  positions_available?: number | null;
   modality?: string | null;
   salary_min?: number | null;
   salary_max?: number | null;
   currency?: string | null;
+  payment_frequency?: string | null;
   description?: string | null;
   requirements?: string | null;
+  experience_required?: string | null;
+  education_level?: string | null;
   location?: string | null;
   zone?: string | null;
   benefits?: string[] | string | null;
   skills?: string[] | string | null;
+  contact_phone?: string | null;
+  contact_email?: string | null;
+  preferred_contact_method?: string | null;
+  expires_at?: string | null;
   created_at?: string | null;
   is_active?: boolean;
   status?: string | null;
@@ -431,11 +440,16 @@ export function VacancyPreview({
           <Card className="bg-card border border-border rounded-2xl p-6 shadow-xs space-y-6">
             <div className="space-y-1 pb-5 border-b border-border/80">
               <p className="text-xs font-extrabold uppercase tracking-wider text-muted-foreground">
-                Sueldo estimado mensual
+                Sueldo estimado {vacancy.payment_frequency ? `(${vacancy.payment_frequency})` : "mensual"}
               </p>
               <p className="text-2xl font-black text-foreground tracking-tight">
                 {formatSalary(vacancy.salary_min, vacancy.salary_max)}
               </p>
+              {vacancy.positions_available && vacancy.positions_available > 1 && (
+                <p className="text-xs font-bold text-primary pt-1">
+                  🔥 {vacancy.positions_available} vacantes disponibles
+                </p>
+              )}
             </div>
 
             <div className="space-y-4">
@@ -459,10 +473,11 @@ export function VacancyPreview({
                 </div>
                 <div>
                   <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
-                    Tipo de Jornada
+                    Jornada y Horario
                   </p>
                   <p className="text-xs font-bold text-foreground mt-0.5">
                     {vacancy.employment_type || "Tiempo Completo"}
+                    {vacancy.shift_schedule ? ` • ${vacancy.shift_schedule}` : ""}
                   </p>
                 </div>
               </div>
@@ -495,7 +510,7 @@ export function VacancyPreview({
                 </div>
               </div>
 
-              {company?.phone && (
+              {(vacancy.contact_phone || company?.phone) && (
                 <div className="flex items-start gap-3">
                   <div className="size-9 rounded-xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0 mt-0.5">
                     <Phone className="size-4" />
@@ -505,7 +520,7 @@ export function VacancyPreview({
                       Contacto WhatsApp
                     </p>
                     <p className="text-xs font-bold text-foreground mt-0.5">
-                      {company.phone}
+                      {vacancy.contact_phone || company?.phone}
                     </p>
                   </div>
                 </div>
