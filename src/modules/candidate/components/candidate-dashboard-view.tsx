@@ -20,8 +20,6 @@ import {
   Navigation,
   Check,
   X,
-  LayoutGrid,
-  List as ListIcon,
   SlidersHorizontal,
   Building2,
   Share2,
@@ -29,7 +27,20 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
+import {
+  Carousel,
+  CarouselContent,
+  CarouselItem,
+  CarouselPrevious,
+  CarouselNext,
+} from "@/components/ui/carousel";
+import {
+  Avatar,
+  AvatarImage,
+  AvatarFallback,
+} from "@/components/ui/avatar";
 import { createClient } from "@/lib/supabase/client";
 import type { CandidateDashboardData, VacancyItem } from "@/modules/candidate/services/candidate-dashboard";
 import { cn } from "@/lib/utils";
@@ -72,7 +83,6 @@ export function CandidateDashboardView({
   const [selectedCategory, setSelectedCategory] = useState("Todos");
   const [selectedZone, setSelectedZone] = useState("Todas las zonas");
   const [sortBy, setSortBy] = useState<"nearby" | "salary" | "recent">("nearby");
-  const [viewLayout, setViewLayout] = useState<"list" | "grid">("list");
 
   const candidateProfile = initialData?.profile;
   const candidateLocation = candidateProfile?.location || "";
@@ -261,566 +271,405 @@ export function CandidateDashboardView({
   };
 
   return (
-    <div className="w-full space-y-8 animate-in fade-in duration-300 pb-16 font-sans">
+    <div className="w-full space-y-6 animate-in fade-in duration-300 pb-16 font-sans">
       
-      {/* ── 0. HERO SEARCH & RADAR BANNER (Fiord Atmospheric Wash) ── */}
-      <section className="relative rounded-xl border border-fiord-200 dark:border-fiord-800 bg-white dark:bg-card p-6 sm:p-8 shadow-soft overflow-hidden">
-        {/* Atmospheric Sky-Fiord Radial Gradient Wash */}
-        <div className="absolute inset-0 pointer-events-none -z-0 overflow-hidden" aria-hidden="true">
-          <div className="absolute -top-24 right-0 w-[550px] h-[350px] bg-gradient-to-b from-fiord-200/40 via-fiord-100/20 to-transparent dark:from-fiord-800/20 dark:via-fiord-900/10 dark:to-transparent blur-3xl rounded-full" />
-          <div className="absolute -bottom-20 -left-10 w-[400px] h-[250px] bg-gradient-to-tr from-fiord-100/30 via-fiord-50/20 to-transparent dark:from-fiord-900/20 to-transparent blur-2xl rounded-full" />
-        </div>
-
-        <div className="relative z-10 flex flex-col lg:flex-row lg:items-center justify-between gap-6">
-          <div className="space-y-2 max-w-2xl">
-            <div className="flex flex-wrap items-center gap-2">
-              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-fiord-100 dark:bg-fiord-900/80 text-fiord-900 dark:text-fiord-100 border border-fiord-200 dark:border-fiord-800">
-                <Compass className="size-3.5 text-fiord-700 dark:text-fiord-300 animate-spin [animation-duration:8s]" />
-                Radar K&apos;anPro
-              </span>
-
-              {candidateLocation ? (
-                <span className="inline-flex items-center gap-1 text-xs font-medium text-fiord-700 dark:text-fiord-300 bg-fiord-50 dark:bg-fiord-950/60 px-2.5 py-1 rounded-full border border-fiord-200 dark:border-fiord-800 truncate max-w-xs">
-                  <MapPin className="size-3 text-fiord-600 dark:text-fiord-400 shrink-0" />
-                  {candidateLocation}
-                </span>
-              ) : (
-                <Link
-                  href="/dashboard/candidate/profile"
-                  className="inline-flex items-center gap-1 text-xs font-medium text-fiord-600 hover:text-fiord-950 dark:text-fiord-400 dark:hover:text-fiord-100 underline decoration-fiord-300 underline-offset-2"
-                >
-                  <MapPin className="size-3 shrink-0" />
-                  Registrar ubicación para cálculo de distancia
-                </Link>
-              )}
-            </div>
-
-            <h1 className="text-2xl sm:text-3xl lg:text-[32px] font-semibold tracking-[-0.84px] leading-tight text-fiord-950 dark:text-fiord-50">
-              Oportunidades laborales en el Sureste
-            </h1>
-            <p className="text-sm text-fiord-700 dark:text-fiord-300 leading-relaxed max-w-xl">
-              Explora vacantes verificadas con transparencia salarial, prestaciones y cálculo de cercanía geográfica a tu domicilio.
-            </p>
-          </div>
-
-          {/* Quick CTA button */}
-          <div className="shrink-0 flex items-center gap-3">
-            <Link href="/dashboard/candidate/discovery" className="w-full sm:w-auto">
-              <Button className="h-10 px-5 rounded-md bg-fiord-950 text-white text-sm font-medium hover:bg-fiord-900 active:scale-[0.98] transition-all shadow-sm w-full sm:w-auto gap-2 dark:bg-fiord-100 dark:text-fiord-950 dark:hover:bg-white">
-                <Sparkles className="size-4" />
-                Explorar catálogo completo
-              </Button>
-            </Link>
-          </div>
-        </div>
-
-        {/* Live Search & Filter Bar */}
-        <div className="relative z-10 mt-6 pt-5 border-t border-fiord-100 dark:border-fiord-800/80 space-y-3.5">
-          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
-            {/* Search Input */}
-            <div className="relative flex-1">
-              <label htmlFor={searchInputId} className="sr-only">
-                Buscar por puesto, empresa o habilidad
-              </label>
-              <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 size-4 text-fiord-500 dark:text-fiord-400 pointer-events-none" />
-              <input
-                id={searchInputId}
-                type="text"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Buscar puesto, empresa, habilidad o zona (ej. Contador, Mesero, Mérida)..."
-                className="w-full h-10 bg-white dark:bg-fiord-950/60 border border-fiord-200 dark:border-fiord-800 rounded-md pl-10 pr-9 text-sm font-normal text-fiord-950 dark:text-fiord-50 placeholder:text-fiord-400 dark:placeholder:text-fiord-500 focus:outline-none focus:ring-2 focus:ring-fiord-400/50 focus:border-fiord-500 transition-all"
-              />
-              {searchQuery && (
-                <button
-                  onClick={() => setSearchQuery("")}
-                  aria-label="Limpiar búsqueda"
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-fiord-400 hover:text-fiord-800 dark:hover:text-fiord-200 p-1 rounded-sm cursor-pointer transition-colors"
-                >
-                  <X className="size-3.5" />
-                </button>
-              )}
-            </div>
-
-            {/* Zone Quick Dropdown / Filter */}
-            <div className="flex items-center gap-2">
-              <select
-                value={selectedZone}
-                onChange={(e) => setSelectedZone(e.target.value)}
-                aria-label="Filtrar por zona"
-                className="h-10 px-3 bg-white dark:bg-fiord-950/60 border border-fiord-200 dark:border-fiord-800 rounded-md text-xs font-medium text-fiord-800 dark:text-fiord-200 focus:outline-none focus:ring-2 focus:ring-fiord-400/50 cursor-pointer"
+      {/* ── 0. MINIMALIST SEARCH & EXPLORATION HEADER ── */}
+      <div className="space-y-3">
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
+          {/* Minimalist Search Input */}
+          <div className="relative flex-1">
+            <label htmlFor={searchInputId} className="sr-only">
+              Buscar por puesto, empresa, zona o habilidad
+            </label>
+            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 size-4 text-muted-foreground pointer-events-none" />
+            <Input
+              id={searchInputId}
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" && searchQuery.trim()) {
+                  router.push(`/dashboard/candidate/discovery?q=${encodeURIComponent(searchQuery.trim())}`);
+                }
+              }}
+              placeholder="Buscar por puesto, empresa, zona o habilidad..."
+              className="h-11 rounded-2xl bg-card border-border/70 pl-10 pr-10 text-xs sm:text-sm placeholder:text-muted-foreground shadow-2xs focus-visible:ring-primary/20"
+            />
+            {searchQuery && (
+              <button
+                type="button"
+                onClick={() => setSearchQuery("")}
+                aria-label="Limpiar búsqueda"
+                className="absolute right-3.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground p-1 rounded-md cursor-pointer transition-colors"
               >
-                {QUICK_ZONES.map((zone) => (
-                  <option key={zone} value={zone}>
-                    {zone}
-                  </option>
-                ))}
-              </select>
-
-              {activeFiltersCount > 0 && (
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={clearAllFilters}
-                  className="h-10 px-3 rounded-md border-fiord-200 dark:border-fiord-800 text-fiord-700 dark:text-fiord-300 hover:bg-fiord-50 dark:hover:bg-fiord-900 text-xs font-medium gap-1.5"
-                >
-                  <X className="size-3.5" />
-                  Limpiar ({activeFiltersCount})
-                </Button>
-              )}
-            </div>
+                <X className="size-3.5" />
+              </button>
+            )}
           </div>
 
-          {/* Category Chips Carousel */}
-          <div className="flex items-center gap-1.5 overflow-x-auto pb-1 hide-scrollbar pt-1" role="tablist" aria-label="Categorías de empleo">
-            {CATEGORY_CHIPS.map((cat) => {
-              const isSelected = selectedCategory === cat;
-              return (
-                <button
-                  key={cat}
-                  role="tab"
-                  aria-selected={isSelected}
-                  onClick={() => setSelectedCategory(cat)}
-                  className={cn(
-                    "px-3.5 py-1.5 rounded-full text-xs font-medium whitespace-nowrap transition-all cursor-pointer border",
-                    isSelected
-                      ? "bg-fiord-950 text-white border-fiord-950 dark:bg-fiord-100 dark:text-fiord-950 dark:border-fiord-100 shadow-xs"
-                      : "bg-fiord-50 dark:bg-fiord-900/40 text-fiord-700 dark:text-fiord-300 border-fiord-200 dark:border-fiord-800 hover:bg-fiord-100 dark:hover:bg-fiord-800/60 hover:text-fiord-950 dark:hover:text-fiord-50"
-                  )}
-                >
-                  {cat}
-                </button>
-              );
-            })}
-          </div>
-        </div>
-      </section>
-
-      {/* ── 1. FEATURED SECTION (VACANTES DESTACADAS) ── */}
-      <section className="space-y-4" aria-labelledby="featured-vacancies-heading">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2.5">
-            <div className="size-8 rounded-md bg-amber-500/10 text-amber-700 dark:text-amber-300 border border-amber-500/20 flex items-center justify-center">
-              <Flame className="size-4.5" />
-            </div>
-            <div>
-              <h2 id="featured-vacancies-heading" className="text-lg font-semibold tracking-[-0.4px] text-fiord-950 dark:text-fiord-50">
-                Vacantes destacadas
-              </h2>
-            </div>
-          </div>
-          
-          <Link 
-            href="/dashboard/candidate/discovery" 
-            className="text-xs font-semibold text-fiord-700 hover:text-fiord-950 dark:text-fiord-300 dark:hover:text-fiord-50 transition-colors inline-flex items-center gap-1 group py-1"
+          {/* Explore Catalog CTA */}
+          <Link
+            href={searchQuery.trim() ? `/dashboard/candidate/discovery?q=${encodeURIComponent(searchQuery.trim())}` : "/dashboard/candidate/discovery"}
+            className="shrink-0"
           >
-            Ver todas
-            <ChevronRight className="size-3.5 group-hover:translate-x-0.5 transition-transform" />
+            <Button
+              className="h-11 px-5 rounded-2xl text-xs sm:text-sm font-semibold gap-2 shadow-xs cursor-pointer w-full sm:w-auto"
+            >
+              <Sparkles className="size-4" />
+              Explorar catálogo completo
+            </Button>
           </Link>
         </div>
 
-        {/* Featured Content 3-col Grid */}
-        {rawFeaturedVacancies.length > 0 ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {rawFeaturedVacancies.map((job) => {
-              const isSaved = savedJobIds.has(job.id);
-              const isApplied = appliedJobIds.has(job.id);
+        {/* Minimalist Category Pills */}
+        <div className="flex items-center gap-1.5 overflow-x-auto pb-1 hide-scrollbar pt-1" role="tablist" aria-label="Categorías de empleo">
+          {CATEGORY_CHIPS.map((cat) => {
+            const isSelected = selectedCategory === cat;
+            return (
+              <Badge
+                key={cat}
+                variant={isSelected ? "default" : "outline"}
+                onClick={() => setSelectedCategory(cat)}
+                className={cn(
+                  "px-3.5 py-1.5 rounded-xl text-xs font-medium cursor-pointer transition-all shadow-2xs select-none",
+                  isSelected
+                    ? "bg-primary text-primary-foreground shadow-xs"
+                    : "bg-card hover:bg-muted/60 text-muted-foreground hover:text-foreground border-border/70"
+                )}
+              >
+                {cat}
+              </Badge>
+            );
+          })}
+        </div>
+      </div>
 
-              return (
-                <div
-                  key={job.id}
-                  onClick={() => handleCardClick(job.id)}
-                  className="group relative bg-white dark:bg-card border border-fiord-200 dark:border-fiord-800 rounded-lg p-5 flex flex-col justify-between shadow-soft hover:shadow-card-hover hover:border-fiord-400 dark:hover:border-fiord-600 transition-all cursor-pointer overflow-hidden"
-                >
-                  <div className="space-y-3.5">
-                    {/* Top Status Tags & Bookmark Button */}
-                    <div className="flex items-center justify-between gap-2">
-                      <div className="flex items-center gap-1.5 flex-wrap">
-                        <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-amber-500/10 text-amber-800 dark:text-amber-300 border border-amber-500/20">
-                          <Sparkles className="size-3" />
-                          Destacada
-                        </span>
-                        {isApplied && (
-                          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-emerald-500/10 text-emerald-800 dark:text-emerald-300 border border-emerald-500/20">
-                            <CheckCheck className="size-3" />
-                            Postulado
-                          </span>
-                        )}
-                      </div>
-
-                      <div className="flex items-center gap-1">
-                        <button
-                          onClick={(e) => handleShare(e, job)}
-                          aria-label={`Compartir vacante ${job.title}`}
-                          className="text-fiord-400 hover:text-fiord-800 dark:hover:text-fiord-200 p-1.5 rounded-md hover:bg-fiord-50 dark:hover:bg-fiord-800/60 transition-colors cursor-pointer"
-                        >
-                          <Share2 className="size-4" />
-                        </button>
-                        <button 
-                          onClick={(e) => { e.stopPropagation(); toggleBookmark(job.id); }}
-                          aria-label={isSaved ? `Remover ${job.title} de guardados` : `Guardar ${job.title}`}
-                          className="text-fiord-400 hover:text-amber-500 dark:hover:text-amber-400 p-1.5 rounded-md hover:bg-fiord-50 dark:hover:bg-fiord-800/60 transition-colors cursor-pointer"
-                        >
-                          <Bookmark className={cn("size-4.5 transition-transform active:scale-90", isSaved ? "fill-amber-500 text-amber-500 dark:fill-amber-400 dark:text-amber-400" : "")} />
-                        </button>
-                      </div>
-                    </div>
-
-                    {/* Company Branding & Job Title */}
-                    <div className="flex items-start gap-3">
-                      <div className="size-11 rounded-md bg-fiord-50 dark:bg-fiord-900/60 border border-fiord-200 dark:border-fiord-800 flex items-center justify-center text-fiord-900 dark:text-fiord-100 shrink-0 font-semibold text-xs overflow-hidden shadow-2xs group-hover:scale-105 transition-transform">
-                        {job.companyLogo ? (
-                          <img src={job.companyLogo} alt={job.companyName} className="size-full object-cover" />
-                        ) : (
-                          <span>
-                            {job.companyName.substring(0, 2).toUpperCase()}
-                          </span>
-                        )}
-                      </div>
-                      <div className="min-w-0 flex-1">
-                        <p className="text-xs font-medium text-fiord-600 dark:text-fiord-400 truncate flex items-center gap-1">
-                          {job.companyName}
-                          <CheckCircle2 className="size-3 text-emerald-600 dark:text-emerald-400 shrink-0" />
-                        </p>
-                        <h3 className="text-sm sm:text-base font-semibold text-fiord-950 dark:text-fiord-50 tracking-[-0.2px] line-clamp-2 group-hover:text-fiord-700 dark:group-hover:text-fiord-200 transition-colors mt-0.5">
-                          {job.title}
-                        </h3>
-                      </div>
-                    </div>
-
-                    {/* Pills Row (Location, Modality, Proximity) */}
-                    <div className="flex flex-wrap items-center gap-1.5 pt-1">
-                      <span className="inline-flex items-center gap-1 text-[11px] font-normal text-fiord-700 dark:text-fiord-300 bg-fiord-50 dark:bg-fiord-900/50 px-2.5 py-0.5 rounded-full border border-fiord-200/80 dark:border-fiord-800">
-                        <MapPin className="size-3 text-fiord-500 shrink-0" />
-                        <span className="truncate max-w-[130px]">{job.location}</span>
-                      </span>
-
-                      {job.distanceBadge && (
-                        <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-fiord-800 dark:text-fiord-200 bg-fiord-100 dark:bg-fiord-800 px-2 py-0.5 rounded-full border border-fiord-200 dark:border-fiord-700">
-                          <Navigation className="size-2.5 text-fiord-600 dark:text-fiord-300" />
-                          {job.distanceBadge}
-                        </span>
-                      )}
-
-                      <span className="text-[11px] font-normal text-fiord-600 dark:text-fiord-400 bg-fiord-50 dark:bg-fiord-900/40 px-2 py-0.5 rounded-full border border-fiord-200/60 dark:border-fiord-800">
-                        {job.employmentType}
-                      </span>
-                    </div>
-                  </div>
-
-                  {/* Footer: High-contrast salary & CTA */}
-                  <div className="pt-3.5 mt-4 border-t border-fiord-100 dark:border-fiord-800 flex items-center justify-between gap-2">
-                    <div>
-                      <span className="text-[10px] text-fiord-500 dark:text-fiord-400 font-semibold uppercase tracking-wider block">
-                        Salario mensual
-                      </span>
-                      <span className="text-sm font-semibold font-mono text-emerald-700 dark:text-emerald-400">
-                        {job.formattedSalary}
-                      </span>
-                    </div>
-
-                    <span className="inline-flex items-center gap-1 text-xs font-semibold text-fiord-950 dark:text-fiord-100 group-hover:translate-x-0.5 transition-transform">
-                      Ver vacante
-                      <ArrowUpRight className="size-3.5" />
-                    </span>
-                  </div>
-                </div>
-              );
-            })}
+      {/* ── 1. FEATURED CAROUSEL SECTION (VACANTES DESTACADAS) ── */}
+      {rawFeaturedVacancies.length > 0 && (
+        <section className="space-y-4" aria-labelledby="featured-vacancies-heading">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2.5">
+              <div className="size-8 rounded-xl bg-amber-500/10 text-amber-700 dark:text-amber-300 border border-amber-500/20 flex items-center justify-center shadow-2xs">
+                <Flame className="size-4 text-amber-500" />
+              </div>
+              <div className="flex items-center gap-2">
+                <h2 id="featured-vacancies-heading" className="text-base sm:text-lg font-bold tracking-tight text-foreground">
+                  Vacantes destacadas
+                </h2>
+                <Badge variant="outline" className="text-[10px] font-semibold bg-amber-500/10 text-amber-700 dark:text-amber-300 border-amber-500/25">
+                  ★ Premium
+                </Badge>
+              </div>
+            </div>
+            
+            <Link 
+              href="/dashboard/candidate/discovery" 
+              className="text-xs font-semibold text-muted-foreground hover:text-foreground transition-colors inline-flex items-center gap-1 group py-1"
+            >
+              Ver todas
+              <ChevronRight className="size-3.5 group-hover:translate-x-0.5 transition-transform" />
+            </Link>
           </div>
-        ) : (
-          <div className="rounded-lg bg-fiord-50 dark:bg-fiord-950/40 border border-fiord-200 dark:border-fiord-800 p-6 text-center">
-            <p className="text-sm text-fiord-700 dark:text-fiord-300">
-              No hay vacantes destacadas en este momento.
-            </p>
-          </div>
-        )}
-      </section>
+
+          {/* Premium Carousel with Embla and Shadcn Tokens */}
+          <Carousel
+            opts={{
+              align: "start",
+              loop: rawFeaturedVacancies.length > 3,
+            }}
+            className="w-full relative"
+          >
+            <CarouselContent className="-ml-3 sm:-ml-4">
+              {rawFeaturedVacancies.map((job) => {
+                const isSaved = savedJobIds.has(job.id);
+                const isApplied = appliedJobIds.has(job.id);
+                const companyInitials = job.companyName ? job.companyName.substring(0, 2).toUpperCase() : "EM";
+
+                return (
+                  <CarouselItem key={job.id} className="pl-3 sm:pl-4 basis-full sm:basis-1/2 lg:basis-1/3">
+                    <div
+                      onClick={() => handleCardClick(job.id)}
+                      className="relative bg-card border border-border/70 hover:border-border hover:bg-muted/30 rounded-3xl p-5 flex flex-col justify-between shadow-2xs transition-colors duration-150 cursor-pointer h-full select-none"
+                    >
+                      <div className="space-y-3.5">
+                        {/* Top Status Tags & Bookmark Button */}
+                        <div className="flex items-center justify-between gap-2">
+                          <div className="flex items-center gap-1.5 flex-wrap">
+                            <Badge
+                              variant="outline"
+                              className="gap-1 text-[11px] font-semibold bg-amber-500/10 text-amber-700 dark:text-amber-300 border-amber-500/25 rounded-md px-2 py-0.5"
+                            >
+                              <Sparkles className="size-3 text-amber-500" />
+                              Destacada
+                            </Badge>
+                            {isApplied && (
+                              <Badge
+                                variant="outline"
+                                className="gap-1 text-[11px] font-semibold bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border-emerald-500/25 rounded-md px-2 py-0.5"
+                              >
+                                <CheckCheck className="size-3 text-emerald-600" />
+                                Postulado
+                              </Badge>
+                            )}
+                          </div>
+
+                          <div className="flex items-center gap-1">
+                            <button
+                              type="button"
+                              onClick={(e) => handleShare(e, job)}
+                              aria-label={`Compartir vacante ${job.title}`}
+                              className="text-muted-foreground hover:text-foreground p-1.5 rounded-lg hover:bg-muted transition-colors cursor-pointer"
+                            >
+                              <Share2 className="size-3.5" />
+                            </button>
+                            <button 
+                              type="button"
+                              onClick={(e) => { e.stopPropagation(); toggleBookmark(job.id); }}
+                              aria-label={isSaved ? `Remover ${job.title} de guardados` : `Guardar ${job.title}`}
+                              className="text-muted-foreground hover:text-amber-500 dark:hover:text-amber-400 p-1.5 rounded-lg hover:bg-muted transition-colors cursor-pointer"
+                            >
+                              <Bookmark className={cn("size-4 transition-transform active:scale-90", isSaved ? "fill-amber-500 text-amber-500 dark:fill-amber-400 dark:text-amber-400" : "")} />
+                            </button>
+                          </div>
+                        </div>
+
+                        {/* Company Branding & Job Title */}
+                        <div className="flex items-start gap-3">
+                          <Avatar className="size-11 rounded-2xl ring-1 ring-border/60 shrink-0 shadow-2xs">
+                            {job.companyLogo ? (
+                              <AvatarImage src={job.companyLogo} alt={job.companyName} className="object-cover" />
+                            ) : null}
+                            <AvatarFallback className="rounded-2xl font-bold text-xs bg-muted text-foreground">
+                              {companyInitials}
+                            </AvatarFallback>
+                          </Avatar>
+
+                          <div className="min-w-0 flex-1">
+                            <p className="text-xs font-medium text-muted-foreground truncate flex items-center gap-1">
+                              {job.companyName}
+                              <CheckCircle2 className="size-3 text-emerald-600 dark:text-emerald-400 shrink-0" />
+                            </p>
+                            <h3 className="text-sm sm:text-base font-bold text-foreground tracking-tight line-clamp-2 mt-0.5">
+                              {job.title}
+                            </h3>
+                          </div>
+                        </div>
+
+                        {/* Pills (Location, Distance, Modality) */}
+                        <div className="flex flex-wrap items-center gap-1.5 pt-1">
+                          <Badge variant="secondary" className="gap-1 text-[11px] font-medium py-0.5 px-2 bg-muted/60 text-muted-foreground border-border/60">
+                            <MapPin className="size-3 shrink-0" />
+                            <span className="truncate max-w-[130px]">{job.location}</span>
+                          </Badge>
+
+                          {job.distanceBadge && (
+                            <Badge variant="secondary" className="gap-1 text-[11px] font-semibold py-0.5 px-2 bg-primary/10 text-primary border-primary/20">
+                              <Navigation className="size-2.5 shrink-0" />
+                              {job.distanceBadge}
+                            </Badge>
+                          )}
+
+                          <Badge variant="secondary" className="text-[11px] font-medium py-0.5 px-2 bg-muted/60 text-muted-foreground border-border/60">
+                            {job.employmentType}
+                          </Badge>
+                        </div>
+                      </div>
+
+                      {/* Footer: Salary & CTA */}
+                      <div className="pt-3.5 mt-4 border-t border-border/60 flex items-center justify-between gap-2">
+                        <div>
+                          <span className="text-[10px] text-muted-foreground font-semibold uppercase tracking-wider block">
+                            Sueldo mensual
+                          </span>
+                          <span className="text-sm font-bold font-mono text-emerald-600 dark:text-emerald-400">
+                            {job.formattedSalary}
+                          </span>
+                        </div>
+
+                        <Button
+                          size="sm"
+                          className="h-8 px-3 rounded-xl text-xs font-semibold gap-1 shadow-2xs cursor-pointer"
+                        >
+                          Ver vacante
+                          <ArrowUpRight className="size-3" />
+                        </Button>
+                      </div>
+                    </div>
+                  </CarouselItem>
+                );
+              })}
+            </CarouselContent>
+
+            {rawFeaturedVacancies.length > 2 && (
+              <>
+                <CarouselPrevious className="hidden sm:flex -left-3.5" />
+                <CarouselNext className="hidden sm:flex -right-3.5" />
+              </>
+            )}
+          </Carousel>
+        </section>
+      )}
 
       {/* ── 2. NEARBY FEED SECTION (EMPLEOS CERCA DE TI) ── */}
       <section className="space-y-4 pt-2" aria-labelledby="nearby-vacancies-heading">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div>
             <div className="flex items-center gap-2">
-              <div className="size-8 rounded-md bg-fiord-100 dark:bg-fiord-900/80 text-fiord-950 dark:text-fiord-100 border border-fiord-200 dark:border-fiord-800 flex items-center justify-center">
-                <Navigation className="size-4 text-fiord-700 dark:text-fiord-300" />
+              <div className="size-8 rounded-xl bg-primary/10 text-primary border border-primary/20 flex items-center justify-center shadow-2xs">
+                <Navigation className="size-4" />
               </div>
-              <h2 id="nearby-vacancies-heading" className="text-lg font-semibold tracking-[-0.4px] text-fiord-950 dark:text-fiord-50">
+              <h2 id="nearby-vacancies-heading" className="text-base sm:text-lg font-bold tracking-tight text-foreground">
                 Empleos cerca de ti
               </h2>
-              <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-fiord-100 dark:bg-fiord-800 text-fiord-900 dark:text-fiord-100 border border-fiord-200 dark:border-fiord-700">
+              <Badge variant="secondary" className="px-2.5 py-0.5 rounded-full text-xs font-semibold">
                 {filteredVacancies.length}
-              </span>
+              </Badge>
             </div>
-            <p className="text-xs text-fiord-600 dark:text-fiord-400 mt-1">
+            <p className="text-xs text-muted-foreground mt-0.5">
               Ordenadas por cercanía geográfica y compatibilidad con tu perfil.
             </p>
           </div>
 
-          {/* Controls: Sorting & View Layout */}
-          <div className="flex items-center gap-2 self-start sm:self-auto">
-            {/* Sort options */}
-            <div className="inline-flex items-center bg-fiord-50 dark:bg-fiord-900/50 p-1 rounded-md border border-fiord-200 dark:border-fiord-800" role="group" aria-label="Ordenar vacantes">
-              <button
-                onClick={() => setSortBy("nearby")}
-                aria-pressed={sortBy === "nearby"}
-                className={cn(
-                  "px-2.5 py-1 text-xs font-medium rounded-sm transition-all cursor-pointer flex items-center gap-1",
-                  sortBy === "nearby"
-                    ? "bg-white dark:bg-fiord-800 text-fiord-950 dark:text-fiord-50 shadow-2xs font-semibold"
-                    : "text-fiord-600 dark:text-fiord-400 hover:text-fiord-950 dark:hover:text-fiord-200"
-                )}
-              >
-                <MapPin className="size-3" />
-                Cercanía
-              </button>
-              <button
-                onClick={() => setSortBy("salary")}
-                aria-pressed={sortBy === "salary"}
-                className={cn(
-                  "px-2.5 py-1 text-xs font-medium rounded-sm transition-all cursor-pointer flex items-center gap-1",
-                  sortBy === "salary"
-                    ? "bg-white dark:bg-fiord-800 text-fiord-950 dark:text-fiord-50 shadow-2xs font-semibold"
-                    : "text-fiord-600 dark:text-fiord-400 hover:text-fiord-950 dark:hover:text-fiord-200"
-                )}
-              >
-                <DollarSign className="size-3" />
-                Sueldo
-              </button>
-              <button
-                onClick={() => setSortBy("recent")}
-                aria-pressed={sortBy === "recent"}
-                className={cn(
-                  "px-2.5 py-1 text-xs font-medium rounded-sm transition-all cursor-pointer flex items-center gap-1",
-                  sortBy === "recent"
-                    ? "bg-white dark:bg-fiord-800 text-fiord-950 dark:text-fiord-50 shadow-2xs font-semibold"
-                    : "text-fiord-600 dark:text-fiord-400 hover:text-fiord-950 dark:hover:text-fiord-200"
-                )}
-              >
-                <Clock className="size-3" />
-                Recientes
-              </button>
-            </div>
-
-            {/* Layout Toggle (List / Grid) */}
-            <div className="inline-flex items-center bg-fiord-50 dark:bg-fiord-900/50 p-1 rounded-md border border-fiord-200 dark:border-fiord-800" role="group" aria-label="Vista">
-              <button
-                onClick={() => setViewLayout("list")}
-                aria-label="Vista de lista"
-                aria-pressed={viewLayout === "list"}
-                className={cn(
-                  "p-1 rounded-sm transition-all cursor-pointer",
-                  viewLayout === "list"
-                    ? "bg-white dark:bg-fiord-800 text-fiord-950 dark:text-fiord-50 shadow-2xs"
-                    : "text-fiord-500 hover:text-fiord-950 dark:hover:text-fiord-200"
-                )}
-              >
-                <ListIcon className="size-3.5" />
-              </button>
-              <button
-                onClick={() => setViewLayout("grid")}
-                aria-label="Vista de cuadrícula"
-                aria-pressed={viewLayout === "grid"}
-                className={cn(
-                  "p-1 rounded-sm transition-all cursor-pointer",
-                  viewLayout === "grid"
-                    ? "bg-white dark:bg-fiord-800 text-fiord-950 dark:text-fiord-50 shadow-2xs"
-                    : "text-fiord-500 hover:text-fiord-950 dark:hover:text-fiord-200"
-                )}
-              >
-                <LayoutGrid className="size-3.5" />
-              </button>
-            </div>
+          {/* Controls: Sorting */}
+          <div className="flex items-center gap-1 bg-card border border-border/70 p-1 rounded-2xl shadow-2xs self-start sm:self-auto" role="group" aria-label="Ordenar vacantes">
+            <Button
+              variant={sortBy === "nearby" ? "default" : "ghost"}
+              size="sm"
+              onClick={() => setSortBy("nearby")}
+              className={cn(
+                "h-7 text-xs rounded-xl px-2.5 font-medium gap-1 cursor-pointer transition-all",
+                sortBy === "nearby" ? "shadow-2xs font-semibold" : "text-muted-foreground hover:text-foreground"
+              )}
+            >
+              <MapPin className="size-3" />
+              Cercanía
+            </Button>
+            <Button
+              variant={sortBy === "salary" ? "default" : "ghost"}
+              size="sm"
+              onClick={() => setSortBy("salary")}
+              className={cn(
+                "h-7 text-xs rounded-xl px-2.5 font-medium gap-1 cursor-pointer transition-all",
+                sortBy === "salary" ? "shadow-2xs font-semibold" : "text-muted-foreground hover:text-foreground"
+              )}
+            >
+              <DollarSign className="size-3" />
+              Sueldo
+            </Button>
+            <Button
+              variant={sortBy === "recent" ? "default" : "ghost"}
+              size="sm"
+              onClick={() => setSortBy("recent")}
+              className={cn(
+                "h-7 text-xs rounded-xl px-2.5 font-medium gap-1 cursor-pointer transition-all",
+                sortBy === "recent" ? "shadow-2xs font-semibold" : "text-muted-foreground hover:text-foreground"
+              )}
+            >
+              <Clock className="size-3" />
+              Recientes
+            </Button>
           </div>
         </div>
 
-        {/* Nearby Vacancies Feed Container */}
+        {/* Nearby Vacancies List Feed */}
         {filteredVacancies.length > 0 ? (
-          <div className={cn(
-            viewLayout === "grid" 
-              ? "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"
-              : "space-y-3"
-          )}>
+          <div className="space-y-3">
             {filteredVacancies.map((job) => {
               const isSaved = savedJobIds.has(job.id);
               const isApplied = appliedJobIds.has(job.id);
+              const companyInitials = job.companyName ? job.companyName.substring(0, 2).toUpperCase() : "EM";
 
-              if (viewLayout === "grid") {
-                // Compact Grid Card
-                return (
-                  <div
-                    key={job.id}
-                    onClick={() => handleCardClick(job.id)}
-                    className="group relative bg-white dark:bg-card border border-fiord-200 dark:border-fiord-800 rounded-lg p-5 flex flex-col justify-between shadow-soft hover:shadow-card-hover hover:border-fiord-400 dark:hover:border-fiord-600 transition-all cursor-pointer"
-                  >
-                    <div className="space-y-3">
-                      <div className="flex items-center justify-between gap-2">
-                        <div className="flex items-center gap-1.5 flex-wrap">
-                          {job.distanceBadge && (
-                            <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-fiord-800 dark:text-fiord-200 bg-fiord-100 dark:bg-fiord-800 px-2 py-0.5 rounded-full border border-fiord-200 dark:border-fiord-700">
-                              <Navigation className="size-2.5 text-fiord-600 dark:text-fiord-300" />
-                              {job.distanceBadge}
-                            </span>
-                          )}
-                          {isApplied && (
-                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-semibold bg-emerald-500/10 text-emerald-800 dark:text-emerald-300 border border-emerald-500/20">
-                              <CheckCheck className="size-3" />
-                              Postulado
-                            </span>
-                          )}
-                        </div>
-
-                        <button 
-                          onClick={(e) => { e.stopPropagation(); toggleBookmark(job.id); }}
-                          aria-label={isSaved ? `Remover ${job.title} de guardados` : `Guardar ${job.title}`}
-                          className="text-fiord-400 hover:text-amber-500 dark:hover:text-amber-400 p-1.5 rounded-md hover:bg-fiord-50 dark:hover:bg-fiord-800/60 transition-colors cursor-pointer"
-                        >
-                          <Bookmark className={cn("size-4.5 transition-transform active:scale-90", isSaved ? "fill-amber-500 text-amber-500 dark:fill-amber-400 dark:text-amber-400" : "")} />
-                        </button>
-                      </div>
-
-                      <div className="flex items-start gap-3">
-                        <div className="size-11 rounded-md bg-fiord-50 dark:bg-fiord-900/60 border border-fiord-200 dark:border-fiord-800 flex items-center justify-center text-fiord-900 dark:text-fiord-100 shrink-0 font-semibold text-xs overflow-hidden shadow-2xs group-hover:scale-105 transition-transform">
-                          {job.companyLogo ? (
-                            <img src={job.companyLogo} alt={job.companyName} className="size-full object-cover" />
-                          ) : (
-                            <span>
-                              {job.companyName.substring(0, 2).toUpperCase()}
-                            </span>
-                          )}
-                        </div>
-                        <div className="min-w-0 flex-1">
-                          <p className="text-xs font-medium text-fiord-600 dark:text-fiord-400 truncate flex items-center gap-1">
-                            {job.companyName}
-                            <CheckCircle2 className="size-3 text-emerald-600 dark:text-emerald-400 shrink-0" />
-                          </p>
-                          <h3 className="text-sm sm:text-base font-semibold text-fiord-950 dark:text-fiord-50 tracking-[-0.2px] line-clamp-2 group-hover:text-fiord-700 dark:group-hover:text-fiord-200 transition-colors mt-0.5">
-                            {job.title}
-                          </h3>
-                        </div>
-                      </div>
-
-                      <div className="flex flex-wrap items-center gap-1.5 pt-1 text-xs text-fiord-600 dark:text-fiord-400">
-                        <span className="inline-flex items-center gap-1">
-                          <MapPin className="size-3 text-fiord-500 shrink-0" />
-                          <span className="truncate max-w-[140px]">{job.location}</span>
-                        </span>
-                        <span>•</span>
-                        <span>{job.employmentType}</span>
-                      </div>
-                    </div>
-
-                    <div className="pt-3.5 mt-4 border-t border-fiord-100 dark:border-fiord-800 flex items-center justify-between gap-2">
-                      <div>
-                        <span className="text-[10px] text-fiord-500 dark:text-fiord-400 font-semibold uppercase tracking-wider block">
-                          Sueldo
-                        </span>
-                        <span className="text-sm font-semibold font-mono text-emerald-700 dark:text-emerald-400">
-                          {job.formattedSalary}
-                        </span>
-                      </div>
-
-                      <Button
-                        size="sm"
-                        className="h-8 px-3 rounded-md bg-fiord-950 text-white text-xs font-medium hover:bg-fiord-900 transition-all dark:bg-fiord-100 dark:text-fiord-950 dark:hover:bg-white gap-1"
-                      >
-                        Ver vacante
-                        <ArrowUpRight className="size-3" />
-                      </Button>
-                    </div>
-                  </div>
-                );
-              }
-
-              // High-density Ergonomic List Row Card
               return (
                 <div
                   key={job.id}
                   onClick={() => handleCardClick(job.id)}
-                  className="group bg-white dark:bg-card border border-fiord-200 dark:border-fiord-800 rounded-lg p-4 sm:p-5 flex flex-col md:flex-row md:items-center justify-between gap-4 shadow-soft hover:shadow-card-hover hover:border-fiord-400 dark:hover:border-fiord-600 transition-all cursor-pointer relative overflow-hidden"
+                  className="bg-card border border-border/70 hover:border-border hover:bg-muted/30 rounded-3xl p-4 sm:p-5 flex flex-col md:flex-row md:items-center justify-between gap-4 shadow-2xs transition-colors duration-150 cursor-pointer relative overflow-hidden"
                 >
                   {/* Left Column: Avatar + Main Metadata */}
                   <div className="flex items-start gap-4 min-w-0 flex-1">
                     {/* Company Avatar */}
-                    <div className="size-12 rounded-md bg-fiord-50 dark:bg-fiord-900/60 border border-fiord-200 dark:border-fiord-800 flex items-center justify-center text-fiord-900 dark:text-fiord-100 shrink-0 font-semibold text-xs overflow-hidden shadow-2xs group-hover:scale-105 transition-transform">
+                    <Avatar className="size-12 rounded-2xl ring-1 ring-border/60 shrink-0 shadow-2xs">
                       {job.companyLogo ? (
-                        <img src={job.companyLogo} alt={job.companyName} className="size-full object-cover" />
-                      ) : (
-                        <span>
-                          {job.companyName.substring(0, 2).toUpperCase()}
-                        </span>
-                      )}
-                    </div>
+                        <AvatarImage src={job.companyLogo} alt={job.companyName} className="object-cover" />
+                      ) : null}
+                      <AvatarFallback className="rounded-2xl font-bold text-xs bg-muted text-foreground">
+                        {companyInitials}
+                      </AvatarFallback>
+                    </Avatar>
 
                     {/* Job Details */}
                     <div className="min-w-0 flex-1 space-y-1">
                       <div className="flex items-center gap-2 flex-wrap">
-                        <span className="text-xs font-medium text-fiord-600 dark:text-fiord-400 truncate flex items-center gap-1">
+                        <span className="text-xs font-medium text-muted-foreground truncate flex items-center gap-1">
                           {job.companyName}
                           <CheckCircle2 className="size-3 text-emerald-600 dark:text-emerald-400 shrink-0" />
                         </span>
 
                         {job.distanceBadge && (
-                          <span className="inline-flex items-center gap-1 text-[11px] font-semibold px-2 py-0.5 rounded-full bg-fiord-100 dark:bg-fiord-800 text-fiord-900 dark:text-fiord-100 border border-fiord-200 dark:border-fiord-700">
-                            <Navigation className="size-2.5 text-fiord-600 dark:text-fiord-300" />
+                          <Badge variant="secondary" className="gap-1 text-[11px] font-semibold py-0.5 px-2 bg-primary/10 text-primary border-primary/20">
+                            <Navigation className="size-2.5 shrink-0" />
                             {job.distanceBadge}
-                          </span>
+                          </Badge>
                         )}
 
                         {job.isFeatured && (
-                          <span className="inline-flex items-center gap-0.5 text-[10px] font-semibold px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-800 dark:text-amber-300 border border-amber-500/20">
+                          <Badge variant="outline" className="text-[10px] font-semibold bg-amber-500/10 text-amber-700 dark:text-amber-300 border-amber-500/25">
                             ★ Destacada
-                          </span>
+                          </Badge>
                         )}
 
                         {isApplied && (
-                          <span className="inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-800 dark:text-emerald-300 border border-emerald-500/20">
-                            <CheckCheck className="size-3" /> Postulado
-                          </span>
+                          <Badge variant="outline" className="gap-1 text-[10px] font-semibold bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border-emerald-500/25">
+                            <CheckCheck className="size-3 text-emerald-600" />
+                            Postulado
+                          </Badge>
                         )}
                       </div>
 
-                      <h3 className="text-base font-semibold text-fiord-950 dark:text-fiord-50 tracking-[-0.2px] group-hover:text-fiord-700 dark:group-hover:text-fiord-200 transition-colors truncate">
+                      <h3 className="text-base sm:text-lg font-bold text-foreground tracking-tight truncate">
                         {job.title}
                       </h3>
 
                       {/* Details row with pills */}
-                      <div className="flex items-center gap-2.5 text-xs text-fiord-600 dark:text-fiord-400 flex-wrap pt-0.5">
-                        <span className="inline-flex items-center gap-1">
-                          <MapPin className="size-3 text-fiord-500 shrink-0" />
+                      <div className="flex items-center gap-2 text-xs text-muted-foreground flex-wrap pt-0.5">
+                        <Badge variant="secondary" className="gap-1 text-[11px] font-medium py-0.5 px-2 bg-muted/60 text-muted-foreground border-border/60">
+                          <MapPin className="size-3 shrink-0" />
                           {job.location}
-                        </span>
-                        <span>•</span>
-                        <span>{job.employmentType}</span>
-                        <span>•</span>
-                        <span className="font-medium text-fiord-800 dark:text-fiord-200">{job.category}</span>
+                        </Badge>
+                        <Badge variant="secondary" className="text-[11px] font-medium py-0.5 px-2 bg-muted/60 text-muted-foreground border-border/60">
+                          {job.employmentType}
+                        </Badge>
+                        <Badge variant="outline" className="text-[11px] font-medium py-0.5 px-2 text-muted-foreground border-border/60">
+                          {job.category}
+                        </Badge>
                       </div>
                     </div>
                   </div>
 
                   {/* Right Column: Salary, Bookmark & CTA */}
-                  <div className="flex md:flex-col items-center md:items-end justify-between md:justify-center shrink-0 pt-3 md:pt-0 border-t md:border-t-0 border-fiord-100 dark:border-fiord-800/80 gap-3">
+                  <div className="flex md:flex-col items-center md:items-end justify-between md:justify-center shrink-0 pt-3 md:pt-0 border-t md:border-t-0 border-border/60 gap-3">
                     <div className="text-left md:text-right">
-                      <span className="text-[10px] text-fiord-500 dark:text-fiord-400 font-semibold uppercase tracking-wider block">
-                        Salario mensual
+                      <span className="text-[10px] text-muted-foreground font-semibold uppercase tracking-wider block">
+                        Sueldo mensual
                       </span>
-                      <span className="text-sm sm:text-base font-semibold font-mono text-emerald-700 dark:text-emerald-400">
+                      <span className="text-sm sm:text-base font-bold font-mono text-emerald-600 dark:text-emerald-400">
                         {job.formattedSalary}
                       </span>
                     </div>
 
                     <div className="flex items-center gap-2">
                       <button 
+                        type="button"
                         onClick={(e) => { e.stopPropagation(); toggleBookmark(job.id); }}
                         aria-label={isSaved ? `Remover ${job.title} de guardados` : `Guardar ${job.title}`}
-                        className="p-2 text-fiord-400 hover:text-amber-500 dark:hover:text-amber-400 transition-colors cursor-pointer rounded-md hover:bg-fiord-50 dark:hover:bg-fiord-800/60 border border-fiord-200 dark:border-fiord-800"
+                        className="p-2 text-muted-foreground hover:text-amber-500 dark:hover:text-amber-400 transition-colors cursor-pointer rounded-xl hover:bg-muted border border-border/70 shadow-2xs"
                       >
                         <Bookmark className={cn("size-4 transition-transform active:scale-90", isSaved ? "fill-amber-500 text-amber-500 dark:fill-amber-400 dark:text-amber-400" : "")} />
                       </button>
 
                       <Button 
                         size="sm"
-                        className="h-9 px-4 rounded-md bg-fiord-950 text-white text-xs font-medium hover:bg-fiord-900 transition-all dark:bg-fiord-100 dark:text-fiord-950 dark:hover:bg-white shadow-sm gap-1.5"
+                        className="h-9 px-4 rounded-xl text-xs font-semibold shadow-2xs gap-1.5 cursor-pointer"
                       >
                         {isApplied ? "Ver postulación" : "Ver vacante"}
                         <ArrowUpRight className="size-3.5" />
@@ -833,14 +682,14 @@ export function CandidateDashboardView({
 
             {/* End of results banner */}
             <div className="py-8 flex flex-col items-center justify-center text-center space-y-2">
-              <div className="size-8 rounded-full bg-fiord-100 dark:bg-fiord-900 flex items-center justify-center text-fiord-700 dark:text-fiord-300">
-                <CheckCircle2 className="size-4 text-emerald-600 dark:text-emerald-400" />
+              <div className="size-8 rounded-full bg-primary/10 flex items-center justify-center text-primary">
+                <CheckCircle2 className="size-4 text-primary" />
               </div>
-              <p className="text-xs font-medium text-fiord-600 dark:text-fiord-400">
+              <p className="text-xs font-medium text-muted-foreground">
                 Has visto todas las vacantes cercanas según tus filtros
               </p>
               <Link href="/dashboard/candidate/discovery">
-                <Button variant="outline" size="sm" className="rounded-md text-xs font-medium mt-1 border-fiord-200 dark:border-fiord-800">
+                <Button variant="outline" size="sm" className="rounded-xl text-xs font-medium mt-1 border-border/70 shadow-2xs cursor-pointer">
                   Explorar todo el catálogo regional
                 </Button>
               </Link>
@@ -848,14 +697,14 @@ export function CandidateDashboardView({
           </div>
         ) : (
           /* Empty State */
-          <div className="rounded-xl bg-white dark:bg-card border border-fiord-200 dark:border-fiord-800 p-8 sm:p-12 flex flex-col items-center justify-center text-center shadow-soft">
-            <div className="size-14 rounded-lg bg-fiord-100 dark:bg-fiord-900/60 text-fiord-800 dark:text-fiord-200 flex items-center justify-center mb-4 border border-fiord-200 dark:border-fiord-800">
-              <Compass className="size-7" />
+          <div className="rounded-3xl bg-card border border-border/70 p-8 sm:p-12 flex flex-col items-center justify-center text-center shadow-xs">
+            <div className="size-14 rounded-2xl bg-muted text-foreground flex items-center justify-center mb-4 border border-border/70 shadow-2xs">
+              <Compass className="size-7 text-muted-foreground" />
             </div>
-            <h3 className="text-lg font-semibold text-fiord-950 dark:text-fiord-50 mb-1">
+            <h3 className="text-lg font-bold text-foreground mb-1">
               No se encontraron vacantes con estos filtros
             </h3>
-            <p className="text-sm text-fiord-700 dark:text-fiord-300 max-w-md leading-relaxed mb-6">
+            <p className="text-sm text-muted-foreground max-w-md leading-relaxed mb-6">
               Intenta buscar con otros términos o limpia los filtros activos para ver todas las oportunidades en Yucatán y Quintana Roo.
             </p>
 
@@ -863,13 +712,13 @@ export function CandidateDashboardView({
               <Button 
                 variant="outline"
                 onClick={clearAllFilters}
-                className="h-9 px-4 rounded-md border-fiord-200 dark:border-fiord-800 text-xs font-medium cursor-pointer"
+                className="h-9 px-4 rounded-xl border-border/70 text-xs font-semibold cursor-pointer shadow-2xs"
               >
                 Limpiar filtros
               </Button>
               <Link href="/dashboard/candidate/discovery">
                 <Button 
-                  className="h-9 px-4 rounded-md bg-fiord-950 text-white text-xs font-medium hover:bg-fiord-900 shadow-sm cursor-pointer gap-1.5 dark:bg-fiord-100 dark:text-fiord-950 dark:hover:bg-white"
+                  className="h-9 px-4 rounded-xl text-xs font-semibold shadow-xs cursor-pointer gap-1.5"
                 >
                   <Sparkles className="size-3.5" />
                   Ver todas las vacantes
