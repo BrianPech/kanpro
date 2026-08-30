@@ -40,6 +40,7 @@ export const companyService = {
 
     const companyPayload: any = {
       company_name: profile.company_name,
+      legal_name: profile.legal_name || null,
       industry: profile.industry || "General",
       fiscal_address: finalLocation || profile.address_details || "Mérida, Yucatán",
       website_url: profile.website || null,

@@ -17,6 +17,7 @@ import {
   Navigation,
   FileText,
   CreditCard,
+  Lock,
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -86,6 +87,7 @@ const FacebookIcon = (props: React.SVGProps<SVGSVGElement>) => (
 
 export interface InitialProfile {
   company_name?: string | null;
+  legal_name?: string | null;
   industry?: string | null;
   website_or_linkedin?: string | null;
   website?: string | null;
@@ -101,6 +103,8 @@ export interface InitialProfile {
   entity_type?: string | null;
   rfc?: string | null;
   is_validated?: boolean | null;
+  is_verified?: boolean | null;
+  verification_status?: "pending" | "approved" | "rejected" | "unsubmitted" | string | null;
   banner_url?: string | null;
   instagram_url?: string | null;
   facebook_url?: string | null;
@@ -233,6 +237,11 @@ export function CompanyProfileForm({
   const companyName = watch("company_name");
   const location = watch("location");
   const fiscalRegime = watch("fiscal_regime") || "persona_moral";
+
+  const isFiscalLocked =
+    initialProfile?.verification_status === "pending" ||
+    initialProfile?.verification_status === "approved" ||
+    !!initialProfile?.is_verified;
 
   const [isLocating, setIsLocating] = React.useState(false);
   const [isUploadingLogo, setIsUploadingLogo] = React.useState(false);
@@ -921,21 +930,33 @@ export function CompanyProfileForm({
 
             {/* SECCIÓN 4: DATOS FISCALES Y FACTURACIÓN */}
             <div className="space-y-5 pt-6">
-              <div className="flex items-center gap-2.5">
-                <div className="size-8 rounded-xl bg-amber-500/10 text-amber-600 dark:text-amber-400 flex items-center justify-center shrink-0">
-                  <CreditCard className="size-4" />
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <div className="flex items-center gap-2.5">
+                  <div className="size-8 rounded-xl bg-amber-500/10 text-amber-600 dark:text-amber-400 flex items-center justify-center shrink-0">
+                    <CreditCard className="size-4" />
+                  </div>
+                  <div>
+                    <h3 className="text-sm font-extrabold text-foreground">
+                      Datos Fiscales & Régimen
+                    </h3>
+                    <p className="text-xs text-muted-foreground font-medium">
+                      Información legal y fiscal requerida por el SAT y facturación.
+                    </p>
+                  </div>
                 </div>
-                <div>
-                  <h3 className="text-sm font-extrabold text-foreground">
-                    Datos Fiscales & Régimen
-                  </h3>
-                  <p className="text-xs text-muted-foreground font-medium">
-                    Información legal y fiscal requerida por el SAT y facturación.
-                  </p>
-                </div>
+
+                {isFiscalLocked && (
+                  <Badge
+                    variant="outline"
+                    className="bg-amber-500/10 text-amber-700 dark:text-amber-300 border-amber-500/20 text-[10px] font-bold px-2.5 py-1 rounded-md flex items-center gap-1.5 self-start sm:self-auto"
+                  >
+                    <Lock className="size-3" />
+                    <span>{initialProfile?.verification_status === "approved" || initialProfile?.is_verified ? "Datos Fiscales Verificados" : "Expediente en Auditoría"}</span>
+                  </Badge>
+                )}
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-5">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-5">
                 {/* Régimen Fiscal Select */}
                 <div className="space-y-1.5">
                   <label className="text-xs font-bold text-foreground flex items-center gap-1">
@@ -944,6 +965,7 @@ export function CompanyProfileForm({
                   </label>
                   <Select
                     value={fiscalRegime}
+                    disabled={isFiscalLocked}
                     onValueChange={(val) => {
                       setValue("fiscal_regime", val as "persona_moral" | "persona_fisica", {
                         shouldValidate: true,
@@ -954,7 +976,13 @@ export function CompanyProfileForm({
                       }
                     }}
                   >
-                    <SelectTrigger className="h-11 w-full rounded-xl bg-input/40 border border-border/80 px-3.5 text-xs sm:text-sm font-semibold focus-visible:bg-background cursor-pointer">
+                    <SelectTrigger
+                      disabled={isFiscalLocked}
+                      className={cn(
+                        "h-11 w-full rounded-xl bg-input/40 border border-border/80 px-3.5 text-xs sm:text-sm font-semibold focus-visible:bg-background cursor-pointer",
+                        isFiscalLocked && "opacity-75 cursor-not-allowed bg-muted/40"
+                      )}
+                    >
                       <SelectValue placeholder="Selecciona Régimen Fiscal">
                         {(val: string | null) => (val && FISCAL_REGIME_LABELS[val]) || val || "Selecciona Régimen Fiscal"}
                       </SelectValue>
@@ -970,6 +998,26 @@ export function CompanyProfileForm({
                   </Select>
                 </div>
 
+                {/* Razón Social / Denominación Legal */}
+                <div className="space-y-1.5">
+                  <label className="text-xs font-bold text-foreground flex items-center gap-1">
+                    <span>Razón Social / Denominación Legal</span>
+                  </label>
+                  <div className="relative">
+                    <Building2 className="absolute left-3.5 top-1/2 -translate-y-1/2 size-4 text-muted-foreground pointer-events-none" />
+                    <Input
+                      type="text"
+                      placeholder="Ej. Operadora Turística Maya S.A. de C.V."
+                      {...register("legal_name")}
+                      disabled={isFiscalLocked}
+                      className={cn(
+                        "h-11 rounded-xl bg-input/40 border border-border/80 pl-10 text-xs sm:text-sm font-semibold focus-visible:bg-background",
+                        isFiscalLocked && "opacity-75 cursor-not-allowed bg-muted/40"
+                      )}
+                    />
+                  </div>
+                </div>
+
                 {/* RFC Fiscal */}
                 <div className="space-y-1.5">
                   <label className="text-xs font-bold text-foreground">
@@ -980,11 +1028,15 @@ export function CompanyProfileForm({
                     maxLength={fiscalRegime === "persona_fisica" ? 13 : 12}
                     placeholder={fiscalRegime === "persona_fisica" ? "ABCD120315XXX" : "ABC120315XXX"}
                     value={watch("rfc") || ""}
+                    disabled={isFiscalLocked}
                     onChange={(e) => {
                       const upper = e.target.value.toUpperCase().replace(/[^A-Z0-9&Ñ]/g, "");
                       setValue("rfc", upper, { shouldValidate: true });
                     }}
-                    className="h-11 rounded-xl bg-input/40 border border-border/80 px-3.5 text-xs sm:text-sm font-mono font-bold focus-visible:bg-background tracking-wider uppercase"
+                    className={cn(
+                      "h-11 rounded-xl bg-input/40 border border-border/80 px-3.5 text-xs sm:text-sm font-mono font-bold focus-visible:bg-background tracking-wider uppercase",
+                      isFiscalLocked && "opacity-75 cursor-not-allowed bg-muted/40"
+                    )}
                   />
                   {errors.rfc ? (
                     <p className="text-xs font-semibold text-destructive">
@@ -999,6 +1051,18 @@ export function CompanyProfileForm({
                   )}
                 </div>
               </div>
+
+              {isFiscalLocked && (
+                <div className="p-3.5 bg-amber-500/10 border border-amber-500/20 rounded-xl flex items-center gap-2.5 text-xs font-semibold text-amber-800 dark:text-amber-300">
+                  <Lock className="size-4 text-amber-600 dark:text-amber-400 shrink-0" />
+                  <span>
+                    Los datos fiscales están protegidos porque tu expediente está {initialProfile?.verification_status === "approved" || initialProfile?.is_verified ? "verificado" : "enviado a revisión"}. Para actualizarlos, dirígete a{" "}
+                    <Link href="/dashboard/company/verification" className="underline font-bold hover:text-amber-900 dark:hover:text-amber-200">
+                      Verificación Legal
+                    </Link>.
+                  </span>
+                </div>
+              )}
             </div>
 
           </CardContent>

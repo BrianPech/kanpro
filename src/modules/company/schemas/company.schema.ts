@@ -2,6 +2,7 @@ import { z } from "zod";
 
 export const companyProfileSchema = z.object({
   company_name: z.string().min(2, "El nombre comercial debe tener al menos 2 caracteres"),
+  legal_name: z.string().optional().or(z.literal("")),
   industry: z.string().min(1, "El sector industrial es requerido"),
   website: z.string().url("Introduce una URL válida").optional().or(z.literal("")),
   location: z.string().min(2, "La ubicación es requerida"),

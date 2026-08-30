@@ -41,6 +41,7 @@ export function useCompanyProfileForm(initialProfile: any, userId: string) {
     resolver: zodResolver(companyProfileSchema),
     defaultValues: {
       company_name: resolvedName,
+      legal_name: initialProfile?.legal_name || "",
       industry: initialProfile?.industry || "",
       website: initialProfile?.website_or_linkedin || initialProfile?.website || "",
       location: normalizeCity(rawLocation),

@@ -673,6 +673,10 @@ export async function getCompanyProfileData() {
       companyProfile?.company_name ||
       baseProfile?.full_name ||
       "",
+    legal_name: companyProfile?.legal_name || "",
+    verification_status:
+      companyProfile?.verification_status ||
+      (baseProfile?.is_verified ? "approved" : "unsubmitted"),
   };
 
   return {
