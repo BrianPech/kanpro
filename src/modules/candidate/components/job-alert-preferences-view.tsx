@@ -4,12 +4,18 @@ import * as React from "react";
 import { useRouter } from "next/navigation";
 import { 
   ArrowLeft, 
-  Bell, 
   BellRing, 
-  CheckCircle2 
+  Loader2,
+  Check
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
 import { createClient } from "@/lib/supabase/client";
+import { toast } from "sonner";
+import { cn } from "@/lib/utils";
 
 interface JobAlertPreferencesViewProps {
   onBack?: () => void;
@@ -54,7 +60,6 @@ export function JobAlertPreferencesView({ onBack }: JobAlertPreferencesViewProps
   ]);
 
   const [isSaving, setIsSaving] = React.useState<boolean>(false);
-  const [toastMessage, setToastMessage] = React.useState<string | null>(null);
 
   // Load preferences from Supabase
   React.useEffect(() => {
@@ -117,15 +122,8 @@ export function JobAlertPreferencesView({ onBack }: JobAlertPreferencesViewProps
     if (onBack) {
       onBack();
     } else {
-      router.back();
+      router.push("/dashboard/candidate/profile");
     }
-  };
-
-  const showToast = (msg: string) => {
-    setToastMessage(msg);
-    setTimeout(() => {
-      setToastMessage(null);
-    }, 2500);
   };
 
   const toggleCategory = (cat: string) => {
@@ -212,214 +210,226 @@ export function JobAlertPreferencesView({ onBack }: JobAlertPreferencesViewProps
         console.warn("Non-fatal sync with auth metadata:", e);
       }
 
-      showToast("Preferencias de alertas guardadas con éxito");
+      toast.success("Preferencias de alertas guardadas con éxito");
       setTimeout(() => {
         handleBack();
-      }, 700);
+      }, 500);
     } catch (err: any) {
       console.error("Error saving preferences:", err);
-      showToast("Error al guardar en la base de datos");
+      toast.error("Error al guardar en la base de datos");
     } finally {
       setIsSaving(false);
     }
   };
 
   return (
-    <div className="flex-grow min-h-full bg-transparent dark:bg-zinc-950 px-6 sm:px-10 lg:px-14 pt-4 pb-28 md:pb-8 max-w-3xl mx-auto w-full animate-in fade-in duration-300 relative">
+    <div className="flex-1 min-h-full bg-transparent px-4 sm:px-6 lg:px-8 pt-2 pb-28 md:pb-12 max-w-3xl mx-auto w-full animate-in fade-in duration-300 relative space-y-6">
       
-      {/* Toast Notification */}
-      {toastMessage && (
-        <div className="fixed top-6 left-1/2 -translate-x-1/2 z-50 px-5 py-3.5 bg-[#1f2732] dark:bg-zinc-100 text-white dark:text-zinc-900 rounded-[14px] text-sm font-bold shadow-lg flex items-center gap-2.5 animate-in fade-in slide-in-from-top-2">
-          <CheckCircle2 className="w-5 h-5 text-emerald-400 dark:text-emerald-600" />
-          <span>{toastMessage}</span>
-        </div>
-      )}
-
-      {/* AppBar */}
-      <div className="flex items-center justify-between py-4 border-b border-transparent">
-        <button
+      {/* Header */}
+      <div className="flex items-center justify-between py-2">
+        <Button
+          variant="outline"
+          size="icon"
           onClick={handleBack}
           aria-label="Regresar"
-          className="w-[44px] h-[44px] bg-[#f5f7fa] dark:bg-zinc-900 rounded-full flex items-center justify-center text-[#344558] dark:text-zinc-200 hover:bg-[#ebeef3] dark:hover:bg-zinc-800 transition-all cursor-pointer shadow-2xs"
+          className="size-10 rounded-full cursor-pointer"
         >
-          <ArrowLeft className="w-5 h-5 stroke-[2.4]" />
-        </button>
+          <ArrowLeft className="size-4" />
+        </Button>
 
-        <h1 className="text-[20px] sm:text-[24px] font-[800] text-[#1f2732] dark:text-zinc-100 text-center tracking-[-0.4px]">
-          Configuración de Alertas
-        </h1>
+        <div className="text-center space-y-0.5">
+          <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-foreground">
+            Configuración de Alertas
+          </h1>
+          <p className="text-xs text-muted-foreground hidden sm:block">
+            Personaliza tus notificaciones de vacantes acordes a tu perfil
+          </p>
+        </div>
 
-        <div className="w-11" />
+        <div className="size-10" />
       </div>
 
       {/* Form Area */}
-      <div className="pt-5 space-y-8">
+      <div className="space-y-6">
         
         {/* 1. Master Switch Card */}
-        <div className="p-5 sm:p-6 bg-[#2f3c4b] dark:bg-fiord-950 rounded-[24px] text-white flex items-center justify-between gap-4 shadow-md">
-          <div className="flex items-center gap-4 min-w-0">
-            <div className="w-[50px] h-[50px] rounded-full bg-[#344558] flex items-center justify-center text-white shrink-0">
-              <BellRing className="w-6 h-6 stroke-[2]" />
+        <Card className="rounded-2xl border-primary/20 bg-primary/5 dark:bg-primary/10 shadow-xs">
+          <CardContent className="p-5 sm:p-6 flex items-center justify-between gap-4">
+            <div className="flex items-center gap-3.5 min-w-0">
+              <div className="size-10 rounded-xl bg-primary/15 text-primary flex items-center justify-center shrink-0">
+                <BellRing className="size-5" />
+              </div>
+              <div className="min-w-0 space-y-0.5">
+                <h3 className="text-sm sm:text-base font-bold text-foreground">
+                  Notificaciones de Alertas
+                </h3>
+                <p className="text-xs sm:text-sm text-muted-foreground leading-relaxed">
+                  Recibe avisos cuando se publiquen vacantes acordes a tu perfil
+                </p>
+              </div>
             </div>
-            <div className="min-w-0">
-              <h3 className="text-[17px] font-bold text-white leading-tight">
-                Notificaciones de Alertas
-              </h3>
-              <p className="text-[13px] sm:text-[14px] text-[#aabccf] font-medium leading-normal mt-1">
-                Recibe avisos cuando se publiquen vacantes acordes a tu perfil
-              </p>
-            </div>
-          </div>
 
-          {/* Master Switch */}
-          <button
-            type="button"
-            role="switch"
-            aria-checked={alertsEnabled}
-            onClick={() => setAlertsEnabled(!alertsEnabled)}
-            className={`w-[54px] h-[32px] rounded-full p-1 transition-colors cursor-pointer shrink-0 ${
-              alertsEnabled ? "bg-emerald-400" : "bg-[#344558]"
-            }`}
-          >
-            <div
-              className={`w-[24px] h-[24px] rounded-full bg-white transition-transform ${
-                alertsEnabled ? "translate-x-[22px]" : "translate-x-0"
-              }`}
+            <Switch
+              checked={alertsEnabled}
+              onCheckedChange={setAlertsEnabled}
+              className="shrink-0"
+              aria-label="Habilitar alertas de empleo"
             />
-          </button>
-        </div>
+          </CardContent>
+        </Card>
 
         {/* 2. Options (if alertsEnabled is true) */}
         {alertsEnabled && (
-          <div className="space-y-8 animate-in fade-in duration-200">
+          <div className="space-y-6 animate-in fade-in duration-200">
             
             {/* Categories Section */}
-            <div className="space-y-3.5">
-              <div>
-                <h2 className="text-[18px] sm:text-[20px] font-[800] text-[#1f2732] dark:text-zinc-100 tracking-[-0.3px]">
-                  Categorías de Interés
-                </h2>
-                <p className="text-[14px] sm:text-[15px] text-[#5c7c9b] dark:text-zinc-400 font-medium mt-1">
+            <Card className="rounded-2xl border-border/60 shadow-xs">
+              <CardHeader className="pb-3">
+                <CardTitle className="text-base font-bold">Categorías de Interés</CardTitle>
+                <CardDescription className="text-xs">
                   Selecciona los sectores donde deseas recibir ofertas laborales:
-                </p>
-              </div>
-
-              <div className="flex flex-wrap gap-2.5 pt-1">
-                {ALL_CATEGORIES.map((cat) => {
-                  const isSel = selectedCategories.includes(cat);
-                  return (
-                    <button
-                      key={cat}
-                      type="button"
-                      onClick={() => toggleCategory(cat)}
-                      className={`px-4 py-2.5 rounded-[18px] text-[14px] tracking-[-0.2px] transition-all cursor-pointer ${
-                        isSel
-                          ? "bg-[#1f2732] dark:bg-zinc-100 text-white dark:text-zinc-900 font-bold border border-transparent shadow-xs"
-                          : "bg-[#f5f7fa] dark:bg-zinc-900 text-[#344558] dark:text-zinc-300 font-semibold border border-[#ebeef3] dark:border-zinc-800 hover:bg-[#ebeef3]"
-                      }`}
-                    >
-                      {cat}
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="flex flex-wrap gap-2">
+                  {ALL_CATEGORIES.map((cat) => {
+                    const isSel = selectedCategories.includes(cat);
+                    return (
+                      <Button
+                        key={cat}
+                        type="button"
+                        variant={isSel ? "default" : "outline"}
+                        size="sm"
+                        onClick={() => toggleCategory(cat)}
+                        className={cn(
+                          "rounded-xl text-xs font-semibold gap-1.5 cursor-pointer transition-all",
+                          isSel && "shadow-xs"
+                        )}
+                      >
+                        {isSel && <Check className="size-3.5" />}
+                        <span>{cat}</span>
+                      </Button>
+                    );
+                  })}
+                </div>
+              </CardContent>
+            </Card>
 
             {/* Locations Section */}
-            <div className="space-y-3.5">
-              <div>
-                <h2 className="text-[18px] sm:text-[20px] font-[800] text-[#1f2732] dark:text-zinc-100 tracking-[-0.3px]">
-                  Zonas y Ciudades Preferidas
-                </h2>
-                <p className="text-[14px] sm:text-[15px] text-[#5c7c9b] dark:text-zinc-400 font-medium mt-1">
-                  Recibirás notificaciones de vacantes publicadas en estas zonas:
-                </p>
-              </div>
-
-              <div className="flex flex-wrap gap-2.5 pt-1">
-                {ALL_LOCATIONS.map((loc) => {
-                  const isSel = selectedLocations.includes(loc);
-                  return (
-                    <button
-                      key={loc}
-                      type="button"
-                      onClick={() => toggleLocation(loc)}
-                      className={`px-4 py-2.5 rounded-[18px] text-[14px] tracking-[-0.2px] transition-all cursor-pointer ${
-                        isSel
-                          ? "bg-[#1f2732] dark:bg-zinc-100 text-white dark:text-zinc-900 font-bold border border-transparent shadow-xs"
-                          : "bg-[#f5f7fa] dark:bg-zinc-900 text-[#344558] dark:text-zinc-300 font-semibold border border-[#ebeef3] dark:border-zinc-800 hover:bg-[#ebeef3]"
-                      }`}
-                    >
-                      {loc}
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
+            <Card className="rounded-2xl border-border/60 shadow-xs">
+              <CardHeader className="pb-3">
+                <CardTitle className="text-base font-bold">Zonas y Ciudades Preferidas</CardTitle>
+                <CardDescription className="text-xs">
+                  Recibirás avisos de vacantes publicadas en estas zonas:
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="flex flex-wrap gap-2">
+                  {ALL_LOCATIONS.map((loc) => {
+                    const isSel = selectedLocations.includes(loc);
+                    return (
+                      <Button
+                        key={loc}
+                        type="button"
+                        variant={isSel ? "default" : "outline"}
+                        size="sm"
+                        onClick={() => toggleLocation(loc)}
+                        className={cn(
+                          "rounded-xl text-xs font-semibold gap-1.5 cursor-pointer transition-all",
+                          isSel && "shadow-xs"
+                        )}
+                      >
+                        {isSel && <Check className="size-3.5" />}
+                        <span>{loc}</span>
+                      </Button>
+                    );
+                  })}
+                </div>
+              </CardContent>
+            </Card>
 
             {/* Minimum Salary Slider Section */}
-            <div className="space-y-4">
-              <div className="flex items-center justify-between">
-                <h2 className="text-[18px] sm:text-[20px] font-[800] text-[#1f2732] dark:text-zinc-100 tracking-[-0.3px]">
-                  Sueldo Mínimo Deseado
-                </h2>
-                <div className="px-3.5 py-1.5 bg-[#f5f7fa] dark:bg-zinc-900 border border-[#ebeef3] dark:border-zinc-800 rounded-[14px]">
-                  <span className="text-[14px] font-bold text-[#1f2732] dark:text-zinc-100">
+            <Card className="rounded-2xl border-border/60 shadow-xs">
+              <CardHeader className="pb-3">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <CardTitle className="text-base font-bold">Sueldo Mínimo Deseado</CardTitle>
+                    <CardDescription className="text-xs">
+                      Filtra vacantes que cumplan con tu expectativa salarial mínima.
+                    </CardDescription>
+                  </div>
+                  <Badge variant="secondary" className="text-xs font-bold px-3 py-1">
                     ${Math.round(minSalaryExpectation / 1000)}k MXN /mes
-                  </span>
+                  </Badge>
                 </div>
-              </div>
+              </CardHeader>
+              <CardContent className="space-y-2">
+                <input
+                  type="range"
+                  min={8000}
+                  max={35000}
+                  step={1000}
+                  value={minSalaryExpectation}
+                  onChange={(e) => setMinSalaryExpectation(Number(e.target.value))}
+                  className="w-full h-2 bg-muted rounded-lg appearance-none cursor-pointer accent-primary"
+                />
+                <div className="flex justify-between text-[11px] text-muted-foreground font-medium">
+                  <span>$8,000 MXN</span>
+                  <span>$35,000+ MXN</span>
+                </div>
+              </CardContent>
+            </Card>
 
-              <input
-                type="range"
-                min={8000}
-                max={35000}
-                step={1000}
-                value={minSalaryExpectation}
-                onChange={(e) => setMinSalaryExpectation(Number(e.target.value))}
-                className="w-full h-2.5 bg-[#ebeef3] dark:bg-zinc-800 rounded-lg appearance-none cursor-pointer accent-[#1f2732] dark:accent-zinc-100"
-              />
-            </div>
-
-            {/* Frequency Selection Segmented */}
-            <div className="space-y-3.5">
-              <h2 className="text-[18px] sm:text-[20px] font-[800] text-[#1f2732] dark:text-zinc-100 tracking-[-0.3px]">
-                Frecuencia de Notificación
-              </h2>
-              
-              <div className="grid grid-cols-3 gap-2.5">
-                {["Instantánea", "Resumen Diario", "Semanal"].map((freq) => {
-                  const isSel = alertFrequency === freq;
-                  return (
-                    <button
-                      key={freq}
-                      type="button"
-                      onClick={() => setAlertFrequency(freq)}
-                      className={`h-[50px] rounded-[16px] text-[13px] sm:text-[14px] font-bold transition-all cursor-pointer ${
-                        isSel
-                          ? "bg-[#1f2732] dark:bg-zinc-100 text-white dark:text-zinc-900 shadow-xs"
-                          : "bg-[#f5f7fa] dark:bg-zinc-900 text-[#344558] dark:text-zinc-300 border border-[#ebeef3] dark:border-zinc-800 hover:bg-[#ebeef3]"
-                      }`}
-                    >
-                      {freq}
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
+            {/* Frequency Selection */}
+            <Card className="rounded-2xl border-border/60 shadow-xs">
+              <CardHeader className="pb-3">
+                <CardTitle className="text-base font-bold">Frecuencia de Notificación</CardTitle>
+                <CardDescription className="text-xs">
+                  ¿Con qué frecuencia deseas recibir resúmenes y alertas?
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-3 gap-2.5">
+                  {["Instantánea", "Resumen Diario", "Semanal"].map((freq) => {
+                    const isSel = alertFrequency === freq;
+                    return (
+                      <Button
+                        key={freq}
+                        type="button"
+                        variant={isSel ? "default" : "outline"}
+                        onClick={() => setAlertFrequency(freq)}
+                        className={cn(
+                          "h-11 rounded-xl text-xs sm:text-sm font-semibold transition-all cursor-pointer",
+                          isSel && "shadow-xs"
+                        )}
+                      >
+                        {freq}
+                      </Button>
+                    );
+                  })}
+                </div>
+              </CardContent>
+            </Card>
 
           </div>
         )}
 
         {/* Save CTA Button */}
-        <div className="pt-6">
+        <div className="pt-2 flex justify-end">
           <Button
             type="button"
             onClick={handleSavePreferences}
             disabled={isSaving}
-            className="w-full h-[54px] bg-[#1f2732] dark:bg-zinc-100 text-white dark:text-zinc-900 hover:bg-[#2f3c4b] dark:hover:bg-zinc-200 rounded-[18px] text-[16px] font-bold transition-all shadow-sm cursor-pointer active:scale-95 border-none"
+            className="w-full sm:w-auto font-semibold text-xs sm:text-sm gap-2 min-w-44 cursor-pointer shadow-xs"
           >
-            {isSaving ? "Guardando..." : "Guardar Preferencias de Alertas"}
+            {isSaving ? (
+              <>
+                <Loader2 className="size-4 animate-spin" />
+                <span>Guardando...</span>
+              </>
+            ) : (
+              <span>Guardar Preferencias</span>
+            )}
           </Button>
         </div>
 

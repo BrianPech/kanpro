@@ -1,23 +1,22 @@
-/* eslint-disable @next/next/no-img-element */
 "use client";
 
 import * as React from "react";
 import { useRouter } from "next/navigation";
-import Link from "next/link";
 import { 
   ArrowLeft, 
   Bookmark, 
-  Briefcase, 
   RotateCw, 
   WifiOff, 
   CheckCircle2, 
   MapPin,
   Sparkles,
-  ArrowUpRight,
-  Trash2,
-  Share2
+  ArrowUpRight
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
+import { Skeleton } from "@/components/ui/skeleton";
 import { createClient } from "@/lib/supabase/client";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
@@ -156,7 +155,7 @@ export function SavedJobsView({ onBack }: SavedJobsViewProps) {
     if (onBack) {
       onBack();
     } else {
-      router.back();
+      router.push("/dashboard/candidate/profile");
     }
   };
 
@@ -188,32 +187,34 @@ export function SavedJobsView({ onBack }: SavedJobsViewProps) {
   };
 
   return (
-    <div className="w-full max-w-5xl mx-auto space-y-6 pb-20 animate-in fade-in duration-300 font-sans">
+    <div className="flex-1 min-h-full bg-transparent px-4 sm:px-6 lg:px-8 pt-2 pb-28 md:pb-12 max-w-4xl mx-auto w-full animate-in fade-in duration-300 space-y-6">
       
       {/* Header Bar */}
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between py-2">
         <div className="flex items-center gap-3">
-          <button
+          <Button
+            variant="outline"
+            size="icon"
             onClick={handleBack}
             aria-label="Regresar"
-            className="size-10 bg-white dark:bg-card border border-fiord-200 dark:border-fiord-800 rounded-md flex items-center justify-center text-fiord-700 dark:text-fiord-300 hover:bg-fiord-50 dark:hover:bg-fiord-900 transition-all cursor-pointer shadow-soft"
+            className="size-10 rounded-full cursor-pointer"
           >
             <ArrowLeft className="size-4" />
-          </button>
-          <div>
-            <h1 className="text-xl sm:text-2xl font-semibold tracking-tight text-fiord-950 dark:text-fiord-50">
+          </Button>
+          <div className="space-y-0.5">
+            <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-foreground">
               Vacantes Guardadas
             </h1>
-            <p className="text-xs text-fiord-600 dark:text-fiord-400">
+            <p className="text-xs text-muted-foreground">
               Empleos guardados para revisar y postularte con calma.
             </p>
           </div>
         </div>
 
         {!isLoading && !hasError && savedVacancies.length > 0 && (
-          <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-fiord-100 dark:bg-fiord-900 text-fiord-900 dark:text-fiord-100 border border-fiord-200 dark:border-fiord-800">
+          <Badge variant="secondary" className="font-semibold text-xs px-3 py-1">
             {savedVacancies.length} {savedVacancies.length === 1 ? "guardada" : "guardadas"}
-          </span>
+          </Badge>
         )}
       </div>
 
@@ -222,136 +223,147 @@ export function SavedJobsView({ onBack }: SavedJobsViewProps) {
         {isLoading ? (
           <div className="space-y-3">
             {[1, 2, 3].map((i) => (
-              <div
-                key={i}
-                className="p-5 bg-white dark:bg-card border border-fiord-200 dark:border-fiord-800 rounded-lg flex items-center gap-4 animate-pulse shadow-soft"
-              >
-                <div className="size-12 rounded-md bg-fiord-100 dark:bg-fiord-800 shrink-0" />
-                <div className="flex-1 space-y-2">
-                  <div className="h-4 bg-fiord-100 dark:bg-fiord-800 rounded w-1/3" />
-                  <div className="h-3.5 bg-fiord-100 dark:bg-fiord-800 rounded w-1/4" />
-                </div>
-              </div>
+              <Card key={i} className="rounded-2xl border-border/60">
+                <CardContent className="p-5 flex items-center gap-4">
+                  <Skeleton className="size-12 rounded-xl shrink-0" />
+                  <div className="flex-1 space-y-2">
+                    <Skeleton className="h-4 w-1/3 rounded-md" />
+                    <Skeleton className="h-3.5 w-1/4 rounded-md" />
+                  </div>
+                </CardContent>
+              </Card>
             ))}
           </div>
         ) : hasError && savedVacancies.length === 0 ? (
-          <div className="py-16 px-6 rounded-lg bg-white dark:bg-card border border-fiord-200 dark:border-fiord-800 text-center space-y-3 shadow-soft">
-            <WifiOff className="size-10 text-rose-500 mx-auto" />
-            <h3 className="text-base font-semibold text-fiord-950 dark:text-fiord-50">
-              Error al consultar vacantes guardadas
-            </h3>
-            <p className="text-xs text-fiord-600 dark:text-fiord-400 max-w-xs mx-auto">
-              No pudimos recuperar tus empleos guardados.
-            </p>
-            <Button
-              onClick={fetchSavedVacancies}
-              className="h-9 px-4 rounded-md bg-fiord-950 text-white text-xs font-medium hover:bg-fiord-900 gap-2"
-            >
-              <RotateCw className="size-3.5" />
-              Reintentar
-            </Button>
-          </div>
+          <Card className="rounded-2xl border-border/60 shadow-xs">
+            <CardContent className="py-16 px-6 text-center space-y-4">
+              <WifiOff className="size-10 text-destructive mx-auto" />
+              <div className="space-y-1">
+                <h3 className="text-base font-bold text-foreground">
+                  Error al consultar vacantes guardadas
+                </h3>
+                <p className="text-xs text-muted-foreground max-w-xs mx-auto">
+                  No pudimos recuperar tus empleos guardados en este momento.
+                </p>
+              </div>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={fetchSavedVacancies}
+                className="gap-2 text-xs font-semibold cursor-pointer"
+              >
+                <RotateCw className="size-3.5" />
+                <span>Reintentar</span>
+              </Button>
+            </CardContent>
+          </Card>
         ) : savedVacancies.length === 0 ? (
-          <div className="py-16 px-6 rounded-lg bg-white dark:bg-card border border-fiord-200 dark:border-fiord-800 flex flex-col items-center justify-center text-center space-y-4 shadow-soft">
-            <div className="size-14 rounded-lg bg-fiord-100 dark:bg-fiord-900/60 flex items-center justify-center text-fiord-700 dark:text-fiord-300 border border-fiord-200 dark:border-fiord-800">
-              <Bookmark className="size-7" />
-            </div>
+          <Card className="rounded-2xl border-border/60 shadow-xs">
+            <CardContent className="py-16 px-6 flex flex-col items-center justify-center text-center space-y-4">
+              <div className="size-14 rounded-2xl bg-muted flex items-center justify-center text-muted-foreground">
+                <Bookmark className="size-6" />
+              </div>
 
-            <div>
-              <h3 className="text-base font-semibold text-fiord-950 dark:text-fiord-50">
-                Sin vacantes guardadas
-              </h3>
-              <p className="text-xs text-fiord-600 dark:text-fiord-400 max-w-sm mt-1 leading-relaxed">
-                Toca el icono de favoritos en cualquier vacante para guardarla y revisarla cuando estés listo para postularte.
-              </p>
-            </div>
+              <div className="space-y-1">
+                <h3 className="text-base font-bold text-foreground">
+                  Sin vacantes guardadas
+                </h3>
+                <p className="text-xs text-muted-foreground max-w-sm leading-relaxed">
+                  Toca el icono de favoritos en cualquier vacante para guardarla y revisarla cuando estés listo para postularte.
+                </p>
+              </div>
 
-            <Button
-              onClick={() => router.push("/dashboard/candidate/discovery")}
-              className="h-9 px-4 rounded-md bg-fiord-950 text-white text-xs font-medium hover:bg-fiord-900 dark:bg-fiord-100 dark:text-fiord-950 dark:hover:bg-white shadow-sm gap-2"
-            >
-              <Sparkles className="size-4" />
-              Explorar vacantes
-            </Button>
-          </div>
+              <Button
+                onClick={() => router.push("/dashboard/candidate/discovery")}
+                className="text-xs font-semibold gap-2 shadow-xs cursor-pointer"
+              >
+                <Sparkles className="size-3.5" />
+                <span>Explorar vacantes</span>
+              </Button>
+            </CardContent>
+          </Card>
         ) : (
           <div className="space-y-3">
             {savedVacancies.map((vacancy) => (
-              <div
+              <Card
                 key={vacancy.id}
                 onClick={() => router.push(`/dashboard/candidate/vacancies/${vacancy.id}`)}
-                className="group bg-white dark:bg-card border border-fiord-200 dark:border-fiord-800 rounded-lg p-4 sm:p-5 flex flex-col md:flex-row md:items-center justify-between gap-4 shadow-soft hover:shadow-card-hover hover:border-fiord-400 dark:hover:border-fiord-600 transition-all cursor-pointer relative overflow-hidden"
+                className="rounded-2xl border-border/60 shadow-xs hover:shadow-md hover:border-border transition-all cursor-pointer group"
               >
-                <div className="flex items-start gap-4 min-w-0 flex-1">
-                  <div className="size-12 rounded-md bg-fiord-50 dark:bg-fiord-900/60 border border-fiord-200 dark:border-fiord-800 flex items-center justify-center text-fiord-900 dark:text-fiord-100 shrink-0 font-semibold text-xs overflow-hidden shadow-2xs group-hover:scale-105 transition-transform">
-                    {vacancy.companyLogo ? (
-                      <img src={vacancy.companyLogo} alt={vacancy.companyName} className="size-full object-cover" />
-                    ) : (
-                      <span>{vacancy.companyName.substring(0, 2).toUpperCase()}</span>
-                    )}
-                  </div>
+                <CardContent className="p-4 sm:p-5 flex flex-col md:flex-row md:items-center justify-between gap-4">
+                  <div className="flex items-start gap-4 min-w-0 flex-1">
+                    <Avatar className="size-12 rounded-xl ring-1 ring-border/50 shrink-0">
+                      {vacancy.companyLogo && <AvatarImage src={vacancy.companyLogo} alt={vacancy.companyName} />}
+                      <AvatarFallback className="text-xs font-bold rounded-xl bg-muted text-foreground">
+                        {vacancy.companyName.substring(0, 2).toUpperCase()}
+                      </AvatarFallback>
+                    </Avatar>
 
-                  <div className="min-w-0 flex-1 space-y-1">
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <span className="text-xs font-medium text-fiord-600 dark:text-fiord-400 truncate flex items-center gap-1">
-                        {vacancy.companyName}
-                        <CheckCircle2 className="size-3 text-emerald-600 dark:text-emerald-400 shrink-0" />
-                      </span>
-
-                      {vacancy.isPromoted && (
-                        <span className="inline-flex items-center gap-0.5 text-[10px] font-semibold px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-800 dark:text-amber-300 border border-amber-500/20">
-                          ★ Destacada
+                    <div className="min-w-0 flex-1 space-y-1">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="text-xs font-medium text-muted-foreground truncate flex items-center gap-1">
+                          {vacancy.companyName}
+                          <CheckCircle2 className="size-3 text-emerald-500 shrink-0" />
                         </span>
-                      )}
+
+                        {vacancy.isPromoted && (
+                          <Badge variant="secondary" className="text-[10px] font-semibold py-0.5 bg-amber-500/10 text-amber-800 dark:text-amber-300 border-amber-500/20">
+                            ★ Destacada
+                          </Badge>
+                        )}
+                      </div>
+
+                      <h3 className="text-base font-bold text-foreground tracking-tight group-hover:text-primary transition-colors truncate">
+                        {vacancy.title}
+                      </h3>
+
+                      <div className="flex items-center gap-2.5 text-xs text-muted-foreground flex-wrap pt-0.5">
+                        <span className="inline-flex items-center gap-1">
+                          <MapPin className="size-3 shrink-0" />
+                          {vacancy.location}
+                        </span>
+                        <span>•</span>
+                        <span>{vacancy.employmentType}</span>
+                      </div>
                     </div>
+                  </div>
 
-                    <h3 className="text-base font-semibold text-fiord-950 dark:text-fiord-50 tracking-[-0.2px] group-hover:text-fiord-700 dark:group-hover:text-fiord-200 transition-colors truncate">
-                      {vacancy.title}
-                    </h3>
-
-                    <div className="flex items-center gap-2.5 text-xs text-fiord-600 dark:text-fiord-400 flex-wrap pt-0.5">
-                      <span className="inline-flex items-center gap-1">
-                        <MapPin className="size-3 text-fiord-500 shrink-0" />
-                        {vacancy.location}
+                  <div className="flex md:flex-col items-center md:items-end justify-between md:justify-center shrink-0 pt-3 md:pt-0 border-t md:border-t-0 border-border/60 gap-3">
+                    <div className="text-left md:text-right">
+                      <span className="text-[10px] text-muted-foreground font-semibold uppercase tracking-wider block">
+                        Salario mensual
                       </span>
-                      <span>•</span>
-                      <span>{vacancy.employmentType}</span>
+                      <span className="text-sm sm:text-base font-semibold font-mono text-emerald-600 dark:text-emerald-400">
+                        {vacancy.formattedSalary}
+                      </span>
+                    </div>
+
+                    <div className="flex items-center gap-2">
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="icon"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleRemoveSaved(vacancy.id);
+                        }}
+                        aria-label={`Remover ${vacancy.title} de guardados`}
+                        className="size-9 rounded-xl text-amber-500 hover:text-destructive hover:border-destructive/30 cursor-pointer"
+                      >
+                        <Bookmark className="size-4 fill-amber-500 text-amber-500" />
+                      </Button>
+
+                      <Button
+                        size="sm"
+                        className="text-xs font-semibold gap-1.5 cursor-pointer"
+                      >
+                        <span>Postularme</span>
+                        <ArrowUpRight className="size-3.5" />
+                      </Button>
                     </div>
                   </div>
-                </div>
-
-                <div className="flex md:flex-col items-center md:items-end justify-between md:justify-center shrink-0 pt-3 md:pt-0 border-t md:border-t-0 border-fiord-100 dark:border-fiord-800/80 gap-3">
-                  <div className="text-left md:text-right">
-                    <span className="text-[10px] text-fiord-500 dark:text-fiord-400 font-semibold uppercase tracking-wider block">
-                      Salario mensual
-                    </span>
-                    <span className="text-sm sm:text-base font-semibold font-mono text-emerald-700 dark:text-emerald-400">
-                      {vacancy.formattedSalary}
-                    </span>
-                  </div>
-
-                  <div className="flex items-center gap-2">
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleRemoveSaved(vacancy.id);
-                      }}
-                      aria-label={`Remover ${vacancy.title} de guardados`}
-                      className="p-2 text-amber-500 hover:text-rose-500 transition-colors cursor-pointer rounded-md hover:bg-fiord-50 dark:hover:bg-fiord-800/60 border border-fiord-200 dark:border-fiord-800"
-                    >
-                      <Bookmark className="size-4 fill-amber-500 text-amber-500" />
-                    </button>
-
-                    <Button
-                      size="sm"
-                      className="h-9 px-4 rounded-md bg-fiord-950 text-white text-xs font-medium hover:bg-fiord-900 transition-all dark:bg-fiord-100 dark:text-fiord-950 dark:hover:bg-white shadow-sm gap-1.5"
-                    >
-                      Postularme
-                      <ArrowUpRight className="size-3.5" />
-                    </Button>
-                  </div>
-                </div>
-              </div>
+                </CardContent>
+              </Card>
             ))}
           </div>
         )}

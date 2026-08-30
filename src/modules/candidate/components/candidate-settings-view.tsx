@@ -3,10 +3,7 @@
 import * as React from "react";
 import { useRouter } from "next/navigation";
 import { 
-  Search, 
   User, 
-  Star, 
-  BadgeCheck, 
   FileText, 
   Bookmark, 
   Bell, 
@@ -14,12 +11,9 @@ import {
   HelpCircle, 
   Globe, 
   LogOut, 
-  ChevronRight,
+  ArrowRight,
   ShieldCheck,
   CheckCircle2,
-  MapPin,
-  Crosshair,
-  Loader2,
   Sparkles,
   Mail,
   MessageCircle,
@@ -35,15 +29,16 @@ import {
   DialogDescription,
   DialogFooter
 } from "@/components/ui/dialog";
+import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
+import { Progress } from "@/components/ui/progress";
+import { Skeleton } from "@/components/ui/skeleton";
 import { createClient } from "@/lib/supabase/client";
-import { GEO_CONFIG } from "@/config/geo";
 import { candidateProfileService } from "../services/candidate-profile";
-import { FormLocationSelector } from "@/components/form";
 import { toast } from "sonner";
+import { cn } from "@/lib/utils";
 
 export function CandidateSettingsView() {
   const router = useRouter();
@@ -59,13 +54,6 @@ export function CandidateSettingsView() {
   const [avatarUrl, setAvatarUrl] = React.useState<string | null>(null);
   const [savedCount, setSavedCount] = React.useState<number>(0);
   const [isLoadingProfile, setIsLoadingProfile] = React.useState<boolean>(true);
-
-  // Location & Radar States
-  const [city, setCity] = React.useState<string>("Mérida");
-  const [zone, setZone] = React.useState<string>("Centro Mérida");
-  const [locationStatus, setLocationStatus] = React.useState<string>("");
-  const [isLocating, setIsLocating] = React.useState<boolean>(false);
-  const [isSavingLocation, setIsSavingLocation] = React.useState<boolean>(false);
 
   // Support modal state
   const [isSupportOpen, setIsSupportOpen] = React.useState<boolean>(false);
@@ -91,7 +79,7 @@ export function CandidateSettingsView() {
         if (user) {
           setCandidateEmail(user.email || "candidato@kanpro.mx");
           
-          // Optimized parallel query to database
+          // Parallel query to database
           const [profile, count] = await Promise.all([
             candidateProfileService.getProfile(user.id),
             candidateProfileService.getSavedVacanciesCount(user.id)
@@ -108,17 +96,6 @@ export function CandidateSettingsView() {
               setHasAvatar(true);
               setAvatarUrl(profile.avatar_url);
             }
-
-            if (profile.location && profile.location.includes(" - ")) {
-              setLocationStatus(profile.location);
-              const [locCity, locZone] = profile.location.split(" - ");
-              if (GEO_CONFIG[locCity]) {
-                setCity(locCity);
-                setZone(locZone);
-              }
-            } else if (profile.location) {
-              setLocationStatus(profile.location);
-            }
           }
         }
       } catch (err) {
@@ -130,32 +107,7 @@ export function CandidateSettingsView() {
     }
 
     loadProfile();
-  }, []);
-
-  // Save Location Handler
-  const handleSaveLocation = async () => {
-    if (!city || !zone) {
-      toast.error("Por favor selecciona ciudad y zona.");
-      return;
-    }
-
-    setIsSavingLocation(true);
-    try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error("Sesión no encontrada.");
-
-      const locationStr = await candidateProfileService.updateLocation(user.id, city, zone);
-
-      setLocationStatus(locationStr);
-      toast.success("¡Ubicación guardada con éxito!", {
-        description: `Tu Radar K'anPro usará ${locationStr} para conectarte con vacantes cercanas.`
-      });
-    } catch (err: any) {
-      toast.error("Error al guardar ubicación", { description: err.message || "Ocurrió un error inesperado." });
-    } finally {
-      setIsSavingLocation(false);
-    }
-  };
+  }, [supabase]);
 
   // Calculate dynamic completion percentage (0 - 100%)
   const completionPercentage = React.useMemo(() => {
@@ -169,23 +121,6 @@ export function CandidateSettingsView() {
     return Math.min(score, 100);
   }, [candidateName, candidateEmail, candidatePhone, candidateBio, candidateSkills, hasAvatar]);
 
-  // Contextual completion subtitle
-  const completionSubtitle = React.useMemo(() => {
-    if (!candidateBio.trim() && !candidatePhone.trim()) {
-      return "Completa tu biografía y WhatsApp para recibir llamadas 3x más rápido.";
-    } else if (!candidateBio.trim()) {
-      return "Agrega tu biografía para destacar tus aptitudes ante los reclutadores.";
-    } else if (!candidatePhone.trim()) {
-      return "Ingresa tu número de WhatsApp para contacto directo con las empresas.";
-    } else if (candidateSkills.length === 0) {
-      return "Añade tus habilidades principales para aparecer en más búsquedas de empleo.";
-    } else if (!hasAvatar) {
-      return "Sube tu foto de perfil para transmitir mayor confianza a los empleadores.";
-    } else {
-      return "¡Excelente! Tu perfil está 100% completo y listo para postulaciones instantáneas.";
-    }
-  }, [candidateBio, candidatePhone, candidateSkills, hasAvatar]);
-
   const initialLetter = candidateName ? candidateName.trim()[0].toUpperCase() : "C";
 
   const handleSignOut = () => {
@@ -193,252 +128,212 @@ export function CandidateSettingsView() {
     window.location.href = "/auth/logout";
   };
 
-  const availableCities = React.useMemo(() => {
-    const keys = Object.keys(GEO_CONFIG);
-    if (city && !keys.includes(city)) {
-      return [city, ...keys];
-    }
-    return keys;
-  }, [city]);
-
-  const availableZones = React.useMemo(() => {
-    if (!city) return [];
-    const configZones = Object.keys(GEO_CONFIG[city]?.zones || {});
-    if (zone && !configZones.includes(zone)) {
-      return [zone, ...configZones];
-    }
-    return configZones;
-  }, [city, zone]);
-
   return (
-    <div className="flex-grow min-h-full bg-transparent dark:bg-zinc-950 px-6 sm:px-10 lg:px-14 pt-4 pb-28 md:pb-8 space-y-6 max-w-5xl mx-auto w-full animate-in fade-in duration-300">
+    <div className="flex-1 min-h-full bg-transparent px-3 sm:px-6 lg:px-8 pt-2 pb-24 space-y-5 max-w-5xl mx-auto w-full animate-in fade-in duration-200">
 
-      
-      {/* 1. Top Custom Header */}
-      <div className="flex items-center justify-between">
-        <h1 className="text-[24px] sm:text-[30px] font-[800] text-[#1f2732] dark:text-fiord-50 tracking-[-0.5px]">
-          Perfil y Configuración
-        </h1>
-        <button
-          onClick={() => router.push("/dashboard/candidate/discovery")}
-          aria-label="Buscar"
-          className="md:hidden w-[50px] h-[50px] bg-white dark:bg-zinc-900 rounded-full flex items-center justify-center text-[#344558] dark:text-zinc-200 hover:bg-[#ebeef3] dark:hover:bg-zinc-800 transition-all cursor-pointer active:scale-95 shadow-2xs"
-        >
-          <Search className="w-6 h-6 stroke-[2]" />
-        </button>
-      </div>
+      {/* 1. Profile Completion Alert (Using shadcn/ui Alert component above user card) */}
+      {completionPercentage < 100 && (
+        <Alert className="border-primary/20 bg-primary/5 dark:bg-primary/10 rounded-2xl p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-xs">
+          <div className="flex items-start sm:items-center gap-3.5 min-w-0 flex-1">
+            <div className="size-9 rounded-xl bg-primary/15 text-primary flex items-center justify-center shrink-0 mt-0.5 sm:mt-0">
+              <Sparkles className="size-4.5" />
+            </div>
 
-      {/* Loading Skeleton */}
+            <div className="space-y-1.5 min-w-0 flex-1">
+              <div className="flex items-center gap-2">
+                <AlertTitle className="text-sm font-semibold text-foreground">
+                  Perfil al {completionPercentage}%
+                </AlertTitle>
+                <Badge variant="outline" className="text-[10px] font-medium border-primary/30 text-primary px-1.5 py-0">
+                  Completa tus datos
+                </Badge>
+              </div>
+
+              <AlertDescription className="text-xs text-muted-foreground leading-normal">
+                Añade tu información laboral y documentos para aumentar tus posibilidades de contratación.
+              </AlertDescription>
+
+              <div className="flex items-center gap-3 pt-0.5 max-w-md">
+                <Progress value={completionPercentage} className="h-1.5 flex-1 rounded-full" />
+                <span className="text-xs font-semibold text-foreground shrink-0">{completionPercentage}%</span>
+              </div>
+            </div>
+          </div>
+
+          <div className="flex items-center justify-end shrink-0 sm:self-center">
+            <Button
+              variant="default"
+              size="sm"
+              onClick={() => router.push("/dashboard/candidate/profile/edit")}
+              className="h-8 px-4 text-xs font-medium rounded-lg cursor-pointer shadow-xs"
+            >
+              Completar
+            </Button>
+          </div>
+        </Alert>
+      )}
+
+      {/* 2. Header Profile Card (Style matching reference) */}
       {isLoadingProfile ? (
-        <div className="p-6 bg-white dark:bg-zinc-900 rounded-[22px] border border-[#ebeef3] dark:border-zinc-800 flex items-center gap-5 shadow-2xs animate-pulse">
-          <div className="w-[64px] h-[64px] rounded-full bg-zinc-200 dark:bg-zinc-800 shrink-0" />
-          <div className="flex-1 space-y-2">
-            <div className="h-5 w-44 bg-zinc-200 dark:bg-zinc-800 rounded-md" />
-            <div className="h-4 w-60 bg-zinc-200 dark:bg-zinc-800 rounded-md" />
+        <div className="rounded-2xl border border-border/60 bg-card p-4 sm:p-5 flex items-center gap-4 shadow-xs">
+          <Skeleton className="size-14 sm:size-16 rounded-full shrink-0" />
+          <div className="space-y-2 flex-1">
+            <Skeleton className="h-5 w-44 rounded-md" />
+            <Skeleton className="h-4 w-60 rounded-md" />
           </div>
         </div>
       ) : (
-        /* 2. Card 1: User Summary (Public Profile Box) */
-        <div className="p-5 sm:p-6 bg-white dark:bg-zinc-900 rounded-[22px] border border-[#ebeef3] dark:border-zinc-800 flex items-center gap-5 shadow-2xs">
-          <div className="w-[64px] h-[64px] rounded-full bg-[#ebeef3] dark:bg-zinc-800 flex items-center justify-center shrink-0 overflow-hidden">
-            {avatarUrl ? (
-              <img src={avatarUrl} alt={candidateName} className="w-full h-full object-cover" />
-            ) : (
-              <span className="text-[26px] font-[800] text-[#1f2732] dark:text-zinc-100">
+        <div className="rounded-2xl border border-border/60 bg-card p-4 sm:p-5 flex items-center justify-between gap-4 shadow-xs">
+          <div className="flex items-center gap-4 sm:gap-5 min-w-0">
+            <Avatar className="size-14 sm:size-16 ring-1 ring-border/50 shrink-0">
+              {avatarUrl && <AvatarImage src={avatarUrl} alt={candidateName} />}
+              <AvatarFallback className="text-lg sm:text-xl font-bold bg-muted text-foreground">
                 {initialLetter}
-              </span>
-            )}
+              </AvatarFallback>
+            </Avatar>
+            <div className="min-w-0 space-y-0.5">
+              <div className="flex items-center gap-2">
+                <h2 className="text-base sm:text-lg font-bold text-foreground truncate">
+                  {candidateName}
+                </h2>
+                <Badge variant="secondary" className="hidden sm:inline-flex text-[10px] font-medium px-1.5 py-0">
+                  Candidato
+                </Badge>
+              </div>
+              <p className="text-xs sm:text-sm text-muted-foreground truncate">
+                {candidateEmail}
+              </p>
+              {candidatePhone && (
+                <p className="text-[11px] text-muted-foreground/70 truncate">
+                  WhatsApp: {candidatePhone}
+                </p>
+              )}
+            </div>
           </div>
-          <div className="flex-1 min-w-0">
-            <h2 className="text-[18px] sm:text-[20px] font-bold text-[#1f2732] dark:text-zinc-100 tracking-[-0.3px] truncate">
-              {candidateName}
-            </h2>
-            <p className="text-[14px] sm:text-[15px] text-[#5c7c9b] dark:text-zinc-400 font-medium truncate mt-0.5">
-              {candidateEmail}
-            </p>
-          </div>
+
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => router.push("/dashboard/candidate/profile/edit")}
+            className="h-8 px-3.5 text-xs font-medium rounded-lg shrink-0 cursor-pointer"
+          >
+            Editar Perfil
+          </Button>
         </div>
       )}
 
-      {/* 3. Card 2: Dynamic Profile Completion Callout Card */}
-      <div className="p-6 bg-[#1f2732] dark:bg-fiord-950 rounded-[24px] text-white flex items-center justify-between gap-4 shadow-md">
-        <div className="flex items-center gap-4 min-w-0">
-          <div className="w-[50px] h-[50px] rounded-full bg-[#2f3c4b] flex items-center justify-center shrink-0">
-            {completionPercentage === 100 ? (
-              <CheckCircle2 className="w-7 h-7 text-emerald-400" />
-            ) : (
-              <Star className="w-7 h-7 fill-[#aabccf] text-[#aabccf]" />
-            )}
-          </div>
-          <div className="min-w-0">
-            <h3 className="text-[17px] font-bold text-white leading-tight">
-              {completionPercentage === 100 ? "¡Perfil al 100%!" : `Perfil al ${completionPercentage}%`}
-            </h3>
-            <p className="text-[13px] sm:text-[14px] text-[#d2dbe5]/90 leading-[1.35] mt-1 line-clamp-2">
-              {completionSubtitle}
-            </p>
-          </div>
-        </div>
-
-        <button
-          onClick={() => router.push("/dashboard/candidate/profile/edit")}
-          className="shrink-0 px-4 py-2.5 bg-[#2f3c4b] hover:bg-[#344558] rounded-[14px] border border-white/20 text-white text-[12px] sm:text-[13px] font-bold transition-all cursor-pointer active:scale-95"
-        >
-          {completionPercentage === 100 ? "Editar >" : "Completar >"}
-        </button>
-      </div>
-
-      {/* 3.1 Expediente Digital & Verification Callout */}
-      <div className="p-6 bg-emerald-500/10 border border-emerald-500/20 rounded-[24px] flex items-center justify-between gap-4">
-        <div className="flex items-center gap-4 min-w-0">
-          <div className="w-12 h-12 rounded-full bg-emerald-500/20 text-emerald-600 flex items-center justify-center shrink-0">
-            <ShieldCheck className="w-6 h-6" />
-          </div>
-          <div className="min-w-0">
-            <h3 className="text-[16px] font-bold text-[#1f2732] dark:text-zinc-100 leading-tight">
-              Expediente Digital y Documentación
-            </h3>
-            <p className="text-[13px] text-[#5c7c9b] dark:text-zinc-400 font-medium leading-snug mt-1">
-              Sube tus 8 documentos obligatorios (INE, CURP, Teléfono) y 8 méritos opcionales para certificar tu perfil.
-            </p>
-          </div>
-        </div>
-        <button
-          onClick={() => router.push("/dashboard/candidate/documents")}
-          className="shrink-0 px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 rounded-[14px] text-white text-xs sm:text-sm font-bold transition-all cursor-pointer active:scale-95"
-        >
-          Gestionar &gt;
-        </button>
-      </div>
-
-      {/* 4. Location & Radar Geográfico Section */}
-      <div className="space-y-3">
-        <FormLocationSelector
-          value={locationStatus}
-          cityValue={city}
-          zoneValue={zone}
-          onChange={({ city: newCity, zone: newZone, locationStr }) => {
-            setCity(newCity);
-            setZone(newZone);
-            setLocationStatus(locationStr);
-          }}
-        />
-
-        <div className="flex justify-end pt-1">
-          <Button
-            type="button"
-            onClick={handleSaveLocation}
-            disabled={isSavingLocation}
-            className="w-full sm:w-auto h-11 rounded-[16px] bg-[#1f2732] hover:bg-[#2f3c4b] text-white text-xs sm:text-sm font-bold px-7 flex items-center justify-center gap-2 shadow-sm cursor-pointer active:scale-98 transition-all"
-          >
-            {isSavingLocation ? (
-              <Loader2 className="w-4 h-4 animate-spin text-white/80" />
-            ) : (
-              <Sparkles className="w-4 h-4" />
-            )}
-            <span>Guardar y Activar Radar</span>
-          </Button>
+      {/* SECTION 1: Account / Cuenta & Perfil */}
+      <div className="space-y-1.5">
+        <h3 className="text-xs sm:text-sm font-semibold text-muted-foreground/80 px-1">
+          Cuenta y Perfil
+        </h3>
+        <div className="rounded-2xl border border-border/60 bg-card shadow-xs divide-y divide-border/60 overflow-hidden">
+          <SettingsSectionRow
+            icon={<User className="size-5 text-foreground" />}
+            title="Información laboral pública"
+            onClick={() => router.push("/dashboard/candidate/profile/edit")}
+          />
+          <SettingsSectionRow
+            icon={<ShieldCheck className="size-5 text-foreground" />}
+            title="Expediente Digital"
+            trailingText="Verificación"
+            onClick={() => router.push("/dashboard/candidate/documents")}
+          />
+          <SettingsSectionRow
+            icon={<Bookmark className="size-5 text-foreground" />}
+            title="Mis postulaciones guardadas"
+            badgeCount={savedCount > 0 ? savedCount : undefined}
+            onClick={() => router.push("/dashboard/candidate/profile/saved")}
+          />
         </div>
       </div>
 
-      {/* 4. Grouped Settings Section 1 (Work Info & CV) */}
-      <div className="bg-white dark:bg-zinc-900 rounded-[24px] border border-[#ebeef3] dark:border-zinc-800 divide-y divide-[#ebeef3] dark:divide-zinc-800 shadow-2xs overflow-hidden">
-        <SettingsRow
-          icon={<BadgeCheck className="w-[25px] h-[25px] text-[#3e546d] dark:text-zinc-300 stroke-[1.8]" />}
-          title="Información laboral pública"
-          onClick={() => router.push("/dashboard/candidate/profile/edit")}
-        />
-        <SettingsRow
-          icon={<FileText className="w-[25px] h-[25px] text-[#3e546d] dark:text-zinc-300 stroke-[1.8]" />}
-          title="Mi CV y Documentos"
-          onClick={() => router.push("/dashboard/candidate/documents")}
-        />
-        <SettingsRow
-          icon={<Bookmark className="w-[25px] h-[25px] text-[#3e546d] dark:text-zinc-300 stroke-[1.8]" />}
-          title="Mis postulaciones guardadas"
-          badgeCount={savedCount > 0 ? savedCount : undefined}
-          onClick={() => router.push("/dashboard/candidate/profile/saved")}
-        />
+      {/* SECTION 2: Preferences & Seguridad */}
+      <div className="space-y-1.5">
+        <h3 className="text-xs sm:text-sm font-semibold text-muted-foreground/80 px-1">
+          Preferencias y Seguridad
+        </h3>
+        <div className="rounded-2xl border border-border/60 bg-card shadow-xs divide-y divide-border/60 overflow-hidden">
+          <SettingsSectionRow
+            icon={<Bell className="size-5 text-foreground" />}
+            title="Alertas de empleo"
+            onClick={() => router.push("/dashboard/candidate/profile/preferences")}
+          />
+          <SettingsSectionRow
+            icon={<Lock className="size-5 text-foreground" />}
+            title="Seguridad y Contraseña"
+            onClick={() => router.push("/dashboard/candidate/settings")}
+          />
+          <SettingsSectionRow
+            icon={<Globe className="size-5 text-foreground" />}
+            title="Idioma"
+            trailingText="Español"
+            onClick={() => {
+              toast.info("Idioma de la plataforma", {
+                description: "K'anPro está configurado actualmente en Español (Latinoamérica)."
+              });
+            }}
+          />
+        </div>
       </div>
 
-      {/* 5. Grouped Settings Section 2 (Preferences) */}
-      <div className="bg-white dark:bg-zinc-900 rounded-[24px] border border-[#ebeef3] dark:border-zinc-800 divide-y divide-[#ebeef3] dark:divide-zinc-800 shadow-2xs overflow-hidden">
-        <SettingsRow
-          icon={<Bell className="w-[25px] h-[25px] text-[#3e546d] dark:text-zinc-300 stroke-[1.8]" />}
-          title="Alertas de empleo"
-          onClick={() => router.push("/dashboard/candidate/profile/preferences")}
-        />
-        <SettingsRow
-          icon={<Lock className="w-[25px] h-[25px] text-[#3e546d] dark:text-zinc-300 stroke-[1.8]" />}
-          title="Privacidad y Seguridad"
-          onClick={() => router.push("/dashboard/candidate/settings")}
-        />
-        <SettingsRow
-          icon={<HelpCircle className="w-[25px] h-[25px] text-[#3e546d] dark:text-zinc-300 stroke-[1.8]" />}
-          title="Centro de Ayuda y Soporte"
-          onClick={() => setIsSupportOpen(true)}
-        />
+      {/* SECTION 3: Support & Soporte */}
+      <div className="space-y-1.5">
+        <h3 className="text-xs sm:text-sm font-semibold text-muted-foreground/80 px-1">
+          Soporte y Cuenta
+        </h3>
+        <div className="rounded-2xl border border-border/60 bg-card shadow-xs divide-y divide-border/60 overflow-hidden">
+          <SettingsSectionRow
+            icon={<HelpCircle className="size-5 text-foreground" />}
+            title="Centro de Ayuda y Soporte"
+            onClick={() => setIsSupportOpen(true)}
+          />
+          <SettingsSectionRow
+            icon={<LogOut className="size-5 text-destructive" />}
+            title="Cerrar Sesión"
+            titleColor="text-destructive font-medium"
+            onClick={() => setIsLogoutOpen(true)}
+          />
+        </div>
       </div>
 
-      {/* 6. Grouped Settings Section 3 (System settings) */}
-      <div className="bg-white dark:bg-zinc-900 rounded-[24px] border border-[#ebeef3] dark:border-zinc-800 divide-y divide-[#ebeef3] dark:divide-zinc-800 shadow-2xs overflow-hidden">
-        <SettingsRow
-          icon={<Globe className="w-[25px] h-[25px] text-[#3e546d] dark:text-zinc-300 stroke-[1.8]" />}
-          title="Idioma"
-          trailingText="Español"
-          showChevron={false}
-          onClick={() => {
-            toast.info("Idioma de la plataforma", {
-              description: "K'anPro está configurado actualmente en Español (Latinoamérica)."
-            });
-          }}
-        />
-        <SettingsRow
-          icon={<LogOut className="w-[25px] h-[25px] text-rose-500 stroke-[1.8]" />}
-          title="Cerrar Sesión"
-          titleColor="text-rose-500"
-          showChevron={false}
-          onClick={() => setIsLogoutOpen(true)}
-        />
-      </div>
-
-      {/* 7. Help & Support Dialog */}
+      {/* Help & Support Dialog */}
       <Dialog open={isSupportOpen} onOpenChange={setIsSupportOpen}>
-        <DialogContent className="sm:max-w-[480px] rounded-[28px] bg-white dark:bg-zinc-900 border border-[#ebeef3] dark:border-zinc-800 p-6 sm:p-8 max-h-[90vh] overflow-y-auto">
-          <DialogHeader className="space-y-2">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-2xl bg-emerald-500/10 dark:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0">
-                <HelpCircle className="w-5 h-5" />
+        <DialogContent className="sm:max-w-md rounded-2xl border-border bg-card p-5 sm:p-6 space-y-3.5 max-h-[90vh] overflow-y-auto">
+          <DialogHeader className="space-y-1.5 text-left">
+            <div className="flex items-center gap-2.5">
+              <div className="size-8 rounded-lg bg-primary/10 text-primary flex items-center justify-center shrink-0">
+                <HelpCircle className="size-4" />
               </div>
-              <DialogTitle className="text-[20px] font-bold text-[#1f2732] dark:text-zinc-50">
+              <DialogTitle className="text-lg font-bold text-foreground">
                 Centro de Ayuda y Soporte
               </DialogTitle>
             </div>
-            <DialogDescription className="text-[14px] text-[#5c7c9b] dark:text-zinc-400 leading-relaxed">
+            <DialogDescription className="text-xs text-muted-foreground leading-relaxed">
               ¿Tienes dudas o necesitas asistencia con tu cuenta o postulaciones? Nuestro equipo está listo para ayudarte.
             </DialogDescription>
           </DialogHeader>
 
-          <div className="py-4 space-y-4">
+          <div className="space-y-3 pt-1">
             {/* Contact Channels */}
-            <div className="space-y-3">
-              <span className="text-xs font-bold text-[#7d99b3] uppercase tracking-wider">
+            <div className="space-y-2">
+              <span className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">
                 Canales de Atención Directa
               </span>
 
               {/* WhatsApp Support */}
-              <div className="p-4 bg-emerald-500/10 border border-emerald-500/20 rounded-[20px] space-y-3">
+              <div className="rounded-xl border border-emerald-500/20 bg-emerald-500/5 dark:bg-emerald-950/20 p-3 space-y-2.5">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2.5">
-                    <div className="w-8 h-8 rounded-full bg-emerald-600 text-white flex items-center justify-center shrink-0">
-                      <MessageCircle className="w-4 h-4" />
+                    <div className="size-7 rounded-full bg-emerald-600 text-white flex items-center justify-center shrink-0">
+                      <MessageCircle className="size-3.5" />
                     </div>
                     <div>
-                      <h4 className="text-sm font-bold text-[#1f2732] dark:text-zinc-100">WhatsApp de Soporte</h4>
-                      <p className="text-xs text-emerald-700 dark:text-emerald-300 font-medium">+52 999 123 4567 • Lun a Vie 9:00 - 18:00</p>
+                      <h4 className="text-xs font-semibold text-foreground">WhatsApp de Soporte</h4>
+                      <p className="text-[11px] text-emerald-700 dark:text-emerald-300 font-medium">+52 999 123 4567 • Lun a Vie 9:00 - 18:00</p>
                     </div>
                   </div>
-                  <Badge variant="outline" className="border-emerald-500/30 text-emerald-700 dark:text-emerald-300 text-[10px]">
+                  <Badge variant="outline" className="border-emerald-500/30 text-emerald-700 dark:text-emerald-300 text-[10px] px-1.5 py-0">
                     En línea
                   </Badge>
                 </div>
@@ -448,23 +343,23 @@ export function CandidateSettingsView() {
                   rel="noopener noreferrer"
                   className="block w-full"
                 >
-                  <Button className="w-full h-10 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-[12px] flex items-center justify-center gap-2 border-none cursor-pointer">
-                    <MessageCircle className="w-3.5 h-3.5" />
+                  <Button className="w-full h-8 bg-emerald-600 hover:bg-emerald-700 text-white font-medium text-xs rounded-lg flex items-center justify-center gap-1.5 cursor-pointer">
+                    <MessageCircle className="size-3.5" />
                     <span>Escribir por WhatsApp</span>
-                    <ExternalLink className="w-3.5 h-3.5" />
+                    <ExternalLink className="size-3" />
                   </Button>
                 </a>
               </div>
 
               {/* Email Support */}
-              <div className="p-4 bg-[#f5f7fa] dark:bg-zinc-800/60 border border-[#ebeef3] dark:border-zinc-800 rounded-[20px] flex items-center justify-between gap-3">
-                <div className="flex items-center gap-3 min-w-0">
-                  <div className="w-8 h-8 rounded-full bg-[#1f2732] dark:bg-zinc-700 text-white flex items-center justify-center shrink-0">
-                    <Mail className="w-4 h-4" />
+              <div className="rounded-xl border border-border/60 bg-muted/40 p-3 flex items-center justify-between gap-3">
+                <div className="flex items-center gap-2.5 min-w-0">
+                  <div className="size-7 rounded-full bg-primary/10 text-primary flex items-center justify-center shrink-0">
+                    <Mail className="size-3.5" />
                   </div>
                   <div className="min-w-0">
-                    <h4 className="text-xs font-bold text-[#7d99b3] uppercase">Correo de Soporte</h4>
-                    <p className="text-sm font-extrabold text-[#1f2732] dark:text-zinc-100 truncate">
+                    <h4 className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">Correo de Soporte</h4>
+                    <p className="text-xs font-semibold text-foreground truncate">
                       soporte@kanpro.mx
                     </p>
                   </div>
@@ -475,18 +370,20 @@ export function CandidateSettingsView() {
                     size="sm"
                     variant="outline"
                     onClick={handleCopyEmail}
-                    className="h-8 px-2.5 rounded-lg text-xs font-bold text-[#344558] dark:text-zinc-200 border-[#ebeef3] dark:border-zinc-700 cursor-pointer"
+                    className="h-7 px-2 text-xs font-medium rounded-md cursor-pointer"
                   >
-                    {copiedEmail ? <Check className="w-3.5 h-3.5 text-emerald-500" /> : <Copy className="w-3.5 h-3.5" />}
-                    <span className="ml-1">{copiedEmail ? "Copiado" : "Copiar"}</span>
+                    {copiedEmail ? <Check className="size-3 text-emerald-500 mr-1" /> : <Copy className="size-3 mr-1" />}
+                    <span>{copiedEmail ? "Copiado" : "Copiar"}</span>
                   </Button>
                   <a href="mailto:soporte@kanpro.mx?subject=Soporte%20K'anPro%20Candidato">
                     <Button
                       type="button"
                       size="sm"
-                      className="h-8 px-2.5 rounded-lg text-xs font-bold bg-[#1f2732] dark:bg-zinc-100 text-white dark:text-zinc-900 cursor-pointer"
+                      variant="secondary"
+                      className="h-7 px-2 rounded-md cursor-pointer"
+                      aria-label="Abrir cliente de correo"
                     >
-                      <ExternalLink className="w-3.5 h-3.5" />
+                      <ExternalLink className="size-3" />
                     </Button>
                   </a>
                 </div>
@@ -494,32 +391,32 @@ export function CandidateSettingsView() {
             </div>
 
             {/* FAQ Section */}
-            <div className="space-y-2.5 pt-2 border-t border-[#ebeef3] dark:border-zinc-800">
-              <span className="text-xs font-bold text-[#7d99b3] uppercase tracking-wider">
+            <div className="space-y-2 pt-2 border-t border-border/60">
+              <span className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">
                 Preguntas Frecuentes
               </span>
-              <div className="space-y-2">
-                <div className="p-3 bg-[#f5f7fa] dark:bg-zinc-800/40 rounded-[14px]">
-                  <h5 className="text-xs font-bold text-[#1f2732] dark:text-zinc-200">
+              <div className="space-y-1.5">
+                <div className="p-2.5 bg-muted/50 rounded-xl border border-border/40 space-y-0.5">
+                  <h5 className="text-xs font-medium text-foreground">
                     ¿Cómo me postulo a una vacante?
                   </h5>
-                  <p className="text-[12px] text-[#5c7c9b] dark:text-zinc-400 mt-1 leading-relaxed">
+                  <p className="text-[11px] text-muted-foreground leading-relaxed">
                     Ingresa a la sección de Explorar o Inicio, haz clic en la oferta de tu interés y presiona &quot;Postularme ahora&quot;.
                   </p>
                 </div>
-                <div className="p-3 bg-[#f5f7fa] dark:bg-zinc-800/40 rounded-[14px]">
-                  <h5 className="text-xs font-bold text-[#1f2732] dark:text-zinc-200">
+                <div className="p-2.5 bg-muted/50 rounded-xl border border-border/40 space-y-0.5">
+                  <h5 className="text-xs font-medium text-foreground">
                     ¿Cómo validar mis documentos?
                   </h5>
-                  <p className="text-[12px] text-[#5c7c9b] dark:text-zinc-400 mt-1 leading-relaxed">
+                  <p className="text-[11px] text-muted-foreground leading-relaxed">
                     Dirígete a &quot;Mi CV y Documentos&quot; para cargar tu identificación oficial (INE) y CURP para obtener verificación.
                   </p>
                 </div>
-                <div className="p-3 bg-[#f5f7fa] dark:bg-zinc-800/40 rounded-[14px]">
-                  <h5 className="text-xs font-bold text-[#1f2732] dark:text-zinc-200">
+                <div className="p-2.5 bg-muted/50 rounded-xl border border-border/40 space-y-0.5">
+                  <h5 className="text-xs font-medium text-foreground">
                     ¿Cómo activar las alertas de empleo?
                   </h5>
-                  <p className="text-[12px] text-[#5c7c9b] dark:text-zinc-400 mt-1 leading-relaxed">
+                  <p className="text-[11px] text-muted-foreground leading-relaxed">
                     En la opción &quot;Alertas de empleo&quot; selecciona tus sectores preferidos, zonas y rango salarial deseado.
                   </p>
                 </div>
@@ -527,11 +424,12 @@ export function CandidateSettingsView() {
             </div>
           </div>
 
-          <DialogFooter className="pt-2 border-t border-[#ebeef3] dark:border-zinc-800">
+          <DialogFooter className="pt-2 border-t border-border/60">
             <Button
               variant="outline"
+              size="sm"
               onClick={() => setIsSupportOpen(false)}
-              className="w-full h-11 rounded-[14px] border-[#ebeef3] dark:border-zinc-700 text-[#1f2732] dark:text-zinc-200 font-bold text-sm cursor-pointer"
+              className="w-full text-xs font-medium rounded-lg cursor-pointer"
             >
               Cerrar
             </Button>
@@ -539,30 +437,33 @@ export function CandidateSettingsView() {
         </DialogContent>
       </Dialog>
 
-      {/* 8. Logout Confirmation Dialog */}
+      {/* Logout Confirmation Dialog */}
       <Dialog open={isLogoutOpen} onOpenChange={setIsLogoutOpen}>
-        <DialogContent className="sm:max-w-[440px] rounded-[28px] bg-white dark:bg-zinc-900 border border-[#ebeef3] dark:border-zinc-800 p-6 sm:p-8">
-          <DialogHeader className="space-y-2">
-            <DialogTitle className="text-[20px] font-bold text-[#1f2732] dark:text-zinc-50">
+        <DialogContent className="sm:max-w-sm rounded-2xl border-border bg-card p-5 space-y-3">
+          <DialogHeader className="space-y-1.5 text-left">
+            <DialogTitle className="text-lg font-bold text-foreground">
               Cerrar Sesión
             </DialogTitle>
-            <DialogDescription className="text-[15px] text-[#3e546d] dark:text-zinc-400 leading-relaxed">
-              ¿Estás seguro de que deseas cerrar sesión en K'anPro Candidatos?
+            <DialogDescription className="text-xs text-muted-foreground leading-relaxed">
+              ¿Estás seguro de que deseas cerrar sesión en K&apos;anPro Candidatos?
             </DialogDescription>
           </DialogHeader>
 
-          <DialogFooter className="flex flex-row items-center justify-end gap-3 pt-4 border-t border-[#ebeef3] dark:border-zinc-800">
+          <DialogFooter className="flex flex-row items-center justify-end gap-2 pt-2 border-t border-border/60">
             <Button
-              variant="ghost"
+              variant="outline"
+              size="sm"
               onClick={() => setIsLogoutOpen(false)}
-              className="text-[#5c7c9b] font-bold text-sm h-11 px-5 hover:bg-[#f5f7fa]"
+              className="text-xs font-medium rounded-lg"
             >
               Cancelar
             </Button>
             <Button
+              variant="destructive"
+              size="sm"
               onClick={handleSignOut}
               disabled={isLoggingOut}
-              className="bg-rose-500 hover:bg-rose-600 text-white font-bold text-sm rounded-[14px] px-6 h-11"
+              className="text-xs font-medium rounded-lg"
             >
               {isLoggingOut ? "Cerrando..." : "Cerrar Sesión"}
             </Button>
@@ -574,14 +475,13 @@ export function CandidateSettingsView() {
   );
 }
 
-/** Settings Row Component */
-function SettingsRow({
+/** Settings Section Row Component matching the reference style */
+function SettingsSectionRow({
   icon,
   title,
-  titleColor = "text-[#1f2732] dark:text-zinc-100",
+  titleColor = "text-foreground font-medium",
   trailingText,
   badgeCount,
-  showChevron = true,
   onClick,
 }: {
   icon: React.ReactNode;
@@ -589,35 +489,32 @@ function SettingsRow({
   titleColor?: string;
   trailingText?: string;
   badgeCount?: number;
-  showChevron?: boolean;
   onClick: () => void;
 }) {
   return (
     <div
       onClick={onClick}
-      className="p-5 flex items-center justify-between hover:bg-[#f5f7fa]/80 dark:hover:bg-zinc-800/60 transition-colors cursor-pointer group"
+      className="px-4 py-3.5 sm:px-5 flex items-center justify-between hover:bg-muted/40 transition-colors cursor-pointer group"
     >
-      <div className="flex items-center gap-4 min-w-0">
+      <div className="flex items-center gap-3.5 min-w-0">
         <div className="shrink-0">{icon}</div>
-        <span className={`text-[16px] sm:text-[17px] font-bold tracking-[-0.2px] truncate ${titleColor}`}>
+        <span className={cn("text-sm sm:text-base tracking-tight truncate", titleColor)}>
           {title}
         </span>
       </div>
 
-      <div className="flex items-center gap-3 shrink-0">
+      <div className="flex items-center gap-2.5 shrink-0">
         {badgeCount !== undefined && (
-          <span className="px-2.5 py-1 bg-[#1f2732] dark:bg-zinc-100 text-white dark:text-zinc-900 text-[12px] font-extrabold rounded-[12px]">
+          <Badge variant="secondary" className="font-semibold text-[11px] px-2 py-0.5">
             {badgeCount}
-          </span>
+          </Badge>
         )}
         {trailingText && (
-          <span className="text-[14px] font-bold text-[#5c7c9b] dark:text-zinc-400">
+          <span className="text-xs sm:text-sm text-muted-foreground">
             {trailingText}
           </span>
         )}
-        {showChevron && (
-          <ChevronRight className="w-5.5 h-5.5 text-[#7d99b3] group-hover:translate-x-0.5 transition-transform" />
-        )}
+        <ArrowRight className="size-4 text-muted-foreground/70 group-hover:translate-x-0.5 group-hover:text-foreground transition-all" />
       </div>
     </div>
   );

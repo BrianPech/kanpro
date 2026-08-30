@@ -20,7 +20,6 @@ import {
   Plane,
   Star,
   FileSpreadsheet,
-  Sparkles,
 } from "lucide-react";
 
 import {
@@ -84,11 +83,6 @@ export function CompanySidebar({
           title: "Postulantes & Selección",
           url: "/dashboard/company/applications",
           icon: Users,
-        },
-        {
-          title: "Radar de Talento",
-          url: "/dashboard/company/radar",
-          icon: Sparkles,
         },
       ],
     },

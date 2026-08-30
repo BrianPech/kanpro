@@ -1,13 +1,16 @@
 "use client";
 
 import React, { useState } from "react";
-import { MapPin, Crosshair, Loader2, Sparkles, Navigation } from "lucide-react";
+import { MapPin, Loader2, Sparkles, Navigation } from "lucide-react";
 import { GEO_CONFIG, resolveLocationFromCoords } from "@/config/geo";
 import { normalizeLocation, parseLocation } from "@/lib/formatters";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
+import { cn } from "@/lib/utils";
 
 export interface FormLocationSelectorProps {
   value?: string | null;
@@ -162,33 +165,33 @@ export function FormLocationSelector({
   const fullLocationStr = normalizeLocation(currentCity, currentZone);
 
   return (
-    <div className={`p-6 bg-white dark:bg-zinc-900 rounded-[24px] border border-[#ebeef3] dark:border-zinc-800 shadow-2xs space-y-4 ${className}`}>
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-primary/10 text-primary flex items-center justify-center shrink-0">
-            <MapPin className="w-5 h-5" />
+    <div className={cn("rounded-xl border border-border/60 bg-card p-3.5 sm:p-4 space-y-3 shadow-xs", className)}>
+      <div className="flex items-center justify-between gap-3">
+        <div className="flex items-center gap-3 min-w-0">
+          <div className="size-8 rounded-lg bg-primary/10 text-primary flex items-center justify-center shrink-0">
+            <MapPin className="size-4" />
           </div>
-          <div>
-            <h3 className="text-[16px] font-bold text-[#1f2732] dark:text-zinc-100">
+          <div className="min-w-0 space-y-0.5">
+            <h3 className="text-xs sm:text-sm font-semibold text-foreground truncate">
               {label}
             </h3>
-            <p className="text-[12px] text-[#5c7c9b] dark:text-zinc-400 font-medium">
+            <p className="text-xs text-muted-foreground truncate">
               {fullLocationStr ? `Ubicación activa: ${fullLocationStr}` : subtitle}
             </p>
           </div>
         </div>
         {showRadarBadge && fullLocationStr && (
-          <span className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 text-xs font-bold rounded-full border border-emerald-500/20">
-            <Sparkles className="w-3.5 h-3.5" />
+          <Badge variant="outline" className="hidden sm:inline-flex items-center gap-1 border-emerald-500/30 text-emerald-600 dark:text-emerald-400 text-[10px] font-medium px-2 py-0.5">
+            <Sparkles className="size-3" />
             Radar Activo
-          </span>
+          </Badge>
         )}
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-1">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-0.5">
         {/* City Selector */}
-        <div className="space-y-1.5">
-          <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground/80">
+        <div className="space-y-1">
+          <Label className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground">
             Ciudad
           </Label>
           <Select
@@ -196,12 +199,12 @@ export function FormLocationSelector({
             onValueChange={(newCity) => handleCityChange(newCity || "")}
             disabled={disabled}
           >
-            <SelectTrigger className="w-full h-11 bg-slate-50 dark:bg-zinc-950/40 border border-border/60 rounded-xl px-4 text-xs font-semibold">
+            <SelectTrigger className="w-full h-8.5 sm:h-9 rounded-lg text-xs font-medium border-border/70">
               <SelectValue placeholder="Selecciona Ciudad" />
             </SelectTrigger>
-            <SelectContent className="rounded-xl max-h-60">
+            <SelectContent className="rounded-lg max-h-60">
               {availableCities.map((cityKey) => (
-                <SelectItem key={cityKey} value={cityKey}>
+                <SelectItem key={cityKey} value={cityKey} className="text-xs">
                   {GEO_CONFIG[cityKey]?.name || cityKey}
                 </SelectItem>
               ))}
@@ -210,8 +213,8 @@ export function FormLocationSelector({
         </div>
 
         {/* Zone Selector */}
-        <div className="space-y-1.5">
-          <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground/80">
+        <div className="space-y-1">
+          <Label className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground">
             Zona de Trabajo / Cobertura
           </Label>
           <Select
@@ -219,12 +222,12 @@ export function FormLocationSelector({
             onValueChange={(newZone) => handleZoneChange(newZone || "")}
             disabled={disabled || !currentCity}
           >
-            <SelectTrigger className="w-full h-11 bg-slate-50 dark:bg-zinc-950/40 border border-border/60 rounded-xl px-4 text-xs font-semibold">
+            <SelectTrigger className="w-full h-8.5 sm:h-9 rounded-lg text-xs font-medium border-border/70">
               <SelectValue placeholder="Selecciona Zona" />
             </SelectTrigger>
-            <SelectContent className="rounded-xl max-h-60">
+            <SelectContent className="rounded-lg max-h-60">
               {availableZones.map((zoneKey) => (
-                <SelectItem key={zoneKey} value={zoneKey}>
+                <SelectItem key={zoneKey} value={zoneKey} className="text-xs">
                   {GEO_CONFIG[currentCity]?.zones?.[zoneKey]?.name || zoneKey}
                 </SelectItem>
               ))}
@@ -234,22 +237,23 @@ export function FormLocationSelector({
       </div>
 
       {/* Automatic Location Detection Button */}
-      <div className="pt-1">
+      <div className="pt-0.5">
         <Button
           type="button"
           variant="outline"
+          size="sm"
           onClick={handleDetectLocation}
           disabled={disabled || isLocating}
-          className="w-full sm:w-auto h-10 rounded-xl border-border text-xs font-bold flex items-center gap-2 cursor-pointer active:scale-98 transition-all"
+          className="w-full sm:w-auto h-7.5 px-2.5 text-xs font-medium gap-1.5 rounded-lg cursor-pointer"
         >
           {isLocating ? (
             <>
-              <Loader2 className="w-4 h-4 animate-spin text-primary" />
+              <Loader2 className="size-3 animate-spin text-primary" />
               <span>Detectando tu ubicación...</span>
             </>
           ) : (
             <>
-              <Navigation className="w-4 h-4 text-primary" />
+              <Navigation className="size-3 text-primary" />
               <span>Detectar mi ubicación actual</span>
             </>
           )}
@@ -258,3 +262,4 @@ export function FormLocationSelector({
     </div>
   );
 }
+
