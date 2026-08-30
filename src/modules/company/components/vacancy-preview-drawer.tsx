@@ -19,6 +19,9 @@ import {
   PauseCircle,
   PlayCircle,
   X,
+  Award,
+  GraduationCap,
+  Flame,
 } from "lucide-react";
 import {
   Drawer,
@@ -68,7 +71,7 @@ export function VacancyPreviewDrawer({
   const statusText = vacancy.status || (isActive ? "Activa" : "Pausada");
   const applicantsCount = vacancy.applicants_count ?? 0;
 
-  // Extraer listas de beneficios, habilidades y responsabilidades
+  // Extraer listas de beneficios y habilidades
   const benefitsList: string[] = Array.isArray(vacancy.benefits)
     ? (vacancy.benefits as string[])
     : typeof vacancy.benefits === "string"
@@ -87,13 +90,12 @@ export function VacancyPreviewDrawer({
         .filter(Boolean)
     : [];
 
-  const responsibilitiesList: string[] =
-    typeof vacancy.requirements === "string"
-      ? vacancy.requirements
-          .split("\n")
-          .map((l: string) => l.replace(/^[-•*]\s*/, "").trim())
-          .filter((l: string) => l.length > 0)
-      : [];
+  // Verificar si hay requisitos específicos adicionales que no sean idénticos a la descripción
+  const hasSeparateRequirements = Boolean(
+    vacancy.requirements &&
+      vacancy.requirements.trim() !== "" &&
+      vacancy.requirements.trim() !== vacancy.description?.trim()
+  );
 
   return (
     <Drawer
@@ -106,19 +108,19 @@ export function VacancyPreviewDrawer({
         className={cn(
           "bg-card text-card-foreground border-border shadow-2xl flex flex-col",
           isMobile
-            ? "max-h-[90dvh] rounded-t-3xl p-0"
+            ? "max-h-[92dvh] rounded-t-3xl p-0"
             : "h-full w-full sm:max-w-xl md:max-w-2xl sm:[--drawer-content-width:38rem] md:[--drawer-content-width:44rem] rounded-l-3xl p-0 ml-auto"
         )}
       >
         {/* Header con Título, Categoría y Estado */}
         <DrawerHeader className="p-5 sm:p-6 pb-4 border-b border-border/50 text-left shrink-0 bg-muted/20 relative">
           <div className="flex items-start justify-between gap-3 pr-8">
-            <div className="space-y-1.5 min-w-0">
+            <div className="space-y-2 min-w-0">
               <div className="flex items-center gap-2 flex-wrap">
                 <Badge
                   variant="outline"
                   className={cn(
-                    "text-[10px] font-extrabold uppercase tracking-wider px-2.5 py-0.5 rounded-full border shadow-none",
+                    "text-[10px] font-extrabold uppercase tracking-wider px-2.5 py-0.5 rounded-full border shadow-none flex items-center gap-1.5",
                     statusText === "Cerrada"
                       ? "bg-rose-500/10 text-rose-600 dark:text-rose-400 border-rose-500/30"
                       : isActive
@@ -128,7 +130,7 @@ export function VacancyPreviewDrawer({
                 >
                   <span
                     className={cn(
-                      "size-1.5 rounded-full mr-1.5 inline-block",
+                      "size-1.5 rounded-full inline-block animate-pulse",
                       statusText === "Cerrada"
                         ? "bg-rose-500"
                         : isActive
@@ -136,7 +138,7 @@ export function VacancyPreviewDrawer({
                         : "bg-amber-500"
                     )}
                   />
-                  {statusText}
+                  <span>{statusText}</span>
                 </Badge>
 
                 {vacancy.category && (
@@ -163,7 +165,7 @@ export function VacancyPreviewDrawer({
               </DrawerTitle>
 
               <DrawerDescription className="text-xs text-muted-foreground flex items-center gap-3 flex-wrap pt-0.5 font-medium">
-                <span className="flex items-center gap-1">
+                <span className="flex items-center gap-1 text-foreground/80 font-semibold">
                   <MapPin className="size-3.5 text-primary shrink-0" />
                   <span>{vacancy.zone || vacancy.location || "Mérida / Riviera Maya"}</span>
                 </span>
@@ -181,7 +183,7 @@ export function VacancyPreviewDrawer({
               <button
                 type="button"
                 className="absolute top-5 right-5 size-8 rounded-full bg-muted/60 hover:bg-muted text-muted-foreground hover:text-foreground flex items-center justify-center transition-colors cursor-pointer"
-                aria-label="Cerrar vista previa"
+                aria-label="Cerrar detalles de la vacante"
               />
             }
           >
@@ -204,7 +206,7 @@ export function VacancyPreviewDrawer({
               <p className="text-xs sm:text-sm font-black font-mono text-foreground truncate">
                 {formatSalary(vacancy.salary_min ?? null, vacancy.salary_max ?? null)}
               </p>
-              <span className="text-[10px] text-muted-foreground block">
+              <span className="text-[10px] text-muted-foreground capitalize block font-medium">
                 {vacancy.payment_frequency ? `${vacancy.payment_frequency}` : "MXN Mensual"}
               </span>
             </Card>
@@ -239,7 +241,7 @@ export function VacancyPreviewDrawer({
               <p className="text-xs sm:text-sm font-bold text-foreground truncate">
                 {vacancy.employment_type || "Tiempo Completo"}
               </p>
-              <span className="text-[10px] text-muted-foreground truncate block">
+              <span className="text-[10px] text-muted-foreground truncate block font-medium">
                 {vacancy.shift_schedule || "Horario regular"}
               </span>
             </Card>
@@ -247,50 +249,52 @@ export function VacancyPreviewDrawer({
 
           {/* Plazas y Experiencia adicional si existen */}
           {(vacancy.positions_available || vacancy.experience_required || vacancy.education_level) && (
-            <div className="flex items-center gap-2 flex-wrap text-xs font-semibold text-muted-foreground bg-muted/20 p-3 rounded-xl border border-border/40">
+            <div className="flex items-center gap-2.5 flex-wrap text-xs font-semibold text-muted-foreground bg-muted/20 p-3 rounded-xl border border-border/40">
               {vacancy.positions_available && vacancy.positions_available > 1 && (
-                <span className="text-primary font-bold">
-                  🔥 {vacancy.positions_available} vacantes disponibles
+                <span className="text-primary font-bold flex items-center gap-1">
+                  <Flame className="size-3.5 text-amber-500" />
+                  <span>{vacancy.positions_available} vacantes disponibles</span>
                 </span>
               )}
               {vacancy.experience_required && (
-                <span>• Experiencia: <strong className="text-foreground">{vacancy.experience_required}</strong></span>
+                <span className="flex items-center gap-1">
+                  <Award className="size-3.5 text-muted-foreground" />
+                  <span>Experiencia: <strong className="text-foreground">{vacancy.experience_required}</strong></span>
+                </span>
               )}
               {vacancy.education_level && (
-                <span>• Escolaridad: <strong className="text-foreground">{vacancy.education_level}</strong></span>
+                <span className="flex items-center gap-1">
+                  <GraduationCap className="size-3.5 text-muted-foreground" />
+                  <span>Escolaridad: <strong className="text-foreground">{vacancy.education_level}</strong></span>
+                </span>
               )}
             </div>
           )}
 
-          {/* Descripción General */}
+          {/* Descripción General y Responsabilidades */}
           <div className="space-y-2.5">
             <div className="flex items-center gap-2">
               <div className="size-6 rounded-lg bg-primary/10 text-primary flex items-center justify-center shrink-0">
                 <Sparkles className="size-3.5" />
               </div>
               <h3 className="text-xs font-extrabold uppercase tracking-wider text-muted-foreground">
-                Descripción del Puesto
+                Descripción del Puesto & Responsabilidades
               </h3>
             </div>
-            <div className="bg-muted/30 border border-border/40 p-4 rounded-2xl text-xs sm:text-sm leading-relaxed">
+            <div className="bg-muted/30 border border-border/40 p-4 sm:p-5 rounded-2xl text-xs sm:text-sm leading-relaxed">
               <MarkdownRenderer content={vacancy.description || "Sin descripción disponible."} />
             </div>
           </div>
 
-          {/* Responsabilidades / Requisitos */}
-          {responsibilitiesList.length > 0 && (
+          {/* Requisitos Específicos Adicionales (solo si son distintos a la descripción) */}
+          {hasSeparateRequirements && (
             <div className="space-y-2.5">
               <h3 className="text-xs font-extrabold uppercase tracking-wider text-muted-foreground">
-                Requisitos y Responsabilidades
+                Requisitos Adicionales
               </h3>
-              <ul className="space-y-2 text-xs sm:text-sm text-foreground/90 font-medium pl-1">
-                {responsibilitiesList.map((item, idx) => (
-                  <li key={idx} className="flex items-start gap-2.5 leading-relaxed">
-                    <span className="size-1.5 rounded-full bg-primary mt-2 shrink-0" />
-                    <span>{item}</span>
-                  </li>
-                ))}
-              </ul>
+              <div className="bg-muted/30 border border-border/40 p-4 sm:p-5 rounded-2xl text-xs sm:text-sm leading-relaxed">
+                <MarkdownRenderer content={vacancy.requirements} />
+              </div>
             </div>
           )}
 
@@ -344,16 +348,22 @@ export function VacancyPreviewDrawer({
               </h3>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
                 {vacancy.contact_phone && (
-                  <div className="flex items-center gap-2 p-2.5 rounded-xl bg-muted/20 border border-border/40">
+                  <a
+                    href={`tel:${vacancy.contact_phone}`}
+                    className="flex items-center gap-2 p-2.5 rounded-xl bg-muted/20 border border-border/40 hover:border-emerald-500/40 transition-colors"
+                  >
                     <Phone className="size-3.5 text-emerald-600 dark:text-emerald-400 shrink-0" />
                     <span className="font-semibold text-foreground truncate">{vacancy.contact_phone}</span>
-                  </div>
+                  </a>
                 )}
                 {vacancy.contact_email && (
-                  <div className="flex items-center gap-2 p-2.5 rounded-xl bg-muted/20 border border-border/40">
+                  <a
+                    href={`mailto:${vacancy.contact_email}`}
+                    className="flex items-center gap-2 p-2.5 rounded-xl bg-muted/20 border border-border/40 hover:border-blue-500/40 transition-colors"
+                  >
                     <Mail className="size-3.5 text-blue-600 dark:text-blue-400 shrink-0" />
                     <span className="font-semibold text-foreground truncate">{vacancy.contact_email}</span>
-                  </div>
+                  </a>
                 )}
                 {(vacancy.zone || vacancy.location) && (
                   <div className="flex items-center gap-2 p-2.5 rounded-xl bg-muted/20 border border-border/40 col-span-1 sm:col-span-2">
@@ -429,27 +439,12 @@ export function VacancyPreviewDrawer({
           </div>
 
           <div className="flex items-center gap-2 self-end sm:self-auto">
-            {/* Ver detalle completo */}
-            <Button
-              variant="ghost"
-              size="sm"
-              render={
-                <Link
-                  href={`/dashboard/company/vacancies/${vacancy.id}`}
-                />
-              }
-              className="h-9 px-2.5 rounded-xl text-xs font-bold text-muted-foreground hover:text-foreground gap-1 cursor-pointer"
-            >
-              <span>Ficha Completa</span>
-              <ExternalLink className="size-3" />
-            </Button>
-
             <DrawerClose
               render={
                 <Button
                   variant="outline"
                   size="sm"
-                  className="h-9 px-3 rounded-xl text-xs font-bold cursor-pointer"
+                  className="h-9 px-4 rounded-xl text-xs font-bold cursor-pointer hover:bg-muted"
                 />
               }
             >

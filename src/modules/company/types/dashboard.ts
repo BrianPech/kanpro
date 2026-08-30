@@ -119,6 +119,40 @@ export interface WorkforceKPIs {
   criticalIncidentsCount: number;
 }
 
+export interface SubscriptionSummary {
+  planName: string;
+  planKey: string;
+  status: "active" | "trialing" | "past_due" | "canceled" | "free" | string;
+  periodEnd: string | null;
+  daysRemaining: number | null;
+  creditsAvailable: number;
+  featuredVacanciesAllowance: number;
+  featuredVacanciesUsed: number;
+  verificationStatus: string | null;
+}
+
+export interface ApplicationsSummary {
+  total: number;
+  pending: number;
+  inReview: number;
+  shortlisted: number;
+  hired: number;
+  rejected: number;
+}
+
+export interface RecentCandidateItem {
+  id: string;
+  candidateId: string;
+  candidateName: string;
+  candidateHeadline: string;
+  candidateAvatar: string | null;
+  vacancyId: string;
+  vacancyTitle: string;
+  status: string;
+  appliedAt: string;
+  skills?: string[];
+}
+
 export interface CompanyDashboardData {
   companyName: string;
   kpis: WorkforceKPIs;
@@ -127,6 +161,9 @@ export interface CompanyDashboardData {
   pendingIncidents: PendingIncidentItem[];
   todayAttendance: TodayAttendanceItem[];
   payrollSummary: PayrollSummaryData;
+  subscriptionSummary?: SubscriptionSummary;
+  applicationsSummary?: ApplicationsSummary;
+  recentCandidates?: RecentCandidateItem[];
   openVacanciesList: Array<{
     id: string;
     title: string;
@@ -143,5 +180,13 @@ export interface CompanyDashboardData {
     retardos: number;
     ausencias: number;
   }>;
-  recentActivities?: any[];
+  recentActivities?: Array<{
+    id: string;
+    candidateName: string;
+    candidateHeadline?: string;
+    candidateAvatar?: string | null;
+    vacancyTitle?: string;
+    createdAt?: string;
+  }>;
 }
+

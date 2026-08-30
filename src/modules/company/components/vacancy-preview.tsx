@@ -4,8 +4,6 @@ import * as React from "react";
 import {
   MapPin,
   Briefcase,
-  DollarSign,
-  Calendar,
   Edit2,
   Bookmark,
   Building2,
@@ -160,14 +158,11 @@ export function VacancyPreview({
     return [];
   }, [vacancy.skills]);
 
-  const responsibilitiesList: string[] = React.useMemo(() => {
-    if (!vacancy.requirements) return [];
-    const lines = vacancy.requirements
-      .split("\n")
-      .map((l) => l.replace(/^[-•*]\s*/, "").trim())
-      .filter((l) => l.length > 0);
-    return lines;
-  }, [vacancy.requirements]);
+  const hasSeparateRequirements = Boolean(
+    vacancy.requirements &&
+      vacancy.requirements.trim() !== "" &&
+      vacancy.requirements.trim() !== vacancy.description?.trim()
+  );
 
   const companyInitials = (company?.company_name || "K'anPro")
     .split(" ")
@@ -328,25 +323,21 @@ export function VacancyPreview({
 
             <div className="space-y-3">
               <p className="text-xs font-extrabold uppercase tracking-wider text-muted-foreground">
-                Descripción General
+                Descripción del Puesto & Responsabilidades
               </p>
               <div className="bg-muted/30 border border-border/50 p-5 rounded-xl">
                 <MarkdownRenderer content={vacancy.description} />
               </div>
             </div>
 
-            {responsibilitiesList.length > 0 && (
+            {hasSeparateRequirements && (
               <div className="space-y-3 pt-2">
                 <h3 className="text-xs font-extrabold uppercase tracking-wider text-muted-foreground">
-                  Responsabilidades y Funciones
+                  Requisitos Específicos Adicionales
                 </h3>
-                <ul className="list-disc list-inside space-y-2 text-sm text-foreground/90 font-medium pl-1">
-                  {responsibilitiesList.map((item, idx) => (
-                    <li key={idx} className="leading-relaxed">
-                      <span>{item}</span>
-                    </li>
-                  ))}
-                </ul>
+                <div className="bg-muted/30 border border-border/50 p-5 rounded-xl">
+                  <MarkdownRenderer content={vacancy.requirements} />
+                </div>
               </div>
             )}
 

@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import Link from "next/link";
 import {
   Building2,
   Globe,
@@ -8,23 +9,48 @@ import {
   Loader2,
   Camera,
   Edit3,
-  Sparkles,
   RefreshCw,
   Save,
   Phone,
   Image as ImageIcon,
-  Bus,
   ShieldCheck,
-  CheckSquare,
-  Clock,
   Navigation,
-  CheckCircle2,
+  FileText,
+  CreditCard,
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import {
+  Card,
+  CardHeader,
+  CardContent,
+  CardFooter,
+} from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import {
+  Alert,
+  AlertTitle,
+  AlertDescription,
+  AlertAction,
+} from "@/components/ui/alert";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { useCompanyProfileForm } from "../hooks/use-company-profile-form";
+import { toast } from "sonner";
+import { motion } from "framer-motion";
+import { cn } from "@/lib/utils";
+import { findNearestCityAndZone, cleanCityName, resolveLocationFromCoords } from "@/config/geo";
 
 const InstagramIcon = (props: React.SVGProps<SVGSVGElement>) => (
   <svg
-    xmlns="http://www.w3.org/2050/svg"
+    xmlns="http://www.w3.org/2000/svg"
     width="24"
     height="24"
     viewBox="0 0 24 24"
@@ -43,7 +69,7 @@ const InstagramIcon = (props: React.SVGProps<SVGSVGElement>) => (
 
 const FacebookIcon = (props: React.SVGProps<SVGSVGElement>) => (
   <svg
-    xmlns="http://www.w3.org/2050/svg"
+    xmlns="http://www.w3.org/2000/svg"
     width="24"
     height="24"
     viewBox="0 0 24 24"
@@ -57,28 +83,6 @@ const FacebookIcon = (props: React.SVGProps<SVGSVGElement>) => (
     <path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z" />
   </svg>
 );
-import Link from "next/link";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
-import { Card } from "@/components/ui/card";
-import { Checkbox } from "@/components/ui/checkbox";
-import { Badge } from "@/components/ui/badge";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { useCompanyProfileForm } from "../hooks/use-company-profile-form";
-import { FormPhoneField, FormRfcField } from "@/components/form";
-import { toast } from "sonner";
-import { motion } from "framer-motion";
-import { cn } from "@/lib/utils";
-import { GEO_CONFIG, findNearestCityAndZone, cleanCityName } from "@/config/geo";
-
 
 export interface InitialProfile {
   company_name?: string | null;
@@ -87,151 +91,22 @@ export interface InitialProfile {
   website?: string | null;
   location?: string | null;
   logo_url?: string | null;
+  avatar_url?: string | null;
   description?: string | null;
   phone?: string | null;
+  contact_phone?: string | null;
+  whatsapp_number?: string | null;
   company_size?: string | null;
+  fiscal_regime?: "persona_moral" | "persona_fisica" | string | null;
+  entity_type?: string | null;
+  rfc?: string | null;
   is_validated?: boolean | null;
-  // New fields
   banner_url?: string | null;
   instagram_url?: string | null;
   facebook_url?: string | null;
   address_details?: string | null;
-  has_transport?: boolean | null;
-  benefit_canteen?: boolean | null;
-  benefit_tips?: boolean | null;
-  benefit_imss?: boolean | null;
-  benefit_uniforms?: boolean | null;
-  benefit_growth?: boolean | null;
   operation_hours?: string | null;
 }
-
-export function CompanyProfileForm({
-  initialProfile,
-  userId,
-}: {
-  initialProfile: InitialProfile;
-  userId: string;
-}) {
-  const { form, isSaving, onSubmit, handleReset } = useCompanyProfileForm(
-    initialProfile,
-    userId
-  );
-
-  const {
-    register,
-    watch,
-    setValue,
-    formState: { errors },
-  } = form;
-
-  const logoUrl = watch("logo_url");
-  const bannerUrl = watch("banner_url");
-  const description = watch("description") || "";
-
-  const [isLocating, setIsLocating] = React.useState(false);
-  const [isUploadingLogo, setIsUploadingLogo] = React.useState(false);
-  const [isUploadingBanner, setIsUploadingBanner] = React.useState(false);
-  const [gpsDetectedInfo, setGpsDetectedInfo] = React.useState<{
-    city: string;
-    address?: string;
-  } | null>(null);
-
-  const handleDetectLocation = () => {
-    if (typeof window === "undefined" || !("geolocation" in navigator)) {
-      toast.error("Geolocalización no soportada", { description: "Tu navegador no soporta GPS." });
-      return;
-    }
-
-    setIsLocating(true);
-    const processPosition = async (pos: GeolocationPosition) => {
-      const { latitude, longitude } = pos.coords;
-      const { city: nearestCity, zone: nearestZone } = findNearestCityAndZone(latitude, longitude);
-
-      let detectedStreet = "";
-      let detectedCity = nearestCity;
-
-      try {
-        const res = await fetch(
-          `https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}`
-        );
-        const geoData = await res.json();
-        if (geoData && geoData.address) {
-          const addr = geoData.address;
-          const road = addr.road || addr.pedestrian || addr.street || "";
-          const suburb = addr.suburb || addr.neighbourhood || addr.quarter || addr.city_district || "";
-          const cityName = addr.city || addr.town || addr.county || nearestCity;
-
-          if (road || suburb) {
-            detectedStreet = [road, suburb].filter(Boolean).join(", ");
-          }
-          if (cityName) {
-            const matchedKey = Object.keys(GEO_CONFIG).find((k) =>
-              cityName.toLowerCase().includes(k.toLowerCase()) || k.toLowerCase().includes(cityName.toLowerCase())
-            );
-            detectedCity = matchedKey || cityName;
-          }
-        }
-      } catch (e) {
-        console.warn("Reverse geocoding fetch fallback:", e);
-      }
-
-      const cleanedCity = cleanCityName(detectedCity);
-      setValue("location", cleanedCity, { shouldValidate: true, shouldDirty: true });
-      if (detectedStreet) {
-        setValue("address_details", detectedStreet, { shouldValidate: true, shouldDirty: true });
-      }
-
-      setGpsDetectedInfo({
-        city: cleanedCity,
-        address: detectedStreet || nearestZone,
-      });
-
-      setIsLocating(false);
-      toast.success("Ubicación GPS confirmada", {
-        description: `Ciudad: ${detectedCity}${detectedStreet ? ` • ${detectedStreet}` : ""}`,
-      });
-    };
-
-    const handleGpsError = (err: GeolocationPositionError) => {
-      if (err.code === err.TIMEOUT || err.code === err.POSITION_UNAVAILABLE) {
-        navigator.geolocation.getCurrentPosition(
-          processPosition,
-          (fallbackErr) => {
-            setIsLocating(false);
-            if (fallbackErr.code === fallbackErr.PERMISSION_DENIED) {
-              toast.error("Permiso de ubicación denegado", {
-                description: "Por favor otorga acceso a la ubicación en las preferencias de tu navegador.",
-              });
-            } else {
-              toast.error("No se pudo obtener señal GPS", {
-                description: "Ingresa la ubicación de la empresa manualmente.",
-              });
-            }
-          },
-          { enableHighAccuracy: false, timeout: 15000, maximumAge: 60000 }
-        );
-        return;
-      }
-
-      setIsLocating(false);
-      if (err.code === err.PERMISSION_DENIED) {
-        toast.error("Permiso de ubicación denegado", {
-          description: "Por favor otorga acceso a la ubicación en el icono de candado de tu navegador.",
-        });
-      } else {
-        toast.error("Error de geolocalización", {
-          description: "No se pudo obtener la ubicación. Ingrésala manualmente.",
-        });
-      }
-    };
-
-    navigator.geolocation.getCurrentPosition(
-      processPosition,
-      handleGpsError,
-      { enableHighAccuracy: true, timeout: 8000, maximumAge: 10000 }
-    );
-  };
-  const charCount = description.length;
 
 // Client-side image compressor for high-performance uploads
 async function compressImageForUpload(
@@ -293,6 +168,131 @@ async function compressImageForUpload(
   });
 }
 
+const QUICK_CITIES = [
+  "Felipe Carrillo Puerto, Q. Roo",
+  "Playa del Carmen, Q. Roo",
+  "Tulum, Q. Roo",
+  "Cancún, Q. Roo",
+  "Chetumal, Q. Roo",
+  "Bacalar, Q. Roo",
+  "Cozumel, Q. Roo",
+  "Puerto Morelos, Q. Roo",
+  "Mérida, Yucatán",
+  "Valladolid, Yucatán",
+  "Progreso, Yucatán",
+];
+
+const FISCAL_REGIME_LABELS: Record<string, string> = {
+  persona_moral: "Persona Moral (Sociedades / Empresas - RFC de 12 dígitos)",
+  persona_fisica: "Persona Física con Actividad Empresarial (RFC de 13 dígitos)",
+};
+
+const COMPANY_SIZE_LABELS: Record<string, string> = {
+  "1-10": "1 - 10 colaboradores",
+  "11-50": "11 - 50 colaboradores",
+  "51-200": "51 - 200 colaboradores",
+  "201-500": "201 - 500 colaboradores",
+  "500+": "Más de 500 colaboradores",
+};
+
+const INDUSTRY_LABELS: Record<string, string> = {
+  "Restaurantes / Hotelería": "Restaurantes / Hotelería / Turismo",
+  "Comercial": "Comercio & Ventas al por Menor",
+  "Tecnología": "Tecnología & Software",
+  "Salud": "Salud & Bienestar",
+  "Finanzas": "Finanzas & Contabilidad",
+  "Educación": "Educación & Capacitación",
+  "Administración": "Administración & Operaciones",
+  "Diseño": "Diseño & Medios",
+  "Marketing": "Marketing & Publicidad",
+  "Otro": "Otro Sector",
+};
+
+export function CompanyProfileForm({
+  initialProfile,
+  userId,
+}: {
+  initialProfile: InitialProfile;
+  userId: string;
+}) {
+  const { form, isSaving, onSubmit, handleReset } = useCompanyProfileForm(
+    initialProfile,
+    userId
+  );
+
+  const {
+    register,
+    watch,
+    setValue,
+    formState: { errors },
+  } = form;
+
+  const logoUrl = watch("logo_url");
+  const bannerUrl = watch("banner_url");
+  const description = watch("description") || "";
+  const companyName = watch("company_name");
+  const location = watch("location");
+  const fiscalRegime = watch("fiscal_regime") || "persona_moral";
+
+  const [isLocating, setIsLocating] = React.useState(false);
+  const [isUploadingLogo, setIsUploadingLogo] = React.useState(false);
+  const [isUploadingBanner, setIsUploadingBanner] = React.useState(false);
+
+  // GPS location detection matching Wizard implementation
+  const handleDetectLocation = () => {
+    if (typeof window === "undefined" || !("geolocation" in navigator)) {
+      toast.error("Geolocalización no disponible", {
+        description: "Tu navegador o dispositivo no tiene GPS activo.",
+      });
+      return;
+    }
+
+    setIsLocating(true);
+
+    const onLocationSuccess = async (pos: GeolocationPosition) => {
+      try {
+        const { latitude, longitude } = pos.coords;
+        const resolved = await resolveLocationFromCoords(latitude, longitude);
+        const finalCity = cleanCityName(resolved.city);
+        const finalZone = resolved.zone || "";
+
+        setValue("location", finalCity, { shouldValidate: true, shouldDirty: true });
+        if (finalZone) {
+          setValue("address_details", finalZone, { shouldValidate: true, shouldDirty: true });
+        }
+
+        setIsLocating(false);
+        toast.success("Ubicación GPS detectada", {
+          description: `Se configuró: ${resolved.displayLocation}`,
+        });
+      } catch {
+        setIsLocating(false);
+        toast.error("No se pudo resolver la ubicación exacta", {
+          description: "Selecciona la ciudad de la lista o ingrésala manualmente.",
+        });
+      }
+    };
+
+    const onLocationFailure = (err: GeolocationPositionError) => {
+      setIsLocating(false);
+      if (err.code === err.PERMISSION_DENIED) {
+        toast.error("Permiso de ubicación denegado", {
+          description: "Otorga permiso de ubicación o selecciona la zona manualmente.",
+        });
+      } else {
+        toast.error("No se pudo detectar tu ubicación", {
+          description: "Selecciona tu ciudad y zona en las opciones de abajo.",
+        });
+      }
+    };
+
+    navigator.geolocation.getCurrentPosition(
+      onLocationSuccess,
+      onLocationFailure,
+      { enableHighAccuracy: true, timeout: 8000, maximumAge: 60000 }
+    );
+  };
+
   const handleLogoChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const rawFile = e.target.files?.[0];
     if (!rawFile) return;
@@ -314,17 +314,17 @@ async function compressImageForUpload(
     setIsUploadingLogo(true);
 
     try {
-      // 1. Client-side downscaling & WebP compression (max 512x512)
       const { file: optimizedFile, previewUrl } = await compressImageForUpload(rawFile, 512, 512, 0.88);
       setValue("logo_url", previewUrl);
 
       const supabase = createClient();
-      const { data: { user } } = await supabase.auth.getUser();
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
       const currentUserId = user?.id || userId;
       const fileExt = optimizedFile.name.split(".").pop() || "webp";
       const filePath = `${currentUserId}/logo_${Date.now()}.${fileExt}`;
 
-      // 2. Upload with 1-year immutable CDN Cache-Control
       const { error: uploadErr } = await supabase.storage
         .from("avatars")
         .upload(filePath, optimizedFile, {
@@ -333,9 +333,7 @@ async function compressImageForUpload(
           cacheControl: "31536000",
         });
 
-      if (uploadErr) {
-        throw uploadErr;
-      }
+      if (uploadErr) throw uploadErr;
 
       const { data: urlData } = supabase.storage
         .from("avatars")
@@ -343,12 +341,12 @@ async function compressImageForUpload(
 
       if (urlData?.publicUrl) {
         setValue("logo_url", urlData.publicUrl, { shouldValidate: true, shouldDirty: true });
-        toast.success("Logotipo guardado", {
-          description: "La imagen comercial está optimizada y lista.",
+        toast.success("Logotipo actualizado", {
+          description: "La imagen comercial de tu empresa ha sido guardada.",
         });
       }
     } catch (err: any) {
-      console.error("Error uploading logo to storage:", err);
+      console.error("Error uploading logo:", err);
       toast.error("Error al subir logotipo", {
         description: err.message || "No se pudo subir la imagen a la nube.",
       });
@@ -378,17 +376,17 @@ async function compressImageForUpload(
     setIsUploadingBanner(true);
 
     try {
-      // 1. Client-side downscaling & WebP compression (max 1600x600)
       const { file: optimizedFile, previewUrl } = await compressImageForUpload(rawFile, 1600, 600, 0.85);
       setValue("banner_url", previewUrl);
 
       const supabase = createClient();
-      const { data: { user } } = await supabase.auth.getUser();
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
       const currentUserId = user?.id || userId;
       const fileExt = optimizedFile.name.split(".").pop() || "webp";
       const filePath = `${currentUserId}/banner_${Date.now()}.${fileExt}`;
 
-      // 2. Upload with 1-year immutable CDN Cache-Control
       const { error: uploadErr } = await supabase.storage
         .from("avatars")
         .upload(filePath, optimizedFile, {
@@ -397,9 +395,7 @@ async function compressImageForUpload(
           cacheControl: "31536000",
         });
 
-      if (uploadErr) {
-        throw uploadErr;
-      }
+      if (uploadErr) throw uploadErr;
 
       const { data: urlData } = supabase.storage
         .from("avatars")
@@ -407,12 +403,12 @@ async function compressImageForUpload(
 
       if (urlData?.publicUrl) {
         setValue("banner_url", urlData.publicUrl, { shouldValidate: true, shouldDirty: true });
-        toast.success("Portada guardada", {
-          description: "La portada comercial está optimizada y lista.",
+        toast.success("Portada actualizada", {
+          description: "La imagen de portada ha sido guardada.",
         });
       }
     } catch (err: any) {
-      console.error("Error uploading banner to storage:", err);
+      console.error("Error uploading banner:", err);
       toast.error("Error al subir portada", {
         description: err.message || "No se pudo subir la imagen a la nube.",
       });
@@ -421,543 +417,623 @@ async function compressImageForUpload(
     }
   };
 
+  const charCount = description.length;
   const isWarningCount = charCount >= 280;
 
   return (
     <motion.div
-      initial={{ opacity: 0, y: 15 }}
+      initial={{ opacity: 0, y: 12 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.3 }}
-      className="space-y-8 max-w-4xl mx-auto w-full"
+      transition={{ duration: 0.25 }}
+      className="space-y-6 w-full"
     >
-      <form onSubmit={onSubmit} method="POST" className="space-y-8">
+      <form onSubmit={onSubmit} method="POST" className="space-y-6">
         
-        {/* ========================================== */}
-        {/* TRUST / VALIDATION BADGE BANNER            */}
-        {/* ========================================== */}
+        {/* ========================================================================= */}
+        {/* 1. SHADCN ALERT: VALIDACIÓN Y ESTADO DE CUENTA                            */}
+        {/* ========================================================================= */}
         {initialProfile?.is_validated ? (
-          <div className="flex items-center gap-3.5 p-5 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-700 dark:text-emerald-400 shadow-2xs">
-            <ShieldCheck className="size-6 shrink-0" />
-            <div className="text-xs sm:text-sm font-semibold leading-relaxed">
-              <span className="font-extrabold">Empresa Verificada</span>. Tu negocio ha sido validado por el equipo de K&apos;anPro. Tienes insignia de confianza activa en tu perfil público y tus ofertas tendrán prioridad en el feed de candidatos.
+          <Alert className="rounded-2xl border-emerald-500/30 bg-emerald-500/10 text-emerald-800 dark:text-emerald-300 p-4 sm:p-5 shadow-2xs">
+            <ShieldCheck className="size-5 text-emerald-600 dark:text-emerald-400" />
+            <div className="space-y-0.5">
+              <AlertTitle className="text-sm font-extrabold">
+                Empresa Verificada (Insignia de Confianza Activa)
+              </AlertTitle>
+              <AlertDescription className="text-xs text-emerald-700 dark:text-emerald-300/90 leading-relaxed">
+                Tu perfil corporativo cuenta con validación oficial. Tus vacantes tienen prioridad en el feed de postulantes.
+              </AlertDescription>
             </div>
-          </div>
+          </Alert>
         ) : (
-          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 p-5 rounded-2xl bg-muted/40 border border-border text-muted-foreground shadow-2xs">
-            <div className="flex items-center gap-3.5">
-              <ShieldCheck className="size-6 shrink-0 text-muted-foreground" />
-              <div className="text-xs sm:text-sm font-semibold leading-relaxed">
-                <span className="font-extrabold text-foreground">Verificación de Cuenta (Persona Moral)</span>. Completa la información legal y sube los 13 documentos obligatorios para obtener la insignia de confianza corporativa.
-              </div>
+          <Alert className="rounded-2xl border border-border/80 bg-muted/40 p-4 sm:p-5 shadow-2xs">
+            <ShieldCheck className="size-5 text-primary" />
+            <div className="space-y-1">
+              <AlertTitle className="text-sm font-bold text-foreground">
+                Verificación de Cuenta (Persona Moral)
+              </AlertTitle>
+              <AlertDescription className="text-xs text-muted-foreground leading-relaxed">
+                Completa la información legal y sube los documentos requeridos para obtener la insignia de confianza corporativa.
+              </AlertDescription>
             </div>
-            <Button
-              render={<Link href="/dashboard/company/verification" />}
-              className="h-10 px-5 rounded-xl bg-primary text-primary-foreground hover:bg-primary/90 text-xs font-bold shrink-0 cursor-pointer shadow-sm"
-            >
-              Ir a Verificación
-            </Button>
-          </div>
+            <AlertAction className="static sm:absolute sm:top-4 sm:right-4 mt-3 sm:mt-0">
+              <Button
+                size="sm"
+                render={<Link href="/dashboard/company/verification" />}
+                className="h-9 px-4 rounded-xl text-xs font-bold bg-primary text-primary-foreground hover:bg-primary/90 shadow-xs cursor-pointer"
+              >
+                Ir a Verificación
+              </Button>
+            </AlertAction>
+          </Alert>
         )}
 
-        {/* ========================================== */}
-        {/* SECTION 1: MARCA E IDENTIDAD VISUAL        */}
-        {/* ========================================== */}
-        <Card className="bg-card border border-border rounded-2xl overflow-hidden shadow-xs">
-          {/* Header Banner Uploader */}
-          <div className="relative h-48 sm:h-56 bg-muted/50 border-b border-border overflow-hidden group">
-            {bannerUrl ? (
-              <img src={bannerUrl} alt="Portada" className="w-full h-full object-cover" />
-            ) : (
-              <div className="w-full h-full flex flex-col items-center justify-center text-muted-foreground p-4">
-                <ImageIcon className="size-10 stroke-[1.2]" />
-                <span className="text-xs font-extrabold uppercase tracking-wider mt-2 text-foreground">Imagen de Portada / Banner Comercial</span>
-                <p className="text-xs text-muted-foreground font-semibold mt-1">Recomendado: 1200x400px (Restaurante, Hotel, Local)</p>
-              </div>
-            )}
-            
-            <div className="absolute top-4 right-4">
-              <Button
-                type="button"
-                disabled={isSaving || isUploadingBanner}
-                className="h-10 rounded-xl text-xs sm:text-sm font-bold bg-primary text-primary-foreground hover:bg-primary/90 flex items-center gap-2 shadow-md relative cursor-pointer"
-              >
-                {isUploadingBanner ? (
-                  <>
-                    <Loader2 className="size-4 animate-spin" />
-                    <span>Subiendo Portada...</span>
-                  </>
-                ) : (
-                  <>
-                    <Camera className="size-4" />
-                    <span>{bannerUrl ? "Cambiar Portada" : "Subir Portada"}</span>
-                  </>
-                )}
-                <input
-                  type="file"
-                  accept="image/png,image/jpeg,image/webp"
-                  disabled={isSaving || isUploadingBanner}
-                  onChange={handleBannerChange}
-                  className="absolute inset-0 opacity-0 cursor-pointer"
-                />
-              </Button>
-            </div>
-          </div>
-
-          <div className="p-6 md:p-8 pt-0 -mt-16 flex flex-col md:flex-row gap-6 items-center md:items-start text-center md:text-left relative z-10">
-            {/* Logo uploader circular box */}
-            <div className="relative group">
-              <div className="w-32 h-32 rounded-full bg-card border-4 border-card shadow-md flex flex-col items-center justify-center cursor-pointer overflow-hidden relative">
-                {isUploadingLogo ? (
-                  <div className="flex flex-col items-center justify-center">
-                    <Loader2 className="size-8 animate-spin text-foreground" />
-                    <span className="text-[9px] font-bold mt-1 text-muted-foreground">Subiendo...</span>
-                  </div>
-                ) : logoUrl ? (
-                  <img src={logoUrl} alt="Logo" className="w-full h-full object-cover" />
-                ) : (
-                  <div className="flex flex-col items-center justify-center text-muted-foreground">
-                    <Camera className="size-7" />
-                    <span className="text-[10px] font-extrabold uppercase mt-1">Logo</span>
-                  </div>
-                )}
-                
-                {/* Hidden File Input */}
-                <input
-                  type="file"
-                  accept="image/png,image/jpeg,image/webp,image/svg+xml"
-                  disabled={isSaving || isUploadingLogo}
-                  onChange={handleLogoChange}
-                  className="absolute inset-0 opacity-0 cursor-pointer"
-                />
-              </div>
-
-              {/* Float edit button */}
-              <div className="absolute bottom-1 right-1 bg-primary text-primary-foreground p-2 rounded-full shadow-md cursor-pointer active:scale-95 transition-transform">
-                {isUploadingLogo ? <Loader2 className="size-4 animate-spin" /> : <Edit3 className="size-4" />}
-                <input
-                  type="file"
-                  accept="image/png,image/jpeg,image/webp,image/svg+xml"
-                  disabled={isSaving || isUploadingLogo}
-                  onChange={handleLogoChange}
-                  className="absolute inset-0 opacity-0 cursor-pointer"
-                />
-              </div>
-            </div>
-
-            {/* Title / Info */}
-            <div className="flex-grow pt-16 md:pt-20 space-y-1.5">
-              <div className="flex items-center gap-2 flex-wrap justify-center md:justify-start">
-                <h3 className="text-[18px] sm:text-[20px] font-[800] text-foreground tracking-tight flex items-center gap-2">
-                  <Sparkles className="size-5 text-primary shrink-0" />
-                  Identidad de Marca
-                </h3>
-                <Badge variant="outline" className="bg-sky-500/10 text-sky-700 dark:text-sky-300 border-sky-500/20 font-bold px-3 py-0.5 rounded-full text-[11px]">
-                  🌐 Pública (Visible para candidatos)
-                </Badge>
-              </div>
-              <p className="text-xs sm:text-sm text-muted-foreground font-semibold leading-relaxed max-w-lg">
-                Sube tu logotipo comercial e imagen de portada para destacar en el feed de candidatos.
-              </p>
-            </div>
-          </div>
-        </Card>
-
-        {/* ========================================== */}
-        {/* SECTION 2: DATOS GENERALES Y REDES         */}
-        {/* ========================================== */}
-        <Card className="bg-card border border-border rounded-2xl p-6 sm:p-8 space-y-6 shadow-xs">
+        {/* ========================================================================= */}
+        {/* 2. CARD PRINCIPAL UNIFICADA (HEADER + CONTENT + FOOTER)                   */}
+        {/* ========================================================================= */}
+        <Card className="rounded-2xl border border-border/80 bg-card shadow-xs overflow-hidden">
           
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {/* Commercial Name Input */}
-            <div className="space-y-2.5">
-              <label className="block text-[14px] sm:text-[15px] font-extrabold text-foreground">
-                Nombre Comercial *
-              </label>
-              <div className="relative">
-                <Building2 className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground pointer-events-none" />
-                <Input
-                  type="text"
-                  placeholder="Ej. Restaurante La Costa"
-                  {...register("company_name")}
-                  className="w-full h-12 bg-background border border-border rounded-xl pl-11 pr-4 text-sm font-semibold text-foreground placeholder:text-muted-foreground focus-visible:ring-2 focus-visible:ring-ring transition-all outline-none"
+          {/* ---------------- CARD HEADER: PORTADA, LOGO Y NOMBRE DE EMPRESA -------- */}
+          <CardHeader className="p-0 border-b border-border/60">
+            {/* Banner Cover Image */}
+            <div className="relative h-44 sm:h-56 bg-muted/40 overflow-hidden group">
+              {bannerUrl ? (
+                <img
+                  src={bannerUrl}
+                  alt="Portada de la empresa"
+                  className="w-full h-full object-cover"
                 />
-              </div>
-              {errors.company_name && (
-                <p className="text-xs sm:text-sm font-semibold text-rose-500">
-                  {errors.company_name.message}
-                </p>
+              ) : (
+                <div className="w-full h-full flex flex-col items-center justify-center text-muted-foreground p-4 text-center">
+                  <ImageIcon className="size-9 stroke-[1.2]" />
+                  <span className="text-xs font-bold uppercase tracking-wider mt-2 text-foreground">
+                    Imagen de Portada Comercial
+                  </span>
+                  <p className="text-[11px] text-muted-foreground mt-0.5 font-medium">
+                    Recomendado: 1200 x 400 px (Restaurante, Hotel, Oficina o Sucursal)
+                  </p>
+                </div>
               )}
+
+              {/* Botón Cambiar Portada */}
+              <div className="absolute top-4 right-4">
+                <Button
+                  type="button"
+                  size="sm"
+                  disabled={isSaving || isUploadingBanner}
+                  className="h-9 px-3.5 rounded-xl text-xs font-bold bg-background/90 text-foreground hover:bg-background border border-border/60 backdrop-blur-xs flex items-center gap-1.5 shadow-sm relative cursor-pointer"
+                >
+                  {isUploadingBanner ? (
+                    <>
+                      <Loader2 className="size-3.5 animate-spin text-primary" />
+                      <span>Subiendo...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Camera className="size-3.5 text-primary" />
+                      <span>{bannerUrl ? "Cambiar Portada" : "Subir Portada"}</span>
+                    </>
+                  )}
+                  <input
+                    type="file"
+                    accept="image/png,image/jpeg,image/webp"
+                    disabled={isSaving || isUploadingBanner}
+                    onChange={handleBannerChange}
+                    className="absolute inset-0 opacity-0 cursor-pointer"
+                    aria-label="Subir portada"
+                  />
+                </Button>
+              </div>
             </div>
 
-            {/* Industry Sector Dropdown Select */}
-            <div className="space-y-2.5">
-              <label className="block text-[14px] sm:text-[15px] font-extrabold text-foreground">
-                Sector Industrial *
-              </label>
-              <Select
-                value={watch("industry") || ""}
-                onValueChange={(value) =>
-                  setValue("industry", value || "", { shouldValidate: true })
-                }
-              >
-                <SelectTrigger className="w-full h-12 bg-background border border-border rounded-xl px-4 text-sm font-semibold text-foreground focus:ring-2 focus:ring-ring transition-all outline-none shadow-none cursor-pointer">
-                  <SelectValue placeholder="Selecciona un sector" />
-                </SelectTrigger>
-                <SelectContent className="rounded-xl border border-border bg-popover text-sm font-semibold">
-                  <SelectItem value="Tecnología">Tecnología & Software</SelectItem>
-                  <SelectItem value="Finanzas">Finanzas & Banca</SelectItem>
-                  <SelectItem value="Salud">Salud & Bienestar</SelectItem>
-                  <SelectItem value="Educación">Educación</SelectItem>
-                  <SelectItem value="Diseño">Diseño & Creatividad</SelectItem>
-                  <SelectItem value="Marketing">Marketing & Ventas</SelectItem>
-                  <SelectItem value="Comercial">Comercial & Ventas</SelectItem>
-                  <SelectItem value="Restaurantes / Hotelería">Restaurantes / Hotelería / Turismo</SelectItem>
-                  <SelectItem value="Administración">Administración & Operaciones</SelectItem>
-                  <SelectItem value="Otro">Otro Sector</SelectItem>
-                </SelectContent>
-              </Select>
-              {errors.industry && (
-                <p className="text-xs sm:text-sm font-semibold text-rose-500">
-                  {errors.industry.message}
+            {/* Circular Logo and Company Name identity box */}
+            <div className="p-5 sm:p-6 md:p-8 pt-0 -mt-12 sm:-mt-14 flex flex-col sm:flex-row gap-4 sm:gap-5 items-center sm:items-start text-center sm:text-left relative z-10">
+              {/* Logo circular uploader */}
+              <div className="relative shrink-0 group">
+                <div className="size-24 sm:size-28 rounded-full bg-card border-4 border-card shadow-md flex items-center justify-center overflow-hidden relative">
+                  {isUploadingLogo ? (
+                    <div className="flex flex-col items-center justify-center p-2">
+                      <Loader2 className="size-6 animate-spin text-primary" />
+                      <span className="text-[8px] font-bold mt-1 text-muted-foreground">Subiendo...</span>
+                    </div>
+                  ) : logoUrl ? (
+                    <img
+                      src={logoUrl}
+                      alt={companyName || "Logo"}
+                      className="w-full h-full object-cover"
+                    />
+                  ) : (
+                    <div className="flex flex-col items-center justify-center text-muted-foreground p-2">
+                      <Building2 className="size-7 text-muted-foreground/60" />
+                      <span className="text-[9px] font-bold uppercase mt-1">Logo</span>
+                    </div>
+                  )}
+
+                  <input
+                    type="file"
+                    accept="image/png,image/jpeg,image/webp,image/svg+xml"
+                    disabled={isSaving || isUploadingLogo}
+                    onChange={handleLogoChange}
+                    className="absolute inset-0 opacity-0 cursor-pointer"
+                    aria-label="Subir logo"
+                  />
+                </div>
+
+                <div className="absolute bottom-0 right-0 bg-primary text-primary-foreground p-1.5 rounded-full shadow-sm cursor-pointer hover:scale-105 active:scale-95 transition-transform">
+                  {isUploadingLogo ? (
+                    <Loader2 className="size-3.5 animate-spin" />
+                  ) : (
+                    <Edit3 className="size-3.5" />
+                  )}
+                  <input
+                    type="file"
+                    accept="image/png,image/jpeg,image/webp,image/svg+xml"
+                    disabled={isSaving || isUploadingLogo}
+                    onChange={handleLogoChange}
+                    className="absolute inset-0 opacity-0 cursor-pointer"
+                    aria-label="Cambiar logo"
+                  />
+                </div>
+              </div>
+
+              {/* Company Name Header Details */}
+              <div className="flex-1 pt-1 sm:pt-14 space-y-1 min-w-0">
+                <div className="flex items-center gap-2 flex-wrap justify-center sm:justify-start">
+                  <h2 className="text-lg sm:text-xl font-black text-foreground tracking-tight truncate max-w-md">
+                    {companyName && companyName.trim() !== "" ? companyName : "Nombre de tu Empresa"}
+                  </h2>
+                  <Badge
+                    variant="outline"
+                    className="bg-primary/10 text-primary border-primary/20 font-bold px-2.5 py-0.5 rounded-full text-[10px]"
+                  >
+                    🌐 Perfil Público
+                  </Badge>
+                </div>
+                <p className="text-xs text-muted-foreground font-medium leading-relaxed max-w-xl">
+                  {location ? `${location} • ` : ""}
+                  Gestiona la información corporativa, ubicación, datos fiscales y canales de contacto de tu empresa.
                 </p>
-              )}
+              </div>
             </div>
-          </div>
+          </CardHeader>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {/* Phone Input */}
-            <FormPhoneField
-              id="company_phone"
-              label="WhatsApp de Contacto"
-              value={watch("phone")}
-              onChange={(val) => setValue("phone", val, { shouldValidate: true })}
-              error={errors.phone?.message}
-              helperText="Número para recepción de candidatos y notificaciones de contratación."
-            />
-
-            {/* Company Size Input */}
-            <div className="space-y-2.5">
-              <label className="block text-[14px] sm:text-[15px] font-extrabold text-foreground">
-                Tamaño de la Empresa
-              </label>
-              <Select
-                value={watch("company_size") || ""}
-                onValueChange={(value) => setValue("company_size", value || undefined)}
-              >
-                <SelectTrigger className="w-full h-12 bg-background border border-border rounded-xl px-4 text-sm font-semibold text-foreground focus:ring-2 focus:ring-ring transition-all outline-none shadow-none cursor-pointer">
-                  <SelectValue placeholder="Selecciona el tamaño" />
-                </SelectTrigger>
-                <SelectContent className="rounded-xl border border-border bg-popover text-sm font-semibold">
-                  <SelectItem value="1-10">1 - 10 empleados</SelectItem>
-                  <SelectItem value="11-50">11 - 50 empleados</SelectItem>
-                  <SelectItem value="51-200">51 - 200 empleados</SelectItem>
-                  <SelectItem value="201-500">201 - 500 empleados</SelectItem>
-                  <SelectItem value="500+">Más de 500 empleados</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-
-          {/* Fiscal Regime and RFC Row */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {/* Fiscal Regime Select */}
-            <div className="space-y-2.5">
-              <label className="block text-[14px] sm:text-[15px] font-extrabold text-foreground">
-                Régimen Fiscal / Tipo de Persona *
-              </label>
-              <Select
-                value={watch("fiscal_regime") || "persona_moral"}
-                onValueChange={(val) => {
-                  setValue("fiscal_regime", val as any, { shouldValidate: true });
-                  const currentRfc = watch("rfc") || "";
-                  if (val === "persona_moral" && currentRfc.length > 12) {
-                    setValue("rfc", currentRfc.substring(0, 12), { shouldValidate: true });
-                  }
-                }}
-              >
-                <SelectTrigger className="w-full h-12 bg-background border border-border rounded-xl px-4 text-sm font-semibold text-foreground focus:ring-2 focus:ring-ring transition-all outline-none shadow-none cursor-pointer">
-                  <SelectValue placeholder="Selecciona Régimen Fiscal" />
-                </SelectTrigger>
-                <SelectContent className="rounded-xl border border-border bg-popover text-sm font-semibold">
-                  <SelectItem value="persona_moral">Persona Moral (12 Caracteres)</SelectItem>
-                  <SelectItem value="persona_fisica">Persona Física (13 Caracteres)</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            {/* RFC Input with Dynamic Rules */}
-            <FormRfcField
-              id="company_rfc"
-              label="RFC Fiscal"
-              value={watch("rfc")}
-              onChange={(val) => setValue("rfc", val, { shouldValidate: true })}
-              error={errors.rfc?.message}
-              placeholder={watch("fiscal_regime") === "persona_fisica" ? "ABCD120315XXX" : "ABC120315XXX"}
-              helperText={watch("fiscal_regime") === "persona_fisica" ? "RFC de 13 caracteres para personas físicas" : "RFC de 12 caracteres para personas morales"}
-            />
-          </div>
-
-          <div className="h-px bg-border w-full" />
-
-          {/* Social Media & Web Channels */}
-          <div className="space-y-4">
-            <h4 className="text-sm font-extrabold text-foreground uppercase tracking-wider">Canales Digitales</h4>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              
-              {/* Website Input */}
-              <div className="space-y-2">
-                <label className="block text-xs font-bold uppercase tracking-wider text-muted-foreground">Sitio Web</label>
-                <div className="relative">
-                  <Globe className="absolute left-3.5 top-1/2 -translate-y-1/2 size-4.5 text-muted-foreground pointer-events-none" />
-                  <Input
-                    type="text"
-                    placeholder="https://miempresa.com"
-                    {...register("website")}
-                    className="w-full h-11 bg-background border border-border rounded-xl pl-10 pr-4 text-sm font-semibold text-foreground placeholder:text-muted-foreground focus-visible:ring-2 focus-visible:ring-ring transition-all outline-none"
-                  />
+          {/* ---------------- CARD CONTENT: ORGANIZED EDITABLE FIELDS ---------------- */}
+          <CardContent className="p-5 sm:p-6 md:p-8 space-y-8 divide-y divide-border/60">
+            
+            {/* SECCIÓN 1: INFORMACIÓN GENERAL Y MARCA */}
+            <div className="space-y-5">
+              <div className="flex items-center gap-2.5">
+                <div className="size-8 rounded-xl bg-primary/10 text-primary flex items-center justify-center shrink-0">
+                  <Building2 className="size-4" />
+                </div>
+                <div>
+                  <h3 className="text-sm font-extrabold text-foreground">
+                    Información General & Marca
+                  </h3>
+                  <p className="text-xs text-muted-foreground font-medium">
+                    Datos principales de tu organización visibles para los candidatos.
+                  </p>
                 </div>
               </div>
 
-              {/* Instagram Input */}
-              <div className="space-y-2">
-                <label className="block text-xs font-bold uppercase tracking-wider text-muted-foreground">Instagram</label>
-                <div className="relative">
-                  <InstagramIcon className="absolute left-3.5 top-1/2 -translate-y-1/2 size-4.5 text-muted-foreground pointer-events-none" />
-                  <Input
-                    type="text"
-                    placeholder="https://instagram.com/perfil"
-                    {...register("instagram_url")}
-                    className="w-full h-11 bg-background border border-border rounded-xl pl-10 pr-4 text-sm font-semibold text-foreground placeholder:text-muted-foreground focus-visible:ring-2 focus-visible:ring-ring transition-all outline-none"
-                  />
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-5">
+                {/* Nombre Comercial */}
+                <div className="space-y-1.5 md:col-span-1">
+                  <label className="text-xs font-bold text-foreground flex items-center gap-1">
+                    <span>Nombre Comercial</span>
+                    <span className="text-destructive">*</span>
+                  </label>
+                  <div className="relative">
+                    <Building2 className="absolute left-3.5 top-1/2 -translate-y-1/2 size-4 text-muted-foreground pointer-events-none" />
+                    <Input
+                      type="text"
+                      placeholder="Ej. Grupo Hotelero Maya"
+                      {...register("company_name")}
+                      className="h-11 rounded-xl bg-input/40 border border-border/80 pl-10 text-xs sm:text-sm font-semibold focus-visible:bg-background"
+                    />
+                  </div>
+                  {errors.company_name && (
+                    <p className="text-xs font-semibold text-destructive">
+                      {errors.company_name.message}
+                    </p>
+                  )}
+                </div>
+
+                {/* Sector Industrial */}
+                <div className="space-y-1.5 md:col-span-1">
+                  <label className="text-xs font-bold text-foreground flex items-center gap-1">
+                    <span>Sector Industrial</span>
+                    <span className="text-destructive">*</span>
+                  </label>
+                  <Select
+                    value={watch("industry") || ""}
+                    onValueChange={(val) => setValue("industry", val || "", { shouldValidate: true })}
+                  >
+                    <SelectTrigger className="h-11 w-full rounded-xl bg-input/40 border border-border/80 px-3.5 text-xs sm:text-sm font-semibold focus-visible:bg-background cursor-pointer">
+                      <SelectValue placeholder="Selecciona un sector">
+                        {(val: string | null) => (val && INDUSTRY_LABELS[val]) || val || "Selecciona un sector"}
+                      </SelectValue>
+                    </SelectTrigger>
+                    <SelectContent className="rounded-xl border border-border/80 bg-popover text-xs font-semibold">
+                      <SelectItem value="Restaurantes / Hotelería">Restaurantes / Hotelería / Turismo</SelectItem>
+                      <SelectItem value="Comercial">Comercio & Ventas al por Menor</SelectItem>
+                      <SelectItem value="Tecnología">Tecnología & Software</SelectItem>
+                      <SelectItem value="Salud">Salud & Bienestar</SelectItem>
+                      <SelectItem value="Finanzas">Finanzas & Contabilidad</SelectItem>
+                      <SelectItem value="Educación">Educación & Capacitación</SelectItem>
+                      <SelectItem value="Administración">Administración & Operaciones</SelectItem>
+                      <SelectItem value="Diseño">Diseño & Medios</SelectItem>
+                      <SelectItem value="Marketing">Marketing & Publicidad</SelectItem>
+                      <SelectItem value="Otro">Otro Sector</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  {errors.industry && (
+                    <p className="text-xs font-semibold text-destructive">
+                      {errors.industry.message}
+                    </p>
+                  )}
+                </div>
+
+                {/* Tamaño de la Empresa */}
+                <div className="space-y-1.5 md:col-span-1">
+                  <label className="text-xs font-bold text-foreground">
+                    Tamaño de la Empresa
+                  </label>
+                  <Select
+                    value={watch("company_size") || ""}
+                    onValueChange={(val) => setValue("company_size", val || undefined)}
+                  >
+                    <SelectTrigger className="h-11 w-full rounded-xl bg-input/40 border border-border/80 px-3.5 text-xs sm:text-sm font-semibold focus-visible:bg-background cursor-pointer">
+                      <SelectValue placeholder="Selecciona el tamaño">
+                        {(val: string | null) => (val && COMPANY_SIZE_LABELS[val]) || val || "Selecciona el tamaño"}
+                      </SelectValue>
+                    </SelectTrigger>
+                    <SelectContent className="rounded-xl border border-border/80 bg-popover text-xs font-semibold">
+                      <SelectItem value="1-10">1 - 10 colaboradores</SelectItem>
+                      <SelectItem value="11-50">11 - 50 colaboradores</SelectItem>
+                      <SelectItem value="51-200">51 - 200 colaboradores</SelectItem>
+                      <SelectItem value="201-500">201 - 500 colaboradores</SelectItem>
+                      <SelectItem value="500+">Más de 500 colaboradores</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
               </div>
 
-              {/* Facebook Input */}
-              <div className="space-y-2">
-                <label className="block text-xs font-bold uppercase tracking-wider text-muted-foreground">Facebook</label>
-                <div className="relative">
-                  <FacebookIcon className="absolute left-3.5 top-1/2 -translate-y-1/2 size-4.5 text-muted-foreground pointer-events-none" />
-                  <Input
-                    type="text"
-                    placeholder="https://facebook.com/pagina"
-                    {...register("facebook_url")}
-                    className="w-full h-11 bg-background border border-border rounded-xl pl-10 pr-4 text-sm font-semibold text-foreground placeholder:text-muted-foreground focus-visible:ring-2 focus-visible:ring-ring transition-all outline-none"
-                  />
-                </div>
-              </div>
-
-            </div>
-          </div>
-        </Card>
-
-        {/* ========================================== */}
-        {/* SECTION 3: LOGÍSTICA Y MOVILIDAD          */}
-        {/* ========================================== */}
-        <Card className="bg-card border border-border rounded-2xl p-6 sm:p-8 space-y-6 shadow-xs">
-          <div className="flex items-center gap-3 pb-3 border-b border-border">
-            <div className="size-10 rounded-xl bg-primary/10 text-primary flex items-center justify-center shrink-0">
-              <MapPin className="size-5" />
-            </div>
-            <div>
-              <h4 className="text-[16px] sm:text-[18px] font-[800] text-foreground tracking-tight">
-                Logística y Ubicación de la Empresa
-              </h4>
-              <p className="text-xs text-muted-foreground font-semibold mt-0.5">
-                Ubicación de la sede principal o sucursal operada en la región.
-              </p>
-            </div>
-          </div>
-
-          {/* Dynamic Active Location Status Banner */}
-          {(watch("location") || watch("address_details")) ? (
-            <div className="p-4 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-800 dark:text-emerald-300 flex items-center justify-between gap-3 text-xs font-semibold animate-in fade-in duration-300">
-              <div className="flex items-center gap-2.5 min-w-0">
-                <CheckCircle2 className="size-4.5 text-emerald-600 dark:text-emerald-400 shrink-0" />
-                <div className="truncate">
-                  <span className="font-extrabold">
-                    {gpsDetectedInfo && gpsDetectedInfo.city === watch("location")
-                      ? "Ubicación Confirmada:"
-                      : "Ubicación Actual:"}
-                  </span>{" "}
-                  <span className="font-bold">{watch("location") || "Ciudad no especificada"}</span>
-                  {watch("address_details") ? ` • ${watch("address_details")}` : ""}
-                </div>
-              </div>
-              <Badge className={cn(
-                "text-[10px] font-bold px-2.5 py-0.5 rounded-full shrink-0 shadow-none",
-                gpsDetectedInfo && gpsDetectedInfo.city === watch("location")
-                  ? "bg-emerald-600 text-white"
-                  : "bg-primary text-primary-foreground"
-              )}>
-                {gpsDetectedInfo && gpsDetectedInfo.city === watch("location") ? "Ubicación Activa" : "Registrada"}
-              </Badge>
-            </div>
-          ) : null}
-
-          {/* Location Inputs Grid */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {/* Flexible City & State Input */}
-            <div className="space-y-2.5">
-              <label className="block text-[14px] sm:text-[15px] font-extrabold text-foreground">
-                Ciudad Principal / Sede *
-              </label>
-              <div className="relative">
-                <MapPin className="absolute left-4 top-1/2 -translate-y-1/2 size-4 text-muted-foreground pointer-events-none" />
-                <Input
-                  type="text"
-                  placeholder="Ej. Mérida, Yucatán o escribe tu ciudad..."
-                  {...register("location")}
-                  className="w-full h-12 bg-background border border-border rounded-xl pl-11 pr-4 text-sm font-semibold text-foreground placeholder:text-muted-foreground focus-visible:ring-2 focus-visible:ring-ring transition-all outline-none"
-                />
-              </div>
-
-              {/* Quick Select City Pills */}
-              <div className="flex flex-wrap items-center gap-1.5 pt-1">
-                <span className="text-[11px] font-bold text-muted-foreground mr-1">Rápidos:</span>
-                {[
-                  "Felipe Carrillo Puerto, Q. Roo",
-                  "Playa del Carmen, Q. Roo",
-                  "Cancún, Q. Roo",
-                  "Tulum, Q. Roo",
-                  "Chetumal, Q. Roo",
-                  "Bacalar, Q. Roo",
-                  "Cozumel, Q. Roo",
-                  "Puerto Morelos, Q. Roo",
-                  "Mérida, Yucatán",
-                  "Valladolid, Yucatán",
-                  "Progreso, Yucatán",
-                ].map((city) => (
-                  <button
-                    key={city}
-                    type="button"
-                    onClick={() => setValue("location", city, { shouldValidate: true, shouldDirty: true })}
+              {/* Bio Comercial / Descripción (Moved UP next to general info) */}
+              <div className="space-y-1.5 pt-1">
+                <div className="flex items-center justify-between">
+                  <label className="text-xs font-bold text-foreground flex items-center gap-1.5">
+                    <FileText className="size-3.5 text-muted-foreground" />
+                    <span>Bio Comercial / Acerca de la Empresa</span>
+                  </label>
+                  <span
                     className={cn(
-                      "px-2.5 py-1 rounded-lg text-[11px] font-bold transition-all border cursor-pointer",
-                      watch("location") === city
-                        ? "bg-primary text-primary-foreground border-primary"
-                        : "bg-muted/40 hover:bg-muted text-muted-foreground border-border/40 hover:border-border"
+                      "text-[11px] font-bold",
+                      isWarningCount ? "text-destructive" : "text-muted-foreground"
                     )}
                   >
-                    {city}
-                  </button>
-                ))}
+                    {charCount} / 300
+                  </span>
+                </div>
+                <Textarea
+                  maxLength={300}
+                  placeholder="Describe brevemente la cultura laboral, historia y valores de tu empresa para atraer al mejor talento..."
+                  {...register("description")}
+                  className="w-full min-h-[90px] rounded-xl bg-input/40 border border-border/80 p-3 text-xs sm:text-sm font-medium leading-relaxed focus-visible:bg-background resize-none"
+                />
+                {errors.description && (
+                  <p className="text-xs font-semibold text-destructive">
+                    {errors.description.message}
+                  </p>
+                )}
+              </div>
+            </div>
+
+            {/* SECCIÓN 2: CONTACTO Y CANALES DIGITALES */}
+            <div className="space-y-5 pt-6">
+              <div className="flex items-center gap-2.5">
+                <div className="size-8 rounded-xl bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 flex items-center justify-center shrink-0">
+                  <Phone className="size-4" />
+                </div>
+                <div>
+                  <h3 className="text-sm font-extrabold text-foreground">
+                    Contacto & Presencia Digital
+                  </h3>
+                  <p className="text-xs text-muted-foreground font-medium">
+                    Canales de comunicación directa para postulantes y coordinación.
+                  </p>
+                </div>
               </div>
 
-              {errors.location && (
-                <p className="text-xs sm:text-sm font-semibold text-rose-500">
-                  {errors.location.message}
-                </p>
-              )}
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 sm:gap-5">
+                {/* Teléfono / WhatsApp */}
+                <div className="space-y-1.5">
+                  <label className="text-xs font-bold text-foreground">
+                    WhatsApp de Contacto
+                  </label>
+                  <div className="relative">
+                    <Phone className="absolute left-3.5 top-1/2 -translate-y-1/2 size-4 text-emerald-600 dark:text-emerald-400 pointer-events-none" />
+                    <Input
+                      type="tel"
+                      placeholder="999 123 4567"
+                      {...register("phone")}
+                      className="h-11 rounded-xl bg-input/40 border border-border/80 pl-10 text-xs sm:text-sm font-semibold focus-visible:bg-background"
+                    />
+                  </div>
+                  {errors.phone && (
+                    <p className="text-xs font-semibold text-destructive">
+                      {errors.phone.message}
+                    </p>
+                  )}
+                </div>
+
+                {/* Sitio Web */}
+                <div className="space-y-1.5">
+                  <label className="text-xs font-bold text-foreground">
+                    Sitio Web Oficial
+                  </label>
+                  <div className="relative">
+                    <Globe className="absolute left-3.5 top-1/2 -translate-y-1/2 size-4 text-blue-600 dark:text-blue-400 pointer-events-none" />
+                    <Input
+                      type="url"
+                      placeholder="https://empresa.com"
+                      {...register("website")}
+                      className="h-11 rounded-xl bg-input/40 border border-border/80 pl-10 text-xs sm:text-sm font-semibold focus-visible:bg-background"
+                    />
+                  </div>
+                  {errors.website && (
+                    <p className="text-xs font-semibold text-destructive">
+                      {errors.website.message}
+                    </p>
+                  )}
+                </div>
+
+                {/* Instagram */}
+                <div className="space-y-1.5">
+                  <label className="text-xs font-bold text-foreground">
+                    Instagram
+                  </label>
+                  <div className="relative">
+                    <InstagramIcon className="absolute left-3.5 top-1/2 -translate-y-1/2 size-4 text-rose-500 pointer-events-none" />
+                    <Input
+                      type="text"
+                      placeholder="https://instagram.com/empresa"
+                      {...register("instagram_url")}
+                      className="h-11 rounded-xl bg-input/40 border border-border/80 pl-10 text-xs sm:text-sm font-semibold focus-visible:bg-background"
+                    />
+                  </div>
+                </div>
+
+                {/* Facebook */}
+                <div className="space-y-1.5">
+                  <label className="text-xs font-bold text-foreground">
+                    Facebook
+                  </label>
+                  <div className="relative">
+                    <FacebookIcon className="absolute left-3.5 top-1/2 -translate-y-1/2 size-4 text-blue-600 pointer-events-none" />
+                    <Input
+                      type="text"
+                      placeholder="https://facebook.com/empresa"
+                      {...register("facebook_url")}
+                      className="h-11 rounded-xl bg-input/40 border border-border/80 pl-10 text-xs sm:text-sm font-semibold focus-visible:bg-background"
+                    />
+                  </div>
+                </div>
+              </div>
             </div>
 
-            {/* Detailed Street Address / Crossings */}
-            <div className="space-y-2.5">
-              <label className="block text-[14px] sm:text-[15px] font-extrabold text-foreground">
-                Dirección Detallada / Referencias *
-              </label>
-              <Input
-                type="text"
-                placeholder="Ej. Calle 10 Norte entre Av. 15 y 20, Col. Centro"
-                {...register("address_details")}
-                className="w-full h-12 bg-background border border-border rounded-xl px-4 text-sm font-semibold text-foreground placeholder:text-muted-foreground focus-visible:ring-2 focus-visible:ring-ring transition-all outline-none"
-              />
-              {errors.address_details && (
-                <p className="text-xs sm:text-sm font-semibold text-rose-500">
-                  {errors.address_details.message}
-                </p>
-              )}
-            </div>
-          </div>
+            {/* SECCIÓN 3: UBICACIÓN Y SEDE OPERATIVA */}
+            <div className="space-y-5 pt-6">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <div className="flex items-center gap-2.5">
+                  <div className="size-8 rounded-xl bg-rose-500/10 text-rose-600 dark:text-rose-400 flex items-center justify-center shrink-0">
+                    <MapPin className="size-4" />
+                  </div>
+                  <div>
+                    <h3 className="text-sm font-extrabold text-foreground">
+                      Ubicación & Sede Operativa
+                    </h3>
+                    <p className="text-xs text-muted-foreground font-medium">
+                      Dirección física donde opera la sucursal o centro de trabajo.
+                    </p>
+                  </div>
+                </div>
 
-          {/* GPS Detection Button placed at the END */}
-          <div className="pt-3 border-t border-border flex justify-end">
+                {/* Botón de Detección GPS Automática */}
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={handleDetectLocation}
+                  disabled={isLocating}
+                  className="h-9 px-3.5 rounded-xl border-border/80 text-xs font-bold text-primary hover:bg-primary/10 gap-2 shrink-0 cursor-pointer self-start sm:self-auto"
+                >
+                  {isLocating ? (
+                    <Loader2 className="size-3.5 animate-spin" />
+                  ) : (
+                    <Navigation className="size-3.5" />
+                  )}
+                  <span>{isLocating ? "Detectando por GPS..." : "Autodetectar por GPS"}</span>
+                </Button>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-5">
+                {/* Ciudad Principal */}
+                <div className="space-y-1.5">
+                  <label className="text-xs font-bold text-foreground flex items-center gap-1">
+                    <span>Ciudad Principal / Sede</span>
+                    <span className="text-destructive">*</span>
+                  </label>
+                  <div className="relative">
+                    <MapPin className="absolute left-3.5 top-1/2 -translate-y-1/2 size-4 text-muted-foreground pointer-events-none" />
+                    <Input
+                      type="text"
+                      placeholder="Ej. Mérida, Yucatán"
+                      {...register("location")}
+                      className="h-11 rounded-xl bg-input/40 border border-border/80 pl-10 text-xs sm:text-sm font-semibold focus-visible:bg-background"
+                    />
+                  </div>
+
+                  {/* Pills de Ciudades Rápidas */}
+                  <div className="flex flex-wrap gap-1.5 pt-1">
+                    {QUICK_CITIES.map((city) => (
+                      <button
+                        key={city}
+                        type="button"
+                        onClick={() => setValue("location", city, { shouldValidate: true, shouldDirty: true })}
+                        className={cn(
+                          "px-2 py-0.5 rounded-lg text-[10px] font-bold transition-all border cursor-pointer",
+                          location === city
+                            ? "bg-primary text-primary-foreground border-primary"
+                            : "bg-muted/40 hover:bg-muted text-muted-foreground border-border/60"
+                        )}
+                      >
+                        {city}
+                      </button>
+                    ))}
+                  </div>
+
+                  {errors.location && (
+                    <p className="text-xs font-semibold text-destructive">
+                      {errors.location.message}
+                    </p>
+                  )}
+                </div>
+
+                {/* Dirección Detallada / Referencias */}
+                <div className="space-y-1.5">
+                  <label className="text-xs font-bold text-foreground">
+                    Dirección Detallada / Referencias
+                  </label>
+                  <Input
+                    type="text"
+                    placeholder="Ej. Calle 60 #345 x 43 y 45, Col. Centro"
+                    {...register("address_details")}
+                    className="h-11 rounded-xl bg-input/40 border border-border/80 px-3.5 text-xs sm:text-sm font-semibold focus-visible:bg-background"
+                  />
+                  {errors.address_details && (
+                    <p className="text-xs font-semibold text-destructive">
+                      {errors.address_details.message}
+                    </p>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {/* SECCIÓN 4: DATOS FISCALES Y FACTURACIÓN */}
+            <div className="space-y-5 pt-6">
+              <div className="flex items-center gap-2.5">
+                <div className="size-8 rounded-xl bg-amber-500/10 text-amber-600 dark:text-amber-400 flex items-center justify-center shrink-0">
+                  <CreditCard className="size-4" />
+                </div>
+                <div>
+                  <h3 className="text-sm font-extrabold text-foreground">
+                    Datos Fiscales & Régimen
+                  </h3>
+                  <p className="text-xs text-muted-foreground font-medium">
+                    Información legal y fiscal requerida por el SAT y facturación.
+                  </p>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-5">
+                {/* Régimen Fiscal Select */}
+                <div className="space-y-1.5">
+                  <label className="text-xs font-bold text-foreground flex items-center gap-1">
+                    <span>Régimen Fiscal / Tipo de Persona</span>
+                    <span className="text-destructive">*</span>
+                  </label>
+                  <Select
+                    value={fiscalRegime}
+                    onValueChange={(val) => {
+                      setValue("fiscal_regime", val as "persona_moral" | "persona_fisica", {
+                        shouldValidate: true,
+                      });
+                      const currentRfc = watch("rfc") || "";
+                      if (val === "persona_moral" && currentRfc.length > 12) {
+                        setValue("rfc", currentRfc.substring(0, 12), { shouldValidate: true });
+                      }
+                    }}
+                  >
+                    <SelectTrigger className="h-11 w-full rounded-xl bg-input/40 border border-border/80 px-3.5 text-xs sm:text-sm font-semibold focus-visible:bg-background cursor-pointer">
+                      <SelectValue placeholder="Selecciona Régimen Fiscal">
+                        {(val: string | null) => (val && FISCAL_REGIME_LABELS[val]) || val || "Selecciona Régimen Fiscal"}
+                      </SelectValue>
+                    </SelectTrigger>
+                    <SelectContent className="rounded-xl border border-border/80 bg-popover text-xs font-semibold">
+                      <SelectItem value="persona_moral">
+                        Persona Moral (Sociedades / Empresas - RFC de 12 dígitos)
+                      </SelectItem>
+                      <SelectItem value="persona_fisica">
+                        Persona Física con Actividad Empresarial (RFC de 13 dígitos)
+                      </SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {/* RFC Fiscal */}
+                <div className="space-y-1.5">
+                  <label className="text-xs font-bold text-foreground">
+                    RFC Fiscal ({fiscalRegime === "persona_fisica" ? "13 Caracteres" : "12 Caracteres"})
+                  </label>
+                  <Input
+                    type="text"
+                    maxLength={fiscalRegime === "persona_fisica" ? 13 : 12}
+                    placeholder={fiscalRegime === "persona_fisica" ? "ABCD120315XXX" : "ABC120315XXX"}
+                    value={watch("rfc") || ""}
+                    onChange={(e) => {
+                      const upper = e.target.value.toUpperCase().replace(/[^A-Z0-9&Ñ]/g, "");
+                      setValue("rfc", upper, { shouldValidate: true });
+                    }}
+                    className="h-11 rounded-xl bg-input/40 border border-border/80 px-3.5 text-xs sm:text-sm font-mono font-bold focus-visible:bg-background tracking-wider uppercase"
+                  />
+                  {errors.rfc ? (
+                    <p className="text-xs font-semibold text-destructive">
+                      {errors.rfc.message}
+                    </p>
+                  ) : (
+                    <p className="text-[11px] text-muted-foreground font-medium">
+                      {fiscalRegime === "persona_fisica"
+                        ? "RFC de 13 posiciones para persona física (4 letras + 6 números + 3 homoclave)."
+                        : "RFC de 12 posiciones para persona moral (3 letras + 6 números + 3 homoclave)."}
+                    </p>
+                  )}
+                </div>
+              </div>
+            </div>
+
+          </CardContent>
+
+          {/* ---------------- CARD FOOTER: ACTION BUTTONS ---------------- */}
+          <CardFooter className="p-4 sm:p-6 border-t border-border/60 bg-muted/20 flex items-center justify-end gap-3">
             <Button
               type="button"
               variant="outline"
-              onClick={handleDetectLocation}
-              disabled={isLocating}
-              className="w-full sm:w-auto h-11 px-5 bg-primary/5 hover:bg-primary/10 border-primary/20 text-primary font-bold text-xs sm:text-sm rounded-xl flex items-center justify-center gap-2.5 transition-all active:scale-95 shadow-none"
+              onClick={() => {
+                handleReset();
+                toast.info("Cambios descartados", {
+                  description: "Se han restaurado los valores anteriores de tu perfil corporativo.",
+                });
+              }}
+              className="h-10 px-4 rounded-xl text-xs font-bold border-border/80 hover:bg-muted cursor-pointer gap-1.5 shadow-none"
             >
-              {isLocating ? (
+              <RefreshCw className="size-3.5" />
+              <span>Descartar</span>
+            </Button>
+
+            <Button
+              type="submit"
+              disabled={isSaving}
+              className="h-10 px-6 rounded-xl text-xs font-bold bg-primary text-primary-foreground hover:bg-primary/90 cursor-pointer gap-2 shadow-sm active:scale-95 transition-all"
+            >
+              {isSaving ? (
                 <Loader2 className="size-4 animate-spin" />
               ) : (
-                <Navigation className="size-4 text-primary" />
+                <Save className="size-4" />
               )}
-              <span>{isLocating ? "Detectando ubicación actual..." : "Detectar mi ubicación actual"}</span>
+              <span>{isSaving ? "Guardando Perfil..." : "Guardar Perfil"}</span>
             </Button>
-          </div>
+          </CardFooter>
         </Card>
-
-        {/* ========================================== */}
-        {/* SECTION 5: BIO COMERCIAL                   */}
-        {/* ========================================== */}
-        <Card className="bg-card border border-border rounded-2xl p-6 sm:p-8 space-y-4 shadow-xs">
-          <div className="flex justify-between items-end">
-            <div className="space-y-1">
-              <h4 className="text-[16px] sm:text-[18px] font-[800] text-foreground tracking-tight">
-                Bio Comercial
-              </h4>
-              <p className="text-xs sm:text-sm text-muted-foreground font-semibold leading-relaxed">
-                Describe la misión, ambiente de trabajo y cultura de tu empresa.
-              </p>
-            </div>
-            <span
-              id="char-count"
-              className={cn(
-                "text-xs font-bold transition-colors",
-                isWarningCount
-                  ? "text-rose-500 dark:text-rose-400"
-                  : "text-muted-foreground"
-              )}
-            >
-              {charCount} / 300
-            </span>
-          </div>
-
-          <Textarea
-            id="bio-textarea"
-            maxLength={300}
-            placeholder="Describe brevemente tu organización, cultura de trabajo y lo que ofreces..."
-            {...register("description")}
-            className="w-full min-h-[140px] bg-background border border-border rounded-xl p-4 text-sm font-medium leading-relaxed text-foreground placeholder:text-muted-foreground focus-visible:ring-2 focus-visible:ring-ring transition-all resize-none shadow-none"
-          />
-          {errors.description && (
-            <p className="text-xs sm:text-sm font-semibold text-rose-500">
-              {errors.description.message}
-            </p>
-          )}
-        </Card>
-
-        {/* FOOTER ACTIONS BAR */}
-        <div className="flex items-center justify-end gap-3 pt-4">
-          <Button
-            type="button"
-            variant="outline"
-            onClick={() => {
-              handleReset();
-              toast.info("Cambios descartados", {
-                description: "Se han restaurado los valores anteriores de tu perfil.",
-              });
-            }}
-            className="h-11 rounded-xl font-bold bg-background hover:bg-muted text-foreground border border-border text-xs sm:text-sm px-5 transition-all shadow-none cursor-pointer flex items-center gap-2"
-          >
-            <RefreshCw className="size-4" />
-            Descartar
-          </Button>
-          <Button
-            type="submit"
-            disabled={isSaving}
-            className="h-11 rounded-xl font-bold bg-primary text-primary-foreground hover:bg-primary/90 text-xs sm:text-sm px-6 transition-all border-none cursor-pointer shadow-md active:scale-95 flex items-center gap-2"
-          >
-            {isSaving ? (
-              <Loader2 className="size-4 animate-spin" />
-            ) : (
-              <Save className="size-4" />
-            )}
-            {isSaving ? "Guardando..." : "Guardar Perfil"}
-          </Button>
-        </div>
-
       </form>
     </motion.div>
   );

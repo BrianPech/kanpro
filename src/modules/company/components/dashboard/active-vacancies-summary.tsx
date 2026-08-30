@@ -3,17 +3,13 @@
 import React from "react";
 import {
   Briefcase,
-  Users,
   Plus,
   ArrowRight,
   MapPin,
-  Clock,
-  Sparkles,
 } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { cn } from "@/lib/utils";
 import Link from "next/link";
 import { CompanyDashboardData } from "../../types/dashboard";
 
@@ -35,7 +31,7 @@ export function ActiveVacanciesSummary({
           </div>
           <div>
             <h3 className="text-base font-extrabold text-foreground">
-              Vacantes Abiertas & Atracción
+              Vacantes Activas & Atracción
             </h3>
             <p className="text-xs text-muted-foreground font-semibold mt-0.5">
               {`${totalVacancies} ofertas activas en el feed de K'anPro.`}

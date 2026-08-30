@@ -34,12 +34,8 @@ import {
   RotateCcw,
   PauseCircle,
   PlayCircle,
-  XCircle,
-  ExternalLink,
-  DollarSign,
   ChevronLeft,
   ChevronRight,
-  Sparkles,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -532,12 +528,14 @@ export function VacanciesManager({ userId }: { userId: string }) {
           const vacancy = row.original;
           return (
             <div className="space-y-0.5 py-1 min-w-[200px]">
-              <Link
-                href={`/dashboard/company/vacancies/${vacancy.id}`}
-                className="font-bold text-xs sm:text-sm text-foreground hover:text-primary transition-colors line-clamp-1 block"
+              <button
+                type="button"
+                onClick={() => setPreviewVacancy(vacancy)}
+                className="font-bold text-xs sm:text-sm text-foreground hover:text-primary transition-colors line-clamp-1 block text-left cursor-pointer"
+                title="Ver detalles de la vacante"
               >
                 {vacancy.title}
-              </Link>
+              </button>
               <div className="flex items-center gap-2">
                 <Badge
                   variant="outline"
@@ -762,7 +760,7 @@ export function VacanciesManager({ userId }: { userId: string }) {
                 size="icon"
                 onClick={() => setPreviewVacancy(vacancy)}
                 className="size-8 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted p-1 cursor-pointer transition-colors"
-                title="Vista previa rápida de la vacante"
+                title="Ver detalles de la vacante"
               >
                 <Eye className="size-4" />
               </Button>
@@ -799,17 +797,7 @@ export function VacanciesManager({ userId }: { userId: string }) {
                     className="cursor-pointer text-xs font-semibold rounded-lg hover:bg-muted py-2 px-2.5 gap-2 text-foreground"
                   >
                     <Eye className="size-3.5 text-primary" />
-                    <span>Vista previa rápida</span>
-                  </DropdownMenuItem>
-
-                  <DropdownMenuItem
-                    render={
-                      <Link href={`/dashboard/company/vacancies/${vacancy.id}`} />
-                    }
-                    className="cursor-pointer text-xs font-semibold rounded-lg hover:bg-muted py-2 px-2.5 gap-2"
-                  >
-                    <ExternalLink className="size-3.5 text-muted-foreground" />
-                    <span>Ver detalle público</span>
+                    <span>Ver detalles</span>
                   </DropdownMenuItem>
 
                   <DropdownMenuItem

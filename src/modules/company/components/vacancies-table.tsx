@@ -152,9 +152,14 @@ export function VacanciesTable({
           const vacancy = row.original;
           return (
             <div className="flex flex-col gap-0.5 py-1">
-              <Link href={`/dashboard/company/vacancies/${vacancy.id}`} className="font-bold text-sm text-foreground hover:underline line-clamp-1">
+              <button
+                type="button"
+                onClick={() => setPreviewVacancy(vacancy)}
+                className="font-bold text-sm text-foreground hover:text-primary hover:underline line-clamp-1 text-left cursor-pointer"
+                title="Ver detalles de la vacante"
+              >
                 {vacancy.title}
-              </Link>
+              </button>
               <span className="text-[11px] text-muted-foreground font-semibold">
                 {vacancy.category || "General"}
               </span>
@@ -339,14 +344,7 @@ export function VacanciesTable({
                     className="cursor-pointer text-xs font-semibold rounded-lg hover:bg-muted py-2 px-2.5 gap-2.5 text-foreground"
                   >
                     <Eye className="size-3.5 text-primary" />
-                    <span>Vista previa rápida</span>
-                  </DropdownMenuItem>
-                  <DropdownMenuItem
-                    render={<Link href={`/dashboard/company/vacancies/${vacancy.id}`} />}
-                    className="cursor-pointer text-xs font-semibold rounded-lg hover:bg-muted py-2 px-2.5 gap-2.5"
-                  >
-                    <Eye className="size-3.5 text-muted-foreground" />
-                    <span>Ver ficha completa</span>
+                    <span>Ver detalles</span>
                   </DropdownMenuItem>
                   <DropdownMenuItem
                     render={<Link href={`/dashboard/company/vacancies/${vacancy.id}/edit`} />}

@@ -679,6 +679,20 @@ export function cleanCityName(rawLoc: string | null | undefined): string {
 
   const lower = trimmed.toLowerCase();
 
+  // Alias detection for regional municipalities
+  if (lower.includes("carrillo") || lower.includes("fcp")) {
+    return "Felipe Carrillo Puerto";
+  }
+  if (lower.includes("playa del carmen") || lower === "playa" || lower === "pdc") {
+    return "Playa del Carmen";
+  }
+  if (lower.includes("puerto morelos")) {
+    return "Puerto Morelos";
+  }
+  if (lower.includes("isla mujeres")) {
+    return "Isla Mujeres";
+  }
+
   // 1. Exact match against known GEO_CONFIG cities
   for (const key of Object.keys(GEO_CONFIG)) {
     if (lower === key.toLowerCase()) {

@@ -9,6 +9,7 @@ import { companyService } from "../services/company-service";
 export function normalizeCity(loc?: string | null): string {
   if (!loc) return "";
   const lower = loc.toLowerCase().trim();
+  if (lower.includes("carrillo")) return "Felipe Carrillo Puerto";
   if (lower.includes("playa del carmen")) return "Playa del Carmen";
   if (lower.includes("tulum")) return "Tulum";
   if (lower.includes("cancún") || lower.includes("cancun")) return "Cancún";
@@ -16,6 +17,7 @@ export function normalizeCity(loc?: string | null): string {
   if (lower.includes("puerto morelos")) return "Puerto Morelos";
   if (lower.includes("isla mujeres")) return "Isla Mujeres";
   if (lower.includes("chetumal")) return "Chetumal";
+  if (lower.includes("bacalar")) return "Bacalar";
   if (lower.includes("valladolid")) return "Valladolid";
   if (lower.includes("progreso")) return "Progreso";
   if (lower.includes("campeche")) return "Campeche";
@@ -42,11 +44,11 @@ export function useCompanyProfileForm(initialProfile: any, userId: string) {
       industry: initialProfile?.industry || "",
       website: initialProfile?.website_or_linkedin || initialProfile?.website || "",
       location: normalizeCity(rawLocation),
-      logo_url: initialProfile?.logo_url || "",
+      logo_url: initialProfile?.logo_url || initialProfile?.avatar_url || "",
       description: initialProfile?.description || "",
-      phone: initialProfile?.phone || "",
+      phone: initialProfile?.phone || initialProfile?.contact_phone || initialProfile?.whatsapp_number || "",
       company_size: initialProfile?.company_size || "",
-      fiscal_regime: initialProfile?.fiscal_regime || "persona_moral",
+      fiscal_regime: (initialProfile?.fiscal_regime === "persona_fisica" || initialProfile?.entity_type === "persona_fisica") ? "persona_fisica" : "persona_moral",
       rfc: initialProfile?.rfc || "",
       // New fields
       banner_url: initialProfile?.banner_url || "",

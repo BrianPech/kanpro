@@ -7,6 +7,9 @@ import {
   TodayAttendanceItem,
   PayrollSummaryData,
   OperationalAlert,
+  SubscriptionSummary,
+  ApplicationsSummary,
+  RecentCandidateItem,
 } from "../types/dashboard";
 
 export async function getCompanyDashboardData(): Promise<CompanyDashboardData> {
@@ -18,7 +21,7 @@ export async function getCompanyDashboardData(): Promise<CompanyDashboardData> {
   let companyName = "Mi Empresa";
 
   // Default empty/baseline KPIs
-  let kpis: WorkforceKPIs = {
+  const kpis: WorkforceKPIs = {
     totalEmployees: 0,
     activeEmployees: 0,
     onboardingEmployees: 0,
@@ -37,12 +40,12 @@ export async function getCompanyDashboardData(): Promise<CompanyDashboardData> {
     criticalIncidentsCount: 0,
   };
 
-  let alerts: OperationalAlert[] = [];
-  let expiringContracts: ContractExpirationItem[] = [];
-  let pendingIncidents: PendingIncidentItem[] = [];
-  let todayAttendance: TodayAttendanceItem[] = [];
+  const alerts: OperationalAlert[] = [];
+  const expiringContracts: ContractExpirationItem[] = [];
+  const pendingIncidents: PendingIncidentItem[] = [];
+  const todayAttendance: TodayAttendanceItem[] = [];
   let openVacanciesList: CompanyDashboardData["openVacanciesList"] = [];
-  let recentActivities: any[] = [];
+  let recentActivities: CompanyDashboardData["recentActivities"] = [];
 
   const now = new Date();
 
@@ -73,7 +76,7 @@ export async function getCompanyDashboardData(): Promise<CompanyDashboardData> {
 
   const daysToPay = Math.max(0, Math.ceil((paymentDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)));
 
-  let payrollSummary: PayrollSummaryData = {
+  const payrollSummary: PayrollSummaryData = {
     periodName,
     frequency: "quincenal",
     cutoffDate: cutoffDate.toISOString().split("T")[0],
@@ -94,12 +97,44 @@ export async function getCompanyDashboardData(): Promise<CompanyDashboardData> {
     ausencias: 0,
   }));
 
+  let subscriptionSummary: SubscriptionSummary = {
+    planName: "Plan Fundador Pro",
+    planKey: "pro",
+    status: "active",
+    periodEnd: null,
+    daysRemaining: null,
+    creditsAvailable: 10,
+    featuredVacanciesAllowance: 3,
+    featuredVacanciesUsed: 0,
+    verificationStatus: "approved",
+  };
+
+  const applicationsSummary: ApplicationsSummary = {
+    total: 0,
+    pending: 0,
+    inReview: 0,
+    shortlisted: 0,
+    hired: 0,
+    rejected: 0,
+  };
+
+  let recentCandidates: RecentCandidateItem[] = [];
+
   if (user) {
     // 1. Fetch Company Profile, Vacancies & Employees in parallel
     const [companyRes, vacanciesRes, employeesRes] = await Promise.all([
       supabase
         .from("company_profiles")
-        .select("company_name")
+        .select(`
+          company_name,
+          subscription_plan,
+          subscription_status,
+          subscription_period_end,
+          credits_available,
+          featured_vacancies_allowance,
+          featured_vacancies_used,
+          verification_status
+        `)
         .eq("id", user.id)
         .maybeSingle(),
       supabase
@@ -132,8 +167,44 @@ export async function getCompanyDashboardData(): Promise<CompanyDashboardData> {
         .order("created_at", { ascending: false }),
     ]);
 
-    if (companyRes.data?.company_name) {
-      companyName = companyRes.data.company_name;
+    if (companyRes.data) {
+      if (companyRes.data.company_name) {
+        companyName = companyRes.data.company_name;
+      }
+
+      const rawPlan = companyRes.data.subscription_plan || "pro";
+      const planNamesMap: Record<string, string> = {
+        basic: "Plan Básico",
+        starter: "Plan Inicial",
+        pro: "Plan Fundador Pro",
+        founder: "Plan Fundador",
+        enterprise: "Plan Empresarial",
+      };
+      const formattedPlanName =
+        planNamesMap[rawPlan.toLowerCase()] ||
+        (rawPlan.charAt(0).toUpperCase() + rawPlan.slice(1));
+
+      let subDaysRemaining: number | null = null;
+      if (companyRes.data.subscription_period_end) {
+        const pEnd = new Date(companyRes.data.subscription_period_end);
+        subDaysRemaining = Math.max(
+          0,
+          Math.ceil((pEnd.getTime() - now.getTime()) / (1000 * 60 * 60 * 24))
+        );
+      }
+
+      subscriptionSummary = {
+        planName: formattedPlanName,
+        planKey: rawPlan,
+        status: companyRes.data.subscription_status || "active",
+        periodEnd: companyRes.data.subscription_period_end || null,
+        daysRemaining: subDaysRemaining,
+        creditsAvailable: companyRes.data.credits_available ?? 10,
+        featuredVacanciesAllowance:
+          companyRes.data.featured_vacancies_allowance ?? 3,
+        featuredVacanciesUsed: companyRes.data.featured_vacancies_used ?? 0,
+        verificationStatus: companyRes.data.verification_status || null,
+      };
     }
 
     // Process Vacancies
@@ -147,24 +218,21 @@ export async function getCompanyDashboardData(): Promise<CompanyDashboardData> {
 
     // Process Applications if there are vacancies
     if (vacIds.length > 0) {
-      const [totalAppsRes, reviewingAppsRes, appsWithVacancyRes] = await Promise.all([
+      const [allAppsRes, appsWithVacancyRes] = await Promise.all([
         supabase
           .from("applications")
-          .select("id", { count: "exact", head: true })
+          .select("id, status, vacancy_id")
           .in("vacancy_id", vacIds),
-        supabase
-          .from("applications")
-          .select("id", { count: "exact", head: true })
-          .in("vacancy_id", vacIds)
-          .in("status", ["En revisión", "Preseleccionado", "Pendiente"]),
         supabase
           .from("applications")
           .select(`
             id,
             applied_at,
             status,
+            candidate_id,
             vacancy_id,
             vacancies (
+              id,
               title
             ),
             candidate:candidate_profiles (
@@ -180,34 +248,80 @@ export async function getCompanyDashboardData(): Promise<CompanyDashboardData> {
           `)
           .in("vacancy_id", vacIds)
           .order("applied_at", { ascending: false })
-          .limit(10),
+          .limit(8),
       ]);
 
-      kpis.totalApplicationsReceived = totalAppsRes.count || 0;
-      kpis.pendingReviewApplications = reviewingAppsRes.count || 0;
+      const allApps = allAppsRes.data || [];
+      applicationsSummary.total = allApps.length;
+      applicationsSummary.pending = allApps.filter(
+        (a: any) => a.status === "Pendiente" || a.status === "Nuevo"
+      ).length;
+      applicationsSummary.inReview = allApps.filter(
+        (a: any) => a.status === "En revisión" || a.status === "En evaluacion"
+      ).length;
+      applicationsSummary.shortlisted = allApps.filter(
+        (a: any) => a.status === "Preseleccionado" || a.status === "Entrevista"
+      ).length;
+      applicationsSummary.hired = allApps.filter(
+        (a: any) => a.status === "Contratado" || a.status === "Aceptado"
+      ).length;
+      applicationsSummary.rejected = allApps.filter(
+        (a: any) => a.status === "Rechazado" || a.status === "Descartado"
+      ).length;
+
+      kpis.totalApplicationsReceived = allApps.length;
+      kpis.pendingReviewApplications =
+        applicationsSummary.pending + applicationsSummary.inReview;
 
       const recentApps = appsWithVacancyRes.data || [];
-      recentActivities = recentApps.slice(0, 5).map((app: any) => {
-        const candidateProfile = Array.isArray(app.candidate) ? app.candidate[0] : app.candidate;
+      recentCandidates = recentApps.map((app: any) => {
+        const candidateProfile = Array.isArray(app.candidate)
+          ? app.candidate[0]
+          : app.candidate;
         const baseProfile = candidateProfile?.profiles
           ? Array.isArray(candidateProfile.profiles)
             ? candidateProfile.profiles[0]
             : candidateProfile.profiles
           : {};
 
+        let skillsList: string[] = [];
+        if (Array.isArray(candidateProfile?.skills)) {
+          skillsList = candidateProfile.skills;
+        } else if (typeof candidateProfile?.skills === "string") {
+          try {
+            skillsList = JSON.parse(candidateProfile.skills);
+          } catch {
+            skillsList = [candidateProfile.skills];
+          }
+        }
+
         return {
           id: app.id,
-          candidateName: baseProfile?.full_name || "Profesional K'anPro",
-          candidateHeadline: candidateProfile?.headline || "Candidato",
+          candidateId: candidateProfile?.id || app.candidate_id,
+          candidateName: baseProfile?.full_name || "Candidato K'anPro",
+          candidateHeadline:
+            candidateProfile?.headline || "Profesional en búsqueda activa",
           candidateAvatar: baseProfile?.avatar_url || null,
-          vacancyTitle: app.vacancies?.title || "Puesto",
-          createdAt: app.applied_at || app.created_at,
+          vacancyId: app.vacancy_id,
+          vacancyTitle: app.vacancies?.title || "Vacante Abierta",
+          status: app.status || "Pendiente",
+          appliedAt: app.applied_at || app.created_at || new Date().toISOString(),
+          skills: skillsList.slice(0, 3),
         };
       });
 
+      recentActivities = recentCandidates.slice(0, 5).map((cand) => ({
+        id: cand.id,
+        candidateName: cand.candidateName,
+        candidateHeadline: cand.candidateHeadline,
+        candidateAvatar: cand.candidateAvatar,
+        vacancyTitle: cand.vacancyTitle,
+        createdAt: cand.appliedAt,
+      }));
+
       // Build open vacancies top list with candidate counts
       openVacanciesList = activeVacancies.slice(0, 4).map((vac: any) => {
-        const vacApps = recentApps.filter((a: any) => a.vacancy_id === vac.id);
+        const vacApps = allApps.filter((a: any) => a.vacancy_id === vac.id);
         const salaryRange =
           vac.salary_min && vac.salary_max
             ? `$${vac.salary_min.toLocaleString()} - $${vac.salary_max.toLocaleString()}`
@@ -223,12 +337,13 @@ export async function getCompanyDashboardData(): Promise<CompanyDashboardData> {
           salaryRange,
           applicationsCount: vacApps.length,
           newApplicationsCount: vacApps.filter(
-            (a: any) => a.status === "Pendiente" || a.status === "En revisión"
+            (a: any) => a.status === "Pendiente" || a.status === "En revisión" || a.status === "Nuevo"
           ).length,
           createdAt: vac.created_at,
         };
       });
     }
+
 
     // Process Employees
     const rawEmployees = employeesRes.data || [];
@@ -513,6 +628,9 @@ export async function getCompanyDashboardData(): Promise<CompanyDashboardData> {
     pendingIncidents,
     todayAttendance,
     payrollSummary,
+    subscriptionSummary,
+    applicationsSummary,
+    recentCandidates,
     openVacanciesList,
     weeklyAttendanceTrend,
     recentActivities,
@@ -527,14 +645,38 @@ export async function getCompanyProfileData() {
 
   if (!user) return null;
 
-  const { data: profile } = await supabase
-    .from("company_profiles")
-    .select("*")
-    .eq("id", user.id)
-    .maybeSingle();
+  const [{ data: companyProfile }, { data: baseProfile }] = await Promise.all([
+    supabase
+      .from("company_profiles")
+      .select("*")
+      .eq("id", user.id)
+      .maybeSingle(),
+    supabase
+      .from("profiles")
+      .select("*")
+      .eq("id", user.id)
+      .maybeSingle(),
+  ]);
+
+  const profile = {
+    ...(baseProfile || {}),
+    ...(companyProfile || {}),
+    phone:
+      companyProfile?.contact_phone ||
+      baseProfile?.whatsapp_number ||
+      "",
+    website:
+      companyProfile?.website_url ||
+      "",
+    logo_url: companyProfile?.logo_url || baseProfile?.avatar_url || "",
+    company_name:
+      companyProfile?.company_name ||
+      baseProfile?.full_name ||
+      "",
+  };
 
   return {
-    profile: profile || {},
+    profile,
     userId: user.id,
   };
 }

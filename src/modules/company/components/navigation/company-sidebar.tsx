@@ -56,7 +56,7 @@ export function CompanySidebar({
     {
       label: "Inicio & Analítica",
       isCollapsible: true,
-      defaultOpen: true,
+      defaultOpen: false,
       items: [
         {
           title: "Dashboard General",
@@ -73,7 +73,7 @@ export function CompanySidebar({
     {
       label: "Atracción de Talento",
       isCollapsible: true,
-      defaultOpen: true,
+      defaultOpen: false,
       items: [
         {
           title: "Mis Vacantes",
@@ -95,7 +95,7 @@ export function CompanySidebar({
     {
       label: "Gestión de Personal",
       isCollapsible: true,
-      defaultOpen: true,
+      defaultOpen: false,
       items: [
         {
           title: "Plantilla de Empleados",
@@ -117,7 +117,7 @@ export function CompanySidebar({
     {
       label: "Operaciones & Asistencia",
       isCollapsible: true,
-      defaultOpen: true,
+      defaultOpen: false,
       items: [
         {
           title: "Asistencia & Checador",
@@ -139,7 +139,7 @@ export function CompanySidebar({
     {
       label: "Compensaciones",
       isCollapsible: true,
-      defaultOpen: true,
+      defaultOpen: false,
       items: [
         {
           title: "Nómina & Pagos",
@@ -151,7 +151,7 @@ export function CompanySidebar({
     {
       label: "Mi Empresa",
       isCollapsible: true,
-      defaultOpen: true,
+      defaultOpen: false,
       items: [
         {
           title: "Perfil Corporativo",

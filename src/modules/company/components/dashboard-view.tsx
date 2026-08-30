@@ -5,25 +5,22 @@ import { motion } from "framer-motion";
 import {
   Building2,
   Download,
-  Plus,
-  Sparkles,
-  ShieldCheck,
-  FileSpreadsheet,
-  Users,
 } from "lucide-react";
-import Link from "next/link";
-import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import { CompanyDashboardData } from "../types/dashboard";
 
 import { OperationalAlertsBanner } from "./dashboard/operational-alerts-banner";
+import { QuickActionsCard } from "./dashboard/quick-actions-card";
 import { WorkforceKPIGrid } from "./dashboard/workforce-kpi-grid";
+import { ActiveVacanciesSummary } from "./dashboard/active-vacancies-summary";
+import { RecentCandidatesSummary } from "./dashboard/recent-candidates-summary";
+import { SubscriptionStatusCard } from "./dashboard/subscription-status-card";
+import { ApplicationsPipelineSummary } from "./dashboard/applications-pipeline-summary";
 import { IncidentsAttendanceCard } from "./dashboard/incidents-attendance-card";
 import { ContractsExpirationCard } from "./dashboard/contracts-expiration-card";
 import { PayrollSummaryCard } from "./dashboard/payroll-summary-card";
-import { ActiveVacanciesSummary } from "./dashboard/active-vacancies-summary";
 
 export function DashboardView({
   companyName = "Mi Empresa",
@@ -34,6 +31,9 @@ export function DashboardView({
   todayAttendance,
   payrollSummary,
   openVacanciesList,
+  subscriptionSummary,
+  applicationsSummary,
+  recentCandidates,
 }: CompanyDashboardData) {
   const [isExporting, setIsExporting] = useState(false);
 
@@ -43,7 +43,7 @@ export function DashboardView({
       setIsExporting(false);
       toast.success("Reporte Ejecutivo descargado con éxito", {
         description:
-          "Se ha generado el balance general de personal, incidencias y nómina.",
+          "Se ha generado el balance general de personal, postulaciones y suscripción.",
       });
     }, 1200);
   };
@@ -53,14 +53,14 @@ export function DashboardView({
     visible: {
       opacity: 1,
       transition: {
-        staggerChildren: 0.08,
+        staggerChildren: 0.06,
       },
     },
   };
 
   const itemVariants = {
-    hidden: { opacity: 0, y: 12 },
-    visible: { opacity: 1, y: 0, transition: { duration: 0.3 } },
+    hidden: { opacity: 0, y: 10 },
+    visible: { opacity: 1, y: 0, transition: { duration: 0.25 } },
   };
 
   return (
@@ -78,7 +78,7 @@ export function DashboardView({
         <div className="space-y-1">
           <div className="flex items-center gap-2 text-primary font-bold text-xs uppercase tracking-wider">
             <Building2 className="size-4 text-primary" />
-            <span>CENTRO DE OPERACIONES & PERSONAL</span>
+            <span>CENTRO DE OPERACIONES & TALENTO</span>
             <Badge className="bg-emerald-500 text-white text-[10px] font-bold px-2.5 py-0.5 rounded-full border-none">
               En Vivo
             </Badge>
@@ -87,7 +87,7 @@ export function DashboardView({
             {`Panel General • ${companyName}`}
           </h1>
           <p className="text-xs sm:text-sm text-muted-foreground font-semibold">
-            Monitoreo en tiempo real de plantilla activa, asistencia, contratos por vencer y nómina.
+            Resumen integral de atracción, postulaciones, candidatos, suscripción y plantilla operativa.
           </p>
         </div>
 
@@ -97,7 +97,7 @@ export function DashboardView({
             size="sm"
             onClick={handleExportExecutiveReport}
             disabled={isExporting}
-            className="rounded-xl text-xs font-bold h-10 px-4 border-border/70 shadow-xs flex items-center gap-1.5"
+            className="rounded-xl text-xs font-bold h-10 px-4 border-border/70 shadow-xs flex items-center gap-1.5 cursor-pointer"
           >
             <Download className="size-3.5" />
             <span>{isExporting ? "Generando..." : "Descargar Reporte"}</span>
@@ -105,14 +105,19 @@ export function DashboardView({
         </div>
       </motion.div>
 
-      {/* 8. Alertas Importantes */}
+      {/* Alertas Operativas Importantes */}
       {alerts && alerts.length > 0 && (
         <motion.div variants={itemVariants}>
           <OperationalAlertsBanner alerts={alerts} />
         </motion.div>
       )}
 
-      {/* 1, 2, 3, 4. Cuadrícula de KPIs de Fuerza Laboral */}
+      {/* 6. Acciones Rápidas */}
+      <motion.div variants={itemVariants}>
+        <QuickActionsCard />
+      </motion.div>
+
+      {/* 1. Cuadrícula de KPIs Útiles */}
       <motion.div variants={itemVariants}>
         <WorkforceKPIGrid kpis={kpis} />
       </motion.div>
@@ -121,33 +126,51 @@ export function DashboardView({
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
         {/* Columna Izquierda Principal (7 cols) */}
         <div className="lg:col-span-7 space-y-6">
-          {/* 2, 3, 6. Asistencia e Incidencias Pendientes */}
+          {/* 2. Vacantes Activas & Atracción */}
+          <motion.div variants={itemVariants}>
+            <ActiveVacanciesSummary
+              vacancies={openVacanciesList}
+              totalVacancies={kpis.openVacanciesCount}
+            />
+          </motion.div>
+
+          {/* 4. Candidatos Recientes */}
+          <motion.div variants={itemVariants}>
+            <RecentCandidatesSummary
+              candidates={recentCandidates}
+              totalApplications={kpis.totalApplicationsReceived}
+            />
+          </motion.div>
+
+          {/* Asistencia e Incidencias Pendientes */}
           <motion.div variants={itemVariants}>
             <IncidentsAttendanceCard
               initialIncidents={pendingIncidents}
               attendanceList={todayAttendance}
             />
           </motion.div>
-
-          {/* 5. Contratos Próximos a Vencer */}
-          <motion.div variants={itemVariants}>
-            <ContractsExpirationCard initialContracts={expiringContracts} />
-          </motion.div>
         </div>
 
         {/* Columna Derecha Secundaria (5 cols) */}
         <div className="lg:col-span-5 space-y-6">
-          {/* 7. Resumen de Nómina */}
+          {/* 5. Estado de Suscripción */}
+          <motion.div variants={itemVariants}>
+            <SubscriptionStatusCard subscription={subscriptionSummary} />
+          </motion.div>
+
+          {/* 3. Resumen y Embudo de Postulaciones */}
+          <motion.div variants={itemVariants}>
+            <ApplicationsPipelineSummary summary={applicationsSummary} />
+          </motion.div>
+
+          {/* Resumen de Nómina */}
           <motion.div variants={itemVariants}>
             <PayrollSummaryCard payroll={payrollSummary} />
           </motion.div>
 
-          {/* 4. Vacantes Abiertas & Atracción */}
+          {/* Contratos Próximos a Vencer */}
           <motion.div variants={itemVariants}>
-            <ActiveVacanciesSummary
-              vacancies={openVacanciesList}
-              totalVacancies={kpis.openVacanciesCount}
-            />
+            <ContractsExpirationCard initialContracts={expiringContracts} />
           </motion.div>
         </div>
       </div>

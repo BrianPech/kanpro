@@ -74,11 +74,9 @@ export const companyService = {
       full_name: profile.company_name,
       avatar_url: profile.logo_url || null,
       location: finalLocation,
+      whatsapp_number: profile.phone || null,
       updated_at: new Date().toISOString(),
     };
-    if (profile.phone) {
-      profileUpdates.whatsapp_number = profile.phone;
-    }
 
     // Parallel update for base profiles and company_profiles extension
     const [baseRes, updateRes] = await Promise.all([

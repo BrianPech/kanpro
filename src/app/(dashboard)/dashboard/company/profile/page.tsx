@@ -11,7 +11,7 @@ export default async function CompanyProfilePage() {
 
 
   return (
-    <div className="w-full max-w-4xl mx-auto space-y-8 animate-in fade-in duration-300">
+    <div className="w-full max-w-5xl mx-auto space-y-6 animate-in fade-in duration-300">
       <CompanyProfileForm initialProfile={profile || {}} userId={userId} />
     </div>
   )
