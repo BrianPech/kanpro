@@ -139,6 +139,7 @@ describe("Vacancy Wizard Validation Schemas", () => {
       const result = vacancyWizardSchema.safeParse({
         ...DEFAULT_WIZARD_VALUES,
         title: "Cocinero B",
+        description: "Responsabilidades del puesto y requisitos completos para el candidato.",
         contact_phone: "9991234567",
       });
       expect(result.success).toBe(true);

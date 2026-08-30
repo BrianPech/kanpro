@@ -55,6 +55,16 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { cn } from "@/lib/utils";
 import Link from "next/link";
 import type { VacancyRow } from "@/modules/company/hooks/use-vacancy-manager";
@@ -84,10 +94,15 @@ export function VacanciesTable({
   formatDate,
 }: VacanciesTableProps) {
   const [previewVacancy, setPreviewVacancy] = React.useState<VacancyTableItem | null>(null);
+  const [deletingVacancyId, setDeletingVacancyId] = React.useState<string | null>(null);
   const [sorting, setSorting] = React.useState<SortingState>([
     { id: "created_at", desc: true },
   ]);
   const [rowSelection, setRowSelection] = React.useState<RowSelectionState>({});
+
+  const deletingVacancy = React.useMemo(() => {
+    return data.find((v) => v.id === deletingVacancyId) || null;
+  }, [data, deletingVacancyId]);
 
   const handleToggleActiveLocal = (id: string, currentActive: boolean) => {
     onToggleActive(id, currentActive);
@@ -325,13 +340,17 @@ export function VacanciesTable({
         cell: ({ row }) => {
           const vacancy = row.original;
           return (
-            <div className="text-right py-1">
+            <div
+              className="text-right py-1"
+              onClick={(e) => e.stopPropagation()}
+            >
               <DropdownMenu>
                 <DropdownMenuTrigger
                   render={
                     <Button
                       variant="ghost"
                       size="icon"
+                      onClick={(e) => e.stopPropagation()}
                       className="h-8 w-8 p-0 rounded-lg hover:bg-muted text-muted-foreground hover:text-foreground cursor-pointer"
                     />
                   }
@@ -340,13 +359,17 @@ export function VacanciesTable({
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end" className="rounded-xl border border-border/60 bg-popover min-w-[170px] shadow-lg p-1.5">
                   <DropdownMenuItem
-                    onSelect={() => setPreviewVacancy(vacancy)}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setPreviewVacancy(vacancy);
+                    }}
                     className="cursor-pointer text-xs font-semibold rounded-lg hover:bg-muted py-2 px-2.5 gap-2.5 text-foreground"
                   >
                     <Eye className="size-3.5 text-primary" />
                     <span>Ver detalles</span>
                   </DropdownMenuItem>
                   <DropdownMenuItem
+                    onClick={(e) => e.stopPropagation()}
                     render={<Link href={`/dashboard/company/vacancies/${vacancy.id}/edit`} />}
                     className="cursor-pointer text-xs font-semibold rounded-lg hover:bg-muted py-2 px-2.5 gap-2.5"
                   >
@@ -355,7 +378,10 @@ export function VacanciesTable({
                   </DropdownMenuItem>
                   {onCloneVacancy && (
                     <DropdownMenuItem
-                      onSelect={() => onCloneVacancy(vacancy.id)}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onCloneVacancy(vacancy.id);
+                      }}
                       className="cursor-pointer text-xs font-semibold rounded-lg hover:bg-muted py-2 px-2.5 gap-2.5"
                     >
                       <Copy className="size-3.5 text-muted-foreground" />
@@ -363,7 +389,11 @@ export function VacanciesTable({
                     </DropdownMenuItem>
                   )}
                   <DropdownMenuItem
-                    onSelect={() => onDeleteVacancy(vacancy.id)}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setPreviewVacancy(null);
+                      setDeletingVacancyId(vacancy.id);
+                    }}
                     className="cursor-pointer text-xs font-semibold text-rose-600 dark:text-rose-400 rounded-lg hover:bg-rose-500/10 focus:bg-rose-500/10 py-2 px-2.5 gap-2.5"
                   >
                     <Trash2 className="size-3.5 text-rose-500" />
@@ -480,19 +510,20 @@ export function VacanciesTable({
               {table.getRowModel().rows?.length ? (
                 table.getRowModel().rows.map((row) => (
                   <TableRow
-                    key={row.id}
-                    data-state={row.getIsSelected() && "selected"}
-                    onClick={(e) => {
-                      const target = e.target as HTMLElement;
-                      if (
-                        target.closest(
-                          "button, a, input, [role='checkbox'], [data-slot='dropdown-menu-trigger']"
-                        )
-                      ) {
-                        return;
-                      }
-                      setPreviewVacancy(row.original);
-                    }}
+                      key={row.id}
+                      data-state={row.getIsSelected() && "selected"}
+                      onClick={(e) => {
+                        const target = e.target as HTMLElement;
+                        if (
+                          target.closest(
+                            "button, a, input, [role='checkbox'], [role='menuitem'], [data-slot='dropdown-menu-trigger'], [data-slot='dropdown-menu-content'], [data-slot='dropdown-menu-item'], [data-slot='alert-dialog'], [data-slot='alert-dialog-content']"
+                          )
+                        ) {
+                          return;
+                        }
+                        if (deletingVacancyId !== null) return;
+                        setPreviewVacancy(row.original);
+                      }}
                     className={cn(
                       "border-b border-border/40 transition-colors hover:bg-muted/40 cursor-pointer",
                       !row.original.is_active && "opacity-80"
@@ -600,10 +631,60 @@ export function VacanciesTable({
           </div>
         </div>
 
+        {/* Alert Dialog for Confirming Deletion */}
+        <AlertDialog
+          open={deletingVacancyId !== null}
+          onOpenChange={(open) => !open && setDeletingVacancyId(null)}
+        >
+          <AlertDialogContent className="rounded-2xl border border-border/80 p-6 bg-card max-w-md shadow-2xl">
+            <AlertDialogHeader>
+              <AlertDialogTitle className="text-base font-bold text-foreground flex items-center gap-2">
+                <Trash2 className="size-4 text-rose-500" />
+                <span>¿Eliminar vacante permanentemente?</span>
+              </AlertDialogTitle>
+              <AlertDialogDescription className="text-xs font-medium text-muted-foreground leading-relaxed mt-1">
+                Esta acción es definitiva e irreversible. La vacante será dada de baja y los candidatos no podrán postularse.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+
+            {deletingVacancy && (
+              <div className="p-3 bg-muted/40 rounded-xl border border-border/60 text-xs font-semibold text-foreground space-y-1">
+                <p className="font-extrabold text-foreground text-sm">{deletingVacancy.title}</p>
+                <div className="flex items-center gap-2 text-muted-foreground text-[11px]">
+                  <span>{deletingVacancy.category || "General"}</span>
+                  <span>•</span>
+                  <span>{deletingVacancy.zone || deletingVacancy.location || "Mérida"}</span>
+                </div>
+              </div>
+            )}
+
+            <AlertDialogFooter className="gap-2 mt-4">
+              <AlertDialogCancel
+                onClick={() => setDeletingVacancyId(null)}
+                className="rounded-xl font-semibold text-xs h-10 px-4 cursor-pointer"
+              >
+                Cancelar
+              </AlertDialogCancel>
+              <AlertDialogAction
+                onClick={() => {
+                  if (deletingVacancyId) {
+                    onDeleteVacancy(deletingVacancyId);
+                    setDeletingVacancyId(null);
+                  }
+                }}
+                className="rounded-xl font-bold text-xs h-10 px-4 bg-rose-600 hover:bg-rose-700 text-white border-none cursor-pointer gap-2"
+              >
+                <Trash2 className="size-3.5" />
+                <span>Eliminar Definitivamente</span>
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+
         {/* Vacancy Preview Drawer */}
         <VacancyPreviewDrawer
           vacancy={previewVacancy}
-          open={!!previewVacancy}
+          open={!!previewVacancy && deletingVacancyId === null}
           onOpenChange={(open) => !open && setPreviewVacancy(null)}
           onToggleActive={handleToggleActiveLocal}
           formatSalary={formatSalary}

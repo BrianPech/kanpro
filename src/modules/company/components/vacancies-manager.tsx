@@ -36,6 +36,7 @@ import {
   PlayCircle,
   ChevronLeft,
   ChevronRight,
+  Loader2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -101,6 +102,11 @@ export function VacanciesManager({ userId }: { userId: string }) {
   const [previewVacancy, setPreviewVacancy] = React.useState<VacancyItem | null>(null);
   const [searchQuery, setSearchQuery] = React.useState("");
   const [deletingVacancyId, setDeletingVacancyId] = React.useState<string | null>(null);
+  const [isDeleting, setIsDeleting] = React.useState(false);
+
+  const deletingVacancy = React.useMemo(() => {
+    return vacancies.find((v) => v.id === deletingVacancyId) || null;
+  }, [vacancies, deletingVacancyId]);
 
   // Filters state (all unified inside the table header)
   const [statusFilter, setStatusFilter] = React.useState<"all" | "active" | "paused">("all");
@@ -248,16 +254,20 @@ export function VacanciesManager({ userId }: { userId: string }) {
 
   const confirmDeleteVacancy = React.useCallback(async (id: string) => {
     try {
+      setIsDeleting(true);
       const success = await deleteVacancy(id);
       if (success) {
         setVacancies((prev) => prev.filter((v) => v.id !== id));
-        toast.success("Vacante eliminada con éxito");
+        toast.success("Vacante eliminada con éxito", {
+          description: "La oferta ha sido removida permanentemente.",
+        });
       }
     } catch (err: unknown) {
       toast.error("Error al eliminar la vacante", {
-        description: (err as Error).message,
+        description: (err as Error).message || "No se pudo eliminar la vacante.",
       });
     } finally {
+      setIsDeleting(false);
       setDeletingVacancyId(null);
     }
   }, [deleteVacancy]);
@@ -753,12 +763,18 @@ export function VacanciesManager({ userId }: { userId: string }) {
         cell: ({ row }) => {
           const vacancy = row.original;
           return (
-            <div className="flex items-center justify-end gap-1 py-1">
+            <div
+              className="flex items-center justify-end gap-1 py-1"
+              onClick={(e) => e.stopPropagation()}
+            >
               {/* Eye Button: View Vacancy Details in Drawer */}
               <Button
                 variant="ghost"
                 size="icon"
-                onClick={() => setPreviewVacancy(vacancy)}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setPreviewVacancy(vacancy);
+                }}
                 className="size-8 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted p-1 cursor-pointer transition-colors"
                 title="Ver detalles de la vacante"
               >
@@ -769,6 +785,7 @@ export function VacanciesManager({ userId }: { userId: string }) {
               <Button
                 variant="ghost"
                 size="icon"
+                onClick={(e) => e.stopPropagation()}
                 render={
                   <Link
                     href={`/dashboard/company/applications?vacancy_id=${vacancy.id}`}
@@ -783,7 +800,10 @@ export function VacanciesManager({ userId }: { userId: string }) {
               <DropdownMenu>
                 <DropdownMenuTrigger
                   render={
-                    <button className="size-8 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted p-1 cursor-pointer transition-colors flex items-center justify-center" />
+                    <button
+                      onClick={(e) => e.stopPropagation()}
+                      className="size-8 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted p-1 cursor-pointer transition-colors flex items-center justify-center"
+                    />
                   }
                 >
                   <MoreHorizontal className="size-4" />
@@ -793,7 +813,10 @@ export function VacanciesManager({ userId }: { userId: string }) {
                   className="rounded-xl border border-border/50 bg-popover min-w-[190px] shadow-lg p-1.5"
                 >
                   <DropdownMenuItem
-                    onSelect={() => setPreviewVacancy(vacancy)}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setPreviewVacancy(vacancy);
+                    }}
                     className="cursor-pointer text-xs font-semibold rounded-lg hover:bg-muted py-2 px-2.5 gap-2 text-foreground"
                   >
                     <Eye className="size-3.5 text-primary" />
@@ -801,6 +824,7 @@ export function VacanciesManager({ userId }: { userId: string }) {
                   </DropdownMenuItem>
 
                   <DropdownMenuItem
+                    onClick={(e) => e.stopPropagation()}
                     render={
                       <Link
                         href={`/dashboard/company/applications?vacancy_id=${vacancy.id}`}
@@ -813,6 +837,7 @@ export function VacanciesManager({ userId }: { userId: string }) {
                   </DropdownMenuItem>
 
                   <DropdownMenuItem
+                    onClick={(e) => e.stopPropagation()}
                     render={
                       <Link
                         href={`/dashboard/company/vacancies/${vacancy.id}/edit`}
@@ -825,7 +850,10 @@ export function VacanciesManager({ userId }: { userId: string }) {
                   </DropdownMenuItem>
 
                   <DropdownMenuItem
-                    onSelect={() => handleCloneVacancy(vacancy.id)}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleCloneVacancy(vacancy.id);
+                    }}
                     className="cursor-pointer text-xs font-semibold rounded-lg hover:bg-muted py-2 px-2.5 gap-2"
                   >
                     <Copy className="size-3.5 text-muted-foreground" />
@@ -835,9 +863,10 @@ export function VacanciesManager({ userId }: { userId: string }) {
                   <DropdownMenuSeparator className="my-1 border-border/40" />
 
                   <DropdownMenuItem
-                    onSelect={() =>
-                      handleToggleActive(vacancy.id, vacancy.is_active)
-                    }
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleToggleActive(vacancy.id, vacancy.is_active);
+                    }}
                     className="cursor-pointer text-xs font-semibold rounded-lg hover:bg-muted py-2 px-2.5 gap-2"
                   >
                     {vacancy.is_active ? (
@@ -854,7 +883,11 @@ export function VacanciesManager({ userId }: { userId: string }) {
                   </DropdownMenuItem>
 
                   <DropdownMenuItem
-                    onSelect={() => setDeletingVacancyId(vacancy.id)}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setPreviewVacancy(null);
+                      setDeletingVacancyId(vacancy.id);
+                    }}
                     className="cursor-pointer text-xs font-semibold text-rose-600 dark:text-rose-400 rounded-lg hover:bg-rose-500/10 focus:bg-rose-500/10 py-2 px-2.5 gap-2"
                   >
                     <Trash2 className="size-3.5 text-rose-500" />
@@ -1335,11 +1368,12 @@ export function VacanciesManager({ userId }: { userId: string }) {
                         const target = e.target as HTMLElement;
                         if (
                           target.closest(
-                            "button, a, input, [role='checkbox'], [data-slot='dropdown-menu-trigger']"
+                            "button, a, input, [role='checkbox'], [role='menuitem'], [data-slot='dropdown-menu-trigger'], [data-slot='dropdown-menu-content'], [data-slot='dropdown-menu-item'], [data-slot='alert-dialog'], [data-slot='alert-dialog-content']"
                           )
                         ) {
                           return;
                         }
+                        if (deletingVacancyId !== null) return;
                         setPreviewVacancy(row.original);
                       }}
                       className={cn(
@@ -1408,34 +1442,62 @@ export function VacanciesManager({ userId }: { userId: string }) {
       {/* Alert Dialog for Confirming Deletion */}
       <AlertDialog
         open={deletingVacancyId !== null}
-        onOpenChange={(open) => !open && setDeletingVacancyId(null)}
+        onOpenChange={(open) => {
+          if (!open && !isDeleting) {
+            setDeletingVacancyId(null);
+          }
+        }}
       >
-        <AlertDialogContent className="rounded-3xl border border-border/60 p-6 bg-card max-w-md shadow-2xl">
+        <AlertDialogContent className="rounded-2xl border border-border/80 p-6 bg-card max-w-md shadow-2xl">
           <AlertDialogHeader>
             <AlertDialogTitle className="text-base font-bold text-foreground flex items-center gap-2">
               <Trash2 className="size-4 text-rose-500" />
-              <span>¿Eliminar esta vacante?</span>
+              <span>¿Eliminar vacante permanentemente?</span>
             </AlertDialogTitle>
             <AlertDialogDescription className="text-xs font-medium text-muted-foreground leading-relaxed mt-1">
-              Esta acción es permanente. Los candidatos ya no podrán postularse ni visualizar esta oferta de empleo.
+              Esta acción es definitiva e irreversible. La vacante será dada de baja y los candidatos no podrán postularse.
             </AlertDialogDescription>
           </AlertDialogHeader>
+
+          {deletingVacancy && (
+            <div className="p-3 bg-muted/40 rounded-xl border border-border/60 text-xs font-semibold text-foreground space-y-1">
+              <p className="font-extrabold text-foreground text-sm">{deletingVacancy.title}</p>
+              <div className="flex items-center gap-2 text-muted-foreground text-[11px]">
+                <span>{deletingVacancy.category || "General"}</span>
+                <span>•</span>
+                <span>{deletingVacancy.zone || deletingVacancy.location || "Mérida"}</span>
+              </div>
+            </div>
+          )}
+
           <AlertDialogFooter className="gap-2 mt-4">
             <AlertDialogCancel
+              disabled={isDeleting}
               onClick={() => setDeletingVacancyId(null)}
               className="rounded-xl font-semibold text-xs h-10 px-4 cursor-pointer"
             >
               Cancelar
             </AlertDialogCancel>
             <AlertDialogAction
+              disabled={isDeleting}
               onClick={() => {
                 if (deletingVacancyId) {
                   confirmDeleteVacancy(deletingVacancyId);
                 }
               }}
-              className="rounded-xl font-bold text-xs h-10 px-4 bg-rose-600 hover:bg-rose-700 text-white border-none cursor-pointer"
+              className="rounded-xl font-bold text-xs h-10 px-4 bg-rose-600 hover:bg-rose-700 text-white border-none cursor-pointer gap-2"
             >
-              Eliminar Definitivamente
+              {isDeleting ? (
+                <>
+                  <Loader2 className="size-3.5 animate-spin" />
+                  <span>Eliminando...</span>
+                </>
+              ) : (
+                <>
+                  <Trash2 className="size-3.5" />
+                  <span>Eliminar Definitivamente</span>
+                </>
+              )}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
@@ -1444,7 +1506,7 @@ export function VacanciesManager({ userId }: { userId: string }) {
       {/* Vacancy Preview Drawer */}
       <VacancyPreviewDrawer
         vacancy={previewVacancy}
-        open={!!previewVacancy}
+        open={!!previewVacancy && deletingVacancyId === null}
         onOpenChange={(open) => !open && setPreviewVacancy(null)}
         onToggleActive={handleToggleActive}
         formatSalary={formatSalary}

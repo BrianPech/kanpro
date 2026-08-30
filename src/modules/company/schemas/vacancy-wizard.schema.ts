@@ -152,24 +152,14 @@ export const DEFAULT_WIZARD_VALUES: VacancyWizardValues = {
   positions_available: 1,
   location: "Mérida, Yucatán",
   zone: "Centro Mérida",
-  salary_min: 10000,
-  salary_max: 14000,
+  salary_min: null,
+  salary_max: null,
   payment_frequency: "quincenal",
-  benefits: ["Prestaciones de Ley (IMSS, Infonavit, Aguinaldo)", "Propinas diarias / semanales"],
-  description: `<h2>Responsabilidades del Puesto:</h2>
-<ul>
-  <li>Atención y servicio de calidad según los estándares del puesto.</li>
-  <li>Cumplimiento puntual de actividades operativas diarias.</li>
-  <li>Trabajo en equipo y comunicación efectiva.</li>
-</ul>
-<h2>Requisitos:</h2>
-<ul>
-  <li>Puntualidad, buena actitud y ganas de aprender.</li>
-  <li>Disponibilidad de horario para el turno acordado.</li>
-</ul>`,
+  benefits: [],
+  description: "",
   experience_required: "Sin experiencia previa",
   education_level: "Indistinto",
-  skills: ["Atención al cliente", "Puntualidad", "Trabajo en equipo"],
+  skills: [],
   contact_phone: "",
   contact_email: "",
   preferred_contact_method: "whatsapp",

@@ -120,13 +120,24 @@ export function VacancyWizardContainer({
   const [isSubmitting, setIsSubmitting] = React.useState(false);
   const [showPreviewDrawer, setShowPreviewDrawer] = React.useState(false);
   const [companyProfile, setCompanyProfile] = React.useState<CompanyProfileState | null>(null);
-  const [draftLoaded, setDraftLoaded] = React.useState<boolean>(() => {
-    if (typeof window === "undefined" || isEditing) return false;
+  const [savedDraft, setSavedDraft] = React.useState<VacancyWizardValues | null>(() => {
+    if (typeof window === "undefined" || isEditing) return null;
     try {
-      return Boolean(localStorage.getItem(DRAFT_STORAGE_KEY));
+      const saved = localStorage.getItem(DRAFT_STORAGE_KEY);
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (
+          parsed &&
+          typeof parsed === "object" &&
+          (parsed.title?.trim() || parsed.description?.trim())
+        ) {
+          return parsed;
+        }
+      }
     } catch {
-      return false;
+      return null;
     }
+    return null;
   });
 
   // TanStack Form Instance
@@ -215,30 +226,14 @@ export function VacancyWizardContainer({
     loadCompany();
   }, [userId, isEditing, form]);
 
-  // Load draft from localStorage on mount (if not editing an existing vacancy)
-  React.useEffect(() => {
-    if (isEditing) return;
-    try {
-      const saved = localStorage.getItem(DRAFT_STORAGE_KEY);
-      if (saved) {
-        const parsed = JSON.parse(saved);
-        if (parsed && typeof parsed === "object") {
-          Object.keys(parsed).forEach((key) => {
-            form.setFieldValue(key as keyof VacancyWizardValues, parsed[key]);
-          });
-        }
-      }
-    } catch (e) {
-      console.warn("Could not parse draft:", e);
-    }
-  }, [isEditing, form]);
-
   // Debounced auto-save draft using react-pacer
   const saveDraftDebounced = useDebouncedCallback(
     (values: VacancyWizardValues) => {
       if (isEditing) return;
       try {
-        localStorage.setItem(DRAFT_STORAGE_KEY, JSON.stringify(values));
+        if (values.title?.trim() || values.description?.trim()) {
+          localStorage.setItem(DRAFT_STORAGE_KEY, JSON.stringify(values));
+        }
       } catch (e) {
         console.warn("Draft save failed:", e);
       }
@@ -342,8 +337,8 @@ export function VacancyWizardContainer({
       form.reset();
       setCurrentStep(1);
       setMaxAccessibleStep(1);
-      setDraftLoaded(false);
-      toast.success("Borrador restablecido a valores iniciales");
+      setSavedDraft(null);
+      toast.success("Formulario restablecido a valores iniciales");
     } catch (e) {
       console.error(e);
     }
@@ -528,7 +523,7 @@ export function VacancyWizardContainer({
             <span>Vista Previa</span>
           </Button>
 
-          {draftLoaded && !isEditing && (
+          {!isEditing && (
             <Button
               type="button"
               variant="ghost"
@@ -537,11 +532,61 @@ export function VacancyWizardContainer({
               className="h-8 px-3 rounded-xl text-xs font-semibold text-muted-foreground hover:text-rose-500 gap-1.5 cursor-pointer"
             >
               <RotateCcw className="size-3.5" />
-              <span>Limpiar Borrador</span>
+              <span>Limpiar Formulario</span>
             </Button>
           )}
         </div>
       </div>
+
+      {/* Draft Recovery Alert (Optional & Dismissible) */}
+      {savedDraft && !isEditing && (
+        <div className="p-4 bg-primary/5 border border-primary/20 rounded-2xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-xs font-semibold">
+          <div className="space-y-0.5">
+            <p className="text-foreground font-bold flex items-center gap-1.5">
+              <RotateCcw className="size-3.5 text-primary" />
+              <span>Borrador previo encontrado: &ldquo;{savedDraft.title || "Vacante sin título"}&rdquo;</span>
+            </p>
+            <p className="text-muted-foreground text-[11px]">
+              ¿Deseas recuperar los datos de tu sesión anterior o continuar con una vacante nueva desde cero?
+            </p>
+          </div>
+          <div className="flex items-center gap-2 shrink-0">
+            <Button
+              type="button"
+              size="sm"
+              variant="outline"
+              onClick={() => {
+                try {
+                  localStorage.removeItem(DRAFT_STORAGE_KEY);
+                } catch {}
+                setSavedDraft(null);
+                toast.info("Borrador previo descartado");
+              }}
+              className="h-8 text-xs font-semibold rounded-xl cursor-pointer"
+            >
+              Descartar
+            </Button>
+            <Button
+              type="button"
+              size="sm"
+              onClick={() => {
+                Object.keys(savedDraft).forEach((key) => {
+                  form.setFieldValue(
+                    key as keyof VacancyWizardValues,
+                    savedDraft[key as keyof VacancyWizardValues]
+                  );
+                });
+                setSavedDraft(null);
+                toast.success("Borrador restaurado en el formulario");
+              }}
+              className="h-8 text-xs font-bold rounded-xl bg-primary text-primary-foreground cursor-pointer gap-1.5"
+            >
+              <Check className="size-3.5" />
+              <span>Restaurar Borrador</span>
+            </Button>
+          </div>
+        </div>
+      )}
 
       {/* 2. Minimalist Reference Stepper */}
       <Stepper
@@ -600,7 +645,7 @@ export function VacancyWizardContainer({
                           : "text-muted-foreground font-normal"
                       )}
                     >
-                      {step.label}
+                      {step.id === 4 && isEditing ? "Actualización" : step.label}
                     </StepperTitle>
                   </StepperTrigger>
                 </StepperItem>
@@ -642,10 +687,11 @@ export function VacancyWizardContainer({
                 <Step3Description form={form} />
               </StepperContent>
 
-              {/* Step 4: Contacto & Publicación */}
+              {/* Step 4: Contacto & Publicación / Actualización */}
               <StepperContent value={4}>
                 <Step4Publication
                   form={form}
+                  isEditing={isEditing}
                   onOpenPreviewDrawer={() => setShowPreviewDrawer(true)}
                 />
               </StepperContent>
@@ -698,10 +744,10 @@ export function VacancyWizardContainer({
                       className="h-11 px-5 rounded-2xl font-bold text-xs sm:text-sm gap-2 border-border/80 hover:bg-muted cursor-pointer shadow-2xs"
                     >
                       <Save className="size-4 text-muted-foreground" />
-                      <span>Guardar Borrador</span>
+                      <span>{isEditing ? "Guardar Cambios" : "Guardar Borrador"}</span>
                     </Button>
 
-                    {/* Publish Button */}
+                    {/* Publish / Update Button */}
                     <Button
                       type="button"
                       disabled={isSubmitting}
@@ -711,12 +757,12 @@ export function VacancyWizardContainer({
                       {isSubmitting ? (
                         <>
                           <Loader2 className="size-4 animate-spin" />
-                          <span>Publicando...</span>
+                          <span>{isEditing ? "Actualizando..." : "Publicando..."}</span>
                         </>
                       ) : (
                         <>
                           <Send className="size-4" />
-                          <span>Publicar Oferta Ahora</span>
+                          <span>{isEditing ? "Actualizar Vacante" : "Publicar Oferta Ahora"}</span>
                         </>
                       )}
                     </Button>

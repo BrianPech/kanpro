@@ -26,11 +26,13 @@ interface Step4PublicationProps {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   form: any;
   onOpenPreviewDrawer?: () => void;
+  isEditing?: boolean;
 }
 
 export function Step4Publication({
   form,
   onOpenPreviewDrawer,
+  isEditing = false,
 }: Step4PublicationProps) {
   const values: VacancyWizardValues = form.state.values;
 
@@ -191,7 +193,7 @@ export function Step4Publication({
             </h4>
           </div>
           <p className="text-xs text-muted-foreground leading-relaxed max-w-xl">
-            Abre la vista previa en el componente Drawer interactivo para comprobar cómo verán los candidatos la descripción, sueldo, requisitos y contacto antes de publicar.
+            Abre la vista previa en el componente Drawer interactivo para comprobar cómo verán los candidatos la descripción, sueldo, requisitos y contacto antes de {isEditing ? "guardar los cambios" : "publicar"}.
           </p>
         </div>
 
