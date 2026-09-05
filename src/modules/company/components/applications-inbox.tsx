@@ -46,6 +46,10 @@ import {
   UserCheck,
   UserX,
   Building2,
+  Mail,
+  Calendar,
+  Video,
+  PenTool,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -96,13 +100,14 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import Link from "next/link";
-import { useApplicationsInbox, type Applicant } from "../hooks/use-applications-inbox";
+import { useApplicationsInbox, type Applicant, type InterviewDetails } from "../hooks/use-applications-inbox";
 import {
   requestDocumentAccess,
   getDocumentAccessStatus,
   getAuthorizedCandidateDocuments,
 } from "../actions/document-access";
 import { HireCandidateWizardModal } from "./recruitment/hire-candidate-wizard-modal";
+import { CandidateCvViewer } from "./candidate-cv-viewer";
 
 export function ApplicationsInbox() {
   const {
@@ -114,6 +119,7 @@ export function ApplicationsInbox() {
     setSearchQuery,
     isLoading,
     handleUpdateStatus,
+    handleScheduleInterview,
     getWhatsAppLink,
     handleUpdateNotes,
     handleUpdateRating,
@@ -132,10 +138,80 @@ export function ApplicationsInbox() {
   const [selectedApplicant, setSelectedApplicant] =
     React.useState<Applicant | null>(null);
   const [isDetailModalOpen, setIsDetailModalOpen] = React.useState(false);
+  const [activeModalTab, setActiveModalTab] = React.useState<string>("experience");
   const [isHireWizardOpen, setIsHireWizardOpen] = React.useState(false);
   const [hiringApplicant, setHiringApplicant] = React.useState<Applicant | null>(
     null
   );
+
+  // Interview Appointment Modal State
+  const [isInterviewModalOpen, setIsInterviewModalOpen] = React.useState(false);
+  const [interviewApplicant, setInterviewApplicant] = React.useState<Applicant | null>(null);
+  const [interviewDate, setInterviewDate] = React.useState("");
+  const [interviewTime, setInterviewTime] = React.useState("10:00");
+  const [interviewModality, setInterviewModality] = React.useState<"presencial" | "virtual">("presencial");
+  const [interviewLocationOrLink, setInterviewLocationOrLink] = React.useState("");
+  const [interviewNotes, setInterviewNotes] = React.useState("");
+  const [isScheduling, setIsScheduling] = React.useState(false);
+
+  const handleOpenScheduleInterview = (applicant: Applicant) => {
+    setInterviewApplicant(applicant);
+    const tomorrow = new Date();
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    const defaultDate = tomorrow.toISOString().split("T")[0];
+
+    if (applicant.interview) {
+      setInterviewDate(applicant.interview.date);
+      setInterviewTime(applicant.interview.time || "10:00");
+      setInterviewModality(applicant.interview.modality);
+      setInterviewLocationOrLink(applicant.interview.locationOrLink);
+      setInterviewNotes(applicant.interview.notes || "");
+    } else {
+      setInterviewDate(defaultDate);
+      setInterviewTime("10:00");
+      setInterviewModality("presencial");
+      setInterviewLocationOrLink(applicant.location || "Instalaciones de la empresa / Sucursal");
+      setInterviewNotes("Presentarse con 10 minutos de anticipación e identificación oficial física.");
+    }
+    setIsInterviewModalOpen(true);
+  };
+
+  const handleConfirmInterview = async () => {
+    if (!interviewApplicant) return;
+    if (!interviewDate) {
+      toast.error("Por favor selecciona una fecha para la entrevista");
+      return;
+    }
+    setIsScheduling(true);
+    try {
+      const details: InterviewDetails = {
+        date: interviewDate,
+        time: interviewTime,
+        modality: interviewModality,
+        locationOrLink:
+          interviewLocationOrLink ||
+          (interviewModality === "presencial" ? "Oficinas de la empresa" : "Google Meet"),
+        notes: interviewNotes,
+        scheduledAt: new Date().toISOString(),
+      };
+      await handleScheduleInterview(interviewApplicant.id, details);
+      if (selectedApplicant?.id === interviewApplicant.id) {
+        setSelectedApplicant({
+          ...selectedApplicant,
+          status: "Entrevista",
+          interview: details,
+        });
+      }
+      setIsInterviewModalOpen(false);
+      toast.success("¡Cita de entrevista agendada con éxito!", {
+        description: `Se agendó para el ${interviewDate} a las ${interviewTime}.`,
+      });
+    } catch {
+      toast.error("Error al agendar la entrevista");
+    } finally {
+      setIsScheduling(false);
+    }
+  };
 
   // Document Authorization & Notes State
   const [docAccessState, setDocAccessState] = React.useState<{
@@ -157,8 +233,11 @@ export function ApplicationsInbox() {
     const shortlisted = applicants.filter(
       (a) => a.status === "Preseleccionado"
     ).length;
+    const interviews = applicants.filter(
+      (a) => a.status === "Entrevista"
+    ).length;
     const hired = applicants.filter((a) => a.status === "Contratado").length;
-    return { total, pending, shortlisted, hired };
+    return { total, pending, shortlisted, interviews, hired };
   }, [applicants]);
 
   const getInitials = (name: string) => {
@@ -175,20 +254,24 @@ export function ApplicationsInbox() {
       case "Preseleccionado":
         return "bg-indigo-500/10 text-indigo-700 dark:text-indigo-300 border-indigo-500/20";
       case "En revisión":
-        return "bg-amber-500/10 text-amber-700 dark:text-amber-300 border-amber-500/20";
+        return "bg-blue-500/10 text-blue-700 dark:text-blue-300 border-blue-500/20";
+      case "Entrevista":
+        return "bg-purple-500/10 text-purple-700 dark:text-purple-300 border-purple-500/20";
       case "Contratado":
         return "bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border-emerald-500/20";
       case "Descartado":
         return "bg-rose-500/10 text-rose-700 dark:text-rose-300 border-rose-500/20";
       default:
-        return "bg-muted text-muted-foreground border-border/60";
+        return "bg-amber-500/10 text-amber-700 dark:text-amber-300 border-amber-500/20";
     }
   };
 
   // Open Candidate Detail Modal
-  const handleOpenDetail = (applicant: Applicant) => {
+  const handleOpenDetail = (applicant: Applicant, initialTab: string = "experience") => {
     setSelectedApplicant(applicant);
     setNoteText(applicant.internalNotes || "");
+    const tabToOpen = initialTab === "documents" && applicant.status !== "Contratado" ? "curriculum" : initialTab;
+    setActiveModalTab(tabToOpen);
     setIsDetailModalOpen(true);
   };
 
@@ -381,7 +464,7 @@ export function ApplicationsInbox() {
                 <button
                   type="button"
                   onClick={() => handleOpenDetail(app)}
-                  className="text-xs sm:text-sm font-bold text-foreground hover:text-primary transition-colors truncate block text-left cursor-pointer"
+                  className="text-xs sm:text-sm font-bold text-foreground group-hover:text-primary hover:text-primary transition-colors truncate block text-left cursor-pointer"
                 >
                   {app.name}
                 </button>
@@ -577,6 +660,12 @@ export function ApplicationsInbox() {
                     Preseleccionado
                   </SelectItem>
                   <SelectItem
+                    value="Entrevista"
+                    className="text-xs font-semibold text-purple-600 rounded-lg"
+                  >
+                    Entrevista
+                  </SelectItem>
+                  <SelectItem
                     value="Contratado"
                     className="text-xs font-semibold text-emerald-600 rounded-lg"
                   >
@@ -605,106 +694,115 @@ export function ApplicationsInbox() {
           const app = row.original;
           return (
             <div className="flex items-center justify-end gap-1 py-1">
-              {/* WhatsApp Button */}
               {app.phone && (
                 <a
                   href={getWhatsAppLink(app)}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="size-8 rounded-lg bg-[#25D366]/15 text-[#128C7E] dark:text-[#25D366] hover:bg-[#25D366]/25 flex items-center justify-center transition-colors cursor-pointer"
-                  title="Contactar por WhatsApp"
+                  className="inline-flex"
                 >
-                  <MessageSquare className="size-3.5 stroke-[2.5]" />
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    className="h-8 px-2.5 rounded-lg text-emerald-600 hover:bg-emerald-500/10 hover:text-emerald-700 cursor-pointer font-bold text-xs gap-1.5"
+                  >
+                    <MessageSquare className="size-3.5" />
+                    <span className="hidden sm:inline">WhatsApp</span>
+                  </Button>
                 </a>
               )}
 
-              {/* Eye Button: Open Candidate Profile / 360 Dossier */}
+              {/* View Profile Button */}
               <Button
-                variant="ghost"
-                size="icon"
+                size="sm"
+                variant="outline"
                 onClick={() => handleOpenDetail(app)}
-                className="size-8 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted p-1 cursor-pointer transition-colors"
-                title="Ver Perfil y Trayectoria del Postulante"
+                className="h-8 px-2.5 rounded-lg border-border/60 hover:bg-muted/50 cursor-pointer font-semibold text-xs gap-1.5"
               >
-                <Eye className="size-4" />
+                <Eye className="size-3.5 text-muted-foreground" />
+                <span>Perfil</span>
               </Button>
 
-              {/* Hire Button */}
-              {app.status !== "Contratado" && (
-                <Button
-                  size="sm"
-                  onClick={() => handleStartHire(app)}
-                  className="h-8 px-2.5 rounded-lg text-xs font-bold bg-primary text-primary-foreground hover:bg-primary/90 shadow-xs cursor-pointer flex items-center gap-1"
-                  title="Formalizar contratación de este candidato"
-                >
-                  <Sparkles className="size-3" />
-                  <span className="hidden xl:inline">Contratar</span>
-                </Button>
-              )}
-
+              {/* More Actions Dropdown */}
               <DropdownMenu>
                 <DropdownMenuTrigger
                   render={
-                    <button className="size-8 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted p-1 cursor-pointer transition-colors flex items-center justify-center" />
+                    <Button
+                      size="icon-sm"
+                      variant="ghost"
+                      className="size-8 rounded-lg text-muted-foreground hover:text-foreground cursor-pointer"
+                    />
                   }
                 >
                   <MoreHorizontal className="size-4" />
                 </DropdownMenuTrigger>
-                <DropdownMenuContent
-                  align="end"
-                  className="rounded-xl border border-border/50 bg-popover min-w-[200px] shadow-lg p-1.5"
-                >
+                <DropdownMenuContent align="end" className="w-52 rounded-xl border-border/60 bg-popover shadow-lg">
                   <DropdownMenuItem
-                    onSelect={() => handleOpenDetail(app)}
-                    className="cursor-pointer text-xs font-semibold py-2 px-2.5 gap-2 text-foreground hover:bg-muted"
+                    onSelect={() => handleOpenDetail(app, "experience")}
+                    className="cursor-pointer text-xs font-semibold py-2 px-2.5 gap-2"
                   >
                     <Eye className="size-3.5 text-muted-foreground" />
-                    <span>Ver Expediente del Candidato</span>
+                    <span>Ver Expediente Completo</span>
                   </DropdownMenuItem>
 
-                  {app.phone && (
+                  <DropdownMenuItem
+                    onSelect={() => handleOpenDetail(app, "curriculum")}
+                    className="cursor-pointer text-xs font-semibold py-2 px-2.5 gap-2 text-primary focus:text-primary"
+                  >
+                    <FileText className="size-3.5" />
+                    <span>Ver CV en PDF</span>
+                  </DropdownMenuItem>
+
+                  <DropdownMenuSeparator className="my-1 border-border/40" />
+
+                  {/* Flow Actions */}
+                  {app.status === "Pendiente" && (
                     <DropdownMenuItem
-                      render={
-                        <a
-                          href={getWhatsAppLink(app)}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="cursor-pointer text-xs font-semibold py-2 px-2.5 gap-2 text-emerald-600 dark:text-emerald-400"
-                        />
-                      }
+                      onSelect={() => handleUpdateStatus(app.id, "En revisión")}
+                      className="cursor-pointer text-xs font-semibold py-2 px-2.5 gap-2 text-blue-600 dark:text-blue-400"
                     >
-                      <MessageSquare className="size-3.5" />
-                      <span>Enviar WhatsApp</span>
+                      <Eye className="size-3.5" />
+                      <span>1. Iniciar Revisión</span>
+                    </DropdownMenuItem>
+                  )}
+
+                  {app.status !== "Preseleccionado" && app.status !== "Contratado" && (
+                    <DropdownMenuItem
+                      onSelect={() => handleUpdateStatus(app.id, "Preseleccionado")}
+                      className="cursor-pointer text-xs font-semibold py-2 px-2.5 gap-2 text-indigo-600 dark:text-indigo-400"
+                    >
+                      <CheckCircle2 className="size-3.5" />
+                      <span>2. Marcar Preseleccionado</span>
                     </DropdownMenuItem>
                   )}
 
                   <DropdownMenuItem
-                    onSelect={() => handleStartHire(app)}
-                    className="cursor-pointer text-xs font-semibold py-2 px-2.5 gap-2 text-primary hover:bg-primary/10"
+                    onSelect={() => handleOpenScheduleInterview(app)}
+                    className="cursor-pointer text-xs font-semibold py-2 px-2.5 gap-2 text-purple-600 dark:text-purple-400"
                   >
-                    <UserCheck className="size-3.5 text-primary" />
-                    <span>Contratar Candidato</span>
+                    <Calendar className="size-3.5" />
+                    <span>3. Agendar Cita de Entrevista</span>
                   </DropdownMenuItem>
 
                   <DropdownMenuSeparator className="my-1 border-border/40" />
 
                   <DropdownMenuItem
-                    onSelect={() =>
-                      handleUpdateStatus(app.id, "Preseleccionado")
-                    }
-                    className="cursor-pointer text-xs font-semibold py-2 px-2.5 gap-2 text-indigo-600 dark:text-indigo-400"
+                    onSelect={() => handleStartHire(app)}
+                    className="cursor-pointer text-xs font-semibold py-2 px-2.5 gap-2 text-primary hover:bg-primary/10"
                   >
-                    <CheckCircle2 className="size-3.5" />
-                    <span>Marcar Preseleccionado</span>
+                    <Sparkles className="size-3.5 text-primary" />
+                    <span>4. Formalizar Contratación</span>
                   </DropdownMenuItem>
 
-                  <DropdownMenuItem
-                    onSelect={() => handleUpdateStatus(app.id, "Descartado")}
-                    className="cursor-pointer text-xs font-semibold py-2 px-2.5 gap-2 text-rose-600 dark:text-rose-400 hover:bg-rose-500/10 focus:bg-rose-500/10"
-                  >
-                    <UserX className="size-3.5" />
-                    <span>Descartar Postulante</span>
-                  </DropdownMenuItem>
+                  {app.status !== "Descartado" && (
+                    <DropdownMenuItem
+                      onSelect={() => handleUpdateStatus(app.id, "Descartado")}
+                      className="cursor-pointer text-xs font-semibold py-2 px-2.5 gap-2 text-rose-600 dark:text-rose-400 hover:bg-rose-500/10"
+                    >
+                      <UserX className="size-3.5" />
+                      <span>Descartar Postulante</span>
+                    </DropdownMenuItem>
+                  )}
                 </DropdownMenuContent>
               </DropdownMenu>
             </div>
@@ -778,7 +876,7 @@ export function ApplicationsInbox() {
       </div>
 
       {/* 2. Pipeline Metrics Cards */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4">
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 sm:gap-4">
         <Card className="bg-card border border-border/40 rounded-2xl p-4 flex flex-col justify-between">
           <div className="flex items-center justify-between">
             <span className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider">
@@ -793,7 +891,7 @@ export function ApplicationsInbox() {
               {metrics.total}
             </h3>
             <p className="text-[10px] font-semibold text-muted-foreground mt-0.5">
-              En todas las convocatorias
+              En convocatorias
             </p>
           </div>
         </Card>
@@ -801,7 +899,7 @@ export function ApplicationsInbox() {
         <Card className="bg-card border border-border/40 rounded-2xl p-4 flex flex-col justify-between">
           <div className="flex items-center justify-between">
             <span className="text-[11px] font-bold text-amber-600 dark:text-amber-400 uppercase tracking-wider">
-              Por Revisar
+              1. Por Revisar
             </span>
             <div className="size-8 rounded-lg bg-amber-500/10 text-amber-600 dark:text-amber-400 flex items-center justify-center">
               <Clock className="size-4" />
@@ -812,7 +910,7 @@ export function ApplicationsInbox() {
               {metrics.pending}
             </h3>
             <p className="text-[10px] font-semibold text-muted-foreground mt-0.5">
-              Pendientes & en revisión
+              Pendientes / Revisión
             </p>
           </div>
         </Card>
@@ -820,10 +918,10 @@ export function ApplicationsInbox() {
         <Card className="bg-card border border-border/40 rounded-2xl p-4 flex flex-col justify-between">
           <div className="flex items-center justify-between">
             <span className="text-[11px] font-bold text-indigo-600 dark:text-indigo-400 uppercase tracking-wider">
-              Preseleccionados
+              2. Preselección
             </span>
             <div className="size-8 rounded-lg bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 flex items-center justify-center">
-              <Sparkles className="size-4" />
+              <CheckCircle2 className="size-4" />
             </div>
           </div>
           <div className="mt-2">
@@ -831,18 +929,37 @@ export function ApplicationsInbox() {
               {metrics.shortlisted}
             </h3>
             <p className="text-[10px] font-semibold text-muted-foreground mt-0.5">
-              Listos para entrevista
+              Listos para agendar
             </p>
           </div>
         </Card>
 
         <Card className="bg-card border border-border/40 rounded-2xl p-4 flex flex-col justify-between">
           <div className="flex items-center justify-between">
+            <span className="text-[11px] font-bold text-purple-600 dark:text-purple-400 uppercase tracking-wider">
+              3. Entrevistas
+            </span>
+            <div className="size-8 rounded-lg bg-purple-500/10 text-purple-600 dark:text-purple-400 flex items-center justify-center">
+              <Calendar className="size-4" />
+            </div>
+          </div>
+          <div className="mt-2">
+            <h3 className="text-2xl font-extrabold text-foreground font-mono">
+              {metrics.interviews}
+            </h3>
+            <p className="text-[10px] font-semibold text-muted-foreground mt-0.5">
+              Citas agendadas
+            </p>
+          </div>
+        </Card>
+
+        <Card className="bg-card border border-border/40 rounded-2xl p-4 flex flex-col justify-between col-span-2 sm:col-span-1">
+          <div className="flex items-center justify-between">
             <span className="text-[11px] font-bold text-emerald-600 dark:text-emerald-400 uppercase tracking-wider">
-              Contratados
+              4. Contratados
             </span>
             <div className="size-8 rounded-lg bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center">
-              <CheckCircle2 className="size-4" />
+              <Sparkles className="size-4" />
             </div>
           </div>
           <div className="mt-2">
@@ -850,7 +967,7 @@ export function ApplicationsInbox() {
               {metrics.hired}
             </h3>
             <p className="text-[10px] font-semibold text-muted-foreground mt-0.5">
-              En plantilla activa
+              Plantilla activa
             </p>
           </div>
         </Card>
@@ -863,35 +980,34 @@ export function ApplicationsInbox() {
         <div className="p-4 sm:p-5 border-b border-border/40 space-y-3.5 bg-muted/10">
           
           {/* Top Row: Search & Info */}
-          <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
-            
-            {/* Search Input */}
-            <div className="relative flex-1 max-w-lg">
-              <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-muted-foreground size-4 pointer-events-none" />
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div className="relative w-full sm:w-80">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
               <Input
+                placeholder="Buscar por nombre, cargo, teléfono, skill..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Buscar por candidato, vacante, habilidades o teléfono..."
-                className="h-10 pl-10 pr-9 bg-background border-border/50 rounded-xl text-xs sm:text-sm font-medium focus-visible:ring-1 focus-visible:ring-primary"
+                className="pl-9 h-10 rounded-xl bg-background border-border/50 text-xs font-medium focus-visible:ring-primary/20 shadow-2xs"
               />
               {searchQuery && (
                 <button
+                  type="button"
                   onClick={() => setSearchQuery("")}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground cursor-pointer"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
                 >
                   <X className="size-3.5" />
                 </button>
               )}
             </div>
 
-            {/* Quick Sort Helper */}
-            <div className="hidden sm:flex items-center gap-1.5 text-xs text-muted-foreground font-medium">
-              <ArrowUpDown className="size-3.5 text-primary" />
-              <span>Haz clic en los encabezados para ordenar</span>
+            <div className="flex items-center gap-2">
+              <span className="text-xs text-muted-foreground font-medium">
+                Mostrando <strong className="text-foreground">{filteredApplicants.length}</strong> postulantes
+              </span>
             </div>
           </div>
 
-          {/* Filter Row: Status Segmented Tabs + Vacancy Select + Rating Filter + Clear */}
+          {/* Bottom Row: Status Filter Tabs & Vacancy Selectors */}
           <div className="flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-3 pt-1 border-t border-border/30">
             
             {/* Status Segmented Tabs */}
@@ -933,6 +1049,19 @@ export function ApplicationsInbox() {
               >
                 <span className="size-1.5 rounded-full bg-indigo-500 inline-block" />
                 <span>Preseleccionados ({metrics.shortlisted})</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setStatusFilter("Entrevista")}
+                className={cn(
+                  "px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5",
+                  statusFilter === "Entrevista"
+                    ? "bg-background text-purple-600 dark:text-purple-400 shadow-2xs"
+                    : "text-muted-foreground hover:text-foreground"
+                )}
+              >
+                <span className="size-1.5 rounded-full bg-purple-500 inline-block" />
+                <span>Entrevistas ({metrics.interviews})</span>
               </button>
               <button
                 type="button"
@@ -1119,7 +1248,19 @@ export function ApplicationsInbox() {
                   {tableRows.map((row) => (
                     <TableRow
                       key={row.id}
-                      className="hover:bg-muted/25 transition-colors group"
+                      data-state={row.getIsSelected() && "selected"}
+                      onClick={(e) => {
+                        const target = e.target as HTMLElement;
+                        if (
+                          target.closest(
+                            "button, a, input, [role='combobox'], [role='checkbox'], [role='menuitem'], [data-slot='select-trigger'], [data-slot='select-content'], [data-slot='dropdown-menu-trigger'], [data-slot='dropdown-menu-content'], [data-slot='dropdown-menu-item'], [data-slot='alert-dialog'], [data-slot='alert-dialog-content']"
+                          )
+                        ) {
+                          return;
+                        }
+                        handleOpenDetail(row.original);
+                      }}
+                      className="hover:bg-muted/30 transition-colors cursor-pointer group"
                     >
                       {row.getVisibleCells().map((cell) => (
                         <TableCell
@@ -1179,397 +1320,932 @@ export function ApplicationsInbox() {
         </div>
       </Card>
 
-      {/* Modal: Full Candidate Profile / Dossier Viewer */}
+      {/* Modal: Full Candidate Profile / Dossier Viewer (Redesigned matching reference) */}
       <Dialog open={isDetailModalOpen} onOpenChange={setIsDetailModalOpen}>
-        <DialogContent className="w-full sm:!max-w-[860px] md:!max-w-[920px] rounded-3xl p-0 overflow-hidden bg-card border-border/80 shadow-2xl !flex !flex-col h-[85vh] max-h-[820px] !gap-0 font-sans">
+        <DialogContent
+          showCloseButton={false}
+          className="w-full sm:!max-w-[700px] md:!max-w-[740px] rounded-[32px] p-0 overflow-hidden bg-card border-border/80 shadow-2xl !flex !flex-col h-[90vh] max-h-[860px] !gap-0 font-sans"
+        >
           {selectedApplicant && (
             <>
-              {/* 1. Header Fijo con Resumen del Candidato */}
-              <DialogHeader className="p-5 sm:p-6 pb-4 border-b border-border/40 bg-muted/20 shrink-0 pr-14 text-left">
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                  
-                  {/* Avatar & Info */}
-                  <div className="flex items-center gap-3.5 min-w-0">
-                    <Avatar className="size-14 rounded-2xl border-2 border-border/50 shadow-sm shrink-0">
-                      <AvatarImage
-                        src={selectedApplicant.avatar}
-                        alt={selectedApplicant.name}
-                        className="object-cover"
-                      />
-                      <AvatarFallback className="rounded-2xl font-extrabold text-base bg-primary/10 text-primary">
-                        {getInitials(selectedApplicant.name)}
-                      </AvatarFallback>
-                    </Avatar>
-
-                    <div className="min-w-0 space-y-1">
-                      <div className="flex items-center gap-2">
-                        <DialogTitle className="text-lg sm:text-xl font-[800] text-foreground tracking-tight">
-                          {selectedApplicant.name}
-                        </DialogTitle>
+              {/* Scrollable Container with entire profile */}
+              <div className="flex-1 min-h-0 h-full relative overflow-hidden bg-card">
+                <ScrollArea className="h-full w-full">
+                  <div className="flex flex-col">
+                    
+                    {/* 1. Header Banner: Vibrant Warm Orange with Abstract Geometric Watermark */}
+                    <div className="relative h-36 sm:h-44 w-full bg-gradient-to-r from-[#FF5722] via-[#FF6F00] to-[#FF3D00] overflow-hidden shrink-0">
+                      {/* Decorative watermark / abstract curved shapes matching reference */}
+                      <div className="absolute -right-8 -bottom-12 w-56 h-56 sm:w-72 sm:h-72 rounded-full border-[32px] border-white/20 pointer-events-none" />
+                      <div className="absolute right-14 -top-8 w-36 h-36 rounded-full border-[22px] border-white/10 pointer-events-none" />
+                      
+                      {/* Top Bar inside Banner: Vacancy Badge & Close Button */}
+                      <div className="relative z-10 p-4 sm:p-5 flex items-center justify-between">
                         <Badge
                           variant="outline"
-                          className={cn(
-                            "text-[10px] font-bold px-2 py-0.5 rounded-full border",
-                            getStatusBadgeClass(selectedApplicant.status)
-                          )}
+                          className="text-[11px] font-bold px-3 py-1 rounded-full bg-black/25 backdrop-blur-md border-white/20 text-white shadow-xs"
                         >
-                          {selectedApplicant.status}
+                          <Briefcase className="size-3 mr-1.5 inline" />
+                          <span>{selectedApplicant.vacancyTitle || "Vacante Activa"}</span>
                         </Badge>
+
+                        <button
+                          type="button"
+                          onClick={() => setIsDetailModalOpen(false)}
+                          className="size-8 sm:size-9 rounded-full bg-black/25 hover:bg-black/45 text-white backdrop-blur-md flex items-center justify-center transition-colors cursor-pointer"
+                          aria-label="Cerrar modal"
+                        >
+                          <X className="size-4" />
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* 2. Main Profile Card Content */}
+                    <div className="px-6 sm:px-8 pb-8 space-y-5">
+                      
+                      {/* Avatar overlapping the banner + Status Badge */}
+                      <div className="flex justify-between items-end -mt-14 sm:-mt-16 md:-mt-20">
+                        <Avatar className="size-24 sm:size-28 md:size-32 rounded-full border-4 border-card bg-card shadow-lg shrink-0">
+                          <AvatarImage
+                            src={selectedApplicant.avatar}
+                            alt={selectedApplicant.name}
+                            className="object-cover"
+                          />
+                          <AvatarFallback className="text-2xl sm:text-3xl font-black bg-primary/10 text-primary">
+                            {getInitials(selectedApplicant.name)}
+                          </AvatarFallback>
+                        </Avatar>
+
+                        <div className="mb-2">
+                          <Badge
+                            variant="outline"
+                            className={cn(
+                              "text-xs font-bold px-3 py-1 rounded-full border shadow-2xs",
+                              getStatusBadgeClass(selectedApplicant.status)
+                            )}
+                          >
+                            {selectedApplicant.status}
+                          </Badge>
+                        </div>
                       </div>
 
-                      <DialogDescription className="text-xs text-muted-foreground font-medium flex items-center gap-2 flex-wrap">
-                        <span className="font-semibold text-foreground">
-                          {selectedApplicant.headline}
-                        </span>
-                        <span>•</span>
-                        <span className="flex items-center gap-1">
-                          <MapPin className="size-3 text-primary" />
-                          <span>{selectedApplicant.location}</span>
-                        </span>
-                        <span>•</span>
-                        <span>Postulado {selectedApplicant.elapsedTime}</span>
-                      </DialogDescription>
-                    </div>
-                  </div>
+                      {/* Name & Headline */}
+                      <div className="space-y-1 text-left">
+                        <DialogTitle className="text-2xl sm:text-3xl font-extrabold text-foreground tracking-tight">
+                          {selectedApplicant.name}
+                        </DialogTitle>
+                        <DialogDescription className="text-sm sm:text-base text-muted-foreground font-medium">
+                          {selectedApplicant.headline || selectedApplicant.vacancyTitle || "Candidato Profesional"}
+                        </DialogDescription>
+                      </div>
 
-                  {/* Header Actions */}
-                  <div className="flex items-center gap-2 shrink-0">
-                    {selectedApplicant.phone && (
-                      <a
-                        href={getWhatsAppLink(selectedApplicant)}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="inline-flex items-center gap-1.5 h-9 px-3.5 rounded-xl bg-[#25D366] text-[#062c1e] font-extrabold text-xs shadow-xs hover:opacity-90 transition-opacity cursor-pointer"
-                      >
-                        <MessageSquare className="size-3.5 stroke-[2.5]" />
-                        <span>WhatsApp</span>
-                      </a>
-                    )}
-
-                    {selectedApplicant.status !== "Contratado" && (
-                      <Button
-                        size="sm"
-                        onClick={() => {
-                          setIsDetailModalOpen(false);
-                          handleStartHire(selectedApplicant);
-                        }}
-                        className="h-9 px-3.5 rounded-xl bg-primary text-primary-foreground font-bold text-xs shadow-xs hover:bg-primary/90 cursor-pointer gap-1.5"
-                      >
-                        <Sparkles className="size-3.5" />
-                        <span>Contratar</span>
-                      </Button>
-                    )}
-                  </div>
-                </div>
-              </DialogHeader>
-
-              {/* 2. Scrollable Body with Tabs */}
-              <div className="flex-1 min-h-0 h-full relative overflow-hidden bg-background">
-                <ScrollArea className="h-full w-full">
-                  <div className="p-5 sm:p-6 space-y-6">
-                    <Tabs defaultValue="profile" className="w-full space-y-5">
-                      <TabsList className="grid grid-cols-3 w-full h-11 p-1 rounded-2xl bg-muted/40 border border-border/40">
-                        <TabsTrigger
-                          value="profile"
-                          className="rounded-xl text-xs font-bold gap-1.5 data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-2xs cursor-pointer"
-                        >
-                          <Briefcase className="size-3.5" />
-                          <span>Perfil & Trayectoria</span>
-                        </TabsTrigger>
-                        <TabsTrigger
-                          value="documents"
-                          className="rounded-xl text-xs font-bold gap-1.5 data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-2xs cursor-pointer"
-                        >
-                          <ShieldCheck className="size-3.5" />
-                          <span>Documentos Oficiales</span>
-                        </TabsTrigger>
-                        <TabsTrigger
-                          value="notes"
-                          className="rounded-xl text-xs font-bold gap-1.5 data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-2xs cursor-pointer"
-                        >
-                          <FileText className="size-3.5" />
-                          <span>Notas Internas</span>
-                        </TabsTrigger>
-                      </TabsList>
-
-                      {/* TAB 1: Profile & Career */}
-                      <TabsContent
-                        value="profile"
-                        className="space-y-4 m-0 focus-visible:outline-none"
-                      >
-                        {/* Bio */}
-                        <Card className="bg-card border border-border/40 rounded-2xl p-4 space-y-2">
-                          <span className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
-                            Biografía Profesional
-                          </span>
-                          <p className="text-xs sm:text-sm leading-relaxed text-foreground font-medium whitespace-pre-line">
-                            {selectedApplicant.bio ||
-                              "El candidato no ha registrado biografía adicional."}
-                          </p>
-                        </Card>
-
-                        {/* Skills */}
-                        {selectedApplicant.skills &&
-                          selectedApplicant.skills.length > 0 && (
-                            <Card className="bg-card border border-border/40 rounded-2xl p-4 space-y-2.5">
-                              <span className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
-                                Habilidades & Competencias
-                              </span>
-                              <div className="flex flex-wrap gap-2">
-                                {selectedApplicant.skills.map((skill, idx) => (
-                                  <Badge
-                                    key={idx}
-                                    variant="secondary"
-                                    className="px-3 py-1 rounded-xl text-xs font-bold bg-muted/60 border border-border/60 text-foreground"
-                                  >
-                                    {skill}
-                                  </Badge>
-                                ))}
-                              </div>
-                            </Card>
-                          )}
-
-                        {/* Experiences */}
-                        {selectedApplicant.experiences &&
-                          selectedApplicant.experiences.length > 0 && (
-                            <Card className="bg-card border border-border/40 rounded-2xl p-4 space-y-3">
-                              <span className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
-                                Trayectoria Laboral
-                              </span>
-                              <div className="space-y-2.5">
-                                {selectedApplicant.experiences.map((exp, idx) => (
-                                  <div
-                                    key={idx}
-                                    className="p-3.5 rounded-xl bg-muted/25 border border-border/40 space-y-1"
-                                  >
-                                    <div className="flex justify-between items-start gap-2">
-                                      <h5 className="text-xs sm:text-sm font-bold text-foreground">
-                                        {exp.role}
-                                      </h5>
-                                      <Badge
-                                        variant="outline"
-                                        className="text-[10px] font-semibold"
-                                      >
-                                        {exp.period}
-                                      </Badge>
-                                    </div>
-                                    <p className="text-xs font-semibold text-primary">
-                                      {exp.company}
-                                    </p>
-                                    {exp.description && (
-                                      <p className="text-xs text-muted-foreground leading-relaxed pt-1">
-                                        {exp.description}
-                                      </p>
-                                    )}
-                                  </div>
-                                ))}
-                              </div>
-                            </Card>
-                          )}
-
-                        {/* Education */}
-                        {selectedApplicant.education &&
-                          selectedApplicant.education.length > 0 && (
-                            <Card className="bg-card border border-border/40 rounded-2xl p-4 space-y-3">
-                              <span className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
-                                Formación Académica
-                              </span>
-                              <div className="space-y-2">
-                                {selectedApplicant.education.map((edu, idx) => (
-                                  <div
-                                    key={idx}
-                                    className="p-3 rounded-xl bg-muted/20 border border-border/30 space-y-0.5"
-                                  >
-                                    <h5 className="text-xs font-bold text-foreground">
-                                      {edu.degree}
-                                    </h5>
-                                    <p className="text-xs text-muted-foreground font-medium">
-                                      {edu.institution} • {edu.period}
-                                    </p>
-                                  </div>
-                                ))}
-                              </div>
-                            </Card>
-                          )}
-                      </TabsContent>
-
-                      {/* TAB 2: Official Documents & Privacy Vault */}
-                      <TabsContent
-                        value="documents"
-                        className="space-y-4 m-0 focus-visible:outline-none"
-                      >
-                        <Card className="bg-card border border-border/40 rounded-2xl p-5 space-y-4">
-                          <div className="flex items-center gap-3">
-                            <div className="size-10 rounded-xl bg-primary/10 text-primary flex items-center justify-center shrink-0">
-                              <ShieldCheck className="size-5" />
+                      {/* 2.1 Pipeline Stage Progression Stepper */}
+                      <div className="rounded-2xl bg-muted/30 border border-border/50 p-3 sm:p-4 my-2 text-left shadow-2xs">
+                        <div className="flex items-center justify-between gap-1 sm:gap-2">
+                          {/* 1. Revisión */}
+                          <div className="flex-1 flex flex-col items-center text-center">
+                            <div
+                              className={cn(
+                                "size-7 sm:size-8 rounded-full flex items-center justify-center font-bold text-xs transition-colors",
+                                selectedApplicant.status === "Pendiente" || selectedApplicant.status === "En revisión"
+                                  ? "bg-blue-600 text-white shadow-xs ring-4 ring-blue-500/20"
+                                  : (selectedApplicant.status === "Preseleccionado" || selectedApplicant.status === "Entrevista" || selectedApplicant.status === "Contratado")
+                                    ? "bg-emerald-600 text-white"
+                                    : "bg-muted text-muted-foreground"
+                              )}
+                            >
+                              {(selectedApplicant.status === "Preseleccionado" || selectedApplicant.status === "Entrevista" || selectedApplicant.status === "Contratado") ? (
+                                <Check className="size-3.5" />
+                              ) : (
+                                "1"
+                              )}
                             </div>
-                            <div>
-                              <h4 className="text-sm font-bold text-foreground">
-                                Bóveda de Documentos Oficiales LFT
-                              </h4>
-                              <p className="text-xs text-muted-foreground">
-                                INE, CURP, Constancia SAT y Comprobante de domicilio protegidos por privacidad.
-                              </p>
-                            </div>
+                            <span className="text-[10px] sm:text-[11px] font-bold mt-1.5 text-foreground">1. Revisión</span>
+                            <span className="text-[9px] text-muted-foreground hidden sm:inline">
+                              {selectedApplicant.status === "Pendiente" ? "Por analizar" : "Revisado"}
+                            </span>
                           </div>
 
-                          {docAccessState?.status === "approved" ? (
-                            <div className="space-y-3 pt-2">
-                              <Badge className="bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-none font-bold text-xs px-3 py-1 rounded-lg">
-                                <CheckCircle2 className="size-3.5 mr-1" />
-                                Acceso Autorizado por el Candidato
-                              </Badge>
+                          <div
+                            className={cn(
+                              "h-0.5 flex-1 mx-1 rounded-full transition-colors",
+                              (selectedApplicant.status === "Preseleccionado" || selectedApplicant.status === "Entrevista" || selectedApplicant.status === "Contratado")
+                                ? "bg-emerald-600"
+                                : "bg-border/60"
+                            )}
+                          />
 
-                              {isLoadingDocs ? (
-                                <div className="p-6 text-center">
-                                  <Loader2 className="size-5 animate-spin mx-auto text-primary" />
+                          {/* 2. Preselección */}
+                          <div className="flex-1 flex flex-col items-center text-center">
+                            <div
+                              className={cn(
+                                "size-7 sm:size-8 rounded-full flex items-center justify-center font-bold text-xs transition-colors",
+                                selectedApplicant.status === "Preseleccionado"
+                                  ? "bg-indigo-600 text-white shadow-xs ring-4 ring-indigo-500/20"
+                                  : (selectedApplicant.status === "Entrevista" || selectedApplicant.status === "Contratado")
+                                    ? "bg-emerald-600 text-white"
+                                    : "bg-muted text-muted-foreground"
+                              )}
+                            >
+                              {(selectedApplicant.status === "Entrevista" || selectedApplicant.status === "Contratado") ? (
+                                <Check className="size-3.5" />
+                              ) : (
+                                "2"
+                              )}
+                            </div>
+                            <span className="text-[10px] sm:text-[11px] font-bold mt-1.5 text-foreground">2. Pre-selección</span>
+                            <span className="text-[9px] text-muted-foreground hidden sm:inline">
+                              {selectedApplicant.status === "Preseleccionado" ? "Seleccionado" : "Filtro inicial"}
+                            </span>
+                          </div>
+
+                          <div
+                            className={cn(
+                              "h-0.5 flex-1 mx-1 rounded-full transition-colors",
+                              (selectedApplicant.status === "Entrevista" || selectedApplicant.status === "Contratado")
+                                ? "bg-emerald-600"
+                                : "bg-border/60"
+                            )}
+                          />
+
+                          {/* 3. Entrevista */}
+                          <div className="flex-1 flex flex-col items-center text-center">
+                            <div
+                              className={cn(
+                                "size-7 sm:size-8 rounded-full flex items-center justify-center font-bold text-xs transition-colors",
+                                selectedApplicant.status === "Entrevista"
+                                  ? "bg-purple-600 text-white shadow-xs ring-4 ring-purple-500/20"
+                                  : selectedApplicant.status === "Contratado"
+                                    ? "bg-emerald-600 text-white"
+                                    : "bg-muted text-muted-foreground"
+                              )}
+                            >
+                              {selectedApplicant.status === "Contratado" ? (
+                                <Check className="size-3.5" />
+                              ) : (
+                                "3"
+                              )}
+                            </div>
+                            <span className="text-[10px] sm:text-[11px] font-bold mt-1.5 text-foreground">3. Entrevista</span>
+                            <span className="text-[9px] text-muted-foreground hidden sm:inline">
+                              {selectedApplicant.status === "Entrevista" ? "Cita agendada" : "Cita laboral"}
+                            </span>
+                          </div>
+
+                          <div
+                            className={cn(
+                              "h-0.5 flex-1 mx-1 rounded-full transition-colors",
+                              selectedApplicant.status === "Contratado" ? "bg-emerald-600" : "bg-border/60"
+                            )}
+                          />
+
+                          {/* 4. Contratación */}
+                          <div className="flex-1 flex flex-col items-center text-center">
+                            <div
+                              className={cn(
+                                "size-7 sm:size-8 rounded-full flex items-center justify-center font-bold text-xs transition-colors",
+                                selectedApplicant.status === "Contratado"
+                                  ? "bg-emerald-600 text-white shadow-xs ring-4 ring-emerald-500/20"
+                                  : "bg-muted text-muted-foreground"
+                              )}
+                            >
+                              {selectedApplicant.status === "Contratado" ? (
+                                <Sparkles className="size-3.5" />
+                              ) : (
+                                "4"
+                              )}
+                            </div>
+                            <span className="text-[10px] sm:text-[11px] font-bold mt-1.5 text-foreground">4. Contratación</span>
+                            <span className="text-[9px] text-muted-foreground hidden sm:inline">
+                              {selectedApplicant.status === "Contratado" ? "Contratado" : "Decisión final"}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* 2.2 Cita de Entrevista Agendada Card */}
+                      {selectedApplicant.status === "Entrevista" && selectedApplicant.interview && (
+                        <div className="rounded-2xl border border-purple-500/30 bg-purple-500/10 p-4 text-left space-y-2.5 shadow-2xs">
+                          <div className="flex items-center justify-between">
+                            <span className="text-xs font-bold text-purple-700 dark:text-purple-300 uppercase tracking-wider flex items-center gap-1.5">
+                              <Calendar className="size-3.5" />
+                              Cita de Entrevista Programada
+                            </span>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => handleOpenScheduleInterview(selectedApplicant)}
+                              className="h-7 text-[11px] font-bold rounded-lg border-purple-500/30 text-purple-700 dark:text-purple-300 hover:bg-purple-500/20 cursor-pointer"
+                            >
+                              Reagendar Cita
+                            </Button>
+                          </div>
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs font-semibold text-foreground pt-1">
+                            <div className="flex items-center gap-2">
+                              <Clock className="size-3.5 text-purple-600 shrink-0" />
+                              <span>{selectedApplicant.interview.date} a las {selectedApplicant.interview.time || "10:00"}</span>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              {selectedApplicant.interview.modality === "presencial" ? (
+                                <MapPin className="size-3.5 text-purple-600 shrink-0" />
+                              ) : (
+                                <Video className="size-3.5 text-purple-600 shrink-0" />
+                              )}
+                              <span className="truncate">
+                                {selectedApplicant.interview.modality === "presencial" ? "Presencial: " : "Virtual: "}
+                                {selectedApplicant.interview.locationOrLink}
+                              </span>
+                            </div>
+                          </div>
+                          {selectedApplicant.interview.notes && (
+                            <p className="text-[11px] text-muted-foreground font-medium pt-1.5 border-t border-purple-500/20">
+                              <strong className="text-foreground">Indicaciones:</strong> {selectedApplicant.interview.notes}
+                            </p>
+                          )}
+                        </div>
+                      )}
+
+                      {/* 3. 4-Metrics Row (Exact format from reference: Posts, Likes, Followers, Following) */}
+                      <div className="grid grid-cols-4 gap-2 sm:gap-4 py-4 sm:py-5 border-y border-border/40 text-left">
+                        <div>
+                          <div className="text-lg sm:text-xl font-extrabold text-foreground">
+                            {selectedApplicant.experiences?.length || 0}
+                          </div>
+                          <div className="text-xs sm:text-sm text-muted-foreground font-medium">
+                            Experiencias
+                          </div>
+                        </div>
+                        <div>
+                          <div className="text-lg sm:text-xl font-extrabold text-foreground flex items-center gap-1">
+                            <span>{selectedApplicant.rating > 0 ? selectedApplicant.rating.toFixed(1) : "5.0"}</span>
+                            <Star className="size-3.5 fill-amber-400 text-amber-400 inline" />
+                          </div>
+                          <div className="text-xs sm:text-sm text-muted-foreground font-medium">
+                            Calificación
+                          </div>
+                        </div>
+                        <div>
+                          <div className="text-lg sm:text-xl font-extrabold text-foreground">
+                            {selectedApplicant.skills?.length || 0}
+                          </div>
+                          <div className="text-xs sm:text-sm text-muted-foreground font-medium">
+                            Habilidades
+                          </div>
+                        </div>
+                        <div>
+                          <div className="text-lg sm:text-xl font-extrabold text-foreground truncate">
+                            {selectedApplicant.elapsedTime || "Reciente"}
+                          </div>
+                          <div className="text-xs sm:text-sm text-muted-foreground font-medium">
+                            Postulado
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* 4. Action Buttons Row (Exact 3 pill buttons like the reference image, stage-aware) */}
+                      <div className="flex items-center gap-2.5 sm:gap-3 py-1">
+                        {/* Pill 1: Dynamic Action according to Pipeline Stage */}
+                        {selectedApplicant.status === "Pendiente" ? (
+                          <Button
+                            onClick={async () => {
+                              await handleUpdateStatus(selectedApplicant.id, "En revisión");
+                              setSelectedApplicant((prev) => prev ? { ...prev, status: "En revisión" } : null);
+                            }}
+                            className="flex-1 h-10 sm:h-11 rounded-full font-bold text-xs sm:text-sm gap-2 shadow-xs bg-blue-600 hover:bg-blue-700 text-white cursor-pointer"
+                          >
+                            <Eye className="size-4" />
+                            <span>Iniciar Revisión</span>
+                          </Button>
+                        ) : selectedApplicant.status === "En revisión" ? (
+                          <Button
+                            onClick={async () => {
+                              await handleUpdateStatus(selectedApplicant.id, "Preseleccionado");
+                              setSelectedApplicant((prev) => prev ? { ...prev, status: "Preseleccionado" } : null);
+                            }}
+                            className="flex-1 h-10 sm:h-11 rounded-full font-bold text-xs sm:text-sm gap-2 shadow-xs bg-indigo-600 hover:bg-indigo-700 text-white cursor-pointer"
+                          >
+                            <CheckCircle2 className="size-4" />
+                            <span>Preseleccionar</span>
+                          </Button>
+                        ) : selectedApplicant.status === "Preseleccionado" ? (
+                          <Button
+                            onClick={() => handleOpenScheduleInterview(selectedApplicant)}
+                            className="flex-1 h-10 sm:h-11 rounded-full font-bold text-xs sm:text-sm gap-2 shadow-xs bg-purple-600 hover:bg-purple-700 text-white cursor-pointer"
+                          >
+                            <Calendar className="size-4" />
+                            <span>Agendar Cita</span>
+                          </Button>
+                        ) : selectedApplicant.status === "Entrevista" ? (
+                          <Button
+                            onClick={() => {
+                              setIsDetailModalOpen(false);
+                              handleStartHire(selectedApplicant);
+                            }}
+                            className="flex-1 h-10 sm:h-11 rounded-full font-bold text-xs sm:text-sm gap-2 shadow-xs bg-emerald-600 hover:bg-emerald-700 text-white cursor-pointer"
+                          >
+                            <Sparkles className="size-4" />
+                            <span>Contratar</span>
+                          </Button>
+                        ) : selectedApplicant.status === "Contratado" ? (
+                          <Button
+                            disabled
+                            variant="outline"
+                            className="flex-1 h-10 sm:h-11 rounded-full font-bold text-xs sm:text-sm gap-2 border-emerald-500/40 text-emerald-600 bg-emerald-500/10 cursor-default"
+                          >
+                            <CheckCircle2 className="size-4" />
+                            <span>Contratado</span>
+                          </Button>
+                        ) : (
+                          <Button
+                            variant="outline"
+                            onClick={async () => {
+                              await handleUpdateStatus(selectedApplicant.id, "En revisión");
+                              setSelectedApplicant((prev) => prev ? { ...prev, status: "En revisión" } : null);
+                            }}
+                            className="flex-1 h-10 sm:h-11 rounded-full font-bold text-xs sm:text-sm gap-2 border-border/80 text-foreground cursor-pointer"
+                          >
+                            <RotateCcw className="size-4" />
+                            <span>Reactivar</span>
+                          </Button>
+                        )}
+
+                        {/* Pill 2: WhatsApp */}
+                        {selectedApplicant.phone && (
+                          <a
+                            href={getWhatsAppLink(selectedApplicant)}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="flex-1"
+                          >
+                            <Button
+                              variant="outline"
+                              className="w-full h-10 sm:h-11 rounded-full font-bold text-xs sm:text-sm gap-2 border-border/80 hover:bg-muted/50 text-foreground cursor-pointer shadow-2xs"
+                            >
+                              <MessageSquare className="size-4 text-emerald-600" />
+                              <span>WhatsApp</span>
+                            </Button>
+                          </a>
+                        )}
+
+                        {/* Pill 3: Email or Reagendar */}
+                        {selectedApplicant.status === "Entrevista" ? (
+                          <Button
+                            variant="outline"
+                            onClick={() => handleOpenScheduleInterview(selectedApplicant)}
+                            className="flex-1 h-10 sm:h-11 rounded-full font-bold text-xs sm:text-sm gap-2 border-border/80 hover:bg-muted/50 text-foreground cursor-pointer shadow-2xs"
+                          >
+                            <Calendar className="size-4 text-purple-600" />
+                            <span>Reagendar</span>
+                          </Button>
+                        ) : (
+                          <a
+                            href={`mailto:${selectedApplicant.email || "contacto@candidato.com"}`}
+                            className="flex-1"
+                          >
+                            <Button
+                              variant="outline"
+                              className="w-full h-10 sm:h-11 rounded-full font-bold text-xs sm:text-sm gap-2 border-border/80 hover:bg-muted/50 text-foreground cursor-pointer shadow-2xs"
+                            >
+                              <Mail className="size-4 text-primary" />
+                              <span>Email</span>
+                            </Button>
+                          </a>
+                        )}
+                      </div>
+
+                      {/* 5. "About" Section */}
+                      <div className="pt-2 text-left space-y-3">
+                        <h3 className="text-base sm:text-lg font-bold text-foreground">
+                          About
+                        </h3>
+                        <p className="text-xs sm:text-sm leading-relaxed text-muted-foreground font-normal whitespace-pre-line">
+                          {selectedApplicant.bio ||
+                            "Profesional proactivo con pasión por generar impacto positivo y soluciones centradas en el usuario. Cuenta con trayectoria en el área, adaptabilidad y compromiso para integrarse y aportar al equipo desde el primer día."}
+                        </p>
+
+                        {/* Meta items with icons like in the reference image bottom section */}
+                        <div className="space-y-2 pt-1 text-xs sm:text-sm text-muted-foreground font-medium">
+                          <div className="flex items-center gap-2">
+                            <MapPin className="size-4 text-muted-foreground/70 shrink-0" />
+                            <span>{selectedApplicant.location || "Ubicación en el Sureste de México"}</span>
+                          </div>
+                          {selectedApplicant.phone && (
+                            <div className="flex items-center gap-2">
+                              <Phone className="size-4 text-muted-foreground/70 shrink-0" />
+                              <span>{selectedApplicant.phone}</span>
+                            </div>
+                          )}
+                          <div className="flex items-center gap-2">
+                            <Briefcase className="size-4 text-muted-foreground/70 shrink-0" />
+                            <span>Postulación: <strong className="text-foreground">{selectedApplicant.vacancyTitle}</strong></span>
+                          </div>
+                          <div className="flex items-center gap-2 pt-1">
+                            <FileText className="size-4 text-primary shrink-0" />
+                            <button
+                              type="button"
+                              onClick={() => setActiveModalTab("curriculum")}
+                              className="text-primary hover:underline font-bold text-xs sm:text-sm text-left cursor-pointer flex items-center gap-1"
+                            >
+                              <span>Ver Currículum en PDF</span>
+                              <ChevronRight className="size-3.5" />
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* 6. Tabs for Deep Dossier: Trayectoria, CV en PDF, Notas Internas, (Documentos LFT si Contratado) */}
+                      <div className="pt-4 border-t border-border/40">
+                        <Tabs value={activeModalTab} onValueChange={setActiveModalTab} className="w-full space-y-4">
+                          <TabsList
+                            className={cn(
+                              "grid w-full h-11 p-1 rounded-2xl bg-muted/40 border border-border/40",
+                              selectedApplicant.status === "Contratado" ? "grid-cols-4" : "grid-cols-3"
+                            )}
+                          >
+                            <TabsTrigger
+                              value="experience"
+                              className="rounded-xl text-xs font-bold gap-1.5 data-[state=active]:bg-card data-[state=active]:text-foreground data-[state=active]:shadow-2xs cursor-pointer"
+                            >
+                              <Briefcase className="size-3.5" />
+                              <span>Trayectoria</span>
+                            </TabsTrigger>
+                            <TabsTrigger
+                              value="curriculum"
+                              className="rounded-xl text-xs font-bold gap-1.5 data-[state=active]:bg-card data-[state=active]:text-foreground data-[state=active]:shadow-2xs cursor-pointer"
+                            >
+                              <FileText className="size-3.5 text-primary" />
+                              <span>CV en PDF</span>
+                            </TabsTrigger>
+                            <TabsTrigger
+                              value="notes"
+                              className="rounded-xl text-xs font-bold gap-1.5 data-[state=active]:bg-card data-[state=active]:text-foreground data-[state=active]:shadow-2xs cursor-pointer"
+                            >
+                              <PenTool className="size-3.5" />
+                              <span>Notas Internas</span>
+                            </TabsTrigger>
+                            {selectedApplicant.status === "Contratado" && (
+                              <TabsTrigger
+                                value="documents"
+                                className="rounded-xl text-xs font-bold gap-1.5 data-[state=active]:bg-card data-[state=active]:text-foreground data-[state=active]:shadow-2xs cursor-pointer"
+                              >
+                                <ShieldCheck className="size-3.5 text-emerald-600" />
+                                <span>Documentos LFT</span>
+                              </TabsTrigger>
+                            )}
+                          </TabsList>
+
+                          {/* TAB 1: Trayectoria, Habilidades & Educación */}
+                          <TabsContent value="experience" className="space-y-4 m-0 focus-visible:outline-none text-left">
+                            {/* Skills */}
+                            {selectedApplicant.skills && selectedApplicant.skills.length > 0 && (
+                              <Card className="bg-muted/15 border border-border/40 rounded-2xl p-4 space-y-2.5">
+                                <span className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
+                                  Habilidades & Competencias
+                                </span>
+                                <div className="flex flex-wrap gap-2">
+                                  {selectedApplicant.skills.map((skill, idx) => (
+                                    <Badge
+                                      key={idx}
+                                      variant="secondary"
+                                      className="px-3 py-1 rounded-xl text-xs font-bold bg-muted/60 border border-border/60 text-foreground"
+                                    >
+                                      {skill}
+                                    </Badge>
+                                  ))}
                                 </div>
-                              ) : authorizedDocs.length > 0 ? (
-                                <div className="space-y-2">
-                                  {authorizedDocs.map((doc, idx) => (
+                              </Card>
+                            )}
+
+                            {/* Experiences */}
+                            {selectedApplicant.experiences && selectedApplicant.experiences.length > 0 && (
+                              <Card className="bg-muted/15 border border-border/40 rounded-2xl p-4 space-y-3">
+                                <span className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
+                                  Historial Laboral
+                                </span>
+                                <div className="space-y-2.5">
+                                  {selectedApplicant.experiences.map((exp, idx) => (
                                     <div
                                       key={idx}
-                                      className="p-3 rounded-xl bg-muted/20 border border-border/30 flex items-center justify-between text-xs"
+                                      className="p-3.5 rounded-xl bg-card border border-border/40 space-y-1 shadow-2xs"
                                     >
-                                      <div className="flex items-center gap-2">
-                                        <FileText className="size-4 text-primary" />
-                                        <span className="font-semibold text-foreground">
-                                          {doc.title || doc.name}
-                                        </span>
+                                      <div className="flex justify-between items-start gap-2">
+                                        <h5 className="text-xs sm:text-sm font-bold text-foreground">
+                                          {exp.role}
+                                        </h5>
+                                        <Badge variant="outline" className="text-[10px] font-semibold">
+                                          {exp.period}
+                                        </Badge>
                                       </div>
-                                      <Button
-                                        size="sm"
-                                        variant="outline"
-                                        onClick={() =>
-                                          toast.info(
-                                            `Descargando documento: ${doc.title || doc.name}`
-                                          )
-                                        }
-                                        className="h-8 px-2.5 text-xs font-semibold"
-                                      >
-                                        <Download className="size-3 mr-1" />
-                                        <span>Descargar</span>
-                                      </Button>
+                                      <p className="text-xs font-semibold text-primary">
+                                        {exp.company}
+                                      </p>
+                                      {exp.description && (
+                                        <p className="text-xs text-muted-foreground leading-relaxed pt-1">
+                                          {exp.description}
+                                        </p>
+                                      )}
                                     </div>
                                   ))}
                                 </div>
-                              ) : (
-                                <p className="text-xs text-muted-foreground">
-                                  El candidato aún no ha subido archivos a su bóveda digital.
-                                </p>
-                              )}
-                            </div>
-                          ) : docAccessState?.status === "pending" ? (
-                            <div className="p-4 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-800 dark:text-amber-300 space-y-1 text-xs">
-                              <span className="font-bold flex items-center gap-1.5">
-                                <Clock className="size-3.5" />
-                                Solicitud en Espera de Autorización
-                              </span>
-                              <p className="text-[11px] text-muted-foreground">
-                                Se envió una notificación al candidato. Podrás visualizar sus documentos en cuanto confirme el acceso.
-                              </p>
-                            </div>
-                          ) : (
-                            <div className="p-4 rounded-xl bg-muted/30 border border-border/40 space-y-3">
-                              <div className="flex items-center gap-2 text-xs text-muted-foreground font-medium">
-                                <Lock className="size-4 text-muted-foreground" />
-                                <span>
-                                  Los documentos oficiales están resguardados bajo consentimiento explícito del trabajador.
+                              </Card>
+                            )}
+
+                            {/* Education */}
+                            {selectedApplicant.education && selectedApplicant.education.length > 0 && (
+                              <Card className="bg-muted/15 border border-border/40 rounded-2xl p-4 space-y-3">
+                                <span className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
+                                  Formación Académica
                                 </span>
+                                <div className="space-y-2">
+                                  {selectedApplicant.education.map((edu, idx) => (
+                                    <div
+                                      key={idx}
+                                      className="p-3 rounded-xl bg-card border border-border/30 space-y-0.5 shadow-2xs"
+                                    >
+                                      <h5 className="text-xs font-bold text-foreground">
+                                        {edu.degree}
+                                      </h5>
+                                      <p className="text-xs text-muted-foreground font-medium">
+                                        {edu.institution} • {edu.period}
+                                      </p>
+                                    </div>
+                                  ))}
+                                </div>
+                              </Card>
+                            )}
+                          </TabsContent>
+
+                          {/* TAB 2: Currículum Vitae (CV) */}
+                          <TabsContent value="curriculum" className="space-y-4 m-0 focus-visible:outline-none text-left">
+                            <CandidateCvViewer applicant={selectedApplicant} />
+                          </TabsContent>
+
+                          {/* TAB 3: Notas Internas */}
+                          <TabsContent value="notes" className="space-y-4 m-0 focus-visible:outline-none text-left">
+                            <Card className="bg-muted/15 border border-border/40 rounded-2xl p-5 space-y-3">
+                              <div className="space-y-0.5">
+                                <h4 className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                                  Notas Privadas del Reclutador
+                                </h4>
+                                <p className="text-xs text-muted-foreground">
+                                  Estas notas son internas y nunca serán visibles para el candidato.
+                                </p>
                               </div>
-                              <Button
-                                size="sm"
-                                onClick={handleRequestDocuments}
-                                disabled={isRequestingDocs}
-                                className="rounded-xl text-xs font-bold bg-primary text-primary-foreground h-9 px-4 cursor-pointer"
-                              >
-                                {isRequestingDocs ? (
-                                  <Loader2 className="size-3.5 animate-spin mr-1.5" />
+
+                              <Textarea
+                                value={noteText}
+                                onChange={(e) => setNoteText(e.target.value)}
+                                placeholder="Anotaciones de entrevista telefónica, expectativas salariales, disponibilidad..."
+                                className="min-h-[120px] rounded-xl bg-card border-border/60 text-xs font-medium shadow-2xs"
+                              />
+
+                              <div className="flex justify-end">
+                                <Button
+                                  size="sm"
+                                  onClick={handleSaveNotes}
+                                  disabled={isSavingNotes}
+                                  className="rounded-xl text-xs font-bold bg-primary text-primary-foreground h-9 px-4 cursor-pointer"
+                                >
+                                  {isSavingNotes ? (
+                                    <Loader2 className="size-3.5 animate-spin mr-1.5" />
+                                  ) : (
+                                    <Save className="size-3.5 mr-1.5" />
+                                  )}
+                                  <span>Guardar Notas</span>
+                                </Button>
+                              </div>
+                            </Card>
+                          </TabsContent>
+
+                          {/* TAB 4: Documentos LFT (Solo para colaboradores contratados) */}
+                          {selectedApplicant.status === "Contratado" && (
+                            <TabsContent value="documents" className="space-y-4 m-0 focus-visible:outline-none text-left">
+                              <Card className="bg-muted/15 border border-border/40 rounded-2xl p-5 space-y-4">
+                                <div className="flex items-center gap-3">
+                                  <div className="size-10 rounded-xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0">
+                                    <ShieldCheck className="size-5" />
+                                  </div>
+                                  <div>
+                                    <h4 className="text-sm font-bold text-foreground">
+                                      Bóveda de Documentos Oficiales LFT (Colaborador Contratado)
+                                    </h4>
+                                    <p className="text-xs text-muted-foreground">
+                                      INE, CURP, Constancia SAT, NSS y Comprobante de domicilio para alta laboral y nómina.
+                                    </p>
+                                  </div>
+                                </div>
+
+                                {docAccessState?.status === "approved" ? (
+                                  <div className="space-y-3 pt-2">
+                                    <Badge className="bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-none font-bold text-xs px-3 py-1 rounded-lg">
+                                      <CheckCircle2 className="size-3.5 mr-1" />
+                                      Acceso Autorizado por el Colaborador
+                                    </Badge>
+
+                                    {isLoadingDocs ? (
+                                      <div className="p-6 text-center">
+                                        <Loader2 className="size-5 animate-spin mx-auto text-primary" />
+                                      </div>
+                                    ) : authorizedDocs.length > 0 ? (
+                                      <div className="space-y-2">
+                                        {authorizedDocs.map((doc, idx) => (
+                                          <div
+                                            key={idx}
+                                            className="p-3 rounded-xl bg-card border border-border/30 flex items-center justify-between text-xs shadow-2xs"
+                                          >
+                                            <div className="flex items-center gap-2">
+                                              <FileText className="size-4 text-primary" />
+                                              <span className="font-semibold text-foreground">
+                                                {doc.title || doc.name}
+                                              </span>
+                                            </div>
+                                            <Button
+                                              size="sm"
+                                              variant="outline"
+                                              onClick={() =>
+                                                toast.info(`Descargando documento: ${doc.title || doc.name}`)
+                                              }
+                                              className="h-8 px-2.5 text-xs font-semibold"
+                                            >
+                                              <Download className="size-3 mr-1" />
+                                              <span>Descargar</span>
+                                            </Button>
+                                          </div>
+                                        ))}
+                                      </div>
+                                    ) : (
+                                      <p className="text-xs text-muted-foreground">
+                                        El colaborador aún no ha subido archivos a su bóveda digital.
+                                      </p>
+                                    )}
+                                  </div>
+                                ) : docAccessState?.status === "pending" ? (
+                                  <div className="p-4 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-800 dark:text-amber-300 space-y-1 text-xs">
+                                    <span className="font-bold flex items-center gap-1.5">
+                                      <Clock className="size-3.5" />
+                                      Solicitud en Espera de Autorización
+                                    </span>
+                                    <p className="text-[11px] text-muted-foreground">
+                                      Se envió una notificación al colaborador para autorizar el expediente.
+                                    </p>
+                                  </div>
                                 ) : (
-                                  <ShieldCheck className="size-3.5 mr-1.5" />
+                                  <div className="p-4 rounded-xl bg-card border border-border/40 space-y-3 shadow-2xs">
+                                    <div className="flex items-center gap-2 text-xs text-muted-foreground font-medium">
+                                      <Lock className="size-4 text-muted-foreground" />
+                                      <span>
+                                        Los documentos oficiales están resguardados bajo consentimiento explícito del trabajador.
+                                      </span>
+                                    </div>
+                                    <Button
+                                      size="sm"
+                                      onClick={handleRequestDocuments}
+                                      disabled={isRequestingDocs}
+                                      className="rounded-xl text-xs font-bold bg-primary text-primary-foreground h-9 px-4 cursor-pointer"
+                                    >
+                                      {isRequestingDocs ? (
+                                        <Loader2 className="size-3.5 animate-spin mr-1.5" />
+                                      ) : (
+                                        <ShieldCheck className="size-3.5 mr-1.5" />
+                                      )}
+                                      <span>Solicitar Acceso a Documentos de Contratación</span>
+                                    </Button>
+                                  </div>
                                 )}
-                                <span>Solicitar Acceso a Documentos</span>
-                              </Button>
-                            </div>
+                              </Card>
+                            </TabsContent>
                           )}
-                        </Card>
-                      </TabsContent>
+                        </Tabs>
+                      </div>
 
-                      {/* TAB 3: Internal Notes */}
-                      <TabsContent
-                        value="notes"
-                        className="space-y-4 m-0 focus-visible:outline-none"
-                      >
-                        <Card className="bg-card border border-border/40 rounded-2xl p-5 space-y-3">
-                          <div className="flex items-center justify-between">
-                            <div className="space-y-0.5">
-                              <h4 className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
-                                Notas Privadas del Reclutador
-                              </h4>
-                              <p className="text-xs text-muted-foreground">
-                                Estas notas son internas y nunca serán visibles para el candidato.
-                              </p>
-                            </div>
-                          </div>
-
-                          <Textarea
-                            value={noteText}
-                            onChange={(e) => setNoteText(e.target.value)}
-                            placeholder="Anotaciones de entrevista telefónica, expectativas salariales, disponibilidad..."
-                            className="min-h-[120px] rounded-xl bg-muted/30 border-border/60 text-xs font-medium"
-                          />
-
-                          <div className="flex justify-end">
-                            <Button
-                              size="sm"
-                              onClick={handleSaveNotes}
-                              disabled={isSavingNotes}
-                              className="rounded-xl text-xs font-bold bg-primary text-primary-foreground h-9 px-4 cursor-pointer"
-                            >
-                              {isSavingNotes ? (
-                                <Loader2 className="size-3.5 animate-spin mr-1.5" />
-                              ) : (
-                                <Save className="size-3.5 mr-1.5" />
-                              )}
-                              <span>Guardar Notas</span>
-                            </Button>
-                          </div>
-                        </Card>
-                      </TabsContent>
-                    </Tabs>
+                    </div>
                   </div>
                 </ScrollArea>
               </div>
 
-              {/* 3. Footer Operativo */}
+              {/* 7. Bottom Operation Footer */}
               <DialogFooter className="p-4 px-6 border-t border-border/40 bg-muted/20 shrink-0 flex items-center justify-between">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setIsDetailModalOpen(false)}
-                  className="rounded-xl text-xs font-semibold h-9 px-4 cursor-pointer"
-                >
-                  Cerrar
-                </Button>
+                <div className="flex items-center gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setIsDetailModalOpen(false)}
+                    className="rounded-xl text-xs font-semibold h-9 px-4 cursor-pointer"
+                  >
+                    Cerrar
+                  </Button>
+
+                  {selectedApplicant.status !== "Descartado" && selectedApplicant.status !== "Contratado" && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={async () => {
+                        await handleUpdateStatus(selectedApplicant.id, "Descartado");
+                        setSelectedApplicant((prev) => prev ? { ...prev, status: "Descartado" } : null);
+                      }}
+                      className="rounded-xl text-xs font-semibold h-9 px-3 text-rose-600 hover:bg-rose-500/10 hover:text-rose-700 cursor-pointer"
+                    >
+                      Descartar
+                    </Button>
+                  )}
+                </div>
 
                 <div className="flex items-center gap-2">
-                  {selectedApplicant.status !== "Contratado" && (
+                  {/* Contextual Next Step Button */}
+                  {selectedApplicant.status === "Pendiente" && (
+                    <Button
+                      size="sm"
+                      onClick={async () => {
+                        await handleUpdateStatus(selectedApplicant.id, "En revisión");
+                        setSelectedApplicant((prev) => prev ? { ...prev, status: "En revisión" } : null);
+                      }}
+                      className="rounded-xl text-xs font-bold h-9 px-5 bg-blue-600 hover:bg-blue-700 text-white shadow-xs cursor-pointer gap-1.5"
+                    >
+                      <Eye className="size-3.5" />
+                      <span>1. Iniciar Revisión</span>
+                    </Button>
+                  )}
+
+                  {selectedApplicant.status === "En revisión" && (
+                    <Button
+                      size="sm"
+                      onClick={async () => {
+                        await handleUpdateStatus(selectedApplicant.id, "Preseleccionado");
+                        setSelectedApplicant((prev) => prev ? { ...prev, status: "Preseleccionado" } : null);
+                      }}
+                      className="rounded-xl text-xs font-bold h-9 px-5 bg-indigo-600 hover:bg-indigo-700 text-white shadow-xs cursor-pointer gap-1.5"
+                    >
+                      <CheckCircle2 className="size-3.5" />
+                      <span>2. Marcar Preseleccionado</span>
+                    </Button>
+                  )}
+
+                  {selectedApplicant.status === "Preseleccionado" && (
+                    <Button
+                      size="sm"
+                      onClick={() => handleOpenScheduleInterview(selectedApplicant)}
+                      className="rounded-xl text-xs font-bold h-9 px-5 bg-purple-600 hover:bg-purple-700 text-white shadow-xs cursor-pointer gap-1.5"
+                    >
+                      <Calendar className="size-3.5" />
+                      <span>3. Agendar Cita de Entrevista</span>
+                    </Button>
+                  )}
+
+                  {selectedApplicant.status === "Entrevista" && (
                     <Button
                       size="sm"
                       onClick={() => {
                         setIsDetailModalOpen(false);
                         handleStartHire(selectedApplicant);
                       }}
-                      className="rounded-xl text-xs font-bold h-9 px-5 bg-primary text-primary-foreground hover:bg-primary/90 shadow-xs cursor-pointer gap-1.5"
+                      className="rounded-xl text-xs font-bold h-9 px-5 bg-emerald-600 hover:bg-emerald-700 text-white shadow-xs cursor-pointer gap-1.5"
                     >
                       <Sparkles className="size-3.5" />
-                      <span>Formalizar Contratación</span>
+                      <span>4. Formalizar Contratación Final</span>
+                    </Button>
+                  )}
+
+                  {selectedApplicant.status === "Contratado" && (
+                    <Badge className="bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 px-3 py-1.5 rounded-xl font-bold text-xs">
+                      <CheckCircle2 className="size-3.5 mr-1" />
+                      Candidato Contratado
+                    </Badge>
+                  )}
+
+                  {selectedApplicant.status === "Descartado" && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={async () => {
+                        await handleUpdateStatus(selectedApplicant.id, "En revisión");
+                        setSelectedApplicant((prev) => prev ? { ...prev, status: "En revisión" } : null);
+                      }}
+                      className="rounded-xl text-xs font-bold h-9 px-4 cursor-pointer gap-1.5"
+                    >
+                      <RotateCcw className="size-3.5" />
+                      <span>Reactivar Postulación</span>
                     </Button>
                   )}
                 </div>
               </DialogFooter>
             </>
           )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Modal: Agendar Cita de Entrevista */}
+      <Dialog open={isInterviewModalOpen} onOpenChange={setIsInterviewModalOpen}>
+        <DialogContent className="sm:max-w-md rounded-3xl p-6 bg-card border-border shadow-2xl">
+          <DialogHeader>
+            <div className="size-10 rounded-2xl bg-purple-500/10 text-purple-600 flex items-center justify-center mb-1">
+              <Calendar className="size-5" />
+            </div>
+            <DialogTitle className="text-xl font-extrabold text-foreground">
+              Agendar Cita de Entrevista
+            </DialogTitle>
+            <DialogDescription className="text-xs text-muted-foreground font-medium">
+              Programa una entrevista laboral con <strong className="text-foreground">{interviewApplicant?.name || "el candidato"}</strong> para la vacante <strong className="text-foreground">{interviewApplicant?.vacancyTitle}</strong>.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4 py-3">
+            {/* Date & Time */}
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1.5 text-left">
+                <label className="text-xs font-bold text-foreground">Fecha de Entrevista</label>
+                <Input
+                  type="date"
+                  value={interviewDate}
+                  onChange={(e) => setInterviewDate(e.target.value)}
+                  className="rounded-xl h-10 text-xs font-semibold bg-muted/20"
+                />
+              </div>
+              <div className="space-y-1.5 text-left">
+                <label className="text-xs font-bold text-foreground">Hora</label>
+                <Input
+                  type="time"
+                  value={interviewTime}
+                  onChange={(e) => setInterviewTime(e.target.value)}
+                  className="rounded-xl h-10 text-xs font-semibold bg-muted/20"
+                />
+              </div>
+            </div>
+
+            {/* Modality */}
+            <div className="space-y-1.5 text-left">
+              <label className="text-xs font-bold text-foreground">Modalidad</label>
+              <div className="grid grid-cols-2 gap-2">
+                <Button
+                  type="button"
+                  variant={interviewModality === "presencial" ? "default" : "outline"}
+                  onClick={() => setInterviewModality("presencial")}
+                  className={cn(
+                    "h-9 rounded-xl text-xs font-bold gap-2",
+                    interviewModality === "presencial" ? "bg-primary text-primary-foreground" : "border-border/60"
+                  )}
+                >
+                  <MapPin className="size-3.5" />
+                  <span>Presencial</span>
+                </Button>
+                <Button
+                  type="button"
+                  variant={interviewModality === "virtual" ? "default" : "outline"}
+                  onClick={() => setInterviewModality("virtual")}
+                  className={cn(
+                    "h-9 rounded-xl text-xs font-bold gap-2",
+                    interviewModality === "virtual" ? "bg-primary text-primary-foreground" : "border-border/60"
+                  )}
+                >
+                  <Video className="size-3.5" />
+                  <span>Videollamada</span>
+                </Button>
+              </div>
+            </div>
+
+            {/* Location or Link */}
+            <div className="space-y-1.5 text-left">
+              <label className="text-xs font-bold text-foreground">
+                {interviewModality === "presencial" ? "Dirección o Sucursal" : "Enlace de Videollamada (Meet / Zoom)"}
+              </label>
+              <Input
+                value={interviewLocationOrLink}
+                onChange={(e) => setInterviewLocationOrLink(e.target.value)}
+                placeholder={interviewModality === "presencial" ? "Ej. Av. Paseo de Montejo #450, Mérida" : "Ej. https://meet.google.com/xyz-abcd-efg"}
+                className="rounded-xl h-10 text-xs font-medium bg-muted/20"
+              />
+            </div>
+
+            {/* Notes */}
+            <div className="space-y-1.5 text-left">
+              <label className="text-xs font-bold text-foreground">Indicaciones para el Candidato</label>
+              <Textarea
+                value={interviewNotes}
+                onChange={(e) => setInterviewNotes(e.target.value)}
+                placeholder="Ej. Presentarse con 10 minutos de anticipación e identificación oficial física..."
+                className="min-h-[80px] rounded-xl text-xs font-medium bg-muted/20"
+              />
+            </div>
+          </div>
+
+          <DialogFooter className="gap-2 sm:gap-0">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setIsInterviewModalOpen(false)}
+              className="rounded-xl text-xs font-semibold h-9 px-4 cursor-pointer"
+            >
+              Cancelar
+            </Button>
+            <Button
+              size="sm"
+              onClick={handleConfirmInterview}
+              disabled={isScheduling}
+              className="rounded-xl text-xs font-bold h-9 px-4 bg-purple-600 hover:bg-purple-700 text-white cursor-pointer gap-1.5"
+            >
+              {isScheduling ? <Loader2 className="size-3.5 animate-spin" /> : <Calendar className="size-3.5" />}
+              <span>Confirmar Cita</span>
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
 

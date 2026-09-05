@@ -20,6 +20,15 @@ export interface Education {
   description?: string;
 }
 
+export interface InterviewDetails {
+  date: string;
+  time?: string;
+  modality: "presencial" | "virtual";
+  locationOrLink: string;
+  notes?: string;
+  scheduledAt?: string;
+}
+
 export interface Applicant {
   id: string;
   name: string;
@@ -27,7 +36,8 @@ export interface Applicant {
   avatar: string;
   location: string;
   elapsedTime: string;
-  status: "Pendiente" | "En revisión" | "Preseleccionado" | "Contratado" | "Descartado";
+  status: "Pendiente" | "En revisión" | "Preseleccionado" | "Entrevista" | "Contratado" | "Descartado";
+  interview?: InterviewDetails | null;
   rating: number;
   reviewsCount: number;
   bio: string;
@@ -107,6 +117,13 @@ export function useApplicationsInbox() {
 
           const savedNotes = typeof window !== "undefined" ? localStorage.getItem(`kanpro_notes_${app.id}`) || "" : "";
           const savedRating = typeof window !== "undefined" ? Number(localStorage.getItem(`kanpro_rating_${app.id}`)) || 5 : 5;
+          let savedInterview: InterviewDetails | null = null;
+          if (typeof window !== "undefined") {
+            try {
+              const raw = localStorage.getItem(`kanpro_interview_${app.id}`);
+              if (raw) savedInterview = JSON.parse(raw);
+            } catch {}
+          }
 
           return {
             id: app.id,
@@ -116,6 +133,7 @@ export function useApplicationsInbox() {
             location: profile.location || "Local",
             elapsedTime,
             status: app.status,
+            interview: savedInterview,
             rating: savedRating,
             internalRating: savedRating,
             internalNotes: savedNotes,
@@ -242,11 +260,44 @@ export function useApplicationsInbox() {
     await statusMutation.mutateAsync({ id, newStatus });
   };
 
-  // WhatsApp helper
+  const handleScheduleInterview = async (
+    id: string,
+    interviewData: InterviewDetails
+  ) => {
+    if (typeof window !== "undefined") {
+      localStorage.setItem(`kanpro_interview_${id}`, JSON.stringify(interviewData));
+    }
+    await handleUpdateStatus(id, "Entrevista");
+    queryClient.setQueryData<ApplicationsQueryData>(queryKey, (old) => {
+      if (!old) return old;
+      return {
+        ...old,
+        applicants: old.applicants.map((a) =>
+          a.id === id ? { ...a, status: "Entrevista", interview: interviewData } : a
+        ),
+      };
+    });
+  };
+
+  // WhatsApp helper with dynamic contextual messages per stage
   const getWhatsAppLink = (applicant: Applicant) => {
     if (!applicant.phone) return "";
     const cleanPhone = applicant.phone.replace(/[^0-9]/g, "");
-    const message = `Hola ${applicant.name}, te saludamos de parte de K'anPro. Hemos visto tu postulación para la vacante de "${applicant.vacancyTitle}" y nos encantaría agendar una entrevista contigo. ¿Tienes disponibilidad esta semana?`;
+    
+    let message = "";
+    if (applicant.status === "Entrevista" && applicant.interview) {
+      const modalityStr = applicant.interview.modality === "presencial"
+        ? `presencial en: ${applicant.interview.locationOrLink}`
+        : `por videollamada: ${applicant.interview.locationOrLink}`;
+      message = `¡Hola ${applicant.name}! Te confirmamos tu cita para entrevista para la vacante "${applicant.vacancyTitle}" programada el día ${applicant.interview.date} a las ${applicant.interview.time || ''} (${modalityStr}). Favor de confirmar tu asistencia. ¡Éxito!`;
+    } else if (applicant.status === "Preseleccionado") {
+      message = `¡Hola ${applicant.name}! Te saludamos de parte del equipo de selección de K'anPro. Has sido preseleccionado para la vacante de "${applicant.vacancyTitle}". Nos gustaría coordinar una entrevista contigo. ¿Qué horario te queda mejor?`;
+    } else if (applicant.status === "Contratado") {
+      message = `¡Felicidades ${applicant.name}! Nos complace informarte que has sido seleccionado para la vacante "${applicant.vacancyTitle}". Pronto nos comunicaremos para la firma de contrato y bienvenida.`;
+    } else {
+      message = `Hola ${applicant.name}, te saludamos de parte de K'anPro. Hemos visto tu postulación para la vacante de "${applicant.vacancyTitle}" y nos interesa conocer más sobre tu experiencia. ¿Tienes disponibilidad para platicar?`;
+    }
+
     return `https://wa.me/${cleanPhone}?text=${encodeURIComponent(message)}`;
   };
 
@@ -391,6 +442,7 @@ export function useApplicationsInbox() {
     selectedApplicant,
     isLoading,
     handleUpdateStatus,
+    handleScheduleInterview,
     getWhatsAppLink,
     handleContactApplicant,
     handleUpdateNotes,

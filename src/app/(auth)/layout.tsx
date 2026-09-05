@@ -36,10 +36,10 @@ export default function AuthLayout({
   } else if (pathname?.startsWith("/phone-login")) {
     viewName = "Iniciar Sesión";
     backHref = "/login";
-  } else {
-    // /login
-    viewName = "Iniciar Sesión";
-    backHref = "/";
+  }
+
+  if (pathname === "/login") {
+    return <>{children}</>;
   }
 
   return (

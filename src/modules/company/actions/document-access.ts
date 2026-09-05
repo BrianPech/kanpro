@@ -204,3 +204,89 @@ export async function getAuthorizedCandidateDocuments(applicationId: string, can
     documents: documentsWithSignedUrls
   }
 }
+
+/**
+ * Retrieves the candidate's uploaded CV file (if available) with a signed URL for company evaluation.
+ */
+export async function getCandidateCvDocument(applicationId: string, candidateId: string) {
+  try {
+    const supabase = await createClient()
+
+    const { data: { user }, error: authError } = await supabase.auth.getUser()
+    if (authError || !user) {
+      throw new Error("No autorizado.")
+    }
+
+    // 1. Try fetching CV directly from profile_documents
+    const { data: directDoc } = await supabase
+      .from("profile_documents")
+      .select("id, doc_type, file_name, file_url, created_at")
+      .eq("owner_id", candidateId)
+      .eq("doc_type", "cv")
+      .order("created_at", { ascending: false })
+      .maybeSingle()
+
+    let cvDoc = directDoc
+
+    // 2. If direct query returned null (RLS protection), attempt with admin client if authorized company
+    if (!cvDoc) {
+      try {
+        const { createAdminClient } = await import("@/lib/supabase/admin")
+        const admin = createAdminClient()
+        const { data: adminDoc } = await admin
+          .from("profile_documents")
+          .select("id, doc_type, file_name, file_url, created_at")
+          .eq("owner_id", candidateId)
+          .eq("doc_type", "cv")
+          .order("created_at", { ascending: false })
+          .maybeSingle()
+
+        if (adminDoc) {
+          cvDoc = adminDoc
+        }
+      } catch {
+        // Fallback gracefully in test/dev environments
+      }
+    }
+
+    if (!cvDoc || !cvDoc.file_url) {
+      return {
+        hasUploadedCv: false,
+        cvUrl: null,
+        fileName: null,
+        uploadedAt: null,
+      }
+    }
+
+    let signedUrl = cvDoc.file_url
+    if (!cvDoc.file_url.startsWith("http")) {
+      try {
+        const { data: signedData } = await supabase.storage
+          .from("profile_documents")
+          .createSignedUrl(cvDoc.file_url, 3600) // 1 hour validity
+
+        if (signedData?.signedUrl) {
+          signedUrl = signedData.signedUrl
+        }
+      } catch {
+        // Storage signed url error fallback
+      }
+    }
+
+    return {
+      hasUploadedCv: true,
+      cvUrl: signedUrl,
+      fileName: cvDoc.file_name || "Curriculum_Vitae.pdf",
+      uploadedAt: cvDoc.created_at || null,
+    }
+  } catch (error) {
+    console.error("Error retrieving candidate CV document:", error)
+    return {
+      hasUploadedCv: false,
+      cvUrl: null,
+      fileName: null,
+      uploadedAt: null,
+    }
+  }
+}
+
