@@ -48,6 +48,10 @@ import {
   Building2,
   Mail,
   Calendar,
+  CalendarCheck,
+  CalendarClock,
+  Link as LinkIcon,
+  Copy,
   Video,
   PenTool,
 } from "lucide-react";
@@ -108,6 +112,7 @@ import {
 } from "../actions/document-access";
 import { HireCandidateWizardModal } from "./recruitment/hire-candidate-wizard-modal";
 import { CandidateCvViewer } from "./candidate-cv-viewer";
+import { DatePicker } from "@/components/ui/date-picker";
 
 export function ApplicationsInbox() {
   const {
@@ -150,6 +155,7 @@ export function ApplicationsInbox() {
   const [interviewDate, setInterviewDate] = React.useState("");
   const [interviewTime, setInterviewTime] = React.useState("10:00");
   const [interviewModality, setInterviewModality] = React.useState<"presencial" | "virtual">("presencial");
+  const [interviewPlatform, setInterviewPlatform] = React.useState<"meet" | "zoom" | "teams" | "custom">("meet");
   const [interviewLocationOrLink, setInterviewLocationOrLink] = React.useState("");
   const [interviewNotes, setInterviewNotes] = React.useState("");
   const [isScheduling, setIsScheduling] = React.useState(false);
@@ -166,14 +172,69 @@ export function ApplicationsInbox() {
       setInterviewModality(applicant.interview.modality);
       setInterviewLocationOrLink(applicant.interview.locationOrLink);
       setInterviewNotes(applicant.interview.notes || "");
+      const loc = (applicant.interview.locationOrLink || "").toLowerCase();
+      if (loc.includes("zoom")) setInterviewPlatform("zoom");
+      else if (loc.includes("teams")) setInterviewPlatform("teams");
+      else if (loc.includes("meet")) setInterviewPlatform("meet");
+      else setInterviewPlatform("custom");
     } else {
       setInterviewDate(defaultDate);
       setInterviewTime("10:00");
       setInterviewModality("presencial");
+      setInterviewPlatform("meet");
       setInterviewLocationOrLink(applicant.location || "Instalaciones de la empresa / Sucursal");
       setInterviewNotes("Presentarse con 10 minutos de anticipación e identificación oficial física.");
     }
     setIsInterviewModalOpen(true);
+  };
+
+  const handleSelectPlatform = (platform: "meet" | "zoom" | "teams" | "custom") => {
+    setInterviewPlatform(platform);
+    if (platform === "meet") {
+      if (!interviewLocationOrLink || !interviewLocationOrLink.includes("http") || interviewLocationOrLink.includes("zoom") || interviewLocationOrLink.includes("teams")) {
+        setInterviewLocationOrLink("https://meet.google.com/new");
+      }
+    } else if (platform === "zoom") {
+      if (!interviewLocationOrLink || !interviewLocationOrLink.includes("http") || interviewLocationOrLink.includes("meet") || interviewLocationOrLink.includes("teams")) {
+        setInterviewLocationOrLink("https://zoom.us/j/");
+      }
+    } else if (platform === "teams") {
+      if (!interviewLocationOrLink || !interviewLocationOrLink.includes("http") || interviewLocationOrLink.includes("meet") || interviewLocationOrLink.includes("zoom")) {
+        setInterviewLocationOrLink("https://teams.live.com/meet");
+      }
+    }
+  };
+
+  const getQuickDateIso = (offsetDays: number | "nextMonday"): string => {
+    const d = new Date();
+    if (offsetDays === "nextMonday") {
+      const day = d.getDay(); // 0 is Sunday, 1 is Monday
+      const diff = (8 - day) % 7 || 7;
+      d.setDate(d.getDate() + diff);
+    } else {
+      d.setDate(d.getDate() + offsetDays);
+    }
+    const year = d.getFullYear();
+    const month = String(d.getMonth() + 1).padStart(2, "0");
+    const day = String(d.getDate()).padStart(2, "0");
+    return `${year}-${month}-${day}`;
+  };
+
+  const quickTimes = ["09:00", "10:00", "11:30", "13:00", "15:00", "16:30", "17:00"];
+
+  const quickNotesSnippets = [
+    "Identificación oficial (INE)",
+    "Llegar 10 min antes",
+    "CV impreso",
+    "Cámara y micrófono activos",
+  ];
+
+  const handleAppendInterviewNote = (snippet: string) => {
+    setInterviewNotes((prev) => {
+      if (!prev.trim()) return snippet;
+      if (prev.includes(snippet)) return prev;
+      return `${prev.trim()} • ${snippet}`;
+    });
   };
 
   const handleConfirmInterview = async () => {
@@ -224,21 +285,58 @@ export function ApplicationsInbox() {
   const [noteText, setNoteText] = React.useState("");
   const [isSavingNotes, setIsSavingNotes] = React.useState(false);
 
-  // Pipeline Metrics
+  // Distinct vacancies with real applicant counts
+  const vacanciesWithCounts = React.useMemo(() => {
+    const map = new Map<string, { id: string; title: string; applicantCount: number }>();
+
+    vacancies.forEach((vac) => {
+      map.set(vac.id, { id: vac.id, title: vac.title, applicantCount: 0 });
+    });
+
+    applicants.forEach((app) => {
+      if (app.vacancyId) {
+        if (map.has(app.vacancyId)) {
+          map.get(app.vacancyId)!.applicantCount += 1;
+        } else {
+          map.set(app.vacancyId, {
+            id: app.vacancyId,
+            title: app.vacancyTitle || "Vacante",
+            applicantCount: 1,
+          });
+        }
+      }
+    });
+
+    return Array.from(map.values());
+  }, [vacancies, applicants]);
+
+  // Selected vacancy details
+  const selectedVacancy = React.useMemo(() => {
+    if (selectedVacancyId === "all") return null;
+    return vacanciesWithCounts.find((v) => v.id === selectedVacancyId) || null;
+  }, [vacanciesWithCounts, selectedVacancyId]);
+
+  // Applicants for the currently selected vacancy (for metrics & status tabs counts)
+  const currentScopeApplicants = React.useMemo(() => {
+    if (selectedVacancyId === "all") return applicants;
+    return applicants.filter((a) => a.vacancyId === selectedVacancyId);
+  }, [applicants, selectedVacancyId]);
+
+  // Pipeline Metrics (dynamically adapts to selected vacancy!)
   const metrics = React.useMemo(() => {
-    const total = applicants.length;
-    const pending = applicants.filter(
+    const total = currentScopeApplicants.length;
+    const pending = currentScopeApplicants.filter(
       (a) => a.status === "Pendiente" || a.status === "En revisión"
     ).length;
-    const shortlisted = applicants.filter(
+    const shortlisted = currentScopeApplicants.filter(
       (a) => a.status === "Preseleccionado"
     ).length;
-    const interviews = applicants.filter(
+    const interviews = currentScopeApplicants.filter(
       (a) => a.status === "Entrevista"
     ).length;
-    const hired = applicants.filter((a) => a.status === "Contratado").length;
+    const hired = currentScopeApplicants.filter((a) => a.status === "Contratado").length;
     return { total, pending, shortlisted, interviews, hired };
-  }, [applicants]);
+  }, [currentScopeApplicants]);
 
   const getInitials = (name: string) => {
     return name
@@ -875,7 +973,144 @@ export function ApplicationsInbox() {
         </div>
       </div>
 
-      {/* 2. Pipeline Metrics Cards */}
+      {/* 2. Barra de Selección y Filtro por Vacante */}
+      <div className="p-4 rounded-2xl bg-card border border-border/60 shadow-xs space-y-3">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div className="flex items-center gap-3">
+            <div className="size-9 rounded-xl bg-gradient-to-br from-primary/20 via-primary/10 to-primary/5 text-primary border border-primary/20 flex items-center justify-center shrink-0 shadow-2xs">
+              <Briefcase className="size-4.5" />
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <h3 className="text-xs sm:text-sm font-extrabold text-foreground">
+                  Filtrar por Vacante
+                </h3>
+                {selectedVacancyId !== "all" ? (
+                  <Badge variant="outline" className="text-[10px] font-bold bg-primary/10 text-primary border-primary/30 px-2 py-0.5 rounded-md">
+                    Filtro activo
+                  </Badge>
+                ) : (
+                  <Badge variant="outline" className="text-[10px] font-bold bg-muted text-muted-foreground border-border/40 px-2 py-0.5 rounded-md">
+                    {vacanciesWithCounts.length} {vacanciesWithCounts.length === 1 ? "vacante" : "vacantes"}
+                  </Badge>
+                )}
+              </div>
+              <p className="text-[11px] text-muted-foreground mt-0.5">
+                {selectedVacancyId === "all" ? (
+                  <span>Viendo todos los postulantes de la empresa (<strong>{applicants.length}</strong> en total)</span>
+                ) : (
+                  <span>
+                    Viendo postulantes para: <strong className="text-foreground">{selectedVacancy?.title || "Vacante seleccionada"}</strong> ({currentScopeApplicants.length} candidatos)
+                  </span>
+                )}
+              </p>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2 w-full sm:w-auto">
+            <div className="w-full sm:w-[250px]">
+              <Select
+                value={selectedVacancyId}
+                onValueChange={(val) => setSelectedVacancyId(val || "all")}
+              >
+                <SelectTrigger className="h-9 w-full rounded-xl border-border/60 bg-background text-xs font-bold shadow-2xs">
+                  <SelectValue placeholder="Seleccionar vacante...">
+                    {selectedVacancyId === "all"
+                      ? `Todas las vacantes (${applicants.length})`
+                      : vacanciesWithCounts.find((v) => v.id === selectedVacancyId)?.title || "Vacante"}
+                  </SelectValue>
+                </SelectTrigger>
+                <SelectContent className="rounded-xl border-border/50 bg-popover shadow-xl max-h-72">
+                  <SelectItem value="all" className="text-xs font-bold rounded-lg cursor-pointer">
+                    Todas las vacantes ({applicants.length})
+                  </SelectItem>
+                  {vacanciesWithCounts.map((v) => (
+                    <SelectItem key={v.id} value={v.id} className="text-xs font-semibold rounded-lg cursor-pointer">
+                      {v.title} ({v.applicantCount})
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            {selectedVacancyId !== "all" && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setSelectedVacancyId("all")}
+                className="h-9 px-3 rounded-xl text-xs font-bold text-muted-foreground hover:text-foreground border-border/60 hover:bg-muted cursor-pointer shrink-0 gap-1.5"
+                title="Ver todas las vacantes"
+              >
+                <X className="size-3.5" />
+                <span className="hidden sm:inline">Ver todas</span>
+              </Button>
+            )}
+          </div>
+        </div>
+
+        {/* Carrusel Horizontal de Chips con ScrollArea */}
+        <div className="pt-2 border-t border-border/30">
+          <ScrollArea className="w-full whitespace-nowrap">
+            <div className="flex items-center gap-2 pb-1">
+              <button
+                type="button"
+                onClick={() => setSelectedVacancyId("all")}
+                className={cn(
+                  "inline-flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer border shrink-0",
+                  selectedVacancyId === "all"
+                    ? "bg-primary text-primary-foreground border-primary shadow-xs"
+                    : "bg-muted/30 hover:bg-muted text-muted-foreground hover:text-foreground border-border/50"
+                )}
+              >
+                <span>Todas las vacantes</span>
+                <span
+                  className={cn(
+                    "text-[10px] px-1.5 py-0.5 rounded-full font-mono font-bold leading-none",
+                    selectedVacancyId === "all"
+                      ? "bg-white/20 text-white"
+                      : "bg-muted text-muted-foreground"
+                  )}
+                >
+                  {applicants.length}
+                </span>
+              </button>
+
+              {vacanciesWithCounts.map((vac) => {
+                const isSelected = selectedVacancyId === vac.id;
+                return (
+                  <button
+                    key={vac.id}
+                    type="button"
+                    onClick={() => setSelectedVacancyId(vac.id)}
+                    className={cn(
+                      "inline-flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer border shrink-0 max-w-[280px]",
+                      isSelected
+                        ? "bg-primary text-primary-foreground border-primary shadow-xs"
+                        : "bg-muted/30 hover:bg-muted text-muted-foreground hover:text-foreground border-border/50"
+                    )}
+                  >
+                    <span className="truncate">{vac.title}</span>
+                    <span
+                      className={cn(
+                        "text-[10px] px-1.5 py-0.5 rounded-full font-mono font-bold shrink-0 leading-none",
+                        isSelected
+                          ? "bg-white/20 text-white"
+                          : vac.applicantCount > 0
+                          ? "bg-primary/15 text-primary dark:text-primary-foreground"
+                          : "bg-muted text-muted-foreground"
+                      )}
+                    >
+                      {vac.applicantCount}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+          </ScrollArea>
+        </div>
+      </div>
+
+      {/* 3. Pipeline Metrics Cards */}
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 sm:gap-4">
         <Card className="bg-card border border-border/40 rounded-2xl p-4 flex flex-col justify-between">
           <div className="flex items-center justify-between">
@@ -891,7 +1126,7 @@ export function ApplicationsInbox() {
               {metrics.total}
             </h3>
             <p className="text-[10px] font-semibold text-muted-foreground mt-0.5">
-              En convocatorias
+              {selectedVacancyId === "all" ? "En todas las convocatorias" : "En esta vacante"}
             </p>
           </div>
         </Card>
@@ -910,7 +1145,7 @@ export function ApplicationsInbox() {
               {metrics.pending}
             </h3>
             <p className="text-[10px] font-semibold text-muted-foreground mt-0.5">
-              Pendientes / Revisión
+              {selectedVacancyId === "all" ? "Pendientes / Revisión" : "Por evaluar"}
             </p>
           </div>
         </Card>
@@ -929,7 +1164,7 @@ export function ApplicationsInbox() {
               {metrics.shortlisted}
             </h3>
             <p className="text-[10px] font-semibold text-muted-foreground mt-0.5">
-              Listos para agendar
+              {selectedVacancyId === "all" ? "Listos para agendar" : "Preseleccionados"}
             </p>
           </div>
         </Card>
@@ -948,7 +1183,7 @@ export function ApplicationsInbox() {
               {metrics.interviews}
             </h3>
             <p className="text-[10px] font-semibold text-muted-foreground mt-0.5">
-              Citas agendadas
+              {selectedVacancyId === "all" ? "Citas agendadas" : "Entrevistas vacante"}
             </p>
           </div>
         </Card>
@@ -967,7 +1202,7 @@ export function ApplicationsInbox() {
               {metrics.hired}
             </h3>
             <p className="text-[10px] font-semibold text-muted-foreground mt-0.5">
-              Plantilla activa
+              {selectedVacancyId === "all" ? "Plantilla activa" : "Contratados vacante"}
             </p>
           </div>
         </Card>
@@ -1022,7 +1257,7 @@ export function ApplicationsInbox() {
                     : "text-muted-foreground hover:text-foreground"
                 )}
               >
-                Todos ({applicants.length})
+                Todos ({currentScopeApplicants.length})
               </button>
               <button
                 type="button"
@@ -1090,8 +1325,7 @@ export function ApplicationsInbox() {
                     <SelectValue placeholder="Todas las vacantes">
                       {selectedVacancyId === "all"
                         ? `Todas las vacantes (${applicants.length})`
-                        : vacancies.find((v) => v.id === selectedVacancyId)
-                            ?.title || selectedVacancyId}
+                        : vacanciesWithCounts.find((v) => v.id === selectedVacancyId)?.title || selectedVacancyId}
                     </SelectValue>
                   </SelectTrigger>
                   <SelectContent className="rounded-xl border-border/50 bg-popover shadow-lg max-h-64">
@@ -1101,13 +1335,13 @@ export function ApplicationsInbox() {
                     >
                       Todas las vacantes ({applicants.length})
                     </SelectItem>
-                    {vacancies.map((vac) => (
+                    {vacanciesWithCounts.map((vac) => (
                       <SelectItem
                         key={vac.id}
                         value={vac.id}
                         className="text-xs font-semibold rounded-lg cursor-pointer"
                       >
-                        {vac.title}
+                        {vac.title} ({vac.applicantCount})
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -1187,26 +1421,42 @@ export function ApplicationsInbox() {
                 </EmptyMedia>
                 <EmptyTitle>
                   {isFiltered
-                    ? "No se encontraron postulantes"
+                    ? selectedVacancyId !== "all" && currentScopeApplicants.length === 0
+                      ? `Sin postulantes para "${selectedVacancy?.title || "esta vacante"}"`
+                      : "No se encontraron postulantes"
                     : "Aún no hay postulaciones"}
                 </EmptyTitle>
                 <EmptyDescription>
                   {isFiltered
-                    ? "No hay candidatos que coincidan con la búsqueda o filtros aplicados. Intenta restablecer los filtros."
+                    ? selectedVacancyId !== "all" && currentScopeApplicants.length === 0
+                      ? "Aún ningún candidato se ha postulado a esta vacante en particular. Puedes ver los candidatos de otras vacantes o compartir la convocatoria."
+                      : "No hay candidatos que coincidan con la búsqueda o filtros aplicados. Intenta restablecer los filtros."
                     : "Tus convocatorias activas comenzarán a recibir candidatos locales de inmediato."}
                 </EmptyDescription>
               </EmptyHeader>
               <EmptyContent>
                 {isFiltered ? (
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={handleClearFilters}
-                    className="rounded-xl font-bold text-xs h-9 px-4 cursor-pointer border-border/50 gap-1.5"
-                  >
-                    <RotateCcw className="size-3.5" />
-                    <span>Restablecer Filtros</span>
-                  </Button>
+                  <div className="flex flex-wrap items-center justify-center gap-2">
+                    {selectedVacancyId !== "all" && (
+                      <Button
+                        size="sm"
+                        onClick={() => setSelectedVacancyId("all")}
+                        className="rounded-xl font-bold text-xs h-9 px-4 cursor-pointer gap-1.5 bg-primary text-primary-foreground shadow-xs"
+                      >
+                        <Briefcase className="size-3.5" />
+                        <span>Ver todas las vacantes</span>
+                      </Button>
+                    )}
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={handleClearFilters}
+                      className="rounded-xl font-bold text-xs h-9 px-4 cursor-pointer border-border/50 gap-1.5"
+                    >
+                      <RotateCcw className="size-3.5" />
+                      <span>Restablecer Filtros</span>
+                    </Button>
+                  </div>
                 ) : (
                   <Button
                     size="sm"
@@ -1329,9 +1579,9 @@ export function ApplicationsInbox() {
           {selectedApplicant && (
             <>
               {/* Scrollable Container with entire profile */}
-              <div className="flex-1 min-h-0 h-full relative overflow-hidden bg-card">
-                <ScrollArea className="h-full w-full">
-                  <div className="flex flex-col">
+              <div className="flex-1 min-h-0 h-full relative overflow-hidden bg-card w-full max-w-full">
+                <ScrollArea className="h-full w-full max-w-full">
+                  <div className="flex flex-col w-full max-w-full min-w-0 overflow-x-hidden">
                     
                     {/* 1. Header Banner: Vibrant Warm Orange with Abstract Geometric Watermark */}
                     <div className="relative h-36 sm:h-44 w-full bg-gradient-to-r from-[#FF5722] via-[#FF6F00] to-[#FF3D00] overflow-hidden shrink-0">
@@ -1754,48 +2004,48 @@ export function ApplicationsInbox() {
                       </div>
 
                       {/* 6. Tabs for Deep Dossier: Trayectoria, CV en PDF, Notas Internas, (Documentos LFT si Contratado) */}
-                      <div className="pt-4 border-t border-border/40">
-                        <Tabs value={activeModalTab} onValueChange={setActiveModalTab} className="w-full space-y-4">
+                      <div className="pt-4 border-t border-border/40 w-full max-w-full min-w-0">
+                        <Tabs value={activeModalTab} onValueChange={setActiveModalTab} className="w-full max-w-full min-w-0 space-y-4">
                           <TabsList
                             className={cn(
-                              "grid w-full h-11 p-1 rounded-2xl bg-muted/40 border border-border/40",
+                              "grid w-full max-w-full h-11 p-1 rounded-2xl bg-muted/40 border border-border/40",
                               selectedApplicant.status === "Contratado" ? "grid-cols-4" : "grid-cols-3"
                             )}
                           >
                             <TabsTrigger
                               value="experience"
-                              className="rounded-xl text-xs font-bold gap-1.5 data-[state=active]:bg-card data-[state=active]:text-foreground data-[state=active]:shadow-2xs cursor-pointer"
+                              className="rounded-xl text-xs font-bold gap-1.5 data-[state=active]:bg-card data-[state=active]:text-foreground data-[state=active]:shadow-2xs cursor-pointer min-w-0"
                             >
-                              <Briefcase className="size-3.5" />
-                              <span>Trayectoria</span>
+                              <Briefcase className="size-3.5 shrink-0" />
+                              <span className="truncate">Trayectoria</span>
                             </TabsTrigger>
                             <TabsTrigger
                               value="curriculum"
-                              className="rounded-xl text-xs font-bold gap-1.5 data-[state=active]:bg-card data-[state=active]:text-foreground data-[state=active]:shadow-2xs cursor-pointer"
+                              className="rounded-xl text-xs font-bold gap-1.5 data-[state=active]:bg-card data-[state=active]:text-foreground data-[state=active]:shadow-2xs cursor-pointer min-w-0"
                             >
-                              <FileText className="size-3.5 text-primary" />
-                              <span>CV en PDF</span>
+                              <FileText className="size-3.5 text-primary shrink-0" />
+                              <span className="truncate">CV en PDF</span>
                             </TabsTrigger>
                             <TabsTrigger
                               value="notes"
-                              className="rounded-xl text-xs font-bold gap-1.5 data-[state=active]:bg-card data-[state=active]:text-foreground data-[state=active]:shadow-2xs cursor-pointer"
+                              className="rounded-xl text-xs font-bold gap-1.5 data-[state=active]:bg-card data-[state=active]:text-foreground data-[state=active]:shadow-2xs cursor-pointer min-w-0"
                             >
-                              <PenTool className="size-3.5" />
-                              <span>Notas Internas</span>
+                              <PenTool className="size-3.5 shrink-0" />
+                              <span className="truncate">Notas Internas</span>
                             </TabsTrigger>
                             {selectedApplicant.status === "Contratado" && (
                               <TabsTrigger
                                 value="documents"
-                                className="rounded-xl text-xs font-bold gap-1.5 data-[state=active]:bg-card data-[state=active]:text-foreground data-[state=active]:shadow-2xs cursor-pointer"
+                                className="rounded-xl text-xs font-bold gap-1.5 data-[state=active]:bg-card data-[state=active]:text-foreground data-[state=active]:shadow-2xs cursor-pointer min-w-0"
                               >
-                                <ShieldCheck className="size-3.5 text-emerald-600" />
-                                <span>Documentos LFT</span>
+                                <ShieldCheck className="size-3.5 text-emerald-600 shrink-0" />
+                                <span className="truncate">Documentos LFT</span>
                               </TabsTrigger>
                             )}
                           </TabsList>
 
                           {/* TAB 1: Trayectoria, Habilidades & Educación */}
-                          <TabsContent value="experience" className="space-y-4 m-0 focus-visible:outline-none text-left">
+                          <TabsContent value="experience" className="space-y-4 m-0 focus-visible:outline-none text-left w-full max-w-full min-w-0 overflow-hidden">
                             {/* Skills */}
                             {selectedApplicant.skills && selectedApplicant.skills.length > 0 && (
                               <Card className="bg-muted/15 border border-border/40 rounded-2xl p-4 space-y-2.5">
@@ -1876,12 +2126,12 @@ export function ApplicationsInbox() {
                           </TabsContent>
 
                           {/* TAB 2: Currículum Vitae (CV) */}
-                          <TabsContent value="curriculum" className="space-y-4 m-0 focus-visible:outline-none text-left">
+                          <TabsContent value="curriculum" className="space-y-4 m-0 focus-visible:outline-none text-left w-full max-w-full min-w-0 overflow-hidden">
                             <CandidateCvViewer applicant={selectedApplicant} />
                           </TabsContent>
 
                           {/* TAB 3: Notas Internas */}
-                          <TabsContent value="notes" className="space-y-4 m-0 focus-visible:outline-none text-left">
+                          <TabsContent value="notes" className="space-y-4 m-0 focus-visible:outline-none text-left w-full max-w-full min-w-0 overflow-hidden">
                             <Card className="bg-muted/15 border border-border/40 rounded-2xl p-5 space-y-3">
                               <div className="space-y-0.5">
                                 <h4 className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
@@ -1919,7 +2169,7 @@ export function ApplicationsInbox() {
 
                           {/* TAB 4: Documentos LFT (Solo para colaboradores contratados) */}
                           {selectedApplicant.status === "Contratado" && (
-                            <TabsContent value="documents" className="space-y-4 m-0 focus-visible:outline-none text-left">
+                            <TabsContent value="documents" className="space-y-4 m-0 focus-visible:outline-none text-left w-full max-w-full min-w-0 overflow-hidden">
                               <Card className="bg-muted/15 border border-border/40 rounded-2xl p-5 space-y-4">
                                 <div className="flex items-center gap-3">
                                   <div className="size-10 rounded-xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0">
@@ -2133,119 +2383,520 @@ export function ApplicationsInbox() {
         </DialogContent>
       </Dialog>
 
-      {/* Modal: Agendar Cita de Entrevista */}
+      {/* Modal: Agendar Cita de Entrevista (Rediseñada con mayor ancho, ScrollArea, Video Plataformas y shadcn DatePicker) */}
       <Dialog open={isInterviewModalOpen} onOpenChange={setIsInterviewModalOpen}>
-        <DialogContent className="sm:max-w-md rounded-3xl p-6 bg-card border-border shadow-2xl">
-          <DialogHeader>
-            <div className="size-10 rounded-2xl bg-purple-500/10 text-purple-600 flex items-center justify-center mb-1">
-              <Calendar className="size-5" />
-            </div>
-            <DialogTitle className="text-xl font-extrabold text-foreground">
-              Agendar Cita de Entrevista
-            </DialogTitle>
-            <DialogDescription className="text-xs text-muted-foreground font-medium">
-              Programa una entrevista laboral con <strong className="text-foreground">{interviewApplicant?.name || "el candidato"}</strong> para la vacante <strong className="text-foreground">{interviewApplicant?.vacancyTitle}</strong>.
-            </DialogDescription>
-          </DialogHeader>
-
-          <div className="space-y-4 py-3">
-            {/* Date & Time */}
-            <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-1.5 text-left">
-                <label className="text-xs font-bold text-foreground">Fecha de Entrevista</label>
-                <Input
-                  type="date"
-                  value={interviewDate}
-                  onChange={(e) => setInterviewDate(e.target.value)}
-                  className="rounded-xl h-10 text-xs font-semibold bg-muted/20"
-                />
+        <DialogContent
+          showCloseButton={false}
+          className="w-full sm:!max-w-[700px] md:!max-w-[740px] rounded-[32px] p-0 overflow-hidden bg-card border-border/80 shadow-2xl flex flex-col h-[88vh] max-h-[820px] gap-0 font-sans"
+        >
+          {/* 1. Header (Fijo arriba) */}
+          <div className="p-5 sm:p-6 pb-4 border-b border-border/40 shrink-0 bg-card z-10">
+            <div className="flex items-center justify-between gap-2 mb-3">
+              <div className="flex items-center gap-3">
+                <div className="size-11 rounded-2xl bg-gradient-to-br from-primary/20 via-primary/10 to-primary/5 text-primary border border-primary/25 flex items-center justify-center shadow-2xs shrink-0">
+                  <CalendarCheck className="size-5.5" />
+                </div>
+                <div>
+                  <DialogTitle className="text-lg sm:text-xl font-black text-foreground tracking-tight">
+                    Agendar Cita de Entrevista
+                  </DialogTitle>
+                  <DialogDescription className="text-xs text-muted-foreground font-medium">
+                    Coordina la fecha, horario y modalidad de evaluación con el postulante.
+                  </DialogDescription>
+                </div>
               </div>
-              <div className="space-y-1.5 text-left">
-                <label className="text-xs font-bold text-foreground">Hora</label>
-                <Input
-                  type="time"
-                  value={interviewTime}
-                  onChange={(e) => setInterviewTime(e.target.value)}
-                  className="rounded-xl h-10 text-xs font-semibold bg-muted/20"
-                />
-              </div>
-            </div>
 
-            {/* Modality */}
-            <div className="space-y-1.5 text-left">
-              <label className="text-xs font-bold text-foreground">Modalidad</label>
-              <div className="grid grid-cols-2 gap-2">
-                <Button
+              <div className="flex items-center gap-2">
+                <Badge variant="outline" className="text-[11px] font-bold px-3 py-1 rounded-full bg-primary/5 text-primary border-primary/25 hidden sm:inline-flex shrink-0">
+                  Etapa 3 • Entrevista Laboral
+                </Badge>
+                <button
                   type="button"
-                  variant={interviewModality === "presencial" ? "default" : "outline"}
-                  onClick={() => setInterviewModality("presencial")}
-                  className={cn(
-                    "h-9 rounded-xl text-xs font-bold gap-2",
-                    interviewModality === "presencial" ? "bg-primary text-primary-foreground" : "border-border/60"
-                  )}
+                  onClick={() => setIsInterviewModalOpen(false)}
+                  className="size-8 rounded-full bg-muted/50 hover:bg-muted text-muted-foreground hover:text-foreground flex items-center justify-center transition-colors cursor-pointer shrink-0"
+                  aria-label="Cerrar modal"
                 >
-                  <MapPin className="size-3.5" />
-                  <span>Presencial</span>
-                </Button>
-                <Button
-                  type="button"
-                  variant={interviewModality === "virtual" ? "default" : "outline"}
-                  onClick={() => setInterviewModality("virtual")}
-                  className={cn(
-                    "h-9 rounded-xl text-xs font-bold gap-2",
-                    interviewModality === "virtual" ? "bg-primary text-primary-foreground" : "border-border/60"
-                  )}
-                >
-                  <Video className="size-3.5" />
-                  <span>Videollamada</span>
-                </Button>
+                  <X className="size-4" />
+                </button>
               </div>
             </div>
 
-            {/* Location or Link */}
-            <div className="space-y-1.5 text-left">
-              <label className="text-xs font-bold text-foreground">
-                {interviewModality === "presencial" ? "Dirección o Sucursal" : "Enlace de Videollamada (Meet / Zoom)"}
-              </label>
-              <Input
-                value={interviewLocationOrLink}
-                onChange={(e) => setInterviewLocationOrLink(e.target.value)}
-                placeholder={interviewModality === "presencial" ? "Ej. Av. Paseo de Montejo #450, Mérida" : "Ej. https://meet.google.com/xyz-abcd-efg"}
-                className="rounded-xl h-10 text-xs font-medium bg-muted/20"
-              />
-            </div>
-
-            {/* Notes */}
-            <div className="space-y-1.5 text-left">
-              <label className="text-xs font-bold text-foreground">Indicaciones para el Candidato</label>
-              <Textarea
-                value={interviewNotes}
-                onChange={(e) => setInterviewNotes(e.target.value)}
-                placeholder="Ej. Presentarse con 10 minutos de anticipación e identificación oficial física..."
-                className="min-h-[80px] rounded-xl text-xs font-medium bg-muted/20"
-              />
-            </div>
+            {/* Ficha Resumen del Candidato */}
+            {interviewApplicant && (
+              <div className="flex items-center justify-between p-3 rounded-2xl bg-muted/30 border border-border/50 text-left">
+                <div className="flex items-center gap-3 min-w-0 flex-1">
+                  <Avatar className="size-10 rounded-xl border border-border/50 shrink-0">
+                    <AvatarImage src={interviewApplicant.avatar} alt={interviewApplicant.name} />
+                    <AvatarFallback className="text-xs font-black bg-primary/10 text-primary">
+                      {getInitials(interviewApplicant.name)}
+                    </AvatarFallback>
+                  </Avatar>
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center gap-2">
+                      <h4 className="text-xs sm:text-sm font-bold text-foreground truncate">
+                        {interviewApplicant.name}
+                      </h4>
+                      <Badge variant="outline" className="text-[10px] font-bold shrink-0 bg-background text-primary border-primary/30">
+                        Postulante
+                      </Badge>
+                    </div>
+                    <p className="text-[11px] text-muted-foreground truncate">
+                      Vacante: <strong className="text-foreground">{interviewApplicant.vacancyTitle}</strong>
+                    </p>
+                  </div>
+                </div>
+                {interviewApplicant.phone && (
+                  <span className="text-[11px] text-muted-foreground font-semibold hidden sm:inline shrink-0 pl-2">
+                    {interviewApplicant.phone}
+                  </span>
+                )}
+              </div>
+            )}
           </div>
 
-          <DialogFooter className="gap-2 sm:gap-0">
+          {/* 2. Cuerpo con ScrollArea para navegación fluida sin desborde */}
+          <div className="flex-1 min-h-0 h-full relative overflow-hidden bg-card w-full max-w-full">
+            <ScrollArea className="h-full w-full max-w-full">
+              <div className="p-6 sm:p-7 space-y-6 text-left">
+              {/* Bloque 1: Fecha y Horario en 2 Columnas (Desktop) */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                {/* Columna Izquierda: Fecha */}
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <label className="text-xs font-bold text-foreground flex items-center gap-1.5">
+                      <Calendar className="size-3.5 text-primary" />
+                      <span>Fecha de la Entrevista</span>
+                    </label>
+                    <span className="text-[11px] text-muted-foreground font-medium">
+                      Solo fechas presentes o futuras
+                    </span>
+                  </div>
+
+                  {/* Shadcn UI DatePicker con hidePastDates={true} y minDate={new Date()} */}
+                  <DatePicker
+                    value={interviewDate}
+                    onChange={(newDate) => setInterviewDate(newDate)}
+                    minDate={new Date()}
+                    hidePastDates={true}
+                    placeholder="Selecciona el día de la cita"
+                    className="h-10.5 rounded-xl border-border/70 bg-background font-medium text-xs sm:text-sm shadow-2xs"
+                  />
+
+                  {/* Atajos Rápidos de Fecha */}
+                  <div className="flex flex-wrap items-center gap-1.5 pt-0.5">
+                    <span className="text-[10px] uppercase tracking-wider font-bold text-muted-foreground mr-0.5">
+                      Rápido:
+                    </span>
+                    {[
+                      { label: "Hoy", val: getQuickDateIso(0) },
+                      { label: "Mañana", val: getQuickDateIso(1) },
+                      { label: "En 2 días", val: getQuickDateIso(2) },
+                      { label: "Próx. Lunes", val: getQuickDateIso("nextMonday") },
+                    ].map((item) => {
+                      const isActive = interviewDate === item.val;
+                      return (
+                        <button
+                          key={item.label}
+                          type="button"
+                          onClick={() => setInterviewDate(item.val)}
+                          className={cn(
+                            "px-2.5 py-1 rounded-lg text-[11px] font-bold transition-colors cursor-pointer border",
+                            isActive
+                              ? "bg-primary text-primary-foreground border-primary shadow-2xs"
+                              : "bg-muted/40 hover:bg-muted text-muted-foreground border-border/50 hover:text-foreground"
+                          )}
+                        >
+                          {item.label}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {/* Columna Derecha: Horario */}
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <label className="text-xs font-bold text-foreground flex items-center gap-1.5">
+                      <Clock className="size-3.5 text-primary" />
+                      <span>Horario de la Cita</span>
+                    </label>
+                    <span className="text-[11px] text-muted-foreground font-medium">
+                      Formato 24h
+                    </span>
+                  </div>
+
+                  <div className="flex items-center gap-2.5">
+                    <Input
+                      type="time"
+                      value={interviewTime}
+                      onChange={(e) => setInterviewTime(e.target.value)}
+                      className="rounded-xl h-10.5 text-xs sm:text-sm font-semibold bg-background border-border/70 w-32 shrink-0 shadow-2xs"
+                    />
+
+                    <div className="flex flex-wrap items-center gap-1.5 flex-1 min-w-0">
+                      {quickTimes.map((timeStr) => {
+                        const isActive = interviewTime === timeStr;
+                        return (
+                          <button
+                            key={timeStr}
+                            type="button"
+                            onClick={() => setInterviewTime(timeStr)}
+                            className={cn(
+                              "px-2 py-1 rounded-lg text-[11px] font-semibold transition-colors cursor-pointer border",
+                              isActive
+                                ? "bg-primary text-primary-foreground border-primary shadow-2xs font-bold"
+                                : "bg-muted/30 hover:bg-muted text-muted-foreground border-border/40 hover:text-foreground"
+                            )}
+                          >
+                            {timeStr}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Bloque 2: Selector de Modalidad */}
+              <div className="space-y-2">
+                <label className="text-xs font-bold text-foreground">Modalidad de Reunión</label>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setInterviewModality("presencial");
+                      if (!interviewLocationOrLink || interviewLocationOrLink.includes("http")) {
+                        setInterviewLocationOrLink(interviewApplicant?.location || "Instalaciones de la empresa / Sucursal");
+                      }
+                    }}
+                    className={cn(
+                      "p-3.5 rounded-2xl border text-left flex items-start gap-3 transition-all cursor-pointer",
+                      interviewModality === "presencial"
+                        ? "border-primary bg-primary/5 text-primary ring-1 ring-primary/25 shadow-2xs"
+                        : "border-border/60 bg-card hover:bg-muted/30 text-muted-foreground"
+                    )}
+                  >
+                    <div className={cn(
+                      "size-9 rounded-xl flex items-center justify-center shrink-0 mt-0.5",
+                      interviewModality === "presencial" ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"
+                    )}>
+                      <MapPin className="size-4.5" />
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <div className="text-xs sm:text-sm font-bold text-foreground">Reunión Presencial</div>
+                      <div className="text-[11px] text-muted-foreground leading-snug pt-0.5">
+                        En sucursal física u oficinas de la empresa
+                      </div>
+                    </div>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setInterviewModality("virtual");
+                      handleSelectPlatform(interviewPlatform || "meet");
+                    }}
+                    className={cn(
+                      "p-3.5 rounded-2xl border text-left flex items-start gap-3 transition-all cursor-pointer",
+                      interviewModality === "virtual"
+                        ? "border-primary bg-primary/5 text-primary ring-1 ring-primary/25 shadow-2xs"
+                        : "border-border/60 bg-card hover:bg-muted/30 text-muted-foreground"
+                    )}
+                  >
+                    <div className={cn(
+                      "size-9 rounded-xl flex items-center justify-center shrink-0 mt-0.5",
+                      interviewModality === "virtual" ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"
+                    )}>
+                      <Video className="size-4.5" />
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <div className="text-xs sm:text-sm font-bold text-foreground">Videollamada en Línea</div>
+                      <div className="text-[11px] text-muted-foreground leading-snug pt-0.5">
+                        Google Meet, Zoom o Microsoft Teams
+                      </div>
+                    </div>
+                  </button>
+                </div>
+              </div>
+
+              {/* Bloque 3: Configuración Dinámica de la Reunión */}
+              {interviewModality === "virtual" ? (
+                /* Sub-bloque Videollamada: Integración con Meet / Zoom / Teams / Enlace ya hecho */
+                <div className="space-y-3.5 p-4 rounded-2xl bg-muted/20 border border-border/60">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                    <label className="text-xs font-bold text-foreground flex items-center gap-1.5">
+                      <Video className="size-3.5 text-primary" />
+                      <span>Plataforma de Videollamada</span>
+                    </label>
+                    <span className="text-[11px] text-muted-foreground">
+                      Selecciona tu plataforma o pega un enlace ya creado
+                    </span>
+                  </div>
+
+                  {/* Selector de Plataforma */}
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                    {[
+                      { id: "meet", name: "Google Meet", badge: "meet.new" },
+                      { id: "zoom", name: "Zoom", badge: "zoom.us" },
+                      { id: "teams", name: "MS Teams", badge: "live.com" },
+                      { id: "custom", name: "Enlace ya hecho", badge: "Personalizado" },
+                    ].map((plat) => {
+                      const isSelected = interviewPlatform === plat.id;
+                      return (
+                        <button
+                          key={plat.id}
+                          type="button"
+                          onClick={() => handleSelectPlatform(plat.id as any)}
+                          className={cn(
+                            "p-2.5 rounded-xl border text-center transition-all cursor-pointer",
+                            isSelected
+                              ? "bg-primary text-primary-foreground border-primary shadow-xs font-bold"
+                              : "bg-background hover:bg-muted/50 text-muted-foreground border-border/60 hover:text-foreground"
+                          )}
+                        >
+                          <div className="text-xs font-bold">{plat.name}</div>
+                          <div className={cn("text-[10px] opacity-80", isSelected ? "text-primary-foreground/90" : "text-muted-foreground")}>
+                            {plat.badge}
+                          </div>
+                        </button>
+                      );
+                    })}
+                  </div>
+
+                  {/* Acciones de Generación Rápida según Plataforma */}
+                  <div className="flex flex-wrap items-center justify-between gap-2 pt-1 border-t border-border/40">
+                    {interviewPlatform === "meet" && (
+                      <div className="flex items-center gap-2">
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant="outline"
+                          onClick={() => window.open("https://meet.new", "_blank")}
+                          className="h-8 rounded-lg text-xs font-semibold gap-1.5 border-primary/30 text-primary hover:bg-primary/10 cursor-pointer"
+                        >
+                          <ExternalLink className="size-3.5" />
+                          <span>Crear nueva sala en Google Meet (meet.new)</span>
+                        </Button>
+                        <span className="text-[11px] text-muted-foreground hidden md:inline">
+                          Abre Meet en tu navegador para copiar el enlace
+                        </span>
+                      </div>
+                    )}
+
+                    {interviewPlatform === "zoom" && (
+                      <div className="flex items-center gap-2">
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant="outline"
+                          onClick={() => window.open("https://zoom.us/start/videomeeting", "_blank")}
+                          className="h-8 rounded-lg text-xs font-semibold gap-1.5 border-blue-500/30 text-blue-600 dark:text-blue-400 hover:bg-blue-500/10 cursor-pointer"
+                        >
+                          <ExternalLink className="size-3.5" />
+                          <span>Iniciar / Crear reunión en Zoom (zoom.us)</span>
+                        </Button>
+                        <span className="text-[11px] text-muted-foreground hidden md:inline">
+                          Genera tu enlace de sala en Zoom
+                        </span>
+                      </div>
+                    )}
+
+                    {interviewPlatform === "teams" && (
+                      <div className="flex items-center gap-2">
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant="outline"
+                          onClick={() => window.open("https://teams.live.com/meet", "_blank")}
+                          className="h-8 rounded-lg text-xs font-semibold gap-1.5 border-indigo-500/30 text-indigo-600 dark:text-indigo-400 hover:bg-indigo-500/10 cursor-pointer"
+                        >
+                          <ExternalLink className="size-3.5" />
+                          <span>Crear reunión en Microsoft Teams</span>
+                        </Button>
+                        <span className="text-[11px] text-muted-foreground hidden md:inline">
+                          Abre Teams para crear sala
+                        </span>
+                      </div>
+                    )}
+
+                    {interviewPlatform === "custom" && (
+                      <span className="text-[11px] text-muted-foreground font-medium">
+                        Pega aquí cualquier enlace de reunión previamente creado (Meet, Zoom, Teams o Calendly).
+                      </span>
+                    )}
+                  </div>
+
+                  {/* Input con Icono y Acciones de Probar/Copiar */}
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-bold text-foreground flex items-center justify-between">
+                      <span>Enlace de la Videollamada</span>
+                      {interviewLocationOrLink && interviewLocationOrLink.startsWith("http") && (
+                        <div className="flex items-center gap-2">
+                          <button
+                            type="button"
+                            onClick={() => window.open(interviewLocationOrLink, "_blank")}
+                            className="text-[11px] font-semibold text-primary hover:underline flex items-center gap-1 cursor-pointer"
+                            title="Probar enlace en pestaña nueva"
+                          >
+                            <ExternalLink className="size-3" />
+                            <span>Probar enlace</span>
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              navigator.clipboard.writeText(interviewLocationOrLink);
+                              toast.success("Enlace copiado al portapapeles");
+                            }}
+                            className="text-[11px] font-semibold text-muted-foreground hover:text-foreground flex items-center gap-1 cursor-pointer"
+                            title="Copiar enlace"
+                          >
+                            <Copy className="size-3" />
+                            <span>Copiar</span>
+                          </button>
+                        </div>
+                      )}
+                    </label>
+                    <div className="relative">
+                      <div className="absolute left-3.5 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none">
+                        <LinkIcon className="size-4 text-primary" />
+                      </div>
+                      <Input
+                        value={interviewLocationOrLink}
+                        onChange={(e) => setInterviewLocationOrLink(e.target.value)}
+                        placeholder={
+                          interviewPlatform === "meet"
+                            ? "Ej. https://meet.google.com/xyz-abcd-efg"
+                            : interviewPlatform === "zoom"
+                            ? "Ej. https://zoom.us/j/1234567890"
+                            : interviewPlatform === "teams"
+                            ? "Ej. https://teams.microsoft.com/l/meetup-join/..."
+                            : "Pega el enlace de la reunión aquí..."
+                        }
+                        className="rounded-xl h-11 text-xs sm:text-sm font-medium pl-10 pr-4 bg-background border-border/70 shadow-2xs"
+                      />
+                    </div>
+                    <p className="text-[11px] text-muted-foreground leading-normal">
+                      El candidato recibirá este enlace con un botón directo en su WhatsApp para conectarse a la hora programada.
+                    </p>
+                  </div>
+                </div>
+              ) : (
+                /* Sub-bloque Presencial: Dirección o Sucursal */
+                <div className="space-y-2.5 p-4 rounded-2xl bg-muted/20 border border-border/60">
+                  <div className="flex items-center justify-between">
+                    <label className="text-xs font-bold text-foreground flex items-center gap-1.5">
+                      <MapPin className="size-3.5 text-primary" />
+                      <span>Dirección o Sucursal de la Entrevista</span>
+                    </label>
+                    <span className="text-[11px] text-muted-foreground font-medium">
+                      Lugar físico para presentarse
+                    </span>
+                  </div>
+
+                  <div className="relative">
+                    <div className="absolute left-3.5 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none">
+                      <MapPin className="size-4 text-primary" />
+                    </div>
+                    <Input
+                      value={interviewLocationOrLink}
+                      onChange={(e) => setInterviewLocationOrLink(e.target.value)}
+                      placeholder="Ej. Av. Paseo de Montejo #450 x 39, Col. Centro, Mérida, Yucatán"
+                      className="rounded-xl h-11 text-xs sm:text-sm font-medium pl-10 bg-background border-border/70 shadow-2xs"
+                    />
+                  </div>
+
+                  {/* Atajos de Dirección de Sucursales */}
+                  <div className="flex flex-wrap items-center gap-1.5 pt-0.5">
+                    <span className="text-[10px] uppercase tracking-wider font-bold text-muted-foreground mr-0.5">
+                      Sugerencias:
+                    </span>
+                    {[
+                      interviewApplicant?.location || "Felipe Carrillo Puerto",
+                      "Oficinas Centrales",
+                      "Sucursal Mérida Norte",
+                      "Instalaciones de la empresa",
+                    ]
+                      .filter(Boolean)
+                      .map((locSnippet, idx) => (
+                        <button
+                          key={idx}
+                          type="button"
+                          onClick={() => setInterviewLocationOrLink(locSnippet)}
+                          className="px-2.5 py-1 rounded-lg text-[11px] font-medium bg-background hover:bg-muted text-muted-foreground hover:text-foreground border border-border/50 transition-colors cursor-pointer"
+                        >
+                          {locSnippet}
+                        </button>
+                      ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Bloque 4: Indicaciones para el Candidato */}
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <label className="text-xs font-bold text-foreground">Indicaciones para el Candidato</label>
+                  <span className="text-[11px] text-muted-foreground">Opcional</span>
+                </div>
+                <Textarea
+                  value={interviewNotes}
+                  onChange={(e) => setInterviewNotes(e.target.value)}
+                  placeholder="Ej. Presentarse con 10 minutos de anticipación e identificación oficial física..."
+                  className="min-h-[76px] rounded-xl text-xs sm:text-sm font-medium bg-background border-border/70 shadow-2xs resize-none"
+                />
+
+                {/* Chips de Sugerencias */}
+                <div className="flex flex-wrap gap-1.5 pt-0.5">
+                  <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider py-0.5">
+                    Añadir indicación rápida:
+                  </span>
+                  {quickNotesSnippets.map((snippet) => (
+                    <button
+                      key={snippet}
+                      type="button"
+                      onClick={() => handleAppendInterviewNote(snippet)}
+                      className="px-2.5 py-1 rounded-lg text-[11px] font-medium bg-muted/40 hover:bg-muted text-muted-foreground hover:text-foreground border border-border/50 transition-colors cursor-pointer"
+                    >
+                      + {snippet}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Bloque 5: Banner de Recordatorio de WhatsApp */}
+              <div className="p-3.5 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 flex items-start gap-3 text-emerald-800 dark:text-emerald-300 text-xs font-medium leading-relaxed">
+                <MessageSquare className="size-4.5 text-emerald-600 shrink-0 mt-0.5" />
+                <p>
+                  <strong>Mensaje listo para WhatsApp:</strong> Al confirmar la cita, el estado del candidato avanzará automáticamente a <strong>Entrevista</strong> y se generará el mensaje personalizado con fecha, hora, modalidad y el enlace directo o dirección para enviárselo al instante.
+                </p>
+              </div>
+            </div>
+          </ScrollArea>
+        </div>
+
+          {/* 3. Footer (Fijo abajo con fondo opaco sólido para que el contenido nunca se trasluzca) */}
+          <div className="p-4 sm:p-5 border-t border-border/40 bg-card shrink-0 flex items-center justify-between sm:justify-end gap-3 z-10">
             <Button
               variant="outline"
               size="sm"
               onClick={() => setIsInterviewModalOpen(false)}
-              className="rounded-xl text-xs font-semibold h-9 px-4 cursor-pointer"
+              className="rounded-xl text-xs font-semibold h-10 px-4 cursor-pointer border-border/70 hover:bg-muted/50"
             >
               Cancelar
             </Button>
             <Button
               size="sm"
               onClick={handleConfirmInterview}
-              disabled={isScheduling}
-              className="rounded-xl text-xs font-bold h-9 px-4 bg-purple-600 hover:bg-purple-700 text-white cursor-pointer gap-1.5"
+              disabled={isScheduling || !interviewDate}
+              className="rounded-xl text-xs font-bold h-10 px-5 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white cursor-pointer shadow-md gap-2"
             >
-              {isScheduling ? <Loader2 className="size-3.5 animate-spin" /> : <Calendar className="size-3.5" />}
-              <span>Confirmar Cita</span>
+              {isScheduling ? (
+                <Loader2 className="size-3.5 animate-spin" />
+              ) : (
+                <CalendarCheck className="size-4" />
+              )}
+              <span>Confirmar Cita de Entrevista</span>
             </Button>
-          </DialogFooter>
+          </div>
         </DialogContent>
       </Dialog>
 

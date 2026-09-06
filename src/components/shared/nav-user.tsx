@@ -13,10 +13,10 @@ import {
   DropdownMenuContent,
   DropdownMenuGroup,
   DropdownMenuItem,
-  DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { Badge } from "@/components/ui/badge";
 import {
   SidebarMenu,
   SidebarMenuButton,
@@ -31,6 +31,7 @@ import {
   LogOutIcon,
   Building2Icon,
   ShieldCheckIcon,
+  ChevronRight,
 } from "lucide-react";
 
 export interface NavUserData {
@@ -39,6 +40,7 @@ export interface NavUserData {
   avatar?: string;
   role?: "admin" | "company" | "candidate";
   plan?: string;
+  isVerified?: boolean;
 }
 
 export function NavUser({
@@ -55,6 +57,7 @@ export function NavUser({
     avatar: initialUser?.avatar || "",
     role: initialUser?.role || "candidate",
     plan: initialUser?.plan || "K'anPro Plan",
+    isVerified: initialUser?.isVerified || false,
   });
 
   React.useEffect(() => {
@@ -78,18 +81,33 @@ export function NavUser({
             .eq("id", authUser.id)
             .maybeSingle();
 
-          const name =
+          const role = (profile?.role || (authUser.user_metadata?.role === "company" ? "company" : "candidate")) as NavUserData["role"];
+          let name =
             profile?.full_name ||
             authUser.user_metadata?.full_name ||
             authUser.email?.split("@")[0] ||
             "Usuario K'anPro";
 
-          const email = authUser.email || profile?.email || "usuario@kanpro.com";
-          const avatar =
+          let avatar =
             profile?.avatar_url || authUser.user_metadata?.avatar_url || "";
-          const role = (profile?.role || (authUser.user_metadata?.role === "company" ? "company" : "candidate")) as NavUserData["role"];
+          let isVerified = false;
 
-          setUserData({ name, email, avatar, role });
+          if (role === "company") {
+            const { data: companyProfile } = await supabase
+              .from("company_profiles")
+              .select("company_name, logo_url, verification_status")
+              .eq("id", authUser.id)
+              .maybeSingle();
+
+            if (companyProfile) {
+              if (companyProfile.company_name) name = companyProfile.company_name;
+              if (companyProfile.logo_url) avatar = companyProfile.logo_url;
+              isVerified = companyProfile.verification_status === "approved";
+            }
+          }
+
+          const email = authUser.email || profile?.email || "usuario@kanpro.com";
+          setUserData({ name, email, avatar, role, isVerified });
         }
       } catch (err) {
         console.error("Error obteniendo datos del usuario en NavUser:", err);
@@ -136,18 +154,18 @@ export function NavUser({
             render={
               <SidebarMenuButton
                 size="lg"
-                className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground"
+                className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground rounded-xl transition-all"
               />
             }
           >
-            <Avatar className="h-8 w-8 rounded-lg">
-              <AvatarImage src={userData.avatar} alt={userData.name} />
-              <AvatarFallback className="rounded-lg bg-primary/10 text-primary font-semibold text-xs">
+            <Avatar className="size-8 rounded-lg ring-1 ring-border/50">
+              <AvatarImage src={userData.avatar} alt={userData.name} className="object-cover" />
+              <AvatarFallback className="rounded-lg bg-primary/10 text-primary font-bold text-xs">
                 {initials}
               </AvatarFallback>
             </Avatar>
-            <div className="grid flex-1 text-left text-sm leading-tight">
-              <span className="truncate font-semibold flex items-center gap-1.5 text-foreground">
+            <div className="grid flex-1 text-left text-sm leading-tight min-w-0">
+              <span className="truncate font-bold flex items-center gap-1.5 text-foreground text-xs">
                 {userData.name}
                 {userData.role === "admin" && (
                   <ShieldCheckIcon className="size-3.5 text-purple-500 shrink-0" />
@@ -156,65 +174,155 @@ export function NavUser({
                   <Building2Icon className="size-3.5 text-amber-500 shrink-0" />
                 )}
               </span>
-              <span className="truncate text-xs text-muted-foreground">
+              <span className="truncate text-[11px] text-muted-foreground">
                 {userData.email}
               </span>
             </div>
-            <ChevronsUpDownIcon className="ml-auto size-4 text-muted-foreground" />
+            <ChevronsUpDownIcon className="ml-auto size-4 text-muted-foreground/70" />
           </DropdownMenuTrigger>
           <DropdownMenuContent
-            className="min-w-56 rounded-xl p-1.5"
+            className="w-72 rounded-2xl p-2 shadow-2xl border border-border/50 bg-popover/95 backdrop-blur-md"
             side={isMobile ? "bottom" : "right"}
             align="end"
-            sideOffset={6}
+            sideOffset={10}
           >
-            <DropdownMenuGroup>
-              <DropdownMenuLabel className="p-0 font-normal">
-                <div className="flex items-center gap-2.5 px-2 py-2 text-left text-sm">
-                  <Avatar className="h-9 w-9 rounded-lg">
-                    <AvatarImage src={userData.avatar} alt={userData.name} />
-                    <AvatarFallback className="rounded-lg bg-primary/10 text-primary font-bold text-xs">
-                      {initials}
-                    </AvatarFallback>
-                  </Avatar>
-                  <div className="grid flex-1 text-left text-sm leading-tight">
-                    <span className="truncate font-bold text-foreground">{userData.name}</span>
-                    <span className="truncate text-xs text-muted-foreground">{userData.email}</span>
-                  </div>
+            {/* 1. Header Card: Mini Dossier del Usuario */}
+            <div className="p-3 rounded-xl bg-muted/40 border border-border/40 text-left">
+              <div className="flex items-center gap-3">
+                <Avatar className="size-10 rounded-xl ring-2 ring-primary/25 border border-border/50 shadow-2xs shrink-0">
+                  <AvatarImage src={userData.avatar} alt={userData.name} className="object-cover" />
+                  <AvatarFallback className="rounded-xl bg-primary/10 text-primary font-black text-xs">
+                    {initials}
+                  </AvatarFallback>
+                </Avatar>
+                <div className="min-w-0 flex-1">
+                  <span className="truncate font-extrabold text-xs text-foreground block">
+                    {userData.name}
+                  </span>
+                  <span className="truncate text-[11px] text-muted-foreground block font-medium mt-0.5">
+                    {userData.email}
+                  </span>
                 </div>
-              </DropdownMenuLabel>
-            </DropdownMenuGroup>
-            <DropdownMenuSeparator className="my-1 border-t border-border/10" />
-            <DropdownMenuGroup>
+              </div>
+
+              {/* Sub-barra de Rol / Estado */}
+              <div className="mt-2.5 pt-2 border-t border-border/30 flex items-center justify-between gap-1 text-[10px]">
+                {userData.role === "company" ? (
+                  <>
+                    <Badge variant="outline" className="text-[10px] font-bold bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20 px-2 py-0.5 rounded-md gap-1">
+                      <Building2Icon className="size-3" />
+                      <span>Empresa</span>
+                    </Badge>
+                    {userData.isVerified ? (
+                      <span className="text-emerald-600 dark:text-emerald-400 font-bold flex items-center gap-1">
+                        <ShieldCheckIcon className="size-3" />
+                        <span>Verificada</span>
+                      </span>
+                    ) : (
+                      <span className="text-muted-foreground font-semibold">
+                        Portal Reclutador
+                      </span>
+                    )}
+                  </>
+                ) : userData.role === "admin" ? (
+                  <>
+                    <Badge variant="outline" className="text-[10px] font-bold bg-purple-500/10 text-purple-600 dark:text-purple-400 border-purple-500/20 px-2 py-0.5 rounded-md gap-1">
+                      <ShieldCheckIcon className="size-3" />
+                      <span>Administrador</span>
+                    </Badge>
+                    <span className="text-purple-600 dark:text-purple-400 font-bold">
+                      Acceso Total
+                    </span>
+                  </>
+                ) : (
+                  <>
+                    <Badge variant="outline" className="text-[10px] font-bold bg-primary/10 text-primary border-primary/20 px-2 py-0.5 rounded-md gap-1">
+                      <UserIcon className="size-3" />
+                      <span>Candidato</span>
+                    </Badge>
+                    <span className="text-muted-foreground font-semibold">
+                      K&apos;anPro Talento
+                    </span>
+                  </>
+                )}
+              </div>
+            </div>
+
+            {/* 2. Menu Navigation Items */}
+            <DropdownMenuGroup className="space-y-0.5 my-1">
               <DropdownMenuItem
                 onClick={() => router.push(profileHref)}
-                className="rounded-lg px-2.5 py-1.5 text-xs font-semibold cursor-pointer flex items-center gap-2"
+                className="group rounded-xl p-2 text-left cursor-pointer transition-all duration-150 hover:bg-muted/50 focus:bg-muted/50 outline-none select-none"
               >
-                <UserIcon className="size-4 text-primary" />
-                <span>Mi Perfil</span>
+                <div className="flex items-center gap-2.5 w-full">
+                  <div className="size-8 rounded-lg bg-primary/10 text-primary flex items-center justify-center shrink-0 group-hover:bg-primary group-hover:text-primary-foreground transition-colors shadow-2xs">
+                    <UserIcon className="size-4" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <span className="text-xs font-bold text-foreground block truncate">Mi Perfil</span>
+                    <span className="text-[10px] text-muted-foreground block truncate font-medium">Ver y editar información pública</span>
+                  </div>
+                  <ChevronRight className="size-3.5 text-muted-foreground/30 group-hover:text-foreground group-hover:translate-x-0.5 transition-all ml-auto shrink-0" />
+                </div>
               </DropdownMenuItem>
+
               <DropdownMenuItem
                 onClick={() => router.push(settingsHref)}
-                className="rounded-lg px-2.5 py-1.5 text-xs font-semibold cursor-pointer flex items-center gap-2"
+                className="group rounded-xl p-2 text-left cursor-pointer transition-all duration-150 hover:bg-muted/50 focus:bg-muted/50 outline-none select-none"
               >
-                <SettingsIcon className="size-4 text-muted-foreground" />
-                <span>Configuración</span>
+                <div className="flex items-center gap-2.5 w-full">
+                  <div className="size-8 rounded-lg bg-muted text-muted-foreground flex items-center justify-center shrink-0 group-hover:bg-foreground group-hover:text-background transition-colors shadow-2xs">
+                    <SettingsIcon className="size-4" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <span className="text-xs font-bold text-foreground block truncate">Configuración</span>
+                    <span className="text-[10px] text-muted-foreground block truncate font-medium">Preferencias, privacidad y cuenta</span>
+                  </div>
+                  <ChevronRight className="size-3.5 text-muted-foreground/30 group-hover:text-foreground group-hover:translate-x-0.5 transition-all ml-auto shrink-0" />
+                </div>
               </DropdownMenuItem>
+
               <DropdownMenuItem
-                onClick={() => router.push(settingsHref)}
-                className="rounded-lg px-2.5 py-1.5 text-xs font-semibold cursor-pointer flex items-center gap-2"
+                onClick={() => {
+                  if (userData.role === "company") {
+                    router.push("/dashboard/company/settings?tab=notifications");
+                  } else if (userData.role === "candidate") {
+                    router.push("/dashboard/candidate/settings?tab=notifications");
+                  } else {
+                    router.push("/dashboard/admin/settings");
+                  }
+                }}
+                className="group rounded-xl p-2 text-left cursor-pointer transition-all duration-150 hover:bg-muted/50 focus:bg-muted/50 outline-none select-none"
               >
-                <BellIcon className="size-4 text-muted-foreground" />
-                <span>Notificaciones</span>
+                <div className="flex items-center gap-2.5 w-full">
+                  <div className="size-8 rounded-lg bg-indigo-500/10 text-indigo-500 flex items-center justify-center shrink-0 group-hover:bg-indigo-600 group-hover:text-white transition-colors shadow-2xs">
+                    <BellIcon className="size-4" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <span className="text-xs font-bold text-foreground block truncate">Notificaciones</span>
+                    <span className="text-[10px] text-muted-foreground block truncate font-medium">Avisos de postulaciones y alertas</span>
+                  </div>
+                  <ChevronRight className="size-3.5 text-muted-foreground/30 group-hover:text-foreground group-hover:translate-x-0.5 transition-all ml-auto shrink-0" />
+                </div>
               </DropdownMenuItem>
             </DropdownMenuGroup>
-            <DropdownMenuSeparator className="my-1 border-t border-border/10" />
+
+            <DropdownMenuSeparator className="my-1 border-t border-border/40" />
+
+            {/* 3. Logout Item */}
             <DropdownMenuItem
               onClick={handleLogout}
-              className="rounded-lg px-2.5 py-1.5 text-xs font-semibold cursor-pointer flex items-center gap-2 text-red-600 dark:text-red-400 focus:text-red-600 focus:bg-red-50 dark:focus:bg-red-950/30"
+              className="group rounded-xl p-2 text-left cursor-pointer transition-all duration-150 text-rose-600 dark:text-rose-400 hover:bg-rose-500/10 focus:bg-rose-500/10 focus:text-rose-600 outline-none select-none"
             >
-              <LogOutIcon className="size-4" />
-              <span>Cerrar Sesión</span>
+              <div className="flex items-center gap-2.5 w-full">
+                <div className="size-8 rounded-lg bg-rose-500/10 text-rose-600 dark:text-rose-400 flex items-center justify-center shrink-0 group-hover:bg-rose-600 group-hover:text-white transition-colors shadow-2xs">
+                  <LogOutIcon className="size-4" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <span className="text-xs font-bold block truncate">Cerrar Sesión</span>
+                  <span className="text-[10px] text-rose-500/70 block truncate font-medium">Finalizar sesión en este equipo</span>
+                </div>
+              </div>
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>

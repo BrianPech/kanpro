@@ -28,6 +28,7 @@ import { Switch } from "@/components/ui/switch";
 import {
   DropdownMenu,
   DropdownMenuContent,
+  DropdownMenuGroup,
   DropdownMenuItem,
   DropdownMenuLabel,
   DropdownMenuSeparator,
@@ -293,22 +294,24 @@ export function ReportsDataTable({ data, onRefresh }: ReportsDataTableProps) {
                   <MoreHorizontalIcon className="size-4" />
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end" className="w-52 rounded-xl">
-                  <DropdownMenuLabel className="text-xs">Acciones de Moderación</DropdownMenuLabel>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem
-                    className="text-xs font-medium cursor-pointer gap-2"
-                    onClick={() => setInspectReport(item)}
-                  >
-                    <EyeIcon className="size-3.5 text-purple-500" />
-                    Inspeccionar Reporte
-                  </DropdownMenuItem>
-                  <DropdownMenuItem
-                    className="text-xs font-medium cursor-pointer gap-2 text-green-600"
-                    onClick={() => handleToggleVerification(item.companyId, item.companyName, item.companyIsVerified)}
-                  >
-                    <ShieldCheckIcon className="size-3.5 text-green-500" />
-                    {item.companyIsVerified ? "Revocar Verificación" : "Otorgar Badge Verificado"}
-                  </DropdownMenuItem>
+                  <DropdownMenuGroup>
+                    <DropdownMenuLabel className="text-xs">Acciones de Moderación</DropdownMenuLabel>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem
+                      className="text-xs font-medium cursor-pointer gap-2"
+                      onClick={() => setInspectReport(item)}
+                    >
+                      <EyeIcon className="size-3.5 text-purple-500" />
+                      Inspeccionar Reporte
+                    </DropdownMenuItem>
+                    <DropdownMenuItem
+                      className="text-xs font-medium cursor-pointer gap-2 text-green-600"
+                      onClick={() => handleToggleVerification(item.companyId, item.companyName, item.companyIsVerified)}
+                    >
+                      <ShieldCheckIcon className="size-3.5 text-green-500" />
+                      {item.companyIsVerified ? "Revocar Verificación" : "Otorgar Badge Verificado"}
+                    </DropdownMenuItem>
+                  </DropdownMenuGroup>
                   <DropdownMenuSeparator />
                   <DropdownMenuItem
                     className="text-xs font-medium cursor-pointer gap-2 text-muted-foreground"

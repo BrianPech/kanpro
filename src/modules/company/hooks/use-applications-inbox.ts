@@ -61,14 +61,56 @@ interface ApplicationsQueryData {
 
 export function useApplicationsInbox() {
   const queryClient = useQueryClient();
-  const [selectedVacancyId, setSelectedVacancyId] = React.useState<string>("all");
+  // Helper to read initial vacancy_id from URL query string if present
+  const getInitialVacancyId = () => {
+    if (typeof window !== "undefined") {
+      try {
+        const params = new URLSearchParams(window.location.search);
+        return params.get("vacancy_id") || params.get("vacancyId") || "all";
+      } catch {}
+    }
+    return "all";
+  };
+
+  const [selectedVacancyId, setSelectedVacancyIdState] = React.useState<string>(getInitialVacancyId);
+
+  // Sync when URL query string changes (e.g. back/forward navigation or link click)
+  React.useEffect(() => {
+    const handleUrlChange = () => {
+      const urlId = getInitialVacancyId();
+      if (urlId !== selectedVacancyId) {
+        setSelectedVacancyIdState(urlId);
+      }
+    };
+
+    window.addEventListener("popstate", handleUrlChange);
+    return () => window.removeEventListener("popstate", handleUrlChange);
+  }, [selectedVacancyId]);
+
+  const setSelectedVacancyId = React.useCallback((id: string) => {
+    setSelectedVacancyIdState(id);
+    if (typeof window !== "undefined") {
+      try {
+        const url = new URL(window.location.href);
+        if (id === "all") {
+          url.searchParams.delete("vacancy_id");
+          url.searchParams.delete("vacancyId");
+        } else {
+          url.searchParams.set("vacancy_id", id);
+          url.searchParams.delete("vacancyId");
+        }
+        window.history.replaceState({}, "", url.toString());
+      } catch {}
+    }
+  }, []);
+
   const [selectedId, setSelectedId] = React.useState<string | null>(null);
   const [searchQuery, setSearchQuery] = React.useState("");
   const [userId, setUserId] = React.useState<string>("");
 
   const supabase = React.useMemo(() => createClient(), []);
 
-  const queryKey = ["company-applications", selectedVacancyId || "all"];
+  const queryKey = ["company-applications"];
 
   const { data, isLoading, refetch } = useQuery<ApplicationsQueryData>({
     queryKey,

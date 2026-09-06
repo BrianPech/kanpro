@@ -54,12 +54,12 @@ function PopoverContent({
         alignOffset={alignOffset}
         side={side}
         sideOffset={sideOffset}
-        className="isolate z-50"
+        className="isolate z-[70]"
       >
         <PopoverPrimitive.Popup
           data-slot="popover-content"
           className={cn(
-            "z-50 w-auto rounded-2xl bg-popover p-3 text-popover-foreground shadow-lg ring-1 ring-border duration-100 outline-none data-open:animate-in data-open:fade-in-0 data-open:zoom-in-95 data-closed:animate-out data-closed:fade-out-0 data-closed:zoom-out-95",
+            "z-[70] w-auto rounded-2xl bg-popover p-3 text-popover-foreground shadow-lg ring-1 ring-border duration-100 outline-none data-open:animate-in data-open:fade-in-0 data-open:zoom-in-95 data-closed:animate-out data-closed:fade-out-0 data-closed:zoom-out-95",
             className
           )}
           {...props}

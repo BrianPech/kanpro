@@ -71,10 +71,10 @@ export function CandidateCvViewer({ applicant }: CandidateCvViewerProps) {
   const whatsappMessage = `Hola ${applicant.name}, te contactamos respecto a tu postulación en K'anPro para la vacante "${applicant.vacancyTitle}". Para avanzar en nuestro proceso de reclutamiento, ¿podrías compartirnos tu Currículum en archivo PDF? Muchas gracias.`;
 
   return (
-    <div className="space-y-4 text-left">
+    <div className="w-full max-w-full min-w-0 space-y-4 text-left overflow-hidden">
       {/* Loading state */}
       {loading ? (
-        <Card className="p-12 text-center bg-card border border-border/40 rounded-2xl">
+        <Card className="p-12 text-center bg-card border border-border/40 rounded-2xl w-full max-w-full">
           <Loader2 className="size-6 animate-spin mx-auto text-primary mb-2" />
           <p className="text-xs text-muted-foreground font-medium">
             Verificando si el candidato adjuntó archivo de CV en PDF...
@@ -82,20 +82,22 @@ export function CandidateCvViewer({ applicant }: CandidateCvViewerProps) {
         </Card>
       ) : uploadedCv?.hasUploadedCv && uploadedCv?.cvUrl ? (
         /* PDF Attached: Controls & Viewer */
-        <div className="space-y-4">
-          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 p-4 rounded-2xl bg-muted/30 border border-border/40">
-            <div className="flex items-center gap-3">
+        <div className="space-y-4 w-full max-w-full min-w-0">
+          <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-3 p-3.5 sm:p-4 rounded-2xl bg-muted/30 border border-border/40 w-full max-w-full overflow-hidden">
+            <div className="flex items-center gap-3 min-w-0 flex-1 w-full md:w-auto">
               <div className="size-10 rounded-xl bg-rose-500/10 text-rose-600 dark:text-rose-400 flex items-center justify-center shrink-0">
-                <FileText className="size-5" />
+                <FileText className="size-5 shrink-0" />
               </div>
-              <div>
-                <h4 className="text-xs sm:text-sm font-bold text-foreground flex items-center gap-2">
-                  <span>{uploadedCv.fileName || "Curriculum_Vitae.pdf"}</span>
-                  <Badge className="bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 text-[10px] font-bold border-none">
+              <div className="min-w-0 flex-1">
+                <div className="flex items-center gap-2 min-w-0">
+                  <span className="text-xs sm:text-sm font-bold text-foreground truncate block">
+                    {uploadedCv.fileName || "Curriculum_Vitae.pdf"}
+                  </span>
+                  <Badge className="bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 text-[10px] font-bold border-none shrink-0">
                     PDF Adjunto
                   </Badge>
-                </h4>
-                <p className="text-[11px] text-muted-foreground font-medium">
+                </div>
+                <p className="text-[11px] text-muted-foreground font-medium truncate">
                   {uploadedCv.uploadedAt
                     ? `Actualizado el ${new Date(uploadedCv.uploadedAt).toLocaleDateString("es-MX", { day: "2-digit", month: "short", year: "numeric" })}`
                     : "Documento curricular adjuntado por el candidato"}
@@ -103,7 +105,7 @@ export function CandidateCvViewer({ applicant }: CandidateCvViewerProps) {
               </div>
             </div>
 
-            <div className="flex items-center gap-2 w-full sm:w-auto justify-end">
+            <div className="flex flex-wrap items-center gap-2 w-full md:w-auto justify-start md:justify-end shrink-0">
               <a
                 href={uploadedCv.cvUrl}
                 target="_blank"
@@ -113,10 +115,10 @@ export function CandidateCvViewer({ applicant }: CandidateCvViewerProps) {
                 <Button
                   size="sm"
                   variant="outline"
-                  className="h-8 px-3 rounded-lg text-xs font-bold gap-1.5 border-border/60 hover:bg-muted/50 cursor-pointer"
+                  className="h-8 px-2.5 sm:px-3 rounded-lg text-xs font-bold gap-1.5 border-border/60 hover:bg-muted/50 cursor-pointer"
                 >
-                  <ExternalLink className="size-3.5" />
-                  <span>Abrir en Pestaña Nueva</span>
+                  <ExternalLink className="size-3.5 shrink-0" />
+                  <span>Abrir en pestaña nueva</span>
                 </Button>
               </a>
 
@@ -127,9 +129,9 @@ export function CandidateCvViewer({ applicant }: CandidateCvViewerProps) {
               >
                 <Button
                   size="sm"
-                  className="h-8 px-3.5 rounded-lg text-xs font-bold gap-1.5 bg-primary text-primary-foreground cursor-pointer shadow-2xs"
+                  className="h-8 px-3 rounded-lg text-xs font-bold gap-1.5 bg-primary text-primary-foreground cursor-pointer shadow-2xs"
                 >
-                  <Download className="size-3.5" />
+                  <Download className="size-3.5 shrink-0" />
                   <span>Descargar PDF</span>
                 </Button>
               </a>
@@ -137,15 +139,15 @@ export function CandidateCvViewer({ applicant }: CandidateCvViewerProps) {
           </div>
 
           {/* Embedded PDF Viewer */}
-          <div className="rounded-2xl border border-border/60 overflow-hidden bg-card shadow-xs">
+          <div className="rounded-2xl border border-border/60 overflow-hidden bg-card shadow-xs w-full max-w-full">
             <iframe
               src={uploadedCv.cvUrl}
-              className="w-full h-[560px] bg-muted/10 border-0"
+              className="w-full max-w-full h-[560px] bg-muted/10 border-0 block"
               title="Currículum Vitae PDF"
             />
           </div>
 
-          <p className="text-[11px] text-muted-foreground text-center">
+          <p className="text-[11px] text-muted-foreground text-center break-words">
             Si la vista previa del PDF no se muestra directamente en tu navegador, puedes{" "}
             <a
               href={uploadedCv.cvUrl}
@@ -168,12 +170,12 @@ export function CandidateCvViewer({ applicant }: CandidateCvViewerProps) {
         </div>
       ) : (
         /* No PDF Attached State */
-        <Card className="p-8 sm:p-10 text-center bg-muted/10 border border-border/40 rounded-2xl space-y-4">
-          <div className="size-12 rounded-2xl bg-muted/60 text-muted-foreground flex items-center justify-center mx-auto border border-border/40">
+        <Card className="p-6 sm:p-10 text-center bg-muted/10 border border-border/40 rounded-2xl space-y-4 w-full max-w-full overflow-hidden">
+          <div className="size-12 rounded-2xl bg-muted/60 text-muted-foreground flex items-center justify-center mx-auto border border-border/40 shrink-0">
             <FileQuestion className="size-6 text-muted-foreground/80" />
           </div>
 
-          <div className="max-w-md mx-auto space-y-1.5">
+          <div className="max-w-md mx-auto space-y-1.5 min-w-0">
             <h4 className="text-sm sm:text-base font-bold text-foreground">
               El candidato no adjuntó archivo de CV en PDF
             </h4>
@@ -183,19 +185,20 @@ export function CandidateCvViewer({ applicant }: CandidateCvViewerProps) {
           </div>
 
           {applicant.phone && (
-            <div className="pt-2 flex flex-col sm:flex-row items-center justify-center gap-2">
+            <div className="pt-2 flex flex-col sm:flex-row items-center justify-center gap-2 max-w-full">
               <a
                 href={`https://wa.me/${applicant.phone.replace(/[^0-9]/g, "")}?text=${encodeURIComponent(whatsappMessage)}`}
                 target="_blank"
                 rel="noopener noreferrer"
+                className="max-w-full"
               >
                 <Button
                   size="sm"
                   variant="outline"
-                  className="rounded-xl text-xs font-bold gap-1.5 border-emerald-500/30 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-500/10 cursor-pointer h-9 px-4"
+                  className="rounded-xl text-xs font-bold gap-1.5 border-emerald-500/30 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-500/10 cursor-pointer h-9 px-4 max-w-full"
                 >
-                  <MessageSquare className="size-3.5 text-emerald-600" />
-                  <span>Solicitar CV en PDF por WhatsApp</span>
+                  <MessageSquare className="size-3.5 text-emerald-600 shrink-0" />
+                  <span className="truncate">Solicitar CV en PDF por WhatsApp</span>
                 </Button>
               </a>
             </div>
@@ -204,9 +207,9 @@ export function CandidateCvViewer({ applicant }: CandidateCvViewerProps) {
       )}
 
       {/* Note about official legal documents */}
-      <div className="p-3.5 rounded-xl bg-muted/20 border border-border/40 flex items-start gap-2.5 text-xs text-muted-foreground">
+      <div className="p-3.5 rounded-xl bg-muted/20 border border-border/40 flex items-start gap-2.5 text-xs text-muted-foreground w-full max-w-full overflow-hidden">
         <FolderLock className="size-4 text-muted-foreground/70 shrink-0 mt-0.5" />
-        <p className="leading-relaxed text-[11px]">
+        <p className="leading-relaxed text-[11px] min-w-0 flex-1 break-words">
           <strong>Nota sobre Documentación Oficial:</strong> La documentación legal del trabajador (INE, RFC, CURP, NSS y comprobante de domicilio) se solicita e integra formalmente al expediente laboral una vez concretada la contratación (Etapa 4), protegiendo la privacidad del candidato durante la evaluación.
         </p>
       </div>
