@@ -113,11 +113,11 @@ export const companyService = {
     const { data, error } = await supabase
       .from("vacancies")
       .select("*")
-      .eq("company_id", companyId)
+      .or(`company_id.eq.${companyId},recruiter_id.eq.${companyId}`)
       .order("created_at", { ascending: false });
 
     if (error) throw error;
-    return data;
+    return data || [];
   },
 
   async createVacancy(companyId: string, vacancy: any) {
@@ -161,13 +161,17 @@ export const companyService = {
   async getApplications(companyId: string) {
     const supabase = createClient();
 
-    // 1. Fetch company vacancy IDs
-    const { data: userVacs } = await supabase
+    // 1. Fetch company vacancy IDs (both company_id and recruiter_id)
+    const { data: userVacs, error: vacError } = await supabase
       .from("vacancies")
       .select("id")
-      .eq("company_id", companyId);
+      .or(`company_id.eq.${companyId},recruiter_id.eq.${companyId}`);
 
-    const vacIds = (userVacs || []).map((v) => v.id);
+    if (vacError) {
+      console.error("[companyService] Error fetching vacancies for applications:", vacError);
+    }
+
+    const vacIds = (userVacs || []).map((v) => v.id).filter(Boolean);
 
     if (vacIds.length === 0) return [];
 
@@ -178,6 +182,7 @@ export const companyService = {
         id,
         status,
         applied_at,
+        updated_at,
         vacancy_id,
         vacancies (
           id,
@@ -204,30 +209,40 @@ export const companyService = {
       .in("vacancy_id", vacIds)
       .order("applied_at", { ascending: false });
 
-    if (error) throw error;
+    if (error) {
+      console.error(
+        "[companyService] Error fetching applications:",
+        error.message || error.details || error
+      );
+      throw error;
+    }
 
     return (data || []).map((app: any) => {
-      const candidateObj = app.candidate;
+      const candidateObj = app.candidate || app.candidate_profiles;
       const candidateProfile = Array.isArray(candidateObj) ? candidateObj[0] : candidateObj;
       const baseProfile = candidateProfile?.profiles
         ? (Array.isArray(candidateProfile.profiles) ? candidateProfile.profiles[0] : candidateProfile.profiles)
         : {};
 
+      const vacObj = app.vacancies;
+      const vacancy = Array.isArray(vacObj) ? vacObj[0] : vacObj;
+
       return {
         ...app,
-        candidate: candidateProfile ? {
-          id: candidateProfile.id,
-          full_name: baseProfile.full_name,
-          location: baseProfile.location,
-          avatar_url: baseProfile.avatar_url,
-          email: baseProfile.email,
-          headline: candidateProfile.headline,
-          bio: candidateProfile.bio,
-          phone: baseProfile.whatsapp_number,
-          skills: candidateProfile.skills,
-          experience: candidateProfile.experience,
-          education: candidateProfile.education,
-        } : null
+        vacancies: vacancy || { id: app.vacancy_id, title: "Vacante", company_id: companyId },
+        candidate: {
+          id: candidateProfile?.id || app.candidate_id || "",
+          full_name: baseProfile.full_name || "Profesional K'anPro",
+          location: baseProfile.location || "Local",
+          avatar_url: baseProfile.avatar_url || "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=120&h=120&fit=crop",
+          email: baseProfile.email || "",
+          headline: candidateProfile?.headline || "Candidato",
+          bio: candidateProfile?.bio || "Sin biografía disponible.",
+          phone: baseProfile.whatsapp_number || "",
+          skills: candidateProfile?.skills || [],
+          experience: candidateProfile?.experience || [],
+          education: candidateProfile?.education || [],
+        },
       };
     });
   },

@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { Minus, Plus } from "lucide-react";
+import { Minus, Plus, Briefcase } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import {
@@ -30,7 +30,18 @@ interface Step1BasicProps {
 
 export function Step1Basic({ form }: Step1BasicProps) {
   return (
-    <div className="space-y-6">
+    <div className="space-y-5 sm:space-y-6">
+      {/* Encabezado del Paso */}
+      <div className="flex items-center gap-2.5 pb-2 border-b border-border/60">
+        <div className="size-8 rounded-xl bg-primary/10 text-primary flex items-center justify-center shrink-0">
+          <Briefcase className="size-4" />
+        </div>
+        <div>
+          <h3 className="text-sm font-bold text-foreground">Información del Puesto</h3>
+          <p className="text-xs text-muted-foreground">Datos esenciales del rol, tipo de contrato y plazas</p>
+        </div>
+      </div>
+
       {/* 1. Título del Puesto / Oferta */}
       <form.Field name="title">
         {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
@@ -187,7 +198,7 @@ export function Step1Basic({ form }: Step1BasicProps) {
                     size="icon"
                     onClick={() => field.handleChange(Math.max(1, count - 1))}
                     disabled={count <= 1}
-                    className="size-8 rounded-xl text-muted-foreground hover:text-foreground hover:bg-background cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed"
+                    className="size-9 rounded-xl text-muted-foreground hover:text-foreground hover:bg-background cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed"
                     aria-label="Reducir plazas"
                   >
                     <Minus className="size-4" />
@@ -208,7 +219,7 @@ export function Step1Basic({ form }: Step1BasicProps) {
                     size="icon"
                     onClick={() => field.handleChange(count + 1)}
                     disabled={count >= 50}
-                    className="size-8 rounded-xl text-muted-foreground hover:text-foreground hover:bg-background cursor-pointer"
+                    className="size-9 rounded-xl text-muted-foreground hover:text-foreground hover:bg-background cursor-pointer"
                     aria-label="Aumentar plazas"
                   >
                     <Plus className="size-4" />

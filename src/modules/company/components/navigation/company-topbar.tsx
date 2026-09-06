@@ -21,6 +21,7 @@ import {
   BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb";
 import { NotificationBell } from "@/modules/notifications/components/notification-bell";
+import { CompanyTopbarUser } from "./company-topbar-user";
 
 const companyRouteNames: Record<string, string> = {
   "/dashboard/company": "Dashboard",
@@ -42,8 +43,8 @@ const companyRouteNames: Record<string, string> = {
 };
 
 export function DashboardTopbar({
-  userName: _userName,
-  userInitials: _userInitials,
+  userName,
+  userInitials,
   plan: _plan,
   role = "company",
 }: {
@@ -72,30 +73,30 @@ export function DashboardTopbar({
   return (
     <header className="flex h-16 shrink-0 items-center justify-between gap-2 border-b border-border/15 bg-background/90 backdrop-blur-md px-4 md:px-6 transition-all">
       {/* Left Area: Sidebar Trigger & Breadcrumbs */}
-      <div className="flex items-center gap-2">
-        <SidebarTrigger className="-ml-1 h-8 w-8 rounded-lg hover:bg-muted" />
+      <div className="flex items-center gap-2 min-w-0">
+        <SidebarTrigger className="-ml-1 h-8 w-8 rounded-lg hover:bg-muted hidden md:flex shrink-0" />
         <Separator
           orientation="vertical"
-          className="mr-2 data-vertical:h-4 data-vertical:self-auto"
+          className="mr-2 data-vertical:h-4 data-vertical:self-auto hidden md:block shrink-0"
         />
-        <Breadcrumb>
-          <BreadcrumbList>
-            <BreadcrumbItem className="hidden md:block">
-              {isRoot ? (
-                <BreadcrumbPage className="font-semibold text-sm text-foreground">
+        <Breadcrumb className="min-w-0">
+          <BreadcrumbList className="min-w-0 flex-nowrap">
+            {isRoot ? (
+              <BreadcrumbItem className="min-w-0">
+                <BreadcrumbPage className="font-bold text-sm sm:text-base text-foreground truncate">
                   Portal Empresa
                 </BreadcrumbPage>
-              ) : (
-                <BreadcrumbLink render={<Link href="/dashboard/company" />} className="text-xs text-muted-foreground font-medium">
-                  Empresa
-                </BreadcrumbLink>
-              )}
-            </BreadcrumbItem>
-            {!isRoot && (
+              </BreadcrumbItem>
+            ) : (
               <>
-                <BreadcrumbSeparator className="hidden md:block text-muted-foreground/40" />
-                <BreadcrumbItem>
-                  <BreadcrumbPage className="font-semibold text-sm text-foreground">
+                <BreadcrumbItem className="hidden md:block shrink-0">
+                  <BreadcrumbLink render={<Link href="/dashboard/company" />} className="text-xs text-muted-foreground font-medium">
+                    Empresa
+                  </BreadcrumbLink>
+                </BreadcrumbItem>
+                <BreadcrumbSeparator className="hidden md:block text-muted-foreground/40 shrink-0" />
+                <BreadcrumbItem className="min-w-0">
+                  <BreadcrumbPage className="font-bold text-sm sm:text-base text-foreground truncate">
                     {currentTitle}
                   </BreadcrumbPage>
                 </BreadcrumbItem>
@@ -105,13 +106,13 @@ export function DashboardTopbar({
         </Breadcrumb>
       </div>
 
-      {/* Right Area: Action & Notifications */}
-      <div className="flex items-center gap-2">
+      {/* Right Area: Action, Notifications & Mobile User Avatar */}
+      <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
         {role === "company" && (
           <Button
             size="sm"
             render={<Link href="/dashboard/company/vacancies/new" />}
-            className="font-semibold px-3 h-8 rounded-lg flex items-center gap-1.5 shadow-xs text-xs bg-primary text-primary-foreground hover:bg-primary/90"
+            className="font-semibold px-2.5 sm:px-3 h-8 rounded-lg flex items-center gap-1.5 shadow-xs text-xs bg-primary text-primary-foreground hover:bg-primary/90 cursor-pointer"
           >
             <Plus className="size-3.5 stroke-[2.5]" />
             <span className="hidden sm:inline">Nueva Vacante</span>
@@ -124,11 +125,19 @@ export function DashboardTopbar({
           <Button
             variant="ghost"
             size="icon"
-            className="relative h-8 w-8 rounded-lg text-muted-foreground hover:bg-muted"
+            className="relative h-8 w-8 rounded-lg text-muted-foreground hover:bg-muted cursor-pointer"
           >
             <Bell className="size-4" />
           </Button>
         )}
+
+        {/* Avatar y Dropdown de Usuario visible en vista móvil */}
+        <div className="flex md:hidden items-center ml-0.5">
+          <CompanyTopbarUser
+            initialName={userName}
+            initialInitials={userInitials}
+          />
+        </div>
       </div>
     </header>
   );

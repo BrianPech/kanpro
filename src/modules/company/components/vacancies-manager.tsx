@@ -37,6 +37,7 @@ import {
   ChevronLeft,
   ChevronRight,
   Loader2,
+  SlidersHorizontal,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -92,6 +93,15 @@ import { createClient } from "@/lib/supabase/client";
 import { useVacancyManager, type VacancyRow } from "@/modules/company/hooks/use-vacancy-manager";
 import { cloneVacancyAction } from "../actions/vacancies";
 import { VacancyPreviewDrawer } from "./vacancy-preview-drawer";
+import {
+  Drawer,
+  DrawerClose,
+  DrawerContent,
+  DrawerDescription,
+  DrawerFooter,
+  DrawerHeader,
+  DrawerTitle,
+} from "@/components/ui/drawer";
 
 export interface VacancyItem extends VacancyRow {
   applicants_count?: number;
@@ -112,6 +122,7 @@ export function VacanciesManager({ userId }: { userId: string }) {
   const [statusFilter, setStatusFilter] = React.useState<"all" | "active" | "paused">("all");
   const [categoryFilter, setCategoryFilter] = React.useState<string>("all");
   const [locationFilter, setLocationFilter] = React.useState<string>("all");
+  const [isMobileFilterDrawerOpen, setIsMobileFilterDrawerOpen] = React.useState(false);
 
   // TanStack sorting & selection state
   const [sorting, setSorting] = React.useState<SortingState>([
@@ -395,6 +406,10 @@ export function VacanciesManager({ userId }: { userId: string }) {
     categoryFilter !== "all" ||
     locationFilter !== "all" ||
     statusFilter !== "all";
+
+  const activeSecondaryFiltersCount =
+    (categoryFilter !== "all" ? 1 : 0) +
+    (locationFilter !== "all" ? 1 : 0);
 
   const handleClearFilters = () => {
     setCategoryFilter("all");
@@ -1085,50 +1100,67 @@ export function VacanciesManager({ userId }: { userId: string }) {
       <Card className="bg-card border border-border/50 rounded-3xl overflow-hidden shadow-xs">
         
         {/* Unified Toolbar & Filters inside Card Header */}
-        <div className="p-4 sm:p-5 border-b border-border/40 space-y-3.5 bg-muted/10">
+        <div className="p-3 sm:p-5 border-b border-border/40 space-y-2 sm:space-y-3.5 bg-muted/10">
           
-          {/* Top Row: Search Input & Selection / Helper info */}
-          <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
-            
-            {/* Search Input */}
-            <div className="relative flex-1 max-w-lg">
-              <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-muted-foreground size-4 pointer-events-none" />
-              <Input
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Buscar por puesto, categoría, zona o sueldo..."
-                className="h-10 pl-10 pr-9 bg-background border-border/50 rounded-xl text-xs sm:text-sm font-medium focus-visible:ring-1 focus-visible:ring-primary"
-              />
-              {searchQuery && (
-                <button
-                  onClick={() => setSearchQuery("")}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground cursor-pointer"
-                >
-                  <X className="size-3.5" />
-                </button>
-              )}
+          {/* === MOBILE FILTERS VIEW (sm:hidden) === */}
+          <div className="flex flex-col gap-2 sm:hidden">
+            {/* Row 1: Search Input + Filter Drawer Button */}
+            <div className="flex items-center gap-2">
+              <div className="relative flex-1 group">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground/80 group-focus-within:text-primary size-4 pointer-events-none transition-colors" />
+                <Input
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  placeholder="Buscar vacante..."
+                  className="h-10 pl-9 pr-8 bg-muted/50 dark:bg-muted/30 hover:bg-muted/70 dark:hover:bg-muted/40 focus:bg-background border border-border/80 dark:border-border/80 hover:border-foreground/30 rounded-xl text-xs font-semibold text-foreground placeholder:text-muted-foreground/70 transition-all shadow-2xs focus-visible:ring-2 focus-visible:ring-primary/25 focus-visible:border-primary"
+                />
+                {searchQuery && (
+                  <button
+                    type="button"
+                    onClick={() => setSearchQuery("")}
+                    className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground cursor-pointer p-1 rounded-md hover:bg-muted/60"
+                    aria-label="Borrar búsqueda"
+                  >
+                    <X className="size-3.5" />
+                  </button>
+                )}
+              </div>
+
+              {/* Mobile Filters Trigger Button */}
+              <Button
+                type="button"
+                variant={activeSecondaryFiltersCount > 0 ? "default" : "outline"}
+                size="sm"
+                onClick={() => setIsMobileFilterDrawerOpen(true)}
+                className={cn(
+                  "h-10 px-3.5 rounded-xl gap-1.5 shrink-0 transition-all cursor-pointer border",
+                  activeSecondaryFiltersCount > 0
+                    ? "bg-primary text-primary-foreground font-bold shadow-xs border-primary"
+                    : "border-border/80 dark:border-border/80 bg-muted/40 dark:bg-muted/30 hover:bg-muted/60 text-foreground font-bold shadow-2xs"
+                )}
+                aria-label="Abrir filtros de categoría y zona"
+              >
+                <SlidersHorizontal className="size-3.5 shrink-0" />
+                <span className="text-xs">Filtros</span>
+                {activeSecondaryFiltersCount > 0 && (
+                  <span className="size-4.5 rounded-full bg-white text-primary text-[10px] font-black flex items-center justify-center shrink-0 shadow-2xs">
+                    {activeSecondaryFiltersCount}
+                  </span>
+                )}
+              </Button>
             </div>
 
-            {/* Quick Sort Helper */}
-            <div className="hidden sm:flex items-center gap-1.5 text-xs text-muted-foreground font-medium">
-              <ArrowUpDown className="size-3.5 text-primary" />
-              <span>Haz clic en los encabezados para ordenar</span>
-            </div>
-          </div>
-
-          {/* Filter Row: Status Segmented Pills + Category + Zone + Clear */}
-          <div className="flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-3 pt-1 border-t border-border/30">
-            
-            {/* Status Segmented Tabs */}
-            <div className="inline-flex p-1 rounded-xl bg-muted/60 border border-border/40 shrink-0">
+            {/* Row 2: Horizontally Scrollable Strip for Status Pills and Active Filter Chips */}
+            <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar py-0.5 -mx-1 px-1 select-none">
+              {/* Status Pills */}
               <button
                 type="button"
                 onClick={() => setStatusFilter("all")}
                 className={cn(
-                  "px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer",
+                  "px-2.5 py-1 rounded-lg text-xs font-bold shrink-0 transition-all cursor-pointer active:scale-95",
                   statusFilter === "all"
-                    ? "bg-background text-foreground shadow-2xs"
-                    : "text-muted-foreground hover:text-foreground"
+                    ? "bg-foreground text-background shadow-2xs font-extrabold"
+                    : "bg-muted/70 text-muted-foreground hover:text-foreground border border-border/30"
                 )}
               >
                 Todas ({metrics.total})
@@ -1137,109 +1169,224 @@ export function VacanciesManager({ userId }: { userId: string }) {
                 type="button"
                 onClick={() => setStatusFilter("active")}
                 className={cn(
-                  "px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5",
+                  "px-2.5 py-1 rounded-lg text-xs font-bold shrink-0 transition-all cursor-pointer flex items-center gap-1.5 active:scale-95",
                   statusFilter === "active"
-                    ? "bg-background text-emerald-600 dark:text-emerald-400 shadow-2xs"
-                    : "text-muted-foreground hover:text-foreground"
+                    ? "bg-emerald-600 text-white shadow-2xs font-extrabold"
+                    : "bg-muted/70 text-muted-foreground hover:text-foreground border border-border/30"
                 )}
               >
-                <span className="size-1.5 rounded-full bg-emerald-500 inline-block" />
+                <span className={cn("size-1.5 rounded-full inline-block", statusFilter === "active" ? "bg-white" : "bg-emerald-500")} />
                 <span>Activas ({metrics.active})</span>
               </button>
               <button
                 type="button"
                 onClick={() => setStatusFilter("paused")}
                 className={cn(
-                  "px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5",
+                  "px-2.5 py-1 rounded-lg text-xs font-bold shrink-0 transition-all cursor-pointer flex items-center gap-1.5 active:scale-95",
                   statusFilter === "paused"
-                    ? "bg-background text-amber-600 dark:text-amber-400 shadow-2xs"
-                    : "text-muted-foreground hover:text-foreground"
+                    ? "bg-amber-600 text-white shadow-2xs font-extrabold"
+                    : "bg-muted/70 text-muted-foreground hover:text-foreground border border-border/30"
                 )}
               >
-                <span className="size-1.5 rounded-full bg-amber-500 inline-block" />
+                <span className={cn("size-1.5 rounded-full inline-block", statusFilter === "paused" ? "bg-white" : "bg-amber-500")} />
                 <span>Pausadas ({metrics.paused})</span>
               </button>
+
+              {/* Active Category Chip (Removable) */}
+              {categoryFilter !== "all" && (
+                <button
+                  type="button"
+                  onClick={() => setCategoryFilter("all")}
+                  className="inline-flex items-center gap-1 px-2 py-1 rounded-lg text-xs font-bold bg-primary/10 text-primary border border-primary/25 shrink-0 cursor-pointer active:scale-95 hover:bg-primary/20 transition-all"
+                  aria-label={`Eliminar filtro de categoría ${categoryFilter}`}
+                >
+                  <span className="truncate max-w-[120px]">{categoryFilter}</span>
+                  <X className="size-3 shrink-0" />
+                </button>
+              )}
+
+              {/* Active Location Chip (Removable) */}
+              {locationFilter !== "all" && (
+                <button
+                  type="button"
+                  onClick={() => setLocationFilter("all")}
+                  className="inline-flex items-center gap-1 px-2 py-1 rounded-lg text-xs font-bold bg-primary/10 text-primary border border-primary/25 shrink-0 cursor-pointer active:scale-95 hover:bg-primary/20 transition-all"
+                  aria-label={`Eliminar filtro de zona ${locationFilter}`}
+                >
+                  <MapPin className="size-3 shrink-0" />
+                  <span className="truncate max-w-[100px]">{locationFilter}</span>
+                  <X className="size-3 shrink-0" />
+                </button>
+              )}
+
+              {/* Clear All Button if any filter active */}
+              {isFiltered && (
+                <button
+                  type="button"
+                  onClick={handleClearFilters}
+                  className="inline-flex items-center gap-1 px-2 py-1 rounded-lg text-xs font-bold text-rose-600 dark:text-rose-400 bg-rose-500/10 hover:bg-rose-500/15 shrink-0 cursor-pointer active:scale-95 transition-all"
+                  aria-label="Restablecer todos los filtros"
+                >
+                  <RotateCcw className="size-3" />
+                  <span>Limpiar</span>
+                </button>
+              )}
+            </div>
+          </div>
+
+          {/* === DESKTOP FILTERS VIEW (hidden sm:block) === */}
+          <div className="hidden sm:block space-y-3.5">
+            {/* Top Row: Search Input & Quick Sort Helper */}
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
+              <div className="relative flex-1 max-w-lg group">
+                <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-muted-foreground/80 group-focus-within:text-primary size-4 pointer-events-none transition-colors" />
+                <Input
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  placeholder="Buscar por puesto, categoría, zona o sueldo..."
+                  className="h-10 pl-10 pr-9 bg-muted/50 dark:bg-muted/30 hover:bg-muted/70 dark:hover:bg-muted/40 focus:bg-background border border-border/80 dark:border-border/80 hover:border-foreground/30 rounded-xl text-xs sm:text-sm font-semibold text-foreground placeholder:text-muted-foreground/70 transition-all shadow-2xs focus-visible:ring-2 focus-visible:ring-primary/25 focus-visible:border-primary"
+                />
+                {searchQuery && (
+                  <button
+                    onClick={() => setSearchQuery("")}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground cursor-pointer p-1 rounded-md hover:bg-muted/60"
+                  >
+                    <X className="size-3.5" />
+                  </button>
+                )}
+              </div>
+
+              {/* Quick Sort Helper */}
+              <div className="flex items-center gap-1.5 text-xs text-muted-foreground font-medium">
+                <ArrowUpDown className="size-3.5 text-primary" />
+                <span>Haz clic en los encabezados para ordenar</span>
+              </div>
             </div>
 
-            {/* Selectors Group */}
-            <div className="flex items-center gap-2 flex-wrap sm:flex-nowrap">
-              {/* Category Select */}
-              <div className="w-full sm:w-[200px]">
-                <Select
-                  value={categoryFilter}
-                  onValueChange={(val) => setCategoryFilter(val || "all")}
+            {/* Filter Row: Status Segmented Pills + Category + Zone + Clear */}
+            <div className="flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-3 pt-1 border-t border-border/30">
+              {/* Status Segmented Tabs */}
+              <div className="inline-flex p-1 rounded-xl bg-muted/60 border border-border/40 shrink-0">
+                <button
+                  type="button"
+                  onClick={() => setStatusFilter("all")}
+                  className={cn(
+                    "px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer",
+                    statusFilter === "all"
+                      ? "bg-background text-foreground shadow-2xs"
+                      : "text-muted-foreground hover:text-foreground"
+                  )}
                 >
-                  <SelectTrigger className="h-9 w-full rounded-xl border-border/50 bg-background text-xs font-semibold">
-                    <SelectValue placeholder="Todas las categorías">
-                      {categoryFilter === "all"
-                        ? `Todas las categorías (${categoriesList.length})`
-                        : categoryFilter}
-                    </SelectValue>
-                  </SelectTrigger>
-                  <SelectContent className="rounded-xl border-border/50 bg-popover shadow-lg">
-                    <SelectItem
-                      value="all"
-                      className="text-xs font-semibold rounded-lg cursor-pointer"
-                    >
-                      Todas las categorías ({vacancies.length})
-                    </SelectItem>
-                    {categoriesList.map((cat) => (
-                      <SelectItem
-                        key={cat}
-                        value={cat}
-                        className="text-xs font-semibold rounded-lg cursor-pointer"
-                      >
-                        {cat}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                  Todas ({metrics.total})
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setStatusFilter("active")}
+                  className={cn(
+                    "px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5",
+                    statusFilter === "active"
+                      ? "bg-background text-emerald-600 dark:text-emerald-400 shadow-2xs"
+                      : "text-muted-foreground hover:text-foreground"
+                  )}
+                >
+                  <span className="size-1.5 rounded-full bg-emerald-500 inline-block" />
+                  <span>Activas ({metrics.active})</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setStatusFilter("paused")}
+                  className={cn(
+                    "px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5",
+                    statusFilter === "paused"
+                      ? "bg-background text-amber-600 dark:text-amber-400 shadow-2xs"
+                      : "text-muted-foreground hover:text-foreground"
+                  )}
+                >
+                  <span className="size-1.5 rounded-full bg-amber-500 inline-block" />
+                  <span>Pausadas ({metrics.paused})</span>
+                </button>
               </div>
 
-              {/* Location Select */}
-              <div className="w-full sm:w-[180px]">
-                <Select
-                  value={locationFilter}
-                  onValueChange={(val) => setLocationFilter(val || "all")}
-                >
-                  <SelectTrigger className="h-9 w-full rounded-xl border-border/50 bg-background text-xs font-semibold">
-                    <SelectValue placeholder="Todas las zonas">
-                      {locationFilter === "all"
-                        ? "Todas las zonas"
-                        : locationFilter}
-                    </SelectValue>
-                  </SelectTrigger>
-                  <SelectContent className="rounded-xl border-border/50 bg-popover shadow-lg">
-                    <SelectItem
-                      value="all"
-                      className="text-xs font-semibold rounded-lg cursor-pointer"
-                    >
-                      Todas las zonas
-                    </SelectItem>
-                    {locationsList.map((loc) => (
+              {/* Selectors Group */}
+              <div className="flex items-center gap-2 flex-wrap sm:flex-nowrap">
+                {/* Category Select */}
+                <div className="w-full sm:w-[200px]">
+                  <Select
+                    value={categoryFilter}
+                    onValueChange={(val) => setCategoryFilter(val || "all")}
+                  >
+                    <SelectTrigger className="h-9 w-full rounded-xl border-border/50 bg-background text-xs font-semibold">
+                      <SelectValue placeholder="Todas las categorías">
+                        {categoryFilter === "all"
+                          ? `Todas las categorías (${categoriesList.length})`
+                          : categoryFilter}
+                      </SelectValue>
+                    </SelectTrigger>
+                    <SelectContent className="rounded-xl border-border/50 bg-popover shadow-lg">
                       <SelectItem
-                        key={loc}
-                        value={loc}
+                        value="all"
                         className="text-xs font-semibold rounded-lg cursor-pointer"
                       >
-                        {loc}
+                        Todas las categorías ({vacancies.length})
                       </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
+                      {categoriesList.map((cat) => (
+                        <SelectItem
+                          key={cat}
+                          value={cat}
+                          className="text-xs font-semibold rounded-lg cursor-pointer"
+                        >
+                          {cat}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
 
-              {isFiltered && (
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={handleClearFilters}
-                  className="h-9 px-2.5 text-xs font-bold text-muted-foreground hover:text-foreground gap-1 cursor-pointer shrink-0"
-                >
-                  <RotateCcw className="size-3.5" />
-                  <span className="hidden sm:inline">Limpiar</span>
-                </Button>
-              )}
+                {/* Location Select */}
+                <div className="w-full sm:w-[180px]">
+                  <Select
+                    value={locationFilter}
+                    onValueChange={(val) => setLocationFilter(val || "all")}
+                  >
+                    <SelectTrigger className="h-9 w-full rounded-xl border-border/50 bg-background text-xs font-semibold">
+                      <SelectValue placeholder="Todas las zonas">
+                        {locationFilter === "all"
+                          ? "Todas las zonas"
+                          : locationFilter}
+                      </SelectValue>
+                    </SelectTrigger>
+                    <SelectContent className="rounded-xl border-border/50 bg-popover shadow-lg">
+                      <SelectItem
+                        value="all"
+                        className="text-xs font-semibold rounded-lg cursor-pointer"
+                      >
+                        Todas las zonas
+                      </SelectItem>
+                      {locationsList.map((loc) => (
+                        <SelectItem
+                          key={loc}
+                          value={loc}
+                          className="text-xs font-semibold rounded-lg cursor-pointer"
+                        >
+                          {loc}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {isFiltered && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={handleClearFilters}
+                    className="h-9 px-2.5 text-xs font-bold text-muted-foreground hover:text-foreground gap-1 cursor-pointer shrink-0"
+                  >
+                    <RotateCcw className="size-3.5" />
+                    <span className="hidden sm:inline">Limpiar</span>
+                  </Button>
+                )}
+              </div>
             </div>
           </div>
 
@@ -1512,6 +1659,209 @@ export function VacanciesManager({ userId }: { userId: string }) {
         formatSalary={formatSalary}
         formatDate={formatDate}
       />
+
+      {/* Mobile Filter Drawer */}
+      <Drawer
+        open={isMobileFilterDrawerOpen}
+        onOpenChange={setIsMobileFilterDrawerOpen}
+        showSwipeHandle
+        swipeDirection="down"
+      >
+        <DrawerContent className="[--drawer-inset:0px] max-h-[85vh] rounded-t-[28px] rounded-b-none border-x-0 border-b-0 border-t border-border/70 bg-card text-card-foreground shadow-2xl overflow-hidden flex flex-col">
+          <DrawerHeader className="px-5 pt-3 pb-3 border-b border-border/40 flex flex-row items-center justify-between shrink-0">
+            <div className="text-left">
+              <DrawerTitle className="text-base font-extrabold tracking-tight text-foreground">
+                Filtros de Vacantes
+              </DrawerTitle>
+              <DrawerDescription className="text-xs text-muted-foreground mt-0.5">
+                Refina por estado, categoría y ubicación
+              </DrawerDescription>
+            </div>
+            <DrawerClose
+              render={
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="size-8 rounded-full text-muted-foreground hover:text-foreground hover:bg-muted shrink-0 cursor-pointer"
+                  aria-label="Cerrar filtros"
+                />
+              }
+            >
+              <X className="size-4" />
+            </DrawerClose>
+          </DrawerHeader>
+
+          {/* Drawer Body */}
+          <div className="flex-1 overflow-y-auto overscroll-contain px-5 py-4 space-y-5">
+            {/* Estado de la Oferta */}
+            <div className="space-y-2">
+              <span className="text-xs font-extrabold uppercase tracking-wider text-muted-foreground block">
+                Estado de la Oferta
+              </span>
+              <div className="grid grid-cols-3 gap-2">
+                <button
+                  type="button"
+                  onClick={() => setStatusFilter("all")}
+                  className={cn(
+                    "p-2.5 rounded-xl border text-xs font-bold text-center transition-all cursor-pointer active:scale-95",
+                    statusFilter === "all"
+                      ? "bg-primary text-primary-foreground border-primary shadow-xs"
+                      : "bg-muted/40 border-border/40 text-muted-foreground hover:text-foreground"
+                  )}
+                >
+                  Todas ({metrics.total})
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setStatusFilter("active")}
+                  className={cn(
+                    "p-2.5 rounded-xl border text-xs font-bold text-center transition-all cursor-pointer active:scale-95",
+                    statusFilter === "active"
+                      ? "bg-emerald-600 text-white border-emerald-600 shadow-xs"
+                      : "bg-muted/40 border-border/40 text-muted-foreground hover:text-foreground"
+                  )}
+                >
+                  Activas ({metrics.active})
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setStatusFilter("paused")}
+                  className={cn(
+                    "p-2.5 rounded-xl border text-xs font-bold text-center transition-all cursor-pointer active:scale-95",
+                    statusFilter === "paused"
+                      ? "bg-amber-600 text-white border-amber-600 shadow-xs"
+                      : "bg-muted/40 border-border/40 text-muted-foreground hover:text-foreground"
+                  )}
+                >
+                  Pausadas ({metrics.paused})
+                </button>
+              </div>
+            </div>
+
+            {/* Categorías */}
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-extrabold uppercase tracking-wider text-muted-foreground block">
+                  Categoría
+                </span>
+                {categoryFilter !== "all" && (
+                  <button
+                    type="button"
+                    onClick={() => setCategoryFilter("all")}
+                    className="text-[11px] font-bold text-primary hover:underline cursor-pointer"
+                  >
+                    Restablecer
+                  </button>
+                )}
+              </div>
+              <div className="flex flex-wrap gap-1.5 max-h-[160px] overflow-y-auto p-1 -m-1">
+                <button
+                  type="button"
+                  onClick={() => setCategoryFilter("all")}
+                  className={cn(
+                    "px-3 py-1.5 rounded-xl border text-xs font-bold transition-all cursor-pointer active:scale-95",
+                    categoryFilter === "all"
+                      ? "bg-primary text-primary-foreground border-primary shadow-xs"
+                      : "bg-muted/40 border-border/40 text-muted-foreground hover:text-foreground"
+                  )}
+                >
+                  Todas las categorías ({vacancies.length})
+                </button>
+                {categoriesList.map((cat) => (
+                  <button
+                    key={cat}
+                    type="button"
+                    onClick={() => setCategoryFilter(cat)}
+                    className={cn(
+                      "px-3 py-1.5 rounded-xl border text-xs font-bold transition-all cursor-pointer active:scale-95",
+                      categoryFilter === cat
+                        ? "bg-primary text-primary-foreground border-primary shadow-xs"
+                        : "bg-muted/40 border-border/40 text-muted-foreground hover:text-foreground"
+                    )}
+                  >
+                    {cat}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Ubicación / Zona */}
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-extrabold uppercase tracking-wider text-muted-foreground block">
+                  Zona / Ubicación
+                </span>
+                {locationFilter !== "all" && (
+                  <button
+                    type="button"
+                    onClick={() => setLocationFilter("all")}
+                    className="text-[11px] font-bold text-primary hover:underline cursor-pointer"
+                  >
+                    Restablecer
+                  </button>
+                )}
+              </div>
+              <div className="flex flex-wrap gap-1.5 max-h-[140px] overflow-y-auto p-1 -m-1">
+                <button
+                  type="button"
+                  onClick={() => setLocationFilter("all")}
+                  className={cn(
+                    "px-3 py-1.5 rounded-xl border text-xs font-bold transition-all cursor-pointer active:scale-95",
+                    locationFilter === "all"
+                      ? "bg-primary text-primary-foreground border-primary shadow-xs"
+                      : "bg-muted/40 border-border/40 text-muted-foreground hover:text-foreground"
+                  )}
+                >
+                  Todas las zonas
+                </button>
+                {locationsList.map((loc) => (
+                  <button
+                    key={loc}
+                    type="button"
+                    onClick={() => setLocationFilter(loc)}
+                    className={cn(
+                      "px-3 py-1.5 rounded-xl border text-xs font-bold transition-all cursor-pointer active:scale-95 flex items-center gap-1",
+                      locationFilter === loc
+                        ? "bg-primary text-primary-foreground border-primary shadow-xs"
+                        : "bg-muted/40 border-border/40 text-muted-foreground hover:text-foreground"
+                    )}
+                  >
+                    <MapPin className="size-3 shrink-0" />
+                    <span>{loc}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          {/* Drawer Footer */}
+          <DrawerFooter className="p-4 border-t border-border/40 bg-muted/10 gap-2.5 flex-row items-center justify-between pb-[calc(1rem+env(safe-area-inset-bottom,0px))] shrink-0">
+            {isFiltered ? (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleClearFilters}
+                className="h-10 px-3.5 rounded-xl text-xs font-bold text-rose-600 dark:text-rose-400 border-rose-500/20 hover:bg-rose-500/10 cursor-pointer"
+              >
+                <RotateCcw className="size-3.5 mr-1" />
+                Limpiar todo
+              </Button>
+            ) : (
+              <div className="text-xs text-muted-foreground font-medium">
+                Sin filtros aplicados
+              </div>
+            )}
+
+            <Button
+              size="sm"
+              onClick={() => setIsMobileFilterDrawerOpen(false)}
+              className="h-10 px-5 rounded-xl text-xs font-bold bg-primary text-primary-foreground hover:bg-primary/90 shadow-xs cursor-pointer ml-auto"
+            >
+              Ver {filteredVacancies.length} {filteredVacancies.length === 1 ? "vacante" : "vacantes"}
+            </Button>
+          </DrawerFooter>
+        </DrawerContent>
+      </Drawer>
     </div>
   );
 }

@@ -110,6 +110,19 @@ export function useApplicationsInbox() {
 
   const supabase = React.useMemo(() => createClient(), []);
 
+  // Fetch current user id safely without updating state inside queryFn
+  React.useEffect(() => {
+    let isMounted = true;
+    supabase.auth.getUser().then(({ data: { user } }) => {
+      if (isMounted && user) {
+        setUserId(user.id);
+      }
+    });
+    return () => {
+      isMounted = false;
+    };
+  }, [supabase]);
+
   const queryKey = ["company-applications"];
 
   const { data, isLoading, refetch } = useQuery<ApplicationsQueryData>({
@@ -119,10 +132,22 @@ export function useApplicationsInbox() {
       if (!user) {
         throw new Error("Usuario no autenticado");
       }
-      setUserId(user.id);
 
-      const vacList = await companyService.getVacancies(user.id);
-      const apps = await companyService.getApplications(user.id);
+      const [vacList, apps] = await Promise.all([
+        companyService.getVacancies(user.id).catch(() => []),
+        companyService.getApplications(user.id).catch(() => []),
+      ]);
+
+      const normalizeStatus = (rawStatus: string): Applicant["status"] => {
+        const s = (rawStatus || "").toLowerCase().trim();
+        if (s === "pendiente" || s === "applied" || s === "pending") return "Pendiente";
+        if (s === "en revisión" || s === "en revision" || s === "reviewing" || s === "in_review") return "En revisión";
+        if (s === "preseleccionado" || s === "pre-seleccionado" || s === "shortlisted") return "Preseleccionado";
+        if (s === "entrevista" || s === "interview" || s === "interviewing") return "Entrevista";
+        if (s === "contratado" || s === "hired" || s === "accepted") return "Contratado";
+        if (s === "descartado" || s === "rejected" || s === "discarded") return "Descartado";
+        return "Pendiente";
+      };
 
       let mapped: Applicant[] = [];
       if (apps && apps.length > 0) {
@@ -141,40 +166,55 @@ export function useApplicationsInbox() {
 
           let skills: string[] = [];
           if (profile.skills) {
-            skills = Array.isArray(profile.skills) ? profile.skills : String(profile.skills).split(",");
+            if (Array.isArray(profile.skills)) {
+              skills = profile.skills.map((s: any) => String(s || "").trim()).filter(Boolean);
+            } else if (typeof profile.skills === "string") {
+              skills = (profile.skills as string).split(",").map((s: string) => s.trim()).filter(Boolean);
+            }
           }
 
-          const appDateStr = app.applied_at || app.created_at;
-          const date = appDateStr ? new Date(appDateStr) : new Date();
-          const diffMs = Date.now() - date.getTime();
-          const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
-          const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
-
+          const appDateStr = app.applied_at || app.updated_at;
           let elapsedTime = "Hace poco";
-          if (diffDays > 0) {
-            elapsedTime = `Hace ${diffDays}d`;
-          } else if (diffHours > 0) {
-            elapsedTime = `Hace ${diffHours}h`;
+          if (appDateStr) {
+            const date = new Date(appDateStr);
+            if (!isNaN(date.getTime())) {
+              const diffMs = Date.now() - date.getTime();
+              const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+              const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
+              if (diffDays > 0) {
+                elapsedTime = `Hace ${diffDays}d`;
+              } else if (diffHours > 0) {
+                elapsedTime = `Hace ${diffHours}h`;
+              }
+            }
           }
 
-          const savedNotes = typeof window !== "undefined" ? localStorage.getItem(`kanpro_notes_${app.id}`) || "" : "";
-          const savedRating = typeof window !== "undefined" ? Number(localStorage.getItem(`kanpro_rating_${app.id}`)) || 5 : 5;
+          let savedNotes = "";
+          let savedRating = 5;
           let savedInterview: InterviewDetails | null = null;
           if (typeof window !== "undefined") {
             try {
+              savedNotes = localStorage.getItem(`kanpro_notes_${app.id}`) || "";
+              const parsedRating = Number(localStorage.getItem(`kanpro_rating_${app.id}`));
+              if (!isNaN(parsedRating) && parsedRating > 0) {
+                savedRating = parsedRating;
+              }
               const raw = localStorage.getItem(`kanpro_interview_${app.id}`);
               if (raw) savedInterview = JSON.parse(raw);
             } catch {}
           }
 
+          const vacTitle = app.vacancies?.title || (Array.isArray(app.vacancies) ? app.vacancies[0]?.title : null) || "Vacante";
+          const vacId = app.vacancy_id || app.vacancies?.id || "";
+
           return {
-            id: app.id,
+            id: app.id || `app-${Math.random().toString(36).slice(2)}`,
             name: profile.full_name || "Profesional K'anPro",
             headline: profile.headline || "Candidato",
             avatar: profile.avatar_url || "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=120&h=120&fit=crop",
             location: profile.location || "Local",
             elapsedTime,
-            status: app.status,
+            status: normalizeStatus(app.status),
             interview: savedInterview,
             rating: savedRating,
             internalRating: savedRating,
@@ -186,13 +226,13 @@ export function useApplicationsInbox() {
             skills,
             phone: profile.phone || "",
             email: profile.email || "",
-            vacancyTitle: app.vacancies?.title || "Vacante",
-            vacancyId: app.vacancy_id,
-            candidateId: profile.id || "",
+            vacancyTitle: vacTitle,
+            vacancyId: vacId,
+            candidateId: profile.id || app.candidate_id || "",
             portfolio: Array.isArray(profile.portfolio_links)
               ? profile.portfolio_links.map((link: any, idx: number) => ({
-                  title: typeof link === "string" ? `Enlace ${idx + 1}` : link.title || `Proyecto ${idx + 1}`,
-                  image: typeof link === "string" ? link : link.url || "",
+                  title: typeof link === "string" ? `Enlace ${idx + 1}` : link?.title || `Proyecto ${idx + 1}`,
+                  image: typeof link === "string" ? link : link?.url || "",
                 }))
               : [],
           };

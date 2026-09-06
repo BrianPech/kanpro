@@ -48,7 +48,7 @@ export function NavUser({
 }: {
   user?: NavUserData;
 }) {
-  const { isMobile } = useSidebar();
+  const { isMobile, setOpenMobile } = useSidebar();
   const router = useRouter();
 
   const [userData, setUserData] = React.useState<NavUserData>({
@@ -251,7 +251,10 @@ export function NavUser({
             {/* 2. Menu Navigation Items */}
             <DropdownMenuGroup className="space-y-0.5 my-1">
               <DropdownMenuItem
-                onClick={() => router.push(profileHref)}
+                onClick={() => {
+                  if (isMobile) setOpenMobile(false);
+                  router.push(profileHref);
+                }}
                 className="group rounded-xl p-2 text-left cursor-pointer transition-all duration-150 hover:bg-muted/50 focus:bg-muted/50 outline-none select-none"
               >
                 <div className="flex items-center gap-2.5 w-full">
@@ -267,7 +270,10 @@ export function NavUser({
               </DropdownMenuItem>
 
               <DropdownMenuItem
-                onClick={() => router.push(settingsHref)}
+                onClick={() => {
+                  if (isMobile) setOpenMobile(false);
+                  router.push(settingsHref);
+                }}
                 className="group rounded-xl p-2 text-left cursor-pointer transition-all duration-150 hover:bg-muted/50 focus:bg-muted/50 outline-none select-none"
               >
                 <div className="flex items-center gap-2.5 w-full">
@@ -284,6 +290,7 @@ export function NavUser({
 
               <DropdownMenuItem
                 onClick={() => {
+                  if (isMobile) setOpenMobile(false);
                   if (userData.role === "company") {
                     router.push("/dashboard/company/settings?tab=notifications");
                   } else if (userData.role === "candidate") {

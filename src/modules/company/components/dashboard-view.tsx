@@ -13,6 +13,7 @@ import {
   FileSpreadsheet,
   ChevronRight,
   ShieldCheck,
+  Layers,
 } from "lucide-react";
 import {
   Card,
@@ -27,8 +28,18 @@ import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
 import { Progress } from "@/components/ui/progress";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import { formatDateToDisplay } from "@/lib/formatters";
+import { cn } from "@/lib/utils";
 import type { CompanyDashboardData } from "../types/dashboard";
+
+const getInitials = (name?: string | null) => {
+  if (!name || typeof name !== "string" || !name.trim()) return "KP";
+  const parts = name.trim().split(/\s+/).filter(Boolean);
+  if (parts.length === 0) return "KP";
+  if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
+  return ((parts[0][0] || "") + (parts[1][0] || "")).toUpperCase() || "KP";
+};
 
 const STATUS_BADGE_VARIANTS: Record<
   string,
@@ -78,7 +89,9 @@ export function DashboardView({
   recentCandidates = [],
   todayAttendance = [],
 }: CompanyDashboardData) {
-  const totalApps = applicationsSummary?.total || kpis.totalApplicationsReceived || 0;
+  const [mobileTab, setMobileTab] = React.useState<"candidates" | "vacancies" | "pipeline">("candidates");
+
+  const totalApps = applicationsSummary?.total || kpis?.totalApplicationsReceived || 0;
   const inReviewCount =
     (applicationsSummary?.inReview || 0) + (applicationsSummary?.pending || 0);
   const shortlistedCount = applicationsSummary?.shortlisted || 0;
@@ -88,37 +101,42 @@ export function DashboardView({
   const shortlistedPct = totalApps > 0 ? Math.round((shortlistedCount / totalApps) * 100) : 0;
   const hiredPct = totalApps > 0 ? Math.round((hiredCount / totalApps) * 100) : 0;
 
-  const presentCount = todayAttendance.filter((a) => a.status === "presente").length;
+  const presentCount = (todayAttendance || []).filter((a) => a.status === "presente").length;
 
   return (
-    <div className="w-full space-y-6 sm:space-y-8 font-sans">
+    <div className="w-full space-y-4 sm:space-y-6 lg:space-y-8 font-sans">
       {/* 1. Header Principal */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-2 border-b border-border">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-border/80">
         <div className="space-y-1">
-          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-foreground">
+          <div className="flex items-center gap-2">
+            <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground bg-muted px-2 py-0.5 rounded-md">
+              Portal Empresa
+            </span>
+          </div>
+          <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold tracking-tight text-foreground truncate">
             {`Dashboard • ${companyName}`}
           </h1>
-          <p className="text-sm text-muted-foreground">
-            Resumen ejecutivo de atracción de talento, postulaciones y colaboradores.
+          <p className="text-xs sm:text-sm text-muted-foreground line-clamp-1 sm:line-clamp-none">
+            Resumen ejecutivo de talento, postulaciones y colaboradores.
           </p>
         </div>
 
-        <div className="flex items-center gap-2.5">
+        <div className="flex items-center gap-2 shrink-0">
           <Button
             variant="outline"
             size="sm"
             render={<Link href="/dashboard/company/reports" />}
-            className="cursor-pointer text-xs font-semibold"
+            className="cursor-pointer text-xs font-semibold h-9"
           >
-            <FileSpreadsheet className="size-4 mr-1.5" />
+            <FileSpreadsheet className="size-3.5 mr-1.5" />
             <span>Reportes</span>
           </Button>
           <Button
             size="sm"
             render={<Link href="/dashboard/company/vacancies/new" />}
-            className="cursor-pointer text-xs font-bold gap-1.5 bg-primary text-primary-foreground"
+            className="cursor-pointer text-xs font-bold gap-1.5 bg-primary text-primary-foreground h-9 shadow-xs"
           >
-            <Plus className="size-4" />
+            <Plus className="size-3.5" />
             <span>Publicar Vacante</span>
           </Button>
         </div>
@@ -126,144 +144,534 @@ export function DashboardView({
 
       {/* 2. Alertas Operativas */}
       {alerts && alerts.length > 0 && (
-        <div className="space-y-3">
+        <div className="space-y-2.5">
           {alerts.slice(0, 2).map((alert) => (
             <Alert
               key={alert.id}
               variant={alert.severity === "critical" ? "destructive" : "default"}
-              className="rounded-xl border border-border"
+              className="rounded-xl border border-border/80 p-3 sm:p-4"
             >
-              <AlertCircle className="size-4" />
-              <AlertTitle className="font-semibold text-sm">{alert.title}</AlertTitle>
-              <AlertDescription className="text-xs flex flex-col sm:flex-row sm:items-center justify-between gap-2 mt-1">
-                <span>{alert.description}</span>
-                {alert.actionUrl && (
-                  <Link
-                    href={alert.actionUrl}
-                    className="font-bold underline shrink-0 hover:opacity-80"
-                  >
-                    {alert.actionLabel || "Ver detalle"}
-                  </Link>
-                )}
-              </AlertDescription>
+              <AlertCircle className="size-4 shrink-0 mt-0.5" />
+              <div className="w-full">
+                <AlertTitle className="font-semibold text-xs sm:text-sm">
+                  {alert.title}
+                </AlertTitle>
+                <AlertDescription className="text-xs flex flex-col sm:flex-row sm:items-center justify-between gap-1.5 sm:gap-2 mt-0.5">
+                  <span className="text-muted-foreground">{alert.description}</span>
+                  {alert.actionUrl && (
+                    <Link
+                      href={alert.actionUrl}
+                      className="font-bold underline shrink-0 hover:opacity-80 inline-flex items-center gap-1 text-primary"
+                    >
+                      <span>{alert.actionLabel || "Ver detalle"}</span>
+                      <ArrowUpRight className="size-3" />
+                    </Link>
+                  )}
+                </AlertDescription>
+              </div>
             </Alert>
           ))}
         </div>
       )}
 
-      {/* 3. Tarjetas KPI Métricas Clave (Default shadcn/ui style) */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
+      {/* 3. Tarjetas KPI Métricas Clave (2x2 en mobile, 4 cols en desktop) */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-4 lg:gap-5">
         {/* KPI 1: Vacantes Activas */}
-        <Card className="rounded-xl border border-border shadow-xs">
-          <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
-            <CardTitle className="text-sm font-medium text-muted-foreground">
-              Vacantes Activas
-            </CardTitle>
-            <Briefcase className="size-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent className="space-y-1">
-            <div className="text-2xl font-bold tracking-tight text-foreground">
-              {kpis.openVacanciesCount}
+        <Link
+          href="/dashboard/company/vacancies"
+          className="group block rounded-xl focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring"
+        >
+          <Card className="h-full rounded-xl border border-border/80 bg-card hover:border-primary/50 hover:shadow-xs transition-all p-3 sm:p-4.5 flex flex-col justify-between">
+            <div className="flex items-center justify-between gap-1.5">
+              <span className="text-xs font-semibold text-muted-foreground truncate">
+                Vacantes Activas
+              </span>
+              <div className="size-7 sm:size-8 rounded-lg bg-primary/10 text-primary flex items-center justify-center shrink-0 group-hover:bg-primary group-hover:text-primary-foreground transition-colors">
+                <Briefcase className="size-3.5 sm:size-4" />
+              </div>
             </div>
-            <p className="text-xs text-muted-foreground">
-              Ofertas en difusión pública
-            </p>
-          </CardContent>
-          <CardFooter className="pt-2 pb-4 px-6 border-t border-border/40">
-            <Link
-              href="/dashboard/company/vacancies"
-              className="text-xs font-semibold text-primary hover:underline inline-flex items-center gap-1"
-            >
-              <span>Ver todas las vacantes</span>
-              <ArrowUpRight className="size-3" />
-            </Link>
-          </CardFooter>
-        </Card>
+            <div className="mt-2.5 sm:mt-3">
+              <div className="text-xl sm:text-2xl lg:text-3xl font-bold tracking-tight text-foreground">
+                {kpis.openVacanciesCount}
+              </div>
+              <p className="text-[11px] sm:text-xs text-muted-foreground mt-0.5 truncate flex items-center justify-between">
+                <span>En difusión</span>
+                <ArrowUpRight className="size-3 text-muted-foreground group-hover:text-primary transition-colors" />
+              </p>
+            </div>
+          </Card>
+        </Link>
 
-        {/* KPI 2: Total Postulaciones */}
-        <Card className="rounded-xl border border-border shadow-xs">
-          <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
-            <CardTitle className="text-sm font-medium text-muted-foreground">
-              Postulaciones
-            </CardTitle>
-            <Users className="size-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent className="space-y-1">
-            <div className="text-2xl font-bold tracking-tight text-foreground">
-              {kpis.totalApplicationsReceived}
+        {/* KPI 2: Postulaciones */}
+        <Link
+          href="/dashboard/company/applications"
+          className="group block rounded-xl focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring"
+        >
+          <Card className="h-full rounded-xl border border-border/80 bg-card hover:border-primary/50 hover:shadow-xs transition-all p-3 sm:p-4.5 flex flex-col justify-between">
+            <div className="flex items-center justify-between gap-1.5">
+              <span className="text-xs font-semibold text-muted-foreground truncate">
+                Postulaciones
+              </span>
+              <div className="size-7 sm:size-8 rounded-lg bg-primary/10 text-primary flex items-center justify-center shrink-0 group-hover:bg-primary group-hover:text-primary-foreground transition-colors">
+                <Users className="size-3.5 sm:size-4" />
+              </div>
             </div>
-            <p className="text-xs text-muted-foreground">
-              {kpis.pendingReviewApplications} pendientes de revisar
-            </p>
-          </CardContent>
-          <CardFooter className="pt-2 pb-4 px-6 border-t border-border/40">
-            <Link
-              href="/dashboard/company/applications"
-              className="text-xs font-semibold text-primary hover:underline inline-flex items-center gap-1"
-            >
-              <span>Revisar candidatos</span>
-              <ArrowUpRight className="size-3" />
-            </Link>
-          </CardFooter>
-        </Card>
+            <div className="mt-2.5 sm:mt-3">
+              <div className="text-xl sm:text-2xl lg:text-3xl font-bold tracking-tight text-foreground">
+                {kpis.totalApplicationsReceived}
+              </div>
+              <p className="text-[11px] sm:text-xs text-muted-foreground mt-0.5 truncate flex items-center justify-between">
+                <span>{kpis.pendingReviewApplications} pendientes</span>
+                <ArrowUpRight className="size-3 text-muted-foreground group-hover:text-primary transition-colors" />
+              </p>
+            </div>
+          </Card>
+        </Link>
 
-        {/* KPI 3: Colaboradores Activos */}
-        <Card className="rounded-xl border border-border shadow-xs">
-          <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
-            <CardTitle className="text-sm font-medium text-muted-foreground">
-              Plantilla Activa
-            </CardTitle>
-            <UserCheck className="size-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent className="space-y-1">
-            <div className="text-2xl font-bold tracking-tight text-foreground">
-              {kpis.activeEmployees}
+        {/* KPI 3: Plantilla Activa */}
+        <Link
+          href="/dashboard/company/employees"
+          className="group block rounded-xl focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring"
+        >
+          <Card className="h-full rounded-xl border border-border/80 bg-card hover:border-primary/50 hover:shadow-xs transition-all p-3 sm:p-4.5 flex flex-col justify-between">
+            <div className="flex items-center justify-between gap-1.5">
+              <span className="text-xs font-semibold text-muted-foreground truncate">
+                Plantilla Activa
+              </span>
+              <div className="size-7 sm:size-8 rounded-lg bg-primary/10 text-primary flex items-center justify-center shrink-0 group-hover:bg-primary group-hover:text-primary-foreground transition-colors">
+                <UserCheck className="size-3.5 sm:size-4" />
+              </div>
             </div>
-            <p className="text-xs text-muted-foreground">
-              {kpis.totalEmployees} colaboradores en total
-            </p>
-          </CardContent>
-          <CardFooter className="pt-2 pb-4 px-6 border-t border-border/40">
-            <Link
-              href="/dashboard/company/employees"
-              className="text-xs font-semibold text-primary hover:underline inline-flex items-center gap-1"
-            >
-              <span>Ver plantilla</span>
-              <ArrowUpRight className="size-3" />
-            </Link>
-          </CardFooter>
-        </Card>
+            <div className="mt-2.5 sm:mt-3">
+              <div className="text-xl sm:text-2xl lg:text-3xl font-bold tracking-tight text-foreground">
+                {kpis.activeEmployees}
+              </div>
+              <p className="text-[11px] sm:text-xs text-muted-foreground mt-0.5 truncate flex items-center justify-between">
+                <span>{kpis.totalEmployees} colaboradores</span>
+                <ArrowUpRight className="size-3 text-muted-foreground group-hover:text-primary transition-colors" />
+              </p>
+            </div>
+          </Card>
+        </Link>
 
         {/* KPI 4: Asistencia Hoy */}
-        <Card className="rounded-xl border border-border shadow-xs">
-          <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
-            <CardTitle className="text-sm font-medium text-muted-foreground">
-              Asistencia Hoy
-            </CardTitle>
-            <Clock className="size-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent className="space-y-1">
-            <div className="text-2xl font-bold tracking-tight text-foreground">
-              {kpis.punctualityRate}%
+        <Link
+          href="/dashboard/company/attendance"
+          className="group block rounded-xl focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring"
+        >
+          <Card className="h-full rounded-xl border border-border/80 bg-card hover:border-primary/50 hover:shadow-xs transition-all p-3 sm:p-4.5 flex flex-col justify-between">
+            <div className="flex items-center justify-between gap-1.5">
+              <span className="text-xs font-semibold text-muted-foreground truncate">
+                Asistencia Hoy
+              </span>
+              <div className="size-7 sm:size-8 rounded-lg bg-primary/10 text-primary flex items-center justify-center shrink-0 group-hover:bg-primary group-hover:text-primary-foreground transition-colors">
+                <Clock className="size-3.5 sm:size-4" />
+              </div>
             </div>
-            <p className="text-xs text-muted-foreground">
-              {presentCount} presentes en turno
-            </p>
-          </CardContent>
-          <CardFooter className="pt-2 pb-4 px-6 border-t border-border/40">
-            <Link
-              href="/dashboard/company/attendance"
-              className="text-xs font-semibold text-primary hover:underline inline-flex items-center gap-1"
-            >
-              <span>Registro de asistencia</span>
-              <ArrowUpRight className="size-3" />
-            </Link>
-          </CardFooter>
-        </Card>
+            <div className="mt-2.5 sm:mt-3">
+              <div className="text-xl sm:text-2xl lg:text-3xl font-bold tracking-tight text-foreground">
+                {kpis.punctualityRate}%
+              </div>
+              <p className="text-[11px] sm:text-xs text-muted-foreground mt-0.5 truncate flex items-center justify-between">
+                <span>{presentCount} presentes</span>
+                <ArrowUpRight className="size-3 text-muted-foreground group-hover:text-primary transition-colors" />
+              </p>
+            </div>
+          </Card>
+        </Link>
       </div>
 
-      {/* 4. Bloque Principal de 2 Columnas */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+      {/* 4. Acciones Rápidas (Horizontal Scrollable Pills en Mobile) */}
+      <div className="lg:hidden">
+        <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none -mx-1 px-1">
+          <Button
+            size="sm"
+            render={<Link href="/dashboard/company/vacancies/new" />}
+            className="h-9 px-3.5 text-xs font-semibold rounded-xl shrink-0 gap-1.5 bg-primary text-primary-foreground shadow-xs cursor-pointer"
+          >
+            <Plus className="size-3.5" />
+            <span>+ Vacante</span>
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            render={<Link href="/dashboard/company/applications" />}
+            className="h-9 px-3 text-xs font-medium rounded-xl shrink-0 gap-1.5 bg-card hover:bg-muted/60 cursor-pointer"
+          >
+            <Users className="size-3.5 text-primary" />
+            <span>Postulantes</span>
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            render={<Link href="/dashboard/company/employees" />}
+            className="h-9 px-3 text-xs font-medium rounded-xl shrink-0 gap-1.5 bg-card hover:bg-muted/60 cursor-pointer"
+          >
+            <UserCheck className="size-3.5 text-primary" />
+            <span>Plantilla</span>
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            render={<Link href="/dashboard/company/attendance" />}
+            className="h-9 px-3 text-xs font-medium rounded-xl shrink-0 gap-1.5 bg-card hover:bg-muted/60 cursor-pointer"
+          >
+            <Clock className="size-3.5 text-primary" />
+            <span>Asistencia</span>
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            render={<Link href="/dashboard/company/reports" />}
+            className="h-9 px-3 text-xs font-medium rounded-xl shrink-0 gap-1.5 bg-card hover:bg-muted/60 cursor-pointer"
+          >
+            <FileSpreadsheet className="size-3.5 text-primary" />
+            <span>Reportes</span>
+          </Button>
+        </div>
+      </div>
+
+      {/* 5. Mobile Tabs Navigation (< lg) */}
+      <div className="lg:hidden space-y-4">
+        {/* Segmented Control Buttons */}
+        <div className="grid grid-cols-3 p-1 bg-muted/60 rounded-xl border border-border/60 text-xs font-semibold gap-1">
+          <button
+            type="button"
+            onClick={() => setMobileTab("candidates")}
+            className={cn(
+              "py-2 px-2 text-center rounded-lg transition-all text-xs font-medium flex items-center justify-center gap-1.5 cursor-pointer",
+              mobileTab === "candidates"
+                ? "bg-background text-foreground shadow-xs font-semibold"
+                : "text-muted-foreground hover:text-foreground"
+            )}
+          >
+            <Users className="size-3.5 shrink-0" />
+            <span className="truncate">Candidatos</span>
+            {(recentCandidates?.length || totalApps) > 0 && (
+              <span className="size-4.5 rounded-full bg-primary/10 text-primary text-[10px] font-bold flex items-center justify-center shrink-0">
+                {recentCandidates?.length || totalApps}
+              </span>
+            )}
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setMobileTab("vacancies")}
+            className={cn(
+              "py-2 px-2 text-center rounded-lg transition-all text-xs font-medium flex items-center justify-center gap-1.5 cursor-pointer",
+              mobileTab === "vacancies"
+                ? "bg-background text-foreground shadow-xs font-semibold"
+                : "text-muted-foreground hover:text-foreground"
+            )}
+          >
+            <Briefcase className="size-3.5 shrink-0" />
+            <span className="truncate">Vacantes</span>
+            {kpis.openVacanciesCount > 0 && (
+              <span className="size-4.5 rounded-full bg-muted text-foreground text-[10px] font-bold flex items-center justify-center shrink-0">
+                {kpis.openVacanciesCount}
+              </span>
+            )}
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setMobileTab("pipeline")}
+            className={cn(
+              "py-2 px-2 text-center rounded-lg transition-all text-xs font-medium flex items-center justify-center gap-1.5 cursor-pointer",
+              mobileTab === "pipeline"
+                ? "bg-background text-foreground shadow-xs font-semibold"
+                : "text-muted-foreground hover:text-foreground"
+            )}
+          >
+            <Layers className="size-3.5 shrink-0" />
+            <span className="truncate">Embudo</span>
+          </button>
+        </div>
+
+        {/* Tab 1: Postulantes Recientes */}
+        {mobileTab === "candidates" && (
+          <Card className="rounded-xl border border-border shadow-xs overflow-hidden">
+            <CardHeader className="flex flex-row items-center justify-between p-4 pb-3 border-b border-border/60">
+              <div>
+                <CardTitle className="text-sm font-bold">
+                  Postulaciones Recientes
+                </CardTitle>
+                <CardDescription className="text-[11px]">
+                  Candidatos aplicados recientemente
+                </CardDescription>
+              </div>
+              <Button
+                variant="ghost"
+                size="sm"
+                render={<Link href="/dashboard/company/applications" />}
+                className="text-xs font-semibold h-8 px-2.5 cursor-pointer text-primary"
+              >
+                <span>Ver todas ({totalApps})</span>
+                <ChevronRight className="size-3.5 ml-1" />
+              </Button>
+            </CardHeader>
+            <CardContent className="p-0">
+              {recentCandidates && recentCandidates.length > 0 ? (
+                <div className="divide-y divide-border/60">
+                  {recentCandidates.slice(0, 6).map((cand) => {
+                    const statusConfig =
+                      STATUS_BADGE_VARIANTS[cand.status] || {
+                        label: cand.status,
+                        className: "bg-muted text-muted-foreground",
+                      };
+                    const initials = getInitials(cand.candidateName);
+
+                    return (
+                      <Link
+                        key={cand.id}
+                        href="/dashboard/company/applications"
+                        className="p-3.5 flex items-center justify-between gap-2.5 hover:bg-muted/40 transition-colors block"
+                      >
+                        <div className="flex items-center gap-2.5 min-w-0">
+                          <Avatar className="size-9 rounded-full border border-border shrink-0">
+                            {cand.candidateAvatar && (
+                              <AvatarImage
+                                src={cand.candidateAvatar}
+                                alt={cand.candidateName}
+                              />
+                            )}
+                            <AvatarFallback className="text-[11px] font-bold">
+                              {initials}
+                            </AvatarFallback>
+                          </Avatar>
+                          <div className="space-y-0.5 min-w-0">
+                            <p className="text-xs font-bold text-foreground truncate">
+                              {cand.candidateName}
+                            </p>
+                            <p className="text-[11px] text-muted-foreground truncate">
+                              {cand.vacancyTitle}
+                            </p>
+                          </div>
+                        </div>
+
+                        <div className="flex items-center gap-2 shrink-0">
+                          <Badge
+                            variant="outline"
+                            className={`text-[10px] font-semibold px-2 py-0.5 rounded-md border ${statusConfig.className}`}
+                          >
+                            {statusConfig.label}
+                          </Badge>
+                          <ChevronRight className="size-4 text-muted-foreground/60" />
+                        </div>
+                      </Link>
+                    );
+                  })}
+                </div>
+              ) : (
+                <div className="p-8 text-center space-y-2">
+                  <Users className="size-7 mx-auto text-muted-foreground/40" />
+                  <p className="text-xs font-semibold text-foreground">
+                    Sin postulaciones recientes
+                  </p>
+                  <p className="text-[11px] text-muted-foreground">
+                    Los candidatos que apliquen a tus vacantes aparecerán aquí.
+                  </p>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Tab 2: Vacantes Activas */}
+        {mobileTab === "vacancies" && (
+          <Card className="rounded-xl border border-border shadow-xs overflow-hidden">
+            <CardHeader className="flex flex-row items-center justify-between p-4 pb-3 border-b border-border/60">
+              <div>
+                <CardTitle className="text-sm font-bold">
+                  Vacantes Activas
+                </CardTitle>
+                <CardDescription className="text-[11px]">
+                  Ofertas laborales con afluencia de talento
+                </CardDescription>
+              </div>
+              <Button
+                variant="ghost"
+                size="sm"
+                render={<Link href="/dashboard/company/vacancies" />}
+                className="text-xs font-semibold h-8 px-2.5 cursor-pointer text-primary"
+              >
+                <span>Ver todas ({kpis.openVacanciesCount})</span>
+                <ChevronRight className="size-3.5 ml-1" />
+              </Button>
+            </CardHeader>
+            <CardContent className="p-0">
+              {openVacanciesList && openVacanciesList.length > 0 ? (
+                <div className="divide-y divide-border/60">
+                  {openVacanciesList.map((vac) => (
+                    <Link
+                      key={vac.id}
+                      href={`/dashboard/company/applications?vacancy_id=${vac.id}`}
+                      className="p-3.5 flex items-center justify-between gap-2.5 hover:bg-muted/40 transition-colors block"
+                    >
+                      <div className="space-y-1 min-w-0">
+                        <p className="text-xs font-bold text-foreground truncate">
+                          {vac.title}
+                        </p>
+                        <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
+                          <span className="truncate">{vac.category}</span>
+                          <span>•</span>
+                          <span className="truncate">{vac.location}</span>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2 shrink-0">
+                        <Badge
+                          variant="secondary"
+                          className="text-[10px] font-semibold px-2 py-0.5 rounded-md"
+                        >
+                          {vac.applicationsCount} cand.
+                        </Badge>
+                        <ChevronRight className="size-4 text-muted-foreground/60" />
+                      </div>
+                    </Link>
+                  ))}
+                </div>
+              ) : (
+                <div className="p-8 text-center space-y-3">
+                  <Briefcase className="size-7 mx-auto text-muted-foreground/40" />
+                  <div className="space-y-1">
+                    <p className="text-xs font-semibold text-foreground">
+                      No tienes vacantes activas
+                    </p>
+                    <p className="text-[11px] text-muted-foreground">
+                      Publica tu primera oferta para empezar a recibir candidatos.
+                    </p>
+                  </div>
+                  <Button
+                    size="sm"
+                    render={<Link href="/dashboard/company/vacancies/new" />}
+                    className="text-xs font-semibold cursor-pointer"
+                  >
+                    <Plus className="size-3.5 mr-1.5" />
+                    <span>Publicar Vacante</span>
+                  </Button>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Tab 3: Embudo & Plan */}
+        {mobileTab === "pipeline" && (
+          <div className="space-y-4">
+            {/* Embudo de Selección */}
+            <Card className="rounded-xl border border-border shadow-xs">
+              <CardHeader className="p-4 pb-3">
+                <CardTitle className="text-sm font-bold">
+                  Embudo de Selección
+                </CardTitle>
+                <CardDescription className="text-[11px]">
+                  Distribución de candidatos en el proceso
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="p-4 pt-0 space-y-3">
+                <div className="space-y-1.5">
+                  <div className="flex items-center justify-between text-xs font-medium">
+                    <span className="text-muted-foreground">En Revisión / Nuevos</span>
+                    <span className="text-foreground font-semibold">
+                      {inReviewCount} ({inReviewPct}%)
+                    </span>
+                  </div>
+                  <Progress value={inReviewPct} className="h-2 rounded-full" />
+                </div>
+
+                <div className="space-y-1.5">
+                  <div className="flex items-center justify-between text-xs font-medium">
+                    <span className="text-muted-foreground">Preseleccionados</span>
+                    <span className="text-foreground font-semibold">
+                      {shortlistedCount} ({shortlistedPct}%)
+                    </span>
+                  </div>
+                  <Progress value={shortlistedPct} className="h-2 rounded-full" />
+                </div>
+
+                <div className="space-y-1.5">
+                  <div className="flex items-center justify-between text-xs font-medium">
+                    <span className="text-muted-foreground">Contratados</span>
+                    <span className="text-foreground font-bold">
+                      {hiredCount} ({hiredPct}%)
+                    </span>
+                  </div>
+                  <Progress value={hiredPct} className="h-2 rounded-full" />
+                </div>
+
+                <div className="pt-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    render={<Link href="/dashboard/company/applications" />}
+                    className="w-full text-xs font-semibold rounded-xl cursor-pointer h-9 justify-center"
+                  >
+                    <span>Ver bandeja de selección</span>
+                    <ArrowUpRight className="size-3.5 ml-1" />
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Suscripción & Plan */}
+            <Card className="rounded-xl border border-border shadow-xs">
+              <CardHeader className="p-4 pb-3">
+                <div className="flex items-center justify-between">
+                  <CardTitle className="text-sm font-bold">
+                    Suscripción & Plan
+                  </CardTitle>
+                  <Badge
+                    variant="outline"
+                    className="text-[10px] font-semibold bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border-emerald-500/20"
+                  >
+                    {subscriptionSummary?.status === "active" ? "Activo" : "En Prueba"}
+                  </Badge>
+                </div>
+                <CardDescription className="text-[11px]">
+                  {subscriptionSummary?.planName || "Plan Pro"}
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="p-4 pt-0 space-y-2.5 text-xs">
+                <div className="flex justify-between items-center py-1 border-b border-border/50">
+                  <span className="text-muted-foreground font-medium">
+                    Vacantes Destacadas
+                  </span>
+                  <span className="font-bold text-foreground">
+                    {subscriptionSummary?.featuredVacanciesUsed || 0} /{" "}
+                    {subscriptionSummary?.featuredVacanciesAllowance || 3}
+                  </span>
+                </div>
+                <div className="flex justify-between items-center py-1">
+                  <span className="text-muted-foreground font-medium">
+                    Verificación Legal
+                  </span>
+                  <div className="flex items-center gap-1 font-bold text-foreground">
+                    <ShieldCheck className="size-3.5 text-emerald-500" />
+                    <span>
+                      {subscriptionSummary?.verificationStatus === "approved"
+                        ? "Verificada"
+                        : "En Auditoría"}
+                    </span>
+                  </div>
+                </div>
+                <div className="pt-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    render={<Link href="/dashboard/company/settings" />}
+                    className="w-full text-xs font-semibold rounded-xl cursor-pointer h-9"
+                  >
+                    Configurar Cuenta & Facturación
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        )}
+      </div>
+
+      {/* 6. Bloque Principal de 2 Columnas (Visible únicamente en Pantallas Desktop >= lg) */}
+      <div className="hidden lg:grid lg:grid-cols-12 gap-6 items-start">
         {/* Columna Izquierda (7 / 12 cols): Vacantes y Postulaciones */}
         <div className="lg:col-span-7 space-y-6">
           {/* Card: Vacantes en Difusión */}
@@ -385,12 +793,7 @@ export function DashboardView({
                         label: cand.status,
                         className: "bg-muted text-muted-foreground",
                       };
-                    const initials = cand.candidateName
-                      .split(" ")
-                      .map((n) => n[0])
-                      .join("")
-                      .substring(0, 2)
-                      .toUpperCase();
+                    const initials = getInitials(cand.candidateName);
 
                     return (
                       <div
@@ -427,7 +830,7 @@ export function DashboardView({
                             {statusConfig.label}
                           </Badge>
                           <span className="text-xs text-muted-foreground font-medium hidden sm:inline-block">
-                            {formatDateToDisplay(cand.appliedAt)}
+                            {cand.appliedAt ? formatDateToDisplay(cand.appliedAt) : ""}
                           </span>
                         </div>
                       </div>

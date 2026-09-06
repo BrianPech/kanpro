@@ -241,28 +241,38 @@ export function Step2Compensation({
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-5 sm:space-y-6">
+      {/* Encabezado del Paso */}
+      <div className="flex items-center gap-2.5 pb-2 border-b border-border/60">
+        <div className="size-8 rounded-xl bg-primary/10 text-primary flex items-center justify-center shrink-0">
+          <MapPin className="size-4" />
+        </div>
+        <div>
+          <h3 className="text-sm font-bold text-foreground">Ubicación y Esquema Salarial</h3>
+          <p className="text-xs text-muted-foreground">Lugar de trabajo, compensación y prestaciones</p>
+        </div>
+      </div>
+
       {/* 1. Ubicación del Puesto */}
-      <div className="space-y-4">
+      <div className="space-y-3.5 sm:space-y-4">
         <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <MapPin className="size-4 text-primary" />
-            <span className="text-sm font-semibold text-foreground">
-              Ubicación del Puesto de Trabajo
+          <div className="flex items-center gap-1.5">
+            <span className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+              Sede o Sucursal
             </span>
           </div>
-          <span className="text-xs font-semibold text-muted-foreground">
+          <span className="text-xs font-semibold text-muted-foreground truncate max-w-[180px]">
             {companyName}
           </span>
         </div>
 
         {/* Tarjetas de Selección de Modalidad de Ubicación */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
           <button
             type="button"
             onClick={handleSelectProfileLocation}
             className={cn(
-              "p-4 rounded-2xl border text-left flex items-start gap-3.5 transition-all cursor-pointer select-none",
+              "p-3.5 sm:p-4 rounded-2xl border text-left flex items-start gap-3 transition-all cursor-pointer select-none",
               useProfileLocation
                 ? "bg-primary/5 border-primary text-foreground shadow-2xs ring-1 ring-primary/30"
                 : "bg-input/30 hover:bg-input/60 text-muted-foreground border-border/80"
@@ -270,7 +280,7 @@ export function Step2Compensation({
           >
             <div
               className={cn(
-                "size-9 rounded-xl flex items-center justify-center shrink-0 text-xs font-bold transition-colors",
+                "size-8 sm:size-9 rounded-xl flex items-center justify-center shrink-0 text-xs font-bold transition-colors",
                 useProfileLocation
                   ? "bg-primary text-primary-foreground"
                   : "bg-muted text-muted-foreground"
@@ -280,14 +290,14 @@ export function Step2Compensation({
             </div>
             <div className="min-w-0 flex-1">
               <div className="flex items-center gap-1.5">
-                <span className="text-sm font-bold text-foreground">
-                  Ubicación Principal de la Empresa
+                <span className="text-xs sm:text-sm font-bold text-foreground truncate">
+                  Ubicación Principal
                 </span>
                 {useProfileLocation && (
-                  <CheckCircle2 className="size-4 text-primary" />
+                  <CheckCircle2 className="size-3.5 sm:size-4 text-primary shrink-0" />
                 )}
               </div>
-              <p className="text-xs text-muted-foreground truncate font-medium mt-1">
+              <p className="text-xs text-muted-foreground truncate font-medium mt-0.5">
                 {companyLocationDisplay} • {resolvedCompanyZone}
               </p>
             </div>
@@ -297,7 +307,7 @@ export function Step2Compensation({
             type="button"
             onClick={handleSelectCustomLocation}
             className={cn(
-              "p-4 rounded-2xl border text-left flex items-start gap-3.5 transition-all cursor-pointer select-none",
+              "p-3.5 sm:p-4 rounded-2xl border text-left flex items-start gap-3 transition-all cursor-pointer select-none",
               !useProfileLocation
                 ? "bg-primary/5 border-primary text-foreground shadow-2xs ring-1 ring-primary/30"
                 : "bg-input/30 hover:bg-input/60 text-muted-foreground border-border/80"
@@ -305,7 +315,7 @@ export function Step2Compensation({
           >
             <div
               className={cn(
-                "size-9 rounded-xl flex items-center justify-center shrink-0 text-xs font-bold transition-colors",
+                "size-8 sm:size-9 rounded-xl flex items-center justify-center shrink-0 text-xs font-bold transition-colors",
                 !useProfileLocation
                   ? "bg-primary text-primary-foreground"
                   : "bg-muted text-muted-foreground"
@@ -315,14 +325,14 @@ export function Step2Compensation({
             </div>
             <div className="min-w-0 flex-1">
               <div className="flex items-center gap-1.5">
-                <span className="text-sm font-bold text-foreground">
-                  Otra Sucursal o Municipio
+                <span className="text-xs sm:text-sm font-bold text-foreground truncate">
+                  Otra Sucursal / Municipio
                 </span>
                 {!useProfileLocation && (
-                  <CheckCircle2 className="size-4 text-primary" />
+                  <CheckCircle2 className="size-3.5 sm:size-4 text-primary shrink-0" />
                 )}
               </div>
-              <p className="text-xs text-muted-foreground truncate font-medium mt-1">
+              <p className="text-xs text-muted-foreground truncate font-medium mt-0.5">
                 Para sucursales en otra zona o ciudad
               </p>
             </div>
@@ -580,6 +590,7 @@ export function Step2Compensation({
                   <Input
                     id="salary_min"
                     type="number"
+                    inputMode="numeric"
                     step={500}
                     value={field.state.value ?? ""}
                     onChange={(e) => field.handleChange(e.target.value ? Number(e.target.value) : null)}
@@ -607,6 +618,7 @@ export function Step2Compensation({
                   <Input
                     id="salary_max"
                     type="number"
+                    inputMode="numeric"
                     step={500}
                     value={field.state.value ?? ""}
                     onChange={(e) => field.handleChange(e.target.value ? Number(e.target.value) : null)}

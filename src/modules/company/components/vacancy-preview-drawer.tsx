@@ -22,6 +22,7 @@ import {
   Award,
   GraduationCap,
   Flame,
+  Briefcase,
 } from "lucide-react";
 import {
   Drawer,
@@ -108,15 +109,15 @@ export function VacancyPreviewDrawer({
         className={cn(
           "bg-card text-card-foreground border-border shadow-2xl flex flex-col",
           isMobile
-            ? "max-h-[92dvh] rounded-t-3xl p-0"
+            ? "[--drawer-inset:0px] max-h-[92dvh] rounded-t-[28px] rounded-b-none border-x-0 border-b-0 border-t border-border/70 p-0 overflow-hidden"
             : "h-full w-full sm:max-w-xl md:max-w-2xl sm:[--drawer-content-width:38rem] md:[--drawer-content-width:44rem] rounded-l-3xl p-0 ml-auto"
         )}
       >
         {/* Header con Título, Categoría y Estado */}
-        <DrawerHeader className="p-5 sm:p-6 pb-4 border-b border-border/50 text-left shrink-0 bg-muted/20 relative">
-          <div className="flex items-start justify-between gap-3 pr-8">
-            <div className="space-y-2 min-w-0">
-              <div className="flex items-center gap-2 flex-wrap">
+        <DrawerHeader className="px-5 py-4 sm:p-6 sm:pb-4 border-b border-border/50 text-left shrink-0 bg-muted/15 relative">
+          <div className="flex items-start justify-between gap-3">
+            <div className="space-y-2 min-w-0 flex-1">
+              <div className="flex items-center gap-1.5 flex-wrap">
                 <Badge
                   variant="outline"
                   className={cn(
@@ -160,7 +161,7 @@ export function VacancyPreviewDrawer({
                 )}
               </div>
 
-              <DrawerTitle className="text-xl sm:text-2xl font-extrabold text-foreground tracking-tight leading-snug">
+              <DrawerTitle className="text-lg sm:text-2xl font-extrabold text-foreground tracking-tight leading-snug">
                 {vacancy.title}
               </DrawerTitle>
 
@@ -176,29 +177,29 @@ export function VacancyPreviewDrawer({
                 </span>
               </DrawerDescription>
             </div>
-          </div>
 
-          <DrawerClose
-            render={
-              <button
-                type="button"
-                className="absolute top-5 right-5 size-8 rounded-full bg-muted/60 hover:bg-muted text-muted-foreground hover:text-foreground flex items-center justify-center transition-colors cursor-pointer"
-                aria-label="Cerrar detalles de la vacante"
-              />
-            }
-          >
-            <X className="size-4" />
-          </DrawerClose>
+            <DrawerClose
+              render={
+                <button
+                  type="button"
+                  className="size-8 rounded-full bg-muted/60 hover:bg-muted text-muted-foreground hover:text-foreground flex items-center justify-center transition-colors cursor-pointer shrink-0 mt-0.5"
+                  aria-label="Cerrar detalles de la vacante"
+                />
+              }
+            >
+              <X className="size-4" />
+            </DrawerClose>
+          </div>
         </DrawerHeader>
 
         {/* Scrollable Drawer Content */}
-        <div className="flex-1 overflow-y-auto p-5 sm:p-6 space-y-6 select-text">
-          {/* Quick Metrics Grid */}
-          <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+        <div className="flex-1 overflow-y-auto overscroll-contain p-4 sm:p-6 space-y-5 sm:space-y-6 select-text">
+          {/* Quick Metrics (2 columnas simétricas) */}
+          <div className="grid grid-cols-2 gap-2.5 sm:gap-3">
             {/* Sueldo */}
-            <Card className="bg-muted/30 border-border/50 rounded-2xl p-3.5 space-y-1 shadow-none">
+            <Card className="bg-muted/30 border-border/50 rounded-2xl p-3 sm:p-3.5 space-y-1 shadow-none">
               <div className="flex items-center gap-1.5 text-muted-foreground">
-                <DollarSign className="size-3.5 text-primary" />
+                <DollarSign className="size-3.5 text-emerald-600 dark:text-emerald-400" />
                 <span className="text-[10px] font-extrabold uppercase tracking-wider">
                   Sueldo
                 </span>
@@ -206,70 +207,95 @@ export function VacancyPreviewDrawer({
               <p className="text-xs sm:text-sm font-black font-mono text-foreground truncate">
                 {formatSalary(vacancy.salary_min ?? null, vacancy.salary_max ?? null)}
               </p>
-              <span className="text-[10px] text-muted-foreground capitalize block font-medium">
+              <span className="text-[10px] text-muted-foreground capitalize block font-medium truncate">
                 {vacancy.payment_frequency ? `${vacancy.payment_frequency}` : "MXN Mensual"}
               </span>
             </Card>
 
             {/* Postulaciones */}
-            <Card className="bg-muted/30 border-border/50 rounded-2xl p-3.5 space-y-1 shadow-none">
-              <div className="flex items-center gap-1.5 text-muted-foreground">
-                <Users className="size-3.5 text-indigo-500" />
-                <span className="text-[10px] font-extrabold uppercase tracking-wider">
-                  Candidatos
-                </span>
+            <Card className="bg-muted/30 border-border/50 rounded-2xl p-3 sm:p-3.5 space-y-1 shadow-none">
+              <div className="flex items-center justify-between gap-1">
+                <div className="flex items-center gap-1.5 text-muted-foreground">
+                  <Users className="size-3.5 text-indigo-500" />
+                  <span className="text-[10px] font-extrabold uppercase tracking-wider">
+                    Candidatos
+                  </span>
+                </div>
+                <Link
+                  href={`/dashboard/company/applications?vacancy_id=${vacancy.id}`}
+                  className="text-[10px] font-bold text-primary hover:underline inline-flex items-center gap-0.5"
+                >
+                  Bandeja <ExternalLink className="size-2.5" />
+                </Link>
               </div>
               <p className="text-xs sm:text-sm font-black font-mono text-foreground">
                 {applicantsCount} {applicantsCount === 1 ? "postulado" : "postulados"}
               </p>
-              <Link
-                href={`/dashboard/company/applications?vacancy_id=${vacancy.id}`}
-                className="text-[10px] font-bold text-primary hover:underline inline-flex items-center gap-0.5"
-              >
-                Ver bandeja <ExternalLink className="size-2.5" />
-              </Link>
-            </Card>
-
-            {/* Jornada / Horario */}
-            <Card className="bg-muted/30 border-border/50 rounded-2xl p-3.5 space-y-1 shadow-none col-span-2 sm:col-span-1">
-              <div className="flex items-center gap-1.5 text-muted-foreground">
-                <Clock className="size-3.5 text-amber-500" />
-                <span className="text-[10px] font-extrabold uppercase tracking-wider">
-                  Jornada
-                </span>
-              </div>
-              <p className="text-xs sm:text-sm font-bold text-foreground truncate">
-                {vacancy.employment_type || "Tiempo Completo"}
-              </p>
-              <span className="text-[10px] text-muted-foreground truncate block font-medium">
-                {vacancy.shift_schedule || "Horario regular"}
+              <span className="text-[10px] text-muted-foreground block font-medium truncate">
+                {isActive ? "Recepción activa" : "Recepción pausada"}
               </span>
             </Card>
           </div>
 
-          {/* Plazas y Experiencia adicional si existen */}
-          {(vacancy.positions_available || vacancy.experience_required || vacancy.education_level) && (
-            <div className="flex items-center gap-2.5 flex-wrap text-xs font-semibold text-muted-foreground bg-muted/20 p-3 rounded-xl border border-border/40">
-              {vacancy.positions_available && vacancy.positions_available > 1 && (
-                <span className="text-primary font-bold flex items-center gap-1">
-                  <Flame className="size-3.5 text-amber-500" />
-                  <span>{vacancy.positions_available} vacantes disponibles</span>
-                </span>
-              )}
-              {vacancy.experience_required && (
-                <span className="flex items-center gap-1">
-                  <Award className="size-3.5 text-muted-foreground" />
-                  <span>Experiencia: <strong className="text-foreground">{vacancy.experience_required}</strong></span>
-                </span>
-              )}
-              {vacancy.education_level && (
-                <span className="flex items-center gap-1">
-                  <GraduationCap className="size-3.5 text-muted-foreground" />
-                  <span>Escolaridad: <strong className="text-foreground">{vacancy.education_level}</strong></span>
-                </span>
-              )}
+          {/* Ficha de Especificaciones clave (Grid 2x2 armónico) */}
+          <div className="bg-muted/20 border border-border/40 rounded-2xl p-3 sm:p-3.5 grid grid-cols-2 gap-3 text-xs">
+            {/* Jornada */}
+            <div className="flex items-start gap-2 min-w-0">
+              <div className="size-7 rounded-xl bg-amber-500/10 text-amber-600 dark:text-amber-400 flex items-center justify-center shrink-0 mt-0.5">
+                <Clock className="size-3.5" />
+              </div>
+              <div className="min-w-0 flex-1">
+                <p className="text-[10px] text-muted-foreground uppercase font-bold tracking-wider">Jornada</p>
+                <p className="font-semibold text-foreground text-xs leading-tight line-clamp-1">
+                  {vacancy.employment_type || "Tiempo Completo"}
+                </p>
+                {vacancy.shift_schedule && (
+                  <p className="text-[10px] text-muted-foreground truncate">{vacancy.shift_schedule}</p>
+                )}
+              </div>
             </div>
-          )}
+
+            {/* Experiencia */}
+            <div className="flex items-start gap-2 min-w-0">
+              <div className="size-7 rounded-xl bg-blue-500/10 text-blue-600 dark:text-blue-400 flex items-center justify-center shrink-0 mt-0.5">
+                <Briefcase className="size-3.5" />
+              </div>
+              <div className="min-w-0 flex-1">
+                <p className="text-[10px] text-muted-foreground uppercase font-bold tracking-wider">Experiencia</p>
+                <p className="font-semibold text-foreground text-xs leading-tight line-clamp-1">
+                  {vacancy.experience_required || "Sin experiencia"}
+                </p>
+              </div>
+            </div>
+
+            {/* Escolaridad */}
+            <div className="flex items-start gap-2 min-w-0">
+              <div className="size-7 rounded-xl bg-purple-500/10 text-purple-600 dark:text-purple-400 flex items-center justify-center shrink-0 mt-0.5">
+                <GraduationCap className="size-3.5" />
+              </div>
+              <div className="min-w-0 flex-1">
+                <p className="text-[10px] text-muted-foreground uppercase font-bold tracking-wider">Escolaridad</p>
+                <p className="font-semibold text-foreground text-xs leading-tight line-clamp-1">
+                  {vacancy.education_level || "No especificada"}
+                </p>
+              </div>
+            </div>
+
+            {/* Plazas disponibles */}
+            <div className="flex items-start gap-2 min-w-0">
+              <div className="size-7 rounded-xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0 mt-0.5">
+                <Flame className="size-3.5" />
+              </div>
+              <div className="min-w-0 flex-1">
+                <p className="text-[10px] text-muted-foreground uppercase font-bold tracking-wider">Disponibilidad</p>
+                <p className="font-semibold text-foreground text-xs leading-tight line-clamp-1">
+                  {vacancy.positions_available && vacancy.positions_available > 1
+                    ? `${vacancy.positions_available} vacantes`
+                    : "1 vacante"}
+                </p>
+              </div>
+            </div>
+          </div>
 
           {/* Descripción General y Responsabilidades */}
           <div className="space-y-2.5">
@@ -379,66 +405,70 @@ export function VacancyPreviewDrawer({
         </div>
 
         {/* Footer con Acciones Rápidas */}
-        <DrawerFooter className="p-4 sm:p-5 border-t border-border/50 bg-muted/20 shrink-0 gap-2 flex-col sm:flex-row sm:items-center sm:justify-between">
-          <div className="flex items-center gap-2 flex-wrap">
-            {/* Ver postulaciones */}
+        <DrawerFooter className="p-4 sm:p-5 border-t border-border/60 bg-card/95 backdrop-blur-md shrink-0 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2.5 pb-[calc(1rem+env(safe-area-inset-bottom,0.5rem))]">
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 w-full sm:w-auto">
+            {/* Ver postulaciones - Primary CTA */}
             <Button
-              size="sm"
+              size="default"
               render={
                 <Link
                   href={`/dashboard/company/applications?vacancy_id=${vacancy.id}`}
                 />
               }
-              className="h-9 px-3.5 rounded-xl text-xs font-bold gap-1.5 cursor-pointer bg-primary text-primary-foreground hover:bg-primary/90"
+              className="h-11 sm:h-9 px-4 rounded-xl text-xs sm:text-xs font-bold gap-2 cursor-pointer bg-primary text-primary-foreground hover:bg-primary/90 shadow-sm justify-center"
             >
-              <Users className="size-3.5" />
+              <Users className="size-4 sm:size-3.5" />
               <span>Ver Postulaciones ({applicantsCount})</span>
             </Button>
 
-            {/* Editar vacante */}
-            <Button
-              variant="outline"
-              size="sm"
-              render={
-                <Link
-                  href={`/dashboard/company/vacancies/${vacancy.id}/edit`}
-                />
-              }
-              className="h-9 px-3.5 rounded-xl text-xs font-bold gap-1.5 cursor-pointer border-border/60 hover:bg-muted"
-            >
-              <Edit2 className="size-3.5 text-primary" />
-              <span>Editar</span>
-            </Button>
-
-            {/* Activar / Pausar */}
-            {onToggleActive && (
+            {/* Acciones secundarias: grid de 2 columnas simétricas en mobile, flex en desktop */}
+            <div className="grid grid-cols-2 sm:flex items-center gap-2">
+              {/* Editar vacante */}
               <Button
                 variant="outline"
                 size="sm"
-                onClick={() => onToggleActive(vacancy.id, isActive)}
-                className={cn(
-                  "h-9 px-3 rounded-xl text-xs font-bold gap-1.5 cursor-pointer border-border/60",
-                  isActive
-                    ? "text-amber-600 dark:text-amber-400 hover:bg-amber-500/10"
-                    : "text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/10"
-                )}
+                render={
+                  <Link
+                    href={`/dashboard/company/vacancies/${vacancy.id}/edit`}
+                  />
+                }
+                className="h-10 sm:h-9 px-3.5 rounded-xl text-xs font-bold gap-1.5 cursor-pointer border-border/70 hover:bg-muted justify-center"
               >
-                {isActive ? (
-                  <>
-                    <PauseCircle className="size-3.5" />
-                    <span>Pausar</span>
-                  </>
-                ) : (
-                  <>
-                    <PlayCircle className="size-3.5" />
-                    <span>Activar</span>
-                  </>
-                )}
+                <Edit2 className="size-3.5 text-muted-foreground" />
+                <span>Editar</span>
               </Button>
-            )}
+
+              {/* Activar / Pausar */}
+              {onToggleActive && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => onToggleActive(vacancy.id, isActive)}
+                  className={cn(
+                    "h-10 sm:h-9 px-3 rounded-xl text-xs font-bold gap-1.5 cursor-pointer border-border/70 justify-center",
+                    isActive
+                      ? "text-amber-600 dark:text-amber-400 hover:bg-amber-500/10"
+                      : "text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/10"
+                  )}
+                >
+                  {isActive ? (
+                    <>
+                      <PauseCircle className="size-3.5" />
+                      <span>Pausar</span>
+                    </>
+                  ) : (
+                    <>
+                      <PlayCircle className="size-3.5" />
+                      <span>Activar</span>
+                    </>
+                  )}
+                </Button>
+              )}
+            </div>
           </div>
 
-          <div className="flex items-center gap-2 self-end sm:self-auto">
+          {/* Cerrar sólo en desktop para evitar duplicar el X y el swipe handle en mobile */}
+          <div className="hidden sm:flex items-center gap-2">
             <DrawerClose
               render={
                 <Button

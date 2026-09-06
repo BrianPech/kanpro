@@ -289,17 +289,20 @@ export function ApplicationsInbox() {
   const vacanciesWithCounts = React.useMemo(() => {
     const map = new Map<string, { id: string; title: string; applicantCount: number }>();
 
-    vacancies.forEach((vac) => {
-      map.set(vac.id, { id: vac.id, title: vac.title, applicantCount: 0 });
+    (vacancies || []).forEach((vac) => {
+      if (vac?.id) {
+        map.set(String(vac.id), { id: String(vac.id), title: vac.title || "Vacante", applicantCount: 0 });
+      }
     });
 
-    applicants.forEach((app) => {
-      if (app.vacancyId) {
-        if (map.has(app.vacancyId)) {
-          map.get(app.vacancyId)!.applicantCount += 1;
+    (applicants || []).forEach((app) => {
+      if (app?.vacancyId) {
+        const vId = String(app.vacancyId);
+        if (map.has(vId)) {
+          map.get(vId)!.applicantCount += 1;
         } else {
-          map.set(app.vacancyId, {
-            id: app.vacancyId,
+          map.set(vId, {
+            id: vId,
             title: app.vacancyTitle || "Vacante",
             applicantCount: 1,
           });
@@ -307,7 +310,7 @@ export function ApplicationsInbox() {
       }
     });
 
-    return Array.from(map.values());
+    return Array.from(map.values()).filter((v) => v && v.id && v.id.trim() !== "");
   }, [vacancies, applicants]);
 
   // Selected vacancy details
@@ -338,13 +341,12 @@ export function ApplicationsInbox() {
     return { total, pending, shortlisted, interviews, hired };
   }, [currentScopeApplicants]);
 
-  const getInitials = (name: string) => {
-    return name
-      .split(" ")
-      .map((part) => part[0])
-      .join("")
-      .toUpperCase()
-      .slice(0, 2);
+  const getInitials = (name?: string | null) => {
+    if (!name || typeof name !== "string" || !name.trim()) return "KP";
+    const parts = name.trim().split(/\s+/).filter(Boolean);
+    if (parts.length === 0) return "KP";
+    if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
+    return ((parts[0][0] || "") + (parts[1][0] || "")).toUpperCase() || "KP";
   };
 
   const getStatusBadgeClass = (status: Applicant["status"]) => {
@@ -472,15 +474,16 @@ export function ApplicationsInbox() {
 
   // Filtered applicants
   const filteredApplicants = React.useMemo(() => {
-    return applicants.filter((app) => {
-      const query = searchQuery.toLowerCase();
+    return (applicants || []).filter((app) => {
+      if (!app) return false;
+      const query = (searchQuery || "").toLowerCase().trim();
       const matchesSearch = query
-        ? app.name.toLowerCase().includes(query) ||
-          app.headline.toLowerCase().includes(query) ||
-          app.vacancyTitle.toLowerCase().includes(query) ||
-          app.location.toLowerCase().includes(query) ||
-          app.skills.some((s) => s.toLowerCase().includes(query)) ||
-          app.phone.includes(query)
+        ? (app.name || "").toLowerCase().includes(query) ||
+          (app.headline || "").toLowerCase().includes(query) ||
+          (app.vacancyTitle || "").toLowerCase().includes(query) ||
+          (app.location || "").toLowerCase().includes(query) ||
+          (Array.isArray(app.skills) && app.skills.some((s) => typeof s === "string" && s.toLowerCase().includes(query))) ||
+          (app.phone || "").includes(query)
         : true;
 
       const matchesVacancy =
@@ -607,14 +610,14 @@ export function ApplicationsInbox() {
           return (
             <div className="space-y-1 py-1">
               <Link
-                href={`/dashboard/company/vacancies/${app.vacancyId}`}
+                href={app.vacancyId ? `/dashboard/company/vacancies/${app.vacancyId}` : "/dashboard/company/vacancies"}
                 className="text-xs font-bold text-foreground hover:text-primary transition-colors line-clamp-1 block"
               >
-                {app.vacancyTitle}
+                {app.vacancyTitle || "Vacante"}
               </Link>
               <div className="flex items-center gap-1.5 text-xs text-muted-foreground font-medium">
                 <MapPin className="size-3 text-primary shrink-0" />
-                <span className="truncate">{app.location}</span>
+                <span className="truncate">{app.location || "Local"}</span>
               </div>
             </div>
           );
@@ -629,8 +632,9 @@ export function ApplicationsInbox() {
         ),
         cell: ({ row }) => {
           const app = row.original;
-          const displaySkills = app.skills.slice(0, 3);
-          const remaining = app.skills.length - 3;
+          const skillsList = Array.isArray(app?.skills) ? app.skills.filter(Boolean) : [];
+          const displaySkills = skillsList.slice(0, 3);
+          const remaining = Math.max(0, skillsList.length - 3);
 
           return (
             <div className="flex items-center gap-1.5 flex-wrap py-1 max-w-xs">

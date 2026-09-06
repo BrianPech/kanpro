@@ -499,15 +499,16 @@ export function VacancyWizardContainer({
   }, [formValues, vacancyId]);
 
   return (
-    <div className="w-full max-w-4xl mx-auto space-y-6 animate-in fade-in duration-300 pb-16 font-sans">
+    <div className="w-full max-w-4xl mx-auto space-y-4 sm:space-y-6 animate-in fade-in duration-300 pb-24 sm:pb-16 font-sans">
       {/* 1. Header Toolbar */}
-      <div className="flex items-center justify-between gap-4">
+      <div className="flex items-center justify-between gap-3">
         <Link
           href="/dashboard/company/vacancies"
-          className="inline-flex items-center gap-2 text-xs font-bold text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
+          className="inline-flex items-center gap-1.5 text-xs font-bold text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
         >
-          <ArrowLeft className="size-4" />
-          <span>Volver a Mis Vacantes</span>
+          <ArrowLeft className="size-4 shrink-0" />
+          <span className="hidden xs:inline sm:inline">Volver a Mis Vacantes</span>
+          <span className="xs:hidden sm:hidden">Vacantes</span>
         </Link>
 
         <div className="flex items-center gap-2">
@@ -517,7 +518,7 @@ export function VacancyWizardContainer({
             variant="outline"
             size="sm"
             onClick={() => setShowPreviewDrawer(true)}
-            className="h-8 px-3 rounded-xl text-xs font-semibold text-foreground border-border/80 hover:bg-muted gap-1.5 cursor-pointer shadow-2xs"
+            className="h-8 px-2.5 sm:px-3 rounded-xl text-xs font-semibold text-foreground border-border/80 hover:bg-muted gap-1.5 cursor-pointer shadow-2xs"
           >
             <Eye className="size-3.5 text-primary" />
             <span>Vista Previa</span>
@@ -529,10 +530,11 @@ export function VacancyWizardContainer({
               variant="ghost"
               size="sm"
               onClick={handleClearDraft}
-              className="h-8 px-3 rounded-xl text-xs font-semibold text-muted-foreground hover:text-rose-500 gap-1.5 cursor-pointer"
+              className="h-8 px-2.5 sm:px-3 rounded-xl text-xs font-semibold text-muted-foreground hover:text-rose-500 gap-1.5 cursor-pointer"
+              title="Restablecer formulario a valores iniciales"
             >
               <RotateCcw className="size-3.5" />
-              <span>Limpiar Formulario</span>
+              <span className="hidden sm:inline">Limpiar</span>
             </Button>
           )}
         </div>
@@ -540,17 +542,17 @@ export function VacancyWizardContainer({
 
       {/* Draft Recovery Alert (Optional & Dismissible) */}
       {savedDraft && !isEditing && (
-        <div className="p-4 bg-primary/5 border border-primary/20 rounded-2xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-xs font-semibold">
-          <div className="space-y-0.5">
-            <p className="text-foreground font-bold flex items-center gap-1.5">
-              <RotateCcw className="size-3.5 text-primary" />
-              <span>Borrador previo encontrado: &ldquo;{savedDraft.title || "Vacante sin título"}&rdquo;</span>
+        <div className="p-3.5 sm:p-4 bg-primary/5 border border-primary/20 rounded-2xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-xs font-semibold">
+          <div className="space-y-0.5 min-w-0 flex-1">
+            <p className="text-foreground font-bold flex items-center gap-1.5 truncate">
+              <RotateCcw className="size-3.5 text-primary shrink-0" />
+              <span className="truncate">Borrador previo: &ldquo;{savedDraft.title || "Sin título"}&rdquo;</span>
             </p>
-            <p className="text-muted-foreground text-[11px]">
-              ¿Deseas recuperar los datos de tu sesión anterior o continuar con una vacante nueva desde cero?
+            <p className="text-muted-foreground text-[11px] line-clamp-2">
+              ¿Deseas recuperar los datos de tu sesión previa o continuar desde cero?
             </p>
           </div>
-          <div className="flex items-center gap-2 shrink-0">
+          <div className="flex items-center gap-2 w-full sm:w-auto shrink-0 justify-end">
             <Button
               type="button"
               size="sm"
@@ -562,7 +564,7 @@ export function VacancyWizardContainer({
                 setSavedDraft(null);
                 toast.info("Borrador previo descartado");
               }}
-              className="h-8 text-xs font-semibold rounded-xl cursor-pointer"
+              className="h-8 text-xs font-semibold rounded-xl cursor-pointer flex-1 sm:flex-none"
             >
               Descartar
             </Button>
@@ -579,23 +581,71 @@ export function VacancyWizardContainer({
                 setSavedDraft(null);
                 toast.success("Borrador restaurado en el formulario");
               }}
-              className="h-8 text-xs font-bold rounded-xl bg-primary text-primary-foreground cursor-pointer gap-1.5"
+              className="h-8 text-xs font-bold rounded-xl bg-primary text-primary-foreground cursor-pointer gap-1.5 flex-1 sm:flex-none"
             >
               <Check className="size-3.5" />
-              <span>Restaurar Borrador</span>
+              <span>Restaurar</span>
             </Button>
           </div>
         </div>
       )}
 
-      {/* 2. Minimalist Reference Stepper */}
+      {/* 2. Stepper Adaptativo (Mobile-first + Desktop) */}
       <Stepper
         value={currentStep}
         onValueChange={handleStepChange}
-        className="space-y-6"
+        className="space-y-4 sm:space-y-6"
       >
-        {/* Stepper Navigation: Centered Minimalist Row matching Reference Image */}
-        <div className="py-2">
+        {/* Vista Móvil (< sm): Barra de progreso de 4 segmentos interactiva */}
+        <div className="block sm:hidden bg-card border border-border/70 rounded-2xl p-3 shadow-2xs space-y-2">
+          <div className="flex items-center justify-between text-xs">
+            <div className="flex items-center gap-1.5 min-w-0">
+              <span className="size-2 rounded-full bg-primary inline-block animate-pulse shrink-0" />
+              <span className="font-bold text-foreground truncate">
+                Paso {currentStep} de 4:{" "}
+                <span className="text-primary font-extrabold">
+                  {currentStep === 4 && isEditing
+                    ? "Actualización"
+                    : WIZARD_STEPS[currentStep - 1]?.label}
+                </span>
+              </span>
+            </div>
+            <span className="text-[11px] font-mono font-bold text-muted-foreground shrink-0 ml-2">
+              {Math.round((currentStep / 4) * 100)}%
+            </span>
+          </div>
+
+          {/* Segmented Touch Progress */}
+          <div className="grid grid-cols-4 gap-1.5 h-2 rounded-full bg-muted/50 p-0.5">
+            {WIZARD_STEPS.map((step) => {
+              const isCompleted = currentStep > step.id;
+              const isCurrent = currentStep === step.id;
+              const isAccessible = step.id <= maxAccessibleStep;
+
+              return (
+                <button
+                  key={step.id}
+                  type="button"
+                  disabled={!isAccessible}
+                  onClick={() => handleStepChange(step.id)}
+                  aria-label={`Ir al paso ${step.id}: ${step.label}`}
+                  className={cn(
+                    "h-full rounded-full transition-all duration-300 select-none",
+                    isCurrent
+                      ? "bg-primary shadow-xs"
+                      : isCompleted
+                      ? "bg-primary/60"
+                      : "bg-muted-foreground/20",
+                    isAccessible ? "cursor-pointer hover:opacity-80 active:scale-95" : "cursor-default"
+                  )}
+                />
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Vista Escritorio (sm+): StepperNav tradicional con círculos y títulos */}
+        <div className="hidden sm:block py-2">
           <StepperNav className="flex items-center justify-between max-w-xl mx-auto px-4 gap-2">
             {WIZARD_STEPS.map((step) => {
               const isCompleted = currentStep > step.id;
@@ -616,7 +666,7 @@ export function VacancyWizardContainer({
                       !isAccessible && "cursor-not-allowed opacity-45"
                     )}
                   >
-                    {/* Circular Indicator matching reference */}
+                    {/* Circular Indicator */}
                     <StepperIndicator
                       className={cn(
                         "size-9 sm:size-10 rounded-full font-bold text-xs sm:text-sm flex items-center justify-center transition-all shadow-2xs border-2 shrink-0",
@@ -655,7 +705,7 @@ export function VacancyWizardContainer({
         </div>
 
         {/* 3. Main Form Card Container */}
-        <Card className="bg-card border border-border/80 rounded-3xl p-6 sm:p-10 shadow-xs">
+        <Card className="bg-card border border-border/80 rounded-2xl sm:rounded-3xl p-4 sm:p-8 md:p-10 shadow-xs">
           <form
             onSubmit={(e) => {
               e.preventDefault();
@@ -698,77 +748,90 @@ export function VacancyWizardContainer({
             </StepperPanel>
 
             {/* 4. Wizard Footer Action Controls */}
-            <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4 pt-6 border-t border-border/60">
-              {/* Left Action Button */}
-              {currentStep > 1 ? (
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={handlePrevStep}
-                  disabled={isSubmitting}
-                  className="h-11 px-5 rounded-2xl font-bold text-xs gap-2 cursor-pointer order-2 sm:order-1 border-border/80 hover:bg-muted"
-                >
-                  <ArrowLeft className="size-4" />
-                  <span>Paso Anterior</span>
-                </Button>
-              ) : (
-                <Button
-                  type="button"
-                  variant="ghost"
-                  render={<Link href="/dashboard/company/vacancies" />}
-                  className="h-11 px-5 rounded-2xl font-semibold text-xs text-muted-foreground hover:text-foreground cursor-pointer order-2 sm:order-1"
-                >
-                  Cancelar
-                </Button>
-              )}
-
-              {/* Right Action Buttons */}
-              <div className="flex items-center gap-3 justify-end order-1 sm:order-2">
-                {currentStep < 4 ? (
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 sm:gap-4 pt-5 sm:pt-6 border-t border-border/60">
+              {/* Steps 1, 2, 3: Botón continuar full-width en mobile + botón volver abajo */}
+              {currentStep < 4 ? (
+                <>
                   <Button
                     type="button"
                     onClick={handleNextStep}
-                    className="h-11 px-6 rounded-2xl font-bold text-sm gap-2 bg-primary text-primary-foreground hover:bg-primary/90 shadow-2xs cursor-pointer w-full sm:w-auto"
+                    className="h-12 sm:h-11 px-6 rounded-2xl font-bold text-sm gap-2 bg-primary text-primary-foreground hover:bg-primary/90 shadow-2xs cursor-pointer w-full sm:w-auto order-1 sm:order-2 justify-center"
                   >
                     <span>Continuar al Paso {currentStep + 1}</span>
                     <ArrowRight className="size-4" />
                   </Button>
-                ) : (
-                  <>
-                    {/* Save as Draft Button */}
+
+                  {currentStep > 1 ? (
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={handlePrevStep}
+                      disabled={isSubmitting}
+                      className="h-11 px-5 rounded-2xl font-bold text-xs gap-2 cursor-pointer w-full sm:w-auto order-2 sm:order-1 border-border/80 hover:bg-muted justify-center"
+                    >
+                      <ArrowLeft className="size-4" />
+                      <span>Paso Anterior</span>
+                    </Button>
+                  ) : (
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      render={<Link href="/dashboard/company/vacancies" />}
+                      className="h-11 px-5 rounded-2xl font-semibold text-xs text-muted-foreground hover:text-foreground cursor-pointer w-full sm:w-auto order-2 sm:order-1 justify-center"
+                    >
+                      Cancelar
+                    </Button>
+                  )}
+                </>
+              ) : (
+                /* Step 4: Botón Publicar full-width arriba + fila secundaria simétrica */
+                <>
+                  {/* Botón Principal (Publicar / Actualizar) */}
+                  <Button
+                    type="button"
+                    disabled={isSubmitting}
+                    onClick={() => handleFinalSubmit(true)}
+                    className="h-12 sm:h-11 px-6 rounded-2xl font-bold text-sm gap-2 bg-primary text-primary-foreground hover:bg-primary/90 shadow-xs cursor-pointer w-full sm:w-auto order-1 sm:order-2 justify-center"
+                  >
+                    {isSubmitting ? (
+                      <>
+                        <Loader2 className="size-4 animate-spin" />
+                        <span>{isEditing ? "Actualizando..." : "Publicando..."}</span>
+                      </>
+                    ) : (
+                      <>
+                        <Send className="size-4" />
+                        <span>{isEditing ? "Actualizar Vacante" : "Publicar Oferta Ahora"}</span>
+                      </>
+                    )}
+                  </Button>
+
+                  {/* Acciones Secundarias (Paso Anterior + Guardar Borrador) */}
+                  <div className="grid grid-cols-2 sm:flex items-center gap-2 sm:gap-3 w-full sm:w-auto order-2 sm:order-1">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={handlePrevStep}
+                      disabled={isSubmitting}
+                      className="h-11 px-4 rounded-2xl font-bold text-xs gap-1.5 cursor-pointer border-border/80 hover:bg-muted justify-center"
+                    >
+                      <ArrowLeft className="size-3.5" />
+                      <span>Anterior</span>
+                    </Button>
+
                     <Button
                       type="button"
                       variant="outline"
                       disabled={isSubmitting}
                       onClick={() => handleFinalSubmit(false)}
-                      className="h-11 px-5 rounded-2xl font-bold text-xs sm:text-sm gap-2 border-border/80 hover:bg-muted cursor-pointer shadow-2xs"
+                      className="h-11 px-4 rounded-2xl font-bold text-xs gap-1.5 border-border/80 hover:bg-muted cursor-pointer shadow-2xs justify-center"
                     >
-                      <Save className="size-4 text-muted-foreground" />
-                      <span>{isEditing ? "Guardar Cambios" : "Guardar Borrador"}</span>
+                      <Save className="size-3.5 text-muted-foreground" />
+                      <span className="truncate">{isEditing ? "Guardar" : "Borrador"}</span>
                     </Button>
-
-                    {/* Publish / Update Button */}
-                    <Button
-                      type="button"
-                      disabled={isSubmitting}
-                      onClick={() => handleFinalSubmit(true)}
-                      className="h-11 px-6 rounded-2xl font-bold text-xs sm:text-sm gap-2 bg-primary text-primary-foreground hover:bg-primary/90 shadow-xs cursor-pointer"
-                    >
-                      {isSubmitting ? (
-                        <>
-                          <Loader2 className="size-4 animate-spin" />
-                          <span>{isEditing ? "Actualizando..." : "Publicando..."}</span>
-                        </>
-                      ) : (
-                        <>
-                          <Send className="size-4" />
-                          <span>{isEditing ? "Actualizar Vacante" : "Publicar Oferta Ahora"}</span>
-                        </>
-                      )}
-                    </Button>
-                  </>
-                )}
-              </div>
+                  </div>
+                </>
+              )}
             </div>
           </form>
         </Card>

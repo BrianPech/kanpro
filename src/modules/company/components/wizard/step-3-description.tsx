@@ -69,7 +69,18 @@ export function Step3Description({ form }: Step3DescriptionProps) {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-5 sm:space-y-6">
+      {/* Encabezado del Paso */}
+      <div className="flex items-center gap-2.5 pb-2 border-b border-border/60">
+        <div className="size-8 rounded-xl bg-primary/10 text-primary flex items-center justify-center shrink-0">
+          <FileText className="size-4" />
+        </div>
+        <div>
+          <h3 className="text-sm font-bold text-foreground">Descripción & Requisitos</h3>
+          <p className="text-xs text-muted-foreground">Funciones del puesto, nivel de experiencia y habilidades</p>
+        </div>
+      </div>
+
       {/* 1. Editor Enriquecido de Descripción */}
       <form.Field name="description">
         {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
@@ -77,13 +88,12 @@ export function Step3Description({ form }: Step3DescriptionProps) {
           <Field data-invalid={Boolean(field.state.meta.errors?.length)} className="space-y-2">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <FileText className="size-4 text-primary" />
                 <FieldLabel htmlFor="description" className="text-sm font-semibold text-foreground">
-                  Descripción del Puesto & Responsabilidades <span className="text-rose-500">*</span>
+                  Funciones & Responsabilidades <span className="text-rose-500">*</span>
                 </FieldLabel>
               </div>
-              <span className="text-xs text-muted-foreground font-medium">
-                Editor enriquecido (Markdown)
+              <span className="text-[11px] text-muted-foreground font-medium">
+                Markdown
               </span>
             </div>
             <div className="rounded-2xl border border-border/80 overflow-hidden shadow-2xs">
@@ -91,7 +101,7 @@ export function Step3Description({ form }: Step3DescriptionProps) {
                 value={field.state.value || ""}
                 onChange={(html) => field.handleChange(html)}
                 placeholder="Describe detalladamente las funciones principales, responsabilidades del puesto y el perfil general del candidato..."
-                minHeight="260px"
+                minHeight="220px"
               />
             </div>
             <FieldDescription className="text-xs text-muted-foreground">

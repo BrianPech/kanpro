@@ -44,16 +44,20 @@ export function Step4Publication({
     : "";
 
   return (
-    <div className="space-y-6">
-      {/* 1. Canal de Postulación & Contacto WhatsApp */}
-      <div className="space-y-5">
-        <div className="flex items-center gap-2">
-          <Phone className="size-4 text-emerald-600 dark:text-emerald-400" />
-          <span className="text-sm font-semibold text-foreground">
-            Canal de Postulación & Contacto Directo <span className="text-rose-500">*</span>
-          </span>
+    <div className="space-y-5 sm:space-y-6">
+      {/* Encabezado del Paso */}
+      <div className="flex items-center gap-2.5 pb-2 border-b border-border/60">
+        <div className="size-8 rounded-xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0">
+          <Phone className="size-4" />
         </div>
+        <div>
+          <h3 className="text-sm font-bold text-foreground">Canal de Recepción & Revisión</h3>
+          <p className="text-xs text-muted-foreground">Contacto con candidatos y comprobación final de la oferta</p>
+        </div>
+      </div>
 
+      {/* 1. Canal de Postulación & Contacto WhatsApp */}
+      <div className="space-y-4">
         {/* Selector de Canal Preferente */}
         <form.Field name="preferred_contact_method">
           {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
@@ -65,24 +69,24 @@ export function Step4Publication({
                 <FieldLabel className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
                   ¿Cómo prefieres recibir las solicitudes de los candidatos?
                 </FieldLabel>
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
                   {[
                     {
                       value: "whatsapp",
                       title: "WhatsApp Directo",
-                      desc: "Los candidatos te contactan de inmediato por WhatsApp",
+                      desc: "Contacto inmediato a tu línea por chat",
                       icon: MessageSquare,
                     },
                     {
                       value: "platform",
                       title: "Bandeja K'anPro",
-                      desc: "Gestión y filtrado de solicitudes en tu panel",
+                      desc: "Gestión organizada en tu panel",
                       icon: Layers,
                     },
                     {
                       value: "both",
                       title: "Ambos Canales",
-                      desc: "Máxima captación: WhatsApp directo y plataforma",
+                      desc: "WhatsApp directo y plataforma",
                       icon: Sparkles,
                     },
                   ].map((m) => {
@@ -95,7 +99,7 @@ export function Step4Publication({
                         type="button"
                         onClick={() => field.handleChange(m.value)}
                         className={cn(
-                          "p-4 rounded-2xl border text-left flex flex-col justify-between gap-3 transition-all cursor-pointer select-none",
+                          "p-3.5 sm:p-4 rounded-2xl border text-left flex flex-col justify-between gap-3 transition-all cursor-pointer select-none",
                           isSelected
                             ? "bg-primary/5 border-primary text-foreground shadow-2xs ring-1 ring-primary/30"
                             : "bg-input/30 hover:bg-input/60 text-muted-foreground border-border/80"
@@ -104,7 +108,7 @@ export function Step4Publication({
                         <div className="flex items-center justify-between w-full">
                           <div
                             className={cn(
-                              "size-9 rounded-xl flex items-center justify-center font-bold text-xs",
+                              "size-8 sm:size-9 rounded-xl flex items-center justify-center font-bold text-xs",
                               isSelected
                                 ? "bg-primary text-primary-foreground"
                                 : "bg-muted text-muted-foreground"
@@ -117,10 +121,10 @@ export function Step4Publication({
                           )}
                         </div>
                         <div>
-                          <p className="text-sm font-bold text-foreground">
+                          <p className="text-xs sm:text-sm font-bold text-foreground">
                             {m.title}
                           </p>
-                          <p className="text-xs text-muted-foreground mt-0.5 leading-relaxed">
+                          <p className="text-[11px] text-muted-foreground mt-0.5 leading-relaxed">
                             {m.desc}
                           </p>
                         </div>
@@ -147,6 +151,8 @@ export function Step4Publication({
                 </span>
                 <Input
                   id="contact_phone"
+                  type="tel"
+                  inputMode="tel"
                   value={field.state.value || ""}
                   onChange={(e) => field.handleChange(e.target.value)}
                   placeholder="999 123 4567"
