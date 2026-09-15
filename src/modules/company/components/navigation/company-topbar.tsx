@@ -5,6 +5,7 @@ import Link from "next/link";
 import {
   Bell,
   Plus,
+  UserPlus,
 } from "lucide-react";
 import * as React from "react";
 
@@ -111,11 +112,11 @@ export function DashboardTopbar({
         {role === "company" && (
           <Button
             size="sm"
-            render={<Link href="/dashboard/company/vacancies/new" />}
-            className="font-semibold px-2.5 sm:px-3 h-8 rounded-lg flex items-center gap-1.5 shadow-xs text-xs bg-primary text-primary-foreground hover:bg-primary/90 cursor-pointer"
+            render={<Link href="/dashboard/company/employees?action=new" />}
+            className="hidden md:flex font-semibold px-3 h-8 rounded-lg items-center gap-1.5 shadow-xs text-xs bg-primary text-primary-foreground hover:bg-primary/90 cursor-pointer"
           >
-            <Plus className="size-3.5 stroke-[2.5]" />
-            <span className="hidden sm:inline">Nueva Vacante</span>
+            <UserPlus className="size-3.5 stroke-[2.5]" />
+            <span>Registrar Colaborador</span>
           </Button>
         )}
 

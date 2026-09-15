@@ -6,6 +6,7 @@ import {
   Briefcase,
   Users,
   UserCheck,
+  UserPlus,
   Clock,
   Plus,
   ArrowUpRight,
@@ -14,6 +15,7 @@ import {
   ChevronRight,
   ShieldCheck,
   Layers,
+  CalendarCheck,
 } from "lucide-react";
 import {
   Card,
@@ -112,12 +114,15 @@ export function DashboardView({
             <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground bg-muted px-2 py-0.5 rounded-md">
               Portal Empresa
             </span>
+            <Badge variant="outline" className="text-[10px] border-amber-500/30 text-amber-600 dark:text-amber-400 bg-amber-500/10 font-semibold">
+              Canary HR Early Access
+            </Badge>
           </div>
           <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold tracking-tight text-foreground truncate">
             {`Dashboard • ${companyName}`}
           </h1>
           <p className="text-xs sm:text-sm text-muted-foreground line-clamp-1 sm:line-clamp-none">
-            Resumen ejecutivo de talento, postulaciones y colaboradores.
+            Gestión integral de colaboradores, asistencia, vacaciones y nómina.
           </p>
         </div>
 
@@ -133,11 +138,11 @@ export function DashboardView({
           </Button>
           <Button
             size="sm"
-            render={<Link href="/dashboard/company/vacancies/new" />}
+            render={<Link href="/dashboard/company/employees?action=new" />}
             className="cursor-pointer text-xs font-bold gap-1.5 bg-primary text-primary-foreground h-9 shadow-xs"
           >
-            <Plus className="size-3.5" />
-            <span>Publicar Vacante</span>
+            <UserPlus className="size-3.5" />
+            <span>+ Registrar Colaborador</span>
           </Button>
         </div>
       </div>
@@ -176,59 +181,7 @@ export function DashboardView({
 
       {/* 3. Tarjetas KPI Métricas Clave (2x2 en mobile, 4 cols en desktop) */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-4 lg:gap-5">
-        {/* KPI 1: Vacantes Activas */}
-        <Link
-          href="/dashboard/company/vacancies"
-          className="group block rounded-xl focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring"
-        >
-          <Card className="h-full rounded-xl border border-border/80 bg-card hover:border-primary/50 hover:shadow-xs transition-all p-3 sm:p-4.5 flex flex-col justify-between">
-            <div className="flex items-center justify-between gap-1.5">
-              <span className="text-xs font-semibold text-muted-foreground truncate">
-                Vacantes Activas
-              </span>
-              <div className="size-7 sm:size-8 rounded-lg bg-primary/10 text-primary flex items-center justify-center shrink-0 group-hover:bg-primary group-hover:text-primary-foreground transition-colors">
-                <Briefcase className="size-3.5 sm:size-4" />
-              </div>
-            </div>
-            <div className="mt-2.5 sm:mt-3">
-              <div className="text-xl sm:text-2xl lg:text-3xl font-bold tracking-tight text-foreground">
-                {kpis.openVacanciesCount}
-              </div>
-              <p className="text-[11px] sm:text-xs text-muted-foreground mt-0.5 truncate flex items-center justify-between">
-                <span>En difusión</span>
-                <ArrowUpRight className="size-3 text-muted-foreground group-hover:text-primary transition-colors" />
-              </p>
-            </div>
-          </Card>
-        </Link>
-
-        {/* KPI 2: Postulaciones */}
-        <Link
-          href="/dashboard/company/applications"
-          className="group block rounded-xl focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring"
-        >
-          <Card className="h-full rounded-xl border border-border/80 bg-card hover:border-primary/50 hover:shadow-xs transition-all p-3 sm:p-4.5 flex flex-col justify-between">
-            <div className="flex items-center justify-between gap-1.5">
-              <span className="text-xs font-semibold text-muted-foreground truncate">
-                Postulaciones
-              </span>
-              <div className="size-7 sm:size-8 rounded-lg bg-primary/10 text-primary flex items-center justify-center shrink-0 group-hover:bg-primary group-hover:text-primary-foreground transition-colors">
-                <Users className="size-3.5 sm:size-4" />
-              </div>
-            </div>
-            <div className="mt-2.5 sm:mt-3">
-              <div className="text-xl sm:text-2xl lg:text-3xl font-bold tracking-tight text-foreground">
-                {kpis.totalApplicationsReceived}
-              </div>
-              <p className="text-[11px] sm:text-xs text-muted-foreground mt-0.5 truncate flex items-center justify-between">
-                <span>{kpis.pendingReviewApplications} pendientes</span>
-                <ArrowUpRight className="size-3 text-muted-foreground group-hover:text-primary transition-colors" />
-              </p>
-            </div>
-          </Card>
-        </Link>
-
-        {/* KPI 3: Plantilla Activa */}
+        {/* KPI 1: Plantilla Activa */}
         <Link
           href="/dashboard/company/employees"
           className="group block rounded-xl focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring"
@@ -254,7 +207,7 @@ export function DashboardView({
           </Card>
         </Link>
 
-        {/* KPI 4: Asistencia Hoy */}
+        {/* KPI 2: Asistencia Hoy */}
         <Link
           href="/dashboard/company/attendance"
           className="group block rounded-xl focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring"
@@ -279,6 +232,58 @@ export function DashboardView({
             </div>
           </Card>
         </Link>
+
+        {/* KPI 3: Vacantes Activas */}
+        <Link
+          href="/dashboard/company/vacancies"
+          className="group block rounded-xl focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring"
+        >
+          <Card className="h-full rounded-xl border border-border/80 bg-card hover:border-primary/50 hover:shadow-xs transition-all p-3 sm:p-4.5 flex flex-col justify-between">
+            <div className="flex items-center justify-between gap-1.5">
+              <span className="text-xs font-semibold text-muted-foreground truncate">
+                Vacantes Activas
+              </span>
+              <div className="size-7 sm:size-8 rounded-lg bg-primary/10 text-primary flex items-center justify-center shrink-0 group-hover:bg-primary group-hover:text-primary-foreground transition-colors">
+                <Briefcase className="size-3.5 sm:size-4" />
+              </div>
+            </div>
+            <div className="mt-2.5 sm:mt-3">
+              <div className="text-xl sm:text-2xl lg:text-3xl font-bold tracking-tight text-foreground">
+                {kpis.openVacanciesCount}
+              </div>
+              <p className="text-[11px] sm:text-xs text-muted-foreground mt-0.5 truncate flex items-center justify-between">
+                <span>Fase 2</span>
+                <ArrowUpRight className="size-3 text-muted-foreground group-hover:text-primary transition-colors" />
+              </p>
+            </div>
+          </Card>
+        </Link>
+
+        {/* KPI 4: Postulaciones */}
+        <Link
+          href="/dashboard/company/applications"
+          className="group block rounded-xl focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring"
+        >
+          <Card className="h-full rounded-xl border border-border/80 bg-card hover:border-primary/50 hover:shadow-xs transition-all p-3 sm:p-4.5 flex flex-col justify-between">
+            <div className="flex items-center justify-between gap-1.5">
+              <span className="text-xs font-semibold text-muted-foreground truncate">
+                Postulaciones
+              </span>
+              <div className="size-7 sm:size-8 rounded-lg bg-primary/10 text-primary flex items-center justify-center shrink-0 group-hover:bg-primary group-hover:text-primary-foreground transition-colors">
+                <Users className="size-3.5 sm:size-4" />
+              </div>
+            </div>
+            <div className="mt-2.5 sm:mt-3">
+              <div className="text-xl sm:text-2xl lg:text-3xl font-bold tracking-tight text-foreground">
+                {kpis.totalApplicationsReceived}
+              </div>
+              <p className="text-[11px] sm:text-xs text-muted-foreground mt-0.5 truncate flex items-center justify-between">
+                <span>{kpis.pendingReviewApplications} pendientes</span>
+                <ArrowUpRight className="size-3 text-muted-foreground group-hover:text-primary transition-colors" />
+              </p>
+            </div>
+          </Card>
+        </Link>
       </div>
 
       {/* 4. Acciones Rápidas (Horizontal Scrollable Pills en Mobile) */}
@@ -286,11 +291,11 @@ export function DashboardView({
         <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none -mx-1 px-1">
           <Button
             size="sm"
-            render={<Link href="/dashboard/company/vacancies/new" />}
+            render={<Link href="/dashboard/company/employees?action=new" />}
             className="h-9 px-3.5 text-xs font-semibold rounded-xl shrink-0 gap-1.5 bg-primary text-primary-foreground shadow-xs cursor-pointer"
           >
-            <Plus className="size-3.5" />
-            <span>+ Vacante</span>
+            <UserPlus className="size-3.5" />
+            <span>+ Colaborador</span>
           </Button>
           <Button
             variant="outline"
@@ -925,19 +930,11 @@ export function DashboardView({
             <CardContent className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
               <Button
                 variant="outline"
-                render={<Link href="/dashboard/company/vacancies/new" />}
+                render={<Link href="/dashboard/company/employees?action=new" />}
                 className="h-11 justify-start px-3.5 text-xs font-semibold rounded-xl cursor-pointer"
               >
-                <Plus className="size-4 mr-2 text-primary" />
-                <span>Nueva Vacante</span>
-              </Button>
-              <Button
-                variant="outline"
-                render={<Link href="/dashboard/company/applications" />}
-                className="h-11 justify-start px-3.5 text-xs font-semibold rounded-xl cursor-pointer"
-              >
-                <Users className="size-4 mr-2 text-primary" />
-                <span>Postulantes</span>
+                <UserPlus className="size-4 mr-2 text-primary" />
+                <span>Registrar Colaborador</span>
               </Button>
               <Button
                 variant="outline"
@@ -954,6 +951,14 @@ export function DashboardView({
               >
                 <Clock className="size-4 mr-2 text-primary" />
                 <span>Asistencia</span>
+              </Button>
+              <Button
+                variant="outline"
+                render={<Link href="/dashboard/company/vacations" />}
+                className="h-11 justify-start px-3.5 text-xs font-semibold rounded-xl cursor-pointer"
+              >
+                <CalendarCheck className="size-4 mr-2 text-primary" />
+                <span>Vacaciones</span>
               </Button>
             </CardContent>
           </Card>

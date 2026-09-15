@@ -36,6 +36,10 @@ export default function AuthLayout({
   } else if (pathname?.startsWith("/phone-login")) {
     viewName = "Iniciar Sesión";
     backHref = "/login";
+  } else if (pathname?.startsWith("/invite")) {
+    viewName = "Invitación de Empleo";
+    backHref = "/login";
+    isWide = true;
   }
 
   if (pathname === "/login") {

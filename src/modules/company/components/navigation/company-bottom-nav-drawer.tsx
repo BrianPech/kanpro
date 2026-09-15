@@ -4,8 +4,9 @@ import * as React from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
-  PlusCircle,
+  UserPlus,
   UserCheck,
+  Clock,
   FileCheck2,
   Star,
   Plane,
@@ -19,6 +20,8 @@ import {
   ChevronRight,
   X,
   Sparkles,
+  Briefcase,
+  Users,
 } from "lucide-react";
 import {
   Drawer,
@@ -43,6 +46,8 @@ interface NavItem {
   href: string;
   icon: React.ComponentType<{ className?: string }>;
   isModal?: boolean;
+  badge?: string;
+  badgeVariant?: "primary" | "warning" | "muted";
 }
 
 interface NavCategory {
@@ -52,63 +57,97 @@ interface NavCategory {
 
 const CATEGORIES: NavCategory[] = [
   {
-    title: "Gestión de Personal & Talento",
+    title: "Gestión de Personal & Expedientes",
     items: [
       {
         title: "Plantilla de Colaboradores",
-        description: "Directorio de empleados, puestos y estatus",
+        description: "Directorio de empleados, puestos, salarios y estatus",
         href: "/dashboard/company/employees",
         icon: UserCheck,
       },
       {
         title: "Contratos & Bajas",
-        description: "Documentos legales, vigencias y bajas",
+        description: "Documentos laborales, vigencias y actas de separación",
         href: "/dashboard/company/contracts",
         icon: FileCheck2,
       },
       {
         title: "Evaluaciones 360",
-        description: "Desempeño continuo, objetivos y feedback",
+        description: "Desempeño continuo, objetivos y retroalimentación",
         href: "/dashboard/company/evaluations",
         icon: Star,
       },
     ],
   },
   {
-    title: "Operaciones & Finanzas",
+    title: "Tiempo, Asistencia & Operaciones",
     items: [
       {
-        title: "Vacaciones & Permisos",
-        description: "Solicitudes de ausencia y calendario",
+        title: "Control de Asistencia",
+        description: "Checador diario, retardos, faltas y justificaciones",
+        href: "/dashboard/company/attendance",
+        icon: Clock,
+      },
+      {
+        title: "Vacaciones & Permisos LFT",
+        description: "Cálculo de días disponibles por antigüedad y autorizaciones",
         href: "/dashboard/company/leaves",
         icon: Plane,
+        badge: "LFT 2026",
+        badgeVariant: "primary",
       },
       {
         title: "Incidencias Laborales",
-        description: "Faltas, retardos, incapacidades y reportes",
+        description: "Faltas injustificadas, retardos e incapacidades",
         href: "/dashboard/company/incidents",
         icon: ShieldAlert,
       },
+    ],
+  },
+  {
+    title: "Compensación & Finanzas",
+    items: [
       {
         title: "Nómina & Pagos",
-        description: "Cálculo, dispersión salarial y recibos fiscales",
+        description: "Cálculo, dispersión salarial y recibos",
         href: "/dashboard/company/payroll",
         icon: CreditCard,
       },
       {
         title: "Centro de Reportes",
-        description: "Métricas de reclutamiento, KPI y descargas CSV",
+        description: "Métricas de personal, auditoría y descargas Excel / CSV",
         href: "/dashboard/company/reports",
         icon: FileSpreadsheet,
       },
     ],
   },
   {
-    title: "Mi Empresa & Ajustes",
+    title: "Atracción de Talento (Fase 2)",
+    items: [
+      {
+        title: "Bolsa de Vacantes",
+        description: "Publicación de ofertas y perfiles de puesto",
+        href: "/dashboard/company/vacancies",
+        icon: Briefcase,
+        badge: "Próximamente",
+        badgeVariant: "muted",
+      },
+      {
+        title: "Postulantes & Reclutamiento",
+        description: "Candidatos, entrevistas y flujo de contratación",
+        href: "/dashboard/company/applications",
+        icon: Users,
+        badge: "Próximamente",
+        badgeVariant: "muted",
+      },
+    ],
+  },
+  {
+    title: "Organización & Ajustes",
     items: [
       {
         title: "Perfil Corporativo",
-        description: "Datos comerciales, logo e información pública",
+        description: "Datos comerciales, logo y razón social",
         href: "/dashboard/company/profile",
         icon: Building2,
       },
@@ -120,7 +159,7 @@ const CATEGORIES: NavCategory[] = [
       },
       {
         title: "Configuración General",
-        description: "Tema visual, datos de cuenta, alertas y seguridad",
+        description: "Tema visual, notificaciones y seguridad",
         href: "#",
         icon: Settings,
         isModal: true,
@@ -153,13 +192,13 @@ export function CompanyBottomNavDrawer({
         {/* Cabecera del Drawer */}
         <DrawerHeader className="px-5 pt-3 pb-3 border-b border-border/40 flex flex-row items-center justify-between shrink-0">
           <div className="text-left min-w-0 flex-1">
-            <div className="flex items-center gap-1.5">
+            <div className="flex items-center gap-2">
               <DrawerTitle className="text-base font-extrabold tracking-tight text-foreground">
-                Módulos & Herramientas
+                Módulos & Herramientas RH
               </DrawerTitle>
               <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-primary/10 text-primary border border-primary/20">
                 <Sparkles className="size-2.5" />
-                Empresa
+                Canary Early Access
               </span>
             </div>
             <DrawerDescription className="text-xs text-muted-foreground mt-0.5 truncate">
@@ -182,23 +221,28 @@ export function CompanyBottomNavDrawer({
         </DrawerHeader>
 
         {/* Contenido deslizable con categorías */}
-        <div className="flex-1 overflow-y-auto overscroll-contain px-4 py-3 space-y-4 pb-[calc(2rem+env(safe-area-inset-bottom,0px))]">
-          {/* Tarjeta de Acción Rápida Destacada: Publicar Oferta */}
+        <div className="flex-1 overflow-y-auto overscroll-contain px-4 py-3 space-y-4 pb-[calc(2.5rem+env(safe-area-inset-bottom,0px))]">
+          {/* Tarjeta de Acción Rápida Destacada: Registrar Colaborador */}
           <Link
-            href="/dashboard/company/vacancies/new"
+            href="/dashboard/company/employees?action=new"
             onClick={() => onOpenChange(false)}
             className="group flex items-center justify-between p-3.5 rounded-2xl bg-gradient-to-r from-primary via-primary/95 to-primary/85 text-primary-foreground shadow-md transition-all duration-150 active:scale-[0.98] cursor-pointer"
           >
             <div className="flex items-center gap-3 min-w-0">
               <div className="size-10 rounded-xl bg-white/20 backdrop-blur-xs flex items-center justify-center shrink-0 text-primary-foreground shadow-xs">
-                <PlusCircle className="size-5" />
+                <UserPlus className="size-5" />
               </div>
               <div className="text-left min-w-0">
-                <span className="text-sm font-black tracking-tight block truncate">
-                  Publicar Nueva Oferta
-                </span>
+                <div className="flex items-center gap-2">
+                  <span className="text-sm font-black tracking-tight block truncate">
+                    Registrar Nuevo Colaborador
+                  </span>
+                  <span className="text-[10px] font-bold px-1.5 py-0.2 rounded-md bg-white/25 text-white">
+                    Directo
+                  </span>
+                </div>
                 <span className="text-[11px] text-primary-foreground/80 font-medium block truncate">
-                  Crea y difunde vacantes en la red K&apos;anPro
+                  Alta al padrón de personal con salario, puesto y RFC
                 </span>
               </div>
             </div>
@@ -272,14 +316,31 @@ export function CompanyBottomNavDrawer({
                           <Icon className="size-4" />
                         </div>
                         <div className="min-w-0 flex-1">
-                          <span
-                            className={cn(
-                              "text-xs block truncate",
-                              isActive ? "font-extrabold text-primary" : "font-bold text-foreground"
+                          <div className="flex items-center gap-2">
+                            <span
+                              className={cn(
+                                "text-xs block truncate",
+                                isActive ? "font-extrabold text-primary" : "font-bold text-foreground"
+                              )}
+                            >
+                              {item.title}
+                            </span>
+                            {item.badge && (
+                              <span
+                                className={cn(
+                                  "text-[9px] font-bold px-1.5 py-0.2 rounded-md shrink-0",
+                                  item.badgeVariant === "primary" &&
+                                    "bg-primary/15 text-primary border border-primary/25",
+                                  item.badgeVariant === "muted" &&
+                                    "bg-muted text-muted-foreground border border-border/50",
+                                  !item.badgeVariant &&
+                                    "bg-muted text-muted-foreground"
+                                )}
+                              >
+                                {item.badge}
+                              </span>
                             )}
-                          >
-                            {item.title}
-                          </span>
+                          </div>
                           <span className="text-[11px] text-muted-foreground font-medium block truncate">
                             {item.description}
                           </span>

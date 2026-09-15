@@ -1,6 +1,8 @@
 "use client";
 
 import * as React from "react";
+import Link from "next/link";
+import { usePathname } from "next/navigation";
 import {
   LayoutDashboard,
   Kanban,
@@ -11,178 +13,215 @@ import {
   ShieldCheck,
   Settings,
   HelpCircle,
-  PlusCircle,
   Clock,
   ShieldAlert,
   FileCheck2,
   CreditCard,
-  ChevronDown,
-  Plane,
   Star,
   FileSpreadsheet,
-  X,
+  UserPlus,
+  Search,
+  Plus,
+  Layers,
+  ChevronRight,
 } from "lucide-react";
 
 import {
   Sidebar,
   SidebarContent,
+  SidebarFooter,
   SidebarGroup,
   SidebarGroupContent,
-  SidebarGroupLabel,
   SidebarHeader,
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
-  SidebarFooter,
   useSidebar,
 } from "@/components/ui/sidebar";
 import { Button } from "@/components/ui/button";
-import {
-  Collapsible,
-  CollapsibleTrigger,
-  CollapsibleContent,
-} from "@/components/ui/collapsible";
-import { NavUser } from "@/components/shared/nav-user";
-import { usePathname } from "next/navigation";
-import Link from "next/link";
-import { cn } from "@/lib/utils";
+import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { NavUser } from "@/components/shared/nav-user";
+import { cn } from "@/lib/utils";
 import { CompanySettingsModal } from "../company-settings-dialog";
 
+export interface SubMenuItem {
+  title: string;
+  url: string;
+  icon: React.ElementType;
+  description?: string;
+  badge?: string;
+}
+
+export interface PrimarySection {
+  id: string;
+  label: string;
+  shortLabel: string;
+  icon: React.ElementType;
+  description: string;
+  action?: {
+    label: string;
+    url: string;
+    icon: React.ElementType;
+  };
+  items: SubMenuItem[];
+}
+
+export const companySections: PrimarySection[] = [
+  {
+    id: "analytics",
+    label: "Inicio & Analítica",
+    shortLabel: "Inicio",
+    icon: LayoutDashboard,
+    description: "Métricas operativas y centros de reportes ejecutivos.",
+    items: [
+      {
+        title: "Dashboard General",
+        url: "/dashboard/company",
+        icon: LayoutDashboard,
+        description: "Resumen de colaboradores, alertas y actividades.",
+      },
+      {
+        title: "Centro de Reportes",
+        url: "/dashboard/company/reports",
+        icon: FileSpreadsheet,
+        description: "Exportaciones de nómina, asistencias y personal.",
+      },
+    ],
+  },
+  {
+    id: "people",
+    label: "Gestión de Personal",
+    shortLabel: "Personal",
+    icon: Users,
+    description: "Administración de colaboradores, expedientes y contratos.",
+    action: {
+      label: "+ Registrar Colaborador",
+      url: "/dashboard/company/employees?action=new",
+      icon: UserPlus,
+    },
+    items: [
+      {
+        title: "Plantilla de Colaboradores",
+        url: "/dashboard/company/employees",
+        icon: UserCheck,
+        description: "Directorio completo de colaboradores activos e inactivos.",
+      },
+      {
+        title: "Contratos & Bajas",
+        url: "/dashboard/company/contracts",
+        icon: FileCheck2,
+        description: "Seguimiento de contratos, periodos de prueba y renovaciones.",
+      },
+      {
+        title: "Evaluaciones 360",
+        url: "/dashboard/company/evaluations",
+        icon: Star,
+        description: "Desempeño, competencias y feedback continuo.",
+      },
+    ],
+  },
+  {
+    id: "operations",
+    label: "Operaciones & Asistencia",
+    shortLabel: "Operaciones",
+    icon: Clock,
+    description: "Control horario, checador, ausencias e incidencias.",
+    items: [
+      {
+        title: "Asistencia & Checador",
+        url: "/dashboard/company/attendance",
+        icon: Clock,
+        description: "Marcajes biométricos, retardos y turnos en tiempo real.",
+      },
+      {
+        title: "Vacaciones & Permisos",
+        url: "/dashboard/company/leaves",
+        icon: Layers,
+        description: "Solicitudes de descanso, días económicos y aprobaciones.",
+      },
+      {
+        title: "Incidencias Laborales",
+        url: "/dashboard/company/incidents",
+        icon: ShieldAlert,
+        description: "Justificantes, faltas, actas administrativas y notas.",
+      },
+    ],
+  },
+  {
+    id: "payroll",
+    label: "Compensaciones",
+    shortLabel: "Nómina",
+    icon: CreditCard,
+    description: "Cálculo y dispersión de salarios y recibos fiscales.",
+    items: [
+      {
+        title: "Nómina & Pagos",
+        url: "/dashboard/company/payroll",
+        icon: CreditCard,
+        description: "Periodos de nómina, dispersiones bancarias y recibos.",
+      },
+    ],
+  },
+  {
+    id: "company",
+    label: "Mi Empresa",
+    shortLabel: "Empresa",
+    icon: Building2,
+    description: "Configuración corporativa, datos fiscales y acreditaciones.",
+    items: [
+      {
+        title: "Perfil Corporativo",
+        url: "/dashboard/company/profile",
+        icon: Building2,
+        description: "Razón social, logo, sucursales y datos de contacto.",
+      },
+      {
+        title: "Sello de Verificación",
+        url: "/dashboard/company/verification",
+        icon: ShieldCheck,
+        description: "Expediente digital y verificación de certeza laboral.",
+      },
+    ],
+  },
+  {
+    id: "recruitment",
+    label: "Reclutamiento",
+    shortLabel: "Talento",
+    icon: Briefcase,
+    description: "Atracción de talento, vacantes y selección de candidatos.",
+    action: {
+      label: "+ Publicar Vacante",
+      url: "/dashboard/company/vacancies/new",
+      icon: Plus,
+    },
+    items: [
+      {
+        title: "Mis Vacantes",
+        url: "/dashboard/company/vacancies",
+        icon: Briefcase,
+        badge: "Fase 2",
+        description: "Convocatorias abiertas, borradores y archivo.",
+      },
+      {
+        title: "Postulantes & Selección",
+        url: "/dashboard/company/applications",
+        icon: Users,
+        badge: "Fase 2",
+        description: "Pipeline de candidatos y seguimiento de entrevistas.",
+      },
+    ],
+  },
+];
+
 export function CompanySidebar({
+  className,
   ...props
 }: React.ComponentProps<typeof Sidebar>) {
   const pathname = usePathname();
-  const { isMobile, setOpenMobile } = useSidebar();
-
-  const sections = [
-    {
-      label: "Inicio & Analítica",
-      isCollapsible: true,
-      defaultOpen: false,
-      items: [
-        {
-          title: "Dashboard General",
-          url: "/dashboard/company",
-          icon: LayoutDashboard,
-        },
-        {
-          title: "Centro de Reportes",
-          url: "/dashboard/company/reports",
-          icon: FileSpreadsheet,
-        },
-      ],
-    },
-    {
-      label: "Atracción de Talento",
-      isCollapsible: true,
-      defaultOpen: false,
-      items: [
-        {
-          title: "Mis Vacantes",
-          url: "/dashboard/company/vacancies",
-          icon: Briefcase,
-        },
-        {
-          title: "Postulantes & Selección",
-          url: "/dashboard/company/applications",
-          icon: Users,
-        },
-      ],
-    },
-    {
-      label: "Gestión de Personal",
-      isCollapsible: true,
-      defaultOpen: false,
-      items: [
-        {
-          title: "Plantilla de Empleados",
-          url: "/dashboard/company/employees",
-          icon: UserCheck,
-        },
-        {
-          title: "Contratos & Bajas",
-          url: "/dashboard/company/contracts",
-          icon: FileCheck2,
-        },
-        {
-          title: "Evaluaciones 360",
-          url: "/dashboard/company/evaluations",
-          icon: Star,
-        },
-      ],
-    },
-    {
-      label: "Operaciones & Asistencia",
-      isCollapsible: true,
-      defaultOpen: false,
-      items: [
-        {
-          title: "Asistencia & Checador",
-          url: "/dashboard/company/attendance",
-          icon: Clock,
-        },
-        {
-          title: "Vacaciones & Permisos",
-          url: "/dashboard/company/leaves",
-          icon: Plane,
-        },
-        {
-          title: "Incidencias Laborales",
-          url: "/dashboard/company/incidents",
-          icon: ShieldAlert,
-        },
-      ],
-    },
-    {
-      label: "Compensaciones",
-      isCollapsible: true,
-      defaultOpen: false,
-      items: [
-        {
-          title: "Nómina & Pagos",
-          url: "/dashboard/company/payroll",
-          icon: CreditCard,
-        },
-      ],
-    },
-    {
-      label: "Mi Empresa",
-      isCollapsible: true,
-      defaultOpen: false,
-      items: [
-        {
-          title: "Perfil Corporativo",
-          url: "/dashboard/company/profile",
-          icon: Building2,
-        },
-        {
-          title: "Sello de Verificación",
-          url: "/dashboard/company/verification",
-          icon: ShieldCheck,
-        },
-      ],
-    },
-  ];
-
-  const secondaryNav = [
-    {
-      title: "Publicar Oferta",
-      url: "/dashboard/company/vacancies/new",
-      icon: PlusCircle,
-    },
-    {
-      title: "Configuración",
-      url: "/dashboard/company/settings",
-      icon: Settings,
-      isModal: true,
-    },
-    {
-      title: "Soporte K'anPro",
-      url: "#",
-      icon: HelpCircle,
-    },
-  ];
+  const { isMobile, setOpenMobile, setOpen } = useSidebar();
+  const [searchQuery, setSearchQuery] = React.useState("");
 
   const isItemActive = React.useCallback(
     (url: string) => {
@@ -194,134 +233,189 @@ export function CompanySidebar({
     [pathname]
   );
 
-  const [openSections, setOpenSections] = React.useState<Record<string, boolean>>(() => {
-    const initial: Record<string, boolean> = {};
-    sections.forEach((section) => {
-      const hasActive = section.items.some((item) => isItemActive(item.url));
-      initial[section.label] = hasActive || section.defaultOpen;
-    });
-    return initial;
-  });
+  const currentSectionId = React.useMemo(() => {
+    for (const section of companySections) {
+      if (section.items.some((item) => isItemActive(item.url))) {
+        return section.id;
+      }
+    }
+    return companySections[0].id;
+  }, [isItemActive]);
+
+  const [activeSectionId, setActiveSectionId] = React.useState<string>(currentSectionId);
 
   React.useEffect(() => {
-    sections.forEach((section) => {
-      if (section.items.some((item) => isItemActive(item.url))) {
-        setOpenSections((prev) =>
-          prev[section.label] ? prev : { ...prev, [section.label]: true }
-        );
-      }
-    });
-  }, [pathname, isItemActive, sections]);
+    setActiveSectionId(currentSectionId);
+  }, [currentSectionId]);
+
+  const activeSection =
+    companySections.find((s) => s.id === activeSectionId) || companySections[0];
+
+  const filteredSubItems = React.useMemo(() => {
+    if (!searchQuery.trim()) return activeSection.items;
+    const query = searchQuery.toLowerCase();
+    return activeSection.items.filter(
+      (item) =>
+        item.title.toLowerCase().includes(query) ||
+        (item.description && item.description.toLowerCase().includes(query))
+    );
+  }, [activeSection, searchQuery]);
 
   return (
-    <Sidebar variant="inset" {...props}>
-      <SidebarHeader className="py-3 px-3 shrink-0 flex flex-row items-center justify-between">
-        <SidebarMenu className="flex-1 min-w-0">
-          <SidebarMenuItem>
-            <SidebarMenuButton
-              size="lg"
-              render={<Link href="/dashboard/company" />}
-              onClick={() => {
-                if (isMobile) setOpenMobile(false);
-              }}
-              className="hover:bg-sidebar-accent"
-            >
-              <div className="flex aspect-square size-8 items-center justify-center rounded-lg bg-primary text-primary-foreground shadow-xs">
-                <Kanban className="size-4" />
+    <Sidebar
+      collapsible="icon"
+      {...props}
+      className={cn(
+        "p-0 overflow-hidden *:data-[sidebar=sidebar]:flex-row",
+        className
+      )}
+    >
+      {/* 1. SIDEBAR PRIMARIA: Barra Compacta de Iconos (Categorías Principales) */}
+      <Sidebar
+        collapsible="none"
+        className="w-14 border-r border-sidebar-border bg-sidebar shrink-0 flex flex-col justify-between select-none"
+      >
+        {/* Header con Isotipo K'anPro */}
+        <SidebarHeader className="h-14 flex items-center justify-center p-0 border-none shrink-0">
+          <SidebarMenu className="w-full items-center">
+            <SidebarMenuItem className="w-full flex items-center justify-center">
+              <SidebarMenuButton
+                size="icon"
+                render={<Link href="/dashboard/company" />}
+                tooltip={{
+                  children: "K'anPro Portal Empresa",
+                  hidden: false,
+                  side: "right",
+                  sideOffset: 12,
+                }}
+                onClick={() => {
+                  setActiveSectionId("analytics");
+                  if (isMobile) setOpenMobile(false);
+                }}
+                className="size-10 p-0 flex items-center justify-center rounded-xl bg-primary text-primary-foreground hover:bg-primary/90 shadow-xs cursor-pointer has-[>svg:first-child]:pl-0 has-[>svg:last-child]:pr-0"
+              >
+                <Kanban className="size-5 shrink-0" />
+                <span className="sr-only">K&apos;anPro Empresa</span>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+          </SidebarMenu>
+        </SidebarHeader>
+
+        {/* Contenido: Iconos de las Categorías Principales */}
+        <SidebarContent className="flex-1 py-3 px-0 overflow-hidden flex flex-col items-center">
+          <SidebarGroup className="p-0 w-full flex flex-col items-center">
+            <SidebarGroupContent className="w-full flex flex-col items-center">
+              <SidebarMenu className="gap-2 items-center w-full">
+                {companySections.map((section) => {
+                  const isActive = activeSection.id === section.id;
+
+                  return (
+                    <SidebarMenuItem key={section.id} className="w-full flex items-center justify-center">
+                      <SidebarMenuButton
+                        size="icon"
+                        render={<Link href={section.items[0].url} />}
+                        tooltip={{
+                          children: section.label,
+                          hidden: false,
+                          side: "right",
+                          sideOffset: 12,
+                        }}
+                        onClick={() => {
+                          setActiveSectionId(section.id);
+                          setOpen(true);
+                          if (isMobile) setOpenMobile(false);
+                        }}
+                        isActive={isActive}
+                        className={cn(
+                          "size-10 p-0 flex items-center justify-center rounded-xl transition-all duration-150 relative cursor-pointer has-[>svg:first-child]:pl-0 has-[>svg:last-child]:pr-0",
+                          isActive
+                            ? "bg-sidebar-accent text-sidebar-accent-foreground font-bold shadow-xs hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
+                            : "text-muted-foreground hover:bg-sidebar-accent/60 hover:text-sidebar-foreground"
+                        )}
+                      >
+                        <section.icon className="size-5 shrink-0" />
+                        <span className="sr-only">{section.label}</span>
+                      </SidebarMenuButton>
+                    </SidebarMenuItem>
+                  );
+                })}
+              </SidebarMenu>
+            </SidebarGroupContent>
+          </SidebarGroup>
+        </SidebarContent>
+
+        {/* Footer: Configuración & Menú Compacto de Usuario */}
+        <SidebarFooter className="p-0 pb-3 space-y-2 flex flex-col items-center w-full border-none shrink-0">
+          <SidebarMenu className="w-full items-center">
+            <SidebarMenuItem className="w-full flex items-center justify-center">
+              <CompanySettingsModal
+                trigger={
+                  <SidebarMenuButton
+                    size="icon"
+                    tooltip={{
+                      children: "Configuración de Empresa",
+                      hidden: false,
+                      side: "right",
+                      sideOffset: 12,
+                    }}
+                    className="size-10 p-0 flex items-center justify-center rounded-xl text-muted-foreground hover:bg-sidebar-accent hover:text-sidebar-foreground cursor-pointer has-[>svg:first-child]:pl-0 has-[>svg:last-child]:pr-0"
+                  >
+                    <Settings className="size-5 shrink-0" />
+                    <span className="sr-only">Configuración</span>
+                  </SidebarMenuButton>
+                }
+              />
+            </SidebarMenuItem>
+          </SidebarMenu>
+
+          <div className="w-full flex items-center justify-center">
+            <NavUser compact={true} />
+          </div>
+        </SidebarFooter>
+      </Sidebar>
+
+      {/* 2. SIDEBAR SECUNDARIA: Panel de Sub-Opciones del Módulo Seleccionado */}
+      <Sidebar
+        collapsible="none"
+        className="w-auto flex-1 min-w-0 bg-sidebar flex flex-col justify-between"
+      >
+        {/* Header Secundario: Título de Categoría y Buscador */}
+        <SidebarHeader className="gap-2.5 px-3.5 py-3 shrink-0 border-b-0">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2 min-w-0">
+              <div className="p-1.5 rounded-lg bg-primary/10 text-primary shrink-0">
+                <activeSection.icon className="size-4" />
               </div>
-              <div className="grid flex-1 text-left text-sm leading-tight">
-                <span className="truncate font-bold tracking-tight text-sidebar-foreground">
-                  K&apos;anPro
-                </span>
-                <span className="truncate text-xs text-muted-foreground font-medium">
-                  Portal Empresa
-                </span>
+              <div className="min-w-0">
+                <h2 className="text-xs font-bold text-foreground truncate tracking-tight">
+                  {activeSection.label}
+                </h2>
+                <p className="text-[10px] text-muted-foreground truncate font-medium">
+                  {activeSection.shortLabel}
+                </p>
               </div>
-            </SidebarMenuButton>
-          </SidebarMenuItem>
-        </SidebarMenu>
+            </div>
+          </div>
 
-        {isMobile && (
-          <Button
-            variant="ghost"
-            size="icon"
-            className="size-8 shrink-0 rounded-lg text-muted-foreground hover:text-foreground hover:bg-sidebar-accent"
-            onClick={() => setOpenMobile(false)}
-            aria-label="Cerrar menú lateral"
-          >
-            <X className="size-4" />
-          </Button>
-        )}
-      </SidebarHeader>
+          <div className="relative w-full">
+            <Search className="size-3.5 absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground/70 pointer-events-none" />
+            <Input
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder={`Buscar en ${activeSection.shortLabel.toLowerCase()}...`}
+              className="h-7.5 pl-8 pr-2.5 text-xs bg-sidebar-accent/40 border-sidebar-border/60 rounded-lg placeholder:text-muted-foreground/60 focus-visible:ring-1 focus-visible:ring-primary"
+            />
+          </div>
+        </SidebarHeader>
 
-      <SidebarContent className="p-0 overflow-hidden flex-1 min-h-0">
-        <ScrollArea className="h-full w-full px-2 py-2">
-          {sections.map((section) => {
-            if (section.isCollapsible) {
-              const isOpen = !!openSections[section.label];
-              return (
-                <Collapsible
-                  key={section.label}
-                  open={isOpen}
-                  onOpenChange={(open) =>
-                    setOpenSections((prev) => ({
-                      ...prev,
-                      [section.label]: open,
-                    }))
-                  }
-                  className="group/collapsible mb-2.5"
-                >
-                  <SidebarGroup className="p-0">
-                    <CollapsibleTrigger className="w-full flex items-center justify-between px-2.5 py-1.5 cursor-pointer select-none rounded-lg hover:bg-sidebar-accent/50 transition-colors">
-                      <SidebarGroupLabel className="text-[11px] font-extrabold uppercase tracking-wider text-muted-foreground/80 pointer-events-none p-0 cursor-pointer">
-                        {section.label}
-                      </SidebarGroupLabel>
-                      <ChevronDown className="size-3.5 text-muted-foreground/60 transition-transform duration-200 group-data-[state=closed]/collapsible:-rotate-90" />
-                    </CollapsibleTrigger>
-                    <CollapsibleContent>
-                      <SidebarGroupContent className="pt-1">
-                        <SidebarMenu className="gap-0.5">
-                          {section.items.map((item) => {
-                            const isActive = isItemActive(item.url);
-
-                            return (
-                              <SidebarMenuItem key={item.title}>
-                                <SidebarMenuButton
-                                  render={<Link href={item.url} />}
-                                  isActive={isActive}
-                                  tooltip={item.title}
-                                  onClick={() => {
-                                    if (isMobile) setOpenMobile(false);
-                                  }}
-                                  className={cn(
-                                    "h-9 rounded-xl px-2.5 gap-2.5 text-xs font-semibold transition-all",
-                                    isActive
-                                      ? "bg-sidebar-accent text-sidebar-accent-foreground font-bold shadow-xs"
-                                      : "text-muted-foreground hover:bg-sidebar-accent/50 hover:text-sidebar-foreground",
-                                  )}
-                                >
-                                  <item.icon className="size-4 shrink-0" />
-                                  <span>{item.title}</span>
-                                </SidebarMenuButton>
-                              </SidebarMenuItem>
-                            );
-                          })}
-                        </SidebarMenu>
-                      </SidebarGroupContent>
-                    </CollapsibleContent>
-                  </SidebarGroup>
-                </Collapsible>
-              );
-            }
-
-            return (
-              <SidebarGroup key={section.label} className="p-0 mb-2.5">
-                <SidebarGroupLabel className="text-[11px] font-extrabold uppercase tracking-wider text-muted-foreground/80 px-2.5">
-                  {section.label}
-                </SidebarGroupLabel>
-                <SidebarGroupContent>
-                  <SidebarMenu className="gap-0.5">
-                    {section.items.map((item) => {
+        {/* Contenido: Lista de Sub-Opciones */}
+        <SidebarContent className="p-0 overflow-hidden flex-1 min-h-0">
+          <ScrollArea className="h-full w-full px-2.5 py-2">
+            <SidebarGroup className="p-0">
+              <SidebarGroupContent>
+                <SidebarMenu className="gap-1">
+                  {filteredSubItems.length > 0 ? (
+                    filteredSubItems.map((item) => {
                       const isActive = isItemActive(item.url);
 
                       return (
@@ -334,85 +428,95 @@ export function CompanySidebar({
                               if (isMobile) setOpenMobile(false);
                             }}
                             className={cn(
-                              "h-9 rounded-xl px-2.5 gap-2.5 text-xs font-semibold transition-all",
+                              "h-auto py-2 px-2.5 rounded-xl gap-2.5 items-start transition-all cursor-pointer",
                               isActive
-                                ? "bg-sidebar-accent text-sidebar-accent-foreground font-bold shadow-xs"
-                                : "text-muted-foreground hover:bg-sidebar-accent/50 hover:text-sidebar-foreground",
+                                ? "bg-sidebar-accent text-sidebar-accent-foreground font-bold shadow-xs ring-1 ring-border/40"
+                                : "text-muted-foreground hover:bg-sidebar-accent/50 hover:text-sidebar-foreground"
                             )}
                           >
-                            <item.icon className="size-4 shrink-0" />
-                            <span>{item.title}</span>
+                            <div
+                              className={cn(
+                                "size-6 rounded-lg flex items-center justify-center shrink-0 mt-0.5 transition-colors",
+                                isActive
+                                  ? "bg-primary text-primary-foreground"
+                                  : "bg-sidebar-accent/80 text-muted-foreground"
+                              )}
+                            >
+                              <item.icon className="size-3.5" />
+                            </div>
+
+                            <div className="flex-1 min-w-0 text-left">
+                              <div className="flex items-center justify-between gap-1">
+                                <span className="text-xs font-semibold truncate text-foreground">
+                                  {item.title}
+                                </span>
+                                {item.badge && (
+                                  <Badge
+                                    variant="outline"
+                                    className="text-[9px] font-extrabold uppercase px-1.5 py-0 rounded border-primary/20 bg-primary/5 text-primary tracking-wide shrink-0"
+                                  >
+                                    {item.badge}
+                                  </Badge>
+                                )}
+                              </div>
+                              {item.description && (
+                                <p className="text-[10px] text-muted-foreground/80 line-clamp-1 font-normal mt-0.5 leading-tight">
+                                  {item.description}
+                                </p>
+                              )}
+                            </div>
+
+                            {isActive && (
+                              <ChevronRight className="size-3.5 text-primary ml-auto self-center shrink-0" />
+                            )}
                           </SidebarMenuButton>
                         </SidebarMenuItem>
                       );
-                    })}
-                  </SidebarMenu>
-                </SidebarGroupContent>
-              </SidebarGroup>
-            );
-          })}
-        </ScrollArea>
-      </SidebarContent>
+                    })
+                  ) : (
+                    <div className="py-6 px-3 text-center text-xs text-muted-foreground">
+                      No se encontraron opciones para &quot;{searchQuery}&quot;
+                    </div>
+                  )}
+                </SidebarMenu>
+              </SidebarGroupContent>
+            </SidebarGroup>
 
-      <SidebarFooter className="border-t border-sidebar-border p-2 pb-[calc(0.5rem+env(safe-area-inset-bottom,0px))] md:pb-2 shrink-0 bg-sidebar space-y-1">
-        <SidebarMenu className="gap-0.5">
-          {secondaryNav.map((item) => {
-            const isActive = isItemActive(item.url);
-            const isPrimaryAction = item.title === "Publicar Oferta";
-
-            if (item.isModal) {
-              return (
-                <SidebarMenuItem key={item.title}>
-                  <CompanySettingsModal
-                    trigger={
-                      <SidebarMenuButton
-                        tooltip={item.title}
-                        className={cn(
-                          "h-9 rounded-xl px-2.5 gap-2.5 text-xs font-semibold transition-all cursor-pointer",
-                          isActive
-                            ? "bg-sidebar-accent text-sidebar-accent-foreground font-bold shadow-xs"
-                            : "text-muted-foreground hover:bg-sidebar-accent/50 hover:text-sidebar-foreground",
-                        )}
-                      >
-                        <item.icon className="size-4 shrink-0" />
-                        <span>{item.title}</span>
-                      </SidebarMenuButton>
-                    }
-                  />
-                </SidebarMenuItem>
-              );
-            }
-
-            return (
-              <SidebarMenuItem key={item.title}>
-                <SidebarMenuButton
-                  render={<Link href={item.url} />}
-                  isActive={isActive}
-                  tooltip={item.title}
+            {/* Acción Primaria Contextual */}
+            {activeSection.action && (
+              <div className="mt-4 pt-3 border-t border-sidebar-border/60">
+                <Button
+                  size="sm"
+                  render={<Link href={activeSection.action.url} />}
                   onClick={() => {
                     if (isMobile) setOpenMobile(false);
                   }}
-                  className={cn(
-                    "h-9 rounded-xl px-2.5 gap-2.5 text-xs font-semibold transition-all",
-                    isPrimaryAction
-                      ? "bg-primary text-primary-foreground hover:bg-primary/90 font-bold shadow-xs mb-1"
-                      : isActive
-                      ? "bg-sidebar-accent text-sidebar-accent-foreground font-bold shadow-xs"
-                      : "text-muted-foreground hover:bg-sidebar-accent/50 hover:text-sidebar-foreground",
-                  )}
+                  className="w-full h-8.5 rounded-xl font-semibold text-xs bg-primary text-primary-foreground hover:bg-primary/90 shadow-xs flex items-center justify-center gap-1.5 cursor-pointer"
                 >
-                  <item.icon className="size-4 shrink-0" />
-                  <span>{item.title}</span>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
-            );
-          })}
-        </SidebarMenu>
+                  <activeSection.action.icon className="size-3.5 stroke-[2.5]" />
+                  <span>{activeSection.action.label}</span>
+                </Button>
+              </div>
+            )}
+          </ScrollArea>
+        </SidebarContent>
 
-        <div className="pt-1 border-t border-sidebar-border">
-          <NavUser />
-        </div>
-      </SidebarFooter>
+        {/* Footer Secundario: Soporte & Enlaces de Asistencia */}
+        <SidebarFooter className="border-t-0 p-2.5 shrink-0 bg-sidebar/80">
+          <SidebarMenu>
+            <SidebarMenuItem>
+              <SidebarMenuButton
+                size="sm"
+                render={<Link href="/dashboard/company/reports" />}
+                className="h-8 rounded-lg px-2 text-xs text-muted-foreground hover:text-foreground hover:bg-sidebar-accent/50 cursor-pointer"
+              >
+                <HelpCircle className="size-3.5 shrink-0 text-muted-foreground" />
+                <span className="truncate">Soporte & Guías K&apos;anPro</span>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+          </SidebarMenu>
+        </SidebarFooter>
+      </Sidebar>
     </Sidebar>
   );
 }

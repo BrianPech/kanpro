@@ -3,6 +3,7 @@
 import * as React from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
+import { cn } from "@/lib/utils";
 import {
   Avatar,
   AvatarFallback,
@@ -45,8 +46,10 @@ export interface NavUserData {
 
 export function NavUser({
   user: initialUser,
+  compact = false,
 }: {
   user?: NavUserData;
+  compact?: boolean;
 }) {
   const { isMobile, setOpenMobile } = useSidebar();
   const router = useRouter();
@@ -147,38 +150,55 @@ export function NavUser({
         : "/dashboard/admin/settings";
 
   return (
-    <SidebarMenu>
-      <SidebarMenuItem>
+    <SidebarMenu className={cn(compact && "w-full items-center")}>
+      <SidebarMenuItem className={cn(compact && "w-full flex items-center justify-center")}>
         <DropdownMenu>
           <DropdownMenuTrigger
             render={
               <SidebarMenuButton
-                size="lg"
-                className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground rounded-xl transition-all"
+                size={compact ? "icon" : "lg"}
+                tooltip={
+                  compact
+                    ? {
+                        children: `${userData.name} (${userData.email})`,
+                        hidden: false,
+                        side: "right",
+                        sideOffset: 12,
+                      }
+                    : undefined
+                }
+                className={cn(
+                  "data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground rounded-xl transition-all cursor-pointer",
+                  compact && "size-10 p-0 flex items-center justify-center has-[>svg:first-child]:pl-0 has-[>svg:last-child]:pr-0"
+                )}
               />
             }
           >
-            <Avatar className="size-8 rounded-lg ring-1 ring-border/50">
+            <Avatar className={cn(compact ? "size-8.5" : "size-8", "rounded-xl ring-1 ring-border/50 shrink-0")}>
               <AvatarImage src={userData.avatar} alt={userData.name} className="object-cover" />
-              <AvatarFallback className="rounded-lg bg-primary/10 text-primary font-bold text-xs">
+              <AvatarFallback className="rounded-xl bg-primary/10 text-primary font-bold text-xs">
                 {initials}
               </AvatarFallback>
             </Avatar>
-            <div className="grid flex-1 text-left text-sm leading-tight min-w-0">
-              <span className="truncate font-bold flex items-center gap-1.5 text-foreground text-xs">
-                {userData.name}
-                {userData.role === "admin" && (
-                  <ShieldCheckIcon className="size-3.5 text-purple-500 shrink-0" />
-                )}
-                {userData.role === "company" && (
-                  <Building2Icon className="size-3.5 text-amber-500 shrink-0" />
-                )}
-              </span>
-              <span className="truncate text-[11px] text-muted-foreground">
-                {userData.email}
-              </span>
-            </div>
-            <ChevronsUpDownIcon className="ml-auto size-4 text-muted-foreground/70" />
+            {!compact && (
+              <>
+                <div className="grid flex-1 text-left text-sm leading-tight min-w-0">
+                  <span className="truncate font-bold flex items-center gap-1.5 text-foreground text-xs">
+                    {userData.name}
+                    {userData.role === "admin" && (
+                      <ShieldCheckIcon className="size-3.5 text-purple-500 shrink-0" />
+                    )}
+                    {userData.role === "company" && (
+                      <Building2Icon className="size-3.5 text-amber-500 shrink-0" />
+                    )}
+                  </span>
+                  <span className="truncate text-[11px] text-muted-foreground">
+                    {userData.email}
+                  </span>
+                </div>
+                <ChevronsUpDownIcon className="ml-auto size-4 text-muted-foreground/70 shrink-0" />
+              </>
+            )}
           </DropdownMenuTrigger>
           <DropdownMenuContent
             className="w-72 rounded-2xl p-2 shadow-2xl border border-border/50 bg-popover/95 backdrop-blur-md"

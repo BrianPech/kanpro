@@ -17,7 +17,7 @@ export default async function CompanyDashboardLayout({
     <SidebarProvider
       style={
         {
-          "--sidebar-width": "16rem",
+          "--sidebar-width": "21rem",
           "--header-height": "4rem",
         } as React.CSSProperties
       }

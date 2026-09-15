@@ -14,23 +14,30 @@ import {
   Users,
   Search,
   MapPin,
-  Briefcase,
   Calendar,
   MessageSquare,
   UserCheck,
   MoreHorizontal,
   UserX,
+  UserPlus,
   FileText,
   RotateCcw,
   AlertTriangle,
   Loader2,
   Download,
   X,
-  Sparkles,
   ArrowUpDown,
   ArrowUp,
   ArrowDown,
   Eye,
+  Phone,
+  Clock,
+  Send,
+  Copy,
+  Check,
+  Share2,
+  Trash2,
+  MailCheck,
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -84,8 +91,28 @@ import {
   updateEmployeeStartDate,
   terminateEmployee,
   reactivateEmployee,
+  getCompanyInvitationsAction,
+  resendEmployeeInvitationAction,
+  cancelEmployeeInvitationAction,
 } from "@/modules/company/actions/employees";
 import { EmployeeDossierSheet } from "@/modules/company/components/dossier/employee-dossier-sheet";
+import { RegisterEmployeeModal } from "@/modules/company/components/employees/register-employee-modal";
+
+export interface EmployeeInvitationItem {
+  id: string;
+  company_id: string;
+  employee_id: string | null;
+  email: string;
+  full_name: string;
+  position: string;
+  salary: number | null;
+  hire_date: string | null;
+  contract_type: string | null;
+  status: string;
+  expires_at: string;
+  accepted_at: string | null;
+  created_at: string;
+}
 
 interface Employee {
   id: string;
@@ -104,16 +131,18 @@ interface Employee {
 interface CompanyEmployeesViewProps {
   userId: string;
   initialEmployees: Employee[];
+  initialInvitations?: EmployeeInvitationItem[];
 }
 
 export function CompanyEmployeesView({
-  userId: _userId,
   initialEmployees,
+  initialInvitations = [],
 }: CompanyEmployeesViewProps) {
   const [employees, setEmployees] = React.useState<Employee[]>(initialEmployees);
+  const [invitations, setInvitations] = React.useState<EmployeeInvitationItem[]>(initialInvitations);
   const [searchQuery, setSearchQuery] = React.useState("");
   const [categoryFilter, setCategoryFilter] = React.useState<string>("all");
-  const [statusFilter, setStatusFilter] = React.useState<"all" | "Contratado" | "Baja">("all");
+  const [statusFilter, setStatusFilter] = React.useState<"all" | "Contratado" | "Baja" | "invitaciones">("all");
   const [sorting, setSorting] = React.useState<SortingState>([
     { id: "hired_date", desc: true },
   ]);
@@ -121,6 +150,119 @@ export function CompanyEmployeesView({
   // Dossier Sheet state
   const [dossierEmployee, setDossierEmployee] = React.useState<Employee | null>(null);
   const [isDossierOpen, setIsDossierOpen] = React.useState(false);
+
+  // New direct employee modal state
+  const [isNewEmployeeModalOpen, setIsNewEmployeeModalOpen] = React.useState(false);
+
+  // Resend invitation link modal state
+  const [isResendDialogOpen, setIsResendDialogOpen] = React.useState(false);
+  const [resendResult, setResendResult] = React.useState<{ name: string; rawToken: string } | null>(null);
+  const [isCopiedResend, setIsCopiedResend] = React.useState(false);
+  const [actionLoadingId, setActionLoadingId] = React.useState<string | null>(null);
+
+  React.useEffect(() => {
+    if (typeof window !== "undefined") {
+      const params = new URLSearchParams(window.location.search);
+      if (params.get("action") === "new") {
+        setIsNewEmployeeModalOpen(true);
+      }
+    }
+  }, []);
+
+  const reloadInvitations = React.useCallback(async () => {
+    try {
+      const data = await getCompanyInvitationsAction();
+      setInvitations(data);
+    } catch (err) {
+      console.error("Error refreshing invitations:", err);
+    }
+  }, []);
+
+  const handleEmployeeCreated = async (newEmp: {
+    id: string;
+    employee_id?: string | null;
+    full_name: string;
+    phone?: string | null;
+    avatar_url?: string | null;
+    department?: string | null;
+    job_title?: string | null;
+    hire_date?: string | null;
+    notes?: string | null;
+  }) => {
+    if (newEmp && newEmp.id) {
+      const formatted: Employee = {
+        id: newEmp.id,
+        candidate_id: newEmp.employee_id || newEmp.id,
+        full_name: newEmp.full_name,
+        phone: newEmp.phone || "",
+        avatar_url: newEmp.avatar_url || null,
+        location: newEmp.department || "Operaciones",
+        vacancy_title: newEmp.job_title || "Puesto General",
+        vacancy_category: newEmp.department || "General",
+        hired_date: newEmp.hire_date || new Date().toISOString(),
+        notes: newEmp.notes || "",
+        status: "Contratado",
+      };
+      setEmployees((prev) => [formatted, ...prev.filter((e) => e.id !== newEmp.id)]);
+    }
+    await reloadInvitations();
+  };
+
+  const handleResendInvitation = async (inv: EmployeeInvitationItem) => {
+    setActionLoadingId(inv.id);
+    try {
+      const res = await resendEmployeeInvitationAction(inv.id);
+      if (res.success && res.rawToken) {
+        setResendResult({
+          name: inv.full_name,
+          rawToken: res.rawToken,
+        });
+        setIsResendDialogOpen(true);
+        toast.success("Invitación reenviada exitosamente", {
+          description: `Se renovó la vigencia a 7 días para ${inv.full_name}.`,
+        });
+        await reloadInvitations();
+      }
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : "Intenta nuevamente.";
+      toast.error("Error al reenviar invitación", {
+        description: message,
+      });
+    } finally {
+      setActionLoadingId(null);
+    }
+  };
+
+  const handleCancelInvitation = async (inv: EmployeeInvitationItem) => {
+    if (!confirm(`¿Estás seguro de cancelar la invitación para ${inv.full_name}?`)) {
+      return;
+    }
+    setActionLoadingId(inv.id);
+    try {
+      await cancelEmployeeInvitationAction(inv.id);
+      toast.success("Invitación cancelada", {
+        description: `La invitación para ${inv.full_name} ha sido dada de baja.`,
+      });
+      await reloadInvitations();
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : "Intenta nuevamente.";
+      toast.error("Error al cancelar invitación", {
+        description: message,
+      });
+    } finally {
+      setActionLoadingId(null);
+    }
+  };
+
+  const handleCopyResendLink = () => {
+    if (!resendResult) return;
+    const origin = typeof window !== "undefined" ? window.location.origin : "";
+    const inviteUrl = `${origin}/invite/${resendResult.rawToken}`;
+    navigator.clipboard.writeText(inviteUrl);
+    setIsCopiedResend(true);
+    toast.success("Enlace copiado al portapapeles");
+    setTimeout(() => setIsCopiedResend(false), 2500);
+  };
 
   const handleOpenDossier = (emp: Employee) => {
     setDossierEmployee(emp);
@@ -151,6 +293,9 @@ export function CompanyEmployeesView({
     const total = employees.length;
     const active = employees.filter((e) => e.status === "Contratado").length;
     const terminated = employees.filter((e) => e.status === "Baja").length;
+    const pendingInvitations = invitations.filter(
+      (i) => i.status === "pending" || i.status === "sent"
+    ).length;
     const categoriesSet = new Set(
       employees.map((e) => e.vacancy_category || "General")
     );
@@ -158,9 +303,10 @@ export function CompanyEmployeesView({
       total,
       active,
       terminated,
+      pendingInvitations,
       categoriesCount: categoriesSet.size,
     };
-  }, [employees]);
+  }, [employees, invitations]);
 
   const categories = React.useMemo(() => {
     const set = new Set<string>();
@@ -179,6 +325,18 @@ export function CompanyEmployeesView({
       return matchesCategory && matchesStatus;
     });
   }, [employees, categoryFilter, statusFilter]);
+
+  const filteredInvitations = React.useMemo(() => {
+    return invitations.filter((inv) => {
+      const q = searchQuery.toLowerCase().trim();
+      if (!q) return true;
+      return (
+        inv.full_name?.toLowerCase().includes(q) ||
+        inv.email?.toLowerCase().includes(q) ||
+        inv.position?.toLowerCase().includes(q)
+      );
+    });
+  }, [invitations, searchQuery]);
 
   const isFiltered =
     searchQuery.trim().length > 0 ||
@@ -744,11 +902,11 @@ export function CompanyEmployeesView({
 
           <Button
             size="sm"
-            render={<Link href="/dashboard/company/applications" />}
+            onClick={() => setIsNewEmployeeModalOpen(true)}
             className="h-9 font-bold text-xs rounded-xl px-4 flex items-center gap-2 bg-primary text-primary-foreground hover:bg-primary/90 shadow-xs cursor-pointer"
           >
-            <Users className="size-4" />
-            <span>Ver Postulantes</span>
+            <UserPlus className="size-4" />
+            <span>+ Registrar Colaborador</span>
           </Button>
         </div>
       </div>
@@ -795,6 +953,25 @@ export function CompanyEmployeesView({
 
         <Card className="bg-card border border-border/40 rounded-2xl p-4 flex flex-col justify-between">
           <div className="flex items-center justify-between">
+            <span className="text-[11px] font-bold text-amber-600 dark:text-amber-400 uppercase tracking-wider">
+              Invitaciones
+            </span>
+            <div className="size-8 rounded-lg bg-amber-500/10 text-amber-600 dark:text-amber-400 flex items-center justify-center">
+              <Clock className="size-4" />
+            </div>
+          </div>
+          <div className="mt-2">
+            <h3 className="text-2xl font-extrabold text-foreground font-mono">
+              {metrics.pendingInvitations}
+            </h3>
+            <p className="text-[10px] font-semibold text-muted-foreground mt-0.5">
+              Pendientes de registro
+            </p>
+          </div>
+        </Card>
+
+        <Card className="bg-card border border-border/40 rounded-2xl p-4 flex flex-col justify-between">
+          <div className="flex items-center justify-between">
             <span className="text-[11px] font-bold text-rose-600 dark:text-rose-400 uppercase tracking-wider">
               Bajas
             </span>
@@ -808,25 +985,6 @@ export function CompanyEmployeesView({
             </h3>
             <p className="text-[10px] font-semibold text-muted-foreground mt-0.5">
               Historial de bajas
-            </p>
-          </div>
-        </Card>
-
-        <Card className="bg-card border border-border/40 rounded-2xl p-4 flex flex-col justify-between">
-          <div className="flex items-center justify-between">
-            <span className="text-[11px] font-bold text-indigo-600 dark:text-indigo-400 uppercase tracking-wider">
-              Áreas
-            </span>
-            <div className="size-8 rounded-lg bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 flex items-center justify-center">
-              <Briefcase className="size-4" />
-            </div>
-          </div>
-          <div className="mt-2">
-            <h3 className="text-2xl font-extrabold text-foreground font-mono">
-              {metrics.categoriesCount}
-            </h3>
-            <p className="text-[10px] font-semibold text-muted-foreground mt-0.5">
-              Departamentos activos
             </p>
           </div>
         </Card>
@@ -899,6 +1057,22 @@ export function CompanyEmployeesView({
               </button>
               <button
                 type="button"
+                onClick={() => setStatusFilter("invitaciones")}
+                className={cn(
+                  "px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5",
+                  statusFilter === "invitaciones"
+                    ? "bg-background text-amber-600 dark:text-amber-400 shadow-2xs"
+                    : "text-muted-foreground hover:text-foreground"
+                )}
+              >
+                <Clock className="size-3 text-amber-500" />
+                <span>Invitaciones ({metrics.pendingInvitations})</span>
+                {metrics.pendingInvitations > 0 && (
+                  <span className="size-1.5 rounded-full bg-amber-500 inline-block animate-pulse" />
+                )}
+              </button>
+              <button
+                type="button"
                 onClick={() => setStatusFilter("Baja")}
                 className={cn(
                   "px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5",
@@ -963,7 +1137,193 @@ export function CompanyEmployeesView({
 
         {/* 3. DataTable Body & Empty State */}
         <div className="relative min-h-[300px]">
-          {tableRows.length === 0 ? (
+          {statusFilter === "invitaciones" ? (
+            filteredInvitations.length === 0 ? (
+              <Empty className="py-16">
+                <EmptyHeader>
+                  <EmptyMedia variant="icon" className="bg-amber-500/10 text-amber-600 dark:text-amber-400">
+                    <Clock className="size-5" />
+                  </EmptyMedia>
+                  <EmptyTitle>No hay invitaciones registradas</EmptyTitle>
+                  <EmptyDescription>
+                    {searchQuery
+                      ? "Ninguna invitación coincide con tu búsqueda."
+                      : "Aún no has enviado invitaciones para nuevos colaboradores."}
+                  </EmptyDescription>
+                </EmptyHeader>
+                <EmptyContent>
+                  <Button
+                    size="sm"
+                    onClick={() => setIsNewEmployeeModalOpen(true)}
+                    className="rounded-xl font-bold text-xs h-9 px-4 cursor-pointer gap-1.5 bg-primary text-primary-foreground"
+                  >
+                    <UserPlus className="size-4" />
+                    <span>+ Invitar Colaborador</span>
+                  </Button>
+                </EmptyContent>
+              </Empty>
+            ) : (
+              <div className="overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow className="bg-muted/40 hover:bg-muted/40 border-b border-border/40">
+                      <TableHead className="py-3 px-4 text-[11px] font-bold text-muted-foreground uppercase">
+                        Colaborador Invitado
+                      </TableHead>
+                      <TableHead className="py-3 px-4 text-[11px] font-bold text-muted-foreground uppercase">
+                        Puesto / Cargo
+                      </TableHead>
+                      <TableHead className="py-3 px-4 text-[11px] font-bold text-muted-foreground uppercase">
+                        Condiciones
+                      </TableHead>
+                      <TableHead className="py-3 px-4 text-[11px] font-bold text-muted-foreground uppercase">
+                        Vigencia
+                      </TableHead>
+                      <TableHead className="py-3 px-4 text-[11px] font-bold text-muted-foreground uppercase">
+                        Estatus
+                      </TableHead>
+                      <TableHead className="py-3 px-4 text-[11px] font-bold text-muted-foreground uppercase text-right">
+                        Acciones
+                      </TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody className="divide-y divide-border/30">
+                    {filteredInvitations.map((inv) => {
+                      const isExpired =
+                        inv.status === "expired" ||
+                        (new Date(inv.expires_at) < new Date() &&
+                          inv.status !== "accepted" &&
+                          inv.status !== "cancelled");
+
+                      return (
+                        <TableRow
+                          key={inv.id}
+                          className="hover:bg-muted/20 transition-colors"
+                        >
+                          <TableCell className="py-3.5 px-4">
+                            <div className="flex items-center gap-3">
+                              <div className="size-9 rounded-xl bg-primary/10 text-primary flex items-center justify-center font-bold text-xs shrink-0">
+                                {inv.full_name ? inv.full_name.charAt(0).toUpperCase() : "?"}
+                              </div>
+                              <div className="min-w-0">
+                                <div className="font-bold text-xs sm:text-sm text-foreground truncate">
+                                  {inv.full_name}
+                                </div>
+                                <div className="text-[11px] text-muted-foreground font-mono truncate">
+                                  {inv.email}
+                                </div>
+                              </div>
+                            </div>
+                          </TableCell>
+
+                          <TableCell className="py-3.5 px-4">
+                            <div className="font-semibold text-xs text-foreground">
+                              {inv.position}
+                            </div>
+                            <div className="text-[10px] text-muted-foreground">
+                              {inv.hire_date ? `Ingreso: ${inv.hire_date}` : "Fecha pendiente"}
+                            </div>
+                          </TableCell>
+
+                          <TableCell className="py-3.5 px-4">
+                            <div className="text-xs font-medium text-foreground">
+                              {inv.contract_type?.replace(/_/g, " ") || "Tiempo indeterminado"}
+                            </div>
+                            <div className="text-[10px] text-muted-foreground font-mono">
+                              {inv.salary
+                                ? `$${inv.salary.toLocaleString("es-MX")} MXN`
+                                : "Salario no fijado"}
+                            </div>
+                          </TableCell>
+
+                          <TableCell className="py-3.5 px-4">
+                            <div className="text-xs text-muted-foreground font-mono">
+                              Expira: {new Date(inv.expires_at).toLocaleDateString("es-MX")}
+                            </div>
+                            <div className="text-[10px] text-muted-foreground">
+                              Enviada: {new Date(inv.created_at).toLocaleDateString("es-MX")}
+                            </div>
+                          </TableCell>
+
+                          <TableCell className="py-3.5 px-4">
+                            {inv.status === "accepted" ? (
+                              <Badge className="bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/20 text-[10px] font-bold">
+                                Aceptada
+                              </Badge>
+                            ) : inv.status === "cancelled" ? (
+                              <Badge
+                                variant="outline"
+                                className="text-rose-500 border-rose-500/30 bg-rose-500/10 text-[10px] font-bold"
+                              >
+                                Cancelada
+                              </Badge>
+                            ) : isExpired ? (
+                              <Badge
+                                variant="outline"
+                                className="text-muted-foreground border-border text-[10px] font-bold"
+                              >
+                                Expirada
+                              </Badge>
+                            ) : (
+                              <Badge className="bg-amber-500/15 text-amber-600 dark:text-amber-400 hover:bg-amber-500/20 text-[10px] font-bold flex items-center gap-1 w-fit">
+                                <span className="size-1.5 rounded-full bg-amber-500 animate-pulse" />
+                                <span>{inv.status === "sent" ? "Enviada" : "Pendiente"}</span>
+                              </Badge>
+                            )}
+                          </TableCell>
+
+                          <TableCell className="py-3.5 px-4 text-right">
+                            <div className="flex items-center justify-end gap-1.5">
+                              {inv.status !== "accepted" && inv.status !== "cancelled" && (
+                                <>
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    disabled={actionLoadingId === inv.id}
+                                    onClick={() => handleResendInvitation(inv)}
+                                    className="h-8 px-2.5 rounded-xl text-xs font-semibold flex items-center gap-1 cursor-pointer border-border/50 hover:bg-primary/10 hover:text-primary"
+                                    title="Renovar y obtener nuevo enlace de invitación"
+                                  >
+                                    {actionLoadingId === inv.id ? (
+                                      <Loader2 className="size-3.5 animate-spin" />
+                                    ) : (
+                                      <Send className="size-3.5 text-primary" />
+                                    )}
+                                    <span className="hidden sm:inline">Reenviar</span>
+                                  </Button>
+
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    disabled={actionLoadingId === inv.id}
+                                    onClick={() => handleCancelInvitation(inv)}
+                                    className="h-8 w-8 p-0 rounded-xl text-muted-foreground hover:text-rose-600 hover:bg-rose-500/10 cursor-pointer"
+                                    title="Cancelar invitación"
+                                  >
+                                    <Trash2 className="size-3.5" />
+                                  </Button>
+                                </>
+                              )}
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })}
+                  </TableBody>
+                </Table>
+
+                <div className="p-3.5 border-t border-border/40 bg-muted/20 flex items-center justify-between text-xs text-muted-foreground">
+                  <span>
+                    Mostrando <strong>{filteredInvitations.length}</strong> de{" "}
+                    <strong>{invitations.length}</strong> invitaciones
+                  </span>
+                  <span className="text-[11px] text-muted-foreground/80">
+                    Sincronizado con Supabase
+                  </span>
+                </div>
+              </div>
+            )
+          ) : tableRows.length === 0 ? (
             <Empty className="py-16">
               <EmptyHeader>
                 <EmptyMedia variant="icon" className="bg-primary/10 text-primary">
@@ -1004,48 +1364,249 @@ export function CompanyEmployeesView({
               </EmptyContent>
             </Empty>
           ) : (
-            <div className="overflow-x-auto">
-              <Table className="w-full">
-                <TableHeader className="bg-muted/30 border-b border-border/40">
-                  {table.getHeaderGroups().map((headerGroup) => (
-                    <TableRow key={headerGroup.id} className="hover:bg-transparent">
-                      {headerGroup.headers.map((header) => (
-                        <TableHead
-                          key={header.id}
-                          className="py-3 px-4 sm:px-6"
-                        >
-                          {header.isPlaceholder
-                            ? null
-                            : flexRender(
-                                header.column.columnDef.header,
-                                header.getContext()
-                              )}
-                        </TableHead>
-                      ))}
-                    </TableRow>
-                  ))}
-                </TableHeader>
-                <TableBody className="divide-y divide-border/30">
-                  {tableRows.map((row) => (
-                    <TableRow
-                      key={row.id}
+            <>
+              {/* Mobile Thumb-Friendly Cards View (< md) */}
+              <div className="md:hidden divide-y divide-border/30">
+                {tableRows.map((row) => {
+                  const emp = row.original;
+                  const isTerminated = emp.status === "Baja";
+
+                  return (
+                    <div
+                      key={emp.id}
                       className={cn(
-                        "hover:bg-muted/25 transition-colors group",
-                        row.original.status === "Baja" && "opacity-70 bg-muted/5"
+                        "p-4 flex flex-col gap-3 transition-colors",
+                        isTerminated ? "bg-muted/10 opacity-75" : "hover:bg-muted/20"
                       )}
                     >
-                      {row.getVisibleCells().map((cell) => (
-                        <TableCell key={cell.id} className="py-3 px-4 sm:px-6">
-                          {flexRender(
-                            cell.column.columnDef.cell,
-                            cell.getContext()
+                      <div className="flex items-start justify-between gap-3">
+                        <div
+                          onClick={() => handleOpenDossier(emp)}
+                          className="flex items-center gap-3 min-w-0 flex-1 cursor-pointer"
+                        >
+                          <Avatar className="size-11 rounded-xl border border-border/40 shrink-0">
+                            <AvatarImage
+                              src={emp.avatar_url || undefined}
+                              alt={emp.full_name}
+                              className="object-cover"
+                            />
+                            <AvatarFallback className="rounded-xl font-extrabold text-xs bg-primary/10 text-primary">
+                              {getInitials(emp.full_name)}
+                            </AvatarFallback>
+                          </Avatar>
+                          <div className="min-w-0">
+                            <h4 className="text-sm font-bold text-foreground truncate hover:text-primary transition-colors">
+                              {emp.full_name}
+                            </h4>
+                            <p className="text-xs text-muted-foreground truncate font-medium">
+                              {emp.vacancy_title}
+                            </p>
+                            <div className="flex items-center gap-1.5 mt-0.5">
+                              <span className="text-[10px] font-semibold px-1.5 py-0.2 rounded-md bg-muted text-muted-foreground border border-border/40 truncate max-w-[130px]">
+                                {emp.vacancy_category || "General"}
+                              </span>
+                              {emp.location && (
+                                <span className="text-[10px] text-muted-foreground/70 truncate">
+                                  • {emp.location}
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Status badge & dropdown trigger */}
+                        <div className="flex items-center gap-1.5 shrink-0">
+                          {isTerminated ? (
+                            <Badge
+                              variant="destructive"
+                              className="bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/20 text-[10px] font-bold px-2 py-0.5 rounded-md select-none"
+                            >
+                              Baja
+                            </Badge>
+                          ) : (
+                            <Badge
+                              variant="outline"
+                              className="bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20 text-[10px] font-bold px-2 py-0.5 rounded-md select-none"
+                            >
+                              Activo
+                            </Badge>
                           )}
-                        </TableCell>
-                      ))}
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
+
+                          <DropdownMenu>
+                            <DropdownMenuTrigger
+                              render={
+                                <button
+                                  className="size-9 rounded-xl text-muted-foreground hover:text-foreground hover:bg-muted p-1 cursor-pointer transition-colors flex items-center justify-center active:scale-90"
+                                  aria-label="Opciones del colaborador"
+                                />
+                              }
+                            >
+                              <MoreHorizontal className="size-4" />
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent
+                              align="end"
+                              className="rounded-2xl border border-border/50 bg-popover min-w-[200px] shadow-xl p-1.5"
+                            >
+                              <DropdownMenuItem
+                                onSelect={() => handleOpenDossier(emp)}
+                                className="cursor-pointer text-xs font-semibold py-2.5 px-3 gap-2.5 text-foreground hover:bg-muted rounded-xl"
+                              >
+                                <Eye className="size-4 text-muted-foreground" />
+                                <span>Ver Expediente 360</span>
+                              </DropdownMenuItem>
+
+                              {emp.phone && (
+                                <DropdownMenuItem
+                                  render={
+                                    <a
+                                      href={getWhatsAppLink(emp)}
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                      className="cursor-pointer text-xs font-semibold py-2.5 px-3 gap-2.5 text-emerald-600 dark:text-emerald-400 rounded-xl"
+                                    />
+                                  }
+                                >
+                                  <MessageSquare className="size-4" />
+                                  <span>Mensaje WhatsApp</span>
+                                </DropdownMenuItem>
+                              )}
+
+                              <DropdownMenuItem
+                                onSelect={() => handleOpenDateDialog(emp)}
+                                className="cursor-pointer text-xs font-semibold rounded-xl hover:bg-muted py-2.5 px-3 gap-2.5"
+                              >
+                                <Calendar className="size-4 text-muted-foreground" />
+                                <span>Cambiar fecha inicio</span>
+                              </DropdownMenuItem>
+
+                              <DropdownMenuItem
+                                onSelect={() => handleOpenNotesDialog(emp)}
+                                className="cursor-pointer text-xs font-semibold rounded-xl hover:bg-muted py-2.5 px-3 gap-2.5"
+                              >
+                                <FileText className="size-4 text-muted-foreground" />
+                                <span>Notas del colaborador</span>
+                              </DropdownMenuItem>
+
+                              <DropdownMenuSeparator className="my-1 border-border/40" />
+
+                              {isTerminated ? (
+                                <DropdownMenuItem
+                                  onSelect={() => handleReactivate(emp)}
+                                  className="cursor-pointer text-xs font-semibold text-emerald-600 dark:text-emerald-400 rounded-xl hover:bg-emerald-500/10 focus:bg-emerald-500/10 py-2.5 px-3 gap-2.5"
+                                >
+                                  <RotateCcw className="size-4" />
+                                  <span>Reactivar Colaborador</span>
+                                </DropdownMenuItem>
+                              ) : (
+                                <DropdownMenuItem
+                                  onSelect={() => handleOpenTerminateDialog(emp)}
+                                  className="cursor-pointer text-xs font-semibold text-rose-600 dark:text-rose-400 rounded-xl hover:bg-rose-500/10 focus:bg-rose-500/10 py-2.5 px-3 gap-2.5"
+                                >
+                                  <UserX className="size-4" />
+                                  <span>Registrar Baja</span>
+                                </DropdownMenuItem>
+                              )}
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        </div>
+                      </div>
+
+                      {/* Quick action footer for the mobile card */}
+                      <div className="flex items-center justify-between pt-1.5 border-t border-border/20 text-xs">
+                        <div className="flex items-center gap-3 text-muted-foreground">
+                          {emp.phone ? (
+                            <a
+                              href={`tel:${emp.phone}`}
+                              className="inline-flex items-center gap-1.5 text-[11px] font-semibold text-muted-foreground hover:text-foreground active:scale-95"
+                            >
+                              <Phone className="size-3 text-primary" />
+                              <span className="font-mono">{emp.phone}</span>
+                            </a>
+                          ) : (
+                            <span className="text-[11px] text-muted-foreground/60 italic">
+                              Sin teléfono
+                            </span>
+                          )}
+                        </div>
+
+                        <div className="flex items-center gap-2">
+                          {emp.phone && (
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              render={
+                                <a
+                                  href={getWhatsAppLink(emp)}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                />
+                              }
+                              className="h-8 px-3 rounded-lg text-xs font-semibold border-emerald-500/30 text-emerald-600 dark:text-emerald-400 bg-emerald-500/5 hover:bg-emerald-500/10 gap-1.5 cursor-pointer"
+                            >
+                              <MessageSquare className="size-3.5" />
+                              <span>WhatsApp</span>
+                            </Button>
+                          )}
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleOpenDossier(emp)}
+                            className="h-8 px-3 rounded-lg text-xs font-bold text-primary hover:bg-primary/10 gap-1.5 cursor-pointer"
+                          >
+                            <Eye className="size-3.5" />
+                            <span>Expediente</span>
+                          </Button>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+
+              {/* Desktop Full TanStack Table View (>= md) */}
+              <div className="hidden md:block overflow-x-auto">
+                <Table className="w-full">
+                  <TableHeader className="bg-muted/30 border-b border-border/40">
+                    {table.getHeaderGroups().map((headerGroup) => (
+                      <TableRow key={headerGroup.id} className="hover:bg-transparent">
+                        {headerGroup.headers.map((header) => (
+                          <TableHead
+                            key={header.id}
+                            className="py-3 px-4 sm:px-6"
+                          >
+                            {header.isPlaceholder
+                              ? null
+                              : flexRender(
+                                  header.column.columnDef.header,
+                                  header.getContext()
+                                )}
+                          </TableHead>
+                        ))}
+                      </TableRow>
+                    ))}
+                  </TableHeader>
+                  <TableBody className="divide-y divide-border/30">
+                    {tableRows.map((row) => (
+                      <TableRow
+                        key={row.id}
+                        className={cn(
+                          "hover:bg-muted/25 transition-colors group",
+                          row.original.status === "Baja" && "opacity-70 bg-muted/5"
+                        )}
+                      >
+                        {row.getVisibleCells().map((cell) => (
+                          <TableCell key={cell.id} className="py-3 px-4 sm:px-6">
+                            {flexRender(
+                              cell.column.columnDef.cell,
+                              cell.getContext()
+                            )}
+                          </TableCell>
+                        ))}
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
 
               {/* Table Footer Summary */}
               <div className="p-3.5 px-4 sm:px-6 border-t border-border/30 bg-muted/10 flex items-center justify-between text-xs text-muted-foreground font-medium">
@@ -1057,7 +1618,7 @@ export function CompanyEmployeesView({
                   Actualizado en tiempo real
                 </span>
               </div>
-            </div>
+            </>
           )}
         </div>
       </Card>
@@ -1308,6 +1869,99 @@ export function CompanyEmployeesView({
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Dialog: Reenviar Invitación */}
+      <Dialog open={isResendDialogOpen} onOpenChange={setIsResendDialogOpen}>
+        <DialogContent className="rounded-2xl border-border/60 bg-card max-w-md">
+          <DialogHeader>
+            <div className="size-10 rounded-xl bg-primary/10 text-primary flex items-center justify-center mb-1">
+              <MailCheck className="size-5" />
+            </div>
+            <DialogTitle className="text-base font-bold text-foreground">
+              Invitación Renovada
+            </DialogTitle>
+            <DialogDescription className="text-xs text-muted-foreground">
+              Se ha generado un nuevo enlace con vigencia de 7 días para{" "}
+              <strong>{resendResult?.name}</strong>. Comparte este enlace con tu colaborador para que complete su registro.
+            </DialogDescription>
+          </DialogHeader>
+
+          {resendResult && (
+            <div className="space-y-4 py-2">
+              <div className="space-y-1.5">
+                <label className="text-xs font-semibold text-muted-foreground">
+                  Enlace de Registro Seguro
+                </label>
+                <div className="flex items-center gap-2">
+                  <Input
+                    readOnly
+                    value={
+                      typeof window !== "undefined"
+                        ? `${window.location.origin}/invite/${resendResult.rawToken}`
+                        : `/invite/${resendResult.rawToken}`
+                    }
+                    className="font-mono text-xs h-9 bg-muted/40 selection:bg-primary/20"
+                  />
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={handleCopyResendLink}
+                    className="h-9 px-3 gap-1.5 shrink-0 font-semibold text-xs cursor-pointer"
+                  >
+                    {isCopiedResend ? (
+                      <>
+                        <Check className="size-3.5 text-emerald-500" />
+                        <span>Copiado</span>
+                      </>
+                    ) : (
+                      <>
+                        <Copy className="size-3.5" />
+                        <span>Copiar</span>
+                      </>
+                    )}
+                  </Button>
+                </div>
+              </div>
+
+              <div className="flex flex-col sm:flex-row gap-2 pt-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="flex-1 h-9 text-xs font-semibold gap-1.5 cursor-pointer"
+                  onClick={() => {
+                    const origin = typeof window !== "undefined" ? window.location.origin : "";
+                    const inviteUrl = `${origin}/invite/${resendResult.rawToken}`;
+                    const whatsappMsg = encodeURIComponent(
+                      `¡Hola ${resendResult.name}! Te invitamos a completar tu registro en el equipo en K'anPro ingresando a este enlace: ${inviteUrl}`
+                    );
+                    window.open(`https://wa.me/?text=${whatsappMsg}`, "_blank");
+                  }}
+                >
+                  <Share2 className="size-3.5 text-emerald-600" />
+                  Compartir por WhatsApp
+                </Button>
+
+                <Button
+                  type="button"
+                  variant="default"
+                  className="h-9 px-4 text-xs font-semibold cursor-pointer"
+                  onClick={() => setIsResendDialogOpen(false)}
+                >
+                  Listo
+                </Button>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Modal de Registro Directo de Colaborador */}
+      <RegisterEmployeeModal
+        isOpen={isNewEmployeeModalOpen}
+        onOpenChange={setIsNewEmployeeModalOpen}
+        onEmployeeCreated={handleEmployeeCreated}
+      />
     </div>
   );
 }

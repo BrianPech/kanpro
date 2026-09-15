@@ -147,11 +147,16 @@ export async function getCompanyDashboardData(): Promise<CompanyDashboardData> {
         .select(`
           id,
           employee_id,
+          full_name,
+          phone,
+          avatar_url,
           job_title,
           department,
           employee_code,
+          base_salary_monthly,
           status,
           hire_date,
+          created_at,
           candidate:candidate_profiles (
             id,
             headline,
@@ -367,13 +372,13 @@ export async function getCompanyDashboardData(): Promise<CompanyDashboardData> {
             : candidateData.profiles
           : {};
 
-        const employeeName = profileData?.full_name || `Colaborador #${emp.employee_code || index + 1}`;
-        const avatarUrl = profileData?.avatar_url || null;
+        const employeeName = emp.full_name || profileData?.full_name || `Colaborador #${emp.employee_code || index + 1}`;
+        const avatarUrl = emp.avatar_url || profileData?.avatar_url || null;
         const dept = emp.department || "Operaciones";
         const jobTitle = emp.job_title || "Colaborador";
 
         // Department payroll tally
-        const estimatedEmpSalary = 7500 + ((index * 850) % 6000);
+        const estimatedEmpSalary = emp.base_salary_monthly ? Number(emp.base_salary_monthly) : (7500 + ((index * 850) % 6000));
         if (!departmentTally[dept]) {
           departmentTally[dept] = { headcount: 0, amount: 0 };
         }
