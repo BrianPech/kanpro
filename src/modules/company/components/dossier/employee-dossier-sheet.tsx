@@ -64,7 +64,7 @@ import { toast } from "sonner";
 import { calculateLFTVacationDays } from "../../utils/vacation-calculator";
 import { EmployeeDocument, EmployeeDossier } from "../../types/employee-dossier";
 
-interface SimpleEmployee {
+export interface SimpleEmployee {
   id: string;
   candidate_id: string;
   full_name: string;
@@ -76,6 +76,16 @@ interface SimpleEmployee {
   hired_date: string;
   notes?: string;
   status: "Contratado" | "Baja";
+  base_salary_monthly?: number | null;
+  payment_frequency?: string | null;
+  employee_code?: string | null;
+  department?: string | null;
+  job_title?: string | null;
+  rfc?: string | null;
+  curp?: string | null;
+  nss?: string | null;
+  work_schedule?: string | null;
+  email?: string | null;
 }
 
 interface EmployeeDossierSheetProps {
@@ -99,122 +109,79 @@ export function EmployeeDossierSheet({
   const [isUploadDocOpen, setIsUploadDocOpen] = React.useState(false);
   const [newDocTitle, setNewDocTitle] = React.useState("");
 
-  // Construct dynamic dossier from employee record
+  // Construct dynamic dossier strictly from real employee record
   const dossier = React.useMemo<EmployeeDossier | null>(() => {
     if (!employee) return null;
 
-    const hireDate = employee.hired_date || "2025-06-01";
+    const hireDate =
+      employee.hired_date || new Date().toISOString().split("T")[0];
     const seniority = calculateLFTVacationDays(hireDate);
-    const cleanName = employee.full_name || "Colaborador";
-    const initials = cleanName
-      .split(" ")
-      .map((p) => p[0])
-      .join("")
-      .slice(0, 4)
-      .toUpperCase();
 
-    const mockEmail = `${cleanName
-      .toLowerCase()
-      .normalize("NFD")
-      .replace(/[\u0300-\u036f]/g, "")
-      .replace(/\s+/g, ".")}@empresa.mx`;
+    const baseSalary = Number(employee.base_salary_monthly) || 0;
+    const dailyIntegratedSalary =
+      baseSalary > 0
+        ? Math.round((baseSalary / 30.4) * 1.0493 * 100) / 100
+        : 0;
+
+    const email = employee.email || "";
 
     return {
       id: employee.id,
       candidateId: employee.candidate_id,
       fullName: employee.full_name,
       avatarUrl: employee.avatar_url,
-      email: mockEmail,
-      phone: employee.phone || "+52 984 123 4567",
+      email,
+      phone: employee.phone || "No registrado",
       emergencyContact: {
-        name: "Contacto Familiar Registrado",
-        phone: employee.phone || "+52 984 987 6543",
-        relationship: "Familiar directo",
+        name: "No registrado",
+        phone: "No registrado",
+        relationship: "No registrado",
       },
-      rfc: `${initials}920415HQ8`,
-      curp: `${initials}920415HQRNNR02`,
-      nss: "12984712093",
-      birthDate: "1994-06-15",
-      address: employee.location || "Riviera Maya, Quintana Roo",
+      rfc: employee.rfc || "No registrado",
+      curp: employee.curp || "No registrado",
+      nss: employee.nss || "No registrado",
+      birthDate: "",
+      address: employee.location || "Playa del Carmen, Quintana Roo",
       nationality: "Mexicana",
 
-      jobTitle: employee.vacancy_title || "Puesto Operativo",
-      department: employee.vacancy_category || "General",
+      jobTitle:
+        employee.job_title || employee.vacancy_title || "Puesto General",
+      department:
+        employee.department || employee.vacancy_category || "Operaciones",
       branchName: `Sucursal Principal • ${employee.location || "Riviera Maya"}`,
       hireDate,
       yearsOfServiceFormatted: seniority.formattedSeniority,
       contractType: "indeterminado",
-      contractTypeLabel: "Contrato por Tiempo Indeterminado (Planta)",
+      contractTypeLabel: "Contrato Laboral LFT",
       contractStartDate: hireDate,
       contractEndDate: null,
-      baseSalaryMonthly: 16500,
-      dailyIntegratedSalary: 598.4,
-      paymentFrequency: "quincenal",
-      workSchedule: "Lunes a Viernes 08:00 - 17:00 (Sábados rotativos)",
+      baseSalaryMonthly: baseSalary,
+      dailyIntegratedSalary,
+      paymentFrequency:
+        employee.payment_frequency === "semanal" ||
+        employee.payment_frequency === "mensual"
+          ? employee.payment_frequency
+          : "quincenal",
+      workSchedule:
+        employee.work_schedule || "Lunes a Viernes (Jornada LFT)",
       status: employee.status === "Contratado" ? "activo" : "baja",
 
-      documents: [
-        {
-          id: "doc-1",
-          docType: "ine",
-          title: "Identificación Oficial (INE Frente y Reverso)",
-          fileName: `INE_${cleanName.replace(/\s+/g, "_")}.pdf`,
-          fileUrl: "/assets/docs/ine_sample.pdf",
-          fileSizeBytes: 1240000,
-          uploadedAt: hireDate,
-          status: "validado",
-        },
-        {
-          id: "doc-2",
-          docType: "rfc_sat",
-          title: "Constancia de Situación Fiscal (SAT)",
-          fileName: `CSF_SAT_${cleanName.replace(/\s+/g, "_")}.pdf`,
-          fileUrl: "/assets/docs/csf_sample.pdf",
-          fileSizeBytes: 890000,
-          uploadedAt: hireDate,
-          status: "validado",
-        },
-        {
-          id: "doc-3",
-          docType: "contrato_laboral",
-          title: "Contrato Laboral Firmado",
-          fileName: `Contrato_Laboral_${cleanName.replace(/\s+/g, "_")}.pdf`,
-          fileUrl: "/assets/docs/contrato_sample.pdf",
-          fileSizeBytes: 2450000,
-          uploadedAt: hireDate,
-          status: "validado",
-        },
-        {
-          id: "doc-4",
-          docType: "nss",
-          title: "Número de Seguridad Social (IMSS)",
-          fileName: `Comprobante_NSS_${cleanName.replace(/\s+/g, "_")}.pdf`,
-          fileUrl: "/assets/docs/nss_sample.pdf",
-          fileSizeBytes: 430000,
-          uploadedAt: hireDate,
-          status: "validado",
-        },
-        {
-          id: "doc-5",
-          docType: "comprobante_domicilio",
-          title: "Comprobante de Domicilio Vigente",
-          fileName: "Recibo_Comprobante_Domicilio.pdf",
-          fileUrl: "/assets/docs/cfe_sample.pdf",
-          fileSizeBytes: 620000,
-          uploadedAt: hireDate,
-          status: "validado",
-        },
-      ],
+      documents: [],
 
       positionHistory: [
         {
-          id: "pos-1",
-          jobTitle: employee.vacancy_title || "Puesto Actual",
-          department: employee.vacancy_category || "General",
+          id: `pos-${employee.id}`,
+          jobTitle:
+            employee.job_title || employee.vacancy_title || "Puesto General",
+          department:
+            employee.department || employee.vacancy_category || "Operaciones",
           startDate: hireDate,
-          endDate: "Actual",
-          salary: 16500,
-          promotionReason: "Contratación directa a través de K'anPro.",
+          endDate: employee.status === "Baja" ? "Baja" : "Actual",
+          salary: baseSalary,
+          promotionReason:
+            employee.status === "Baja"
+              ? employee.notes || "Desvinculación laboral"
+              : "Ingreso inicial a la empresa",
         },
       ],
 
@@ -222,38 +189,21 @@ export function EmployeeDossierSheet({
         hireDate,
         yearsOfService: seniority.yearsOfService,
         totalDaysAccruedLFT: seniority.currentYearEntitlement,
-        daysTaken: 2,
+        daysTaken: 0,
         daysPendingApproval: 0,
-        daysAvailable: Math.max(0, seniority.currentYearEntitlement - 2),
-        nextPeriodDate: "Próximo ciclo anual",
+        daysAvailable: seniority.currentYearEntitlement,
+        nextPeriodDate: `Ciclo anual ${new Date().getFullYear() + 1}`,
       },
 
       vacationRequests: [],
-      performanceReviews: [
-        {
-          id: "rev-1",
-          period: "Evaluación Trimestral de Desempeño",
-          evaluationDate: "Reciente",
-          evaluatorName: "Gerencia de Recursos Humanos",
-          score: 4.8,
-          strengths: [
-            "Excelente comunicación y trato al cliente",
-            "Puntualidad impecable",
-            "Compromiso operativo y trabajo en equipo",
-          ],
-          growthAreas: ["Capacitación continua en procesos internos"],
-          goalsMet: "100% de metas del periodo alcanzadas.",
-          generalComments:
-            "Colaborador con alto sentido de pertenencia y resultados consistentes.",
-        },
-      ],
+      performanceReviews: [],
 
       attendanceSummary: {
-        punctualityRate: 98.4,
-        totalDaysPresent: 64,
-        totalLateArrivals: 1,
+        punctualityRate: 100,
+        totalDaysPresent: 0,
+        totalLateArrivals: 0,
         totalAbsences: 0,
-        totalOvertimeHours: 6.5,
+        totalOvertimeHours: 0,
       },
     };
   }, [employee]);
@@ -717,47 +667,57 @@ export function EmployeeDossierSheet({
                 </div>
 
                 <div className="space-y-2.5">
-                  {documentsList.map((doc) => (
-                    <div
-                      key={doc.id}
-                      className="p-3.5 rounded-2xl bg-muted/20 border border-border/40 hover:border-primary/40 transition-colors flex items-center justify-between gap-3 group"
-                    >
-                      <div className="flex items-center gap-3 min-w-0">
-                        <div className="size-9 rounded-xl bg-primary/10 text-primary flex items-center justify-center shrink-0">
-                          <FileText className="size-4" />
-                        </div>
-                        <div className="min-w-0">
-                          <h4 className="text-xs font-bold text-foreground truncate">
-                            {doc.title}
-                          </h4>
-                          <p className="text-[11px] text-muted-foreground font-mono truncate">
-                            {doc.fileName} • {doc.uploadedAt}
-                          </p>
-                        </div>
-                      </div>
-
-                      <div className="flex items-center gap-2 shrink-0">
-                        <Badge
-                          variant="outline"
-                          className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400 border-emerald-500/20 bg-emerald-500/10 px-2 py-0.5 rounded-md"
-                        >
-                          <CheckCircle2 className="size-3 mr-1" />
-                          Validado
-                        </Badge>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() =>
-                            toast.info(`Descargando documento: ${doc.title}`)
-                          }
-                          className="size-8 rounded-lg text-muted-foreground hover:text-foreground cursor-pointer"
-                          title="Descargar archivo"
-                        >
-                          <Download className="size-3.5" />
-                        </Button>
-                      </div>
+                  {documentsList.length === 0 ? (
+                    <div className="py-10 text-center text-xs text-muted-foreground bg-muted/20 rounded-2xl border border-border/30">
+                      <FileText className="size-5 mx-auto text-muted-foreground/60 mb-2" />
+                      <p className="font-semibold text-foreground">Sin documentos cargados</p>
+                      <p className="text-[11px] text-muted-foreground mt-0.5">
+                        El colaborador aún no cuenta con documentos digitalizados en su expediente.
+                      </p>
                     </div>
-                  ))}
+                  ) : (
+                    documentsList.map((doc) => (
+                      <div
+                        key={doc.id}
+                        className="p-3.5 rounded-2xl bg-muted/20 border border-border/40 hover:border-primary/40 transition-colors flex items-center justify-between gap-3 group"
+                      >
+                        <div className="flex items-center gap-3 min-w-0">
+                          <div className="size-9 rounded-xl bg-primary/10 text-primary flex items-center justify-center shrink-0">
+                            <FileText className="size-4" />
+                          </div>
+                          <div className="min-w-0">
+                            <h4 className="text-xs font-bold text-foreground truncate">
+                              {doc.title}
+                            </h4>
+                            <p className="text-[11px] text-muted-foreground font-mono truncate">
+                              {doc.fileName} • {doc.uploadedAt}
+                            </p>
+                          </div>
+                        </div>
+
+                        <div className="flex items-center gap-2 shrink-0">
+                          <Badge
+                            variant="outline"
+                            className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400 border-emerald-500/20 bg-emerald-500/10 px-2 py-0.5 rounded-md"
+                          >
+                            <CheckCircle2 className="size-3 mr-1" />
+                            Validado
+                          </Badge>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() =>
+                              toast.info(`Descargando documento: ${doc.title}`)
+                            }
+                            className="size-8 rounded-lg text-muted-foreground hover:text-foreground cursor-pointer"
+                            title="Descargar archivo"
+                          >
+                            <Download className="size-3.5" />
+                          </Button>
+                        </div>
+                      </div>
+                    ))
+                  )}
                 </div>
               </TabsContent>
 
@@ -852,39 +812,49 @@ export function EmployeeDossierSheet({
                 </Card>
 
                 {/* Evaluación de Desempeño */}
-                {dossier.performanceReviews.map((rev) => (
-                  <Card
-                    key={rev.id}
-                    className="bg-card border border-border/40 rounded-2xl p-4 space-y-3"
-                  >
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2 text-xs font-extrabold uppercase tracking-wider text-muted-foreground">
-                        <Sparkles className="size-3.5 text-amber-500" />
-                        <span>{rev.period}</span>
+                {dossier.performanceReviews.length === 0 ? (
+                  <div className="py-6 text-center text-xs text-muted-foreground bg-muted/20 rounded-2xl border border-border/30">
+                    <Sparkles className="size-4 mx-auto text-muted-foreground/60 mb-1.5" />
+                    <p className="font-semibold text-foreground">Sin evaluaciones registradas</p>
+                    <p className="text-[11px] text-muted-foreground mt-0.5">
+                      Este colaborador aún no cuenta con evaluaciones 360 en el sistema.
+                    </p>
+                  </div>
+                ) : (
+                  dossier.performanceReviews.map((rev) => (
+                    <Card
+                      key={rev.id}
+                      className="bg-card border border-border/40 rounded-2xl p-4 space-y-3"
+                    >
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2 text-xs font-extrabold uppercase tracking-wider text-muted-foreground">
+                          <Sparkles className="size-3.5 text-amber-500" />
+                          <span>{rev.period}</span>
+                        </div>
+                        <div className="flex items-center gap-1 text-amber-500 font-extrabold text-sm">
+                          <Star className="size-4 fill-amber-500" />
+                          <span>{rev.score} / 5.0</span>
+                        </div>
                       </div>
-                      <div className="flex items-center gap-1 text-amber-500 font-extrabold text-sm">
-                        <Star className="size-4 fill-amber-500" />
-                        <span>{rev.score} / 5.0</span>
-                      </div>
-                    </div>
 
-                    <div className="space-y-2 text-xs">
-                      <div>
-                        <span className="text-muted-foreground font-medium block">
-                          Fortalezas Destacadas:
-                        </span>
-                        <ul className="list-disc list-inside space-y-0.5 text-foreground font-semibold mt-1">
-                          {rev.strengths.map((str, i) => (
-                            <li key={i}>{str}</li>
-                          ))}
-                        </ul>
+                      <div className="space-y-2 text-xs">
+                        <div>
+                          <span className="text-muted-foreground font-medium block">
+                            Fortalezas Destacadas:
+                          </span>
+                          <ul className="list-disc list-inside space-y-0.5 text-foreground font-semibold mt-1">
+                            {rev.strengths.map((str, i) => (
+                              <li key={i}>{str}</li>
+                            ))}
+                          </ul>
+                        </div>
+                        <p className="text-muted-foreground text-[11px] italic pt-1">
+                          &ldquo;{rev.generalComments}&rdquo;
+                        </p>
                       </div>
-                      <p className="text-muted-foreground text-[11px] italic pt-1">
-                        &ldquo;{rev.generalComments}&rdquo;
-                      </p>
-                    </div>
-                  </Card>
-                ))}
+                    </Card>
+                  ))
+                )}
               </TabsContent>
             </Tabs>
           </div>

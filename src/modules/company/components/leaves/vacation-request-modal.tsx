@@ -46,11 +46,15 @@ export function VacationRequestModal({
   onOpenChange,
   onRequestCreated,
 }: VacationRequestModalProps) {
-  const [employeeName, setEmployeeName] = useState("Carlos Mendoza");
+  const [employeeName, setEmployeeName] = useState("");
   const [department, setDepartment] = useState("Operaciones");
   const [requestType, setRequestType] = useState<VacationRequestType>("vacaciones");
-  const [startDate, setStartDate] = useState("2026-09-10");
-  const [endDate, setEndDate] = useState("2026-09-15");
+  const [startDate, setStartDate] = useState(
+    new Date().toISOString().split("T")[0]
+  );
+  const [endDate, setEndDate] = useState(
+    new Date().toISOString().split("T")[0]
+  );
   const [reason, setReason] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
 

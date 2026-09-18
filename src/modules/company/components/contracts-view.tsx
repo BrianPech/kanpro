@@ -82,15 +82,30 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { createClient } from "@/lib/supabase/client";
 import { ContractExpirationItem, WorkforceKPIs } from "../types/dashboard";
 import { EmploymentContract, ContractTemplateType } from "../types/contracts";
-import { ContractBuilderModal } from "./contracts/contract-builder-modal";
+import {
+  createContractAction,
+  renewContractAction,
+  signContractAction,
+} from "../actions/contracts";
+import {
+  terminateCompanyEmployeeAction,
+  reactivateCompanyEmployeeAction,
+} from "../actions/employees";
+import {
+  ContractBuilderModal,
+  ActiveEmployeeOption,
+  CompanyLegalInfo,
+} from "./contracts/contract-builder-modal";
 import { ContractPreviewModal } from "./contracts/contract-preview-modal";
 import { EmployeeDossierSheet } from "./dossier/employee-dossier-sheet";
 
-interface ContractRecord {
+export interface ContractRecord {
   id: string;
   folio: string;
   employeeId: string;
@@ -132,207 +147,45 @@ interface TerminationRecord {
   severanceAmount: number;
 }
 
-interface ContractsViewProps {
-  initialContracts?: ContractExpirationItem[];
+export type { ActiveEmployeeOption, CompanyLegalInfo, TerminationRecord };
+
+export interface ContractsViewProps {
+  realContracts?: ContractRecord[];
+  realTerminations?: TerminationRecord[];
+  activeEmployees?: ActiveEmployeeOption[];
+  companyInfo?: CompanyLegalInfo;
   kpis?: WorkforceKPIs;
+  initialContracts?: ContractExpirationItem[];
 }
 
 export function ContractsView({
-  initialContracts = [],
+  realContracts = [],
+  realTerminations = [],
+  activeEmployees = [],
+  companyInfo,
   kpis: _kpis,
 }: ContractsViewProps) {
   const [activeTab, setActiveTab] = React.useState<"contracts" | "terminations">(
     "contracts"
   );
 
-  // Contracts initial data
-  const [contracts, setContracts] = React.useState<ContractRecord[]>(() => {
-    // Generate realistic contracts based on initial or defaults
-    const defaults: ContractRecord[] = [
-      {
-        id: "ctr-001",
-        folio: "KAN-CTR-2026-081",
-        employeeId: "emp-001",
-        employeeName: "Carlos Eduardo Dzib",
-        avatarUrl:
-          "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=150&auto=format&fit=crop&q=80",
-        phone: "9992345678",
-        jobTitle: "Técnico en Climas y Electricidad",
-        department: "Mantenimiento y Limpieza",
-        contractType: "Contrato por Tiempo Determinado (6 meses)",
-        templateType: "determinado",
-        startDate: "2026-02-01",
-        endDate: "2026-08-31",
-        daysRemaining: 6,
-        salary: 14500,
-        paymentFrequency: "Quincenal",
-        status: "imminent",
-        companySigned: true,
-        employeeSigned: true,
-      },
-      {
-        id: "ctr-002",
-        folio: "KAN-CTR-2026-082",
-        employeeId: "emp-002",
-        employeeName: "Valeria Castillo Domínguez",
-        avatarUrl:
-          "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80",
-        phone: "9849876543",
-        jobTitle: "Barista Especialista & Mixóloga",
-        department: "Alimentos y Bebidas",
-        contractType: "Periodo de Prueba (90 días)",
-        templateType: "periodo_prueba",
-        startDate: "2026-06-01",
-        endDate: "2026-09-15",
-        daysRemaining: 21,
-        salary: 13500,
-        paymentFrequency: "Quincenal",
-        status: "proximo_a_vencer",
-        companySigned: true,
-        employeeSigned: true,
-      },
-      {
-        id: "ctr-003",
-        folio: "KAN-CTR-2026-083",
-        employeeId: "emp-003",
-        employeeName: "Sofía Valentina Méndez",
-        avatarUrl:
-          "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=150&auto=format&fit=crop&q=80",
-        phone: "9841234567",
-        jobTitle: "Capitana de Meseros",
-        department: "Alimentos y Bebidas",
-        contractType: "Contrato por Tiempo Indeterminado (Planta)",
-        templateType: "indeterminado",
-        startDate: "2025-11-15",
-        endDate: "Indeterminado",
-        daysRemaining: 999,
-        salary: 17000,
-        paymentFrequency: "Quincenal",
-        status: "vigente",
-        companySigned: true,
-        employeeSigned: true,
-      },
-      {
-        id: "ctr-004",
-        folio: "KAN-CTR-2026-084",
-        employeeId: "emp-004",
-        employeeName: "Alejandro Canul Pech",
-        avatarUrl:
-          "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&auto=format&fit=crop&q=80",
-        phone: "9983456789",
-        jobTitle: "Chef de Partie",
-        department: "Gastronomía y Cocina",
-        contractType: "Contrato por Tiempo Indeterminado (Planta)",
-        templateType: "indeterminado",
-        startDate: "2026-01-10",
-        endDate: "Indeterminado",
-        daysRemaining: 999,
-        salary: 20000,
-        paymentFrequency: "Quincenal",
-        status: "vigente",
-        companySigned: true,
-        employeeSigned: true,
-      },
-      {
-        id: "ctr-005",
-        folio: "KAN-CTR-2026-085",
-        employeeId: "emp-005",
-        employeeName: "Mariana González Rivas",
-        avatarUrl:
-          "https://images.unsplash.com/photo-1580489944761-15a19d654956?w=150&auto=format&fit=crop&q=80",
-        phone: "9988765432",
-        jobTitle: "Recepcionista Bilingüe",
-        department: "Hotelería y Turismo",
-        contractType: "Contrato por Tiempo Indeterminado (Planta)",
-        templateType: "indeterminado",
-        startDate: "2025-09-01",
-        endDate: "Indeterminado",
-        daysRemaining: 999,
-        salary: 15500,
-        paymentFrequency: "Quincenal",
-        status: "vigente",
-        companySigned: true,
-        employeeSigned: true,
-      },
-      {
-        id: "ctr-006",
-        folio: "KAN-CTR-2026-086",
-        employeeId: "emp-006",
-        employeeName: "Daniela Morales Chan",
-        avatarUrl:
-          "https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=150&auto=format&fit=crop&q=80",
-        phone: "9984321098",
-        jobTitle: "Auxiliar de Recursos Humanos",
-        department: "Administración y RRHH",
-        contractType: "Periodo de Prueba (90 días)",
-        templateType: "periodo_prueba",
-        startDate: "2026-07-01",
-        endDate: "2026-09-30",
-        daysRemaining: 36,
-        salary: 14000,
-        paymentFrequency: "Quincenal",
-        status: "en_firma",
-        companySigned: true,
-        employeeSigned: false,
-      },
-      {
-        id: "ctr-007",
-        folio: "KAN-CTR-2026-087",
-        employeeId: "emp-007",
-        employeeName: "Jorge Luis Poot May",
-        avatarUrl:
-          "https://images.unsplash.com/photo-1492562080023-ab3db95bfbce?w=150&auto=format&fit=crop&q=80",
-        phone: "9995678901",
-        jobTitle: "Supervisor de Logística & Almacén",
-        department: "Operaciones y Logística",
-        contractType: "Contrato por Tiempo Indeterminado (Planta)",
-        templateType: "indeterminado",
-        startDate: "2025-08-20",
-        endDate: "Indeterminado",
-        daysRemaining: 999,
-        salary: 18000,
-        paymentFrequency: "Quincenal",
-        status: "vigente",
-        companySigned: true,
-        employeeSigned: true,
-      },
-    ];
+  // Real contracts state directly from Supabase (empty if no records)
+  const [contracts, setContracts] = React.useState<ContractRecord[]>(
+    () => realContracts || []
+  );
 
-    return defaults;
-  });
+  React.useEffect(() => {
+    setContracts(realContracts || []);
+  }, [realContracts]);
 
-  // Terminations initial data
-  const [terminations, setTerminations] = React.useState<TerminationRecord[]>([
-    {
-      id: "term-001",
-      employeeId: "emp-008",
-      employeeName: "Ricardo Alcocer Cetina",
-      avatarUrl:
-        "https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?w=150&auto=format&fit=crop&q=80",
-      phone: "9846543210",
-      jobTitle: "Steward & Limpieza de Cocina",
-      department: "Mantenimiento y Limpieza",
-      terminationDate: "2026-05-15",
-      reason: "Renuncia voluntaria",
-      notes: "Entrega completa de herramientas y firma de finiquito conforme a la ley.",
-      severanceStatus: "finiquitado",
-      severanceAmount: 8450,
-    },
-    {
-      id: "term-002",
-      employeeId: "emp-009",
-      employeeName: "Mauricio Pech Canché",
-      avatarUrl: null,
-      phone: "9841122334",
-      jobTitle: "Auxiliar de Almacén",
-      department: "Operaciones y Logística",
-      terminationDate: "2026-03-30",
-      reason: "Fin de contrato / Proyecto",
-      notes: "Conclusión de temporada alta de invierno. Finiquito pagado por transferencia.",
-      severanceStatus: "finiquitado",
-      severanceAmount: 11200,
-    },
-  ]);
+  // Real terminations state directly from Supabase (empty if no records)
+  const [terminations, setTerminations] = React.useState<TerminationRecord[]>(
+    () => realTerminations || []
+  );
+
+  React.useEffect(() => {
+    setTerminations(realTerminations || []);
+  }, [realTerminations]);
 
   // Filters State for Contracts
   const [contractSearch, setContractSearch] = React.useState("");
@@ -363,6 +216,16 @@ export function ContractsView({
     React.useState<ContractRecord | null>(null);
   const [isRenewModalOpen, setIsRenewModalOpen] = React.useState(false);
   const [extensionPeriod, setExtensionPeriod] = React.useState("indeterminado");
+
+  // Terminate modal
+  const [selectedContractForTerminate, setSelectedContractForTerminate] =
+    React.useState<ContractRecord | null>(null);
+  const [isTerminateModalOpen, setIsTerminateModalOpen] = React.useState(false);
+  const [terminationReason, setTerminationReason] = React.useState<
+    TerminationRecord["reason"]
+  >("Renuncia voluntaria");
+  const [terminationNotes, setTerminationNotes] = React.useState("");
+  const [isTerminating, setIsTerminating] = React.useState(false);
 
   // Metrics
   const metrics = React.useMemo(() => {
@@ -396,22 +259,29 @@ export function ContractsView({
   };
 
   const handleOpenPreviewFromRecord = (item: ContractRecord) => {
+    const matchedEmp = activeEmployees.find(
+      (e) =>
+        e.id === item.employeeId ||
+        e.name.toLowerCase() === item.employeeName.toLowerCase()
+    );
+
     const fullContract: EmploymentContract = {
       id: item.id,
       folio: item.folio,
       employeeId: item.employeeId,
       employeeName: item.employeeName,
-      employeeRfc: "MEMC920415HQ8",
-      employeeCurp: "MEMC920415HQRNNR02",
-      employeeAddress: "Playa del Carmen, Quintana Roo",
+      employeeRfc: matchedEmp?.rfc || "XAXX010101000",
+      employeeCurp: matchedEmp?.curp || "NO_REGISTRADO",
+      employeeAddress: "Domicilio registrado en expediente laboral",
       avatarUrl: item.avatarUrl,
       jobTitle: item.jobTitle,
       department: item.department,
-      companyName: "K'anPro Solutions S.A. de C.V.",
-      companyRfc: "KPS220419RT5",
+      companyName: companyInfo?.name || "Empresa Contratante",
+      companyRfc: companyInfo?.rfc || "XAXX010101000",
       companyAddress:
-        "Av. Constituyentes #120, Gonzalo Guerrero, Playa del Carmen, Q.R.",
-      legalRepName: "Lic. Andrea Garza Ramos",
+        companyInfo?.address ||
+        "Domicilio fiscal registrado en Quintana Roo, México",
+      legalRepName: companyInfo?.legalRepName || "Representante Legal",
       templateType: item.templateType,
       templateName: item.contractType,
       startDate: item.startDate,
@@ -421,14 +291,16 @@ export function ContractsView({
       paymentFrequency: "quincenal",
       workSchedule: "Lunes a Viernes 08:00 - 17:00 (Sábados rotativos)",
       status: item.status === "en_firma" ? "en_firma" : "vigente",
-      companySignature: {
-        signerName: "Lic. Andrea Garza Ramos",
-        signerRole: "representante_legal",
-        signatureDataUrl:
-          "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='100' height='40'><path d='M10 20 Q 30 5, 50 20 T 90 20' fill='none' stroke='%231e293b' stroke-width='2'/></svg>",
-        signedAt: item.startDate,
-        certificateHash: "SHA256:0x7a8b9c1d2e3f4a5b",
-      },
+      companySignature: item.companySigned
+        ? {
+            signerName: companyInfo?.legalRepName || "Representante Legal",
+            signerRole: "representante_legal",
+            signatureDataUrl:
+              "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='100' height='40'><path d='M10 20 Q 30 5, 50 20 T 90 20' fill='none' stroke='%231e293b' stroke-width='2'/></svg>",
+            signedAt: item.startDate,
+            certificateHash: "SHA256:0x7a8b9c1d2e3f4a5b",
+          }
+        : null,
       employeeSignature: item.employeeSigned
         ? {
             signerName: item.employeeName,
@@ -479,36 +351,105 @@ export function ContractsView({
     setIsDossierOpen(true);
   };
 
-  const handleContractCreated = (newContract: EmploymentContract) => {
-    const newRecord: ContractRecord = {
-      id: newContract.id,
-      folio: newContract.folio,
-      employeeId: newContract.employeeId,
-      employeeName: newContract.employeeName,
-      avatarUrl: newContract.avatarUrl || null,
-      phone: "+52 984 123 4567",
-      jobTitle: newContract.jobTitle,
-      department: newContract.department,
-      contractType: newContract.templateName,
-      templateType: newContract.templateType,
-      startDate: newContract.startDate,
-      endDate: newContract.endDate || "Indeterminado",
-      daysRemaining: newContract.endDate ? 90 : 999,
-      salary: newContract.baseSalaryMonthly,
-      paymentFrequency: newContract.paymentFrequency,
-      status: newContract.employeeSignature ? "vigente" : "en_firma",
-      companySigned: !!newContract.companySignature,
-      employeeSigned: !!newContract.employeeSignature,
-    };
+  const handleContractCreated = async (newContract: EmploymentContract) => {
+    try {
+      const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(
+        newContract.employeeId
+      );
 
-    setContracts((prev) => [newRecord, ...prev]);
-    setPreviewContract(newContract);
-    toast.success("Nuevo contrato laboral generado", {
-      description: `Folio ${newContract.folio} para ${newContract.employeeName}.`,
-    });
+      const result = await createContractAction({
+        employeeId: isUuid ? newContract.employeeId : undefined,
+        folio: newContract.folio,
+        jobTitle: newContract.jobTitle,
+        department: newContract.department,
+        contractType: newContract.templateName,
+        templateType: newContract.templateType,
+        startDate: newContract.startDate,
+        endDate: newContract.endDate,
+        salary: newContract.baseSalaryMonthly,
+        paymentFrequency: newContract.paymentFrequency,
+        companySigned: !!newContract.companySignature,
+        companySignatureUrl: newContract.companySignature?.signatureDataUrl,
+        employeeSigned: !!newContract.employeeSignature,
+        employeeSignatureUrl: newContract.employeeSignature?.signatureDataUrl,
+        status: newContract.employeeSignature ? "vigente" : "en_firma",
+      });
+
+      const newRecord: ContractRecord = {
+        id: result.contractId,
+        folio: result.folio,
+        employeeId: newContract.employeeId,
+        employeeName: newContract.employeeName,
+        avatarUrl: newContract.avatarUrl || null,
+        phone: "+52 984 123 4567",
+        jobTitle: newContract.jobTitle,
+        department: newContract.department,
+        contractType: newContract.templateName,
+        templateType: newContract.templateType,
+        startDate: newContract.startDate,
+        endDate: newContract.endDate || "Indeterminado",
+        daysRemaining: newContract.endDate ? 90 : 999,
+        salary: newContract.baseSalaryMonthly,
+        paymentFrequency: newContract.paymentFrequency,
+        status: newContract.employeeSignature ? "vigente" : "en_firma",
+        companySigned: !!newContract.companySignature,
+        employeeSigned: !!newContract.employeeSignature,
+      };
+
+      setContracts((prev) => [newRecord, ...prev]);
+      setPreviewContract(newContract);
+
+      toast.success("Nuevo contrato laboral generado", {
+        description: `Folio ${result.folio} para ${newContract.employeeName}.`,
+      });
+    } catch (err) {
+      console.error("Error creating contract:", err);
+      toast.error("No se pudo registrar el contrato en la base de datos.");
+    }
   };
 
-  const handleConfirmRenew = (e: React.FormEvent) => {
+  const handleContractUpdated = async (updated: EmploymentContract) => {
+    setPreviewContract(updated);
+    try {
+      const isCompanySigner = Boolean(updated.companySignature);
+      const isEmployeeSigner = Boolean(updated.employeeSignature);
+      const bothSigned = isCompanySigner && isEmployeeSigner;
+
+      if (updated.companySignature) {
+        await signContractAction({
+          contractId: updated.id,
+          signerRole: "representante_legal",
+          signatureUrl: updated.companySignature.signatureDataUrl,
+          isNowFullySigned: bothSigned,
+        });
+      }
+      if (updated.employeeSignature) {
+        await signContractAction({
+          contractId: updated.id,
+          signerRole: "trabajador",
+          signatureUrl: updated.employeeSignature.signatureDataUrl,
+          isNowFullySigned: bothSigned,
+        });
+      }
+
+      setContracts((prev) =>
+        prev.map((c) =>
+          c.id === updated.id
+            ? {
+                ...c,
+                status: bothSigned ? "vigente" : "en_firma",
+                companySigned: isCompanySigner,
+                employeeSigned: isEmployeeSigner,
+              }
+            : c
+        )
+      );
+    } catch (err) {
+      console.error("Error signing contract:", err);
+    }
+  };
+
+  const handleConfirmRenew = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedContractForRenew) return;
 
@@ -521,66 +462,116 @@ export function ContractsView({
 
     const newEnd = new Date();
     newEnd.setMonth(newEnd.getMonth() + monthsToAdd);
+    const calculatedEndDate =
+      extensionPeriod === "indeterminado"
+        ? null
+        : newEnd.toISOString().split("T")[0];
 
-    setContracts((prev) =>
-      prev.map((c) =>
-        c.id === selectedContractForRenew.id
-          ? {
-              ...c,
-              endDate:
-                extensionPeriod === "indeterminado"
-                  ? "Indeterminado"
-                  : newEnd.toISOString().split("T")[0],
-              daysRemaining:
-                extensionPeriod === "indeterminado" ? 999 : monthsToAdd * 30,
-              status: "vigente",
-              templateType:
-                extensionPeriod === "indeterminado"
-                  ? "indeterminado"
-                  : "determinado",
-              contractType:
-                extensionPeriod === "indeterminado"
-                  ? "Contrato por Tiempo Indeterminado (Planta)"
-                  : `Contrato Determinado (${monthsToAdd} meses)`,
-            }
-          : c
-      )
-    );
+    const templateType: ContractTemplateType =
+      extensionPeriod === "indeterminado" ? "indeterminado" : "determinado";
+    const contractType =
+      extensionPeriod === "indeterminado"
+        ? "Contrato por Tiempo Indeterminado (Planta)"
+        : `Contrato Determinado (${monthsToAdd} meses)`;
 
-    toast.success("Contrato renovado exitosamente", {
-      description: `Se actualizó la vigencia laboral de ${selectedContractForRenew.employeeName}.`,
-    });
+    try {
+      await renewContractAction({
+        contractId: selectedContractForRenew.id,
+        templateType,
+        contractType,
+        endDate: calculatedEndDate,
+      });
+
+      setContracts((prev) =>
+        prev.map((c) =>
+          c.id === selectedContractForRenew.id
+            ? {
+                ...c,
+                endDate: calculatedEndDate || "Indeterminado",
+                daysRemaining:
+                  extensionPeriod === "indeterminado" ? 999 : monthsToAdd * 30,
+                status: "vigente",
+                templateType,
+                contractType,
+              }
+            : c
+        )
+      );
+
+      toast.success("Contrato renovado exitosamente", {
+        description: `Se actualizó la vigencia laboral de ${selectedContractForRenew.employeeName}.`,
+      });
+    } catch (err) {
+      console.error("Error updating contract renewal in DB:", err);
+      toast.error("No se pudo renovar el contrato en la base de datos.");
+    }
 
     setIsRenewModalOpen(false);
     setSelectedContractForRenew(null);
   };
 
-  const handleReactivateColaborador = (term: TerminationRecord) => {
-    setTerminations((prev) => prev.filter((t) => t.id !== term.id));
-    const newContract: ContractRecord = {
-      id: `ctr-reac-${Date.now()}`,
-      folio: `KAN-CTR-2026-${Math.floor(100 + Math.random() * 900)}`,
-      employeeId: term.employeeId,
-      employeeName: term.employeeName,
-      avatarUrl: term.avatarUrl,
-      phone: term.phone,
-      jobTitle: term.jobTitle,
-      department: term.department,
-      contractType: "Contrato por Tiempo Indeterminado (Reactivado)",
-      templateType: "indeterminado",
-      startDate: new Date().toISOString().split("T")[0],
-      endDate: "Indeterminado",
-      daysRemaining: 999,
-      salary: 15000,
-      paymentFrequency: "Quincenal",
-      status: "vigente",
-      companySigned: true,
-      employeeSigned: true,
-    };
-    setContracts((prev) => [newContract, ...prev]);
-    toast.success("Colaborador reactivado en la empresa", {
-      description: `${term.employeeName} ha sido incorporado a la plantilla activa con nuevo contrato.`,
-    });
+  const handleReactivateColaborador = async (term: TerminationRecord) => {
+    try {
+      await reactivateCompanyEmployeeAction(term.employeeId);
+
+      setTerminations((prev) => prev.filter((t) => t.id !== term.id));
+      toast.success("Colaborador reactivado", {
+        description: `${term.employeeName} ha sido reincorporado a la plantilla activa.`,
+      });
+    } catch (err) {
+      console.error("Error reactivating employee:", err);
+      toast.error("No se pudo reactivar al colaborador.");
+    }
+  };
+
+  const handleConfirmTerminate = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedContractForTerminate) return;
+
+    setIsTerminating(true);
+    try {
+      await terminateCompanyEmployeeAction(
+        selectedContractForTerminate.employeeId,
+        terminationReason,
+        terminationNotes
+      );
+
+      const salary = selectedContractForTerminate.salary || 12000;
+      const severanceAmount = Math.round(salary * 0.75);
+
+      const newTermination: TerminationRecord = {
+        id: selectedContractForTerminate.employeeId,
+        employeeId: selectedContractForTerminate.employeeId,
+        employeeName: selectedContractForTerminate.employeeName,
+        avatarUrl: selectedContractForTerminate.avatarUrl,
+        phone: selectedContractForTerminate.phone,
+        jobTitle: selectedContractForTerminate.jobTitle,
+        department: selectedContractForTerminate.department,
+        terminationDate: new Date().toISOString().split("T")[0],
+        reason: terminationReason,
+        notes: terminationNotes || undefined,
+        severanceStatus: "finiquitado",
+        severanceAmount,
+      };
+
+      setTerminations((prev) => [newTermination, ...prev]);
+      setContracts((prev) =>
+        prev.filter((c) => c.id !== selectedContractForTerminate.id)
+      );
+
+      toast.success("Baja de colaborador registrada", {
+        description: `${selectedContractForTerminate.employeeName} ha sido dado de baja en el sistema.`,
+      });
+
+      setIsTerminateModalOpen(false);
+      setSelectedContractForTerminate(null);
+      setTerminationNotes("");
+    } catch (err) {
+      console.error("Error terminating employee:", err);
+      toast.error("No se pudo registrar la baja en la base de datos.");
+    } finally {
+      setIsTerminating(false);
+    }
   };
 
   // Filtered Contracts
@@ -946,12 +937,13 @@ export function ContractsView({
 
                   <DropdownMenuItem
                     onSelect={() => {
-                      toast.info(`Generando copia PDF de ${item.folio}...`);
+                      setSelectedContractForTerminate(item);
+                      setIsTerminateModalOpen(true);
                     }}
-                    className="cursor-pointer text-xs font-semibold py-2 px-2.5 gap-2 text-muted-foreground hover:text-foreground"
+                    className="cursor-pointer text-xs font-semibold py-2 px-2.5 gap-2 text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/30"
                   >
-                    <Download className="size-3.5" />
-                    <span>Descargar PDF Firmado</span>
+                    <UserX className="size-3.5 text-rose-600 dark:text-rose-400" />
+                    <span>Registrar Baja / Finiquito</span>
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
@@ -1497,25 +1489,42 @@ export function ContractsView({
                     >
                       <FileCheck2 className="size-5" />
                     </EmptyMedia>
-                    <EmptyTitle>No se encontraron contratos</EmptyTitle>
+                    <EmptyTitle>
+                      {contracts.length === 0
+                        ? "Sin contratos registrados"
+                        : "No se encontraron contratos"}
+                    </EmptyTitle>
                     <EmptyDescription>
-                      No hay contratos que coincidan con la búsqueda o los filtros seleccionados.
+                      {contracts.length === 0
+                        ? "Aún no has generado ningún contrato laboral digital para tu plantilla activa."
+                        : "No hay contratos que coincidan con la búsqueda o los filtros seleccionados."}
                     </EmptyDescription>
                   </EmptyHeader>
                   <EmptyContent>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => {
-                        setContractSearch("");
-                        setContractStatusFilter("all");
-                        setContractTypeFilter("all");
-                      }}
-                      className="rounded-xl font-bold text-xs h-9 px-4 cursor-pointer border-border/50 gap-1.5"
-                    >
-                      <RotateCcw className="size-3.5" />
-                      <span>Restablecer Filtros</span>
-                    </Button>
+                    {contracts.length === 0 ? (
+                      <Button
+                        size="sm"
+                        onClick={() => setIsBuilderOpen(true)}
+                        className="rounded-xl font-bold text-xs h-9 px-4 cursor-pointer gap-1.5 bg-primary text-primary-foreground hover:bg-primary/90"
+                      >
+                        <Plus className="size-3.5" />
+                        <span>Nuevo Contrato Laboral</span>
+                      </Button>
+                    ) : (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => {
+                          setContractSearch("");
+                          setContractStatusFilter("all");
+                          setContractTypeFilter("all");
+                        }}
+                        className="rounded-xl font-bold text-xs h-9 px-4 cursor-pointer border-border/50 gap-1.5"
+                      >
+                        <RotateCcw className="size-3.5" />
+                        <span>Restablecer Filtros</span>
+                      </Button>
+                    )}
                   </EmptyContent>
                 </Empty>
               ) : (
@@ -1649,7 +1658,22 @@ export function ContractsView({
 
             {/* Terminations Table or Empty */}
             <div className="relative min-h-[300px]">
-              {terminationRows.length === 0 ? (
+              {terminations.length === 0 ? (
+                <Empty className="py-16">
+                  <EmptyHeader>
+                    <EmptyMedia
+                      variant="icon"
+                      className="bg-muted text-muted-foreground"
+                    >
+                      <UserX className="size-5" />
+                    </EmptyMedia>
+                    <EmptyTitle>Sin bajas registradas</EmptyTitle>
+                    <EmptyDescription>
+                      No hay registros de desvinculación laboral en la empresa. Todos los colaboradores se encuentran en plantilla activa.
+                    </EmptyDescription>
+                  </EmptyHeader>
+                </Empty>
+              ) : terminationRows.length === 0 ? (
                 <Empty className="py-16">
                   <EmptyHeader>
                     <EmptyMedia
@@ -1833,6 +1857,8 @@ export function ContractsView({
         isOpen={isBuilderOpen}
         onOpenChange={setIsBuilderOpen}
         onContractCreated={handleContractCreated}
+        activeEmployees={activeEmployees}
+        companyInfo={companyInfo}
       />
 
       {/* Modal 2: Contract Document Preview & Signatures */}
@@ -1840,7 +1866,7 @@ export function ContractsView({
         isOpen={!!previewContract}
         onOpenChange={(open) => !open && setPreviewContract(null)}
         contract={previewContract}
-        onContractUpdated={(updated) => setPreviewContract(updated)}
+        onContractUpdated={handleContractUpdated}
       />
 
       {/* Sheet 3: Employee Dossier 360 */}
@@ -1848,7 +1874,168 @@ export function ContractsView({
         employee={dossierEmployee}
         open={isDossierOpen}
         onOpenChange={setIsDossierOpen}
+        onOpenTerminateDialog={(emp) => {
+          const contract = contracts.find((c) => c.employeeId === emp.id);
+          if (contract) {
+            setSelectedContractForTerminate(contract);
+          } else {
+            setSelectedContractForTerminate({
+              id: emp.id,
+              folio: "CTR-BAJA",
+              employeeId: emp.id,
+              employeeName: emp.full_name,
+              avatarUrl: emp.avatar_url,
+              phone: emp.phone,
+              jobTitle: emp.vacancy_title,
+              department: emp.vacancy_category,
+              contractType: "Contrato Laboral",
+              templateType: "indeterminado",
+              startDate: emp.hired_date,
+              endDate: "Indeterminado",
+              daysRemaining: 999,
+              salary: 15000,
+              paymentFrequency: "quincenal",
+              status: "vigente",
+              companySigned: true,
+              employeeSigned: true,
+            });
+          }
+          setIsDossierOpen(false);
+          setIsTerminateModalOpen(true);
+        }}
+        onReactivate={(emp) => {
+          const term = terminations.find((t) => t.employeeId === emp.id);
+          if (term) {
+            handleReactivateColaborador(term);
+          }
+          setIsDossierOpen(false);
+        }}
       />
+
+      {/* Modal 4: Registrar Baja / Finiquito */}
+      <Dialog
+        open={isTerminateModalOpen}
+        onOpenChange={(open) => {
+          setIsTerminateModalOpen(open);
+          if (!open) {
+            setSelectedContractForTerminate(null);
+            setTerminationNotes("");
+          }
+        }}
+      >
+        <DialogContent className="sm:max-w-[460px] rounded-3xl p-6 bg-card border-border/80 shadow-2xl">
+          <form onSubmit={handleConfirmTerminate} className="space-y-4">
+            <DialogHeader className="space-y-1.5 text-left">
+              <DialogTitle className="text-lg font-extrabold text-rose-600 dark:text-rose-400 flex items-center gap-2">
+                <AlertTriangle className="size-4 text-rose-600 dark:text-rose-400" />
+                <span>Registrar Baja de Colaborador</span>
+              </DialogTitle>
+              <DialogDescription className="text-xs text-muted-foreground font-medium">
+                Registra la desvinculación laboral de{" "}
+                <strong>{selectedContractForTerminate?.employeeName}</strong>. Esta acción
+                actualizará su expediente y estatus en el historial laboral de la empresa.
+              </DialogDescription>
+            </DialogHeader>
+
+            <div className="space-y-3 py-2">
+              <div className="space-y-1.5">
+                <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                  Motivo de Baja *
+                </Label>
+                <Select
+                  value={terminationReason}
+                  onValueChange={(val) =>
+                    val && setTerminationReason(val as TerminationRecord["reason"])
+                  }
+                >
+                  <SelectTrigger className="h-11 rounded-xl bg-muted/40 border-border/60 text-xs font-semibold">
+                    <SelectValue placeholder="Selecciona un motivo">
+                      {terminationReason}
+                    </SelectValue>
+                  </SelectTrigger>
+                  <SelectContent className="rounded-xl border-border/60 bg-popover shadow-lg">
+                    <SelectItem
+                      value="Renuncia voluntaria"
+                      className="text-xs font-semibold rounded-lg cursor-pointer"
+                    >
+                      Renuncia voluntaria
+                    </SelectItem>
+                    <SelectItem
+                      value="Fin de contrato / Proyecto"
+                      className="text-xs font-semibold rounded-lg cursor-pointer"
+                    >
+                      Fin de contrato / Proyecto
+                    </SelectItem>
+                    <SelectItem
+                      value="Despido justificado"
+                      className="text-xs font-semibold rounded-lg cursor-pointer"
+                    >
+                      Despido justificado
+                    </SelectItem>
+                    <SelectItem
+                      value="Mutuo acuerdo"
+                      className="text-xs font-semibold rounded-lg cursor-pointer"
+                    >
+                      Mutuo acuerdo
+                    </SelectItem>
+                    <SelectItem
+                      value="Abandono de empleo"
+                      className="text-xs font-semibold rounded-lg cursor-pointer"
+                    >
+                      Abandono de empleo
+                    </SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-1.5">
+                <Label
+                  htmlFor="contracts_term_notes"
+                  className="text-xs font-bold uppercase tracking-wider text-muted-foreground"
+                >
+                  Observaciones / Motivo Detallado (Opcional)
+                </Label>
+                <Textarea
+                  id="contracts_term_notes"
+                  value={terminationNotes}
+                  onChange={(e) => setTerminationNotes(e.target.value)}
+                  placeholder="Observaciones de entrega de equipo, cálculo de finiquito o acuerdos..."
+                  className="min-h-[85px] rounded-xl bg-muted/40 border-border/60 text-xs font-medium"
+                />
+              </div>
+            </div>
+
+            <DialogFooter className="flex flex-col-reverse sm:flex-row gap-2 pt-2 border-t border-border/40">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setIsTerminateModalOpen(false)}
+                disabled={isTerminating}
+                className="rounded-xl text-xs font-bold h-10 px-4 cursor-pointer"
+              >
+                Cancelar
+              </Button>
+              <Button
+                type="submit"
+                disabled={isTerminating}
+                className="rounded-xl text-xs font-bold h-10 px-5 bg-rose-600 text-white hover:bg-rose-700 shadow-xs cursor-pointer gap-1.5"
+              >
+                {isTerminating ? (
+                  <>
+                    <Clock className="size-3.5 animate-spin" />
+                    <span>Registrando baja...</span>
+                  </>
+                ) : (
+                  <>
+                    <UserX className="size-3.5" />
+                    <span>Confirmar Baja</span>
+                  </>
+                )}
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

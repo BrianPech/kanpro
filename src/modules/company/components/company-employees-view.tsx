@@ -114,7 +114,7 @@ export interface EmployeeInvitationItem {
   created_at: string;
 }
 
-interface Employee {
+export interface Employee {
   id: string;
   candidate_id: string;
   full_name: string;
@@ -126,6 +126,16 @@ interface Employee {
   hired_date: string;
   notes?: string;
   status: "Contratado" | "Baja";
+  base_salary_monthly?: number | null;
+  payment_frequency?: string | null;
+  employee_code?: string | null;
+  department?: string | null;
+  job_title?: string | null;
+  rfc?: string | null;
+  curp?: string | null;
+  nss?: string | null;
+  work_schedule?: string | null;
+  email?: string | null;
 }
 
 interface CompanyEmployeesViewProps {
@@ -146,6 +156,15 @@ export function CompanyEmployeesView({
   const [sorting, setSorting] = React.useState<SortingState>([
     { id: "hired_date", desc: true },
   ]);
+
+  // Sync state with incoming server props
+  React.useEffect(() => {
+    setEmployees(initialEmployees);
+  }, [initialEmployees]);
+
+  React.useEffect(() => {
+    setInvitations(initialInvitations);
+  }, [initialInvitations]);
 
   // Dossier Sheet state
   const [dossierEmployee, setDossierEmployee] = React.useState<Employee | null>(null);

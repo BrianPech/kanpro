@@ -33,11 +33,33 @@ import {
 import { toast } from "sonner";
 import { EmploymentContract, ContractTemplateType } from "../../types/contracts";
 
+export interface ActiveEmployeeOption {
+  id: string;
+  name: string;
+  jobTitle: string;
+  department: string;
+  avatarUrl?: string | null;
+  phone?: string;
+  rfc?: string;
+  curp?: string;
+  baseSalary?: number;
+}
+
+export interface CompanyLegalInfo {
+  name: string;
+  rfc: string;
+  address: string;
+  legalRepName: string;
+}
+
 interface ContractBuilderModalProps {
   isOpen: boolean;
   onOpenChange: (open: boolean) => void;
   onContractCreated: (contract: EmploymentContract) => void;
+  activeEmployees?: ActiveEmployeeOption[];
+  companyInfo?: CompanyLegalInfo;
   initialEmployeeData?: {
+    employeeId?: string;
     employeeName?: string;
     employeeRfc?: string;
     employeeCurp?: string;
@@ -51,19 +73,24 @@ export function ContractBuilderModal({
   isOpen,
   onOpenChange,
   onContractCreated,
+  activeEmployees = [],
+  companyInfo,
   initialEmployeeData,
 }: ContractBuilderModalProps) {
+  const [selectedEmployeeId, setSelectedEmployeeId] = useState<string>(
+    initialEmployeeData?.employeeId || "manual"
+  );
   const [templateType, setTemplateType] = useState<ContractTemplateType>("indeterminado");
   const [employeeName, setEmployeeName] = useState(initialEmployeeData?.employeeName || "");
-  const [employeeRfc, setEmployeeRfc] = useState(initialEmployeeData?.employeeRfc || "MEMC920415HQ8");
-  const [employeeCurp, setEmployeeCurp] = useState(initialEmployeeData?.employeeCurp || "MEMC920415HQRNNR02");
-  const [jobTitle, setJobTitle] = useState(initialEmployeeData?.jobTitle || "Ejecutivo de Ventas");
-  const [department, setDepartment] = useState(initialEmployeeData?.department || "Comercial");
+  const [employeeRfc, setEmployeeRfc] = useState(initialEmployeeData?.employeeRfc || "");
+  const [employeeCurp, setEmployeeCurp] = useState(initialEmployeeData?.employeeCurp || "");
+  const [jobTitle, setJobTitle] = useState(initialEmployeeData?.jobTitle || "");
+  const [department, setDepartment] = useState(initialEmployeeData?.department || "Operaciones");
   const [startDate, setStartDate] = useState(new Date().toISOString().split("T")[0]);
-  const [endDate, setEndDate] = useState("2026-12-31");
-  const [salary, setSalary] = useState(initialEmployeeData?.baseSalary ? String(initialEmployeeData.baseSalary) : "16500");
+  const [endDate, setEndDate] = useState("");
+  const [salary, setSalary] = useState(initialEmployeeData?.baseSalary ? String(initialEmployeeData.baseSalary) : "");
   const [paymentFrequency, setPaymentFrequency] = useState<"quincenal" | "semanal" | "mensual">("quincenal");
-  const [workSchedule, setWorkSchedule] = useState("Lunes a Viernes 09:00 - 18:00 (Sábados 09:00 - 14:00)");
+  const [workSchedule, setWorkSchedule] = useState("Lunes a Viernes 08:00 - 17:00 (Sábados rotativos)");
   const [probationDays, setProbationDays] = useState("30");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -75,56 +102,76 @@ export function ContractBuilderModal({
     honorarios: "Contrato de Prestación de Servicios Profesionales",
   };
 
+  const handleSelectEmployee = (val: string | null) => {
+    if (!val) return;
+    setSelectedEmployeeId(val);
+    if (val === "manual") {
+      setEmployeeName("");
+      setJobTitle("");
+      setDepartment("Operaciones");
+      setEmployeeRfc("");
+      setEmployeeCurp("");
+      setSalary("");
+    } else {
+      const found = activeEmployees.find((e) => e.id === val);
+      if (found) {
+        setEmployeeName(found.name);
+        setJobTitle(found.jobTitle);
+        setDepartment(found.department || "Operaciones");
+        setEmployeeRfc(found.rfc || "");
+        setEmployeeCurp(found.curp || "");
+        setSalary(found.baseSalary ? String(found.baseSalary) : "");
+      }
+    }
+  };
+
   const handleCreate = (e: React.FormEvent) => {
     e.preventDefault();
     if (!employeeName.trim() || !jobTitle.trim()) {
-      toast.error("Por favor completa los campos requeridos.");
+      toast.error("Por favor completa el nombre del trabajador y su puesto.");
       return;
     }
 
-    setIsSubmitting(true);
-    setTimeout(() => {
-      setIsSubmitting(false);
+    const parsedSalary = parseFloat(salary) || 0;
+    const parsedSDI =
+      parsedSalary > 0
+        ? Math.round((parsedSalary / 30) * 1.0493 * 100) / 100
+        : 0;
+    const randomFolioNum = Math.floor(100 + Math.random() * 900);
 
-      const parsedSalary = parseFloat(salary) || 15000;
-      const parsedSDI = Math.round((parsedSalary / 30) * 1.0493 * 100) / 100; // Factor de integración base 1er año
-      const randomFolioNum = Math.floor(100 + Math.random() * 900);
+    const empId = selectedEmployeeId !== "manual" ? selectedEmployeeId : undefined;
 
-      const newContract: EmploymentContract = {
-        id: `ctr-${Date.now()}`,
-        folio: `KAN-CTR-2026-${randomFolioNum}`,
-        employeeId: `emp-${Date.now()}`,
-        employeeName: employeeName.trim(),
-        employeeRfc: employeeRfc.trim(),
-        employeeCurp: employeeCurp.trim(),
-        employeeAddress: "Playa del Carmen, Quintana Roo",
-        jobTitle: jobTitle.trim(),
-        department: department.trim(),
-        companyName: "K'anPro Solutions S.A. de C.V.",
-        companyRfc: "KPS220419RT5",
-        companyAddress: "Av. Constituyentes #120, Gonzalo Guerrero, Playa del Carmen, Q.R.",
-        legalRepName: "Lic. Andrea Garza Ramos",
-        templateType,
-        templateName: templateNames[templateType],
-        startDate,
-        endDate: templateType === "indeterminado" ? null : endDate,
-        baseSalaryMonthly: parsedSalary,
-        dailyIntegratedSalary: parsedSDI,
-        paymentFrequency,
-        workSchedule,
-        probationDays: templateType === "periodo_prueba" ? parseInt(probationDays, 10) : undefined,
-        status: "en_firma",
-        addendums: [],
-        createdAt: "Hoy",
-      };
+    const newContract: EmploymentContract = {
+      id: empId || `ctr-${Date.now()}`,
+      folio: `KAN-CTR-2026-${randomFolioNum}`,
+      employeeId: empId || `emp-${Date.now()}`,
+      employeeName: employeeName.trim(),
+      employeeRfc: employeeRfc.trim() || "XAXX010101000",
+      employeeCurp: employeeCurp.trim(),
+      employeeAddress: "Playa del Carmen, Quintana Roo",
+      jobTitle: jobTitle.trim(),
+      department: department.trim(),
+      companyName: companyInfo?.name || "Empresa Contratante",
+      companyRfc: companyInfo?.rfc || "XAXX010101000",
+      companyAddress:
+        companyInfo?.address || "Domicilio fiscal registrado en Quintana Roo, México",
+      legalRepName: companyInfo?.legalRepName || "Representante Legal",
+      templateType,
+      templateName: templateNames[templateType],
+      startDate,
+      endDate: templateType === "indeterminado" ? null : endDate || null,
+      baseSalaryMonthly: parsedSalary,
+      dailyIntegratedSalary: parsedSDI,
+      paymentFrequency,
+      workSchedule,
+      probationDays: templateType === "periodo_prueba" ? parseInt(probationDays, 10) : undefined,
+      status: "en_firma",
+      addendums: [],
+      createdAt: "Hoy",
+    };
 
-      onContractCreated(newContract);
-      toast.success("Contrato generado con éxito", {
-        description: `Se preparó el ${templateNames[templateType]} para ${employeeName}.`,
-      });
-
-      onOpenChange(false);
-    }, 600);
+    onContractCreated(newContract);
+    onOpenChange(false);
   };
 
   return (
@@ -145,6 +192,33 @@ export function ContractBuilderModal({
           </DialogHeader>
 
           <div className="space-y-3 pt-1">
+            {/* Active Employee Selector */}
+            {activeEmployees.length > 0 && (
+              <div className="space-y-1.5">
+                <Label className="text-xs font-bold text-foreground">
+                  Seleccionar Colaborador Activo
+                </Label>
+                <Select
+                  value={selectedEmployeeId}
+                  onValueChange={handleSelectEmployee}
+                >
+                  <SelectTrigger className="h-10 rounded-xl bg-background border-border/80 text-xs font-medium">
+                    <SelectValue placeholder="Seleccionar colaborador o manual" />
+                  </SelectTrigger>
+                  <SelectContent className="rounded-xl border-border/60 bg-popover">
+                    <SelectItem value="manual" className="text-xs font-semibold">
+                      ✍️ Ingresar manualmente / Nuevo
+                    </SelectItem>
+                    {activeEmployees.map((emp) => (
+                      <SelectItem key={emp.id} value={emp.id} className="text-xs">
+                        {emp.name} — {emp.jobTitle} ({emp.department})
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+
             {/* Template Selector */}
             <div className="space-y-1.5">
               <Label className="text-xs font-bold text-foreground">

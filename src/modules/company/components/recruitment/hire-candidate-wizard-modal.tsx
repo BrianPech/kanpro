@@ -39,6 +39,7 @@ import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { ContractTemplateType, EmploymentContract } from "../../types/contracts";
 import { DigitalSignatureModal } from "../contracts/digital-signature-modal";
+import { hireCandidateAction } from "../../actions/employees";
 
 interface ApplicantCandidate {
   id: string;
@@ -93,23 +94,42 @@ export function HireCandidateWizardModal({
     setStep(2);
   };
 
-  const handleCompleteHiring = () => {
+  const handleCompleteHiring = async () => {
     setIsProcessingHire(true);
-    setTimeout(() => {
-      setIsProcessingHire(false);
+    try {
+      const result = await hireCandidateAction({
+        applicationId: candidate.id,
+        candidateId: candidate.candidateId || "",
+        jobTitle,
+        department,
+        templateType,
+        startDate,
+        salary: Number(salary) || 16500,
+        paymentFrequency,
+        contractFolio,
+        signatureData: companySignatureData || undefined,
+      });
+
       setStep(3);
 
       onHiringCompleted({
-        employeeId: candidate.candidateId || `emp-${Date.now()}`,
+        employeeId: result.employeeId,
         employeeName: candidateName,
         jobTitle,
-        contractFolio,
+        contractFolio: result.folio,
       });
 
       toast.success(`¡${candidateName} ha sido contratado exitosamente!`, {
-        description: `Se creó su Expediente Digital 360, se dio de alta en Asistencias y se le asignaron sus Vacaciones LFT.`,
+        description: `Se registró en la plantilla activa y se generó el contrato con folio ${result.folio}.`,
       });
-    }, 1000);
+    } catch (err: any) {
+      console.error("Error al contratar candidato:", err);
+      toast.error("Error al procesar la contratación", {
+        description: err?.message || "Ocurrió un error al registrar al colaborador en la base de datos.",
+      });
+    } finally {
+      setIsProcessingHire(false);
+    }
   };
 
   return (

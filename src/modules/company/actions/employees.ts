@@ -184,6 +184,7 @@ export async function terminateCompanyEmployeeAction(
   }
 
   revalidatePath("/dashboard/company/employees");
+  revalidatePath("/dashboard/company/contracts");
   revalidatePath("/dashboard/company");
 
   return { success: true };
@@ -235,6 +236,7 @@ export async function reactivateCompanyEmployeeAction(employeeId: string) {
   }
 
   revalidatePath("/dashboard/company/employees");
+  revalidatePath("/dashboard/company/contracts");
   revalidatePath("/dashboard/company");
 
   return { success: true };
@@ -793,3 +795,223 @@ export async function acceptEmployeeInvitationAction({
 
   return { success: true };
 }
+
+export interface HireCandidateInput {
+  applicationId: string;
+  candidateId: string;
+  jobTitle: string;
+  department: string;
+  templateType: string;
+  startDate: string;
+  salary: number;
+  paymentFrequency?: string;
+  contractFolio?: string;
+  signatureData?: string;
+}
+
+/**
+ * Server Action: Formally hires a candidate from a job application.
+ * Atomically updates application status to 'Contratado',
+ * upserts the employee in company_employees,
+ * generates an official company contract record in company_contracts,
+ * and delivers an in-app congratulations notification to the candidate.
+ */
+export async function hireCandidateAction(input: HireCandidateInput) {
+  const supabase = await createClient();
+
+  const {
+    data: { user },
+    error: authError,
+  } = await supabase.auth.getUser();
+
+  if (authError || !user) {
+    throw new Error("No autorizado. Inicie sesión para continuar.");
+  }
+
+  // 1. Fetch application and associated vacancy
+  const { data: app, error: appError } = await supabase
+    .from("applications")
+    .select(`
+      id,
+      status,
+      candidate_id,
+      vacancy_id,
+      vacancies (
+        id,
+        title,
+        company_id,
+        recruiter_id
+      ),
+      candidate:candidate_profiles (
+        id,
+        profiles (
+          id,
+          full_name,
+          whatsapp_number,
+          email,
+          avatar_url
+        )
+      )
+    `)
+    .eq("id", input.applicationId)
+    .single();
+
+  if (appError || !app) {
+    throw new Error("No se encontró la postulación a contratar.");
+  }
+
+  const vacancy = Array.isArray(app.vacancies) ? app.vacancies[0] : app.vacancies;
+  if (!vacancy || (vacancy.company_id !== user.id && vacancy.recruiter_id !== user.id)) {
+    throw new Error("No tienes permisos para contratar candidatos para esta vacante.");
+  }
+
+  const now = new Date().toISOString();
+
+  // 2. Update application status to 'Contratado'
+  const { error: updateAppErr } = await supabase
+    .from("applications")
+    .update({
+      status: "Contratado",
+      hired_at: now,
+      updated_at: now,
+    })
+    .eq("id", input.applicationId);
+
+  if (updateAppErr) {
+    console.error("Error updating application status:", updateAppErr);
+    throw new Error("No se pudo actualizar el estado de la postulación.");
+  }
+
+  // 3. Extract candidate details for company_employees
+  const candidateProfile = Array.isArray(app.candidate) ? app.candidate[0] : app.candidate;
+  const baseProfile = candidateProfile?.profiles
+    ? (Array.isArray(candidateProfile.profiles) ? candidateProfile.profiles[0] : candidateProfile.profiles)
+    : {};
+
+  const fullName = baseProfile.full_name || "Colaborador K'anPro";
+  const phone = baseProfile.whatsapp_number || null;
+  const email = baseProfile.email || null;
+  const avatarUrl = baseProfile.avatar_url || null;
+
+  // 4. Upsert employee in company_employees
+  const { data: existingEmp } = await supabase
+    .from("company_employees")
+    .select("id")
+    .eq("company_id", user.id)
+    .eq("employee_id", input.candidateId)
+    .maybeSingle();
+
+  let employeeRecordId: string;
+
+  if (existingEmp) {
+    const { data: updatedEmp, error: updEmpErr } = await supabase
+      .from("company_employees")
+      .update({
+        job_title: input.jobTitle.trim(),
+        department: input.department.trim(),
+        hire_date: input.startDate,
+        base_salary_monthly: input.salary,
+        payment_frequency: input.paymentFrequency || "quincenal",
+        status: "active",
+        updated_at: now,
+      })
+      .eq("id", existingEmp.id)
+      .select("id")
+      .single();
+
+    if (updEmpErr) {
+      console.error("Error updating existing employee record:", updEmpErr);
+    }
+    employeeRecordId = updatedEmp?.id || existingEmp.id;
+  } else {
+    const { data: insertedEmp, error: insEmpErr } = await supabase
+      .from("company_employees")
+      .insert({
+        company_id: user.id,
+        employee_id: input.candidateId,
+        full_name: fullName,
+        phone,
+        email,
+        avatar_url: avatarUrl,
+        job_title: input.jobTitle.trim(),
+        department: input.department.trim(),
+        hire_date: input.startDate,
+        base_salary_monthly: input.salary,
+        payment_frequency: input.paymentFrequency || "quincenal",
+        status: "active",
+      })
+      .select("id")
+      .single();
+
+    if (insEmpErr) {
+      console.error("Error creating company employee upon hiring:", insEmpErr);
+      throw new Error(insEmpErr.message || "No se pudo registrar al colaborador en la plantilla.");
+    }
+    employeeRecordId = insertedEmp.id;
+  }
+
+  // 5. Generate and register formal contract in company_contracts
+  const templateTypeLabels: Record<string, string> = {
+    indeterminado: "Contrato por Tiempo Indeterminado (Planta)",
+    determinado: "Contrato por Tiempo Determinado",
+    periodo_prueba: "Periodo de Prueba (90 días)",
+    obra_determinada: "Contrato por Obra Determinada",
+  };
+  const contractTypeLabel = templateTypeLabels[input.templateType] || "Contrato Laboral Formal";
+  const folio = input.contractFolio || `KAN-CTR-2026-${Math.floor(100 + Math.random() * 900)}`;
+
+  const { error: contractErr } = await supabase
+    .from("company_contracts")
+    .insert({
+      company_id: user.id,
+      employee_id: employeeRecordId,
+      candidate_id: input.candidateId,
+      application_id: input.applicationId,
+      folio,
+      job_title: input.jobTitle.trim(),
+      department: input.department.trim(),
+      contract_type: contractTypeLabel,
+      template_type: input.templateType || "indeterminado",
+      start_date: input.startDate,
+      salary: input.salary,
+      payment_frequency: input.paymentFrequency || "quincenal",
+      company_signed: true,
+      company_signature_url: input.signatureData || null,
+      employee_signed: false,
+      status: "vigente",
+    });
+
+  if (contractErr) {
+    console.error("Error saving employment contract:", contractErr);
+  }
+
+  // 6. Deliver platform notification to candidate
+  const { data: compProfile } = await supabase
+    .from("company_profiles")
+    .select("company_name")
+    .eq("id", user.id)
+    .maybeSingle();
+
+  const companyName = compProfile?.company_name || "La empresa";
+
+  await supabase.from("notifications").insert({
+    user_id: input.candidateId,
+    title: "¡Felicidades! Has sido contratado",
+    description: `${companyName} te ha contratado formalmente para el puesto de "${input.jobTitle}". ¡Mucho éxito en tu nueva etapa laboral!`,
+    type: "hired",
+  });
+
+  // 7. Revalidate relevant routes
+  revalidatePath("/dashboard/company/applications");
+  revalidatePath("/dashboard/company/employees");
+  revalidatePath("/dashboard/company/contracts");
+  revalidatePath("/dashboard/company");
+  revalidatePath("/dashboard/candidate/applications");
+
+  return {
+    success: true,
+    employeeId: employeeRecordId,
+    folio,
+  };
+}
+

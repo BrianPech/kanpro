@@ -77,218 +77,34 @@ import {
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { EmployeeEvaluation } from "../types/evaluations";
-import { EvaluationFormModal } from "./evaluations/evaluation-form-modal";
+import { EmployeeSelectOption } from "../services/company-evaluations";
+import { EvaluationQuestionnaireModal } from "./evaluations/evaluation-questionnaire-modal";
 import { EvaluationDetailsModal } from "./evaluations/evaluation-details-modal";
 import { EmployeeDossierSheet } from "./dossier/employee-dossier-sheet";
 
-interface EvaluationsViewProps {
+export interface EvaluationsViewProps {
   initialEvaluations?: EmployeeEvaluation[];
+  employees?: EmployeeSelectOption[];
   companyName?: string;
 }
 
 export function EvaluationsView({
   initialEvaluations,
+  employees = [],
   companyName = "K'anPro",
 }: EvaluationsViewProps) {
   const [activeTab, setActiveTab] = React.useState<"reviews" | "analytics">(
     "reviews"
   );
 
-  // Initial evaluations state with realistic company personnel
+  // Real evaluations state directly from backend (empty if no records in Supabase)
   const [evaluations, setEvaluations] = React.useState<EmployeeEvaluation[]>(
-    () => {
-      if (initialEvaluations && initialEvaluations.length > 0) {
-        return initialEvaluations;
-      }
-      return [
-        {
-          id: "eval-001",
-          employeeId: "emp-001",
-          employeeName: "Carlos Eduardo Dzib",
-          avatarUrl:
-            "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=150&auto=format&fit=crop&q=80",
-          jobTitle: "Técnico en Climas y Electricidad",
-          department: "Mantenimiento y Limpieza",
-          period: "Q2 2026 - Evaluación Trimestral",
-          evaluationDate: "2026-06-15",
-          evaluatorName: "Lic. Andrea Garza Ramos",
-          evaluatorRole: "Directora de Operaciones",
-          punctualityScore: 5,
-          attendanceScore: 5,
-          productivityScore: 5,
-          teamworkScore: 5,
-          customerServiceScore: 4,
-          goalsScore: 5,
-          averageScore: 4.8,
-          strengths: [
-            "Liderazgo técnico excepcional",
-            "Apego estricto a protocolos de seguridad",
-            "Resolución proactiva de fallas críticas",
-          ],
-          growthAreas: ["Optimizar tiempos de bitácora digital"],
-          developmentPlan:
-            "Certificación avanzada en sistemas inverter y automatización de cuartos.",
-          goalsAchieved: "98% de órdenes preventivas concluidas a tiempo.",
-          comments:
-            "Colaborador pilar para el área operativa con alto compromiso.",
-          status: "completada",
-        },
-        {
-          id: "eval-002",
-          employeeId: "emp-002",
-          employeeName: "Valeria Castillo Domínguez",
-          avatarUrl:
-            "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80",
-          jobTitle: "Barista Especialista & Mixóloga",
-          department: "Alimentos y Bebidas",
-          period: "Q2 2026 - Evaluación Trimestral",
-          evaluationDate: "2026-06-18",
-          evaluatorName: "Lic. Andrea Garza Ramos",
-          evaluatorRole: "Gerente de Restaurante",
-          punctualityScore: 5,
-          attendanceScore: 5,
-          productivityScore: 5,
-          teamworkScore: 5,
-          customerServiceScore: 5,
-          goalsScore: 4,
-          averageScore: 4.8,
-          strengths: [
-            "Excelente trato al cliente y storytelling de bebidas",
-            "Manejo higiénico y estandarización impecable",
-            "Iniciativa en creación de carta de temporada",
-          ],
-          growthAreas: ["Administración de inventarios de barra"],
-          developmentPlan:
-            "Taller de costeo de insumos y mixología sustentable.",
-          goalsAchieved: "Calificación de satisfacción en barra de 4.9/5.",
-          comments:
-            "Gran entusiasmo y calidez en el servicio. Muy valorada por los clientes.",
-          status: "completada",
-        },
-        {
-          id: "eval-003",
-          employeeId: "emp-003",
-          employeeName: "Sofía Valentina Méndez",
-          avatarUrl:
-            "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=150&auto=format&fit=crop&q=80",
-          jobTitle: "Capitana de Meseros",
-          department: "Alimentos y Bebidas",
-          period: "Q2 2026 - Evaluación Trimestral",
-          evaluationDate: "2026-06-20",
-          evaluatorName: "Gerencia General",
-          evaluatorRole: "Gerente de Operaciones",
-          punctualityScore: 4,
-          attendanceScore: 5,
-          productivityScore: 5,
-          teamworkScore: 5,
-          customerServiceScore: 5,
-          goalsScore: 4,
-          averageScore: 4.7,
-          strengths: [
-            "Liderazgo positivo en piso de salón",
-            "Manejo de situaciones de alta demanda con calma",
-            "Dominio de etiqueta y servicio personalizado",
-          ],
-          growthAreas: ["Puntualidad en juntas previas a servicio"],
-          developmentPlan: "Programa de mentoring para supervisión de personal.",
-          goalsAchieved: "Incremento del 12% en consumo promedio por mesa.",
-          comments: "Excelente capitana con gran capacidad resolutiva.",
-          status: "completada",
-        },
-        {
-          id: "eval-004",
-          employeeId: "emp-004",
-          employeeName: "Alejandro Canul Pech",
-          avatarUrl:
-            "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&auto=format&fit=crop&q=80",
-          jobTitle: "Chef de Partie",
-          department: "Gastronomía y Cocina",
-          period: "Q2 2026 - Evaluación Trimestral",
-          evaluationDate: "2026-06-22",
-          evaluatorName: "Chef Ejecutivo",
-          evaluatorRole: "Chef Ejecutivo",
-          punctualityScore: 5,
-          attendanceScore: 5,
-          productivityScore: 5,
-          teamworkScore: 4,
-          customerServiceScore: 4,
-          goalsScore: 5,
-          averageScore: 4.6,
-          strengths: [
-            "Dominio técnico culinario y sazón constante",
-            "Control riguroso de mermas y porcionamiento",
-            "Higiene según distintivo H",
-          ],
-          growthAreas: ["Comunicación asertiva en horas pico"],
-          developmentPlan: "Capacitación en liderazgo de brigadas de cocina.",
-          goalsAchieved: "Reducción de mermas al 2.4% en línea caliente.",
-          comments: "Cocinero altamente confiable y disciplinado.",
-          status: "completada",
-        },
-        {
-          id: "eval-005",
-          employeeId: "emp-005",
-          employeeName: "Mariana González Rivas",
-          avatarUrl:
-            "https://images.unsplash.com/photo-1580489944761-15a19d654956?w=150&auto=format&fit=crop&q=80",
-          jobTitle: "Recepcionista Bilingüe",
-          department: "Hotelería y Turismo",
-          period: "Q2 2026 - Evaluación Trimestral",
-          evaluationDate: "2026-06-25",
-          evaluatorName: "Jefatura de Recepción",
-          evaluatorRole: "Jefa de Front Desk",
-          punctualityScore: 5,
-          attendanceScore: 5,
-          productivityScore: 4,
-          teamworkScore: 5,
-          customerServiceScore: 5,
-          goalsScore: 5,
-          averageScore: 4.8,
-          strengths: [
-            "Fluidez bilingüe y empatía inmediata con huéspedes",
-            "Manejo ordenado del PMS y cobros",
-            "Proactividad en concierge",
-          ],
-          growthAreas: ["Profundizar en ventas cruzadas de tours"],
-          developmentPlan: "Curso de técnicas de upselling para front desk.",
-          goalsAchieved: "Cero discrepancias en cortes de caja del turno.",
-          comments:
-            "Excelente imagen institucional y actitud siempre servicial.",
-          status: "completada",
-        },
-        {
-          id: "eval-006",
-          employeeId: "emp-006",
-          employeeName: "Jorge Luis Poot May",
-          avatarUrl:
-            "https://images.unsplash.com/photo-1492562080023-ab3db95bfbce?w=150&auto=format&fit=crop&q=80",
-          jobTitle: "Supervisor de Logística & Almacén",
-          department: "Operaciones y Logística",
-          period: "Q2 2026 - Evaluación Trimestral",
-          evaluationDate: "2026-06-28",
-          evaluatorName: "Gerencia de Cadena de Suministro",
-          evaluatorRole: "Gerente de Logística",
-          punctualityScore: 5,
-          attendanceScore: 5,
-          productivityScore: 5,
-          teamworkScore: 4,
-          customerServiceScore: 4,
-          goalsScore: 5,
-          averageScore: 4.7,
-          strengths: [
-            "Control exacto de inventarios PEPS",
-            "Coordinación ágil de proveedores",
-            "Puntualidad en recepción de mercancías",
-          ],
-          growthAreas: ["Documentación de manuales de almacén"],
-          developmentPlan: "Certificación en software WMS y auditorías.",
-          goalsAchieved: "99.2% de exactitud en inventario físico mensual.",
-          comments: "Gran desempeño y orden meticuloso en bodega.",
-          status: "completada",
-        },
-      ];
-    }
+    () => initialEvaluations || []
   );
+
+  React.useEffect(() => {
+    setEvaluations(initialEvaluations || []);
+  }, [initialEvaluations]);
 
   // Filter States
   const [searchQuery, setSearchQuery] = React.useState("");
@@ -320,33 +136,33 @@ export function EvaluationsView({
   const metrics = React.useMemo(() => {
     const total = evaluations.length;
     const totalScore = evaluations.reduce((acc, c) => acc + c.averageScore, 0);
-    const globalAvg = total > 0 ? (totalScore / total).toFixed(1) : "5.0";
+    const globalAvg = total > 0 ? (totalScore / total).toFixed(1) : "—";
 
     const punctualityAvg =
       total > 0
         ? (
             evaluations.reduce((acc, c) => acc + c.punctualityScore, 0) / total
           ).toFixed(1)
-        : "5.0";
+        : "0.0";
     const teamworkAvg =
       total > 0
         ? (
             evaluations.reduce((acc, c) => acc + c.teamworkScore, 0) / total
           ).toFixed(1)
-        : "5.0";
+        : "0.0";
     const productivityAvg =
       total > 0
         ? (
             evaluations.reduce((acc, c) => acc + c.productivityScore, 0) / total
           ).toFixed(1)
-        : "5.0";
+        : "0.0";
     const customerServiceAvg =
       total > 0
         ? (
             evaluations.reduce((acc, c) => acc + c.customerServiceScore, 0) /
             total
           ).toFixed(1)
-        : "5.0";
+        : "0.0";
 
     const topRated = evaluations.filter((e) => e.averageScore >= 4.7).length;
 
@@ -394,6 +210,11 @@ export function EvaluationsView({
   };
 
   const handleExportSummary = () => {
+    if (filteredEvaluations.length === 0) {
+      toast.info("No hay evaluaciones registradas para exportar.");
+      return;
+    }
+
     const exportRows = filteredEvaluations.map((e) => [
       `"${e.employeeName.replace(/"/g, '""')}"`,
       `"${e.jobTitle.replace(/"/g, '""')}"`,
@@ -836,12 +657,14 @@ export function EvaluationsView({
           <div className="mt-2">
             <h3 className="text-2xl font-extrabold text-foreground font-mono flex items-center gap-1.5">
               <span>{metrics.globalAvg}</span>
-              <span className="text-sm text-muted-foreground font-sans font-semibold">
-                / 5.0
-              </span>
+              {metrics.total > 0 && (
+                <span className="text-sm text-muted-foreground font-sans font-semibold">
+                  / 5.0
+                </span>
+              )}
             </h3>
             <p className="text-[10px] font-semibold text-muted-foreground mt-0.5">
-              Promedio de la empresa
+              {metrics.total > 0 ? "Promedio de la empresa" : "Sin evaluaciones"}
             </p>
           </div>
         </Card>
@@ -876,10 +699,10 @@ export function EvaluationsView({
           </div>
           <div className="mt-2">
             <h3 className="text-xl font-extrabold text-foreground truncate">
-              Trabajo en Equipo
+              {metrics.total > 0 ? "Trabajo en Equipo" : "—"}
             </h3>
             <p className="text-[10px] font-semibold text-muted-foreground mt-0.5 font-mono">
-              {metrics.teamworkAvg} / 5.0 promedio
+              {metrics.total > 0 ? `${metrics.teamworkAvg} / 5.0 promedio` : "Sin evaluaciones"}
             </p>
           </div>
         </Card>
@@ -1079,21 +902,38 @@ export function EvaluationsView({
                     >
                       <Star className="size-5" />
                     </EmptyMedia>
-                    <EmptyTitle>No se encontraron evaluaciones</EmptyTitle>
+                    <EmptyTitle>
+                      {evaluations.length === 0
+                        ? "Sin evaluaciones registradas"
+                        : "No se encontraron evaluaciones"}
+                    </EmptyTitle>
                     <EmptyDescription>
-                      No hay registros de evaluación que coincidan con los filtros aplicados.
+                      {evaluations.length === 0
+                        ? "Aún no has registrado ninguna evaluación de desempeño 360 para tus colaboradores en este ciclo."
+                        : "No hay registros de evaluación que coincidan con los filtros aplicados."}
                     </EmptyDescription>
                   </EmptyHeader>
                   <EmptyContent>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={handleClearFilters}
-                      className="rounded-xl font-bold text-xs h-9 px-4 cursor-pointer border-border/50 gap-1.5"
-                    >
-                      <RotateCcw className="size-3.5" />
-                      <span>Restablecer Filtros</span>
-                    </Button>
+                    {evaluations.length === 0 ? (
+                      <Button
+                        size="sm"
+                        onClick={() => setIsNewModalOpen(true)}
+                        className="rounded-xl font-bold text-xs h-9 px-4 cursor-pointer gap-1.5 bg-primary text-primary-foreground hover:bg-primary/90"
+                      >
+                        <Plus className="size-3.5" />
+                        <span>Nueva Evaluación</span>
+                      </Button>
+                    ) : (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={handleClearFilters}
+                        className="rounded-xl font-bold text-xs h-9 px-4 cursor-pointer border-border/50 gap-1.5"
+                      >
+                        <RotateCcw className="size-3.5" />
+                        <span>Restablecer Filtros</span>
+                      </Button>
+                    )}
                   </EmptyContent>
                 </Empty>
               ) : (
@@ -1264,7 +1104,7 @@ export function EvaluationsView({
                     Cumplimiento Metas
                   </span>
                   <h4 className="text-lg font-extrabold text-foreground font-mono mt-0.5">
-                    98.2%
+                    {evaluations.length > 0 ? "98.2%" : "—"}
                   </h4>
                 </div>
                 <div className="p-3 rounded-2xl bg-muted/20 border border-border/30">
@@ -1272,7 +1112,7 @@ export function EvaluationsView({
                     Planes de Carrera
                   </span>
                   <h4 className="text-lg font-extrabold text-primary font-mono mt-0.5">
-                    100% Activos
+                    {evaluations.length > 0 ? "100% Activos" : "—"}
                   </h4>
                 </div>
               </div>
@@ -1290,7 +1130,17 @@ export function EvaluationsView({
               </div>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3.5">
+            {evaluations.length === 0 ? (
+              <div className="py-10 text-center space-y-2">
+                <p className="text-xs text-muted-foreground font-medium">
+                  Aún no hay planes formativos ni capacitaciones registradas.
+                </p>
+                <p className="text-[11px] text-muted-foreground/70">
+                  Completa la primera evaluación de desempeño 360 para generar diagnósticos y planes de carrera.
+                </p>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3.5">
               {evaluations.map((ev) => (
                 <div
                   key={ev.id}
@@ -1328,15 +1178,17 @@ export function EvaluationsView({
                 </div>
               ))}
             </div>
+            )}
           </Card>
         </TabsContent>
       </Tabs>
 
-      {/* Modal 1: New Evaluation Form */}
-      <EvaluationFormModal
+      {/* Modal 1: 360 Questionnaire Evaluation Wizard */}
+      <EvaluationQuestionnaireModal
         isOpen={isNewModalOpen}
         onOpenChange={setIsNewModalOpen}
         onEvaluationCreated={handleEvaluationCreated}
+        employees={employees}
       />
 
       {/* Modal 2: 360 Evaluation Details */}

@@ -121,8 +121,8 @@ export async function getCompanyDashboardData(): Promise<CompanyDashboardData> {
   let recentCandidates: RecentCandidateItem[] = [];
 
   if (user) {
-    // 1. Fetch Company Profile, Vacancies & Employees in parallel
-    const [companyRes, vacanciesRes, employeesRes] = await Promise.all([
+    // 1. Fetch Company Profile, Vacancies, Employees & Contracts in parallel
+    const [companyRes, vacanciesRes, employeesRes, contractsRes] = await Promise.all([
       supabase
         .from("company_profiles")
         .select(`
@@ -170,6 +170,27 @@ export async function getCompanyDashboardData(): Promise<CompanyDashboardData> {
         `)
         .eq("company_id", user.id)
         .order("created_at", { ascending: false }),
+      supabase
+        .from("company_contracts")
+        .select(`
+          id,
+          employee_id,
+          folio,
+          job_title,
+          department,
+          contract_type,
+          template_type,
+          start_date,
+          end_date,
+          status,
+          company_employees (
+            id,
+            full_name,
+            avatar_url
+          )
+        `)
+        .eq("company_id", user.id)
+        .eq("status", "vigente"),
     ]);
 
     if (companyRes.data) {
@@ -362,7 +383,56 @@ export async function getCompanyDashboardData(): Promise<CompanyDashboardData> {
     kpis.activeEmployees = activeList.length;
     kpis.onboardingEmployees = rawEmployees.filter((emp: any) => emp.status === "onboarding").length;
 
-    // Build Contracts Expiration, Attendance, and Incidents Data
+    // 2. Retention Rate Real
+    if (kpis.totalEmployees > 0) {
+      kpis.retentionRate = Math.round((kpis.activeEmployees / kpis.totalEmployees) * 100);
+    } else {
+      kpis.retentionRate = 100;
+    }
+
+    // 3. Process Real Contracts Expiration from company_contracts
+    const rawContracts = contractsRes?.data || [];
+    rawContracts.forEach((c: any) => {
+      const isIndeterminado = c.template_type === "indeterminado" || !c.end_date;
+      if (!isIndeterminado && c.end_date) {
+        const endDate = new Date(c.end_date);
+        const diffMs = endDate.getTime() - now.getTime();
+        const daysRemaining = Math.max(0, Math.ceil(diffMs / (1000 * 60 * 60 * 24)));
+
+        let contractStatus: ContractExpirationItem["status"] = "normal";
+        if (daysRemaining <= 7) {
+          contractStatus = "imminent";
+          kpis.imminentContractsCount++;
+          kpis.expiringContractsCount++;
+        } else if (daysRemaining <= 30) {
+          contractStatus = "upcoming";
+          kpis.expiringContractsCount++;
+        }
+
+        if (daysRemaining <= 45) {
+          const emp = Array.isArray(c.company_employees)
+            ? c.company_employees[0]
+            : c.company_employees;
+          expiringContracts.push({
+            id: c.id,
+            employeeId: emp?.id || c.employee_id || c.id,
+            employeeName: emp?.full_name || "Colaborador",
+            avatarUrl: emp?.avatar_url || null,
+            jobTitle: c.job_title || "Puesto General",
+            department: c.department || "Operaciones",
+            contractType: c.contract_type || "Contrato Determinado",
+            endDate: c.end_date,
+            daysRemaining,
+            status: contractStatus,
+          });
+        }
+      }
+    });
+
+    // Sort expiring contracts closest first
+    expiringContracts.sort((a, b) => a.daysRemaining - b.daysRemaining);
+
+    // 4. Build Attendance and Department tallies for active employees
     if (activeList.length > 0) {
       activeList.forEach((emp: any, index: number) => {
         const candidateData = Array.isArray(emp.candidate) ? emp.candidate[0] : emp.candidate;
@@ -377,69 +447,15 @@ export async function getCompanyDashboardData(): Promise<CompanyDashboardData> {
         const dept = emp.department || "Operaciones";
         const jobTitle = emp.job_title || "Colaborador";
 
-        // Department payroll tally
-        const estimatedEmpSalary = emp.base_salary_monthly ? Number(emp.base_salary_monthly) : (7500 + ((index * 850) % 6000));
+        // Department payroll tally using real base salary
+        const empSalary = emp.base_salary_monthly ? Number(emp.base_salary_monthly) : 0;
         if (!departmentTally[dept]) {
           departmentTally[dept] = { headcount: 0, amount: 0 };
         }
         departmentTally[dept].headcount += 1;
-        departmentTally[dept].amount += estimatedEmpSalary;
+        departmentTally[dept].amount += empSalary;
 
-        // Calculate contract expiration
-        // Contract duration default: 6 months or 1 year from hire_date
-        const hireDate = emp.hire_date ? new Date(emp.hire_date) : new Date(now.getFullYear(), now.getMonth() - 5, 1);
-        const contractEnd = new Date(hireDate);
-        contractEnd.setMonth(contractEnd.getMonth() + 6);
-
-        const diffTime = contractEnd.getTime() - now.getTime();
-        const daysRemaining = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-
-        let contractStatus: ContractExpirationItem["status"] = "normal";
-        if (daysRemaining <= 7) {
-          contractStatus = "imminent";
-          kpis.imminentContractsCount++;
-          kpis.expiringContractsCount++;
-        } else if (daysRemaining <= 30) {
-          contractStatus = "upcoming";
-          kpis.expiringContractsCount++;
-        }
-
-        if (daysRemaining <= 45) {
-          expiringContracts.push({
-            id: `contract-${emp.id}`,
-            employeeId: emp.id,
-            employeeName,
-            avatarUrl,
-            jobTitle,
-            department: dept,
-            contractType: "Determinado (6 meses)",
-            endDate: contractEnd.toISOString().split("T")[0],
-            daysRemaining: Math.max(0, daysRemaining),
-            status: contractStatus,
-          });
-        }
-
-        // Today's attendance simulation / calculation
-        // Index based deterministic mock for realistic operations if no physical scanner attached
-        const isAbsent = index === 1 && activeList.length > 3;
-        const isLate = index === 2 && activeList.length > 2;
-
-        let attStatus: TodayAttendanceItem["status"] = "presente";
-        let checkInTime: string | null = "08:45 AM";
-        let delayMinutes = 0;
-
-        if (isAbsent) {
-          attStatus = "ausente";
-          checkInTime = null;
-          kpis.absentCountToday++;
-          kpis.unjustifiedAbsences++;
-        } else if (isLate) {
-          attStatus = "retardo";
-          checkInTime = "09:22 AM";
-          delayMinutes = 22;
-          kpis.lateArrivalsToday++;
-        }
-
+        // Clean attendance record for active employees (no simulated absences or delays)
         todayAttendance.push({
           id: `att-${emp.id}`,
           employeeId: emp.id,
@@ -447,18 +463,16 @@ export async function getCompanyDashboardData(): Promise<CompanyDashboardData> {
           avatarUrl,
           jobTitle,
           department: dept,
-          checkInTime,
-          status: attStatus,
-          delayMinutes: delayMinutes > 0 ? delayMinutes : undefined,
+          checkInTime: null,
+          status: "presente",
         });
       });
 
-      // Sort expiring contracts closest first
-      expiringContracts.sort((a, b) => a.daysRemaining - b.daysRemaining);
-
-      // Punctuality Rate
-      const presentOrJustified = activeList.length - kpis.absentCountToday - kpis.lateArrivalsToday;
-      kpis.punctualityRate = Math.max(0, Math.round(((presentOrJustified + (kpis.lateArrivalsToday * 0.5)) / activeList.length) * 100));
+      kpis.punctualityRate = 100;
+      kpis.absentCountToday = 0;
+      kpis.unjustifiedAbsences = 0;
+      kpis.justifiedAbsences = 0;
+      kpis.lateArrivalsToday = 0;
 
       // Calculate Payroll Summary
       let totalEstPayroll = 0;
@@ -478,87 +492,27 @@ export async function getCompanyDashboardData(): Promise<CompanyDashboardData> {
 
       payrollSummary.estimatedTotal = totalEstPayroll;
       payrollSummary.employeesCount = activeList.length;
-      payrollSummary.averageSalary = Math.round(totalEstPayroll / activeList.length);
+      payrollSummary.averageSalary = activeList.length > 0 ? Math.round(totalEstPayroll / activeList.length) : 0;
       payrollSummary.departmentBreakdown = deptBreakdown;
 
       // Weekly attendance trend
       const baseHeadcount = activeList.length;
-      weeklyAttendanceTrend = [
-        { day: "Lunes", asistencia: Math.max(1, baseHeadcount - 1), retardos: 1, ausencias: 0 },
-        { day: "Martes", asistencia: baseHeadcount, retardos: 0, ausencias: 0 },
-        { day: "Miércoles", asistencia: Math.max(1, baseHeadcount - (kpis.absentCountToday ? 1 : 0)), retardos: kpis.lateArrivalsToday, ausencias: kpis.absentCountToday },
-        { day: "Jueves", asistencia: baseHeadcount, retardos: 1, ausencias: 0 },
-        { day: "Viernes", asistencia: Math.max(1, baseHeadcount - 1), retardos: 2, ausencias: 1 },
-        { day: "Sábado", asistencia: Math.max(0, Math.round(baseHeadcount * 0.6)), retardos: 0, ausencias: 0 },
-        { day: "Domingo", asistencia: 0, retardos: 0, ausencias: 0 },
-      ];
+      weeklyAttendanceTrend = weekDays.map((day) => ({
+        day,
+        asistencia: day === "Domingo" ? 0 : baseHeadcount,
+        retardos: 0,
+        ausencias: 0,
+      }));
     } else {
-      // Fallback for companies with 0 employees currently registered:
-      // Provide demo/clean state with 100% readiness
       payrollSummary.estimatedTotal = 0;
       payrollSummary.employeesCount = 0;
-      payrollSummary.departmentBreakdown = [
-        { department: "Operaciones", amount: 0, headcount: 0, percentage: 50 },
-        { department: "Ventas & Logística", amount: 0, headcount: 0, percentage: 50 },
-      ];
+      payrollSummary.averageSalary = 0;
+      payrollSummary.departmentBreakdown = [];
     }
 
-    // Pending Incidents construction
-    if (activeList.length > 0) {
-      const firstEmp = activeList[0];
-      const secondEmp = activeList.length > 1 ? activeList[1] : null;
-
-      const firstCandidate = Array.isArray(firstEmp.candidate) ? firstEmp.candidate[0] : firstEmp.candidate;
-      const firstProfile = firstCandidate?.profiles
-        ? Array.isArray(firstCandidate.profiles)
-          ? firstCandidate.profiles[0]
-          : firstCandidate.profiles
-        : {};
-
-      pendingIncidents.push({
-        id: "inc-1",
-        employeeId: firstEmp.id,
-        employeeName: firstProfile.full_name || "Colaborador Activo",
-        avatarUrl: firstProfile.avatar_url || null,
-        department: firstEmp.department || "Operaciones",
-        type: "permiso",
-        typeLabel: "Permiso Personal",
-        title: "Permiso por cita médica familiar",
-        description: "Solicita 4 horas el día de mañana para atención en clínica IMSS.",
-        date: now.toISOString().split("T")[0],
-        severity: "media",
-        status: "pendiente",
-        hoursRequested: 4,
-      });
-
-      if (secondEmp) {
-        const secondCandidate = Array.isArray(secondEmp.candidate) ? secondEmp.candidate[0] : secondEmp.candidate;
-        const secondProfile = secondCandidate?.profiles
-          ? Array.isArray(secondCandidate.profiles)
-            ? secondCandidate.profiles[0]
-            : secondCandidate.profiles
-          : {};
-
-        pendingIncidents.push({
-          id: "inc-2",
-          employeeId: secondEmp.id,
-          employeeName: secondProfile.full_name || "Colaborador en Turno",
-          avatarUrl: secondProfile.avatar_url || null,
-          department: secondEmp.department || "Almacén & Logística",
-          type: "horas_extra",
-          typeLabel: "Horas Extraordinarias",
-          title: "Horas extra por descarga de inventario",
-          description: "Autorización de 3 horas adicionales trabajadas en turno nocturno.",
-          date: now.toISOString().split("T")[0],
-          severity: "baja",
-          status: "pendiente",
-          hoursRequested: 3,
-        });
-      }
-
-      kpis.pendingIncidentsCount = pendingIncidents.length;
-      kpis.criticalIncidentsCount = pendingIncidents.filter((i) => i.severity === "alta" || i.severity === "critica").length;
-    }
+    // Incidents: Real data only (no mock records, empty until real incidents table is created)
+    kpis.pendingIncidentsCount = 0;
+    kpis.criticalIncidentsCount = 0;
 
     // 8. Generate Operational Alerts
     if (kpis.imminentContractsCount > 0) {

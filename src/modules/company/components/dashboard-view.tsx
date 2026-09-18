@@ -13,7 +13,6 @@ import {
   AlertCircle,
   FileSpreadsheet,
   ChevronRight,
-  ShieldCheck,
   Layers,
   CalendarCheck,
 } from "lucide-react";
@@ -86,7 +85,6 @@ export function DashboardView({
   kpis,
   alerts = [],
   openVacanciesList = [],
-  subscriptionSummary,
   applicationsSummary,
   recentCandidates = [],
   todayAttendance = [],
@@ -617,60 +615,6 @@ export function DashboardView({
                 </div>
               </CardContent>
             </Card>
-
-            {/* Suscripción & Plan */}
-            <Card className="rounded-xl border border-border shadow-xs">
-              <CardHeader className="p-4 pb-3">
-                <div className="flex items-center justify-between">
-                  <CardTitle className="text-sm font-bold">
-                    Suscripción & Plan
-                  </CardTitle>
-                  <Badge
-                    variant="outline"
-                    className="text-[10px] font-semibold bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border-emerald-500/20"
-                  >
-                    {subscriptionSummary?.status === "active" ? "Activo" : "En Prueba"}
-                  </Badge>
-                </div>
-                <CardDescription className="text-[11px]">
-                  {subscriptionSummary?.planName || "Plan Pro"}
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="p-4 pt-0 space-y-2.5 text-xs">
-                <div className="flex justify-between items-center py-1 border-b border-border/50">
-                  <span className="text-muted-foreground font-medium">
-                    Vacantes Destacadas
-                  </span>
-                  <span className="font-bold text-foreground">
-                    {subscriptionSummary?.featuredVacanciesUsed || 0} /{" "}
-                    {subscriptionSummary?.featuredVacanciesAllowance || 3}
-                  </span>
-                </div>
-                <div className="flex justify-between items-center py-1">
-                  <span className="text-muted-foreground font-medium">
-                    Verificación Legal
-                  </span>
-                  <div className="flex items-center gap-1 font-bold text-foreground">
-                    <ShieldCheck className="size-3.5 text-emerald-500" />
-                    <span>
-                      {subscriptionSummary?.verificationStatus === "approved"
-                        ? "Verificada"
-                        : "En Auditoría"}
-                    </span>
-                  </div>
-                </div>
-                <div className="pt-2">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    render={<Link href="/dashboard/company/settings" />}
-                    className="w-full text-xs font-semibold rounded-xl cursor-pointer h-9"
-                  >
-                    Configurar Cuenta & Facturación
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
           </div>
         )}
       </div>
@@ -961,60 +905,6 @@ export function DashboardView({
                 <span>Vacaciones</span>
               </Button>
             </CardContent>
-          </Card>
-
-          {/* 3. Estado de la Cuenta & Suscripción */}
-          <Card className="rounded-xl border border-border shadow-xs">
-            <CardHeader className="pb-3">
-              <div className="flex items-center justify-between">
-                <CardTitle className="text-base font-bold">
-                  Suscripción & Plan
-                </CardTitle>
-                <Badge
-                  variant="outline"
-                  className="text-[11px] font-semibold bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border-emerald-500/20"
-                >
-                  {subscriptionSummary?.status === "active" ? "Activo" : "En Prueba"}
-                </Badge>
-              </div>
-              <CardDescription className="text-xs">
-                {subscriptionSummary?.planName || "Plan Pro"}
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-3 text-xs">
-              <div className="flex justify-between items-center py-1 border-b border-border/50">
-                <span className="text-muted-foreground font-medium">
-                  Vacantes Destacadas
-                </span>
-                <span className="font-bold text-foreground">
-                  {subscriptionSummary?.featuredVacanciesUsed || 0} /{" "}
-                  {subscriptionSummary?.featuredVacanciesAllowance || 3}
-                </span>
-              </div>
-              <div className="flex justify-between items-center py-1">
-                <span className="text-muted-foreground font-medium">
-                  Verificación Legal
-                </span>
-                <div className="flex items-center gap-1 font-bold text-foreground">
-                  <ShieldCheck className="size-3.5 text-emerald-500" />
-                  <span>
-                    {subscriptionSummary?.verificationStatus === "approved"
-                      ? "Verificada"
-                      : "En Auditoría"}
-                  </span>
-                </div>
-              </div>
-            </CardContent>
-            <CardFooter className="pt-1 pb-4 px-6">
-              <Button
-                variant="outline"
-                size="sm"
-                render={<Link href="/dashboard/company/settings" />}
-                className="w-full text-xs font-semibold rounded-xl cursor-pointer"
-              >
-                Configurar Cuenta & Facturación
-              </Button>
-            </CardFooter>
           </Card>
         </div>
       </div>

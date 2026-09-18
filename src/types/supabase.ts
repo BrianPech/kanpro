@@ -87,8 +87,11 @@ export type Database = {
         Row: {
           applied_at: string
           candidate_id: string
+          hired_at: string | null
           id: string
+          interview_details: Json | null
           notes: string | null
+          rating: number | null
           status: string
           updated_at: string
           vacancy_id: string
@@ -96,8 +99,11 @@ export type Database = {
         Insert: {
           applied_at?: string
           candidate_id: string
+          hired_at?: string | null
           id?: string
+          interview_details?: Json | null
           notes?: string | null
+          rating?: number | null
           status?: string
           updated_at?: string
           vacancy_id: string
@@ -105,8 +111,11 @@ export type Database = {
         Update: {
           applied_at?: string
           candidate_id?: string
+          hired_at?: string | null
           id?: string
+          interview_details?: Json | null
           notes?: string | null
+          rating?: number | null
           status?: string
           updated_at?: string
           vacancy_id?: string
@@ -257,6 +266,112 @@ export type Database = {
           },
         ]
       }
+      company_contracts: {
+        Row: {
+          application_id: string | null
+          candidate_id: string | null
+          company_id: string
+          company_signature_url: string | null
+          company_signed: boolean
+          contract_type: string
+          created_at: string
+          department: string
+          employee_id: string | null
+          employee_signature_url: string | null
+          employee_signed: boolean
+          end_date: string | null
+          folio: string
+          id: string
+          job_title: string
+          notes: string | null
+          payment_frequency: string
+          salary: number
+          start_date: string
+          status: string
+          template_type: string
+          updated_at: string
+        }
+        Insert: {
+          application_id?: string | null
+          candidate_id?: string | null
+          company_id: string
+          company_signature_url?: string | null
+          company_signed?: boolean
+          contract_type: string
+          created_at?: string
+          department: string
+          employee_id?: string | null
+          employee_signature_url?: string | null
+          employee_signed?: boolean
+          end_date?: string | null
+          folio: string
+          id?: string
+          job_title: string
+          notes?: string | null
+          payment_frequency?: string
+          salary: number
+          start_date: string
+          status?: string
+          template_type?: string
+          updated_at?: string
+        }
+        Update: {
+          application_id?: string | null
+          candidate_id?: string | null
+          company_id?: string
+          company_signature_url?: string | null
+          company_signed?: boolean
+          contract_type?: string
+          created_at?: string
+          department?: string
+          employee_id?: string | null
+          employee_signature_url?: string | null
+          employee_signed?: boolean
+          end_date?: string | null
+          folio?: string
+          id?: string
+          job_title?: string
+          notes?: string | null
+          payment_frequency?: string
+          salary?: number
+          start_date?: string
+          status?: string
+          template_type?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "company_contracts_application_id_fkey"
+            columns: ["application_id"]
+            referencedRelation: "applications"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "company_contracts_candidate_id_fkey"
+            columns: ["candidate_id"]
+            referencedRelation: "candidate_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "company_contracts_company_id_fkey"
+            columns: ["company_id"]
+            referencedRelation: "company_directory"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "company_contracts_company_id_fkey"
+            columns: ["company_id"]
+            referencedRelation: "company_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "company_contracts_employee_id_fkey"
+            columns: ["employee_id"]
+            referencedRelation: "company_employees"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       company_employees: {
         Row: {
           avatar_url: string | null
@@ -353,6 +468,115 @@ export type Database = {
             foreignKeyName: "company_employees_employee_id_fkey"
             columns: ["employee_id"]
             referencedRelation: "candidate_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      company_evaluations: {
+        Row: {
+          attendance_score: number
+          avatar_url: string | null
+          average_score: number
+          comments: string | null
+          company_id: string
+          created_at: string
+          customer_service_score: number
+          department: string | null
+          development_plan: string | null
+          employee_id: string | null
+          employee_name: string
+          evaluation_date: string
+          evaluator_id: string | null
+          evaluator_name: string
+          evaluator_role: string | null
+          goals_achieved: string | null
+          goals_score: number
+          growth_areas: Json | null
+          id: string
+          job_title: string | null
+          period: string
+          productivity_score: number
+          punctuality_score: number
+          status: string
+          strengths: Json | null
+          teamwork_score: number
+          updated_at: string
+        }
+        Insert: {
+          attendance_score?: number
+          avatar_url?: string | null
+          average_score?: number
+          comments?: string | null
+          company_id: string
+          created_at?: string
+          customer_service_score?: number
+          department?: string | null
+          development_plan?: string | null
+          employee_id?: string | null
+          employee_name: string
+          evaluation_date?: string
+          evaluator_id?: string | null
+          evaluator_name: string
+          evaluator_role?: string | null
+          goals_achieved?: string | null
+          goals_score?: number
+          growth_areas?: Json | null
+          id?: string
+          job_title?: string | null
+          period: string
+          productivity_score?: number
+          punctuality_score?: number
+          status?: string
+          strengths?: Json | null
+          teamwork_score?: number
+          updated_at?: string
+        }
+        Update: {
+          attendance_score?: number
+          avatar_url?: string | null
+          average_score?: number
+          comments?: string | null
+          company_id?: string
+          created_at?: string
+          customer_service_score?: number
+          department?: string | null
+          development_plan?: string | null
+          employee_id?: string | null
+          employee_name?: string
+          evaluation_date?: string
+          evaluator_id?: string | null
+          evaluator_name?: string
+          evaluator_role?: string | null
+          goals_achieved?: string | null
+          goals_score?: number
+          growth_areas?: Json | null
+          id?: string
+          job_title?: string | null
+          period?: string
+          productivity_score?: number
+          punctuality_score?: number
+          status?: string
+          strengths?: Json | null
+          teamwork_score?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "company_evaluations_company_id_fkey"
+            columns: ["company_id"]
+            referencedRelation: "company_directory"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "company_evaluations_company_id_fkey"
+            columns: ["company_id"]
+            referencedRelation: "company_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "company_evaluations_employee_id_fkey"
+            columns: ["employee_id"]
+            referencedRelation: "company_employees"
             referencedColumns: ["id"]
           },
         ]
@@ -520,6 +744,70 @@ export type Database = {
             foreignKeyName: "company_profiles_id_fkey"
             columns: ["id"]
             referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      connections: {
+        Row: {
+          candidate_id: string
+          created_at: string
+          id: string
+          initiated_by: string
+          recruiter_id: string
+          status: string
+          updated_at: string
+          vacancy_id: string | null
+        }
+        Insert: {
+          candidate_id: string
+          created_at?: string
+          id?: string
+          initiated_by?: string
+          recruiter_id: string
+          status?: string
+          updated_at?: string
+          vacancy_id?: string | null
+        }
+        Update: {
+          candidate_id?: string
+          created_at?: string
+          id?: string
+          initiated_by?: string
+          recruiter_id?: string
+          status?: string
+          updated_at?: string
+          vacancy_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "connections_candidate_id_fkey"
+            columns: ["candidate_id"]
+            referencedRelation: "candidate_directory"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "connections_candidate_id_fkey"
+            columns: ["candidate_id"]
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "connections_recruiter_id_fkey"
+            columns: ["recruiter_id"]
+            referencedRelation: "candidate_directory"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "connections_recruiter_id_fkey"
+            columns: ["recruiter_id"]
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "connections_vacancy_id_fkey"
+            columns: ["vacancy_id"]
+            referencedRelation: "vacancies"
             referencedColumns: ["id"]
           },
         ]
@@ -1245,7 +1533,14 @@ export type Database = {
       }
     }
     Functions: {
-      [_ in never]: never
+      notify_candidate_contact: {
+        Args: {
+          p_candidate_id: string
+          p_company_name: string
+          p_vacancy_title: string
+        }
+        Returns: undefined
+      }
     }
     Enums: {
       candidate_type: "trabajador" | "oficio" | "profesionista"

@@ -119,6 +119,7 @@ export default async function CompanyEmployeesPage() {
       curp: emp.curp,
       nss: emp.nss,
       work_schedule: emp.work_schedule,
+      email: emp.email,
     };
   });
 

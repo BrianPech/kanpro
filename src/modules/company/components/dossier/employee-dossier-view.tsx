@@ -386,43 +386,53 @@ export function EmployeeDossierView({ dossier }: EmployeeDossierViewProps) {
               </Button>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {documents.map((doc) => (
-                <div
-                  key={doc.id}
-                  className="p-4 rounded-xl border border-border/50 bg-background hover:border-border transition-all flex items-center justify-between gap-3"
-                >
-                  <div className="flex items-center gap-3 min-w-0">
-                    <div className="size-10 rounded-xl bg-primary/10 text-primary flex items-center justify-center shrink-0">
-                      <FileText className="size-5" />
+            {documents.length === 0 ? (
+              <div className="py-12 text-center text-xs text-muted-foreground bg-muted/20 rounded-xl border border-border/30">
+                <FileText className="size-5 mx-auto text-muted-foreground/60 mb-2" />
+                <p className="font-semibold text-foreground">Sin documentos digitalizados</p>
+                <p className="text-[11px] text-muted-foreground mt-0.5">
+                  El colaborador aún no cuenta con archivos subidos a su expediente digital.
+                </p>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {documents.map((doc) => (
+                  <div
+                    key={doc.id}
+                    className="p-4 rounded-xl border border-border/50 bg-background hover:border-border transition-all flex items-center justify-between gap-3"
+                  >
+                    <div className="flex items-center gap-3 min-w-0">
+                      <div className="size-10 rounded-xl bg-primary/10 text-primary flex items-center justify-center shrink-0">
+                        <FileText className="size-5" />
+                      </div>
+                      <div className="min-w-0">
+                        <h4 className="text-xs font-extrabold text-foreground truncate">
+                          {doc.title}
+                        </h4>
+                        <p className="text-[11px] text-muted-foreground truncate">
+                          {doc.fileName} • {doc.uploadedAt}
+                        </p>
+                      </div>
                     </div>
-                    <div className="min-w-0">
-                      <h4 className="text-xs font-extrabold text-foreground truncate">
-                        {doc.title}
-                      </h4>
-                      <p className="text-[11px] text-muted-foreground truncate">
-                        {doc.fileName} • {doc.uploadedAt}
-                      </p>
-                    </div>
-                  </div>
 
-                  <div className="flex items-center gap-2 shrink-0">
-                    <Badge className="bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border-none text-[10px] font-bold">
-                      Validado
-                    </Badge>
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={() => setSelectedDoc(doc)}
-                      className="rounded-lg text-xs font-bold h-8 px-2.5 border-border/70 flex items-center gap-1"
-                    >
-                      <ExternalLink className="size-3" />
-                      <span>Ver</span>
-                    </Button>
+                    <div className="flex items-center gap-2 shrink-0">
+                      <Badge className="bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border-none text-[10px] font-bold">
+                        Validado
+                      </Badge>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => setSelectedDoc(doc)}
+                        className="rounded-lg text-xs font-bold h-8 px-2.5 border-border/70 flex items-center gap-1"
+                      >
+                        <ExternalLink className="size-3" />
+                        <span>Ver</span>
+                      </Button>
+                    </div>
                   </div>
-                </div>
-              ))}
-            </div>
+                ))}
+              </div>
+            )}
           </Card>
         </TabsContent>
 
@@ -523,50 +533,60 @@ export function EmployeeDossierView({ dossier }: EmployeeDossierViewProps) {
             </div>
 
             <div className="space-y-3">
-              {dossier.vacationRequests.map((req) => (
-                <div
-                  key={req.id}
-                  className="p-4 rounded-xl border border-border/50 bg-background flex flex-col sm:flex-row sm:items-center justify-between gap-3"
-                >
-                  <div className="space-y-1">
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <span className="text-xs font-extrabold text-foreground">
-                        {req.typeLabel}
-                      </span>
-                      <Badge
-                        className={cn(
-                          "text-[10px] font-bold px-2 py-0.5 rounded-full border-none",
-                          req.status === "aprobada"
-                            ? "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400"
-                            : req.status === "pendiente"
-                            ? "bg-amber-500/15 text-amber-700 dark:text-amber-300"
-                            : "bg-destructive/15 text-destructive"
-                        )}
-                      >
-                        {req.status === "aprobada"
-                          ? "Aprobada"
-                          : req.status === "pendiente"
-                          ? "🟡 Pendiente de Aprobación"
-                          : "Rechazada"}
-                      </Badge>
-                    </div>
-
-                    <div className="text-xs text-muted-foreground font-semibold">
-                      Periodo: <strong className="text-foreground">{req.startDate} al {req.endDate}</strong> ({req.totalWorkingDays} días hábiles)
-                    </div>
-
-                    {req.reason && (
-                      <p className="text-[11px] text-muted-foreground font-medium">
-                        Motivo: &quot;{req.reason}&quot;
-                      </p>
-                    )}
-                  </div>
-
-                  <span className="text-xs text-muted-foreground font-medium self-end sm:self-center">
-                    Solicitado: {req.requestedAt}
-                  </span>
+              {dossier.vacationRequests.length === 0 ? (
+                <div className="py-8 text-center text-xs text-muted-foreground bg-muted/20 rounded-xl border border-border/30">
+                  <Calendar className="size-5 mx-auto text-muted-foreground/60 mb-2" />
+                  <p className="font-semibold text-foreground">Sin solicitudes de vacaciones</p>
+                  <p className="text-[11px] text-muted-foreground mt-0.5">
+                    No se han registrado solicitudes de vacaciones o permisos para este colaborador.
+                  </p>
                 </div>
-              ))}
+              ) : (
+                dossier.vacationRequests.map((req) => (
+                  <div
+                    key={req.id}
+                    className="p-4 rounded-xl border border-border/50 bg-background flex flex-col sm:flex-row sm:items-center justify-between gap-3"
+                  >
+                    <div className="space-y-1">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="text-xs font-extrabold text-foreground">
+                          {req.typeLabel}
+                        </span>
+                        <Badge
+                          className={cn(
+                            "text-[10px] font-bold px-2 py-0.5 rounded-full border-none",
+                            req.status === "aprobada"
+                              ? "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400"
+                              : req.status === "pendiente"
+                              ? "bg-amber-500/15 text-amber-700 dark:text-amber-300"
+                              : "bg-destructive/15 text-destructive"
+                          )}
+                        >
+                          {req.status === "aprobada"
+                            ? "Aprobada"
+                            : req.status === "pendiente"
+                            ? "🟡 Pendiente de Aprobación"
+                            : "Rechazada"}
+                        </Badge>
+                      </div>
+
+                      <div className="text-xs text-muted-foreground font-semibold">
+                        Periodo: <strong className="text-foreground">{req.startDate} al {req.endDate}</strong> ({req.totalWorkingDays} días hábiles)
+                      </div>
+
+                      {req.reason && (
+                        <p className="text-[11px] text-muted-foreground font-medium">
+                          Motivo: &quot;{req.reason}&quot;
+                        </p>
+                      )}
+                    </div>
+
+                    <span className="text-xs text-muted-foreground font-medium self-end sm:self-center">
+                      Solicitado: {req.requestedAt}
+                    </span>
+                  </div>
+                ))
+              )}
             </div>
           </Card>
         </TabsContent>
@@ -614,49 +634,59 @@ export function EmployeeDossierView({ dossier }: EmployeeDossierViewProps) {
             </div>
 
             <div className="space-y-4">
-              {dossier.performanceReviews.map((rev) => (
-                <div
-                  key={rev.id}
-                  className="p-5 rounded-2xl border border-border/50 bg-background space-y-3"
-                >
-                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-                    <div>
-                      <h4 className="text-sm font-extrabold text-foreground">
-                        {rev.period}
-                      </h4>
-                      <p className="text-xs text-muted-foreground font-medium">
-                        Evaluador: {rev.evaluatorName} • Fecha: {rev.evaluationDate}
-                      </p>
-                    </div>
-
-                    <div className="flex items-center gap-1.5 p-2 rounded-xl bg-amber-500/10 text-amber-600 dark:text-amber-400 font-extrabold text-sm self-start sm:self-center">
-                      <Star className="size-4 fill-amber-500 text-amber-500" />
-                      <span>{rev.score} / 5.0</span>
-                    </div>
-                  </div>
-
-                  <div className="space-y-2 pt-2 border-t border-border/40 text-xs leading-relaxed">
-                    <div>
-                      <strong className="text-foreground block mb-1">Fortalezas destacadas:</strong>
-                      <ul className="list-disc pl-5 space-y-0.5 text-muted-foreground font-medium">
-                        {rev.strengths.map((s, i) => (
-                          <li key={i}>{s}</li>
-                        ))}
-                      </ul>
-                    </div>
-
-                    <div className="pt-1">
-                      <strong className="text-foreground block mb-0.5">Metas alcanzadas:</strong>
-                      <p className="text-muted-foreground font-medium">{rev.goalsMet}</p>
-                    </div>
-
-                    <div className="pt-1">
-                      <strong className="text-foreground block mb-0.5">Comentarios generales:</strong>
-                      <p className="text-foreground font-medium italic">&quot;{rev.generalComments}&quot;</p>
-                    </div>
-                  </div>
+              {dossier.performanceReviews.length === 0 ? (
+                <div className="py-10 text-center text-xs text-muted-foreground bg-muted/20 rounded-xl border border-border/30">
+                  <Sparkles className="size-5 mx-auto text-muted-foreground/60 mb-2" />
+                  <p className="font-semibold text-foreground">Sin evaluaciones registradas</p>
+                  <p className="text-[11px] text-muted-foreground mt-0.5">
+                    Este colaborador aún no cuenta con evaluaciones de desempeño en el sistema.
+                  </p>
                 </div>
-              ))}
+              ) : (
+                dossier.performanceReviews.map((rev) => (
+                  <div
+                    key={rev.id}
+                    className="p-5 rounded-2xl border border-border/50 bg-background space-y-3"
+                  >
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                      <div>
+                        <h4 className="text-sm font-extrabold text-foreground">
+                          {rev.period}
+                        </h4>
+                        <p className="text-xs text-muted-foreground font-medium">
+                          Evaluador: {rev.evaluatorName} • Fecha: {rev.evaluationDate}
+                        </p>
+                      </div>
+
+                      <div className="flex items-center gap-1.5 p-2 rounded-xl bg-amber-500/10 text-amber-600 dark:text-amber-400 font-extrabold text-sm self-start sm:self-center">
+                        <Star className="size-4 fill-amber-500 text-amber-500" />
+                        <span>{rev.score} / 5.0</span>
+                      </div>
+                    </div>
+
+                    <div className="space-y-2 pt-2 border-t border-border/40 text-xs leading-relaxed">
+                      <div>
+                        <strong className="text-foreground block mb-1">Fortalezas destacadas:</strong>
+                        <ul className="list-disc pl-5 space-y-0.5 text-muted-foreground font-medium">
+                          {rev.strengths.map((s, i) => (
+                            <li key={i}>{s}</li>
+                          ))}
+                        </ul>
+                      </div>
+
+                      <div className="pt-1">
+                        <strong className="text-foreground block mb-0.5">Metas alcanzadas:</strong>
+                        <p className="text-muted-foreground font-medium">{rev.goalsMet}</p>
+                      </div>
+
+                      <div className="pt-1">
+                        <strong className="text-foreground block mb-0.5">Comentarios generales:</strong>
+                        <p className="text-foreground font-medium italic">&quot;{rev.generalComments}&quot;</p>
+                      </div>
+                    </div>
+                  </div>
+                ))
+              )}
             </div>
           </Card>
         </TabsContent>

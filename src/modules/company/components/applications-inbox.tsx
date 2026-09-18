@@ -128,6 +128,7 @@ export function ApplicationsInbox() {
     getWhatsAppLink,
     handleUpdateNotes,
     handleUpdateRating,
+    handleContactApplicant,
     handleExportCSV,
     reloadData,
   } = useApplicationsInbox();
@@ -801,6 +802,7 @@ export function ApplicationsInbox() {
                   href={getWhatsAppLink(app)}
                   target="_blank"
                   rel="noopener noreferrer"
+                  onClick={() => handleContactApplicant(app)}
                   className="inline-flex"
                 >
                   <Button
@@ -1929,6 +1931,7 @@ export function ApplicationsInbox() {
                             href={getWhatsAppLink(selectedApplicant)}
                             target="_blank"
                             rel="noopener noreferrer"
+                            onClick={() => handleContactApplicant(selectedApplicant)}
                             className="flex-1"
                           >
                             <Button

@@ -189,20 +189,13 @@ export function useApplicationsInbox() {
             }
           }
 
-          let savedNotes = "";
-          let savedRating = 5;
-          let savedInterview: InterviewDetails | null = null;
-          if (typeof window !== "undefined") {
-            try {
-              savedNotes = localStorage.getItem(`kanpro_notes_${app.id}`) || "";
-              const parsedRating = Number(localStorage.getItem(`kanpro_rating_${app.id}`));
-              if (!isNaN(parsedRating) && parsedRating > 0) {
-                savedRating = parsedRating;
-              }
-              const raw = localStorage.getItem(`kanpro_interview_${app.id}`);
-              if (raw) savedInterview = JSON.parse(raw);
-            } catch {}
-          }
+          const serverNotes = app.notes || "";
+          const serverRating = typeof app.rating === "number" && app.rating > 0 ? app.rating : 5;
+          const serverInterview = app.interview_details || null;
+
+          let currentNotes = serverNotes;
+          let currentRating = serverRating;
+          let currentInterview: InterviewDetails | null = serverInterview;
 
           const vacTitle = app.vacancies?.title || (Array.isArray(app.vacancies) ? app.vacancies[0]?.title : null) || "Vacante";
           const vacId = app.vacancy_id || app.vacancies?.id || "";
@@ -215,10 +208,10 @@ export function useApplicationsInbox() {
             location: profile.location || "Local",
             elapsedTime,
             status: normalizeStatus(app.status),
-            interview: savedInterview,
-            rating: savedRating,
-            internalRating: savedRating,
-            internalNotes: savedNotes,
+            interview: currentInterview,
+            rating: currentRating,
+            internalRating: currentRating,
+            internalNotes: currentNotes,
             reviewsCount: 5,
             bio: profile.bio || "Sin biografía disponible.",
             experiences,
@@ -346,10 +339,7 @@ export function useApplicationsInbox() {
     id: string,
     interviewData: InterviewDetails
   ) => {
-    if (typeof window !== "undefined") {
-      localStorage.setItem(`kanpro_interview_${id}`, JSON.stringify(interviewData));
-    }
-    await handleUpdateStatus(id, "Entrevista");
+    // Optimistic update
     queryClient.setQueryData<ApplicationsQueryData>(queryKey, (old) => {
       if (!old) return old;
       return {
@@ -359,6 +349,14 @@ export function useApplicationsInbox() {
         ),
       };
     });
+
+    try {
+      await companyService.updateApplicationInterview(id, interviewData);
+      toast.success("Entrevista agendada exitosamente");
+    } catch (err) {
+      console.error("Error saving interview to DB:", err);
+      toast.error("Error al registrar la cita en la base de datos");
+    }
   };
 
   // WhatsApp helper with dynamic contextual messages per stage
@@ -388,12 +386,12 @@ export function useApplicationsInbox() {
     try {
       const supabase = createClient();
 
-      const { error: connError } = await (supabase.from as any)("connections").insert({
+      const { error: connError } = await supabase.from("connections").insert({
         candidate_id: applicant.candidateId,
         recruiter_id: userId,
-        vacancy_id: applicant.vacancyId,
+        vacancy_id: applicant.vacancyId || null,
         status: "contacted",
-        initiated_by: "recruiter",
+        initiated_by: "company",
       });
 
       if (connError) {
@@ -408,7 +406,7 @@ export function useApplicationsInbox() {
 
       const companyName = companyProfile?.company_name || "Empresa";
 
-      const { error } = await (supabase.rpc as any)("notify_candidate_contact", {
+      const { error } = await supabase.rpc("notify_candidate_contact", {
         p_candidate_id: applicant.candidateId,
         p_vacancy_title: applicant.vacancyTitle,
         p_company_name: companyName,
@@ -424,12 +422,10 @@ export function useApplicationsInbox() {
     }
   };
 
-  // Notes & Rating update handlers
-  const handleUpdateNotes = (id: string, notes: string) => {
+  // Notes & Rating update handlers with database persistence
+  const handleUpdateNotes = async (id: string, notes: string) => {
     try {
-      if (typeof window !== "undefined") {
-        localStorage.setItem(`kanpro_notes_${id}`, notes);
-      }
+      // Optimistic update
       queryClient.setQueryData<ApplicationsQueryData>(queryKey, (old) => {
         if (!old) return old;
         return {
@@ -439,17 +435,18 @@ export function useApplicationsInbox() {
           ),
         };
       });
-      toast.success("Nota interna guardada");
+
+      await companyService.updateApplicationNotes(id, notes);
+      toast.success("Nota interna guardada en base de datos");
     } catch (e) {
       console.error("Error saving internal note:", e);
+      toast.error("No se pudo guardar la nota en la base de datos");
     }
   };
 
-  const handleUpdateRating = (id: string, rating: number) => {
+  const handleUpdateRating = async (id: string, rating: number) => {
     try {
-      if (typeof window !== "undefined") {
-        localStorage.setItem(`kanpro_rating_${id}`, String(rating));
-      }
+      // Optimistic update
       queryClient.setQueryData<ApplicationsQueryData>(queryKey, (old) => {
         if (!old) return old;
         return {
@@ -459,9 +456,12 @@ export function useApplicationsInbox() {
           ),
         };
       });
-      toast.success(`Puntuación asignada: ${rating} ★`);
+
+      await companyService.updateApplicationRating(id, rating);
+      toast.success(`Puntuación guardada: ${rating} ★`);
     } catch (e) {
       console.error("Error saving rating:", e);
+      toast.error("No se pudo guardar la calificación en la base de datos");
     }
   };
 

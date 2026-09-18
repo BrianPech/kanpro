@@ -181,6 +181,10 @@ export const companyService = {
       .select(`
         id,
         status,
+        notes,
+        rating,
+        interview_details,
+        hired_at,
         applied_at,
         updated_at,
         vacancy_id,
@@ -229,6 +233,10 @@ export const companyService = {
 
       return {
         ...app,
+        notes: app.notes || "",
+        rating: app.rating ?? 5,
+        interview_details: app.interview_details || null,
+        hired_at: app.hired_at || null,
         vacancies: vacancy || { id: app.vacancy_id, title: "Vacante", company_id: companyId },
         candidate: {
           id: candidateProfile?.id || app.candidate_id || "",
@@ -252,6 +260,40 @@ export const companyService = {
     const { error } = await supabase
       .from("applications")
       .update({ status, updated_at: new Date().toISOString() })
+      .eq("id", applicationId);
+
+    if (error) throw error;
+  },
+
+  async updateApplicationNotes(applicationId: string, notes: string) {
+    const supabase = createClient();
+    const { error } = await supabase
+      .from("applications")
+      .update({ notes: notes.trim(), updated_at: new Date().toISOString() })
+      .eq("id", applicationId);
+
+    if (error) throw error;
+  },
+
+  async updateApplicationRating(applicationId: string, rating: number) {
+    const supabase = createClient();
+    const { error } = await supabase
+      .from("applications")
+      .update({ rating, updated_at: new Date().toISOString() })
+      .eq("id", applicationId);
+
+    if (error) throw error;
+  },
+
+  async updateApplicationInterview(applicationId: string, interviewDetails: any) {
+    const supabase = createClient();
+    const { error } = await supabase
+      .from("applications")
+      .update({ 
+        interview_details: interviewDetails,
+        status: "Entrevista",
+        updated_at: new Date().toISOString() 
+      })
       .eq("id", applicationId);
 
     if (error) throw error;

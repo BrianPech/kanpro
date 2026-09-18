@@ -47,13 +47,13 @@ export function NewIncidentModal({
   onOpenChange,
   onIncidentCreated,
 }: NewIncidentModalProps) {
-  const [employeeName, setEmployeeName] = useState("Carlos Mendoza");
+  const [employeeName, setEmployeeName] = useState("");
   const [category, setCategory] = useState<IncidentCategory>("falta_injustificada");
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [severity, setSeverity] = useState<IncidentSeverity>("media");
   const [incidentDate, setIncidentDate] = useState(new Date().toISOString().split("T")[0]);
-  const [supervisor, setSupervisor] = useState("Ing. Fernando Morales (Supervisor Operativo)");
+  const [supervisor, setSupervisor] = useState("");
   const [hasEvidence, setHasEvidence] = useState(false);
   const [evidenceFileName, setEvidenceFileName] = useState("");
 
