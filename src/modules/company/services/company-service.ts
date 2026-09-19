@@ -38,8 +38,9 @@ export const companyService = {
 
     const finalLocation = profile.location || "Mérida";
 
-    const companyPayload = {
+    const companyPayload: any = {
       company_name: profile.company_name,
+      legal_name: profile.legal_name || null,
       industry: profile.industry || "General",
       fiscal_address: finalLocation || profile.address_details || "Mérida, Yucatán",
       website_url: profile.website || null,
@@ -63,20 +64,30 @@ export const companyService = {
       updated_at: new Date().toISOString(),
     };
 
+    if (profile.rfc && profile.rfc.trim() !== "") {
+      companyPayload.rfc = profile.rfc.toUpperCase().trim();
+    }
+    if (profile.fiscal_regime) {
+      companyPayload.entity_type = profile.fiscal_regime;
+    }
+
+    const profileUpdates: any = {
+      full_name: profile.company_name,
+      avatar_url: profile.logo_url || null,
+      location: finalLocation,
+      whatsapp_number: profile.phone || null,
+      updated_at: new Date().toISOString(),
+    };
+
     // Parallel update for base profiles and company_profiles extension
     const [baseRes, updateRes] = await Promise.all([
       supabase
         .from("profiles")
-        .update({
-          full_name: profile.company_name,
-          avatar_url: profile.logo_url || null,
-          location: finalLocation,
-          updated_at: new Date().toISOString(),
-        })
+        .update(profileUpdates)
         .eq("id", userId),
       supabase
         .from("company_profiles")
-        .update(companyPayload as any)
+        .update(companyPayload)
         .eq("id", userId)
         .select("id")
     ]);
@@ -89,8 +100,8 @@ export const companyService = {
         .from("company_profiles")
         .upsert({
           id: userId,
-          rfc: "XAXX010101000",
-          ...(companyPayload as any),
+          rfc: profile.rfc?.toUpperCase().trim() || "XAXX010101000",
+          ...companyPayload,
         });
 
       if (upsertErr) throw upsertErr;
@@ -102,11 +113,11 @@ export const companyService = {
     const { data, error } = await supabase
       .from("vacancies")
       .select("*")
-      .eq("company_id", companyId)
+      .or(`company_id.eq.${companyId},recruiter_id.eq.${companyId}`)
       .order("created_at", { ascending: false });
 
     if (error) throw error;
-    return data;
+    return data || [];
   },
 
   async createVacancy(companyId: string, vacancy: any) {
@@ -150,13 +161,17 @@ export const companyService = {
   async getApplications(companyId: string) {
     const supabase = createClient();
 
-    // 1. Fetch company vacancy IDs
-    const { data: userVacs } = await supabase
+    // 1. Fetch company vacancy IDs (both company_id and recruiter_id)
+    const { data: userVacs, error: vacError } = await supabase
       .from("vacancies")
       .select("id")
-      .eq("company_id", companyId);
+      .or(`company_id.eq.${companyId},recruiter_id.eq.${companyId}`);
 
-    const vacIds = (userVacs || []).map((v) => v.id);
+    if (vacError) {
+      console.error("[companyService] Error fetching vacancies for applications:", vacError);
+    }
+
+    const vacIds = (userVacs || []).map((v) => v.id).filter(Boolean);
 
     if (vacIds.length === 0) return [];
 
@@ -166,7 +181,14 @@ export const companyService = {
       .select(`
         id,
         status,
+        notes,
+        rating,
+        interview_details,
+        scheduled_interview_at,
+        interview_status,
+        hired_at,
         applied_at,
+        updated_at,
         vacancy_id,
         vacancies (
           id,
@@ -193,30 +215,52 @@ export const companyService = {
       .in("vacancy_id", vacIds)
       .order("applied_at", { ascending: false });
 
-    if (error) throw error;
+    if (error) {
+      console.error(
+        "[companyService] Error fetching applications:",
+        error.message || error.details || error
+      );
+      throw error;
+    }
 
     return (data || []).map((app: any) => {
-      const candidateObj = app.candidate;
+      const candidateObj = app.candidate || app.candidate_profiles;
       const candidateProfile = Array.isArray(candidateObj) ? candidateObj[0] : candidateObj;
       const baseProfile = candidateProfile?.profiles
         ? (Array.isArray(candidateProfile.profiles) ? candidateProfile.profiles[0] : candidateProfile.profiles)
         : {};
 
+      const vacObj = app.vacancies;
+      const vacancy = Array.isArray(vacObj) ? vacObj[0] : vacObj;
+
+      const interviewData = app.interview_details ? {
+        ...app.interview_details,
+        status: app.interview_status || app.interview_details.status || "pending",
+        scheduledInterviewAt: app.scheduled_interview_at || null,
+      } : null;
+
       return {
         ...app,
-        candidate: candidateProfile ? {
-          id: candidateProfile.id,
-          full_name: baseProfile.full_name,
-          location: baseProfile.location,
-          avatar_url: baseProfile.avatar_url,
-          email: baseProfile.email,
-          headline: candidateProfile.headline,
-          bio: candidateProfile.bio,
-          phone: baseProfile.whatsapp_number,
-          skills: candidateProfile.skills,
-          experience: candidateProfile.experience,
-          education: candidateProfile.education,
-        } : null
+        notes: app.notes || "",
+        rating: app.rating ?? 5,
+        interview_details: interviewData,
+        scheduled_interview_at: app.scheduled_interview_at || null,
+        interview_status: app.interview_status || (interviewData?.status) || null,
+        hired_at: app.hired_at || null,
+        vacancies: vacancy || { id: app.vacancy_id, title: "Vacante", company_id: companyId },
+        candidate: {
+          id: candidateProfile?.id || app.candidate_id || "",
+          full_name: baseProfile.full_name || "Profesional K'anPro",
+          location: baseProfile.location || "Local",
+          avatar_url: baseProfile.avatar_url || "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=120&h=120&fit=crop",
+          email: baseProfile.email || "",
+          headline: candidateProfile?.headline || "Candidato",
+          bio: candidateProfile?.bio || "Sin biografía disponible.",
+          phone: baseProfile.whatsapp_number || "",
+          skills: candidateProfile?.skills || [],
+          experience: candidateProfile?.experience || [],
+          education: candidateProfile?.education || [],
+        },
       };
     });
   },
@@ -226,6 +270,56 @@ export const companyService = {
     const { error } = await supabase
       .from("applications")
       .update({ status, updated_at: new Date().toISOString() })
+      .eq("id", applicationId);
+
+    if (error) throw error;
+  },
+
+  async updateApplicationNotes(applicationId: string, notes: string) {
+    const supabase = createClient();
+    const { error } = await supabase
+      .from("applications")
+      .update({ notes, updated_at: new Date().toISOString() })
+      .eq("id", applicationId);
+
+    if (error) throw error;
+  },
+
+  async updateApplicationRating(applicationId: string, rating: number) {
+    const supabase = createClient();
+    const { error } = await supabase
+      .from("applications")
+      .update({ rating, updated_at: new Date().toISOString() })
+      .eq("id", applicationId);
+
+    if (error) throw error;
+  },
+
+  async updateApplicationInterview(applicationId: string, interviewDetails: any) {
+    const supabase = createClient();
+    
+    let scheduledDateTime: string | null = null;
+    if (interviewDetails?.date) {
+      const timeStr = interviewDetails?.time || "10:00";
+      try {
+        scheduledDateTime = new Date(`${interviewDetails.date}T${timeStr}:00`).toISOString();
+      } catch {
+        scheduledDateTime = null;
+      }
+    }
+
+    const { error } = await supabase
+      .from("applications")
+      .update({ 
+        interview_details: {
+          ...interviewDetails,
+          status: interviewDetails?.status || "pending",
+        },
+        scheduled_interview_at: scheduledDateTime,
+        interview_status: interviewDetails?.status || "pending",
+        status: "Entrevista",
+        updated_at: new Date().toISOString() 
+      })
       .eq("id", applicationId);
 
     if (error) throw error;

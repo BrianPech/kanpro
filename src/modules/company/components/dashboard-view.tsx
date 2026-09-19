@@ -1,631 +1,914 @@
-"use client"
+"use client";
 
-import * as React from "react"
-import { motion } from "framer-motion"
-import { 
-  Briefcase, 
-  Users, 
-  Clock, 
-  Download, 
-  Plus, 
-  ArrowRight,
-  MoreVertical,
-  Bell,
-  MapPin,
-  CalendarCheck,
-  CheckCircle2,
-  TrendingUp,
-  FileText,
-  DollarSign,
-  BriefcaseConveyorBelt,
-  Sparkles,
-  ClipboardList
-} from "lucide-react"
-import { Button } from "@/components/ui/button"
-import { Card } from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"
-import { Checkbox } from "@/components/ui/checkbox"
-import { toast } from "sonner"
-import Link from "next/link"
+import * as React from "react";
+import Link from "next/link";
 import {
-  ResponsiveContainer,
-  AreaChart,
-  Area,
-  XAxis,
-  YAxis,
-  Tooltip,
-  PieChart,
-  Pie,
-  Cell
-} from "recharts"
-import { cn } from "@/lib/utils"
+  Briefcase,
+  Users,
+  UserCheck,
+  UserPlus,
+  Clock,
+  Plus,
+  ArrowUpRight,
+  AlertCircle,
+  FileSpreadsheet,
+  ChevronRight,
+  Layers,
+  CalendarCheck,
+} from "lucide-react";
+import {
+  Card,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+  CardContent,
+  CardFooter,
+} from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
+import { Progress } from "@/components/ui/progress";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { formatDateToDisplay } from "@/lib/formatters";
+import { cn } from "@/lib/utils";
+import type { CompanyDashboardData } from "../types/dashboard";
 
-export interface VacancyDashboardItem {
-  id: string
-  title: string
-  location?: string | null
-  zone?: string | null
-  salary_min?: number | null
-  salary_max?: number | null
-  category?: string | null
-  employment_type?: string | null
-  created_at?: string | null
-  is_active?: boolean
-  applicationsCount?: number
-}
+const getInitials = (name?: string | null) => {
+  if (!name || typeof name !== "string" || !name.trim()) return "KP";
+  const parts = name.trim().split(/\s+/).filter(Boolean);
+  if (parts.length === 0) return "KP";
+  if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
+  return ((parts[0][0] || "") + (parts[1][0] || "")).toUpperCase() || "KP";
+};
 
-export interface PendingTaskItem {
-  id: string
-  text: string
-  completed: boolean
-}
-
-interface DashboardViewProps {
-  companyName: string
-  metrics?: {
-    activeVacancies: number
-    pausedVacancies: number
-    totalApplications: number
-    reviewingApplications: number
-    totalConnections: number
-  }
-  recentActivities?: {
-    id: string
-    candidateName: string
-    candidateHeadline: string
-    candidateAvatar: string | null
-    skills: string[]
-    vacancyTitle: string
-    createdAt: string
-  }[]
-  latestVacancies?: VacancyDashboardItem[]
-  publishedVacancies?: VacancyDashboardItem[]
-  pendingTasks?: PendingTaskItem[]
-  weeklyAnalytics?: {
-    flowData: { day: string; candidatos: number }[]
-    average: number
-    growthPercent: number
-  }
-  monthlyAnalytics?: {
-    pieData: { name: string; value: number; color: string }[]
-    goalPercent: number
-  }
-}
-
-export function DashboardView({ 
-  companyName, 
-  metrics = {
-    activeVacancies: 0,
-    pausedVacancies: 0,
-    totalApplications: 0,
-    reviewingApplications: 0,
-    totalConnections: 0
+const STATUS_BADGE_VARIANTS: Record<
+  string,
+  { label: string; className: string }
+> = {
+  Pendiente: {
+    label: "Pendiente",
+    className: "bg-amber-500/10 text-amber-700 dark:text-amber-300 border-amber-500/20",
   },
-  recentActivities = [],
-  latestVacancies = [],
-  publishedVacancies = [],
-  pendingTasks = [],
-  weeklyAnalytics = {
-    flowData: [
-      { day: "Lunes", candidatos: 0 },
-      { day: "Martes", candidatos: 0 },
-      { day: "Miércoles", candidatos: 0 },
-      { day: "Jueves", candidatos: 0 },
-      { day: "Viernes", candidatos: 0 },
-      { day: "Sábado", candidatos: 0 },
-      { day: "Domingo", candidatos: 0 }
-    ],
-    average: 0,
-    growthPercent: 0
+  Nuevo: {
+    label: "Nuevo",
+    className: "bg-blue-500/10 text-blue-700 dark:text-blue-300 border-blue-500/20",
   },
-  monthlyAnalytics = {
-    pieData: [],
-    goalPercent: 0
-  }
-}: DashboardViewProps) {
-  const [mounted, setMounted] = React.useState(false)
-  const [isDownloading, setIsDownloading] = React.useState(false)
+  "En revisión": {
+    label: "En Revisión",
+    className: "bg-indigo-500/10 text-indigo-700 dark:text-indigo-300 border-indigo-500/20",
+  },
+  Preseleccionado: {
+    label: "Preseleccionado",
+    className: "bg-purple-500/10 text-purple-700 dark:text-purple-300 border-purple-500/20",
+  },
+  Entrevista: {
+    label: "Entrevista",
+    className: "bg-cyan-500/10 text-cyan-700 dark:text-cyan-300 border-cyan-500/20",
+  },
+  Contratado: {
+    label: "Contratado",
+    className: "bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border-emerald-500/20",
+  },
+  Descartado: {
+    label: "Descartado",
+    className: "bg-rose-500/10 text-rose-700 dark:text-rose-400 border-rose-500/20",
+  },
+  Rechazado: {
+    label: "Rechazado",
+    className: "bg-rose-500/10 text-rose-700 dark:text-rose-400 border-rose-500/20",
+  },
+};
 
-  const initialTodos = React.useMemo(() => {
-    if (pendingTasks && pendingTasks.length > 0) {
-      return pendingTasks
-    }
-    return [
-      { id: "todo-1", text: `Verificar perfil de ${companyName}`, completed: true },
-      { id: "todo-2", text: "Revisar postulaciones activas", completed: false },
-      { id: "todo-3", text: "Publicar oferta laboral en el sureste", completed: false },
-    ]
-  }, [pendingTasks, companyName])
+export function DashboardView({
+  companyName = "Mi Empresa",
+  kpis,
+  alerts = [],
+  openVacanciesList = [],
+  applicationsSummary,
+  recentCandidates = [],
+  todayAttendance = [],
+}: CompanyDashboardData) {
+  const [mobileTab, setMobileTab] = React.useState<"candidates" | "vacancies" | "pipeline">("candidates");
 
-  const [todos, setTodos] = React.useState(initialTodos)
+  const totalApps = applicationsSummary?.total || kpis?.totalApplicationsReceived || 0;
+  const inReviewCount =
+    (applicationsSummary?.inReview || 0) + (applicationsSummary?.pending || 0);
+  const shortlistedCount = applicationsSummary?.shortlisted || 0;
+  const hiredCount = applicationsSummary?.hired || 0;
 
-  React.useEffect(() => {
-    setMounted(true)
-  }, [])
+  const inReviewPct = totalApps > 0 ? Math.round((inReviewCount / totalApps) * 100) : 0;
+  const shortlistedPct = totalApps > 0 ? Math.round((shortlistedCount / totalApps) * 100) : 0;
+  const hiredPct = totalApps > 0 ? Math.round((hiredCount / totalApps) * 100) : 0;
 
-  React.useEffect(() => {
-    setTodos(initialTodos)
-  }, [initialTodos])
-
-  const handleToggleTodo = (id: string) => {
-    setTodos(prev => prev.map(todo => 
-      todo.id === id ? { ...todo, completed: !todo.completed } : todo
-    ))
-  }
-
-  const handleDownloadReport = () => {
-    setIsDownloading(true)
-    toast.info("Generando reporte...", {
-      description: "Preparando el informe de reclutamiento en formato CSV.",
-    })
-
-    try {
-      const dateStr = new Date().toISOString().split("T")[0]
-      const sanitizedCompany = (companyName || "Empresa").replace(/[^a-zA-Z0-9_-]/g, "_")
-      const filename = `Reporte_Reclutamiento_${sanitizedCompany}_${dateStr}.csv`
-
-      const csvRows: string[] = []
-
-      // Section 1: Header & Key Metrics
-      csvRows.push(`REPORTE DE RECLUTAMIENTO - K'ANPRO`)
-      csvRows.push(`Empresa:,"${(companyName || "Empresa").replace(/"/g, '""')}"`)
-      csvRows.push(`Fecha de Emision:,${dateStr}`)
-      csvRows.push(``)
-      csvRows.push(`METRICAS GENERALES`)
-      csvRows.push(`Postulaciones Totales:,${metrics.totalApplications ?? 0}`)
-      csvRows.push(`Vacantes Activas:,${metrics.activeVacancies ?? 0}`)
-      csvRows.push(`Vacantes Pausadas:,${metrics.pausedVacancies ?? 0}`)
-      csvRows.push(`En Revision:,${metrics.reviewingApplications ?? 0}`)
-      csvRows.push(`Contratados:,${metrics.totalConnections ?? 0}`)
-      csvRows.push(``)
-
-      // Section 2: Published Vacancies List
-      csvRows.push(`VACANTES PUBLICADAS Y RECIENTES`)
-      csvRows.push(`Titulo,Estado,Categoria,Zona,Sueldo Min,Sueldo Max,Postulaciones`)
-
-      const reportVacs = publishedVacancies.length > 0 ? publishedVacancies : latestVacancies
-      if (reportVacs.length > 0) {
-        reportVacs.forEach((vac) => {
-          const title = `"${(vac.title || "").replace(/"/g, '""')}"`
-          const status = vac.is_active !== false ? "Activa" : "Pausada"
-          const category = `"${(vac.category || "General").replace(/"/g, '""')}"`
-          const zone = `"${(vac.zone || vac.location || "Mérida").replace(/"/g, '""')}"`
-          const sMin = vac.salary_min || 0
-          const sMax = vac.salary_max || 0
-          const apps = vac.applicationsCount || 0
-          csvRows.push(`${title},${status},${category},${zone},${sMin},${sMax},${apps}`)
-        })
-      } else {
-        csvRows.push(`"Sin vacantes registradas",-,-,-,0,0,0`)
-      }
-      csvRows.push(``)
-
-      // Section 3: Weekly Activity Breakdown
-      csvRows.push(`FLUJO SEMANAL DE CANDIDATOS`)
-      csvRows.push(`Dia,Nuevos Candidatos`)
-      weeklyAnalytics.flowData.forEach((item) => {
-        csvRows.push(`${item.day},${item.candidatos}`)
-      })
-
-      const csvContent = "\uFEFF" + csvRows.join("\n")
-      const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" })
-      const url = URL.createObjectURL(blob)
-      const link = document.createElement("a")
-      link.setAttribute("href", url)
-      link.setAttribute("download", filename)
-      document.body.appendChild(link)
-      link.click()
-      document.body.removeChild(link)
-      URL.revokeObjectURL(url)
-
-      setIsDownloading(false)
-      toast.success("¡Reporte descargado con éxito!", {
-        description: `Se guardó el archivo ${filename} en tu equipo.`,
-      })
-    } catch (error) {
-      setIsDownloading(false)
-      toast.error("Error al generar el reporte", {
-        description: "No se pudo crear el archivo de reporte.",
-      })
-    }
-  }
-
-  // Animation variants
-  const containerVariants = {
-    hidden: { opacity: 0 },
-    show: {
-      opacity: 1,
-      transition: {
-        staggerChildren: 0.08
-      }
-    }
-  } as const
-
-  const cardVariants = {
-    hidden: { opacity: 0, y: 20 },
-    show: { opacity: 1, y: 0, transition: { type: "spring", stiffness: 100, damping: 15 } }
-  } as const
+  const presentCount = (todayAttendance || []).filter((a) => a.status === "presente").length;
 
   return (
-    <div className="flex-grow min-h-screen bg-fiord-50/30 dark:bg-fiord-950/10 px-6 sm:px-10 lg:px-14 py-8 pb-28 md:pb-8 space-y-8 max-w-6xl mx-auto w-full animate-in fade-in duration-300">
-      <motion.div 
-        variants={containerVariants}
-        initial="hidden"
-        animate="show"
-        className="grid grid-cols-1 lg:grid-cols-3 gap-6"
-      >
-        
-        {/* HERO CARD - Resumen Global (Fiord 950 Dark theme) */}
-        <motion.div variants={cardVariants} className="lg:col-span-1">
-          <div className="bg-[#1f2732] dark:bg-fiord-950 text-white rounded-[28px] p-6 sm:p-7 flex flex-col justify-between min-h-[370px] relative overflow-hidden shadow-md">
-            
-            {/* Top info */}
-            <div>
-              <div className="flex items-center justify-between">
-                <span className="text-[13px] font-bold uppercase tracking-[0.16em] text-fiord-300">Resumen de Reclutamiento</span>
-                <div className="flex gap-2">
-                  <button className="text-fiord-300 hover:text-white p-1.5 transition-colors cursor-pointer" aria-label="Tendencia">
-                    <TrendingUp className="size-5" />
-                  </button>
-                  <button className="text-fiord-300 hover:text-white p-1.5 transition-colors cursor-pointer" aria-label="Opciones">
-                    <MoreVertical className="size-5" />
-                  </button>
-                </div>
-              </div>
-
-              <div className="mt-8 flex gap-8">
-                <div>
-                  <h3 className="text-5xl sm:text-6xl font-[800] tracking-tight text-white font-sans">
-                    {metrics.totalApplications ?? 0}
-                  </h3>
-                  <p className="text-[13px] text-fiord-300 font-bold mt-1.5">Postulaciones Totales</p>
-                </div>
-                <div className="border-l border-fiord-800 h-16 my-auto" />
-                <div>
-                  <h3 className="text-5xl sm:text-6xl font-[800] tracking-tight text-white font-sans">
-                    {metrics.pausedVacancies ?? 0}
-                  </h3>
-                  <p className="text-[13px] text-fiord-300 font-bold mt-1.5">Vacantes Pausadas</p>
-                </div>
-              </div>
-            </div>
-
-            {/* Bottom floating cards */}
-            <div className="grid grid-cols-3 gap-3 mt-auto relative z-10 pt-4">
-              <div className="bg-white text-fiord-950 rounded-2xl p-3.5 border border-fiord-100 flex flex-col justify-between">
-                <span className="text-[18px] font-[800] leading-none font-sans text-fiord-950">{metrics.activeVacancies ?? 0}</span>
-                <span className="text-[11px] font-bold text-fiord-500 mt-2 leading-tight">Activas</span>
-              </div>
-              <div className="bg-white text-fiord-950 rounded-2xl p-3.5 border border-fiord-100 flex flex-col justify-between">
-                <span className="text-[18px] font-[800] leading-none font-sans text-fiord-950">{metrics.reviewingApplications ?? 0}</span>
-                <span className="text-[11px] font-bold text-fiord-500 mt-2 leading-tight">En Revisión</span>
-              </div>
-              <div className="bg-white text-fiord-950 rounded-2xl p-3.5 border border-fiord-100 flex flex-col justify-between">
-                <span className="text-[18px] font-[800] leading-none font-sans text-fiord-950">{metrics.totalConnections ?? 0}</span>
-                <span className="text-[11px] font-bold text-fiord-500 mt-2 leading-tight">Contratados</span>
-              </div>
-            </div>
-            
-            {/* Background Glow */}
-            <div className="absolute -bottom-10 -left-10 size-40 bg-fiord-800 rounded-full blur-[60px] opacity-40 pointer-events-none" />
+    <div className="w-full space-y-4 sm:space-y-6 lg:space-y-8 font-sans">
+      {/* 1. Header Principal */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-border/80">
+        <div className="space-y-1">
+          <div className="flex items-center gap-2">
+            <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground bg-muted px-2 py-0.5 rounded-md">
+              Portal Empresa
+            </span>
+            <Badge variant="outline" className="text-[10px] border-amber-500/30 text-amber-600 dark:text-amber-400 bg-amber-500/10 font-semibold">
+              Canary HR Early Access
+            </Badge>
           </div>
-        </motion.div>
+          <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold tracking-tight text-foreground truncate">
+            {`Dashboard • ${companyName}`}
+          </h1>
+          <p className="text-xs sm:text-sm text-muted-foreground line-clamp-1 sm:line-clamp-none">
+            Gestión integral de colaboradores, asistencia, vacaciones y nómina.
+          </p>
+        </div>
 
-        {/* CHART CARD 1 - Flujo Semanal (Light Theme) */}
-        <motion.div variants={cardVariants} className="lg:col-span-1">
-          <Card className="bg-white dark:bg-fiord-900 border-fiord-100 dark:border-fiord-800 rounded-[28px] p-6 flex flex-col justify-between min-h-[370px] shadow-sm relative overflow-hidden">
-            <div className="flex items-center justify-between">
-              <div className="space-y-0.5">
-                <h4 className="text-[16px] font-bold text-fiord-900 dark:text-fiord-100">Flujo Semanal</h4>
-                <p className="text-[12px] text-fiord-400 dark:text-fiord-400 font-bold uppercase tracking-wider">Nuevos Candidatos</p>
-              </div>
-              <Badge className="bg-emerald-50 dark:bg-emerald-950/30 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-50 border-none font-extrabold text-xs px-3 py-1 rounded-full flex items-center gap-0.5">
-                <span>
-                  {weeklyAnalytics.growthPercent >= 0
-                    ? `+${weeklyAnalytics.growthPercent}%`
-                    : `${weeklyAnalytics.growthPercent}%`}
-                </span>
-              </Badge>
-            </div>
+        <div className="flex items-center gap-2 shrink-0">
+          <Button
+            variant="outline"
+            size="sm"
+            render={<Link href="/dashboard/company/reports" />}
+            className="cursor-pointer text-xs font-semibold h-9"
+          >
+            <FileSpreadsheet className="size-3.5 mr-1.5" />
+            <span>Reportes</span>
+          </Button>
+          <Button
+            size="sm"
+            render={<Link href="/dashboard/company/employees?action=new" />}
+            className="cursor-pointer text-xs font-bold gap-1.5 bg-primary text-primary-foreground h-9 shadow-xs"
+          >
+            <UserPlus className="size-3.5" />
+            <span>+ Registrar Colaborador</span>
+          </Button>
+        </div>
+      </div>
 
-            {/* Recharts Area Chart */}
-            <div className="h-44 w-full mt-4 flex items-end">
-              {mounted ? (
-                <ResponsiveContainer width="100%" height="100%">
-                  <AreaChart data={weeklyAnalytics.flowData} margin={{ top: 10, right: 5, left: -25, bottom: 0 }}>
-                    <defs>
-                      <linearGradient id="colorCandidatos" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="5%" stopColor="#5c7c9b" stopOpacity={0.25} />
-                        <stop offset="95%" stopColor="#5c7c9b" stopOpacity={0.0} />
-                      </linearGradient>
-                    </defs>
-                    <XAxis 
-                      dataKey="day" 
-                      tickLine={false} 
-                      axisLine={false} 
-                      tick={{ fill: "#7d99b3", fontSize: 11, fontWeight: 600 }} 
-                      tickFormatter={(val) => val.substring(0, 1)}
-                    />
-                    <YAxis tickLine={false} axisLine={false} tick={{ fill: "#7d99b3", fontSize: 11 }} />
-                    <Tooltip 
-                      contentStyle={{ 
-                        borderRadius: "14px", 
-                        backgroundColor: "#1f2732", 
-                        borderColor: "#2f3c4b",
-                        color: "#ffffff",
-                        fontSize: "12px",
-                        fontWeight: "700"
-                      }} 
-                    />
-                    <Area 
-                      type="monotone" 
-                      dataKey="candidatos" 
-                      stroke="#5c7c9b" 
-                      strokeWidth={2.5} 
-                      fillOpacity={1} 
-                      fill="url(#colorCandidatos)" 
-                    />
-                  </AreaChart>
-                </ResponsiveContainer>
-              ) : (
-                <div className="h-full w-full flex items-center justify-center text-fiord-300 font-semibold text-sm">Cargando gráfico...</div>
-              )}
-            </div>
-
-            <div className="flex justify-between items-center mt-3 text-[12px] text-fiord-400 dark:text-fiord-400 font-semibold px-1">
-              <span>Lun - Dom</span>
-              <span className="text-fiord-800 dark:text-fiord-200 font-bold">
-                Promedio: {weeklyAnalytics.average} candidatos/día
-              </span>
-            </div>
-          </Card>
-        </motion.div>
-
-        {/* CHART CARD 2 - Efectividad del Mes (Light Theme) */}
-        <motion.div variants={cardVariants} className="lg:col-span-1">
-          <Card className="bg-white dark:bg-fiord-900 border-fiord-100 dark:border-fiord-800 rounded-[28px] p-6 flex flex-col justify-between min-h-[370px] shadow-sm">
-            <div className="flex items-center justify-between">
-              <div className="space-y-0.5">
-                <h4 className="text-[16px] font-bold text-fiord-900 dark:text-fiord-100">Efectividad del Mes</h4>
-                <p className="text-[12px] text-fiord-400 dark:text-fiord-400 font-bold uppercase tracking-wider">Meta de Contratación</p>
-              </div>
-              <button className="text-fiord-400 hover:text-fiord-900 dark:hover:text-fiord-100 p-1.5 cursor-pointer" aria-label="Estadísticas">
-                <TrendingUp className="size-5" />
-              </button>
-            </div>
-
-            {/* Recharts Pie Chart & Legend Grid */}
-            <div className="flex items-center justify-between gap-3 mt-2">
-              <div className="relative size-36 shrink-0">
-                {mounted ? (
-                  <ResponsiveContainer width="100%" height="100%">
-                    <PieChart>
-                      <Pie
-                        data={monthlyAnalytics.pieData}
-                        cx="50%"
-                        cy="50%"
-                        innerRadius={40}
-                        outerRadius={52}
-                        paddingAngle={4}
-                        dataKey="value"
-                      >
-                        {monthlyAnalytics.pieData.map((entry, index) => (
-                          <Cell key={`cell-${index}`} fill={entry.color} />
-                        ))}
-                      </Pie>
-                    </PieChart>
-                  </ResponsiveContainer>
-                ) : null}
-                <div className="absolute inset-0 flex flex-col items-center justify-center text-center">
-                  <span className="text-xl font-bold text-fiord-900 dark:text-fiord-100 font-mono leading-none">
-                    {monthlyAnalytics.goalPercent}%
-                  </span>
-                  <span className="text-[9px] text-fiord-400 uppercase tracking-widest font-bold mt-0.5">Meta</span>
-                </div>
-              </div>
-
-              {/* Legends list */}
-              <div className="flex-1 space-y-2.5 px-1">
-                {monthlyAnalytics.pieData.map((item) => (
-                  <div key={item.name} className="flex items-center justify-between text-[12px]">
-                    <div className="flex items-center gap-2">
-                      <span className="size-2.5 rounded-full shrink-0" style={{ backgroundColor: item.color }} />
-                      <span className="text-fiord-700 dark:text-fiord-300 font-semibold">{item.name}</span>
-                    </div>
-                    <span className="font-bold text-fiord-900 dark:text-fiord-100">{item.value}%</span>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            {/* Actions button */}
-            <Button
-              onClick={handleDownloadReport}
-              disabled={isDownloading}
-              className="w-full bg-[#1f2732] dark:bg-zinc-100 text-white dark:text-zinc-900 hover:bg-[#253240] dark:hover:bg-zinc-200 font-bold text-sm rounded-[14px] h-12 flex items-center justify-center gap-2 border-none transition-all cursor-pointer shadow-xs"
+      {/* 2. Alertas Operativas */}
+      {alerts && alerts.length > 0 && (
+        <div className="space-y-2.5">
+          {alerts.slice(0, 2).map((alert) => (
+            <Alert
+              key={alert.id}
+              variant={alert.severity === "critical" ? "destructive" : "default"}
+              className="rounded-xl border border-border/80 p-3 sm:p-4"
             >
-              <Download className="size-4" />
-              <span>{isDownloading ? "Preparando..." : "Descargar Reporte"}</span>
-            </Button>
-          </Card>
-        </motion.div>
-
-        {/* CHECKLIST CARD - Pendientes (Light Theme) */}
-        <motion.div variants={cardVariants} className="lg:col-span-1">
-          <Card className="bg-white dark:bg-fiord-900 border-fiord-100 dark:border-fiord-800 rounded-[28px] p-6 flex flex-col justify-between min-h-[370px] shadow-sm">
-            <div>
-              <div className="flex items-center justify-between mb-4">
-                <div className="flex items-center gap-2.5">
-                  <div className="size-8 rounded-xl bg-fiord-100 dark:bg-fiord-800 text-fiord-950 dark:text-fiord-50 flex items-center justify-center">
-                    <ClipboardList className="size-4.5" />
-                  </div>
-                  <h4 className="text-[16px] font-bold text-fiord-900 dark:text-fiord-100">Pendientes del día</h4>
-                </div>
-                <Badge className="bg-[#1f2732] dark:bg-zinc-100 text-white dark:text-zinc-900 border-none font-bold text-[11px] px-2.5 py-1 rounded-lg">
-                  {todos.filter(t => !t.completed).length} Hoy
-                </Badge>
-              </div>
-
-              <div className="space-y-3.5 mt-4">
-                {todos.map(todo => (
-                  <div 
-                    key={todo.id} 
-                    className="flex items-start gap-3.5 p-2.5 rounded-xl hover:bg-fiord-50/50 dark:hover:bg-fiord-800/30 transition-colors"
-                  >
-                    <Checkbox
-                      id={todo.id}
-                      checked={todo.completed}
-                      onCheckedChange={() => handleToggleTodo(todo.id)}
-                      className="mt-0.5 size-5 rounded-md border-fiord-300 dark:border-fiord-700 data-[state=checked]:bg-[#1f2732] dark:data-[state=checked]:bg-zinc-100 data-[state=checked]:text-white dark:data-[state=checked]:text-zinc-900 cursor-pointer"
-                    />
-                    <label 
-                      htmlFor={todo.id}
-                      className={`text-[14px] leading-snug font-semibold cursor-pointer transition-all select-none
-                        ${todo.completed 
-                          ? "text-fiord-500/70 dark:text-fiord-400/60 line-through font-medium" 
-                          : "text-fiord-800 dark:text-fiord-200"
-                        }`}
+              <AlertCircle className="size-4 shrink-0 mt-0.5" />
+              <div className="w-full">
+                <AlertTitle className="font-semibold text-xs sm:text-sm">
+                  {alert.title}
+                </AlertTitle>
+                <AlertDescription className="text-xs flex flex-col sm:flex-row sm:items-center justify-between gap-1.5 sm:gap-2 mt-0.5">
+                  <span className="text-muted-foreground">{alert.description}</span>
+                  {alert.actionUrl && (
+                    <Link
+                      href={alert.actionUrl}
+                      className="font-bold underline shrink-0 hover:opacity-80 inline-flex items-center gap-1 text-primary"
                     >
-                      {todo.text}
-                    </label>
-                  </div>
-                ))}
+                      <span>{alert.actionLabel || "Ver detalle"}</span>
+                      <ArrowUpRight className="size-3" />
+                    </Link>
+                  )}
+                </AlertDescription>
+              </div>
+            </Alert>
+          ))}
+        </div>
+      )}
+
+      {/* 3. Tarjetas KPI Métricas Clave (2x2 en mobile, 4 cols en desktop) */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-4 lg:gap-5">
+        {/* KPI 1: Plantilla Activa */}
+        <Link
+          href="/dashboard/company/employees"
+          className="group block rounded-xl focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring"
+        >
+          <Card className="h-full rounded-xl border border-border/80 bg-card hover:border-primary/50 hover:shadow-xs transition-all p-3 sm:p-4.5 flex flex-col justify-between">
+            <div className="flex items-center justify-between gap-1.5">
+              <span className="text-xs font-semibold text-muted-foreground truncate">
+                Plantilla Activa
+              </span>
+              <div className="size-7 sm:size-8 rounded-lg bg-primary/10 text-primary flex items-center justify-center shrink-0 group-hover:bg-primary group-hover:text-primary-foreground transition-colors">
+                <UserCheck className="size-3.5 sm:size-4" />
               </div>
             </div>
-
-            <div className="flex items-center justify-between text-[12px] text-fiord-400 dark:text-fiord-400 font-semibold border-t border-fiord-100/50 dark:border-fiord-800/50 pt-3.5">
-              <span className="font-bold">
-                {todos.length > 0
-                  ? `${Math.round((todos.filter(t => t.completed).length / todos.length) * 100)}% Completado`
-                  : "100% Completado"}
-              </span>
-              <button 
-                onClick={() => {
-                  setTodos(prev => prev.map(t => ({ ...t, completed: true })))
-                  toast.success("¡Todas las tareas completadas!")
-                }} 
-                className="text-[#5c7c9b] dark:text-zinc-300 font-bold hover:underline transition-colors cursor-pointer"
-              >
-                Completar todo
-              </button>
-            </div>
-          </Card>
-        </motion.div>
-
-        {/* UNIFIED VACANCIES SECTION - Single Consolidated Section */}
-        <motion.div variants={cardVariants} className="lg:col-span-3">
-          <div className="flex items-center justify-between mb-4">
-            <div className="space-y-0.5">
-              <h4 className="text-[18px] sm:text-[20px] font-[800] text-fiord-900 dark:text-fiord-100 tracking-[-0.3px]">
-                Vacantes Activas y Recientes
-              </h4>
-              <p className="text-[13px] text-fiord-400 dark:text-fiord-500 font-semibold">
-                Gestión de ofertas publicadas y progreso de postulaciones locales
+            <div className="mt-2.5 sm:mt-3">
+              <div className="text-xl sm:text-2xl lg:text-3xl font-bold tracking-tight text-foreground">
+                {kpis.activeEmployees}
+              </div>
+              <p className="text-[11px] sm:text-xs text-muted-foreground mt-0.5 truncate flex items-center justify-between">
+                <span>{kpis.totalEmployees} colaboradores</span>
+                <ArrowUpRight className="size-3 text-muted-foreground group-hover:text-primary transition-colors" />
               </p>
             </div>
-            <Link 
-              href="/dashboard/company/vacancies" 
-              className="text-[13px] font-extrabold text-[#5c7c9b] hover:text-[#1f2732] dark:hover:text-zinc-100 flex items-center gap-1 transition-colors"
-            >
-              Ver todas las vacantes <ArrowRight className="size-4" />
-            </Link>
-          </div>
+          </Card>
+        </Link>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
-            {/* Create Vacancy Action Card */}
-            <Link href="/dashboard/company/vacancies/new" className="min-h-[220px]">
-              <Card className="border-2 border-dashed border-fiord-200 dark:border-fiord-800 hover:border-fiord-400 dark:hover:border-fiord-600 bg-fiord-50/20 dark:bg-fiord-900/10 rounded-[26px] p-6 flex flex-col items-center justify-center h-full text-center group cursor-pointer transition-all duration-300 hover:bg-fiord-50/45">
-                <div className="size-12 rounded-full border border-fiord-100 dark:border-fiord-850 bg-white dark:bg-fiord-950 text-fiord-900 dark:text-fiord-50 flex items-center justify-center shadow-sm group-hover:scale-110 transition-transform duration-300">
-                  <Plus className="size-6" />
-                </div>
-                <h5 className="text-[15px] font-bold text-fiord-900 dark:text-fiord-100 mt-3">Crear Nueva Vacante</h5>
-                <p className="text-[12px] text-fiord-400 dark:text-fiord-500 font-medium mt-0.5 max-w-[180px] mx-auto leading-relaxed">
-                  Publica una oferta exprés en Mérida y Riviera Maya
-                </p>
-              </Card>
-            </Link>
-
-            {/* Display up to 5 vacancies */}
-            {(() => {
-              const displayVacancies = publishedVacancies.length > 0 ? publishedVacancies : latestVacancies;
-              return displayVacancies.slice(0, 5).map((vac) => {
-                const formattedSalary =
-                  vac.salary_min && vac.salary_max
-                    ? `$${vac.salary_min.toLocaleString("es-MX")} - $${vac.salary_max.toLocaleString("es-MX")}`
-                    : vac.salary_min
-                    ? `Desde $${vac.salary_min.toLocaleString("es-MX")}`
-                    : vac.salary_max
-                    ? `Hasta $${vac.salary_max.toLocaleString("es-MX")}`
-                    : "A convenir";
-
-                const appCount = vac.applicationsCount ?? 0;
-
-                return (
-                  <Link key={vac.id} href={`/dashboard/company/vacancies/${vac.id}`} className="block">
-                    <Card className="bg-white dark:bg-fiord-900 border-fiord-100 dark:border-fiord-800 rounded-[26px] p-6 flex items-center justify-between gap-4 shadow-sm hover:border-fiord-200 dark:hover:border-fiord-700 transition-all duration-300 h-full">
-                      <div className="space-y-2 flex-1 min-w-0">
-                        <div className="flex items-center gap-2">
-                          <Badge className="bg-fiord-50 dark:bg-fiord-800 text-fiord-700 dark:text-fiord-300 border-none font-bold text-[10px] px-2.5 py-1 rounded-md">
-                            {vac.category || "General"}
-                          </Badge>
-                          <Badge
-                            className={cn(
-                              "font-extrabold text-[9px] px-2 py-0.5 rounded-full border-none",
-                              vac.is_active !== false
-                                ? "bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-400"
-                                : "bg-fiord-100 text-fiord-600 dark:bg-fiord-800 dark:text-fiord-400"
-                            )}
-                          >
-                            {vac.is_active !== false ? "Activa" : "Pausada"}
-                          </Badge>
-                        </div>
-                        <h5 className="text-[16px] sm:text-[17px] font-bold tracking-tight text-fiord-900 dark:text-fiord-50 line-clamp-1">
-                          {vac.title}
-                        </h5>
-                        <div className="flex items-center gap-2 text-[11px] text-fiord-400 dark:text-fiord-500 font-bold">
-                          <MapPin className="size-3 text-fiord-400" />
-                          <span>{vac.zone || vac.location || "Mérida"}</span>
-                          <span>•</span>
-                          <span className="text-fiord-700 dark:text-fiord-300 font-semibold">{formattedSalary} MXN</span>
-                        </div>
-                      </div>
-
-                      {/* Progress wheel SVG */}
-                      <div className="relative size-16 shrink-0 flex items-center justify-center">
-                        <svg className="size-full transform -rotate-90">
-                          <circle cx="32" cy="32" r="24" stroke="#ebeef3" strokeWidth="5" fill="transparent" className="dark:stroke-fiord-800" />
-                          <circle
-                            cx="32"
-                            cy="32"
-                            r="24"
-                            stroke="#5c7c9b"
-                            strokeWidth="5"
-                            fill="transparent"
-                            strokeDasharray="150"
-                            strokeDashoffset={Math.max(0, 150 - Math.min(appCount, 10) * 15)}
-                            strokeLinecap="round"
-                          />
-                        </svg>
-                        <div className="absolute inset-0 flex flex-col items-center justify-center">
-                          <span className="text-[12px] font-bold font-mono text-fiord-900 dark:text-fiord-100">{appCount}</span>
-                          <span className="text-[7px] text-fiord-400 dark:text-fiord-500 uppercase tracking-widest font-extrabold">Postulantes</span>
-                        </div>
-                      </div>
-                    </Card>
-                  </Link>
-                );
-              });
-            })()}
-
-            {latestVacancies.length === 0 && publishedVacancies.length === 0 && (
-              <div className="col-span-2 text-center py-6 text-fiord-400 dark:text-fiord-500 text-sm font-semibold">
-                Aún no has publicado vacantes. Tus ofertas creadas se mostrarán aquí.
+        {/* KPI 2: Asistencia Hoy */}
+        <Link
+          href="/dashboard/company/attendance"
+          className="group block rounded-xl focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring"
+        >
+          <Card className="h-full rounded-xl border border-border/80 bg-card hover:border-primary/50 hover:shadow-xs transition-all p-3 sm:p-4.5 flex flex-col justify-between">
+            <div className="flex items-center justify-between gap-1.5">
+              <span className="text-xs font-semibold text-muted-foreground truncate">
+                Asistencia Hoy
+              </span>
+              <div className="size-7 sm:size-8 rounded-lg bg-primary/10 text-primary flex items-center justify-center shrink-0 group-hover:bg-primary group-hover:text-primary-foreground transition-colors">
+                <Clock className="size-3.5 sm:size-4" />
               </div>
+            </div>
+            <div className="mt-2.5 sm:mt-3">
+              <div className="text-xl sm:text-2xl lg:text-3xl font-bold tracking-tight text-foreground">
+                {kpis.punctualityRate}%
+              </div>
+              <p className="text-[11px] sm:text-xs text-muted-foreground mt-0.5 truncate flex items-center justify-between">
+                <span>{presentCount} presentes</span>
+                <ArrowUpRight className="size-3 text-muted-foreground group-hover:text-primary transition-colors" />
+              </p>
+            </div>
+          </Card>
+        </Link>
+
+        {/* KPI 3: Vacantes Activas */}
+        <Link
+          href="/dashboard/company/vacancies"
+          className="group block rounded-xl focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring"
+        >
+          <Card className="h-full rounded-xl border border-border/80 bg-card hover:border-primary/50 hover:shadow-xs transition-all p-3 sm:p-4.5 flex flex-col justify-between">
+            <div className="flex items-center justify-between gap-1.5">
+              <span className="text-xs font-semibold text-muted-foreground truncate">
+                Vacantes Activas
+              </span>
+              <div className="size-7 sm:size-8 rounded-lg bg-primary/10 text-primary flex items-center justify-center shrink-0 group-hover:bg-primary group-hover:text-primary-foreground transition-colors">
+                <Briefcase className="size-3.5 sm:size-4" />
+              </div>
+            </div>
+            <div className="mt-2.5 sm:mt-3">
+              <div className="text-xl sm:text-2xl lg:text-3xl font-bold tracking-tight text-foreground">
+                {kpis.openVacanciesCount}
+              </div>
+              <p className="text-[11px] sm:text-xs text-muted-foreground mt-0.5 truncate flex items-center justify-between">
+                <span>Fase 2</span>
+                <ArrowUpRight className="size-3 text-muted-foreground group-hover:text-primary transition-colors" />
+              </p>
+            </div>
+          </Card>
+        </Link>
+
+        {/* KPI 4: Postulaciones */}
+        <Link
+          href="/dashboard/company/applications"
+          className="group block rounded-xl focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring"
+        >
+          <Card className="h-full rounded-xl border border-border/80 bg-card hover:border-primary/50 hover:shadow-xs transition-all p-3 sm:p-4.5 flex flex-col justify-between">
+            <div className="flex items-center justify-between gap-1.5">
+              <span className="text-xs font-semibold text-muted-foreground truncate">
+                Postulaciones
+              </span>
+              <div className="size-7 sm:size-8 rounded-lg bg-primary/10 text-primary flex items-center justify-center shrink-0 group-hover:bg-primary group-hover:text-primary-foreground transition-colors">
+                <Users className="size-3.5 sm:size-4" />
+              </div>
+            </div>
+            <div className="mt-2.5 sm:mt-3">
+              <div className="text-xl sm:text-2xl lg:text-3xl font-bold tracking-tight text-foreground">
+                {kpis.totalApplicationsReceived}
+              </div>
+              <p className="text-[11px] sm:text-xs text-muted-foreground mt-0.5 truncate flex items-center justify-between">
+                <span>{kpis.pendingReviewApplications} pendientes</span>
+                <ArrowUpRight className="size-3 text-muted-foreground group-hover:text-primary transition-colors" />
+              </p>
+            </div>
+          </Card>
+        </Link>
+      </div>
+
+      {/* 4. Acciones Rápidas (Horizontal Scrollable Pills en Mobile) */}
+      <div className="lg:hidden">
+        <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none -mx-1 px-1">
+          <Button
+            size="sm"
+            render={<Link href="/dashboard/company/employees?action=new" />}
+            className="h-9 px-3.5 text-xs font-semibold rounded-xl shrink-0 gap-1.5 bg-primary text-primary-foreground shadow-xs cursor-pointer"
+          >
+            <UserPlus className="size-3.5" />
+            <span>+ Colaborador</span>
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            render={<Link href="/dashboard/company/applications" />}
+            className="h-9 px-3 text-xs font-medium rounded-xl shrink-0 gap-1.5 bg-card hover:bg-muted/60 cursor-pointer"
+          >
+            <Users className="size-3.5 text-primary" />
+            <span>Postulantes</span>
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            render={<Link href="/dashboard/company/employees" />}
+            className="h-9 px-3 text-xs font-medium rounded-xl shrink-0 gap-1.5 bg-card hover:bg-muted/60 cursor-pointer"
+          >
+            <UserCheck className="size-3.5 text-primary" />
+            <span>Plantilla</span>
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            render={<Link href="/dashboard/company/attendance" />}
+            className="h-9 px-3 text-xs font-medium rounded-xl shrink-0 gap-1.5 bg-card hover:bg-muted/60 cursor-pointer"
+          >
+            <Clock className="size-3.5 text-primary" />
+            <span>Asistencia</span>
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            render={<Link href="/dashboard/company/reports" />}
+            className="h-9 px-3 text-xs font-medium rounded-xl shrink-0 gap-1.5 bg-card hover:bg-muted/60 cursor-pointer"
+          >
+            <FileSpreadsheet className="size-3.5 text-primary" />
+            <span>Reportes</span>
+          </Button>
+        </div>
+      </div>
+
+      {/* 5. Mobile Tabs Navigation (< lg) */}
+      <div className="lg:hidden space-y-4">
+        {/* Segmented Control Buttons */}
+        <div className="grid grid-cols-3 p-1 bg-muted/60 rounded-xl border border-border/60 text-xs font-semibold gap-1">
+          <button
+            type="button"
+            onClick={() => setMobileTab("candidates")}
+            className={cn(
+              "py-2 px-2 text-center rounded-lg transition-all text-xs font-medium flex items-center justify-center gap-1.5 cursor-pointer",
+              mobileTab === "candidates"
+                ? "bg-background text-foreground shadow-xs font-semibold"
+                : "text-muted-foreground hover:text-foreground"
             )}
+          >
+            <Users className="size-3.5 shrink-0" />
+            <span className="truncate">Candidatos</span>
+            {(recentCandidates?.length || totalApps) > 0 && (
+              <span className="size-4.5 rounded-full bg-primary/10 text-primary text-[10px] font-bold flex items-center justify-center shrink-0">
+                {recentCandidates?.length || totalApps}
+              </span>
+            )}
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setMobileTab("vacancies")}
+            className={cn(
+              "py-2 px-2 text-center rounded-lg transition-all text-xs font-medium flex items-center justify-center gap-1.5 cursor-pointer",
+              mobileTab === "vacancies"
+                ? "bg-background text-foreground shadow-xs font-semibold"
+                : "text-muted-foreground hover:text-foreground"
+            )}
+          >
+            <Briefcase className="size-3.5 shrink-0" />
+            <span className="truncate">Vacantes</span>
+            {kpis.openVacanciesCount > 0 && (
+              <span className="size-4.5 rounded-full bg-muted text-foreground text-[10px] font-bold flex items-center justify-center shrink-0">
+                {kpis.openVacanciesCount}
+              </span>
+            )}
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setMobileTab("pipeline")}
+            className={cn(
+              "py-2 px-2 text-center rounded-lg transition-all text-xs font-medium flex items-center justify-center gap-1.5 cursor-pointer",
+              mobileTab === "pipeline"
+                ? "bg-background text-foreground shadow-xs font-semibold"
+                : "text-muted-foreground hover:text-foreground"
+            )}
+          >
+            <Layers className="size-3.5 shrink-0" />
+            <span className="truncate">Embudo</span>
+          </button>
+        </div>
+
+        {/* Tab 1: Postulantes Recientes */}
+        {mobileTab === "candidates" && (
+          <Card className="rounded-xl border border-border shadow-xs overflow-hidden">
+            <CardHeader className="flex flex-row items-center justify-between p-4 pb-3 border-b border-border/60">
+              <div>
+                <CardTitle className="text-sm font-bold">
+                  Postulaciones Recientes
+                </CardTitle>
+                <CardDescription className="text-[11px]">
+                  Candidatos aplicados recientemente
+                </CardDescription>
+              </div>
+              <Button
+                variant="ghost"
+                size="sm"
+                render={<Link href="/dashboard/company/applications" />}
+                className="text-xs font-semibold h-8 px-2.5 cursor-pointer text-primary"
+              >
+                <span>Ver todas ({totalApps})</span>
+                <ChevronRight className="size-3.5 ml-1" />
+              </Button>
+            </CardHeader>
+            <CardContent className="p-0">
+              {recentCandidates && recentCandidates.length > 0 ? (
+                <div className="divide-y divide-border/60">
+                  {recentCandidates.slice(0, 6).map((cand) => {
+                    const statusConfig =
+                      STATUS_BADGE_VARIANTS[cand.status] || {
+                        label: cand.status,
+                        className: "bg-muted text-muted-foreground",
+                      };
+                    const initials = getInitials(cand.candidateName);
+
+                    return (
+                      <Link
+                        key={cand.id}
+                        href="/dashboard/company/applications"
+                        className="p-3.5 flex items-center justify-between gap-2.5 hover:bg-muted/40 transition-colors block"
+                      >
+                        <div className="flex items-center gap-2.5 min-w-0">
+                          <Avatar className="size-9 rounded-full border border-border shrink-0">
+                            {cand.candidateAvatar && (
+                              <AvatarImage
+                                src={cand.candidateAvatar}
+                                alt={cand.candidateName}
+                              />
+                            )}
+                            <AvatarFallback className="text-[11px] font-bold">
+                              {initials}
+                            </AvatarFallback>
+                          </Avatar>
+                          <div className="space-y-0.5 min-w-0">
+                            <p className="text-xs font-bold text-foreground truncate">
+                              {cand.candidateName}
+                            </p>
+                            <p className="text-[11px] text-muted-foreground truncate">
+                              {cand.vacancyTitle}
+                            </p>
+                          </div>
+                        </div>
+
+                        <div className="flex items-center gap-2 shrink-0">
+                          <Badge
+                            variant="outline"
+                            className={`text-[10px] font-semibold px-2 py-0.5 rounded-md border ${statusConfig.className}`}
+                          >
+                            {statusConfig.label}
+                          </Badge>
+                          <ChevronRight className="size-4 text-muted-foreground/60" />
+                        </div>
+                      </Link>
+                    );
+                  })}
+                </div>
+              ) : (
+                <div className="p-8 text-center space-y-2">
+                  <Users className="size-7 mx-auto text-muted-foreground/40" />
+                  <p className="text-xs font-semibold text-foreground">
+                    Sin postulaciones recientes
+                  </p>
+                  <p className="text-[11px] text-muted-foreground">
+                    Los candidatos que apliquen a tus vacantes aparecerán aquí.
+                  </p>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Tab 2: Vacantes Activas */}
+        {mobileTab === "vacancies" && (
+          <Card className="rounded-xl border border-border shadow-xs overflow-hidden">
+            <CardHeader className="flex flex-row items-center justify-between p-4 pb-3 border-b border-border/60">
+              <div>
+                <CardTitle className="text-sm font-bold">
+                  Vacantes Activas
+                </CardTitle>
+                <CardDescription className="text-[11px]">
+                  Ofertas laborales con afluencia de talento
+                </CardDescription>
+              </div>
+              <Button
+                variant="ghost"
+                size="sm"
+                render={<Link href="/dashboard/company/vacancies" />}
+                className="text-xs font-semibold h-8 px-2.5 cursor-pointer text-primary"
+              >
+                <span>Ver todas ({kpis.openVacanciesCount})</span>
+                <ChevronRight className="size-3.5 ml-1" />
+              </Button>
+            </CardHeader>
+            <CardContent className="p-0">
+              {openVacanciesList && openVacanciesList.length > 0 ? (
+                <div className="divide-y divide-border/60">
+                  {openVacanciesList.map((vac) => (
+                    <Link
+                      key={vac.id}
+                      href={`/dashboard/company/applications?vacancy_id=${vac.id}`}
+                      className="p-3.5 flex items-center justify-between gap-2.5 hover:bg-muted/40 transition-colors block"
+                    >
+                      <div className="space-y-1 min-w-0">
+                        <p className="text-xs font-bold text-foreground truncate">
+                          {vac.title}
+                        </p>
+                        <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
+                          <span className="truncate">{vac.category}</span>
+                          <span>•</span>
+                          <span className="truncate">{vac.location}</span>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2 shrink-0">
+                        <Badge
+                          variant="secondary"
+                          className="text-[10px] font-semibold px-2 py-0.5 rounded-md"
+                        >
+                          {vac.applicationsCount} cand.
+                        </Badge>
+                        <ChevronRight className="size-4 text-muted-foreground/60" />
+                      </div>
+                    </Link>
+                  ))}
+                </div>
+              ) : (
+                <div className="p-8 text-center space-y-3">
+                  <Briefcase className="size-7 mx-auto text-muted-foreground/40" />
+                  <div className="space-y-1">
+                    <p className="text-xs font-semibold text-foreground">
+                      No tienes vacantes activas
+                    </p>
+                    <p className="text-[11px] text-muted-foreground">
+                      Publica tu primera oferta para empezar a recibir candidatos.
+                    </p>
+                  </div>
+                  <Button
+                    size="sm"
+                    render={<Link href="/dashboard/company/vacancies/new" />}
+                    className="text-xs font-semibold cursor-pointer"
+                  >
+                    <Plus className="size-3.5 mr-1.5" />
+                    <span>Publicar Vacante</span>
+                  </Button>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Tab 3: Embudo & Plan */}
+        {mobileTab === "pipeline" && (
+          <div className="space-y-4">
+            {/* Embudo de Selección */}
+            <Card className="rounded-xl border border-border shadow-xs">
+              <CardHeader className="p-4 pb-3">
+                <CardTitle className="text-sm font-bold">
+                  Embudo de Selección
+                </CardTitle>
+                <CardDescription className="text-[11px]">
+                  Distribución de candidatos en el proceso
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="p-4 pt-0 space-y-3">
+                <div className="space-y-1.5">
+                  <div className="flex items-center justify-between text-xs font-medium">
+                    <span className="text-muted-foreground">En Revisión / Nuevos</span>
+                    <span className="text-foreground font-semibold">
+                      {inReviewCount} ({inReviewPct}%)
+                    </span>
+                  </div>
+                  <Progress value={inReviewPct} className="h-2 rounded-full" />
+                </div>
+
+                <div className="space-y-1.5">
+                  <div className="flex items-center justify-between text-xs font-medium">
+                    <span className="text-muted-foreground">Preseleccionados</span>
+                    <span className="text-foreground font-semibold">
+                      {shortlistedCount} ({shortlistedPct}%)
+                    </span>
+                  </div>
+                  <Progress value={shortlistedPct} className="h-2 rounded-full" />
+                </div>
+
+                <div className="space-y-1.5">
+                  <div className="flex items-center justify-between text-xs font-medium">
+                    <span className="text-muted-foreground">Contratados</span>
+                    <span className="text-foreground font-bold">
+                      {hiredCount} ({hiredPct}%)
+                    </span>
+                  </div>
+                  <Progress value={hiredPct} className="h-2 rounded-full" />
+                </div>
+
+                <div className="pt-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    render={<Link href="/dashboard/company/applications" />}
+                    className="w-full text-xs font-semibold rounded-xl cursor-pointer h-9 justify-center"
+                  >
+                    <span>Ver bandeja de selección</span>
+                    <ArrowUpRight className="size-3.5 ml-1" />
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
           </div>
-        </motion.div>
-        
-      </motion.div>
+        )}
+      </div>
+
+      {/* 6. Bloque Principal de 2 Columnas (Visible únicamente en Pantallas Desktop >= lg) */}
+      <div className="hidden lg:grid lg:grid-cols-12 gap-6 items-start">
+        {/* Columna Izquierda (7 / 12 cols): Vacantes y Postulaciones */}
+        <div className="lg:col-span-7 space-y-6">
+          {/* Card: Vacantes en Difusión */}
+          <Card className="rounded-xl border border-border shadow-xs">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4">
+              <div>
+                <CardTitle className="text-base font-bold">
+                  Vacantes Activas
+                </CardTitle>
+                <CardDescription className="text-xs">
+                  Ofertas laborales con mayor afluencia de candidatos.
+                </CardDescription>
+              </div>
+              <Button
+                variant="ghost"
+                size="sm"
+                render={<Link href="/dashboard/company/vacancies" />}
+                className="text-xs font-semibold cursor-pointer"
+              >
+                Ver todas ({kpis.openVacanciesCount})
+              </Button>
+            </CardHeader>
+            <CardContent className="p-0">
+              {openVacanciesList && openVacanciesList.length > 0 ? (
+                <div className="divide-y divide-border/60">
+                  {openVacanciesList.map((vac) => (
+                    <div
+                      key={vac.id}
+                      className="p-4 sm:px-6 flex items-center justify-between gap-3 hover:bg-muted/30 transition-colors"
+                    >
+                      <div className="space-y-1 min-w-0">
+                        <Link
+                          href={`/dashboard/company/vacancies`}
+                          className="text-sm font-bold text-foreground hover:text-primary transition-colors truncate block"
+                        >
+                          {vac.title}
+                        </Link>
+                        <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                          <span>{vac.category}</span>
+                          <span>•</span>
+                          <span>{vac.location}</span>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-3 shrink-0">
+                        <Badge
+                          variant="secondary"
+                          className="text-xs font-semibold px-2.5 py-0.5 rounded-md"
+                        >
+                          {vac.applicationsCount}{" "}
+                          {vac.applicationsCount === 1 ? "candidato" : "candidatos"}
+                        </Badge>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          render={
+                            <Link
+                              href={`/dashboard/company/applications?vacancy_id=${vac.id}`}
+                            />
+                          }
+                          className="size-8 rounded-lg cursor-pointer"
+                          title="Ver candidatos"
+                        >
+                          <ChevronRight className="size-4 text-muted-foreground" />
+                        </Button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="p-8 text-center space-y-3">
+                  <Briefcase className="size-8 mx-auto text-muted-foreground/50" />
+                  <div className="space-y-1">
+                    <p className="text-sm font-semibold text-foreground">
+                      No tienes vacantes activas
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      Publica tu primera oferta de empleo para empezar a recibir postulantes.
+                    </p>
+                  </div>
+                  <Button
+                    size="sm"
+                    render={<Link href="/dashboard/company/vacancies/new" />}
+                    className="text-xs font-semibold cursor-pointer"
+                  >
+                    <Plus className="size-3.5 mr-1.5" />
+                    <span>Publicar Vacante</span>
+                  </Button>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Card: Postulaciones Recientes */}
+          <Card className="rounded-xl border border-border shadow-xs">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4">
+              <div>
+                <CardTitle className="text-base font-bold">
+                  Postulaciones Recientes
+                </CardTitle>
+                <CardDescription className="text-xs">
+                  Últimos candidatos registrados para tus ofertas.
+                </CardDescription>
+              </div>
+              <Button
+                variant="ghost"
+                size="sm"
+                render={<Link href="/dashboard/company/applications" />}
+                className="text-xs font-semibold cursor-pointer"
+              >
+                Ver todas ({totalApps})
+              </Button>
+            </CardHeader>
+            <CardContent className="p-0">
+              {recentCandidates && recentCandidates.length > 0 ? (
+                <div className="divide-y divide-border/60">
+                  {recentCandidates.slice(0, 5).map((cand) => {
+                    const statusConfig =
+                      STATUS_BADGE_VARIANTS[cand.status] || {
+                        label: cand.status,
+                        className: "bg-muted text-muted-foreground",
+                      };
+                    const initials = getInitials(cand.candidateName);
+
+                    return (
+                      <div
+                        key={cand.id}
+                        className="p-4 sm:px-6 flex items-center justify-between gap-3 hover:bg-muted/30 transition-colors"
+                      >
+                        <div className="flex items-center gap-3 min-w-0">
+                          <Avatar className="size-9 rounded-full border border-border shrink-0">
+                            {cand.candidateAvatar && (
+                              <AvatarImage
+                                src={cand.candidateAvatar}
+                                alt={cand.candidateName}
+                              />
+                            )}
+                            <AvatarFallback className="text-xs font-bold">
+                              {initials}
+                            </AvatarFallback>
+                          </Avatar>
+                          <div className="space-y-0.5 min-w-0">
+                            <p className="text-sm font-bold text-foreground truncate">
+                              {cand.candidateName}
+                            </p>
+                            <p className="text-xs text-muted-foreground truncate">
+                              {cand.vacancyTitle}
+                            </p>
+                          </div>
+                        </div>
+
+                        <div className="flex items-center gap-3 shrink-0">
+                          <Badge
+                            variant="outline"
+                            className={`text-[11px] font-semibold px-2.5 py-0.5 rounded-full border ${statusConfig.className}`}
+                          >
+                            {statusConfig.label}
+                          </Badge>
+                          <span className="text-xs text-muted-foreground font-medium hidden sm:inline-block">
+                            {cand.appliedAt ? formatDateToDisplay(cand.appliedAt) : ""}
+                          </span>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              ) : (
+                <div className="p-8 text-center space-y-3">
+                  <Users className="size-8 mx-auto text-muted-foreground/50" />
+                  <div className="space-y-1">
+                    <p className="text-sm font-semibold text-foreground">
+                      Sin postulaciones recientes
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      Los candidatos que apliquen a tus vacantes aparecerán en esta lista.
+                    </p>
+                  </div>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Columna Derecha (5 / 12 cols): Embudo, Accesos y Suscripción */}
+        <div className="lg:col-span-5 space-y-6">
+          {/* 1. Embudo de Selección (Pipeline) */}
+          <Card className="rounded-xl border border-border shadow-xs">
+            <CardHeader className="pb-3">
+              <CardTitle className="text-base font-bold">
+                Embudo de Selección
+              </CardTitle>
+              <CardDescription className="text-xs">
+                Distribución de postulantes en el proceso de contratación.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="space-y-2">
+                <div className="flex items-center justify-between text-xs font-semibold">
+                  <span className="text-muted-foreground">
+                    En Revisión / Nuevos
+                  </span>
+                  <span className="text-foreground">
+                    {inReviewCount} ({inReviewPct}%)
+                  </span>
+                </div>
+                <Progress value={inReviewPct} className="h-2 rounded-full" />
+              </div>
+
+              <div className="space-y-2">
+                <div className="flex items-center justify-between text-xs font-semibold">
+                  <span className="text-muted-foreground">
+                    Preseleccionados / Entrevista
+                  </span>
+                  <span className="text-foreground">
+                    {shortlistedCount} ({shortlistedPct}%)
+                  </span>
+                </div>
+                <Progress value={shortlistedPct} className="h-2 rounded-full" />
+              </div>
+
+              <div className="space-y-2">
+                <div className="flex items-center justify-between text-xs font-semibold">
+                  <span className="text-muted-foreground">Contratados</span>
+                  <span className="text-foreground font-bold">
+                    {hiredCount} ({hiredPct}%)
+                  </span>
+                </div>
+                <Progress value={hiredPct} className="h-2 rounded-full bg-muted" />
+              </div>
+            </CardContent>
+            <CardFooter className="pt-0 pb-4 px-6">
+              <Link
+                href="/dashboard/company/applications"
+                className="text-xs font-semibold text-primary hover:underline inline-flex items-center gap-1"
+              >
+                <span>Ver bandeja de selección</span>
+                <ArrowUpRight className="size-3" />
+              </Link>
+            </CardFooter>
+          </Card>
+
+          {/* 2. Acciones Rápidas */}
+          <Card className="rounded-xl border border-border shadow-xs">
+            <CardHeader className="pb-3">
+              <CardTitle className="text-base font-bold">
+                Acciones Rápidas
+              </CardTitle>
+              <CardDescription className="text-xs">
+                Accesos directos a las operaciones más frecuentes.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+              <Button
+                variant="outline"
+                render={<Link href="/dashboard/company/employees?action=new" />}
+                className="h-11 justify-start px-3.5 text-xs font-semibold rounded-xl cursor-pointer"
+              >
+                <UserPlus className="size-4 mr-2 text-primary" />
+                <span>Registrar Colaborador</span>
+              </Button>
+              <Button
+                variant="outline"
+                render={<Link href="/dashboard/company/employees" />}
+                className="h-11 justify-start px-3.5 text-xs font-semibold rounded-xl cursor-pointer"
+              >
+                <UserCheck className="size-4 mr-2 text-primary" />
+                <span>Plantilla</span>
+              </Button>
+              <Button
+                variant="outline"
+                render={<Link href="/dashboard/company/attendance" />}
+                className="h-11 justify-start px-3.5 text-xs font-semibold rounded-xl cursor-pointer"
+              >
+                <Clock className="size-4 mr-2 text-primary" />
+                <span>Asistencia</span>
+              </Button>
+              <Button
+                variant="outline"
+                render={<Link href="/dashboard/company/vacations" />}
+                className="h-11 justify-start px-3.5 text-xs font-semibold rounded-xl cursor-pointer"
+              >
+                <CalendarCheck className="size-4 mr-2 text-primary" />
+                <span>Vacaciones</span>
+              </Button>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
     </div>
-  )
+  );
 }
+

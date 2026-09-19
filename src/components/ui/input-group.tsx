@@ -88,8 +88,10 @@ function InputGroupButton({
   variant = "ghost",
   size = "xs",
   ...props
-}: Omit<React.ComponentProps<typeof Button>, "size"> &
-  VariantProps<typeof inputGroupButtonVariants>) {
+}: Omit<React.ComponentProps<typeof Button>, "size" | "type"> &
+  VariantProps<typeof inputGroupButtonVariants> & {
+    type?: "button" | "submit" | "reset"
+  }) {
   return (
     <Button
       type={type}
@@ -116,7 +118,7 @@ function InputGroupText({ className, ...props }: React.ComponentProps<"span">) {
 function InputGroupInput({
   className,
   ...props
-}: React.ComponentProps<"input">) {
+}: React.ComponentProps<typeof Input>) {
   return (
     <Input
       data-slot="input-group-control"
@@ -132,7 +134,7 @@ function InputGroupInput({
 function InputGroupTextarea({
   className,
   ...props
-}: React.ComponentProps<"textarea">) {
+}: React.ComponentProps<typeof Textarea>) {
   return (
     <Textarea
       data-slot="input-group-control"

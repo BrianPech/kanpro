@@ -2,6 +2,7 @@ import { z } from "zod";
 
 export const companyProfileSchema = z.object({
   company_name: z.string().min(2, "El nombre comercial debe tener al menos 2 caracteres"),
+  legal_name: z.string().optional().or(z.literal("")),
   industry: z.string().min(1, "El sector industrial es requerido"),
   website: z.string().url("Introduce una URL válida").optional().or(z.literal("")),
   location: z.string().min(2, "La ubicación es requerida"),
@@ -9,11 +10,13 @@ export const companyProfileSchema = z.object({
   description: z.string().max(300, "La bio comercial no puede exceder los 300 caracteres").optional(),
   phone: z.string().optional(),
   company_size: z.string().optional(),
+  fiscal_regime: z.enum(["persona_moral", "persona_fisica"]).optional(),
+  rfc: z.string().optional().or(z.literal("")),
   // Optional benefits and shift fields
   banner_url: z.string().optional(),
   instagram_url: z.string().optional(),
   facebook_url: z.string().optional(),
-  address_details: z.string().min(3, "La dirección física detallada es requerida para orientar al candidato"),
+  address_details: z.string().optional().or(z.literal("")),
   has_transport: z.boolean().optional(),
   benefit_canteen: z.boolean().optional(),
   benefit_tips: z.boolean().optional(),
@@ -21,7 +24,31 @@ export const companyProfileSchema = z.object({
   benefit_uniforms: z.boolean().optional(),
   benefit_growth: z.boolean().optional(),
   operation_hours: z.string().optional(),
+}).superRefine((data, ctx) => {
+  if (data.rfc && data.rfc.trim().length > 0) {
+    const cleaned = data.rfc.toUpperCase().trim();
+    if (data.fiscal_regime === "persona_moral") {
+      const pmRegex = /^[A-Z&Ñ]{3}\d{6}[A-Z0-9]{3}$/;
+      if (cleaned.length !== 12 || !pmRegex.test(cleaned)) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: "El RFC de Persona Moral debe tener exactamente 12 caracteres (3 letras + 6 dígitos + 3 homoclave)",
+          path: ["rfc"],
+        });
+      }
+    } else {
+      const pfRegex = /^[A-Z&Ñ]{4}\d{6}[A-Z0-9]{3}$/;
+      if (cleaned.length !== 13 || !pfRegex.test(cleaned)) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: "El RFC de Persona Física debe tener exactamente 13 caracteres (4 letras + 6 dígitos + 3 homoclave)",
+          path: ["rfc"],
+        });
+      }
+    }
+  }
 });
+
 
 export type CompanyProfileFormValues = z.infer<typeof companyProfileSchema>;
 

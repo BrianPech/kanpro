@@ -29,7 +29,7 @@ export async function toggleGlobalRecruitment(companyId: string, pause: boolean)
 
   // Revalidate relevant pages so candidate feeds and dashboard are updated
   revalidatePath("/dashboard/company/settings")
-  revalidatePath("/discovery")
+  revalidatePath("/dashboard/candidate/discovery")
   revalidatePath("/dashboard/company/vacancies")
   revalidatePath("/")
 

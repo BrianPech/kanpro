@@ -74,11 +74,14 @@ export const jobSearchService = {
         salary_min,
         salary_max,
         is_promoted,
+        is_featured,
         category,
         company_id,
         created_at,
         zone,
-        skills
+        skills,
+        benefits,
+        requirements
       `)
       .or("status.eq.Activa,status.eq.activa,status.eq.published,is_active.eq.true")
       .order("is_promoted", { ascending: false })
@@ -95,32 +98,34 @@ export const jobSearchService = {
 
     // 2. Fetch company profiles in batch
     const companyIds = Array.from(
-      new Set(rawVacancies.map((v: any) => v.company_id).filter(Boolean))
+      new Set(rawVacancies.map((v) => v.company_id).filter(Boolean))
     ) as string[];
 
-    const companies: Record<string, { company_name: string; logo_url: string | null }> = {};
+    const companies: Record<string, { company_name: string; logo_url: string | null; contact_phone: string | null }> = {};
 
     if (companyIds.length > 0) {
       const { data: companyProfiles } = await supabase
         .from("company_profiles")
-        .select("id, company_name, logo_url")
+        .select("id, company_name, logo_url, contact_phone")
         .in("id", companyIds);
 
       if (companyProfiles) {
-        companyProfiles.forEach((comp: any) => {
+        companyProfiles.forEach((comp) => {
           companies[comp.id] = {
             company_name: comp.company_name || "Empresa",
             logo_url: comp.logo_url || null,
+            contact_phone: comp.contact_phone || null,
           };
         });
       }
     }
 
     // 3. Format vacancies
-    const formattedVacancies: SearchVacancy[] = rawVacancies.map((vac: any) => {
+    const formattedVacancies: SearchVacancy[] = rawVacancies.map((vac) => {
       const compInfo = companies[vac.company_id];
       const compName = compInfo?.company_name || "Empresa";
       const compLogo = compInfo?.logo_url || null;
+      const compPhone = compInfo?.contact_phone || null;
 
       let formattedSalary = "";
       const min = Number(vac.salary_min);
@@ -140,19 +145,24 @@ export const jobSearchService = {
         title: vac.title || "",
         companyName: compName,
         companyLogo: compLogo,
+        companyPhone: compPhone,
         location: vac.location || vac.modality || "Remoto",
         employmentType: vac.employment_type || vac.modality || "Tiempo Completo",
         formattedSalary,
-        isFeatured: !!vac.is_promoted,
+        isFeatured: !!(vac.is_promoted || vac.is_featured),
         category: vac.category || "General",
         description: vac.description || "",
         skills: vac.skills || [],
+        benefits: vac.benefits || [],
+        requirements: vac.requirements || null,
         zone: vac.zone || "",
-      } as SearchVacancy & { description?: string; skills?: string[]; zone?: string };
+        modality: vac.modality || "",
+        createdAt: vac.created_at,
+      };
     });
 
     // 4. Apply tolerant filtering logic (query + every active filter chip)
-    return formattedVacancies.filter((vac: any) => {
+    return formattedVacancies.filter((vac) => {
       const searchableContent = [
         vac.title,
         vac.companyName,
@@ -182,5 +192,90 @@ export const jobSearchService = {
 
       return true;
     });
+  },
+
+  /**
+   * Fetches a single vacancy by its ID with full details.
+   */
+  async getVacancyById(id: string): Promise<SearchVacancy | null> {
+    const supabase = createClient();
+    const { data: vac, error } = await supabase
+      .from("vacancies")
+      .select(`
+        id,
+        title,
+        description,
+        location,
+        modality,
+        employment_type,
+        salary_min,
+        salary_max,
+        is_promoted,
+        is_featured,
+        category,
+        company_id,
+        created_at,
+        zone,
+        skills,
+        benefits,
+        requirements
+      `)
+      .eq("id", id)
+      .maybeSingle();
+
+    if (error || !vac) {
+      return null;
+    }
+
+    let compName = "Empresa";
+    let compLogo: string | null = null;
+    let compPhone: string | null = null;
+
+    if (vac.company_id) {
+      const { data: comp } = await supabase
+        .from("company_profiles")
+        .select("company_name, logo_url, contact_phone")
+        .eq("id", vac.company_id)
+        .maybeSingle();
+
+      if (comp) {
+        compName = comp.company_name || "Empresa";
+        compLogo = comp.logo_url || null;
+        compPhone = comp.contact_phone || null;
+      }
+    }
+
+    let formattedSalary = "";
+    const min = Number(vac.salary_min);
+    const max = Number(vac.salary_max);
+    if (min && max) {
+      formattedSalary = `$${min.toLocaleString()} - $${max.toLocaleString()} MXN`;
+    } else if (min) {
+      formattedSalary = `Desde $${min.toLocaleString()} MXN`;
+    } else if (max) {
+      formattedSalary = `Hasta $${max.toLocaleString()} MXN`;
+    } else {
+      formattedSalary = "Sueldo no especificado";
+    }
+
+    return {
+      id: vac.id,
+      title: vac.title || "",
+      companyName: compName,
+      companyLogo: compLogo,
+      companyPhone: compPhone,
+      location: vac.location || vac.modality || "Remoto",
+      employmentType: vac.employment_type || vac.modality || "Tiempo Completo",
+      formattedSalary,
+      isFeatured: !!(vac.is_promoted || vac.is_featured),
+      category: vac.category || "General",
+      description: vac.description || "",
+      skills: vac.skills || [],
+      benefits: vac.benefits || [],
+      requirements: vac.requirements || null,
+      zone: vac.zone || "",
+      modality: vac.modality || "",
+      createdAt: vac.created_at,
+    };
   }
 };

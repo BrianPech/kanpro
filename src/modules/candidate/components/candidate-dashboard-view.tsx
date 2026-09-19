@@ -1,284 +1,762 @@
+/* eslint-disable @next/next/no-img-element */
 "use client";
 
-import * as React from "react";
+import React, { useState, useEffect, useMemo, useId } from "react";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { 
   Briefcase, 
+  Bookmark, 
   CheckCircle2, 
-  RotateCw,
-  Bookmark
+  MapPin, 
+  Search, 
+  Sparkles, 
+  ArrowUpRight, 
+  DollarSign, 
+  Compass, 
+  Flame, 
+  Clock, 
+  ChevronRight,
+  Navigation,
+  Check,
+  X,
+  SlidersHorizontal,
+  Share2,
+  CheckCheck,
+  FileCheck2,
+  PenTool,
+  ArrowRight,
 } from "lucide-react";
-import Link from "next/link";
-import { CandidateDashboardData } from "../services/candidate-dashboard";
-import { createClient } from "@/lib/supabase/client";
 import { toast } from "sonner";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Badge } from "@/components/ui/badge";
+import {
+  Carousel,
+  CarouselContent,
+  CarouselItem,
+  CarouselPrevious,
+  CarouselNext,
+} from "@/components/ui/carousel";
+import {
+  Avatar,
+  AvatarImage,
+  AvatarFallback,
+} from "@/components/ui/avatar";
+import { createClient } from "@/lib/supabase/client";
+import type { CandidateDashboardData, VacancyItem } from "@/modules/candidate/services/candidate-dashboard";
+import { cn } from "@/lib/utils";
 
-interface CandidateDashboardViewProps {
+export interface CandidateDashboardViewProps {
   initialData: CandidateDashboardData;
 }
 
-export function CandidateDashboardView({ initialData }: CandidateDashboardViewProps) {
-  const { profile, featuredVacancies = [], nearbyVacancies = [] } = initialData;
+const CATEGORY_CHIPS = [
+  "Todos",
+  "Tecnología",
+  "Administración",
+  "Ventas y Comercial",
+  "Hotelería y Turismo",
+  "Operaciones",
+  "Atención al Cliente",
+  "Salud",
+  "Logística",
+];
+
+const QUICK_ZONES = [
+  "Todas las zonas",
+  "Mérida",
+  "Cancún",
+  "Playa del Carmen",
+  "Tulum",
+  "Remoto",
+];
+
+export function CandidateDashboardView({
+  initialData,
+}: CandidateDashboardViewProps) {
+  const router = useRouter();
   const supabase = createClient();
+  const searchInputId = useId();
 
-  // Saved Job IDs State with Supabase sync
-  const [savedJobIds, setSavedJobIds] = React.useState<Set<string>>(new Set());
+  const [savedJobIds, setSavedJobIds] = useState<Set<string>>(new Set());
+  const [appliedJobIds, setAppliedJobIds] = useState<Set<string>>(new Set());
+  const [searchQuery, setSearchQuery] = useState("");
+  const [selectedCategory, setSelectedCategory] = useState("Todos");
+  const [selectedZone, setSelectedZone] = useState("Todas las zonas");
+  const [sortBy, setSortBy] = useState<"nearby" | "salary" | "recent">("nearby");
 
-  // Fetch initial saved jobs on mount
-  React.useEffect(() => {
-    async function loadSavedJobs() {
+  const candidateProfile = initialData?.profile;
+  const candidateLocation = candidateProfile?.location || "";
+  const rawFeaturedVacancies = initialData?.featuredVacancies || [];
+  const rawNearbyVacancies = initialData?.nearbyVacancies || [];
+
+  // Load saved vacancies and applied applications for the candidate
+  useEffect(() => {
+    let isMounted = true;
+    async function loadUserData() {
       try {
         const { data: { user } } = await supabase.auth.getUser();
-        if (user) {
-          const { data } = await supabase
+        if (!user) return;
+
+        const [{ data: savedData }, { data: appliedData }] = await Promise.all([
+          supabase
             .from("saved_vacancies")
             .select("vacancy_id")
-            .eq("candidate_id", user.id);
-          
-          if (data) {
-            setSavedJobIds(new Set(data.map((row: any) => row.vacancy_id)));
+            .eq("candidate_id", user.id),
+          supabase
+            .from("applications")
+            .select("vacancy_id")
+            .eq("candidate_id", user.id)
+        ]);
+
+        if (isMounted) {
+          if (savedData) {
+            setSavedJobIds(new Set(savedData.map((r: { vacancy_id: string }) => r.vacancy_id)));
+          }
+          if (appliedData) {
+            setAppliedJobIds(new Set(appliedData.map((a: { vacancy_id: string }) => a.vacancy_id)));
           }
         }
       } catch (err) {
-        console.error("Error loading candidate saved vacancies:", err);
+        console.error("Error fetching candidate data:", err);
       }
     }
-    loadSavedJobs();
+
+    loadUserData();
+    return () => {
+      isMounted = false;
+    };
   }, [supabase]);
 
-  // Toggle bookmark / saved job with database persistence
-  const toggleBookmark = async (vacancyId: string) => {
+  // Bookmark toggle with optimistic updates & notification
+  const toggleBookmark = async (id: string) => {
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) {
-        toast.error("Inicia sesión para guardar vacantes.");
+        toast.error("Inicia sesión para guardar vacantes");
         return;
       }
 
-      const isCurrentlySaved = savedJobIds.has(vacancyId);
+      const isCurrentlySaved = savedJobIds.has(id);
 
-      // Optimistic state update
+      // Optimistic update
       setSavedJobIds((prev) => {
         const next = new Set(prev);
-        if (isCurrentlySaved) next.delete(vacancyId);
-        else next.add(vacancyId);
+        if (isCurrentlySaved) {
+          next.delete(id);
+        } else {
+          next.add(id);
+        }
         return next;
       });
 
       if (isCurrentlySaved) {
-        await supabase
+        const { error } = await supabase
           .from("saved_vacancies")
           .delete()
           .eq("candidate_id", user.id)
-          .eq("vacancy_id", vacancyId);
+          .eq("vacancy_id", id);
 
-        toast.info("Vacante eliminada de guardados");
+        if (error) {
+          console.error("Error removing saved vacancy:", error);
+          setSavedJobIds((prev) => new Set(prev).add(id));
+          toast.error("Error al remover de guardados");
+          return;
+        }
+
+        toast.info("Empleo removido de tus guardados");
       } else {
-        await supabase
+        const { error } = await supabase
           .from("saved_vacancies")
           .insert({
             candidate_id: user.id,
-            vacancy_id: vacancyId
+            vacancy_id: id,
           });
 
-        toast.success("¡Vacante guardada en tus favoritos!");
+        if (error) {
+          console.error("Error saving vacancy:", error);
+          setSavedJobIds((prev) => {
+            const next = new Set(prev);
+            next.delete(id);
+            return next;
+          });
+          toast.error("Error al guardar el empleo");
+          return;
+        }
+
+        toast.success("Empleo guardado en favoritos");
       }
     } catch (err) {
       console.error("Error toggling bookmark:", err);
-      toast.error("Error al actualizar la lista de guardados");
+      toast.error("Error al actualizar favoritos");
     }
   };
 
-  const firstName = profile?.full_name ? profile.full_name.trim().split(" ")[0] : "Candidato";
+  const handleCardClick = (jobId: string) => {
+    router.push(`/dashboard/candidate/vacancies/${jobId}`);
+  };
 
-  const handleRefresh = () => {
-    window.location.reload();
+  // Quick share handler
+  const handleShare = (e: React.MouseEvent, job: VacancyItem) => {
+    e.stopPropagation();
+    const url = `${window.location.origin}/dashboard/candidate/vacancies/${job.id}`;
+    if (typeof navigator !== "undefined" && navigator.clipboard) {
+      navigator.clipboard.writeText(url);
+      toast.success("Enlace de vacante copiado al portapapeles");
+    } else {
+      toast.info(`Enlace: ${url}`);
+    }
+  };
+
+  // Dynamic filter & sort
+  const filteredVacancies = useMemo(() => {
+    let list = [...rawNearbyVacancies];
+
+    // Text search filter
+    if (searchQuery.trim()) {
+      const query = searchQuery.toLowerCase().trim();
+      list = list.filter((job) => {
+        return (
+          job.title.toLowerCase().includes(query) ||
+          job.companyName.toLowerCase().includes(query) ||
+          job.location.toLowerCase().includes(query) ||
+          job.category.toLowerCase().includes(query) ||
+          (job.zone && job.zone.toLowerCase().includes(query)) ||
+          (job.skills && job.skills.some((s) => s.toLowerCase().includes(query)))
+        );
+      });
+    }
+
+    // Category filter
+    if (selectedCategory !== "Todos") {
+      list = list.filter((job) => {
+        const cat = job.category.toLowerCase();
+        const sel = selectedCategory.toLowerCase();
+        if (cat.includes(sel)) return true;
+        if (selectedCategory === "Tecnología" && (cat.includes("tech") || cat.includes("software") || cat.includes("it"))) return true;
+        if (selectedCategory === "Hotelería y Turismo" && (cat.includes("turismo") || cat.includes("hotel") || cat.includes("restaurante"))) return true;
+        return false;
+      });
+    }
+
+    // Zone filter
+    if (selectedZone !== "Todas las zonas") {
+      const zoneQuery = selectedZone.toLowerCase();
+      list = list.filter((job) => {
+        if (selectedZone === "Remoto") {
+          return job.location.toLowerCase().includes("remoto") || job.modality?.toLowerCase().includes("remoto");
+        }
+        return job.location.toLowerCase().includes(zoneQuery) || (job.zone && job.zone.toLowerCase().includes(zoneQuery));
+      });
+    }
+
+    // Sort selection
+    if (sortBy === "salary") {
+      list.sort((a, b) => (b.salary_max || b.salary_min || 0) - (a.salary_max || a.salary_min || 0));
+    } else if (sortBy === "recent") {
+      list.sort((a, b) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime());
+    } else {
+      // By proximity (pre-calculated with Haversine distance)
+      list.sort((a, b) => (a.distanceKm ?? 999) - (b.distanceKm ?? 999));
+    }
+
+    return list;
+  }, [rawNearbyVacancies, searchQuery, selectedCategory, selectedZone, sortBy]);
+
+  const activeFiltersCount = (selectedCategory !== "Todos" ? 1 : 0) + (selectedZone !== "Todas las zonas" ? 1 : 0) + (searchQuery.trim() ? 1 : 0);
+
+  const clearAllFilters = () => {
+    setSearchQuery("");
+    setSelectedCategory("Todos");
+    setSelectedZone("Todas las zonas");
   };
 
   return (
-    <div className="flex-grow min-h-full bg-fiord-50 dark:bg-zinc-950 px-6 sm:px-10 lg:px-14 pt-4 md:pt-8 pb-10 md:pb-8 space-y-8 max-w-5xl mx-auto w-full animate-in fade-in duration-300">
+    <div className="w-full space-y-6 animate-in fade-in duration-300 pb-16 font-sans">
       
-      {/* 1. Top Greeting Header (Only on mobile, handled by Topbar on desktop) */}
-      <header className="md:hidden sticky top-0 z-30 bg-fiord-50/95 dark:bg-zinc-950/95 backdrop-blur-md pt-4 sm:pt-6 pb-4 -mx-6 sm:-mx-10 lg:-mx-14 px-6 sm:px-10 lg:px-14 transition-all border-b border-border/10">
-        <div className="flex items-center justify-between">
-          <div className="flex flex-col items-start">
-            <h1 className="text-[26px] sm:text-[30px] font-[800] text-[#1f2732] dark:text-fiord-50 tracking-[-0.6px] leading-tight">
-              Hola, {firstName}
-            </h1>
-            <p className="text-[15px] sm:text-[16px] font-[600] text-[#5c7c9b] dark:text-fiord-400 mt-1">
-              Descubre nuevas oportunidades hoy
+      {/* ── PENDING CONTRACT SIGNATURE URGENT ALERT BANNER ── */}
+      {(initialData?.pendingContractsCount ?? 0) > 0 && (
+        <div className="p-4 sm:p-5 rounded-3xl bg-amber-500/10 border-2 border-amber-500/30 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 animate-in slide-in-from-top-2 duration-300 shadow-2xs">
+          <div className="flex items-start sm:items-center gap-3.5">
+            <div className="size-11 rounded-2xl bg-amber-500/20 text-amber-700 dark:text-amber-300 flex items-center justify-center shrink-0">
+              <FileCheck2 className="size-6" />
+            </div>
+            <div className="space-y-0.5">
+              <div className="flex items-center gap-2">
+                <h2 className="text-sm sm:text-base font-black text-amber-950 dark:text-amber-100">
+                  ¡Tienes {initialData.pendingContractsCount} contrato{initialData.pendingContractsCount > 1 ? "s" : ""} laboral pendiente de firma digital!
+                </h2>
+                <span className="size-2 rounded-full bg-amber-500 animate-ping" />
+              </div>
+              <p className="text-xs text-amber-900/80 dark:text-amber-200/80 font-medium">
+                Una empresa ha formalizado tu contratación conforme a la Ley Federal del Trabajo. Revisa las cláusulas y estampa tu firma legal.
+              </p>
+            </div>
+          </div>
+
+          <Link href="/dashboard/candidate/contracts" className="shrink-0 w-full sm:w-auto">
+            <Button className="w-full sm:w-auto h-10 px-4 rounded-xl text-xs font-bold bg-amber-600 hover:bg-amber-700 text-white gap-2 cursor-pointer shadow-xs">
+              <PenTool className="size-3.5" />
+              <span>Revisar y Firmar Contrato</span>
+              <ArrowRight className="size-3.5 ml-0.5" />
+            </Button>
+          </Link>
+        </div>
+      )}
+
+      {/* ── 0. MINIMALIST SEARCH & EXPLORATION HEADER ── */}
+      <div className="space-y-3">
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
+          {/* Minimalist Search Input */}
+          <div className="relative flex-1">
+            <label htmlFor={searchInputId} className="sr-only">
+              Buscar por puesto, empresa, zona o habilidad
+            </label>
+            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 size-4 text-muted-foreground pointer-events-none" />
+            <Input
+              id={searchInputId}
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" && searchQuery.trim()) {
+                  router.push(`/dashboard/candidate/discovery?q=${encodeURIComponent(searchQuery.trim())}`);
+                }
+              }}
+              placeholder="Buscar por puesto, empresa, zona o habilidad..."
+              className="h-11 rounded-2xl bg-card border-border/70 pl-10 pr-10 text-xs sm:text-sm placeholder:text-muted-foreground shadow-2xs focus-visible:ring-primary/20"
+            />
+            {searchQuery && (
+              <button
+                type="button"
+                onClick={() => setSearchQuery("")}
+                aria-label="Limpiar búsqueda"
+                className="absolute right-3.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground p-1 rounded-md cursor-pointer transition-colors"
+              >
+                <X className="size-3.5" />
+              </button>
+            )}
+          </div>
+
+          {/* Explore Catalog CTA */}
+          <Link
+            href={searchQuery.trim() ? `/dashboard/candidate/discovery?q=${encodeURIComponent(searchQuery.trim())}` : "/dashboard/candidate/discovery"}
+            className="shrink-0"
+          >
+            <Button
+              className="h-11 px-5 rounded-2xl text-xs sm:text-sm font-semibold gap-2 shadow-xs cursor-pointer w-full sm:w-auto"
+            >
+              <Sparkles className="size-4" />
+              Explorar catálogo completo
+            </Button>
+          </Link>
+        </div>
+
+        {/* Minimalist Category Pills */}
+        <div className="flex items-center gap-1.5 overflow-x-auto pb-1 hide-scrollbar pt-1" role="tablist" aria-label="Categorías de empleo">
+          {CATEGORY_CHIPS.map((cat) => {
+            const isSelected = selectedCategory === cat;
+            return (
+              <Badge
+                key={cat}
+                variant={isSelected ? "default" : "outline"}
+                onClick={() => setSelectedCategory(cat)}
+                className={cn(
+                  "px-3.5 py-1.5 rounded-xl text-xs font-medium cursor-pointer transition-all shadow-2xs select-none",
+                  isSelected
+                    ? "bg-primary text-primary-foreground shadow-xs"
+                    : "bg-card hover:bg-muted/60 text-muted-foreground hover:text-foreground border-border/70"
+                )}
+              >
+                {cat}
+              </Badge>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* ── 1. FEATURED CAROUSEL SECTION (VACANTES DESTACADAS) ── */}
+      {rawFeaturedVacancies.length > 0 && (
+        <section className="space-y-4" aria-labelledby="featured-vacancies-heading">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2.5">
+              <div className="size-8 rounded-xl bg-amber-500/10 text-amber-700 dark:text-amber-300 border border-amber-500/20 flex items-center justify-center shadow-2xs">
+                <Flame className="size-4 text-amber-500" />
+              </div>
+              <div className="flex items-center gap-2">
+                <h2 id="featured-vacancies-heading" className="text-base sm:text-lg font-bold tracking-tight text-foreground">
+                  Vacantes destacadas
+                </h2>
+                <Badge variant="outline" className="text-[10px] font-semibold bg-amber-500/10 text-amber-700 dark:text-amber-300 border-amber-500/25">
+                  ★ Premium
+                </Badge>
+              </div>
+            </div>
+            
+            <Link 
+              href="/dashboard/candidate/discovery" 
+              className="text-xs font-semibold text-muted-foreground hover:text-foreground transition-colors inline-flex items-center gap-1 group py-1"
+            >
+              Ver todas
+              <ChevronRight className="size-3.5 group-hover:translate-x-0.5 transition-transform" />
+            </Link>
+          </div>
+
+          {/* Premium Carousel with Embla and Shadcn Tokens */}
+          <Carousel
+            opts={{
+              align: "start",
+              loop: rawFeaturedVacancies.length > 3,
+            }}
+            className="w-full relative"
+          >
+            <CarouselContent className="-ml-3 sm:-ml-4">
+              {rawFeaturedVacancies.map((job) => {
+                const isSaved = savedJobIds.has(job.id);
+                const isApplied = appliedJobIds.has(job.id);
+                const companyInitials = job.companyName ? job.companyName.substring(0, 2).toUpperCase() : "EM";
+
+                return (
+                  <CarouselItem key={job.id} className="pl-3 sm:pl-4 basis-full sm:basis-1/2 lg:basis-1/3">
+                    <div
+                      onClick={() => handleCardClick(job.id)}
+                      className="relative bg-card border border-border/70 hover:border-border hover:bg-muted/30 rounded-3xl p-5 flex flex-col justify-between shadow-2xs transition-colors duration-150 cursor-pointer h-full select-none"
+                    >
+                      <div className="space-y-3.5">
+                        {/* Top Status Tags & Bookmark Button */}
+                        <div className="flex items-center justify-between gap-2">
+                          <div className="flex items-center gap-1.5 flex-wrap">
+                            <Badge
+                              variant="outline"
+                              className="gap-1 text-[11px] font-semibold bg-amber-500/10 text-amber-700 dark:text-amber-300 border-amber-500/25 rounded-md px-2 py-0.5"
+                            >
+                              <Sparkles className="size-3 text-amber-500" />
+                              Destacada
+                            </Badge>
+                            {isApplied && (
+                              <Badge
+                                variant="outline"
+                                className="gap-1 text-[11px] font-semibold bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border-emerald-500/25 rounded-md px-2 py-0.5"
+                              >
+                                <CheckCheck className="size-3 text-emerald-600" />
+                                Postulado
+                              </Badge>
+                            )}
+                          </div>
+
+                          <div className="flex items-center gap-1">
+                            <button
+                              type="button"
+                              onClick={(e) => handleShare(e, job)}
+                              aria-label={`Compartir vacante ${job.title}`}
+                              className="text-muted-foreground hover:text-foreground p-1.5 rounded-lg hover:bg-muted transition-colors cursor-pointer"
+                            >
+                              <Share2 className="size-3.5" />
+                            </button>
+                            <button 
+                              type="button"
+                              onClick={(e) => { e.stopPropagation(); toggleBookmark(job.id); }}
+                              aria-label={isSaved ? `Remover ${job.title} de guardados` : `Guardar ${job.title}`}
+                              className="text-muted-foreground hover:text-amber-500 dark:hover:text-amber-400 p-1.5 rounded-lg hover:bg-muted transition-colors cursor-pointer"
+                            >
+                              <Bookmark className={cn("size-4 transition-transform active:scale-90", isSaved ? "fill-amber-500 text-amber-500 dark:fill-amber-400 dark:text-amber-400" : "")} />
+                            </button>
+                          </div>
+                        </div>
+
+                        {/* Company Branding & Job Title */}
+                        <div className="flex items-start gap-3">
+                          <Avatar className="size-11 rounded-2xl ring-1 ring-border/60 shrink-0 shadow-2xs">
+                            {job.companyLogo ? (
+                              <AvatarImage src={job.companyLogo} alt={job.companyName} className="object-cover" />
+                            ) : null}
+                            <AvatarFallback className="rounded-2xl font-bold text-xs bg-muted text-foreground">
+                              {companyInitials}
+                            </AvatarFallback>
+                          </Avatar>
+
+                          <div className="min-w-0 flex-1">
+                            <p className="text-xs font-medium text-muted-foreground truncate flex items-center gap-1">
+                              {job.companyName}
+                              <CheckCircle2 className="size-3 text-emerald-600 dark:text-emerald-400 shrink-0" />
+                            </p>
+                            <h3 className="text-sm sm:text-base font-bold text-foreground tracking-tight line-clamp-2 mt-0.5">
+                              {job.title}
+                            </h3>
+                          </div>
+                        </div>
+
+                        {/* Pills (Location, Distance, Modality) */}
+                        <div className="flex flex-wrap items-center gap-1.5 pt-1">
+                          <Badge variant="secondary" className="gap-1 text-[11px] font-medium py-0.5 px-2 bg-muted/60 text-muted-foreground border-border/60">
+                            <MapPin className="size-3 shrink-0" />
+                            <span className="truncate max-w-[130px]">{job.location}</span>
+                          </Badge>
+
+                          {job.distanceBadge && (
+                            <Badge variant="secondary" className="gap-1 text-[11px] font-semibold py-0.5 px-2 bg-primary/10 text-primary border-primary/20">
+                              <Navigation className="size-2.5 shrink-0" />
+                              {job.distanceBadge}
+                            </Badge>
+                          )}
+
+                          <Badge variant="secondary" className="text-[11px] font-medium py-0.5 px-2 bg-muted/60 text-muted-foreground border-border/60">
+                            {job.employmentType}
+                          </Badge>
+                        </div>
+                      </div>
+
+                      {/* Footer: Salary & CTA */}
+                      <div className="pt-3.5 mt-4 border-t border-border/60 flex items-center justify-between gap-2">
+                        <div>
+                          <span className="text-[10px] text-muted-foreground font-semibold uppercase tracking-wider block">
+                            Sueldo mensual
+                          </span>
+                          <span className="text-sm font-bold font-mono text-emerald-600 dark:text-emerald-400">
+                            {job.formattedSalary}
+                          </span>
+                        </div>
+
+                        <Button
+                          size="sm"
+                          className="h-8 px-3 rounded-xl text-xs font-semibold gap-1 shadow-2xs cursor-pointer"
+                        >
+                          Ver vacante
+                          <ArrowUpRight className="size-3" />
+                        </Button>
+                      </div>
+                    </div>
+                  </CarouselItem>
+                );
+              })}
+            </CarouselContent>
+
+            {rawFeaturedVacancies.length > 2 && (
+              <>
+                <CarouselPrevious className="hidden sm:flex -left-3.5" />
+                <CarouselNext className="hidden sm:flex -right-3.5" />
+              </>
+            )}
+          </Carousel>
+        </section>
+      )}
+
+      {/* ── 2. NEARBY FEED SECTION (EMPLEOS CERCA DE TI) ── */}
+      <section className="space-y-4 pt-2" aria-labelledby="nearby-vacancies-heading">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div>
+            <div className="flex items-center gap-2">
+              <div className="size-8 rounded-xl bg-primary/10 text-primary border border-primary/20 flex items-center justify-center shadow-2xs">
+                <Navigation className="size-4" />
+              </div>
+              <h2 id="nearby-vacancies-heading" className="text-base sm:text-lg font-bold tracking-tight text-foreground">
+                Empleos cerca de ti
+              </h2>
+              <Badge variant="secondary" className="px-2.5 py-0.5 rounded-full text-xs font-semibold">
+                {filteredVacancies.length}
+              </Badge>
+            </div>
+            <p className="text-xs text-muted-foreground mt-0.5">
+              Ordenadas por cercanía geográfica y compatibilidad con tu perfil.
             </p>
           </div>
 
-          {/* Circular Notification Button (Only visible on mobile) */}
-          <Link href="/dashboard/candidate/notifications" className="shrink-0 md:hidden">
-            <div aria-label="Notificaciones" className="relative cursor-pointer group">
-              <div className="w-[50px] h-[50px] bg-white dark:bg-zinc-900 rounded-full border-[1.5px] border-[#ebeef3] dark:border-zinc-800 flex items-center justify-center transition-all group-active:scale-95 shadow-2xs">
-                <svg viewBox="0 0 24 24" className="w-[22px] h-[22px] fill-none stroke-[#344558] dark:stroke-fiord-200 stroke-[2]" aria-hidden="true">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M14.857 17.082a23.848 23.848 0 0 0 5.454-1.31A8.967 8.967 0 0 1 18 9.75V9A6 6 0 0 0 6 9v.75a8.967 8.967 0 0 1-2.312 6.022c1.733.64 3.56 1.085 5.455 1.31m5.714 0a24.255 24.255 0 0 1-5.714 0m5.714 0a3 3 0 1 1-5.714 0" />
-                </svg>
-              </div>
-            </div>
-          </Link>
+          {/* Controls: Sorting */}
+          <div className="flex items-center gap-1 bg-card border border-border/70 p-1 rounded-2xl shadow-2xs self-start sm:self-auto" role="group" aria-label="Ordenar vacantes">
+            <Button
+              variant={sortBy === "nearby" ? "default" : "ghost"}
+              size="sm"
+              onClick={() => setSortBy("nearby")}
+              className={cn(
+                "h-7 text-xs rounded-xl px-2.5 font-medium gap-1 cursor-pointer transition-all",
+                sortBy === "nearby" ? "shadow-2xs font-semibold" : "text-muted-foreground hover:text-foreground"
+              )}
+            >
+              <MapPin className="size-3" />
+              Cercanía
+            </Button>
+            <Button
+              variant={sortBy === "salary" ? "default" : "ghost"}
+              size="sm"
+              onClick={() => setSortBy("salary")}
+              className={cn(
+                "h-7 text-xs rounded-xl px-2.5 font-medium gap-1 cursor-pointer transition-all",
+                sortBy === "salary" ? "shadow-2xs font-semibold" : "text-muted-foreground hover:text-foreground"
+              )}
+            >
+              <DollarSign className="size-3" />
+              Sueldo
+            </Button>
+            <Button
+              variant={sortBy === "recent" ? "default" : "ghost"}
+              size="sm"
+              onClick={() => setSortBy("recent")}
+              className={cn(
+                "h-7 text-xs rounded-xl px-2.5 font-medium gap-1 cursor-pointer transition-all",
+                sortBy === "recent" ? "shadow-2xs font-semibold" : "text-muted-foreground hover:text-foreground"
+              )}
+            >
+              <Clock className="size-3" />
+              Recientes
+            </Button>
+          </div>
         </div>
-      </header>
 
-      {/* 2. Featured Section (Vacantes Destacadas) */}
-      <section className="space-y-4">
-        <div className="flex items-center justify-between">
-          <h2 className="text-[20px] sm:text-[22px] font-[800] tracking-[-0.4px] text-[#2f3c4b] dark:text-fiord-50">
-            Vacantes destacadas
-          </h2>
-          <Link 
-            href="/dashboard/candidate/discovery" 
-            className="text-[15px] sm:text-[16px] font-extrabold text-[#5c7c9b] dark:text-fiord-300 hover:text-[#3e546d] transition-colors py-1 px-2"
-          >
-            Buscar &gt;
-          </Link>
-        </div>
+        {/* Nearby Vacancies List Feed */}
+        {filteredVacancies.length > 0 ? (
+          <div className="space-y-3">
+            {filteredVacancies.map((job) => {
+              const isSaved = savedJobIds.has(job.id);
+              const isApplied = appliedJobIds.has(job.id);
+              const companyInitials = job.companyName ? job.companyName.substring(0, 2).toUpperCase() : "EM";
 
-        {/* Featured Content (Carousel or Empty Card) */}
-        {featuredVacancies.length > 0 ? (
-          <div className="flex gap-4 sm:gap-5 overflow-x-auto pb-3 pt-1 snap-x hide-scrollbar">
-            {featuredVacancies.map((job) => (
-              <div 
-                key={job.id}
-                onClick={() => window.location.href = `/dashboard/candidate/discovery?jobId=${job.id}`}
-                className="w-[295px] sm:w-[320px] shrink-0 bg-[#2f3c4b] dark:bg-fiord-950 text-white rounded-[22px] p-6 flex flex-col justify-between h-[200px] sm:h-[210px] shadow-[0_10px_20px_rgba(31,39,50,0.14)] cursor-pointer hover:bg-[#253240] transition-all snap-start"
-              >
-                {/* Top Row: Company logo/icon, details and bookmark icon */}
-                <div className="flex items-start justify-between gap-3">
-                  <div className="flex items-start gap-3.5 min-w-0">
-                    <div className="w-12 h-12 rounded-[14px] bg-[#344558] flex items-center justify-center text-white shrink-0 font-bold text-sm overflow-hidden">
+              return (
+                <div
+                  key={job.id}
+                  onClick={() => handleCardClick(job.id)}
+                  className="bg-card border border-border/70 hover:border-border hover:bg-muted/30 rounded-3xl p-4 sm:p-5 flex flex-col md:flex-row md:items-center justify-between gap-4 shadow-2xs transition-colors duration-150 cursor-pointer relative overflow-hidden"
+                >
+                  {/* Left Column: Avatar + Main Metadata */}
+                  <div className="flex items-start gap-4 min-w-0 flex-1">
+                    {/* Company Avatar */}
+                    <Avatar className="size-12 rounded-2xl ring-1 ring-border/60 shrink-0 shadow-2xs">
                       {job.companyLogo ? (
-                        <img src={job.companyLogo} alt={job.companyName} className="w-full h-full object-cover rounded-[14px]" />
-                      ) : (
-                        <Briefcase className="w-6 h-6 text-white" />
-                      )}
-                    </div>
-                    <div className="min-w-0">
-                      <h4 className="text-[15px] font-bold text-white tracking-[-0.2px] truncate">{job.companyName}</h4>
-                      <p className="text-[13px] text-[#aabccf] font-medium truncate mt-0.5">{job.location}</p>
+                        <AvatarImage src={job.companyLogo} alt={job.companyName} className="object-cover" />
+                      ) : null}
+                      <AvatarFallback className="rounded-2xl font-bold text-xs bg-muted text-foreground">
+                        {companyInitials}
+                      </AvatarFallback>
+                    </Avatar>
+
+                    {/* Job Details */}
+                    <div className="min-w-0 flex-1 space-y-1">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="text-xs font-medium text-muted-foreground truncate flex items-center gap-1">
+                          {job.companyName}
+                          <CheckCircle2 className="size-3 text-emerald-600 dark:text-emerald-400 shrink-0" />
+                        </span>
+
+                        {job.distanceBadge && (
+                          <Badge variant="secondary" className="gap-1 text-[11px] font-semibold py-0.5 px-2 bg-primary/10 text-primary border-primary/20">
+                            <Navigation className="size-2.5 shrink-0" />
+                            {job.distanceBadge}
+                          </Badge>
+                        )}
+
+                        {job.isFeatured && (
+                          <Badge variant="outline" className="text-[10px] font-semibold bg-amber-500/10 text-amber-700 dark:text-amber-300 border-amber-500/25">
+                            ★ Destacada
+                          </Badge>
+                        )}
+
+                        {isApplied && (
+                          <Badge variant="outline" className="gap-1 text-[10px] font-semibold bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border-emerald-500/25">
+                            <CheckCheck className="size-3 text-emerald-600" />
+                            Postulado
+                          </Badge>
+                        )}
+                      </div>
+
+                      <h3 className="text-base sm:text-lg font-bold text-foreground tracking-tight truncate">
+                        {job.title}
+                      </h3>
+
+                      {/* Details row with pills */}
+                      <div className="flex items-center gap-2 text-xs text-muted-foreground flex-wrap pt-0.5">
+                        <Badge variant="secondary" className="gap-1 text-[11px] font-medium py-0.5 px-2 bg-muted/60 text-muted-foreground border-border/60">
+                          <MapPin className="size-3 shrink-0" />
+                          {job.location}
+                        </Badge>
+                        <Badge variant="secondary" className="text-[11px] font-medium py-0.5 px-2 bg-muted/60 text-muted-foreground border-border/60">
+                          {job.employmentType}
+                        </Badge>
+                        <Badge variant="outline" className="text-[11px] font-medium py-0.5 px-2 text-muted-foreground border-border/60">
+                          {job.category}
+                        </Badge>
+                      </div>
                     </div>
                   </div>
 
-                  <button 
-                    onClick={(e) => { e.stopPropagation(); toggleBookmark(job.id); }}
-                    aria-label="Guardar vacante"
-                    className="text-white hover:text-amber-400 p-1.5 shrink-0 transition-colors cursor-pointer"
-                  >
-                    <Bookmark className={`w-6 h-6 ${savedJobIds.has(job.id) ? "fill-amber-400 text-amber-400" : "text-white"}`} />
-                  </button>
+                  {/* Right Column: Salary, Bookmark & CTA */}
+                  <div className="flex md:flex-col items-center md:items-end justify-between md:justify-center shrink-0 pt-3 md:pt-0 border-t md:border-t-0 border-border/60 gap-3">
+                    <div className="text-left md:text-right">
+                      <span className="text-[10px] text-muted-foreground font-semibold uppercase tracking-wider block">
+                        Sueldo mensual
+                      </span>
+                      <span className="text-sm sm:text-base font-bold font-mono text-emerald-600 dark:text-emerald-400">
+                        {job.formattedSalary}
+                      </span>
+                    </div>
+
+                    <div className="flex items-center gap-2">
+                      <button 
+                        type="button"
+                        onClick={(e) => { e.stopPropagation(); toggleBookmark(job.id); }}
+                        aria-label={isSaved ? `Remover ${job.title} de guardados` : `Guardar ${job.title}`}
+                        className="p-2 text-muted-foreground hover:text-amber-500 dark:hover:text-amber-400 transition-colors cursor-pointer rounded-xl hover:bg-muted border border-border/70 shadow-2xs"
+                      >
+                        <Bookmark className={cn("size-4 transition-transform active:scale-90", isSaved ? "fill-amber-500 text-amber-500 dark:fill-amber-400 dark:text-amber-400" : "")} />
+                      </button>
+
+                      <Button 
+                        size="sm"
+                        className="h-9 px-4 rounded-xl text-xs font-semibold shadow-2xs gap-1.5 cursor-pointer"
+                      >
+                        {isApplied ? "Ver postulación" : "Ver vacante"}
+                        <ArrowUpRight className="size-3.5" />
+                      </Button>
+                    </div>
+                  </div>
                 </div>
+              );
+            })}
 
-                {/* Central Body: Job title */}
-                <h3 className="text-[19px] sm:text-[20px] font-[700] text-white tracking-[-0.4px] leading-[1.3] line-clamp-2">
-                  {job.title}
-                </h3>
-
-                {/* Bottom Footer: employment type and formatted salary */}
-                <div className="flex items-center gap-2 text-[13px] sm:text-[14px] text-[#d2dbe5]">
-                  <span className="font-semibold">{job.employmentType}</span>
-                  <span className="text-[#7d99b3]">•</span>
-                  <span className="font-bold truncate">{job.formattedSalary}</span>
-                </div>
-              </div>
-            ))}
-          </div>
-        ) : (
-          /* Empty Featured Card */
-          <div className="w-full bg-[#2f3c4b] dark:bg-fiord-950 text-white rounded-[24px] p-8 flex flex-col items-center justify-center text-center min-h-[180px] shadow-sm">
-            <div className="w-12 h-12 rounded-full bg-white/10 flex items-center justify-center mb-3">
-              <svg viewBox="0 0 24 24" className="w-7 h-7 fill-[#aabccf] text-[#aabccf]">
-                <path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z"/>
-              </svg>
-            </div>
-            <p className="text-[15px] sm:text-[16px] font-semibold text-white text-center leading-relaxed">
-              No hay vacantes destacadas en este momento
-            </p>
-          </div>
-        )}
-      </section>
-
-      {/* 3. Nearby Section (Empleos Cerca de Ti) */}
-      <section className="space-y-4 pt-2">
-        <h2 className="text-[20px] sm:text-[22px] font-[800] tracking-[-0.4px] text-[#2f3c4b] dark:text-fiord-50">
-          Empleos cerca de ti
-        </h2>
-
-        {nearbyVacancies.length > 0 ? (
-          <div className="space-y-4">
-            {nearbyVacancies.map((job) => (
-              <div 
-                key={job.id}
-                onClick={() => window.location.href = `/dashboard/candidate/discovery?jobId=${job.id}`}
-                className="bg-[#f5f7fa] dark:bg-zinc-900 border border-[#ebeef3] dark:border-zinc-800 rounded-[20px] p-5 flex items-center justify-between gap-4 shadow-2xs hover:bg-[#ebeef3]/60 dark:hover:bg-zinc-800/60 transition-all cursor-pointer"
-              >
-                {/* Left: Company Icon container */}
-                <div className="w-14 h-14 rounded-[14px] bg-[#ebeef3] dark:bg-zinc-800 text-[#3e546d] dark:text-zinc-300 flex items-center justify-center shrink-0 font-bold text-sm overflow-hidden">
-                  {job.companyLogo ? (
-                    <img src={job.companyLogo} alt={job.companyName} className="w-full h-full object-cover rounded-[14px]" />
-                  ) : (
-                    <Briefcase className="w-7 h-7 text-[#3e546d] dark:text-zinc-300" />
-                  )}
-                </div>
-
-                {/* Center: Job Details */}
-                <div className="flex-1 min-w-0">
-                  <h4 className="text-[16px] sm:text-[18px] font-bold text-[#1f2732] dark:text-zinc-100 tracking-[-0.3px] truncate">{job.title}</h4>
-                  <p className="text-[14px] text-[#5c7c9b] dark:text-zinc-400 font-semibold truncate mt-1">
-                    {job.companyName} • {job.employmentType}
-                  </p>
-                </div>
-
-                {/* Right: Bookmark and Salary */}
-                <div className="flex flex-col items-end justify-center shrink-0 gap-2">
-                  <button 
-                    onClick={(e) => { e.stopPropagation(); toggleBookmark(job.id); }}
-                    aria-label="Guardar vacante"
-                    className="p-1.5 text-[#7d99b3] hover:text-amber-400 transition-colors cursor-pointer"
-                  >
-                    <Bookmark className={`w-6 h-6 ${savedJobIds.has(job.id) ? "fill-amber-400 text-amber-400" : "text-[#7d99b3]"}`} />
-                  </button>
-                  <span className="text-[13px] sm:text-[14px] font-extrabold text-[#3e546d] dark:text-zinc-300">{job.formattedSalary}</span>
-                </div>
-              </div>
-            ))}
-
-            {/* End of list indicator */}
+            {/* End of results banner */}
             <div className="py-8 flex flex-col items-center justify-center text-center space-y-2">
-              <CheckCircle2 className="w-6 h-6 text-[#aabccf]" />
-              <span className="text-[14px] sm:text-[15px] font-bold text-[#7d99b3] tracking-[-0.2px]">
-                Has visto todas las vacantes cerca de ti
-              </span>
+              <div className="size-8 rounded-full bg-primary/10 flex items-center justify-center text-primary">
+                <CheckCircle2 className="size-4 text-primary" />
+              </div>
+              <p className="text-xs font-medium text-muted-foreground">
+                Has visto todas las vacantes cercanas según tus filtros
+              </p>
+              <Link href="/dashboard/candidate/discovery">
+                <Button variant="outline" size="sm" className="rounded-xl text-xs font-medium mt-1 border-border/70 shadow-2xs cursor-pointer">
+                  Explorar todo el catálogo regional
+                </Button>
+              </Link>
             </div>
           </div>
         ) : (
-          /* Empty Nearby Card */
-          <div className="w-full bg-[#f5f7fa] dark:bg-zinc-900 border border-[#ebeef3] dark:border-zinc-800 rounded-[24px] p-8 sm:p-10 flex flex-col items-center justify-center text-center shadow-2xs">
-            <div className="mb-4 text-[#7d99b3]">
-              <svg viewBox="0 0 24 24" className="w-11 h-11 stroke-current fill-none stroke-[1.75]">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M16 20V4a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2" />
-                <path strokeLinecap="round" strokeLinejoin="round" d="M18 18H4a2 2 0 0 1-2-2V9a2 2 0 0 1 2-2h2" />
-                <path strokeLinecap="round" strokeLinejoin="round" d="M10 10h4" />
-                <path strokeLinecap="round" strokeLinejoin="round" d="M22 13v3a2 2 0 0 1-2 2h-1" />
-                <path strokeLinecap="round" strokeLinejoin="round" d="m2 2 20 20" />
-              </svg>
+          /* Empty State */
+          <div className="rounded-3xl bg-card border border-border/70 p-8 sm:p-12 flex flex-col items-center justify-center text-center shadow-xs">
+            <div className="size-14 rounded-2xl bg-muted text-foreground flex items-center justify-center mb-4 border border-border/70 shadow-2xs">
+              <Compass className="size-7 text-muted-foreground" />
             </div>
-            
-            <h3 className="text-[17px] sm:text-[19px] font-bold text-[#1f2732] dark:text-zinc-100 mb-1.5">
-              No se encontraron empleos activos cerca
+            <h3 className="text-lg font-bold text-foreground mb-1">
+              No se encontraron vacantes con estos filtros
             </h3>
-            <p className="text-[14px] sm:text-[15px] text-[#5c7c9b] dark:text-zinc-400 text-center max-w-sm leading-relaxed mb-6">
-              Vuelve a consultar más tarde o explora en el buscador.
+            <p className="text-sm text-muted-foreground max-w-md leading-relaxed mb-6">
+              Intenta buscar con otros términos o limpia los filtros activos para ver todas las oportunidades en Yucatán y Quintana Roo.
             </p>
 
-            <button 
-              onClick={handleRefresh}
-              className="rounded-full border border-[#1f2732] dark:border-zinc-300 text-[#1f2732] dark:text-zinc-100 hover:bg-[#ebeef3] dark:hover:bg-zinc-800 bg-white dark:bg-zinc-900 px-6 py-3 text-sm font-bold flex items-center gap-2 transition-all shadow-2xs cursor-pointer active:scale-95"
-            >
-              <RotateCw className="w-5 h-5 text-[#1f2732] dark:text-zinc-100" />
-              Actualizar
-            </button>
+            <div className="flex flex-wrap items-center justify-center gap-3">
+              <Button 
+                variant="outline"
+                onClick={clearAllFilters}
+                className="h-9 px-4 rounded-xl border-border/70 text-xs font-semibold cursor-pointer shadow-2xs"
+              >
+                Limpiar filtros
+              </Button>
+              <Link href="/dashboard/candidate/discovery">
+                <Button 
+                  className="h-9 px-4 rounded-xl text-xs font-semibold shadow-xs cursor-pointer gap-1.5"
+                >
+                  <Sparkles className="size-3.5" />
+                  Ver todas las vacantes
+                </Button>
+              </Link>
+            </div>
           </div>
         )}
       </section>
@@ -286,3 +764,5 @@ export function CandidateDashboardView({ initialData }: CandidateDashboardViewPr
     </div>
   );
 }
+
+

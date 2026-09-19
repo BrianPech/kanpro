@@ -2,10 +2,8 @@ import { createClient } from "@/lib/supabase/client";
 import { loginSchema, type LoginFormValues } from "../schemas/login.schema";
 import {
   companyRegisterSchema,
-  adminRegisterSchema,
   candidateRegisterSchema,
   type CompanyRegisterValues,
-  type AdminRegisterValues,
   type CandidateRegisterValues,
 } from "../schemas/register.schema";
 import type { UserRole, AuthSuccessResponse } from "../types/auth.types";
@@ -25,35 +23,22 @@ export const authService = {
     if (authError) throw authError;
 
     if (authData.user) {
-      // Leer el rol de la metadata del usuario
-      let role: UserRole | undefined = authData.user.user_metadata?.role as
-        | UserRole
-        | undefined;
+      // 1. Authoritative check from profiles table
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("role")
+        .eq("id", authData.user.id)
+        .maybeSingle();
 
-      // Fallback: Si no hay rol en metadata, verificar si existe en admin_profiles o company_profiles
-      if (!role) {
-        const { data: adminProfile } = await (supabase.from as any)("admin_profiles")
-          .select("id")
-          .eq("id", authData.user.id)
-          .maybeSingle();
-
-        if (adminProfile) {
-          role = "admin";
-        } else {
-          const { data: companyProfile } = await supabase
-            .from("company_profiles")
-            .select("id")
-            .eq("id", authData.user.id)
-            .maybeSingle();
-
-          if (companyProfile) {
-            role = "company";
-          }
-        }
+      let role: UserRole = "candidate";
+      if (profile?.role === "admin" || profile?.role === "company" || profile?.role === "candidate") {
+        role = profile.role as UserRole;
+      } else {
+        const metaRole = authData.user.user_metadata?.role;
+        role = metaRole === "company" ? "company" : "candidate";
       }
 
-      role = role || "candidate";
-      return { user: authData.user, role };
+      return { user: authData.user, session: authData.session, role };
     }
 
     throw new Error("No se pudieron obtener los datos del usuario");
@@ -66,15 +51,21 @@ export const authService = {
     const validatedData = companyRegisterSchema.parse(data);
 
     const supabase = createClient();
+    const origin =
+      typeof window !== "undefined"
+        ? window.location.origin
+        : process.env.NEXT_PUBLIC_APP_URL || "";
 
     // 2. Crear usuario en Supabase Auth con metadata de rol 'company'
     const { data: authData, error: authError } = await supabase.auth.signUp({
       email: validatedData.email,
       password: validatedData.password,
       options: {
+        emailRedirectTo: `${origin}/auth/callback?role=company`,
         data: {
           role: "company" satisfies UserRole,
           full_name: validatedData.full_name,
+          company_name: validatedData.full_name,
         },
       },
     });
@@ -94,48 +85,7 @@ export const authService = {
     }
 
     if (authData.user) {
-      return { user: authData.user, role: "company" };
-    }
-
-    throw new Error("No se pudieron obtener los datos del usuario");
-  },
-
-  async signUpAdmin(
-    data: AdminRegisterValues
-  ): Promise<AuthSuccessResponse> {
-    // 1. Validar estrictamente datos de entrada con Zod
-    const validatedData = adminRegisterSchema.parse(data);
-
-    const supabase = createClient();
-
-    // 2. Crear usuario en Supabase Auth con metadata de rol 'admin'
-    const { data: authData, error: authError } = await supabase.auth.signUp({
-      email: validatedData.email,
-      password: validatedData.password,
-      options: {
-        data: {
-          role: "admin" satisfies UserRole,
-          full_name: validatedData.fullName,
-        },
-      },
-    });
-
-    if (authError) throw authError;
-
-    // Auto sign-in to establish authenticated session if session is not returned immediately
-    if (authData.user && !authData.session) {
-      try {
-        await supabase.auth.signInWithPassword({
-          email: validatedData.email,
-          password: validatedData.password,
-        });
-      } catch (err) {
-        console.warn("Auto sign-in after admin registration skipped:", err);
-      }
-    }
-
-    if (authData.user) {
-      return { user: authData.user, role: "admin" };
+      return { user: authData.user, session: authData.session, role: "company" };
     }
 
     throw new Error("No se pudieron obtener los datos del usuario");
@@ -148,12 +98,17 @@ export const authService = {
     const validatedData = candidateRegisterSchema.parse(data);
 
     const supabase = createClient();
+    const origin =
+      typeof window !== "undefined"
+        ? window.location.origin
+        : process.env.NEXT_PUBLIC_APP_URL || "";
 
     // 2. Crear usuario en Supabase Auth con metadata de rol 'candidate'
     const { data: authData, error: authError } = await supabase.auth.signUp({
       email: validatedData.email,
       password: validatedData.password,
       options: {
+        emailRedirectTo: `${origin}/auth/callback?role=candidate`,
         data: {
           role: "candidate" satisfies UserRole,
           full_name: validatedData.fullName,
@@ -178,9 +133,133 @@ export const authService = {
     }
 
     if (authData.user) {
-      return { user: authData.user, role: "candidate" };
+      return { user: authData.user, session: authData.session, role: "candidate" };
     }
 
     throw new Error("No se pudieron obtener los datos del usuario");
+  },
+
+  async resendVerificationEmail(email: string): Promise<void> {
+    const supabase = createClient();
+    const origin =
+      typeof window !== "undefined"
+        ? window.location.origin
+        : process.env.NEXT_PUBLIC_APP_URL || "";
+
+    const { error } = await supabase.auth.resend({
+      type: "signup",
+      email,
+      options: {
+        emailRedirectTo: `${origin}/auth/callback`,
+      },
+    });
+
+    if (error) throw error;
+  },
+
+  async resetPasswordForEmail(email: string): Promise<void> {
+    const origin =
+      typeof window !== "undefined"
+        ? window.location.origin
+        : process.env.NEXT_PUBLIC_SITE_URL || "";
+
+    const supabase = createClient();
+    const { error } = await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: `${origin}/auth/callback?next=/reset-password`,
+    });
+
+    if (error) throw error;
+  },
+
+  async updatePassword(password: string): Promise<void> {
+    const supabase = createClient();
+    const { error } = await supabase.auth.updateUser({ password });
+
+    if (error) throw error;
+  },
+
+  async signInWithPhoneOtp(
+    phone: string,
+    channel: "whatsapp" | "sms" = "whatsapp"
+  ): Promise<void> {
+    const supabase = createClient();
+    const cleanPhone = phone.replace(/[\s\-\(\)]/g, "");
+    const formattedPhone = cleanPhone.startsWith("+")
+      ? cleanPhone
+      : `+52${cleanPhone}`;
+
+    const { error } = await supabase.auth.signInWithOtp({
+      phone: formattedPhone,
+      options: {
+        channel,
+      },
+    });
+
+    if (error) throw error;
+  },
+
+  async verifyPhoneOtp(
+    phone: string,
+    token: string
+  ): Promise<AuthSuccessResponse> {
+    const supabase = createClient();
+    const cleanPhone = phone.replace(/[\s\-\(\)]/g, "");
+    const formattedPhone = cleanPhone.startsWith("+")
+      ? cleanPhone
+      : `+52${cleanPhone}`;
+
+    const { data, error } = await supabase.auth.verifyOtp({
+      phone: formattedPhone,
+      token,
+      type: "sms",
+    });
+
+    if (error) throw error;
+
+    if (data.user) {
+      // 1. Authoritative check from profiles table
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("role")
+        .eq("id", data.user.id)
+        .maybeSingle();
+
+      let role: UserRole = "candidate";
+      if (profile?.role === "admin" || profile?.role === "company" || profile?.role === "candidate") {
+        role = profile.role as UserRole;
+      } else {
+        const metaRole = data.user.user_metadata?.role;
+        role = metaRole === "company" ? "company" : "candidate";
+      }
+
+      return { user: data.user, session: data.session, role };
+    }
+
+    throw new Error("No se pudieron obtener los datos del usuario");
+  },
+
+  async signInWithOAuth(
+    provider: "google" | "linkedin_oidc",
+    role?: UserRole,
+    redirectTo?: string
+  ): Promise<void> {
+    const supabase = createClient();
+    const origin =
+      typeof window !== "undefined"
+        ? window.location.origin
+        : process.env.NEXT_PUBLIC_APP_URL || "";
+
+    const callbackUrl = `${origin}/auth/callback?role=${role || "candidate"}${
+      redirectTo ? `&redirectTo=${encodeURIComponent(redirectTo)}` : ""
+    }`;
+
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider,
+      options: {
+        redirectTo: callbackUrl,
+      },
+    });
+
+    if (error) throw error;
   },
 };

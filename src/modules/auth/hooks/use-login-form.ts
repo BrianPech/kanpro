@@ -1,7 +1,7 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { toast } from "sonner";
 import { loginSchema, type LoginFormValues } from "../schemas/login.schema";
 import { authService } from "../services/auth-service";
@@ -9,6 +9,16 @@ import { authService } from "../services/auth-service";
 export function useLoginForm() {
   const [showPassword, setShowPassword] = useState(false);
   const router = useRouter();
+  const searchParams = useSearchParams();
+
+  useEffect(() => {
+    const notice = searchParams?.get("notice");
+    if (notice === "account-deleted") {
+      toast.info("Cuenta desactivada correctamente", {
+        description: "Tu solicitud de baja y derechos ARCO han sido procesados.",
+      });
+    }
+  }, [searchParams]);
 
   const form = useForm<LoginFormValues>({
     resolver: zodResolver(loginSchema),
@@ -25,8 +35,17 @@ export function useLoginForm() {
 
       toast.success("¡Bienvenido de nuevo!");
 
-      // 2. Ejecutar redirección según rol
-      if (role === "admin") {
+      // 2. Extract redirectTo parameter or default to role-based dashboard
+      const redirectToParam =
+        searchParams?.get("redirectTo") || searchParams?.get("next");
+      const isValidRedirect =
+        redirectToParam &&
+        redirectToParam.startsWith("/") &&
+        !redirectToParam.startsWith("//");
+
+      if (isValidRedirect) {
+        router.push(redirectToParam);
+      } else if (role === "admin") {
         router.push("/dashboard/admin");
       } else if (role === "company") {
         router.push("/dashboard/company");

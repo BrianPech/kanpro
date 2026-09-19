@@ -9,6 +9,7 @@ import {
   flexRender,
   type ColumnDef,
   type SortingState,
+  type RowSelectionState,
 } from "@tanstack/react-table";
 import {
   ArrowUpDown,
@@ -23,9 +24,16 @@ import {
   ChevronRight,
   ChevronsLeft,
   ChevronsRight,
+  CheckSquare,
+  PauseCircle,
+  XCircle,
+  PlayCircle,
+  Users,
+  Copy,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   Table,
   TableBody,
@@ -47,14 +55,31 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { cn } from "@/lib/utils";
 import Link from "next/link";
-import type { VacancyRow } from "@/hooks/use-vacancy-manager";
+import type { VacancyRow } from "@/modules/company/hooks/use-vacancy-manager";
+import { VacancyPreviewDrawer } from "./vacancy-preview-drawer";
+
+export interface VacancyTableItem extends VacancyRow {
+  applicants_count?: number;
+}
 
 interface VacanciesTableProps {
-  data: VacancyRow[];
+  data: VacancyTableItem[];
   onToggleActive: (id: string, currentActive: boolean) => void;
+  onBatchStatusChange?: (ids: string[], newStatus: "Activa" | "Pausada" | "Cerrada") => void;
   onDeleteVacancy: (id: string) => void;
+  onCloneVacancy?: (id: string) => void;
   formatSalary: (min: number | null, max: number | null) => string;
   formatDate: (dateStr: string) => string;
 }
@@ -62,42 +87,95 @@ interface VacanciesTableProps {
 export function VacanciesTable({
   data,
   onToggleActive,
+  onBatchStatusChange,
   onDeleteVacancy,
+  onCloneVacancy,
   formatSalary,
   formatDate,
 }: VacanciesTableProps) {
+  const [previewVacancy, setPreviewVacancy] = React.useState<VacancyTableItem | null>(null);
+  const [deletingVacancyId, setDeletingVacancyId] = React.useState<string | null>(null);
   const [sorting, setSorting] = React.useState<SortingState>([
     { id: "created_at", desc: true },
   ]);
+  const [rowSelection, setRowSelection] = React.useState<RowSelectionState>({});
 
-  const columns = React.useMemo<ColumnDef<VacancyRow>[]>(
+  const deletingVacancy = React.useMemo(() => {
+    return data.find((v) => v.id === deletingVacancyId) || null;
+  }, [data, deletingVacancyId]);
+
+  const handleToggleActiveLocal = (id: string, currentActive: boolean) => {
+    onToggleActive(id, currentActive);
+    setPreviewVacancy((prev) =>
+      prev && prev.id === id
+        ? {
+            ...prev,
+            is_active: !currentActive,
+            status: !currentActive ? "Activa" : "Cerrada",
+          }
+        : prev
+    );
+  };
+
+  const columns = React.useMemo<ColumnDef<VacancyTableItem>[]>(
     () => [
+      {
+        id: "select",
+        header: ({ table }) => (
+          <div className="px-1 flex items-center">
+            <Checkbox
+              checked={table.getIsAllPageRowsSelected()}
+              indeterminate={table.getIsSomePageRowsSelected() && !table.getIsAllPageRowsSelected()}
+              onCheckedChange={(value) => table.toggleAllPageRowsSelected(!!value)}
+              aria-label="Seleccionar todas las vacantes"
+              className="cursor-pointer"
+            />
+          </div>
+        ),
+        cell: ({ row }) => (
+          <div className="px-1 flex items-center">
+            <Checkbox
+              checked={row.getIsSelected()}
+              onCheckedChange={(value) => row.toggleSelected(!!value)}
+              aria-label="Seleccionar fila"
+              className="cursor-pointer"
+            />
+          </div>
+        ),
+        enableSorting: false,
+        enableHiding: false,
+      },
       {
         accessorKey: "title",
         header: ({ column }) => (
           <button
             type="button"
-            className="flex items-center gap-2 font-[800] text-xs sm:text-[13px] uppercase tracking-wider text-[#1f2732] dark:text-zinc-200 hover:text-black dark:hover:text-white transition-colors cursor-pointer select-none"
+            className="flex items-center gap-1.5 font-bold text-[11px] uppercase tracking-wider text-muted-foreground hover:text-foreground transition-colors cursor-pointer select-none"
             onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
           >
             <span>Puesto / Categoría</span>
             {column.getIsSorted() === "asc" ? (
-              <ArrowUp className="size-4 text-[#1f2732] dark:text-zinc-100" />
+              <ArrowUp className="size-3.5 text-foreground" />
             ) : column.getIsSorted() === "desc" ? (
-              <ArrowDown className="size-4 text-[#1f2732] dark:text-zinc-100" />
+              <ArrowDown className="size-3.5 text-foreground" />
             ) : (
-              <ArrowUpDown className="size-4 text-[#5c7c9b]/60" />
+              <ArrowUpDown className="size-3 text-muted-foreground/60" />
             )}
           </button>
         ),
         cell: ({ row }) => {
           const vacancy = row.original;
           return (
-            <div className="flex flex-col gap-1 py-1">
-              <span className="font-[800] text-[15px] sm:text-[16px] text-[#1f2732] dark:text-zinc-100 leading-snug">
+            <div className="flex flex-col gap-0.5 py-1">
+              <button
+                type="button"
+                onClick={() => setPreviewVacancy(vacancy)}
+                className="font-bold text-sm text-foreground hover:text-primary hover:underline line-clamp-1 text-left cursor-pointer"
+                title="Ver detalles de la vacante"
+              >
                 {vacancy.title}
-              </span>
-              <span className="text-[11px] sm:text-[12px] text-[#5c7c9b] dark:text-zinc-400 font-extrabold uppercase tracking-wider">
+              </button>
+              <span className="text-[11px] text-muted-foreground font-semibold">
                 {vacancy.category || "General"}
               </span>
             </div>
@@ -109,26 +187,54 @@ export function VacanciesTable({
         header: ({ column }) => (
           <button
             type="button"
-            className="flex items-center gap-2 font-[800] text-xs sm:text-[13px] uppercase tracking-wider text-[#1f2732] dark:text-zinc-200 hover:text-black dark:hover:text-white transition-colors cursor-pointer select-none"
+            className="flex items-center gap-1.5 font-bold text-[11px] uppercase tracking-wider text-muted-foreground hover:text-foreground transition-colors cursor-pointer select-none"
             onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
           >
-            <span>Ubicación / Zona</span>
+            <span>Ubicación</span>
             {column.getIsSorted() === "asc" ? (
-              <ArrowUp className="size-4 text-[#1f2732] dark:text-zinc-100" />
+              <ArrowUp className="size-3.5 text-foreground" />
             ) : column.getIsSorted() === "desc" ? (
-              <ArrowDown className="size-4 text-[#1f2732] dark:text-zinc-100" />
+              <ArrowDown className="size-3.5 text-foreground" />
             ) : (
-              <ArrowUpDown className="size-4 text-[#5c7c9b]/60" />
+              <ArrowUpDown className="size-3 text-muted-foreground/60" />
             )}
           </button>
         ),
         cell: ({ row }) => {
           const vacancy = row.original;
-          const zoneText = vacancy.zone || vacancy.location || "No especificada";
+          const zoneText = vacancy.zone || vacancy.location || "Mérida";
           return (
-            <div className="flex items-center gap-1.5 text-xs sm:text-sm font-semibold text-[#1f2732] dark:text-zinc-200 py-1 max-w-[240px] lg:max-w-[320px]" title={zoneText}>
-              <MapPin className="size-3.5 sm:size-4 text-[#5c7c9b] shrink-0" />
-              <span className="truncate">{zoneText}</span>
+            <div className="flex items-center gap-1 text-xs font-medium text-muted-foreground py-1" title={zoneText}>
+              <MapPin className="size-3 text-muted-foreground shrink-0" />
+              <span className="truncate max-w-[180px]">{zoneText}</span>
+            </div>
+          );
+        },
+      },
+      {
+        accessorKey: "applicants_count",
+        header: ({ column }) => (
+          <button
+            type="button"
+            className="flex items-center gap-1.5 font-bold text-[11px] uppercase tracking-wider text-muted-foreground hover:text-foreground transition-colors cursor-pointer select-none whitespace-nowrap"
+            onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
+          >
+            <span>Candidatos</span>
+            {column.getIsSorted() === "asc" ? (
+              <ArrowUp className="size-3.5 text-foreground" />
+            ) : column.getIsSorted() === "desc" ? (
+              <ArrowDown className="size-3.5 text-foreground" />
+            ) : (
+              <ArrowUpDown className="size-3 text-muted-foreground/60" />
+            )}
+          </button>
+        ),
+        cell: ({ row }) => {
+          const count = row.original.applicants_count ?? 0;
+          return (
+            <div className="flex items-center gap-1 text-xs font-bold text-foreground py-1">
+              <Users className="size-3.5 text-muted-foreground" />
+              <span className="font-mono">{count}</span>
             </div>
           );
         },
@@ -138,60 +244,65 @@ export function VacanciesTable({
         header: ({ column }) => (
           <button
             type="button"
-            className="flex items-center gap-1.5 font-[800] text-xs sm:text-[13px] uppercase tracking-wider text-[#1f2732] dark:text-zinc-200 hover:text-black dark:hover:text-white transition-colors cursor-pointer select-none whitespace-nowrap"
+            className="flex items-center gap-1.5 font-bold text-[11px] uppercase tracking-wider text-muted-foreground hover:text-foreground transition-colors cursor-pointer select-none whitespace-nowrap"
             onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
           >
-            <span>Sueldo Ofrecido</span>
+            <span>Sueldo</span>
             {column.getIsSorted() === "asc" ? (
-              <ArrowUp className="size-3.5 sm:size-4 text-[#1f2732] dark:text-zinc-100" />
+              <ArrowUp className="size-3.5 text-foreground" />
             ) : column.getIsSorted() === "desc" ? (
-              <ArrowDown className="size-3.5 sm:size-4 text-[#1f2732] dark:text-zinc-100" />
+              <ArrowDown className="size-3.5 text-foreground" />
             ) : (
-              <ArrowUpDown className="size-3.5 sm:size-4 text-[#5c7c9b]/60" />
+              <ArrowUpDown className="size-3 text-muted-foreground/60" />
             )}
           </button>
         ),
         cell: ({ row }) => {
           const vacancy = row.original;
           return (
-            <span className="font-[800] text-xs sm:text-sm text-[#1f2732] dark:text-zinc-100 py-1 block whitespace-nowrap">
+            <span className="font-bold text-xs text-foreground font-mono py-1 block whitespace-nowrap">
               {formatSalary(vacancy.salary_min, vacancy.salary_max)}
             </span>
           );
         },
       },
       {
-        accessorKey: "is_active",
+        accessorKey: "status",
+        accessorFn: (row) => row.status || (row.is_active ? "Activa" : "Pausada"),
         header: ({ column }) => (
           <button
             type="button"
-            className="flex items-center gap-1.5 font-[800] text-xs sm:text-[13px] uppercase tracking-wider text-[#1f2732] dark:text-zinc-200 hover:text-black dark:hover:text-white transition-colors cursor-pointer select-none whitespace-nowrap"
+            className="flex items-center gap-1.5 font-bold text-[11px] uppercase tracking-wider text-muted-foreground hover:text-foreground transition-colors cursor-pointer select-none whitespace-nowrap"
             onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
           >
             <span>Estado</span>
             {column.getIsSorted() === "asc" ? (
-              <ArrowUp className="size-3.5 sm:size-4 text-[#1f2732] dark:text-zinc-100" />
+              <ArrowUp className="size-3.5 text-foreground" />
             ) : column.getIsSorted() === "desc" ? (
-              <ArrowDown className="size-3.5 sm:size-4 text-[#1f2732] dark:text-zinc-100" />
+              <ArrowDown className="size-3.5 text-foreground" />
             ) : (
-              <ArrowUpDown className="size-3.5 sm:size-4 text-[#5c7c9b]/60" />
+              <ArrowUpDown className="size-3 text-muted-foreground/60" />
             )}
           </button>
         ),
         cell: ({ row }) => {
           const vacancy = row.original;
+          const statusText = vacancy.status || (vacancy.is_active ? "Activa" : "Pausada");
+          const isAct = vacancy.is_active && statusText !== "Cerrada";
           return (
             <Badge
-              variant="secondary"
+              variant="outline"
               onClick={() => onToggleActive(vacancy.id, vacancy.is_active)}
               className={cn(
-                "text-[10px] sm:text-[11px] font-extrabold tracking-wider uppercase px-3 py-1 flex items-center w-fit border cursor-pointer hover:opacity-85 select-none rounded-full transition-all whitespace-nowrap",
-                vacancy.is_active
-                  ? "bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border-emerald-500/30"
-                  : "bg-zinc-100 text-zinc-600 border-zinc-200 dark:bg-zinc-800 dark:text-zinc-400 dark:border-zinc-700"
+                "text-[10px] font-bold px-2.5 py-0.5 rounded-full cursor-pointer hover:opacity-85 select-none transition-all whitespace-nowrap border",
+                statusText === "Cerrada"
+                  ? "bg-rose-500/10 text-rose-600 dark:text-rose-400 border-rose-500/30"
+                  : isAct
+                  ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/30"
+                  : "bg-muted text-muted-foreground border-border/60"
               )}
             >
-              {vacancy.is_active ? "Activa" : "Pausada"}
+              {statusText}
             </Badge>
           );
         },
@@ -201,23 +312,23 @@ export function VacanciesTable({
         header: ({ column }) => (
           <button
             type="button"
-            className="flex items-center gap-1.5 font-[800] text-xs sm:text-[13px] uppercase tracking-wider text-[#1f2732] dark:text-zinc-200 hover:text-black dark:hover:text-white transition-colors cursor-pointer select-none whitespace-nowrap"
+            className="flex items-center gap-1.5 font-bold text-[11px] uppercase tracking-wider text-muted-foreground hover:text-foreground transition-colors cursor-pointer select-none whitespace-nowrap"
             onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
           >
             <span>Fecha</span>
             {column.getIsSorted() === "asc" ? (
-              <ArrowUp className="size-3.5 sm:size-4 text-[#1f2732] dark:text-zinc-100" />
+              <ArrowUp className="size-3.5 text-foreground" />
             ) : column.getIsSorted() === "desc" ? (
-              <ArrowDown className="size-3.5 sm:size-4 text-[#1f2732] dark:text-zinc-100" />
+              <ArrowDown className="size-3.5 text-foreground" />
             ) : (
-              <ArrowUpDown className="size-3.5 sm:size-4 text-[#5c7c9b]/60" />
+              <ArrowUpDown className="size-3 text-muted-foreground/60" />
             )}
           </button>
         ),
         cell: ({ row }) => {
           const vacancy = row.original;
           return (
-            <span className="text-xs sm:text-sm text-[#5c7c9b] dark:text-zinc-400 font-semibold py-1 block whitespace-nowrap">
+            <span className="text-xs text-muted-foreground font-medium py-1 block whitespace-nowrap">
               {formatDate(vacancy.created_at)}
             </span>
           );
@@ -229,45 +340,73 @@ export function VacanciesTable({
         cell: ({ row }) => {
           const vacancy = row.original;
           return (
-            <div className="text-right py-1">
+            <div
+              className="text-right py-1"
+              onClick={(e) => e.stopPropagation()}
+            >
               <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-9 w-9 p-0 rounded-[12px] border border-[#d2dbe5] dark:border-zinc-800 bg-white dark:bg-zinc-900 hover:bg-[#f5f7fa] dark:hover:bg-zinc-800 transition-all cursor-pointer shadow-xs"
-                  >
-                    <MoreHorizontal className="h-4 w-4 text-[#5c7c9b]" />
-                  </Button>
+                <DropdownMenuTrigger
+                  render={
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={(e) => e.stopPropagation()}
+                      className="h-8 w-8 p-0 rounded-lg hover:bg-muted text-muted-foreground hover:text-foreground cursor-pointer"
+                    />
+                  }
+                >
+                  <MoreHorizontal className="size-4" />
                 </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="rounded-[18px] border border-[#ebeef3] dark:border-zinc-800 bg-popover min-w-[170px] shadow-lg p-2">
-                  <DropdownMenuItem asChild className="cursor-pointer text-xs sm:text-sm font-bold text-[#1f2732] dark:text-zinc-200 rounded-[12px] hover:bg-muted py-3 px-3 gap-3">
-                    <Link href={`/dashboard/company/vacancies/${vacancy.id}`}>
-                      <Eye className="size-4 text-[#5c7c9b]" />
-                      <span>Ver detalles</span>
-                    </Link>
-                  </DropdownMenuItem>
-                  <DropdownMenuItem asChild className="cursor-pointer text-xs sm:text-sm font-bold text-[#1f2732] dark:text-zinc-200 rounded-[12px] hover:bg-muted py-3 px-3 gap-3">
-                    <Link href={`/dashboard/company/vacancies/${vacancy.id}/edit`}>
-                      <Edit2 className="size-4 text-[#5c7c9b]" />
-                      <span>Editar</span>
-                    </Link>
+                <DropdownMenuContent align="end" className="rounded-xl border border-border/60 bg-popover min-w-[170px] shadow-lg p-1.5">
+                  <DropdownMenuItem
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setPreviewVacancy(vacancy);
+                    }}
+                    className="cursor-pointer text-xs font-semibold rounded-lg hover:bg-muted py-2 px-2.5 gap-2.5 text-foreground"
+                  >
+                    <Eye className="size-3.5 text-primary" />
+                    <span>Ver detalles</span>
                   </DropdownMenuItem>
                   <DropdownMenuItem
-                    onSelect={() => onDeleteVacancy(vacancy.id)}
-                    className="cursor-pointer text-xs sm:text-sm font-bold text-rose-600 dark:text-rose-400 rounded-[12px] hover:bg-rose-500/10 focus:bg-rose-500/10 py-3 px-3 gap-3"
+                    onClick={(e) => e.stopPropagation()}
+                    render={<Link href={`/dashboard/company/vacancies/${vacancy.id}/edit`} />}
+                    className="cursor-pointer text-xs font-semibold rounded-lg hover:bg-muted py-2 px-2.5 gap-2.5"
                   >
-                    <Trash2 className="size-4 text-rose-500" />
+                    <Edit2 className="size-3.5 text-muted-foreground" />
+                    <span>Editar</span>
+                  </DropdownMenuItem>
+                  {onCloneVacancy && (
+                    <DropdownMenuItem
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onCloneVacancy(vacancy.id);
+                      }}
+                      className="cursor-pointer text-xs font-semibold rounded-lg hover:bg-muted py-2 px-2.5 gap-2.5"
+                    >
+                      <Copy className="size-3.5 text-muted-foreground" />
+                      <span>Duplicar</span>
+                    </DropdownMenuItem>
+                  )}
+                  <DropdownMenuItem
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setPreviewVacancy(null);
+                      setDeletingVacancyId(vacancy.id);
+                    }}
+                    className="cursor-pointer text-xs font-semibold text-rose-600 dark:text-rose-400 rounded-lg hover:bg-rose-500/10 focus:bg-rose-500/10 py-2 px-2.5 gap-2.5"
+                  >
+                    <Trash2 className="size-3.5 text-rose-500" />
                     <span>Eliminar</span>
                   </DropdownMenuItem>
-                  </DropdownMenuContent>
+                </DropdownMenuContent>
               </DropdownMenu>
             </div>
           );
         },
       },
     ],
-    [onToggleActive, onDeleteVacancy, formatSalary, formatDate]
+    [onToggleActive, onDeleteVacancy, onCloneVacancy, formatSalary, formatDate]
   );
 
   const table = useReactTable({
@@ -275,7 +414,10 @@ export function VacanciesTable({
     columns,
     state: {
       sorting,
+      rowSelection,
     },
+    enableRowSelection: true,
+    onRowSelectionChange: setRowSelection,
     onSortingChange: setSorting,
     getCoreRowModel: getCoreRowModel(),
     getSortedRowModel: getSortedRowModel(),
@@ -287,134 +429,267 @@ export function VacanciesTable({
     },
   });
 
+  const selectedRows = table.getSelectedRowModel().rows;
+  const selectedCount = selectedRows.length;
+
+  const handleBatchAction = (newStatus: "Activa" | "Pausada" | "Cerrada") => {
+    if (!onBatchStatusChange || selectedCount === 0) return;
+    const selectedIds = selectedRows.map((r) => r.original.id);
+    onBatchStatusChange(selectedIds, newStatus);
+    setRowSelection({});
+  };
+
   return (
-    <div className="border border-[#ebeef3] dark:border-zinc-800 rounded-[28px] bg-white dark:bg-[#18181b] overflow-hidden shadow-xs">
-      
+    <div className="w-full">
+      {/* Batch Actions Toolbar */}
+      {selectedCount > 0 && (
+        <div className="bg-primary text-primary-foreground p-3 sm:px-5 flex flex-col sm:flex-row items-center justify-between gap-3 border-b border-border/40 animate-in fade-in duration-200">
+          <div className="flex items-center gap-2">
+            <CheckSquare className="size-4 text-emerald-400" />
+            <span className="text-xs font-bold">
+              {selectedCount} {selectedCount === 1 ? "vacante seleccionada" : "vacantes seleccionadas"}
+            </span>
+          </div>
+          <div className="flex items-center gap-1.5 flex-wrap justify-end">
+            <Button
+              size="sm"
+              variant="secondary"
+              onClick={() => handleBatchAction("Activa")}
+              className="h-8 px-3 rounded-lg text-xs font-bold gap-1 cursor-pointer"
+            >
+              <PlayCircle className="size-3.5 text-emerald-500" />
+              <span>Activar</span>
+            </Button>
+            <Button
+              size="sm"
+              variant="secondary"
+              onClick={() => handleBatchAction("Pausada")}
+              className="h-8 px-3 rounded-lg text-xs font-bold gap-1 cursor-pointer"
+            >
+              <PauseCircle className="size-3.5 text-amber-500" />
+              <span>Pausar</span>
+            </Button>
+            <Button
+              size="sm"
+              variant="secondary"
+              onClick={() => handleBatchAction("Cerrada")}
+              className="h-8 px-3 rounded-lg text-xs font-bold gap-1 cursor-pointer"
+            >
+              <XCircle className="size-3.5 text-rose-500" />
+              <span>Cerrar</span>
+            </Button>
+            <Button
+              size="sm"
+              variant="ghost"
+              onClick={() => setRowSelection({})}
+              className="h-8 px-2.5 rounded-lg text-xs font-semibold text-primary-foreground/80 hover:text-primary-foreground hover:bg-primary-foreground/10 cursor-pointer"
+            >
+              Deseleccionar
+            </Button>
+          </div>
+        </div>
+      )}
+
       {/* Table Container */}
       <div className="overflow-x-auto">
-        <Table className="w-full">
-          <TableHeader className="bg-[#f5f7fa]/80 dark:bg-zinc-900/60 border-b border-[#ebeef3] dark:border-zinc-800">
-            {table.getHeaderGroups().map((headerGroup) => (
-              <TableRow key={headerGroup.id} className="hover:bg-transparent border-none">
-                {headerGroup.headers.map((header) => (
-                  <TableHead key={header.id} className="py-4 px-3 sm:px-4">
-                    {header.isPlaceholder
-                      ? null
-                      : flexRender(header.column.columnDef.header, header.getContext())}
-                  </TableHead>
-                ))}
-              </TableRow>
-            ))}
-          </TableHeader>
-          <TableBody>
-            {table.getRowModel().rows?.length ? (
-              table.getRowModel().rows.map((row) => (
-                <TableRow
-                  key={row.id}
-                  data-state={row.getIsSelected() && "selected"}
-                  className={cn(
-                    "border-b border-[#ebeef3]/60 dark:border-zinc-800/50 transition-colors hover:bg-[#f5f7fa]/60 dark:hover:bg-zinc-900/40",
-                    !row.original.is_active && "opacity-75"
-                  )}
-                >
-                  {row.getVisibleCells().map((cell) => (
-                    <TableCell key={cell.id} className="px-3 sm:px-4 py-3.5">
-                      {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                    </TableCell>
+          <Table className="w-full">
+            <TableHeader className="bg-muted/40 border-b border-border/60">
+              {table.getHeaderGroups().map((headerGroup) => (
+                <TableRow key={headerGroup.id} className="hover:bg-transparent border-none">
+                  {headerGroup.headers.map((header) => (
+                    <TableHead key={header.id} className="py-3 px-3 sm:px-4">
+                      {header.isPlaceholder
+                        ? null
+                        : flexRender(header.column.columnDef.header, header.getContext())}
+                    </TableHead>
                   ))}
                 </TableRow>
-              ))
-            ) : (
-              <TableRow>
-                <TableCell colSpan={columns.length} className="h-32 text-center text-sm font-semibold text-[#5c7c9b]">
-                  No hay vacantes disponibles en esta lista.
-                </TableCell>
-              </TableRow>
+              ))}
+            </TableHeader>
+            <TableBody>
+              {table.getRowModel().rows?.length ? (
+                table.getRowModel().rows.map((row) => (
+                  <TableRow
+                      key={row.id}
+                      data-state={row.getIsSelected() && "selected"}
+                      onClick={(e) => {
+                        const target = e.target as HTMLElement;
+                        if (
+                          target.closest(
+                            "button, a, input, [role='checkbox'], [role='menuitem'], [data-slot='dropdown-menu-trigger'], [data-slot='dropdown-menu-content'], [data-slot='dropdown-menu-item'], [data-slot='alert-dialog'], [data-slot='alert-dialog-content']"
+                          )
+                        ) {
+                          return;
+                        }
+                        if (deletingVacancyId !== null) return;
+                        setPreviewVacancy(row.original);
+                      }}
+                    className={cn(
+                      "border-b border-border/40 transition-colors hover:bg-muted/40 cursor-pointer",
+                      !row.original.is_active && "opacity-80"
+                    )}
+                  >
+                    {row.getVisibleCells().map((cell) => (
+                      <TableCell key={cell.id} className="py-3 px-3 sm:px-4">
+                        {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                      </TableCell>
+                    ))}
+                  </TableRow>
+                ))
+              ) : (
+                <TableRow>
+                  <TableCell colSpan={columns.length} className="h-24 text-center text-xs font-medium text-muted-foreground">
+                    Sin resultados.
+                  </TableCell>
+                </TableRow>
+              )}
+            </TableBody>
+          </Table>
+        </div>
+
+        {/* Modern Pagination Footer */}
+        <div className="flex flex-col sm:flex-row items-center justify-between gap-3 px-4 py-3 border-t border-border/60 bg-muted/20 text-xs">
+          <div className="flex items-center gap-2 text-muted-foreground font-medium">
+            <span>
+              {table.getFilteredRowModel().rows.length} vacantes en total
+            </span>
+            {selectedCount > 0 && (
+              <span className="font-bold text-foreground">
+                ({selectedCount} seleccionadas)
+              </span>
             )}
-          </TableBody>
-        </Table>
-      </div>
+          </div>
 
-      {/* Senior-Friendly Pagination Footer */}
-      <div className="flex flex-col sm:flex-row items-center justify-between gap-4 p-5 sm:p-6 border-t border-[#ebeef3] dark:border-zinc-800 bg-[#f5f7fa]/60 dark:bg-zinc-900/30">
-        
-        {/* Total info & Rows per page selector */}
-        <div className="flex items-center gap-4">
-          <span className="text-xs sm:text-sm font-semibold text-[#1f2732] dark:text-zinc-200">
-            Mostrando <span className="font-[800] text-[#1f2732] dark:text-zinc-100">{table.getRowModel().rows.length}</span> de <span className="font-[800] text-[#1f2732] dark:text-zinc-100">{data.length}</span> vacantes
-          </span>
+          <div className="flex items-center gap-4">
+            {/* Page Size Selector */}
+            <div className="flex items-center gap-1.5">
+              <span className="text-muted-foreground font-medium">Filas:</span>
+              <Select
+                value={String(table.getState().pagination.pageSize)}
+                onValueChange={(val) => {
+                  table.setPageSize(Number(val));
+                }}
+              >
+                <SelectTrigger className="h-7 w-16 rounded-md border border-border/60 bg-card text-xs font-medium cursor-pointer">
+                  <SelectValue placeholder={table.getState().pagination.pageSize} />
+                </SelectTrigger>
+                <SelectContent className="rounded-xl border border-border/60 bg-popover shadow-md">
+                  {[5, 10, 20, 50].map((pageSize) => (
+                    <SelectItem key={pageSize} value={String(pageSize)} className="text-xs cursor-pointer">
+                      {pageSize}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
 
-          <div className="hidden sm:flex items-center gap-2">
-            <span className="text-xs font-semibold text-[#5c7c9b]">Por página:</span>
-            <Select
-              value={`${table.getState().pagination.pageSize}`}
-              onValueChange={(value) => {
-                table.setPageSize(Number(value));
-              }}
-            >
-              <SelectTrigger className="h-11 w-[80px] rounded-[14px] text-xs sm:text-sm font-bold bg-white dark:bg-zinc-900 border border-[#d2dbe5] dark:border-zinc-800 text-[#1f2732] dark:text-zinc-100 cursor-pointer">
-                <SelectValue placeholder={table.getState().pagination.pageSize} />
-              </SelectTrigger>
-              <SelectContent className="rounded-[16px] border border-[#ebeef3] dark:border-zinc-800">
-                {[10, 20, 50].map((pageSize) => (
-                  <SelectItem key={pageSize} value={`${pageSize}`} className="text-xs sm:text-sm font-bold cursor-pointer">
-                    {pageSize}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            {/* Current Page Text */}
+            <span className="text-muted-foreground font-medium">
+              Página <strong className="text-foreground">{table.getState().pagination.pageIndex + 1}</strong> de{" "}
+              <strong className="text-foreground">{table.getPageCount() || 1}</strong>
+            </span>
+
+            {/* Navigation Arrows */}
+            <div className="flex items-center gap-1">
+              <Button
+                variant="outline"
+                size="icon"
+                className="h-7 w-7 rounded-md border border-border/60 cursor-pointer"
+                onClick={() => table.setPageIndex(0)}
+                disabled={!table.getCanPreviousPage()}
+              >
+                <ChevronsLeft className="size-3.5" />
+              </Button>
+              <Button
+                variant="outline"
+                size="icon"
+                className="h-7 w-7 rounded-md border border-border/60 cursor-pointer"
+                onClick={() => table.previousPage()}
+                disabled={!table.getCanPreviousPage()}
+              >
+                <ChevronLeft className="size-3.5" />
+              </Button>
+              <Button
+                variant="outline"
+                size="icon"
+                className="h-7 w-7 rounded-md border border-border/60 cursor-pointer"
+                onClick={() => table.nextPage()}
+                disabled={!table.getCanNextPage()}
+              >
+                <ChevronRight className="size-3.5" />
+              </Button>
+              <Button
+                variant="outline"
+                size="icon"
+                className="h-7 w-7 rounded-md border border-border/60 cursor-pointer"
+                onClick={() => table.setPageIndex(table.getPageCount() - 1)}
+                disabled={!table.getCanNextPage()}
+              >
+                <ChevronsRight className="size-3.5" />
+              </Button>
+            </div>
           </div>
         </div>
 
-        {/* Pagination Navigation Buttons */}
-        <div className="flex items-center gap-2">
-          <span className="text-xs sm:text-sm font-extrabold text-[#1f2732] dark:text-zinc-200 mr-2">
-            Página {table.getState().pagination.pageIndex + 1} de {table.getPageCount() || 1}
-          </span>
+        {/* Alert Dialog for Confirming Deletion */}
+        <AlertDialog
+          open={deletingVacancyId !== null}
+          onOpenChange={(open) => !open && setDeletingVacancyId(null)}
+        >
+          <AlertDialogContent className="rounded-2xl border border-border/80 p-6 bg-card max-w-md shadow-2xl">
+            <AlertDialogHeader>
+              <AlertDialogTitle className="text-base font-bold text-foreground flex items-center gap-2">
+                <Trash2 className="size-4 text-rose-500" />
+                <span>¿Eliminar vacante permanentemente?</span>
+              </AlertDialogTitle>
+              <AlertDialogDescription className="text-xs font-medium text-muted-foreground leading-relaxed mt-1">
+                Esta acción es definitiva e irreversible. La vacante será dada de baja y los candidatos no podrán postularse.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
 
-          <Button
-            variant="outline"
-            size="icon"
-            onClick={() => table.setPageIndex(0)}
-            disabled={!table.getCanPreviousPage()}
-            className="h-11 w-11 rounded-[14px] border border-[#d2dbe5] dark:border-zinc-800 bg-white dark:bg-zinc-900 hover:bg-[#f5f7fa] dark:hover:bg-zinc-800 text-[#1f2732] dark:text-zinc-100 cursor-pointer disabled:opacity-40"
-          >
-            <ChevronsLeft className="size-4.5" />
-          </Button>
+            {deletingVacancy && (
+              <div className="p-3 bg-muted/40 rounded-xl border border-border/60 text-xs font-semibold text-foreground space-y-1">
+                <p className="font-extrabold text-foreground text-sm">{deletingVacancy.title}</p>
+                <div className="flex items-center gap-2 text-muted-foreground text-[11px]">
+                  <span>{deletingVacancy.category || "General"}</span>
+                  <span>•</span>
+                  <span>{deletingVacancy.zone || deletingVacancy.location || "Mérida"}</span>
+                </div>
+              </div>
+            )}
 
-          <Button
-            variant="outline"
-            size="icon"
-            onClick={() => table.previousPage()}
-            disabled={!table.getCanPreviousPage()}
-            className="h-11 w-11 rounded-[14px] border border-[#d2dbe5] dark:border-zinc-800 bg-white dark:bg-zinc-900 hover:bg-[#f5f7fa] dark:hover:bg-zinc-800 text-[#1f2732] dark:text-zinc-100 cursor-pointer disabled:opacity-40"
-          >
-            <ChevronLeft className="size-4.5" />
-          </Button>
+            <AlertDialogFooter className="gap-2 mt-4">
+              <AlertDialogCancel
+                onClick={() => setDeletingVacancyId(null)}
+                className="rounded-xl font-semibold text-xs h-10 px-4 cursor-pointer"
+              >
+                Cancelar
+              </AlertDialogCancel>
+              <AlertDialogAction
+                onClick={() => {
+                  if (deletingVacancyId) {
+                    onDeleteVacancy(deletingVacancyId);
+                    setDeletingVacancyId(null);
+                  }
+                }}
+                className="rounded-xl font-bold text-xs h-10 px-4 bg-rose-600 hover:bg-rose-700 text-white border-none cursor-pointer gap-2"
+              >
+                <Trash2 className="size-3.5" />
+                <span>Eliminar Definitivamente</span>
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
 
-          <Button
-            variant="outline"
-            size="icon"
-            onClick={() => table.nextPage()}
-            disabled={!table.getCanNextPage()}
-            className="h-11 w-11 rounded-[14px] border border-[#d2dbe5] dark:border-zinc-800 bg-white dark:bg-zinc-900 hover:bg-[#f5f7fa] dark:hover:bg-zinc-800 text-[#1f2732] dark:text-zinc-100 cursor-pointer disabled:opacity-40"
-          >
-            <ChevronRight className="size-4.5" />
-          </Button>
-
-          <Button
-            variant="outline"
-            size="icon"
-            onClick={() => table.setPageIndex(table.getPageCount() - 1)}
-            disabled={!table.getCanNextPage()}
-            className="h-11 w-11 rounded-[14px] border border-[#d2dbe5] dark:border-zinc-800 bg-white dark:bg-zinc-900 hover:bg-[#f5f7fa] dark:hover:bg-zinc-800 text-[#1f2732] dark:text-zinc-100 cursor-pointer disabled:opacity-40"
-          >
-            <ChevronsRight className="size-4.5" />
-          </Button>
-        </div>
-
+        {/* Vacancy Preview Drawer */}
+        <VacancyPreviewDrawer
+          vacancy={previewVacancy}
+          open={!!previewVacancy && deletingVacancyId === null}
+          onOpenChange={(open) => !open && setPreviewVacancy(null)}
+          onToggleActive={handleToggleActiveLocal}
+          formatSalary={formatSalary}
+          formatDate={formatDate}
+        />
       </div>
-
-    </div>
   );
 }

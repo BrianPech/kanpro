@@ -2,149 +2,427 @@
 
 import * as React from "react";
 import { useRouter } from "next/navigation";
+import { useForm, useFieldArray } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
 import { 
   ArrowLeft, 
   Camera, 
   X, 
   Plus, 
-  Lightbulb, 
-  Camera as CameraIcon, 
-  Image as GalleryIcon, 
   Trash2, 
-  CheckCircle2 
+  Briefcase,
+  GraduationCap,
+  Loader2,
+  BadgeCheck,
+  Globe,
+  Sparkles,
+  Phone,
+  User,
+  ExternalLink
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import { Badge } from "@/components/ui/badge";
+import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
+import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
 import { createClient } from "@/lib/supabase/client";
 import { candidateProfileService } from "../services/candidate-profile";
+import { candidateDocumentsService } from "../services/candidate-documents";
+import { candidateProfileSchema } from "../schemas/candidate.schema";
+import { formatPhoneDisplay, normalizePhone } from "@/lib/formatters";
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
+  DialogDescription,
   DialogFooter,
 } from "@/components/ui/dialog";
 import { toast } from "sonner";
+import { cn } from "@/lib/utils";
 
 interface EditPublicProfileViewProps {
   onBack?: () => void;
 }
 
+// Sub-component for isolated reactive Experience field array
+const ExperienceFieldArray = React.memo(({
+  control,
+  register,
+  errors,
+}: {
+  control: any;
+  register: any;
+  errors: any;
+}) => {
+  const { fields, append, remove } = useFieldArray({
+    control,
+    name: "experience",
+  });
+
+  return (
+    <div className="space-y-3">
+      {fields.length === 0 ? (
+        <div className="p-4 bg-muted/30 border border-border/60 rounded-xl text-xs text-muted-foreground text-center">
+          No has registrado experiencias aún. Toca &quot;Añadir empleo&quot; para agregar tu historial.
+        </div>
+      ) : (
+        <div className="space-y-3">
+          {fields.map((field, index) => (
+            <div key={field.id} className="p-4 bg-muted/20 border border-border/60 rounded-2xl space-y-3.5 relative shadow-2xs">
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                onClick={() => remove(index)}
+                className="absolute top-3 right-3 size-7 text-destructive hover:bg-destructive/10 rounded-lg cursor-pointer"
+                aria-label="Eliminar experiencia"
+              >
+                <Trash2 className="size-3.5" />
+              </Button>
+              
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5 pr-8">
+                <div className="space-y-1.5">
+                  <Label className="text-xs font-semibold text-foreground">
+                    Puesto / Cargo <span className="text-destructive">*</span>
+                  </Label>
+                  <Input
+                    {...register(`experience.${index}.role`)}
+                    placeholder="Ej. Chef Ejecutivo, Mesero, Recepcionista"
+                    className="h-9.5 rounded-xl bg-background border-border/70 text-xs sm:text-sm"
+                  />
+                  {errors.experience?.[index]?.role && (
+                    <p className="text-[11px] font-medium text-destructive mt-0.5">{errors.experience[index]?.role?.message}</p>
+                  )}
+                </div>
+
+                <div className="space-y-1.5">
+                  <Label className="text-xs font-semibold text-foreground">
+                    Empresa / Negocio <span className="text-destructive">*</span>
+                  </Label>
+                  <Input
+                    {...register(`experience.${index}.company`)}
+                    placeholder="Ej. Hotel Riviera Grand"
+                    className="h-9.5 rounded-xl bg-background border-border/70 text-xs sm:text-sm"
+                  />
+                  {errors.experience?.[index]?.company && (
+                    <p className="text-[11px] font-medium text-destructive mt-0.5">{errors.experience[index]?.company?.message}</p>
+                  )}
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+                <div className="space-y-1.5">
+                  <Label className="text-xs font-semibold text-foreground">
+                    Período <span className="text-destructive">*</span>
+                  </Label>
+                  <Input
+                    {...register(`experience.${index}.period`)}
+                    placeholder="Ej. 2022 - 2024"
+                    className="h-9.5 rounded-xl bg-background border-border/70 text-xs sm:text-sm"
+                  />
+                  {errors.experience?.[index]?.period && (
+                    <p className="text-[11px] font-medium text-destructive mt-0.5">{errors.experience[index]?.period?.message}</p>
+                  )}
+                </div>
+
+                <div className="space-y-1.5">
+                  <Label className="text-xs font-semibold text-foreground">Descripción / Funciones</Label>
+                  <Input
+                    {...register(`experience.${index}.description`)}
+                    placeholder="Resumen de responsabilidades principales..."
+                    className="h-9.5 rounded-xl bg-background border-border/70 text-xs sm:text-sm"
+                  />
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      <Button
+        type="button"
+        variant="outline"
+        size="sm"
+        onClick={() => append({ role: "", company: "", period: "", description: "" })}
+        className="h-8 px-3.5 text-xs font-medium gap-1.5 rounded-xl cursor-pointer"
+      >
+        <Plus className="size-3.5" />
+        <span>Añadir empleo</span>
+      </Button>
+    </div>
+  );
+});
+ExperienceFieldArray.displayName = "ExperienceFieldArray";
+
+// Sub-component for isolated reactive Education field array
+const EducationFieldArray = React.memo(({
+  control,
+  register,
+  errors,
+}: {
+  control: any;
+  register: any;
+  errors: any;
+}) => {
+  const { fields, append, remove } = useFieldArray({
+    control,
+    name: "education",
+  });
+
+  return (
+    <div className="space-y-3">
+      {fields.length === 0 ? (
+        <div className="p-4 bg-muted/30 border border-border/60 rounded-xl text-xs text-muted-foreground text-center">
+          No has registrado estudios aún. Toca &quot;Añadir formación&quot; para sumar tus grados.
+        </div>
+      ) : (
+        <div className="space-y-3">
+          {fields.map((field, index) => (
+            <div key={field.id} className="p-4 bg-muted/20 border border-border/60 rounded-2xl space-y-3.5 relative shadow-2xs">
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                onClick={() => remove(index)}
+                className="absolute top-3 right-3 size-7 text-destructive hover:bg-destructive/10 rounded-lg cursor-pointer"
+                aria-label="Eliminar educación"
+              >
+                <Trash2 className="size-3.5" />
+              </Button>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5 pr-8">
+                <div className="space-y-1.5">
+                  <Label className="text-xs font-semibold text-foreground">
+                    Institución / Escuela <span className="text-destructive">*</span>
+                  </Label>
+                  <Input
+                    {...register(`education.${index}.institution`)}
+                    placeholder="Ej. Universidad del Caribe, CONALEP"
+                    className="h-9.5 rounded-xl bg-background border-border/70 text-xs sm:text-sm"
+                  />
+                  {errors.education?.[index]?.institution && (
+                    <p className="text-[11px] font-medium text-destructive mt-0.5">{errors.education[index]?.institution?.message}</p>
+                  )}
+                </div>
+
+                <div className="space-y-1.5">
+                  <Label className="text-xs font-semibold text-foreground">
+                    Título / Carrera <span className="text-destructive">*</span>
+                  </Label>
+                  <Input
+                    {...register(`education.${index}.degree`)}
+                    placeholder="Ej. Licenciatura en Gastronomía, Técnico Hotelero"
+                    className="h-9.5 rounded-xl bg-background border-border/70 text-xs sm:text-sm"
+                  />
+                  {errors.education?.[index]?.degree && (
+                    <p className="text-[11px] font-medium text-destructive mt-0.5">{errors.education[index]?.degree?.message}</p>
+                  )}
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+                <div className="space-y-1.5">
+                  <Label className="text-xs font-semibold text-foreground">
+                    Período / Año de Egreso <span className="text-destructive">*</span>
+                  </Label>
+                  <Input
+                    {...register(`education.${index}.period`)}
+                    placeholder="Ej. 2018 - 2022"
+                    className="h-9.5 rounded-xl bg-background border-border/70 text-xs sm:text-sm"
+                  />
+                  {errors.education?.[index]?.period && (
+                    <p className="text-[11px] font-medium text-destructive mt-0.5">{errors.education[index]?.period?.message}</p>
+                  )}
+                </div>
+
+                <div className="space-y-1.5">
+                  <Label className="text-xs font-semibold text-foreground">Detalles adicionales</Label>
+                  <Input
+                    {...register(`education.${index}.description`)}
+                    placeholder="Ej. Graduado con honores..."
+                    className="h-9.5 rounded-xl bg-background border-border/70 text-xs sm:text-sm"
+                  />
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      <Button
+        type="button"
+        variant="outline"
+        size="sm"
+        onClick={() => append({ institution: "", degree: "", period: "", description: "" })}
+        className="h-8 px-3.5 text-xs font-medium gap-1.5 rounded-xl cursor-pointer"
+      >
+        <Plus className="size-3.5" />
+        <span>Añadir formación</span>
+      </Button>
+    </div>
+  );
+});
+EducationFieldArray.displayName = "EducationFieldArray";
+
 export function EditPublicProfileView({ onBack }: EditPublicProfileViewProps) {
   const router = useRouter();
   const supabase = createClient();
+  const avatarInputRef = React.useRef<HTMLInputElement | null>(null);
 
-  // Form Controllers / States
-  const [name, setName] = React.useState<string>("");
-  const [phone, setPhone] = React.useState<string>("");
-  const [bio, setBio] = React.useState<string>("");
-  const [skills, setSkills] = React.useState<string[]>([]);
-  const [hasCustomAvatar, setHasCustomAvatar] = React.useState<boolean>(false);
-  const [avatarUrl, setAvatarUrl] = React.useState<string | null>(null);
-
-  // Error messages & Loading
-  const [nameError, setNameError] = React.useState<string>("");
-  const [phoneError, setPhoneError] = React.useState<string>("");
   const [isLoading, setIsLoading] = React.useState<boolean>(true);
   const [isSaving, setIsSaving] = React.useState<boolean>(false);
-  const [toastMessage, setToastMessage] = React.useState<string | null>(null);
+  const [isUploadingPhoto, setIsUploadingPhoto] = React.useState<boolean>(false);
+  const [avatarUrl, setAvatarUrl] = React.useState<string | null>(null);
+  const [candidateEmail, setCandidateEmail] = React.useState<string>("");
 
-  // Modals state
-  const [isPhotoModalOpen, setIsPhotoModalOpen] = React.useState<boolean>(false);
+  // Skill Dialog state
   const [isAddSkillOpen, setIsAddSkillOpen] = React.useState<boolean>(false);
   const [newSkillText, setNewSkillText] = React.useState<string>("");
 
-  // Load existing candidate profile securely from Supabase using candidateProfileService
+  const {
+    register,
+    handleSubmit,
+    control,
+    setValue,
+    watch,
+    reset,
+    formState: { errors }
+  } = useForm<any>({
+    resolver: zodResolver(candidateProfileSchema) as any,
+    defaultValues: {
+      full_name: "",
+      whatsapp_number: "",
+      experience_summary: "",
+      headline: "",
+      skills: [],
+      experience: [],
+      education: [],
+      portfolio_links: [],
+      show_phone: true,
+    }
+  });
+
+  const skills = watch("skills") || [];
+  const fullName = watch("full_name") || "";
+  const showPhone = watch("show_phone") ?? true;
+  const experienceList = watch("experience") || [];
+
+  // Fetch initial profile from Supabase on mount
   React.useEffect(() => {
-    async function loadData() {
+    async function loadCandidateProfile() {
       setIsLoading(true);
       try {
         const { data: { user } } = await supabase.auth.getUser();
         if (user) {
+          setCandidateEmail(user.email || "");
           const profile = await candidateProfileService.getProfile(user.id);
-
           if (profile) {
-            setName(profile.full_name || "");
-            setPhone(profile.whatsapp_number || "");
-            setBio(profile.experience_summary || "");
-            if (profile.skills) setSkills(profile.skills);
+            reset({
+              full_name: profile.full_name || "",
+              whatsapp_number: profile.whatsapp_number || "",
+              experience_summary: profile.experience_summary || "",
+              headline: profile.headline || "",
+              skills: profile.skills || [],
+              experience: (profile.experience as any) || [],
+              education: (profile.education as any) || [],
+              portfolio_links: (profile.portfolio_links as any) || [],
+              show_phone: profile.show_phone ?? true,
+            });
+
             if (profile.avatar_url) {
-              setHasCustomAvatar(true);
               setAvatarUrl(profile.avatar_url);
             }
           }
         }
       } catch (err) {
         console.error("Error loading candidate profile for edit:", err);
-        toast.error("Error al cargar los datos del perfil");
+        toast.error("Error al cargar la información del perfil");
       } finally {
         setIsLoading(false);
       }
     }
-    loadData();
-  }, [supabase]);
+
+    loadCandidateProfile();
+  }, [supabase, reset]);
 
   const handleBack = () => {
     if (onBack) {
       onBack();
     } else {
-      router.back();
+      router.push("/dashboard/candidate/profile");
     }
   };
 
-  const showToast = (msg: string) => {
-    toast.success(msg);
-  };
-
-  const handleSimulatePhotoSelect = (fromCamera: boolean) => {
-    setIsPhotoModalOpen(false);
-    showToast(fromCamera ? "Abriendo cámara..." : "Abriendo galería de fotos...");
-    setTimeout(() => {
-      setHasCustomAvatar(true);
-      showToast("¡Foto de perfil seleccionada!");
-    }, 900);
-  };
-
-  const handleDeletePhoto = () => {
-    setIsPhotoModalOpen(false);
-    setHasCustomAvatar(false);
-    setAvatarUrl(null);
-    showToast("Foto de perfil eliminada");
-  };
-
+  // Add / Remove Skills
   const handleAddSkill = () => {
-    const clean = newSkillText.trim();
-    if (clean && !skills.includes(clean)) {
-      setSkills((prev) => [...prev, clean]);
+    const trimmed = newSkillText.trim();
+    if (!trimmed) return;
+    if (skills.includes(trimmed)) {
+      toast.info("Esa habilidad ya está en tu lista");
+      return;
     }
+    setValue("skills", [...skills, trimmed], { shouldValidate: true });
     setNewSkillText("");
     setIsAddSkillOpen(false);
   };
 
   const handleRemoveSkill = (skillToRemove: string) => {
-    setSkills((prev) => prev.filter((s) => s !== skillToRemove));
+    setValue(
+      "skills",
+      skills.filter((s: string) => s !== skillToRemove),
+      { shouldValidate: true }
+    );
   };
 
-  const handleSave = async () => {
-    // Validations
-    let valid = true;
-    if (!name.trim()) {
-      setNameError("El nombre es requerido");
-      valid = false;
-    } else {
-      setNameError("");
+  // Photo Upload Handler
+  const handlePhotoFileSelected = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (!file.type.startsWith("image/")) {
+      toast.error("Formato no válido", { description: "Por favor selecciona un archivo JPG, PNG o WebP." });
+      return;
     }
 
-    if (!phone.trim()) {
-      setPhoneError("El teléfono es requerido");
-      valid = false;
-    } else {
-      setPhoneError("");
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error("Archivo muy pesado", { description: "La foto debe pesar menos de 5MB." });
+      return;
     }
 
-    if (!valid) return;
+    setIsUploadingPhoto(true);
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error("No hay sesión de usuario activa");
 
+      const publicUrl = await candidateDocumentsService.uploadAvatar(user.id, file);
+      setAvatarUrl(publicUrl);
+      toast.success("Foto de perfil cargada con éxito");
+    } catch (err: any) {
+      console.error("Error uploading avatar:", err);
+      toast.error("No se pudo subir la foto", { description: err.message || "Intenta nuevamente." });
+    } finally {
+      setIsUploadingPhoto(false);
+    }
+  };
+
+  const handleDeletePhoto = async () => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        await candidateProfileService.updateProfile(user.id, { avatar_url: null });
+      }
+      setAvatarUrl(null);
+      toast.success("Foto de perfil eliminada");
+    } catch (err) {
+      console.error("Error deleting avatar:", err);
+    }
+  };
+
+  // Save Form Handler
+  const onSubmit = async (values: any) => {
     setIsSaving(true);
     try {
       const { data: { user } } = await supabase.auth.getUser();
@@ -154,17 +432,22 @@ export function EditPublicProfileView({ onBack }: EditPublicProfileViewProps) {
       }
 
       await candidateProfileService.updateProfile(user.id, {
-        full_name: name.trim(),
-        whatsapp_number: phone.trim(),
-        experience_summary: bio.trim(),
-        skills: skills,
+        full_name: values.full_name.trim(),
+        whatsapp_number: values.whatsapp_number.trim(),
+        experience_summary: values.experience_summary?.trim() || "",
+        headline: values.headline?.trim() || "",
+        skills: values.skills,
+        experience: values.experience,
+        education: values.education,
+        portfolio_links: values.portfolio_links,
+        show_phone: values.show_phone ?? true,
         avatar_url: avatarUrl,
       });
 
-      showToast("¡Perfil guardado exitosamente!");
+      toast.success("¡Perfil guardado exitosamente!");
       setTimeout(() => {
         handleBack();
-      }, 700);
+      }, 400);
     } catch (err) {
       console.error("Error saving profile:", err);
       toast.error("Error al guardar los datos en la base de datos");
@@ -173,252 +456,378 @@ export function EditPublicProfileView({ onBack }: EditPublicProfileViewProps) {
     }
   };
 
-  const initialLetter = name.trim().length > 0 ? name.trim()[0].toUpperCase() : "C";
+  // Calculate dynamic completion percentage (0 - 100%)
+  const completionPercentage = React.useMemo(() => {
+    let score = 0;
+    if (fullName.trim() && fullName !== "Candidato K'anPro") score += 25;
+    if (candidateEmail.trim()) score += 15;
+    if (watch("whatsapp_number")?.trim()) score += 20;
+    if (watch("experience_summary")?.trim()) score += 15;
+    if (skills.length > 0) score += 15;
+    if (avatarUrl) score += 10;
+    return Math.min(score, 100);
+  }, [fullName, candidateEmail, watch("whatsapp_number"), watch("experience_summary"), skills, avatarUrl]);
+
+  const initialLetter = fullName.trim().length > 0 ? fullName.trim()[0].toUpperCase() : "C";
 
   return (
-    <div className="flex-grow min-h-full bg-transparent dark:bg-zinc-950 px-6 sm:px-10 lg:px-14 pt-4 pb-28 md:pb-8 max-w-3xl mx-auto w-full animate-in fade-in duration-300 relative">
-      
-      {/* Toast Notification */}
-      {toastMessage && (
-        <div className="fixed top-6 left-1/2 -translate-x-1/2 z-50 px-5 py-3.5 bg-[#1f2732] dark:bg-zinc-100 text-white dark:text-zinc-900 rounded-[14px] text-sm font-bold shadow-lg flex items-center gap-2.5 animate-in fade-in slide-in-from-top-2">
-          <CheckCircle2 className="w-5 h-5 text-emerald-400 dark:text-emerald-600" />
-          <span>{toastMessage}</span>
-        </div>
-      )}
-
-      {/* AppBar */}
-      <div className="flex items-center justify-between py-4 border-b border-transparent">
-        <button
-          onClick={handleBack}
-          aria-label="Regresar"
-          className="w-11 h-11 bg-[#f5f7fa] dark:bg-zinc-900 rounded-full flex items-center justify-center text-[#1f2732] dark:text-zinc-100 hover:bg-[#ebeef3] dark:hover:bg-zinc-800 transition-all cursor-pointer shadow-2xs"
-        >
-          <ArrowLeft className="w-5 h-5 stroke-[2.4]" />
-        </button>
-
-        <h1 className="text-[20px] sm:text-[24px] font-[800] text-[#1f2732] dark:text-zinc-100 text-center">
-          Editar Perfil Público
-        </h1>
-
-        <div className="w-11" />
-      </div>
+    <div className="flex-1 min-h-full bg-transparent px-3 sm:px-6 lg:px-8 pt-2 pb-24 max-w-4xl mx-auto w-full animate-in fade-in duration-200">
+      <input
+        ref={avatarInputRef}
+        type="file"
+        accept="image/png,image/jpeg,image/webp"
+        className="hidden"
+        onChange={handlePhotoFileSelected}
+      />
 
       {isLoading ? (
-        <div className="py-12 flex justify-center items-center">
-          <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin" />
+        <div className="py-24 flex justify-center items-center">
+          <Loader2 className="size-7 text-primary animate-spin" />
         </div>
       ) : (
-        /* Form Area */
-        <div className="pt-6 space-y-8">
+        /* Main Profile Card matching Reference */
+        <div className="rounded-3xl border border-border/60 bg-card shadow-sm overflow-hidden">
           
-          {/* 0. Profile Photo Section */}
-          <div className="flex flex-col items-center justify-center text-center">
-            <div
-              onClick={() => setIsPhotoModalOpen(true)}
-              className="relative cursor-pointer group"
-            >
-              <div className="p-1 rounded-full border-2 border-[#d2dbe5] dark:border-zinc-700">
-                <div className="w-[110px] h-[110px] rounded-full bg-[#ebeef3] dark:bg-zinc-800 flex items-center justify-center text-[#1f2732] dark:text-zinc-100 text-[42px] font-[800] overflow-hidden">
-                  {avatarUrl ? (
-                    <img src={avatarUrl} alt={name} className="w-full h-full object-cover rounded-full" />
-                  ) : (
-                    initialLetter
-                  )}
-                </div>
-              </div>
-
-              {/* Camera Icon Badge */}
-              <div className="absolute bottom-1 right-1 w-[38px] h-[38px] bg-[#1f2732] dark:bg-zinc-100 text-white dark:text-zinc-900 rounded-full border-[2.5px] border-white dark:border-zinc-950 flex items-center justify-center shadow-md">
-                <Camera className="w-[18px] h-[18px] stroke-[2.2]" />
-              </div>
-            </div>
-
-            <button
-              type="button"
-              onClick={() => setIsPhotoModalOpen(true)}
-              className="mt-3 text-[14px] sm:text-[15px] font-extrabold text-[#344558] dark:text-zinc-300 hover:text-[#1f2732] transition-colors cursor-pointer py-1 px-2"
-            >
-              Cambiar foto de perfil
-            </button>
-          </div>
-
-          {/* 1. Nombre Completo input */}
-          <div className="space-y-2.5">
-            <label className="block text-[14px] sm:text-[15px] font-extrabold text-[#3e546d] dark:text-zinc-200">
-              Nombre Completo
-            </label>
-            <Input
-              type="text"
-              value={name}
-              onChange={(e) => {
-                setName(e.target.value);
-                if (e.target.value.trim()) setNameError("");
-              }}
-              placeholder="Ingresa tu nombre"
-              className="h-14 bg-white dark:bg-zinc-900 border-[#ebeef3] dark:border-zinc-800 rounded-[16px] px-4 text-[15px] sm:text-[16px] font-[600] text-[#1f2732] dark:text-zinc-100 focus-visible:ring-2 focus-visible:ring-[#1f2732]"
-            />
-            {nameError && (
-              <p className="text-xs sm:text-sm font-semibold text-rose-500">{nameError}</p>
-            )}
-          </div>
-
-          {/* 2. Teléfono / WhatsApp input */}
-          <div className="space-y-2.5">
-            <label className="block text-[14px] sm:text-[15px] font-extrabold text-[#3e546d] dark:text-zinc-200">
-              Teléfono / WhatsApp de contacto
-            </label>
-            <Input
-              type="tel"
-              value={phone}
-              onChange={(e) => {
-                setPhone(e.target.value);
-                if (e.target.value.trim()) setPhoneError("");
-              }}
-              placeholder="Ej. +52 998 123 4567"
-              className="h-14 bg-white dark:bg-zinc-900 border-[#ebeef3] dark:border-zinc-800 rounded-[16px] px-4 text-[15px] sm:text-[16px] font-[600] text-[#1f2732] dark:text-zinc-100 focus-visible:ring-2 focus-visible:ring-[#1f2732]"
-            />
-            {phoneError && (
-              <p className="text-xs sm:text-sm font-semibold text-rose-500">{phoneError}</p>
-            )}
-          </div>
-
-          {/* 3. Extracto / Biografía profesional input */}
-          <div className="space-y-2.5">
-            <label className="block text-[14px] sm:text-[15px] font-extrabold text-[#3e546d] dark:text-zinc-200">
-              Extracto / Biografía profesional
-            </label>
-            <Textarea
-              rows={4}
-              value={bio}
-              onChange={(e) => setBio(e.target.value)}
-              placeholder="Escribe un breve resumen de tu experiencia o aptitudes..."
-              className="bg-white dark:bg-zinc-900 border-[#ebeef3] dark:border-zinc-800 rounded-[16px] p-4 text-[15px] sm:text-[16px] font-[600] leading-relaxed text-[#1f2732] dark:text-zinc-100 focus-visible:ring-2 focus-visible:ring-[#1f2732] resize-none"
-            />
-          </div>
-
-          {/* 4. Skills tags area */}
-          <div className="space-y-3.5">
-            <div className="flex items-center justify-between">
-              <label className="block text-[14px] sm:text-[15px] font-extrabold text-[#3e546d] dark:text-zinc-200">
-                Habilidades
-              </label>
-              <button
-                type="button"
-                onClick={() => setIsAddSkillOpen(true)}
-                className="flex items-center gap-1.5 text-[14px] font-extrabold text-[#344558] dark:text-zinc-200 hover:text-[#1f2732] transition-colors cursor-pointer py-1 px-2"
-              >
-                <Plus className="w-4.5 h-4.5 stroke-[2.5]" />
-                <span>Añadir</span>
-              </button>
-            </div>
-
-            {skills.length === 0 ? (
-              <div className="w-full p-5 bg-[#f5f7fa] dark:bg-zinc-900 rounded-[16px] border border-[#ebeef3] dark:border-zinc-800 flex items-center gap-3">
-                <Lightbulb className="w-6 h-6 text-[#5c7c9b] shrink-0" />
-                <p className="text-[14px] text-[#5c7c9b] dark:text-zinc-400 font-medium">
-                  No has agregado habilidades aún. Toca "Añadir" para registrar tus conocimientos.
-                </p>
-              </div>
-            ) : (
-              <div className="flex flex-wrap gap-2.5">
-                {skills.map((skill) => (
-                  <div
-                    key={skill}
-                    className="px-4 py-2.5 bg-[#f5f7fa] dark:bg-zinc-900 border border-[#ebeef3] dark:border-zinc-800 rounded-[14px] flex items-center gap-2"
-                  >
-                    <span className="text-[13px] sm:text-[14px] font-bold text-[#344558] dark:text-zinc-200">
-                      {skill}
-                    </span>
-                    <button
-                      type="button"
-                      onClick={() => handleRemoveSkill(skill)}
-                      className="p-1 text-[#7d99b3] hover:text-[#1f2732] dark:hover:text-zinc-100 transition-colors cursor-pointer"
-                    >
-                      <X className="w-4 h-4 stroke-[2.5]" />
-                    </button>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-
-          {/* 5. Save Button */}
-          <div className="pt-6">
+          {/* 1. Hero Cover Banner */}
+          <div className="h-32 sm:h-44 bg-gradient-to-r from-sky-200/50 via-teal-100/40 to-emerald-100/50 dark:from-sky-950/40 dark:via-teal-950/30 dark:to-emerald-950/40 relative">
             <Button
               type="button"
-              onClick={handleSave}
-              disabled={isSaving}
-              className="w-full h-[54px] bg-[#1f2732] dark:bg-zinc-100 text-white dark:text-zinc-900 hover:bg-[#2f3c4b] dark:hover:bg-zinc-200 rounded-[18px] text-[16px] font-bold transition-all shadow-sm cursor-pointer active:scale-95 border-none"
+              variant="secondary"
+              size="icon"
+              onClick={handleBack}
+              aria-label="Regresar"
+              className="absolute top-4 left-4 size-8.5 rounded-full bg-background/80 hover:bg-background backdrop-blur-md shadow-xs cursor-pointer"
             >
-              {isSaving ? "Guardando..." : "Guardar Perfil"}
+              <ArrowLeft className="size-4" />
             </Button>
           </div>
 
+          {/* 2. Avatar Row */}
+          <div className="px-6 sm:px-8 flex items-end justify-between -mt-12 sm:-mt-14 relative z-10">
+            <div
+              onClick={() => avatarInputRef.current?.click()}
+              className="relative cursor-pointer group"
+            >
+              <Avatar className="size-22 sm:size-26 rounded-full border-4 border-card ring-1 ring-border/50 overflow-hidden bg-muted shadow-md">
+                {avatarUrl && <AvatarImage src={avatarUrl} alt={fullName} />}
+                <AvatarFallback className="text-2xl font-bold bg-muted text-foreground">
+                  {initialLetter}
+                </AvatarFallback>
+              </Avatar>
+
+              {/* Camera Hover Badge */}
+              <div className="absolute bottom-1 right-1 size-7 rounded-full bg-primary text-primary-foreground flex items-center justify-center shadow-md ring-2 ring-card hover:scale-105 transition-transform">
+                {isUploadingPhoto ? (
+                  <Loader2 className="size-3.5 animate-spin" />
+                ) : (
+                  <Camera className="size-3.5" />
+                )}
+              </div>
+            </div>
+          </div>
+
+          {/* 3. User Name & Contact Header */}
+          <div className="px-6 sm:px-8 pt-3 sm:pt-4 space-y-0.5">
+            <div className="flex items-center gap-2">
+              <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-foreground">
+                {fullName || "Tu Nombre Completo"}
+              </h1>
+              <BadgeCheck className="size-5 text-sky-500 fill-sky-500/20" />
+            </div>
+            <p className="text-xs sm:text-sm text-muted-foreground">
+              {candidateEmail}
+            </p>
+          </div>
+
+          {/* 4. Metrics Bar (4 Indicators like Reference) */}
+          <div className="px-6 sm:px-8 py-4 border-y border-border/60 grid grid-cols-2 sm:grid-cols-4 gap-4 my-6">
+            <div className="space-y-0.5">
+              <span className="text-xs text-muted-foreground font-medium">Completitud</span>
+              <p className="text-sm sm:text-base font-bold text-foreground">{completionPercentage}%</p>
+            </div>
+            <div className="space-y-0.5">
+              <span className="text-xs text-muted-foreground font-medium">Habilidades</span>
+              <p className="text-sm sm:text-base font-bold text-foreground">{skills.length} agregadas</p>
+            </div>
+            <div className="space-y-0.5">
+              <span className="text-xs text-muted-foreground font-medium">Experiencia</span>
+              <p className="text-sm sm:text-base font-bold text-foreground">{experienceList.length} puestos</p>
+            </div>
+            <div className="space-y-0.5">
+              <span className="text-xs text-muted-foreground font-medium">Visibilidad</span>
+              <p className="text-sm sm:text-base font-bold text-foreground">{showPhone ? "Público" : "Protegido"}</p>
+            </div>
+          </div>
+
+          {/* 5. Form Sections (Side-by-side on desktop: Title on Left, Inputs on Right) */}
+          <form onSubmit={handleSubmit(onSubmit)} className="px-6 sm:px-8 pb-8 divide-y divide-border/60">
+            
+            {/* Section 1: Public profile */}
+            <div className="grid grid-cols-1 md:grid-cols-12 gap-4 md:gap-6 pt-2 pb-7">
+              <div className="md:col-span-4 space-y-1">
+                <h3 className="text-sm font-semibold text-foreground">Perfil público</h3>
+                <p className="text-xs text-muted-foreground leading-relaxed">
+                  Esta información se mostrará en tu tarjeta de candidato ante reclutadores y empresas.
+                </p>
+              </div>
+
+              <div className="md:col-span-8 space-y-4">
+                {/* Nombre Completo */}
+                <div className="space-y-1.5">
+                  <Label htmlFor="full_name" className="text-xs font-semibold text-foreground">
+                    Nombre Completo <span className="text-destructive">*</span>
+                  </Label>
+                  <Input
+                    id="full_name"
+                    placeholder="Tu nombre completo como aparecerá en el perfil"
+                    className="h-9.5 rounded-xl bg-background border-border/70 text-xs sm:text-sm"
+                    {...register("full_name")}
+                  />
+                  {errors.full_name && (
+                    <p className="text-[11px] font-medium text-destructive mt-0.5">
+                      {errors.full_name?.message as string}
+                    </p>
+                  )}
+                </div>
+
+                {/* WhatsApp Directo */}
+                <div className="space-y-1.5">
+                  <Label htmlFor="whatsapp_number" className="text-xs font-semibold text-foreground">
+                    Número de WhatsApp Directo <span className="text-destructive">*</span>
+                  </Label>
+                  <div className="flex items-center gap-2">
+                    <div className="flex items-center justify-center h-9.5 px-3 rounded-xl bg-muted/50 border border-border/70 text-xs font-semibold text-muted-foreground shrink-0 select-none">
+                      <span className="mr-1.5">🇲🇽</span> +52
+                    </div>
+                    <div className="relative flex-1">
+                      <Input
+                        id="whatsapp_number"
+                        type="tel"
+                        placeholder="10 dígitos (ej. 999 123 4567)"
+                        value={formatPhoneDisplay(watch("whatsapp_number") || "")}
+                        onChange={(e) => setValue("whatsapp_number", normalizePhone(e.target.value), { shouldValidate: true })}
+                        className="h-9.5 rounded-xl bg-background border-border/70 text-xs sm:text-sm pr-9"
+                      />
+                      <Phone className="size-3.5 absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none" />
+                    </div>
+                  </div>
+                  {errors.whatsapp_number ? (
+                    <p className="text-[11px] font-medium text-destructive mt-0.5">
+                      {errors.whatsapp_number?.message as string}
+                    </p>
+                  ) : (
+                    <p className="text-[11px] text-muted-foreground font-medium">
+                      Las empresas te contactarán a este número para entrevistas.
+                    </p>
+                  )}
+                </div>
+
+                {/* Titular Profesional */}
+                <div className="space-y-1.5">
+                  <Label htmlFor="headline" className="text-xs font-semibold text-foreground">
+                    Titular Profesional / Puesto Buscado <span className="text-destructive">*</span>
+                  </Label>
+                  <Input
+                    id="headline"
+                    placeholder="Ej. Chef Especialista en Cocina de Mar | Barman Bilingüe"
+                    className="h-9.5 rounded-xl bg-background border-border/70 text-xs sm:text-sm"
+                    {...register("headline")}
+                  />
+                  {errors.headline ? (
+                    <p className="text-[11px] font-medium text-destructive mt-0.5">
+                      {errors.headline?.message as string}
+                    </p>
+                  ) : (
+                    <p className="text-[11px] text-muted-foreground font-medium">
+                      Una línea descriptiva que verán los reclutadores en el Radar de talento.
+                    </p>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {/* Section 2: About me / Biography */}
+            <div className="grid grid-cols-1 md:grid-cols-12 gap-4 md:gap-6 py-7">
+              <div className="md:col-span-4 space-y-1">
+                <h3 className="text-sm font-semibold text-foreground">Acerca de ti</h3>
+                <p className="text-xs text-muted-foreground leading-relaxed">
+                  Describe brevemente tu trayectoria laboral, tus fortalezas principales y tus metas.
+                </p>
+              </div>
+
+              <div className="md:col-span-8 space-y-1.5">
+                <Label htmlFor="experience_summary" className="text-xs font-semibold text-foreground">
+                  Biografía y Resumen
+                </Label>
+                <Textarea
+                  id="experience_summary"
+                  {...register("experience_summary")}
+                  placeholder="Describe brevemente tu trayectoria, tus fortalezas principales y lo que buscas en tu próximo empleo..."
+                  rows={4}
+                  className="w-full resize-none rounded-xl bg-background border-border/70 text-xs sm:text-sm leading-relaxed p-3 min-h-24"
+                />
+              </div>
+            </div>
+
+            {/* Section 3: Skills & Badges */}
+            <div className="grid grid-cols-1 md:grid-cols-12 gap-4 md:gap-6 py-7">
+              <div className="md:col-span-4 space-y-1">
+                <h3 className="text-sm font-semibold text-foreground">Habilidades y Destrezas</h3>
+                <p className="text-xs text-muted-foreground leading-relaxed">
+                  Palabras clave destacadas para aparecer en las búsquedas especializadas del Radar.
+                </p>
+              </div>
+
+              <div className="md:col-span-8 space-y-3">
+                <div className="flex flex-wrap items-center gap-1.5 min-h-11 p-3 bg-muted/20 border border-border/60 rounded-2xl">
+                  {skills.length === 0 ? (
+                    <span className="text-xs text-muted-foreground">
+                      No has agregado habilidades aún. Haz clic en añadir para sumar aptitudes.
+                    </span>
+                  ) : (
+                    skills.map((skill: string) => (
+                      <Badge
+                        key={skill}
+                        variant="secondary"
+                        className="text-xs font-medium px-2.5 py-1 gap-1.5 rounded-lg bg-background border border-border/60 shadow-2xs"
+                      >
+                        <span>{skill}</span>
+                        <button
+                          type="button"
+                          onClick={() => handleRemoveSkill(skill)}
+                          className="text-muted-foreground hover:text-foreground cursor-pointer"
+                          aria-label={`Eliminar ${skill}`}
+                        >
+                          <X className="size-3" />
+                        </button>
+                      </Badge>
+                    ))
+                  )}
+                </div>
+
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setIsAddSkillOpen(true)}
+                  className="h-8 px-3.5 text-xs font-medium gap-1.5 rounded-xl cursor-pointer"
+                >
+                  <Plus className="size-3.5" />
+                  <span>Añadir habilidad</span>
+                </Button>
+              </div>
+            </div>
+
+            {/* Section 4: Work Experience */}
+            <div className="grid grid-cols-1 md:grid-cols-12 gap-4 md:gap-6 py-7">
+              <div className="md:col-span-4 space-y-1">
+                <div className="flex items-center gap-2">
+                  <Briefcase className="size-4 text-primary" />
+                  <h3 className="text-sm font-semibold text-foreground">Experiencia Laboral</h3>
+                </div>
+                <p className="text-xs text-muted-foreground leading-relaxed">
+                  Tus empleos anteriores, empresas y funciones desempeñadas.
+                </p>
+              </div>
+
+              <div className="md:col-span-8">
+                <ExperienceFieldArray
+                  control={control}
+                  register={register}
+                  errors={errors}
+                />
+              </div>
+            </div>
+
+            {/* Section 5: Education */}
+            <div className="grid grid-cols-1 md:grid-cols-12 gap-4 md:gap-6 py-7">
+              <div className="md:col-span-4 space-y-1">
+                <div className="flex items-center gap-2">
+                  <GraduationCap className="size-4 text-primary" />
+                  <h3 className="text-sm font-semibold text-foreground">Educación y Grados</h3>
+                </div>
+                <p className="text-xs text-muted-foreground leading-relaxed">
+                  Estudios académicos, cursos concluidos o carreras técnicas.
+                </p>
+              </div>
+
+              <div className="md:col-span-8">
+                <EducationFieldArray
+                  control={control}
+                  register={register}
+                  errors={errors}
+                />
+              </div>
+            </div>
+
+            {/* Section 6: Support Access / Contact Visibility Switch (Style matching reference) */}
+            <div className="grid grid-cols-1 md:grid-cols-12 gap-4 md:gap-6 py-7 items-center">
+              <div className="md:col-span-8 space-y-1">
+                <h3 className="text-sm font-semibold text-foreground">Visibilidad de contacto directo</h3>
+                <p className="text-xs text-muted-foreground leading-relaxed">
+                  Permite a las empresas y reclutadores contactarte directamente a tu número de WhatsApp para agendar entrevistas.
+                </p>
+              </div>
+
+              <div className="md:col-span-4 flex justify-start md:justify-end">
+                <Switch
+                  checked={showPhone}
+                  onCheckedChange={(val) => setValue("show_phone", val)}
+                  aria-label="Permitir contacto directo"
+                />
+              </div>
+            </div>
+
+            {/* Section 7: Action Footer (Cancel / Save Changes) */}
+            <div className="pt-7 flex items-center justify-end gap-3">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={handleBack}
+                className="rounded-xl h-9.5 px-4 text-xs font-medium cursor-pointer"
+              >
+                Cancelar
+              </Button>
+
+              <Button
+                type="submit"
+                disabled={isSaving}
+                className="rounded-xl h-9.5 px-5 text-xs font-medium gap-2 min-w-32 cursor-pointer shadow-xs"
+              >
+                {isSaving ? (
+                  <>
+                    <Loader2 className="size-3.5 animate-spin" />
+                    <span>Guardando...</span>
+                  </>
+                ) : (
+                  <span>Guardar cambios</span>
+                )}
+              </Button>
+            </div>
+
+          </form>
+
         </div>
       )}
 
-      {/* Photo Picker Modal Bottom Sheet */}
-      <Dialog open={isPhotoModalOpen} onOpenChange={setIsPhotoModalOpen}>
-        <DialogContent className="sm:max-w-[440px] rounded-t-[32px] sm:rounded-3xl bg-white dark:bg-zinc-900 border border-[#ebeef3] dark:border-zinc-800 p-6 sm:p-8">
-          <DialogHeader className="flex flex-row items-center justify-between pb-3 border-b border-[#ebeef3] dark:border-zinc-800">
-            <DialogTitle className="text-[20px] font-bold text-[#1f2732] dark:text-zinc-50">
-              Foto de Perfil
-            </DialogTitle>
-          </DialogHeader>
-
-          <div className="py-4 space-y-3">
-            <button
-              onClick={() => handleSimulatePhotoSelect(true)}
-              className="w-full p-4 rounded-[18px] flex items-center gap-4 hover:bg-[#f5f7fa] dark:hover:bg-zinc-800 transition-colors text-left cursor-pointer"
-            >
-              <div className="w-12 h-12 rounded-full bg-[#f5f7fa] dark:bg-zinc-800 flex items-center justify-center text-[#1f2732] dark:text-zinc-100 shrink-0">
-                <CameraIcon className="w-6 h-6 stroke-[2]" />
-              </div>
-              <span className="text-[15px] font-bold text-[#1f2732] dark:text-zinc-100">
-                Tomar foto con la cámara
-              </span>
-            </button>
-
-            <button
-              onClick={() => handleSimulatePhotoSelect(false)}
-              className="w-full p-4 rounded-[18px] flex items-center gap-4 hover:bg-[#f5f7fa] dark:hover:bg-zinc-800 transition-colors text-left cursor-pointer"
-            >
-              <div className="w-12 h-12 rounded-full bg-[#f5f7fa] dark:bg-zinc-800 flex items-center justify-center text-[#1f2732] dark:text-zinc-100 shrink-0">
-                <GalleryIcon className="w-6 h-6 stroke-[2]" />
-              </div>
-              <span className="text-[15px] font-bold text-[#1f2732] dark:text-zinc-100">
-                Elegir de la galería
-              </span>
-            </button>
-
-            {hasCustomAvatar && (
-              <button
-                onClick={handleDeletePhoto}
-                className="w-full p-4 rounded-[18px] flex items-center gap-4 hover:bg-rose-50 dark:hover:bg-rose-950/30 transition-colors text-left cursor-pointer"
-              >
-                <div className="w-12 h-12 rounded-full bg-[#FEE4E2] dark:bg-rose-900/30 flex items-center justify-center text-rose-600 shrink-0">
-                  <Trash2 className="w-6 h-6 stroke-[2]" />
-                </div>
-                <span className="text-[15px] font-bold text-rose-600">
-                  Eliminar foto actual
-                </span>
-              </button>
-            )}
-          </div>
-        </DialogContent>
-      </Dialog>
-
       {/* Add Skill Modal Dialog */}
       <Dialog open={isAddSkillOpen} onOpenChange={setIsAddSkillOpen}>
-        <DialogContent className="sm:max-w-[440px] rounded-[28px] bg-white dark:bg-zinc-900 border border-[#ebeef3] dark:border-zinc-800 p-6 sm:p-8 space-y-5">
-          <DialogHeader>
-            <DialogTitle className="text-[20px] font-bold text-[#1f2732] dark:text-zinc-50">
-              Agregar Habilidad
+        <DialogContent className="sm:max-w-sm rounded-2xl border-border bg-card p-5 space-y-3">
+          <DialogHeader className="space-y-1 text-left">
+            <DialogTitle className="text-base font-bold text-foreground">
+              Agregar Habilidad o Destreza
             </DialogTitle>
+            <DialogDescription className="text-xs text-muted-foreground">
+              Ingresa una competencia técnica o destreza profesional.
+            </DialogDescription>
           </DialogHeader>
 
-          <div className="py-2">
+          <div className="space-y-1.5 py-1">
+            <Label htmlFor="skill_input" className="text-xs font-semibold text-foreground">
+              Habilidad
+            </Label>
             <Input
+              id="skill_input"
               type="text"
               autoFocus
               value={newSkillText}
@@ -430,28 +839,31 @@ export function EditPublicProfileView({ onBack }: EditPublicProfileViewProps) {
                 }
               }}
               placeholder="Ej. Cocina Caliente, Proactivo, Inglés..."
-              className="h-13 bg-white dark:bg-zinc-900 border-[#ebeef3] dark:border-zinc-800 rounded-[14px] px-4 text-[15px]"
+              className="h-9.5 rounded-xl bg-background border-border/70 text-xs sm:text-sm"
             />
           </div>
 
-          <DialogFooter className="flex items-center justify-end gap-3">
+          <DialogFooter className="flex items-center justify-end gap-2 pt-3 border-t border-border/60">
             <Button
-              variant="ghost"
+              variant="outline"
+              size="sm"
               onClick={() => setIsAddSkillOpen(false)}
-              className="text-[#5c7c9b] font-bold text-sm h-11 px-5 cursor-pointer"
+              className="rounded-xl h-8.5 px-3.5 text-xs font-medium"
             >
               Cancelar
             </Button>
             <Button
+              type="button"
+              size="sm"
               onClick={handleAddSkill}
-              className="bg-[#1f2732] dark:bg-zinc-100 text-white dark:text-zinc-900 font-bold text-sm rounded-[14px] px-6 h-11 cursor-pointer"
+              className="rounded-xl h-8.5 px-3.5 text-xs font-medium shadow-xs"
             >
               Agregar
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
-
     </div>
   );
 }
+

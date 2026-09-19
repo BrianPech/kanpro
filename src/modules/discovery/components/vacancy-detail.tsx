@@ -108,32 +108,30 @@ export function VacancyDetail({
     setIsSubmitting(true);
     const supabase = createClient();
 
-    try {
-      if (job.isFromDb) {
-        // Real database insert
-        const { error } = await supabase.from("applications").insert({
-          candidate_id: candidateId,
-          vacancy_id: job.id,
-          status: "Pendiente",
-        });
+    if (!candidateId) {
+      toast.error("Debes iniciar sesión como candidato para postularte");
+      return;
+    }
 
-        if (error) {
-          if (error.code === "23505") {
-            // Unique key violation
-            toast.info("Ya te has postulado a este empleo");
-            setIsAppliedSession(true);
-            onApplySuccess(job.id);
-          } else {
-            throw error;
-          }
-        } else {
-          toast.success("¡Postulación enviada con éxito!");
+    try {
+      // Real database insert
+      const { error } = await supabase.from("applications").insert({
+        candidate_id: candidateId,
+        vacancy_id: job.id,
+        status: "Pendiente",
+      });
+
+      if (error) {
+        if (error.code === "23505") {
+          // Unique key violation
+          toast.info("Ya te has postulado a este empleo");
           setIsAppliedSession(true);
           onApplySuccess(job.id);
+        } else {
+          throw error;
         }
       } else {
-        // Mock application success fallback
-        toast.success("¡Postulación simulada enviada con éxito! (Vacante de Demostración)");
+        toast.success("¡Postulación enviada con éxito!");
         setIsAppliedSession(true);
         onApplySuccess(job.id);
       }

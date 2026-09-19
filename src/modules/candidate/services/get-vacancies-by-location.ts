@@ -5,7 +5,11 @@ import type { Job } from "@/modules/discovery/types";
 
 export async function getVacanciesByLocation(
   searchQuery?: string,
-  locationQuery?: string
+  locationQuery?: string,
+  categoryQuery?: string,
+  modalityQuery?: string,
+  page: number = 0,
+  limit: number = 20
 ): Promise<Job[]> {
   const supabase = await createClient();
 
@@ -44,7 +48,19 @@ export async function getVacanciesByLocation(
     query = query.ilike("location", `%${candidateCity}%`);
   }
 
+  if (categoryQuery) {
+    query = query.ilike("category", `%${categoryQuery}%`);
+  }
+
+  if (modalityQuery) {
+    query = query.ilike("modality", `%${modalityQuery}%`);
+  }
+
   query = query.order("created_at", { ascending: false });
+
+  if (limit > 0) {
+    query = query.range(page * limit, (page + 1) * limit - 1);
+  }
 
   const { data: vacancies, error } = await query;
 
@@ -62,12 +78,12 @@ export async function getVacanciesByLocation(
     new Set(vacancies.map((v: any) => v.company_id).filter(Boolean))
   );
 
-  const companies: Record<string, { name: string; logo: string | null; phone: string | null }> = {};
+  const companies: Record<string, { name: string; logo: string | null }> = {};
   
   if (companyIds.length > 0) {
     const { data: companyProfiles } = await supabase
-      .from("company_profiles")
-      .select("id, company_name, logo_url, contact_phone")
+      .from("company_directory")
+      .select("id, company_name, logo_url")
       .in("id", companyIds);
 
     if (companyProfiles) {
@@ -75,7 +91,6 @@ export async function getVacanciesByLocation(
         companies[comp.id] = {
           name: comp.company_name || "Empresa",
           logo: comp.logo_url || null,
-          phone: comp.contact_phone || null,
         };
       });
     }
@@ -128,7 +143,7 @@ export async function getVacanciesByLocation(
       description: vac.description,
       benefits: vac.benefits || [],
       isFromDb: true,
-      companyPhone: companyInfo?.phone || null,
+      companyPhone: null,
     };
   });
 }

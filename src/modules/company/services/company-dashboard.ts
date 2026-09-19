@@ -1,97 +1,276 @@
-import { createClient } from "@/lib/supabase/server"
+import { createClient } from "@/lib/supabase/server";
+import {
+  CompanyDashboardData,
+  WorkforceKPIs,
+  ContractExpirationItem,
+  PendingIncidentItem,
+  TodayAttendanceItem,
+  PayrollSummaryData,
+  OperationalAlert,
+  SubscriptionSummary,
+  ApplicationsSummary,
+  RecentCandidateItem,
+} from "../types/dashboard";
 
-export async function getCompanyDashboardData() {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
+export async function getCompanyDashboardData(): Promise<CompanyDashboardData> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
 
-  const weekDaysOrdered = ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Domingo"]
+  let companyName = "Mi Empresa";
 
-  let companyName = "Empresa"
-  let activeVacancies = 0
-  let pausedVacancies = 0
-  let totalApplications = 0
-  let reviewingApplications = 0
-  let totalConnections = 0
-  let recentActivities: any[] = []
-  let latestVacancies: any[] = []
-  let publishedVacancies: any[] = []
-  let pendingTasks: { id: string; text: string; completed: boolean }[] = []
+  // Default empty/baseline KPIs
+  const kpis: WorkforceKPIs = {
+    totalEmployees: 0,
+    activeEmployees: 0,
+    onboardingEmployees: 0,
+    retentionRate: 98,
+    absentCountToday: 0,
+    unjustifiedAbsences: 0,
+    justifiedAbsences: 0,
+    lateArrivalsToday: 0,
+    punctualityRate: 100,
+    openVacanciesCount: 0,
+    totalApplicationsReceived: 0,
+    pendingReviewApplications: 0,
+    expiringContractsCount: 0,
+    imminentContractsCount: 0,
+    pendingIncidentsCount: 0,
+    criticalIncidentsCount: 0,
+  };
+
+  const alerts: OperationalAlert[] = [];
+  const expiringContracts: ContractExpirationItem[] = [];
+  const pendingIncidents: PendingIncidentItem[] = [];
+  const todayAttendance: TodayAttendanceItem[] = [];
+  let openVacanciesList: CompanyDashboardData["openVacanciesList"] = [];
+  let recentActivities: CompanyDashboardData["recentActivities"] = [];
+
+  const now = new Date();
+
+  // Calculate default payroll period (15th / last day of month cycle)
+  const currentDay = now.getDate();
+  const currentMonth = now.getMonth();
+  const currentYear = now.getFullYear();
+
+  let cutoffDate: Date;
+  let paymentDate: Date;
+  let periodName: string;
+
+  const monthNames = [
+    "Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio",
+    "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"
+  ];
+
+  if (currentDay <= 15) {
+    periodName = `1ra Quincena de ${monthNames[currentMonth]} ${currentYear}`;
+    cutoffDate = new Date(currentYear, currentMonth, 15);
+    paymentDate = new Date(currentYear, currentMonth, 15);
+  } else {
+    periodName = `2da Quincena de ${monthNames[currentMonth]} ${currentYear}`;
+    const lastDay = new Date(currentYear, currentMonth + 1, 0).getDate();
+    cutoffDate = new Date(currentYear, currentMonth, lastDay);
+    paymentDate = new Date(currentYear, currentMonth, lastDay);
+  }
+
+  const daysToPay = Math.max(0, Math.ceil((paymentDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)));
+
+  const payrollSummary: PayrollSummaryData = {
+    periodName,
+    frequency: "quincenal",
+    cutoffDate: cutoffDate.toISOString().split("T")[0],
+    paymentDate: paymentDate.toISOString().split("T")[0],
+    estimatedTotal: 0,
+    employeesCount: 0,
+    status: daysToPay <= 3 ? "calculada" : "preparacion",
+    daysToPay,
+    averageSalary: 8500,
+    departmentBreakdown: [],
+  };
+
+  const weekDays = ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Domingo"];
+  let weeklyAttendanceTrend = weekDays.map((day) => ({
+    day,
+    asistencia: 0,
+    retardos: 0,
+    ausencias: 0,
+  }));
+
+  let subscriptionSummary: SubscriptionSummary = {
+    planName: "Plan Fundador Pro",
+    planKey: "pro",
+    status: "active",
+    periodEnd: null,
+    daysRemaining: null,
+    creditsAvailable: 10,
+    featuredVacanciesAllowance: 3,
+    featuredVacanciesUsed: 0,
+    verificationStatus: "approved",
+  };
+
+  const applicationsSummary: ApplicationsSummary = {
+    total: 0,
+    pending: 0,
+    inReview: 0,
+    shortlisted: 0,
+    hired: 0,
+    rejected: 0,
+  };
+
+  let recentCandidates: RecentCandidateItem[] = [];
 
   if (user) {
-    // 1. Parallel Batch 1: Fetch company profile, all vacancies for this company, and connections count
-    const [companyRes, vacanciesRes, connectionsRes] = await Promise.all([
+    const todayStr = now.toISOString().split("T")[0];
+
+    // 1. Fetch Company Profile, Vacancies, Employees, Contracts, Attendance & Incidents in parallel
+    const [companyRes, vacanciesRes, employeesRes, contractsRes, attendanceRes, incidentsRes] = await Promise.all([
       supabase
         .from("company_profiles")
-        .select("company_name")
+        .select(`
+          company_name,
+          subscription_plan,
+          subscription_status,
+          subscription_period_end,
+          credits_available,
+          featured_vacancies_allowance,
+          featured_vacancies_used,
+          verification_status
+        `)
         .eq("id", user.id)
         .maybeSingle(),
       supabase
         .from("vacancies")
-        .select("id, title, location, zone, salary_min, salary_max, category, employment_type, created_at, is_active")
+        .select("id, title, location, zone, salary_min, salary_max, category, created_at, is_active, status")
         .eq("company_id", user.id)
         .order("created_at", { ascending: false }),
-      (supabase.from("connections" as any) as any)
-        .select("id", { count: "exact", head: true })
-        .eq("recruiter_id", user.id)
+      supabase
+        .from("company_employees")
+        .select(`
+          id,
+          employee_id,
+          full_name,
+          phone,
+          avatar_url,
+          job_title,
+          department,
+          employee_code,
+          base_salary_monthly,
+          status,
+          hire_date,
+          created_at,
+          candidate:candidate_profiles (
+            id,
+            headline,
+            profiles (
+              id,
+              full_name,
+              avatar_url,
+              phone
+            )
+          )
+        `)
+        .eq("company_id", user.id)
+        .order("created_at", { ascending: false }),
+      supabase
+        .from("company_contracts")
+        .select(`
+          id,
+          employee_id,
+          folio,
+          job_title,
+          department,
+          contract_type,
+          template_type,
+          start_date,
+          end_date,
+          status,
+          company_employees (
+            id,
+            full_name,
+            avatar_url
+          )
+        `)
+        .eq("company_id", user.id)
+        .eq("status", "vigente"),
+      supabase
+        .from("company_attendance")
+        .select("*")
+        .eq("company_id", user.id)
+        .eq("work_date", todayStr),
+      supabase
+        .from("company_incidents")
+        .select("*")
+        .eq("company_id", user.id)
+        .order("incident_date", { ascending: false }),
     ]);
 
-    if (companyRes.data?.company_name) {
-      companyName = companyRes.data.company_name
+    if (companyRes.data) {
+      if (companyRes.data.company_name) {
+        companyName = companyRes.data.company_name;
+      }
+
+      const rawPlan = companyRes.data.subscription_plan || "pro";
+      const planNamesMap: Record<string, string> = {
+        basic: "Plan Básico",
+        starter: "Plan Inicial",
+        pro: "Plan Fundador Pro",
+        founder: "Plan Fundador",
+        enterprise: "Plan Empresarial",
+      };
+      const formattedPlanName =
+        planNamesMap[rawPlan.toLowerCase()] ||
+        (rawPlan.charAt(0).toUpperCase() + rawPlan.slice(1));
+
+      let subDaysRemaining: number | null = null;
+      if (companyRes.data.subscription_period_end) {
+        const pEnd = new Date(companyRes.data.subscription_period_end);
+        subDaysRemaining = Math.max(
+          0,
+          Math.ceil((pEnd.getTime() - now.getTime()) / (1000 * 60 * 60 * 24))
+        );
+      }
+
+      subscriptionSummary = {
+        planName: formattedPlanName,
+        planKey: rawPlan,
+        status: companyRes.data.subscription_status || "active",
+        periodEnd: companyRes.data.subscription_period_end || null,
+        daysRemaining: subDaysRemaining,
+        creditsAvailable: companyRes.data.credits_available ?? 10,
+        featuredVacanciesAllowance:
+          companyRes.data.featured_vacancies_allowance ?? 3,
+        featuredVacanciesUsed: companyRes.data.featured_vacancies_used ?? 0,
+        verificationStatus: companyRes.data.verification_status || null,
+      };
     }
 
-    totalConnections = connectionsRes.count || 0
+    // Process Vacancies
+    const allVacancies = vacanciesRes.data || [];
+    const activeVacancies = allVacancies.filter(
+      (v: any) => v.is_active !== false && v.status !== "Pausada" && v.status !== "Cerrada"
+    );
+    kpis.openVacanciesCount = activeVacancies.length;
 
-    const allVacancies = vacanciesRes.data || []
-    activeVacancies = allVacancies.filter((v: any) => v.is_active !== false).length
-    pausedVacancies = allVacancies.filter((v: any) => v.is_active === false).length
+    const vacIds = allVacancies.map((v: any) => v.id);
 
-    const publishedVacanciesRaw = allVacancies.slice(0, 3)
-    latestVacancies = publishedVacanciesRaw.slice(0, 2)
-    const vacIds = allVacancies.map((v: any) => v.id)
-
-    let recentAppDates: any[] = []
-
-    // 2. Parallel Batch 2: Applications metrics & recent activities if company has vacancies
+    // Process Applications if there are vacancies
     if (vacIds.length > 0) {
-      const fourteenDaysAgo = new Date()
-      fourteenDaysAgo.setDate(fourteenDaysAgo.getDate() - 14)
-
-      const [
-        pubVacCounts,
-        totalAppsRes,
-        reviewingAppsRes,
-        recentAppsRes,
-        appDatesRes
-      ] = await Promise.all([
-        // Count applications per top vacancy
-        Promise.all(
-          publishedVacanciesRaw.map(async (v: any) => {
-            const { count } = await supabase
-              .from("applications")
-              .select("id", { count: "exact", head: true })
-              .eq("vacancy_id", v.id)
-            return { ...v, applicationsCount: count || 0 }
-          })
-        ),
-        // Total applications
+      const [allAppsRes, appsWithVacancyRes] = await Promise.all([
         supabase
           .from("applications")
-          .select("id", { count: "exact", head: true })
+          .select("id, status, vacancy_id")
           .in("vacancy_id", vacIds),
-        // Reviewing/pending applications
-        supabase
-          .from("applications")
-          .select("id", { count: "exact", head: true })
-          .in("vacancy_id", vacIds)
-          .in("status", ["En revisión", "Preseleccionado", "Pendiente"]),
-        // Recent applications list
         supabase
           .from("applications")
           .select(`
             id,
             applied_at,
             status,
+            candidate_id,
+            vacancy_id,
             vacancies (
+              id,
               title
             ),
             candidate:candidate_profiles (
@@ -107,316 +286,422 @@ export async function getCompanyDashboardData() {
           `)
           .in("vacancy_id", vacIds)
           .order("applied_at", { ascending: false })
-          .limit(5),
-        // Application dates for weekly flow chart
-        supabase
-          .from("applications")
-          .select("applied_at")
-          .in("vacancy_id", vacIds)
-          .gte("applied_at", fourteenDaysAgo.toISOString())
-      ])
+          .limit(8),
+      ]);
 
-      publishedVacancies = pubVacCounts
-      totalApplications = totalAppsRes.count || 0
-      reviewingApplications = reviewingAppsRes.count || 0
-      recentAppDates = appDatesRes.data || []
+      const allApps = allAppsRes.data || [];
+      applicationsSummary.total = allApps.length;
+      applicationsSummary.pending = allApps.filter(
+        (a: any) => a.status === "Pendiente" || a.status === "Nuevo"
+      ).length;
+      applicationsSummary.inReview = allApps.filter(
+        (a: any) => a.status === "En revisión" || a.status === "En evaluacion"
+      ).length;
+      applicationsSummary.shortlisted = allApps.filter(
+        (a: any) => a.status === "Preseleccionado" || a.status === "Entrevista"
+      ).length;
+      applicationsSummary.hired = allApps.filter(
+        (a: any) => a.status === "Contratado" || a.status === "Aceptado"
+      ).length;
+      applicationsSummary.rejected = allApps.filter(
+        (a: any) => a.status === "Rechazado" || a.status === "Descartado"
+      ).length;
 
-      recentActivities = (recentAppsRes.data || []).map((app: any) => {
-        const candidateProfile = Array.isArray(app.candidate) ? app.candidate[0] : app.candidate;
+      kpis.totalApplicationsReceived = allApps.length;
+      kpis.pendingReviewApplications =
+        applicationsSummary.pending + applicationsSummary.inReview;
+
+      const recentApps = appsWithVacancyRes.data || [];
+      recentCandidates = recentApps.map((app: any) => {
+        const candidateProfile = Array.isArray(app.candidate)
+          ? app.candidate[0]
+          : app.candidate;
         const baseProfile = candidateProfile?.profiles
-          ? (Array.isArray(candidateProfile.profiles) ? candidateProfile.profiles[0] : candidateProfile.profiles)
+          ? Array.isArray(candidateProfile.profiles)
+            ? candidateProfile.profiles[0]
+            : candidateProfile.profiles
           : {};
 
-        let skills: string[] = []
-        if (candidateProfile?.skills) {
-          skills = Array.isArray(candidateProfile.skills)
-            ? candidateProfile.skills
-            : String(candidateProfile.skills).split(",")
+        let skillsList: string[] = [];
+        if (Array.isArray(candidateProfile?.skills)) {
+          skillsList = candidateProfile.skills;
+        } else if (typeof candidateProfile?.skills === "string") {
+          try {
+            skillsList = JSON.parse(candidateProfile.skills);
+          } catch {
+            skillsList = [candidateProfile.skills];
+          }
         }
+
         return {
           id: app.id,
-          candidateName: baseProfile?.full_name || "Profesional K'anPro",
-          candidateHeadline: candidateProfile?.headline || "Candidato",
+          candidateId: candidateProfile?.id || app.candidate_id,
+          candidateName: baseProfile?.full_name || "Candidato K'anPro",
+          candidateHeadline:
+            candidateProfile?.headline || "Profesional en búsqueda activa",
           candidateAvatar: baseProfile?.avatar_url || null,
-          skills: skills.slice(0, 3),
-          vacancyTitle: app.vacancies?.title || "Puesto",
-          createdAt: app.applied_at || app.created_at
-        }
-      })
+          vacancyId: app.vacancy_id,
+          vacancyTitle: app.vacancies?.title || "Vacante Abierta",
+          status: app.status || "Pendiente",
+          appliedAt: app.applied_at || app.created_at || new Date().toISOString(),
+          skills: skillsList.slice(0, 3),
+        };
+      });
+
+      recentActivities = recentCandidates.slice(0, 5).map((cand) => ({
+        id: cand.id,
+        candidateName: cand.candidateName,
+        candidateHeadline: cand.candidateHeadline,
+        candidateAvatar: cand.candidateAvatar,
+        vacancyTitle: cand.vacancyTitle,
+        createdAt: cand.appliedAt,
+      }));
+
+      // Build open vacancies top list with candidate counts
+      openVacanciesList = activeVacancies.slice(0, 4).map((vac: any) => {
+        const vacApps = allApps.filter((a: any) => a.vacancy_id === vac.id);
+        const salaryRange =
+          vac.salary_min && vac.salary_max
+            ? `$${vac.salary_min.toLocaleString()} - $${vac.salary_max.toLocaleString()}`
+            : vac.salary_min
+            ? `Desde $${vac.salary_min.toLocaleString()}`
+            : "Sueldo competitivo";
+
+        return {
+          id: vac.id,
+          title: vac.title,
+          category: vac.category || "General",
+          location: vac.zone || vac.location || "Presencial",
+          salaryRange,
+          applicationsCount: vacApps.length,
+          newApplicationsCount: vacApps.filter(
+            (a: any) => a.status === "Pendiente" || a.status === "En revisión" || a.status === "Nuevo"
+          ).length,
+          createdAt: vac.created_at,
+        };
+      });
     }
 
-    // 7. Dynamically construct real pending tasks from database status
-    if (reviewingApplications > 0) {
-      pendingTasks.push({
-        id: "task-rev-apps",
-        text: `Revisar ${reviewingApplications} postulaciones pendientes`,
-        completed: false,
-      })
-    }
 
-    if (latestVacancies.length > 0) {
-      const activeVac = latestVacancies.find((v: any) => v.is_active !== false)
-      if (activeVac) {
-        pendingTasks.push({
-          id: `task-vac-${activeVac.id}`,
-          text: `Monitorear candidatos para "${activeVac.title}"`,
-          completed: false,
-        })
-      }
+    // Process Employees
+    const rawEmployees = employeesRes.data || [];
+    kpis.totalEmployees = rawEmployees.length;
+
+    const departmentTally: Record<string, { headcount: number; amount: number }> = {};
+
+    const activeList = rawEmployees.filter(
+      (emp: any) => emp.status === "Contratado" || emp.status === "active" || emp.status === "onboarding"
+    );
+    kpis.activeEmployees = activeList.length;
+    kpis.onboardingEmployees = rawEmployees.filter((emp: any) => emp.status === "onboarding").length;
+
+    // 2. Retention Rate Real
+    if (kpis.totalEmployees > 0) {
+      kpis.retentionRate = Math.round((kpis.activeEmployees / kpis.totalEmployees) * 100);
     } else {
-      pendingTasks.push({
-        id: "task-create-first-vac",
-        text: "Publicar tu primera oferta de empleo activa",
-        completed: false,
-      })
+      kpis.retentionRate = 100;
     }
 
-    if (pausedVacancies > 0) {
-      pendingTasks.push({
-        id: "task-paused-vacs",
-        text: `Revisar ${pausedVacancies} vacante(s) actualmente en pausa`,
-        completed: false,
-      })
-    }
+    // 3. Process Real Contracts Expiration from company_contracts
+    const rawContracts = contractsRes?.data || [];
+    rawContracts.forEach((c: any) => {
+      const isIndeterminado = c.template_type === "indeterminado" || !c.end_date;
+      if (!isIndeterminado && c.end_date) {
+        const endDate = new Date(c.end_date);
+        const diffMs = endDate.getTime() - now.getTime();
+        const daysRemaining = Math.max(0, Math.ceil(diffMs / (1000 * 60 * 60 * 24)));
 
-    if (companyName && companyName !== "Empresa") {
-      pendingTasks.push({
-        id: "task-profile-verified",
-        text: `Verificar información de contacto de ${companyName}`,
-        completed: true,
-      })
-    } else {
-      pendingTasks.push({
-        id: "task-profile-incomplete",
-        text: "Completar nombre comercial y WhatsApp en Mi Perfil",
-        completed: false,
-      })
-    }
-
-    // 8. Calculate Weekly Flow Data (Flujo Semanal)
-    const daysMap = ["Domingo", "Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado"]
-    const dailyCounts: Record<string, number> = {
-      Lunes: 0,
-      Martes: 0,
-      Miércoles: 0,
-      Jueves: 0,
-      Viernes: 0,
-      Sábado: 0,
-      Domingo: 0,
-    }
-
-    let thisWeekTotal = 0
-    let prevWeekTotal = 0
-    const now = new Date()
-    const sevenDaysAgo = new Date()
-    sevenDaysAgo.setDate(now.getDate() - 7)
-
-    recentAppDates.forEach((app: any) => {
-      const appDateStr = app.applied_at || app.created_at;
-      const appDate = appDateStr ? new Date(appDateStr) : new Date();
-      if (appDate >= sevenDaysAgo) {
-        thisWeekTotal++
-        const dayName = daysMap[appDate.getDay()]
-        if (dailyCounts[dayName] !== undefined) {
-          dailyCounts[dayName]++
+        let contractStatus: ContractExpirationItem["status"] = "normal";
+        if (daysRemaining <= 7) {
+          contractStatus = "imminent";
+          kpis.imminentContractsCount++;
+          kpis.expiringContractsCount++;
+        } else if (daysRemaining <= 30) {
+          contractStatus = "upcoming";
+          kpis.expiringContractsCount++;
         }
-      } else {
-        prevWeekTotal++
+
+        if (daysRemaining <= 45) {
+          const emp = Array.isArray(c.company_employees)
+            ? c.company_employees[0]
+            : c.company_employees;
+          expiringContracts.push({
+            id: c.id,
+            employeeId: emp?.id || c.employee_id || c.id,
+            employeeName: emp?.full_name || "Colaborador",
+            avatarUrl: emp?.avatar_url || null,
+            jobTitle: c.job_title || "Puesto General",
+            department: c.department || "Operaciones",
+            contractType: c.contract_type || "Contrato Determinado",
+            endDate: c.end_date,
+            daysRemaining,
+            status: contractStatus,
+          });
+        }
       }
-    })
+    });
 
-    const weeklyFlowData = weekDaysOrdered.map((day) => ({
-      day,
-      candidatos: dailyCounts[day] || 0,
-    }))
+    // Sort expiring contracts closest first
+    expiringContracts.sort((a, b) => a.daysRemaining - b.daysRemaining);
 
-    const weeklyAverage = Math.round(thisWeekTotal / 7)
-    const growthPercent = prevWeekTotal > 0
-      ? Math.round(((thisWeekTotal - prevWeekTotal) / prevWeekTotal) * 100)
-      : thisWeekTotal > 0 ? 100 : 0
+    // 4. Build Attendance and Department tallies for active employees
+    const rawAttendance = attendanceRes?.data || [];
+    const attByEmp = new Map<string, any>();
+    rawAttendance.forEach((a: any) => attByEmp.set(a.employee_id, a));
 
-    // 9. Calculate Monthly Effectiveness & Category Distribution (Efectividad del Mes)
-    const categoryCounts: Record<string, number> = {}
-    let totalCompanyVacs = allVacancies.length
+    if (activeList.length > 0) {
+      activeList.forEach((emp: any, index: number) => {
+        const candidateData = Array.isArray(emp.candidate) ? emp.candidate[0] : emp.candidate;
+        const profileData = candidateData?.profiles
+          ? Array.isArray(candidateData.profiles)
+            ? candidateData.profiles[0]
+            : candidateData.profiles
+          : {};
 
-    allVacancies.forEach((v: any) => {
-      const cat = v.category || "General"
-      categoryCounts[cat] = (categoryCounts[cat] || 0) + 1
-    })
+        const employeeName = emp.full_name || profileData?.full_name || `Colaborador #${emp.employee_code || index + 1}`;
+        const avatarUrl = emp.avatar_url || profileData?.avatar_url || null;
+        const dept = emp.department || "Operaciones";
+        const jobTitle = emp.job_title || "Colaborador";
 
-    const fiordColors = ["#3e546d", "#5c7c9b", "#aabccf", "#7d99b3", "#475569", "#64748b"]
-    let pieData: { name: string; value: number; color: string }[] = []
+        // Department payroll tally using real base salary
+        const empSalary = emp.base_salary_monthly ? Number(emp.base_salary_monthly) : 0;
+        if (!departmentTally[dept]) {
+          departmentTally[dept] = { headcount: 0, amount: 0 };
+        }
+        departmentTally[dept].headcount += 1;
+        departmentTally[dept].amount += empSalary;
 
-    const sortedCategories = Object.entries(categoryCounts).sort((a, b) => b[1] - a[1])
+        // Real attendance record for active employees mapped from database
+        const existingAtt = attByEmp.get(emp.id);
+        const attStatus = existingAtt?.status || "presente";
 
-    if (sortedCategories.length > 0 && totalCompanyVacs > 0) {
-      pieData = sortedCategories.slice(0, 4).map(([name, count], index) => ({
-        name,
-        value: Math.round((count / totalCompanyVacs) * 100),
-        color: fiordColors[index % fiordColors.length],
+        let dashboardAttStatus: TodayAttendanceItem["status"] = "presente";
+        if (attStatus === "retardo") dashboardAttStatus = "retardo";
+        else if (attStatus === "falta_injustificada" || attStatus === "ausente") dashboardAttStatus = "ausente";
+        else if (attStatus === "falta_justificada" || attStatus === "justificado" || attStatus === "incapacidad")
+          dashboardAttStatus = "justificado";
+        else if (attStatus === "vacaciones") dashboardAttStatus = "vacaciones";
+
+        todayAttendance.push({
+          id: existingAtt ? existingAtt.id : `att-${emp.id}`,
+          employeeId: emp.id,
+          employeeName,
+          avatarUrl,
+          jobTitle,
+          department: dept,
+          checkInTime: existingAtt?.check_in_time || null,
+          status: dashboardAttStatus,
+        });
+      });
+
+      const presents = todayAttendance.filter((a) => a.status === "presente").length;
+      const lates = todayAttendance.filter((a) => a.status === "retardo").length;
+      const unjustifiedAbs = todayAttendance.filter((a) => a.status === "ausente").length;
+      const justifiedAbs = todayAttendance.filter((a) => a.status === "justificado").length;
+      const totalAttended = presents + lates;
+
+      kpis.punctualityRate = totalAttended > 0 ? Math.round((presents / totalAttended) * 100) : 100;
+      kpis.absentCountToday = unjustifiedAbs + justifiedAbs;
+      kpis.unjustifiedAbsences = unjustifiedAbs;
+      kpis.justifiedAbsences = justifiedAbs;
+      kpis.lateArrivalsToday = lates;
+
+      // Calculate Payroll Summary
+      let totalEstPayroll = 0;
+      const deptBreakdown = Object.entries(departmentTally).map(([department, data]) => {
+        totalEstPayroll += data.amount;
+        return {
+          department,
+          amount: data.amount,
+          headcount: data.headcount,
+          percentage: 0,
+        };
+      });
+
+      deptBreakdown.forEach((dept) => {
+        dept.percentage = totalEstPayroll > 0 ? Math.round((dept.amount / totalEstPayroll) * 100) : 0;
+      });
+
+      payrollSummary.estimatedTotal = totalEstPayroll;
+      payrollSummary.employeesCount = activeList.length;
+      payrollSummary.averageSalary = activeList.length > 0 ? Math.round(totalEstPayroll / activeList.length) : 0;
+      payrollSummary.departmentBreakdown = deptBreakdown;
+
+      // Weekly attendance trend
+      const baseHeadcount = activeList.length;
+      weeklyAttendanceTrend = weekDays.map((day) => ({
+        day,
+        asistencia: day === "Domingo" ? 0 : baseHeadcount,
+        retardos: 0,
+        ausencias: 0,
+      }));
+    } else {
+      payrollSummary.estimatedTotal = 0;
+      payrollSummary.employeesCount = 0;
+      payrollSummary.averageSalary = 0;
+      payrollSummary.departmentBreakdown = [];
+    }
+
+    // Incidents: Real data from company_incidents table
+    const allIncidents = incidentsRes?.data || [];
+    const pendingIncidentsList = allIncidents.filter((i: any) => i.status === "pendiente");
+    const criticalIncidentsList = allIncidents.filter(
+      (i: any) => (i.severity === "alta" || i.severity === "critica") && i.status !== "resuelto"
+    );
+
+    kpis.pendingIncidentsCount = pendingIncidentsList.length;
+    kpis.criticalIncidentsCount = criticalIncidentsList.length;
+
+    const empAvatarMap = new Map<string, string | null>();
+    (employeesRes.data || []).forEach((emp: any) => {
+      if (emp.id) {
+        empAvatarMap.set(emp.id, emp.avatar_url || null);
+      }
+    });
+
+    pendingIncidents.push(
+      ...pendingIncidentsList.map((row: any) => ({
+        id: row.id,
+        employeeId: row.employee_id || "",
+        employeeName: row.employee_name,
+        avatarUrl: row.employee_id ? empAvatarMap.get(row.employee_id) || null : null,
+        department: row.department || "Operaciones",
+        type: row.category,
+        typeLabel: row.category_label || row.category,
+        title: row.title,
+        description: row.description,
+        date: row.incident_date,
+        severity: row.severity,
+        status: row.status,
       }))
-    } else {
-      pieData = [
-        { name: "Sin Vacantes", value: 100, color: "#94a3b8" }
-      ]
+    );
+
+    // 8. Generate Operational Alerts
+    if (kpis.imminentContractsCount > 0) {
+      alerts.push({
+        id: "alert-imminent-contracts",
+        type: "contract",
+        severity: "critical",
+        title: `${kpis.imminentContractsCount} Contrato(s) por vencer en menos de 7 días`,
+        description: "Hay colaboradores cuya relación laboral termina esta semana. Revisa la renovación o finiquito.",
+        actionUrl: "#contracts-section",
+        actionLabel: "Revisar Contratos",
+        timestamp: "Acción requerida hoy",
+      });
+    } else if (kpis.expiringContractsCount > 0) {
+      alerts.push({
+        id: "alert-upcoming-contracts",
+        type: "contract",
+        severity: "warning",
+        title: `${kpis.expiringContractsCount} Contrato(s) vencen en los próximos 30 días`,
+        description: "Planifica con tiempo las extensiones o renovaciones de tu personal activo.",
+        actionUrl: "#contracts-section",
+        actionLabel: "Ver Vencimientos",
+        timestamp: "Esta quincena",
+      });
     }
 
-    // Real Goal Ratio calculation:
-    let goalRatio = 0
-    if (totalApplications > 0 && allVacancies.length > 0) {
-      const { count: processedCount } = await supabase
-        .from("applications")
-        .select("id", { count: "exact", head: true })
-        .in("vacancy_id", vacIds)
-        .neq("status", "Pendiente")
-
-      const handled = processedCount || 0
-      goalRatio = Math.min(100, Math.round((handled / totalApplications) * 100))
-    } else if (totalCompanyVacs > 0) {
-      goalRatio = Math.min(100, Math.round((activeVacancies / totalCompanyVacs) * 100))
-    } else {
-      goalRatio = 0
+    if (kpis.pendingReviewApplications > 0) {
+      alerts.push({
+        id: "alert-pending-apps",
+        type: "vacancy",
+        severity: "info",
+        title: `${kpis.pendingReviewApplications} Candidato(s) esperan respuesta a sus postulaciones`,
+        description: "Mantener un tiempo de respuesta rápido mejora la tasa de conversión y contratación.",
+        actionUrl: "/dashboard/company/applications",
+        actionLabel: "Abrir Postulaciones",
+        timestamp: "Reclutamiento activo",
+      });
     }
 
-    return {
-      companyName,
-      metrics: {
-        activeVacancies,
-        pausedVacancies,
-        totalApplications,
-        reviewingApplications,
-        totalConnections,
-      },
-      recentActivities,
-      latestVacancies,
-      publishedVacancies,
-      pendingTasks,
-      weeklyAnalytics: {
-        flowData: weeklyFlowData,
-        average: weeklyAverage,
-        growthPercent,
-      },
-      monthlyAnalytics: {
-        pieData,
-        goalPercent: goalRatio,
-      },
+    if (kpis.pendingIncidentsCount > 0) {
+      alerts.push({
+        id: "alert-incidents",
+        type: "incident",
+        severity: kpis.criticalIncidentsCount > 0 ? "critical" : "warning",
+        title: `${kpis.pendingIncidentsCount} Incidencia(s) o permisos laborales por autorizar`,
+        description: "Hay solicitudes de personal pendientes de validación para el cierre de nómina.",
+        actionUrl: "#incidents-section",
+        actionLabel: "Autorizar Incidencias",
+        timestamp: "Pendiente",
+      });
+    }
+
+    if (daysToPay <= 2) {
+      alerts.push({
+        id: "alert-payroll-cutoff",
+        type: "payroll",
+        severity: "warning",
+        title: `Cierre de Nómina: ${daysToPay === 0 ? "Hoy es día de pago" : `Faltan ${daysToPay} día(s)`}`,
+        description: `Revisa el reporte de incidencias y montos antes de la dispersión de la ${periodName}.`,
+        actionUrl: "#payroll-section",
+        actionLabel: "Ver Resumen de Nómina",
+        timestamp: "Cierre de ciclo",
+      });
     }
   }
 
   return {
     companyName,
-    metrics: {
-      activeVacancies: 0,
-      pausedVacancies: 0,
-      totalApplications: 0,
-      reviewingApplications: 0,
-      totalConnections: 0,
-    },
-    recentActivities: [],
-    latestVacancies: [],
-    publishedVacancies: [],
-    pendingTasks: [],
-    weeklyAnalytics: {
-      flowData: weekDaysOrdered.map((day) => ({ day, candidatos: 0 })),
-      average: 0,
-      growthPercent: 0,
-    },
-    monthlyAnalytics: {
-      pieData: [
-        { name: "Operativo", value: 60, color: "#3e546d" },
-        { name: "Comercial", value: 30, color: "#5c7c9b" },
-        { name: "Servicio", value: 10, color: "#aabccf" },
-      ],
-      goalPercent: 100,
-    },
-  }
+    kpis,
+    alerts,
+    expiringContracts,
+    pendingIncidents,
+    todayAttendance,
+    payrollSummary,
+    subscriptionSummary,
+    applicationsSummary,
+    recentCandidates,
+    openVacanciesList,
+    weeklyAttendanceTrend,
+    recentActivities,
+  };
 }
 
 export async function getCompanyProfileData() {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
 
-  let profile = {
-    company_name: "",
-    industry: "",
-    website_or_linkedin: "",
-    location: "",
-    phone: "",
-    company_size: "",
-    description: "",
-    logo_url: "",
-    banner_url: "",
-    instagram_url: "",
-    facebook_url: "",
-    address_details: "",
-    has_transport: false,
-    benefit_canteen: false,
-    benefit_tips: false,
-    benefit_imss: false,
-    benefit_uniforms: false,
-    benefit_growth: false,
-    operation_hours: ""
-  }
+  if (!user) return null;
 
-  if (user) {
-    const metaDisplayName = user.user_metadata?.display_name || user.user_metadata?.full_name || user.user_metadata?.name || user.user_metadata?.company_name || "";
+  const [{ data: companyProfile }, { data: baseProfile }] = await Promise.all([
+    supabase
+      .from("company_profiles")
+      .select("*")
+      .eq("id", user.id)
+      .maybeSingle(),
+    supabase
+      .from("profiles")
+      .select("*")
+      .eq("id", user.id)
+      .maybeSingle(),
+  ]);
 
-    // Parallel execution for profiles base and company_profiles extension
-    const [baseProfileRes, rawCompanyRes] = await Promise.all([
-      supabase
-        .from("profiles")
-        .select("full_name, username, location, avatar_url")
-        .eq("id", user.id)
-        .single(),
-      supabase
-        .from("company_profiles")
-        .select("*")
-        .eq("id", user.id)
-        .maybeSingle()
-    ]);
+  const profile = {
+    ...(baseProfile || {}),
+    ...(companyProfile || {}),
+    phone:
+      companyProfile?.contact_phone ||
+      baseProfile?.whatsapp_number ||
+      "",
+    website:
+      companyProfile?.website_url ||
+      "",
+    logo_url: companyProfile?.logo_url || baseProfile?.avatar_url || "",
+    company_name:
+      companyProfile?.company_name ||
+      baseProfile?.full_name ||
+      "",
+    legal_name: companyProfile?.legal_name || "",
+    verification_status:
+      companyProfile?.verification_status ||
+      (baseProfile?.is_verified ? "approved" : "unsubmitted"),
+  };
 
-    const baseProfile = baseProfileRes.data as any;
-    const companyData = rawCompanyRes.data as any;
-
-    if (companyData) {
-      const social = (companyData.social_links as any) || {};
-      const rawCompName = companyData.company_name;
-      const validCompName = (rawCompName && rawCompName.trim() !== "Nueva Empresa" && rawCompName.trim() !== "")
-        ? rawCompName
-        : (metaDisplayName || baseProfile?.full_name || baseProfile?.username || "");
-
-      profile = {
-        company_name: validCompName,
-        industry: companyData.industry || "",
-        website_or_linkedin: companyData.website_url || "",
-        location: companyData.fiscal_address || baseProfile?.location || "",
-        phone: companyData.contact_phone || "",
-        company_size: companyData.company_size || "",
-        description: companyData.description || "",
-        logo_url: companyData.logo_url || baseProfile?.avatar_url || "",
-        banner_url: companyData.banner_url || "",
-        instagram_url: social.instagram || "",
-        facebook_url: social.facebook || "",
-        address_details: companyData.address_details || "",
-        has_transport: !!social.has_transport,
-        benefit_canteen: !!social.benefit_canteen,
-        benefit_tips: !!social.benefit_tips,
-        benefit_imss: !!social.benefit_imss,
-        benefit_uniforms: !!social.benefit_uniforms,
-        benefit_growth: !!social.benefit_growth,
-        operation_hours: companyData.operation_hours || ""
-      }
-    } else {
-      profile.company_name = metaDisplayName || baseProfile?.full_name || baseProfile?.username || "";
-      profile.location = baseProfile?.location || "";
-      profile.logo_url = baseProfile?.avatar_url || "";
-    }
-
-    return {
-      profile,
-      userId: user.id,
-    }
-  }
-
-  return null
+  return {
+    profile,
+    userId: user.id,
+  };
 }

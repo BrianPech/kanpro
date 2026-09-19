@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/client";
+import type { Database } from "@/types/supabase";
 
 export type CompanyDocType =
   | "acta_constitutiva"
@@ -26,6 +27,8 @@ export interface CompanyVerificationData {
   legal_rep_name: string;
   corporate_email: string;
   contact_phone: string;
+  entity_type?: "persona_moral" | "persona_fisica";
+  fiscal_regime?: "persona_moral" | "persona_fisica";
   terms_accepted: boolean;
   terms_accepted_at?: string | null;
   verification_status: "pending" | "approved" | "rejected" | "unsubmitted";
@@ -34,6 +37,26 @@ export interface CompanyVerificationData {
 }
 
 export const companyVerificationService = {
+  async getSignedDocumentUrl(filePath: string): Promise<string | null> {
+    const supabase = createClient();
+    if (!filePath) return null;
+
+    if (filePath.startsWith("http://") || filePath.startsWith("https://")) {
+      return filePath;
+    }
+
+    const { data, error } = await supabase.storage
+      .from("profile_documents")
+      .createSignedUrl(filePath, 600);
+
+    if (error || !data?.signedUrl) {
+      console.error("Error creating signed URL for verification document:", error);
+      return null;
+    }
+
+    return data.signedUrl;
+  },
+
   async saveVerificationData(
     userId: string,
     data: Partial<CompanyVerificationData>,
@@ -42,7 +65,7 @@ export const companyVerificationService = {
     const supabase = createClient();
 
     // 1. Update company_profiles
-    const companyPayload: any = {
+    const companyPayload: Database["public"]["Tables"]["company_profiles"]["Update"] = {
       updated_at: new Date().toISOString(),
     };
 
@@ -54,6 +77,9 @@ export const companyVerificationService = {
     if (data.legal_rep_name !== undefined) companyPayload.legal_rep_name = data.legal_rep_name;
     if (data.corporate_email !== undefined) companyPayload.corporate_email = data.corporate_email;
     if (data.contact_phone !== undefined) companyPayload.contact_phone = data.contact_phone;
+    if (data.entity_type !== undefined || data.fiscal_regime !== undefined) {
+      companyPayload.entity_type = (data.entity_type || data.fiscal_regime) as any;
+    }
 
     if (submitForReview) {
       companyPayload.verification_status = "pending";
@@ -67,9 +93,10 @@ export const companyVerificationService = {
     if (companyErr) throw companyErr;
 
     // 2. Sync base profiles location & contact phone if provided
-    const profilesPayload: any = {
+    const profilesPayload: Database["public"]["Tables"]["profiles"]["Update"] = {
       updated_at: new Date().toISOString(),
     };
+    if (data.company_name) profilesPayload.full_name = data.company_name;
     if (data.fiscal_address) profilesPayload.location = data.fiscal_address;
     if (data.contact_phone) profilesPayload.whatsapp_number = data.contact_phone;
     if (data.terms_accepted) profilesPayload.terms_accepted_at = new Date().toISOString();
@@ -87,6 +114,10 @@ export const companyVerificationService = {
   ): Promise<CompanyVerificationDoc> {
     const supabase = createClient();
 
+    if (!["application/pdf", "image/jpeg", "image/png", "image/webp"].includes(file.type)) {
+      throw new Error("Formato no permitido. Carga un PDF, JPG, PNG o WEBP.");
+    }
+
     // Clean filename
     const sanitizeName = file.name.replace(/[^a-zA-Z0-9._-]/g, "_");
     const filePath = `${userId}/${docType}_${Date.now()}_${sanitizeName}`;
@@ -102,12 +133,9 @@ export const companyVerificationService = {
       );
     }
 
-    // 2. Get Public or Signed URL
-    const { data: urlData } = supabase.storage
-      .from("profile_documents")
-      .getPublicUrl(filePath);
-
-    const fileUrl = urlData.publicUrl || filePath;
+    // Keep the storage path, never a public URL. Administrators receive a
+    // short-lived signed URL from the server when inspecting the document.
+    const fileUrl = filePath;
 
     // 3. Check if document record already exists in profile_documents table
     const { data: existingDoc } = await supabase
@@ -206,7 +234,7 @@ export const companyVerificationService = {
     // Remove physical file object from Supabase Storage
     if (fileUrl) {
       const parts = fileUrl.split("/profile_documents/");
-      const storagePath = parts.length > 1 ? parts[1] : null;
+      const storagePath = fileUrl.startsWith("http") ? (parts.length > 1 ? parts[1] : null) : fileUrl;
       if (storagePath) {
         await supabase.storage.from("profile_documents").remove([decodeURIComponent(storagePath)]);
       }

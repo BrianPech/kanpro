@@ -1,5 +1,4 @@
-import React from "react"
-
+import * as React from "react"
 import { cn } from "@/lib/utils"
 
 export interface OrbitingCirclesProps extends React.HTMLAttributes<HTMLDivElement> {
@@ -19,7 +18,8 @@ export function OrbitingCircles({
   children,
   reverse,
   duration = 20,
-  radius = 160,
+  delay = 10,
+  radius = 50,
   path = true,
   iconSize = 30,
   speed = 1,
@@ -43,29 +43,23 @@ export function OrbitingCircles({
           />
         </svg>
       )}
-      {React.Children.map(children, (child, index) => {
-        const angle = (360 / React.Children.count(children)) * index
-        return (
-          <div
-            style={
-              {
-                "--duration": calculatedDuration,
-                "--radius": radius,
-                "--angle": angle,
-                "--icon-size": `${iconSize}px`,
-              } as React.CSSProperties
-            }
-            className={cn(
-              `animate-orbit absolute flex size-(--icon-size) transform-gpu items-center justify-center rounded-full`,
-              { "[animation-direction:reverse]": reverse },
-              className
-            )}
-            {...props}
-          >
-            {child}
-          </div>
-        )
-      })}
+      <div
+        style={
+          {
+            "--duration": calculatedDuration,
+            "--radius": radius,
+            "--delay": -delay,
+          } as React.CSSProperties
+        }
+        className={cn(
+          "absolute flex size-[var(--icon-size)] transform-gpu animate-orbit items-center justify-center rounded-full",
+          { "[animation-direction:reverse]": reverse },
+          className
+        )}
+        {...props}
+      >
+        {children}
+      </div>
     </>
   )
 }

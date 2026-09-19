@@ -5,14 +5,21 @@ import { useRouter } from "next/navigation";
 import { 
   ArrowLeft, 
   Bookmark, 
-  Briefcase, 
   RotateCw, 
   WifiOff, 
   CheckCircle2, 
-  Trash2 
+  MapPin,
+  Sparkles,
+  ArrowUpRight
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
+import { Skeleton } from "@/components/ui/skeleton";
 import { createClient } from "@/lib/supabase/client";
+import { toast } from "sonner";
+import { cn } from "@/lib/utils";
 
 export interface SavedVacancy {
   id: string;
@@ -36,7 +43,6 @@ export function SavedJobsView({ onBack }: SavedJobsViewProps) {
   const [savedVacancies, setSavedVacancies] = React.useState<SavedVacancy[]>([]);
   const [isLoading, setIsLoading] = React.useState<boolean>(true);
   const [hasError, setHasError] = React.useState<boolean>(false);
-  const [toastMessage, setToastMessage] = React.useState<string | null>(null);
 
   const fetchSavedVacancies = React.useCallback(async () => {
     setIsLoading(true);
@@ -49,42 +55,64 @@ export function SavedJobsView({ onBack }: SavedJobsViewProps) {
         return;
       }
 
-      // Fetch active vacancies for demo / saved vacancies
-      const { data: vacancies } = await supabase
-        .from("vacancies")
+      // Fetch saved vacancies for current candidate
+      const { data: savedRows, error: savedError } = await supabase
+        .from("saved_vacancies")
         .select(`
           id,
-          title,
-          location,
-          modality,
-          employment_type,
-          salary_min,
-          salary_max,
-          is_featured,
-          company_id
+          vacancy_id,
+          created_at,
+          vacancy:vacancies (
+            id,
+            title,
+            location,
+            modality,
+            employment_type,
+            salary_min,
+            salary_max,
+            is_featured,
+            is_promoted,
+            company_id
+          )
         `)
-        .eq("status", "Activa")
-        .limit(10);
+        .eq("candidate_id", user.id)
+        .order("created_at", { ascending: false });
 
-      // Fetch companies
-      const companies: Record<string, string> = {};
-      if (vacancies && vacancies.length > 0) {
-        const companyIds = Array.from(new Set(vacancies.map((v: any) => v.company_id).filter(Boolean)));
-        if (companyIds.length > 0) {
-          const { data: compProfiles } = await supabase
-            .from("company_profiles")
-            .select("id, company_name")
-            .in("id", companyIds);
-          
-          if (compProfiles) {
-            compProfiles.forEach((c: any) => {
-              companies[c.id] = c.company_name || "Empresa";
-            });
-          }
+      if (savedError) {
+        console.error("Error fetching saved_vacancies:", savedError);
+        setHasError(true);
+        setIsLoading(false);
+        return;
+      }
+
+      const validSaved = (savedRows || []).filter((row: any) => row.vacancy != null);
+
+      // Fetch company profiles
+      const companyIds = Array.from(
+        new Set(validSaved.map((row: any) => row.vacancy.company_id).filter(Boolean))
+      ) as string[];
+
+      const companies: Record<string, { company_name: string; logo_url: string | null }> = {};
+      if (companyIds.length > 0) {
+        const { data: compProfiles } = await supabase
+          .from("company_profiles")
+          .select("id, company_name, logo_url")
+          .in("id", companyIds);
+        
+        if (compProfiles) {
+          compProfiles.forEach((c: any) => {
+            companies[c.id] = {
+              company_name: c.company_name || "Empresa",
+              logo_url: c.logo_url || null,
+            };
+          });
         }
       }
 
-      const formattedList: SavedVacancy[] = (vacancies || []).map((vac: any) => {
+      const formattedList: SavedVacancy[] = validSaved.map((row: any) => {
+        const vac = row.vacancy;
+        const comp = companies[vac.company_id];
+
         let formattedSalary = "";
         const min = Number(vac.salary_min);
         const max = Number(vac.salary_max);
@@ -101,12 +129,12 @@ export function SavedJobsView({ onBack }: SavedJobsViewProps) {
         return {
           id: vac.id,
           title: vac.title,
-          companyName: companies[vac.company_id] || "Empresa",
-          companyLogo: null,
+          companyName: comp?.company_name || "Empresa",
+          companyLogo: comp?.logo_url || null,
           location: vac.location || vac.modality || "Remoto",
           employmentType: vac.employment_type || vac.modality || "Tiempo Completo",
           formattedSalary,
-          isPromoted: !!vac.is_featured,
+          isPromoted: !!(vac.is_promoted || vac.is_featured),
         };
       });
 
@@ -127,185 +155,216 @@ export function SavedJobsView({ onBack }: SavedJobsViewProps) {
     if (onBack) {
       onBack();
     } else {
-      router.back();
+      router.push("/dashboard/candidate/profile");
     }
   };
 
-  const showToast = (msg: string) => {
-    setToastMessage(msg);
-    setTimeout(() => {
-      setToastMessage(null);
-    }, 2500);
-  };
-
-  const handleRemoveSaved = (id: string) => {
+  const handleRemoveSaved = async (id: string) => {
+    const previous = savedVacancies;
     setSavedVacancies((prev) => prev.filter((v) => v.id !== id));
-    showToast("Vacante removida de tus favoritos");
+    toast.info("Vacante removida de tus favoritos");
+
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      const { error } = await supabase
+        .from("saved_vacancies")
+        .delete()
+        .eq("candidate_id", user.id)
+        .eq("vacancy_id", id);
+
+      if (error) {
+        console.error("Error removing saved vacancy:", error);
+        setSavedVacancies(previous);
+        toast.error("Error al remover la vacante");
+      }
+    } catch (err) {
+      console.error("Error removing saved vacancy:", err);
+      setSavedVacancies(previous);
+      toast.error("Error al remover la vacante");
+    }
   };
 
   return (
-    <div className="flex-grow min-h-full bg-transparent dark:bg-zinc-950 px-6 sm:px-10 lg:px-14 pt-4 pb-28 md:pb-8 max-w-4xl mx-auto w-full animate-in fade-in duration-300 relative">
+    <div className="flex-1 min-h-full bg-transparent px-4 sm:px-6 lg:px-8 pt-2 pb-28 md:pb-12 max-w-4xl mx-auto w-full animate-in fade-in duration-300 space-y-6">
       
-      {/* Toast Notification */}
-      {toastMessage && (
-        <div className="fixed top-6 left-1/2 -translate-x-1/2 z-50 px-5 py-3.5 bg-[#1f2732] dark:bg-zinc-100 text-white dark:text-zinc-900 rounded-[14px] text-sm font-bold shadow-lg flex items-center gap-2.5 animate-in fade-in slide-in-from-top-2">
-          <CheckCircle2 className="w-5 h-5 text-emerald-400 dark:text-emerald-600" />
-          <span>{toastMessage}</span>
+      {/* Header Bar */}
+      <div className="flex items-center justify-between py-2">
+        <div className="flex items-center gap-3">
+          <Button
+            variant="outline"
+            size="icon"
+            onClick={handleBack}
+            aria-label="Regresar"
+            className="size-10 rounded-full cursor-pointer"
+          >
+            <ArrowLeft className="size-4" />
+          </Button>
+          <div className="space-y-0.5">
+            <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-foreground">
+              Vacantes Guardadas
+            </h1>
+            <p className="text-xs text-muted-foreground">
+              Empleos guardados para revisar y postularte con calma.
+            </p>
+          </div>
         </div>
-      )}
 
-      {/* AppBar */}
-      <div className="flex items-center justify-between py-4 border-b border-transparent">
-        <button
-          onClick={handleBack}
-          aria-label="Regresar"
-          className="w-[44px] h-[44px] bg-[#f5f7fa] dark:bg-zinc-900 rounded-full flex items-center justify-center text-[#344558] dark:text-zinc-200 hover:bg-[#ebeef3] dark:hover:bg-zinc-800 transition-all cursor-pointer shadow-2xs"
-        >
-          <ArrowLeft className="w-5 h-5 stroke-[2.4]" />
-        </button>
-
-        <h1 className="text-[20px] sm:text-[24px] font-[800] text-[#1f2732] dark:text-zinc-100 text-center tracking-[-0.4px]">
-          Vacantes Guardadas
-        </h1>
-
-        <div className="w-11" />
+        {!isLoading && !hasError && savedVacancies.length > 0 && (
+          <Badge variant="secondary" className="font-semibold text-xs px-3 py-1">
+            {savedVacancies.length} {savedVacancies.length === 1 ? "guardada" : "guardadas"}
+          </Badge>
+        )}
       </div>
 
-      {/* Main Content Area */}
-      <div className="pt-4">
+      {/* Content Area */}
+      <div>
         {isLoading ? (
-          /* Skeleton Loader */
-          <div className="space-y-4 pt-2">
-            {[1, 2, 3, 4].map((i) => (
-              <div
-                key={i}
-                className="p-5 bg-[#f5f7fa] dark:bg-zinc-900 border border-[#ebeef3] dark:border-zinc-800 rounded-[20px] flex items-center gap-4 animate-pulse"
-              >
-                <div className="w-14 h-14 rounded-[14px] bg-[#ebeef3] dark:bg-zinc-800 shrink-0" />
-                <div className="flex-1 space-y-2">
-                  <div className="h-5 bg-[#ebeef3] dark:bg-zinc-800 rounded w-1/2" />
-                  <div className="h-4 bg-[#ebeef3] dark:bg-zinc-800 rounded w-1/3" />
-                </div>
-              </div>
+          <div className="space-y-3">
+            {[1, 2, 3].map((i) => (
+              <Card key={i} className="rounded-2xl border-border/60">
+                <CardContent className="p-5 flex items-center gap-4">
+                  <Skeleton className="size-12 rounded-xl shrink-0" />
+                  <div className="flex-1 space-y-2">
+                    <Skeleton className="h-4 w-1/3 rounded-md" />
+                    <Skeleton className="h-3.5 w-1/4 rounded-md" />
+                  </div>
+                </CardContent>
+              </Card>
             ))}
           </div>
         ) : hasError && savedVacancies.length === 0 ? (
-          /* Error View */
-          <div className="py-20 px-6 flex flex-col items-center justify-center text-center space-y-4">
-            <WifiOff className="w-12 h-12 text-rose-500" />
-            <h3 className="text-[18px] font-bold text-[#1f2732] dark:text-zinc-100">
-              Error al sincronizar guardados
-            </h3>
-            <p className="text-[15px] text-[#5c7c9b] dark:text-zinc-400 max-w-xs leading-relaxed">
-              No pudimos conectar con Supabase para recuperar tus empleos guardados.
-            </p>
-            <Button
-              onClick={fetchSavedVacancies}
-              className="mt-2 bg-[#1f2732] hover:bg-[#2f3c4b] text-white rounded-[14px] text-sm font-bold px-6 py-3 flex items-center gap-2"
-            >
-              <RotateCw className="w-5 h-5" />
-              Reintentar
-            </Button>
-          </div>
-        ) : savedVacancies.length === 0 ? (
-          /* Empty State View (_EmptySavedJobsView) */
-          <div className="py-20 px-6 flex flex-col items-center justify-center text-center space-y-4">
-            <div className="w-22 h-22 rounded-full bg-[#f5f7fa] dark:bg-zinc-900 flex items-center justify-center text-[#7d99b3] shrink-0">
-              <Bookmark className="w-10 h-10 stroke-[1.75]" />
-            </div>
-
-            <h3 className="text-[20px] font-bold text-[#1f2732] dark:text-zinc-100 max-w-xs leading-snug">
-              Sin vacantes guardadas
-            </h3>
-            <p className="text-[15px] text-[#5c7c9b] dark:text-zinc-400 max-w-sm leading-[1.5] text-center">
-              Guarda las ofertas de empleo que te interesen tocando el icono de guardado para revisarlas y postularte más tarde.
-            </p>
-
-            <Button
-              onClick={() => router.push("/dashboard/candidate/discovery")}
-              className="mt-3 bg-[#1f2732] dark:bg-zinc-100 text-white dark:text-zinc-900 hover:bg-[#2f3c4b] dark:hover:bg-zinc-200 rounded-[16px] text-sm font-bold px-7 py-3.5 transition-all cursor-pointer active:scale-95 border-none"
-            >
-              Explorar vacantes
-            </Button>
-          </div>
-        ) : (
-          /* Populated List */
-          <div className="space-y-5">
-            {/* Header counter row */}
-            <div className="flex items-center justify-between py-2">
-              <h2 className="text-[16px] font-bold text-[#2f3c4b] dark:text-zinc-200">
-                Tus empleos guardados
-              </h2>
-              <div className="px-3 py-1.5 bg-[#f5f7fa] dark:bg-zinc-900 border border-[#ebeef3] dark:border-zinc-800 rounded-[14px]">
-                <span className="text-[13px] font-bold text-[#3e546d] dark:text-zinc-300">
-                  {savedVacancies.length} guardadas
-                </span>
+          <Card className="rounded-2xl border-border/60 shadow-xs">
+            <CardContent className="py-16 px-6 text-center space-y-4">
+              <WifiOff className="size-10 text-destructive mx-auto" />
+              <div className="space-y-1">
+                <h3 className="text-base font-bold text-foreground">
+                  Error al consultar vacantes guardadas
+                </h3>
+                <p className="text-xs text-muted-foreground max-w-xs mx-auto">
+                  No pudimos recuperar tus empleos guardados en este momento.
+                </p>
               </div>
-            </div>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={fetchSavedVacancies}
+                className="gap-2 text-xs font-semibold cursor-pointer"
+              >
+                <RotateCw className="size-3.5" />
+                <span>Reintentar</span>
+              </Button>
+            </CardContent>
+          </Card>
+        ) : savedVacancies.length === 0 ? (
+          <Card className="rounded-2xl border-border/60 shadow-xs">
+            <CardContent className="py-16 px-6 flex flex-col items-center justify-center text-center space-y-4">
+              <div className="size-14 rounded-2xl bg-muted flex items-center justify-center text-muted-foreground">
+                <Bookmark className="size-6" />
+              </div>
 
-            {/* List of Cards */}
-            <div className="space-y-4">
-              {savedVacancies.map((vacancy) => (
-                <div
-                  key={vacancy.id}
-                  onClick={() => router.push(`/dashboard/candidate/discovery?jobId=${vacancy.id}`)}
-                  className={`p-5 sm:p-6 rounded-[22px] space-y-4 transition-all cursor-pointer ${
-                    vacancy.isPromoted
-                      ? "bg-[#2f3c4b] dark:bg-fiord-950 text-white shadow-md"
-                      : "bg-[#f5f7fa] dark:bg-zinc-900 border border-[#ebeef3] dark:border-zinc-800 text-[#1f2732]"
-                  }`}
-                >
-                  <div className="flex items-start justify-between gap-4">
-                    <div className="flex items-start gap-4 min-w-0">
-                      <div className={`w-14 h-14 rounded-[14px] flex items-center justify-center shrink-0 ${
-                        vacancy.isPromoted ? "bg-[#344558] text-white" : "bg-[#ebeef3] dark:bg-zinc-800 text-[#3e546d] dark:text-zinc-300"
-                      }`}>
-                        <Briefcase className="w-7 h-7" />
+              <div className="space-y-1">
+                <h3 className="text-base font-bold text-foreground">
+                  Sin vacantes guardadas
+                </h3>
+                <p className="text-xs text-muted-foreground max-w-sm leading-relaxed">
+                  Toca el icono de favoritos en cualquier vacante para guardarla y revisarla cuando estés listo para postularte.
+                </p>
+              </div>
+
+              <Button
+                onClick={() => router.push("/dashboard/candidate/discovery")}
+                className="text-xs font-semibold gap-2 shadow-xs cursor-pointer"
+              >
+                <Sparkles className="size-3.5" />
+                <span>Explorar vacantes</span>
+              </Button>
+            </CardContent>
+          </Card>
+        ) : (
+          <div className="space-y-3">
+            {savedVacancies.map((vacancy) => (
+              <Card
+                key={vacancy.id}
+                onClick={() => router.push(`/dashboard/candidate/vacancies/${vacancy.id}`)}
+                className="rounded-2xl border-border/60 shadow-xs hover:shadow-md hover:border-border transition-all cursor-pointer group"
+              >
+                <CardContent className="p-4 sm:p-5 flex flex-col md:flex-row md:items-center justify-between gap-4">
+                  <div className="flex items-start gap-4 min-w-0 flex-1">
+                    <Avatar className="size-12 rounded-xl ring-1 ring-border/50 shrink-0">
+                      {vacancy.companyLogo && <AvatarImage src={vacancy.companyLogo} alt={vacancy.companyName} />}
+                      <AvatarFallback className="text-xs font-bold rounded-xl bg-muted text-foreground">
+                        {vacancy.companyName.substring(0, 2).toUpperCase()}
+                      </AvatarFallback>
+                    </Avatar>
+
+                    <div className="min-w-0 flex-1 space-y-1">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="text-xs font-medium text-muted-foreground truncate flex items-center gap-1">
+                          {vacancy.companyName}
+                          <CheckCircle2 className="size-3 text-emerald-500 shrink-0" />
+                        </span>
+
+                        {vacancy.isPromoted && (
+                          <Badge variant="secondary" className="text-[10px] font-semibold py-0.5 bg-amber-500/10 text-amber-800 dark:text-amber-300 border-amber-500/20">
+                            ★ Destacada
+                          </Badge>
+                        )}
                       </div>
-                      <div className="min-w-0">
-                        <h3 className={`text-[17px] sm:text-[19px] font-bold tracking-[-0.3px] truncate ${
-                          vacancy.isPromoted ? "text-white" : "text-[#1f2732] dark:text-zinc-100"
-                        }`}>
-                          {vacancy.title}
-                        </h3>
-                        <p className={`text-[14px] font-semibold truncate mt-1 ${
-                          vacancy.isPromoted ? "text-[#aabccf]" : "text-[#5c7c9b] dark:text-zinc-400"
-                        }`}>
-                          {vacancy.companyName} • {vacancy.location}
-                        </p>
+
+                      <h3 className="text-base font-bold text-foreground tracking-tight group-hover:text-primary transition-colors truncate">
+                        {vacancy.title}
+                      </h3>
+
+                      <div className="flex items-center gap-2.5 text-xs text-muted-foreground flex-wrap pt-0.5">
+                        <span className="inline-flex items-center gap-1">
+                          <MapPin className="size-3 shrink-0" />
+                          {vacancy.location}
+                        </span>
+                        <span>•</span>
+                        <span>{vacancy.employmentType}</span>
                       </div>
                     </div>
-
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleRemoveSaved(vacancy.id);
-                      }}
-                      aria-label="Remover guardado"
-                      className="p-1.5 text-amber-400 hover:opacity-80 transition-opacity cursor-pointer shrink-0"
-                    >
-                      <Bookmark className="w-6 h-6 fill-amber-400 text-amber-400" />
-                    </button>
                   </div>
 
-                  <div className="flex items-center justify-between pt-2 border-t border-white/10 dark:border-zinc-800">
-                    <span className={`text-[14px] sm:text-[15px] font-[800] ${
-                      vacancy.isPromoted ? "text-[#d2dbe5]" : "text-[#344558] dark:text-zinc-200"
-                    }`}>
-                      {vacancy.formattedSalary}
-                    </span>
+                  <div className="flex md:flex-col items-center md:items-end justify-between md:justify-center shrink-0 pt-3 md:pt-0 border-t md:border-t-0 border-border/60 gap-3">
+                    <div className="text-left md:text-right">
+                      <span className="text-[10px] text-muted-foreground font-semibold uppercase tracking-wider block">
+                        Salario mensual
+                      </span>
+                      <span className="text-sm sm:text-base font-semibold font-mono text-emerald-600 dark:text-emerald-400">
+                        {vacancy.formattedSalary}
+                      </span>
+                    </div>
 
-                    <div className={`px-3.5 py-1.5 rounded-[10px] text-[12px] sm:text-[13px] font-extrabold ${
-                      vacancy.isPromoted
-                        ? "bg-[#344558] text-white"
-                        : "bg-[#ebeef3] dark:bg-zinc-800 text-[#344558] dark:text-zinc-200"
-                    }`}>
-                      {vacancy.employmentType}
+                    <div className="flex items-center gap-2">
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="icon"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleRemoveSaved(vacancy.id);
+                        }}
+                        aria-label={`Remover ${vacancy.title} de guardados`}
+                        className="size-9 rounded-xl text-amber-500 hover:text-destructive hover:border-destructive/30 cursor-pointer"
+                      >
+                        <Bookmark className="size-4 fill-amber-500 text-amber-500" />
+                      </Button>
+
+                      <Button
+                        size="sm"
+                        className="text-xs font-semibold gap-1.5 cursor-pointer"
+                      >
+                        <span>Postularme</span>
+                        <ArrowUpRight className="size-3.5" />
+                      </Button>
                     </div>
                   </div>
-                </div>
-              ))}
-            </div>
+                </CardContent>
+              </Card>
+            ))}
           </div>
         )}
       </div>
@@ -313,3 +372,4 @@ export function SavedJobsView({ onBack }: SavedJobsViewProps) {
     </div>
   );
 }
+

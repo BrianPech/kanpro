@@ -1,5 +1,5 @@
-import { AdminRegisterForm } from "@/modules/auth/components/admin-register-form";
+import { notFound } from "next/navigation";
 
 export default function AdminRegisterPage() {
-  return <AdminRegisterForm />;
+  notFound();
 }

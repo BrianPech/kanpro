@@ -1,53 +1,34 @@
-"use client";
-
-import React from "react";
-import { Navbar } from "@/components/navbar";
-import { HeroSection } from "@/components/hero-section";
-import { FeaturesSection } from "@/components/features-section";
-import { HowItWorks } from "@/components/how-it-works";
-import { CtaBanner } from "@/components/cta-banner";
-import { PricingSection } from "@/components/pricing-section";
-import { JobsBanner } from "@/components/jobs-banner";
-import { Footer } from "@/components/footer";
+import { Navbar } from "@/components/marketing/navbar";
 
 export default function Home() {
-
   return (
-    <div className="relative min-h-screen bg-background text-foreground flex flex-col justify-between">
-      {/* Ambient backgrounds */}
-      <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute top-[-10%] left-[-10%] w-[50%] h-[50%] rounded-full bg-primary/10 blur-[120px]" />
-        <div className="absolute bottom-[20%] right-[-10%] w-[45%] h-[45%] rounded-full bg-amber-500/5 blur-[120px]" />
+    <div className="relative min-h-screen w-full overflow-hidden bg-[#faf8f2]">
+      {/* Layer 1 */}
+      <div
+        className="pointer-events-none absolute inset-0 blur-[90px] md:blur-[130px]"
+        style={{
+          background:
+            "linear-gradient(rgba(0,0,0,0) 0%, rgba(200,230,255,0.12) 28%, rgb(255,255,255) 18%, rgb(150,200,255) 68%, rgb(100,130,200) 100%)",
+          mixBlendMode: "multiply",
+        }}
+        aria-hidden="true"
+      />
+      {/* Layer 2 */}
+      <div
+        className="pointer-events-none absolute inset-0 blur-[90px] md:blur-[130px]"
+        style={{
+          background:
+            "linear-gradient(rgba(0,0,0,0) 0%, rgba(200,230,255,0.22) 34%, rgb(255,255,255) 66%, rgb(150,200,255) 82%, rgb(100,130,200) 100%)",
+          mixBlendMode: "multiply",
+        }}
+        aria-hidden="true"
+      />
+      {/* Content wrapper - keep it above the absolute layers */}
+      <div className="relative z-[1] flex min-h-screen w-full flex-col">
+        <Navbar />
+        {/* Contenido principal */}
       </div>
-
-      {/* Header */}
-      <Navbar />
-
-      {/* Main content */}
-      <main className="flex-1">
-        {/* Hero Section */}
-        <section className="container mx-auto px-4 lg:px-8 py-6 md:py-10">
-          <HeroSection />
-        </section>
-
-        {/* Features section */}
-        <FeaturesSection />
-
-        {/* Cómo funciona section */}
-        <HowItWorks />
-
-        {/* CTA Banner */}
-        <CtaBanner />
-
-        {/* Precios section */}
-        <PricingSection />
-
-        {/* Jobs Discovery Banner */}
-        <JobsBanner />
-      </main>
-
-      {/* Footer */}
-      <Footer />
     </div>
   );
 }
+

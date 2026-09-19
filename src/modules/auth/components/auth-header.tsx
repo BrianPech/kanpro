@@ -54,7 +54,7 @@ export function AuthHeader({
         </svg>
 
         {/* SVG Curved Clip Path matching Flutter _HeaderClipper */}
-        <div className="absolute bottom-0 left-0 right-0 w-full overflow-hidden leading-none z-10">
+        <div className="absolute bottom-0 left-0 right-0 w-full overflow-hidden leading-none z-10 pointer-events-none">
           <svg
             className="relative block w-full h-[55px] sm:h-[70px] lg:h-[85px]"
             viewBox="0 0 1000 100"
@@ -69,12 +69,12 @@ export function AuthHeader({
         </div>
       </div>
 
-      {/* Optional Top Left Back Button */}
+      {/* Top Left Back Button (Higher z-index & explicit pointer-events-auto) */}
       {backHref && (
-        <div className="absolute top-6 left-6 sm:left-10 z-20">
+        <div className="absolute top-6 left-6 sm:left-10 z-30 pointer-events-auto">
           <Link
             href={backHref}
-            className="flex items-center justify-center size-10 rounded-full bg-white/10 hover:bg-white/20 backdrop-blur-md text-white transition-all duration-200 shadow-sm"
+            className="flex items-center justify-center size-10 rounded-full bg-white/10 hover:bg-white/20 active:scale-95 backdrop-blur-md text-white transition-all duration-200 shadow-sm cursor-pointer"
             aria-label="Volver"
           >
             <ArrowLeft className="size-5" />
@@ -82,10 +82,10 @@ export function AuthHeader({
         </div>
       )}
 
-      {/* Header Content: Centered Title or Logo Card */}
-      <div className="absolute inset-0 flex items-center justify-center z-20 pb-10 sm:pb-14">
+      {/* Header Content: Centered Title or Logo Card (pointer-events-none so it doesn't block back button clicks) */}
+      <div className="absolute inset-0 flex items-center justify-center z-20 pb-10 sm:pb-14 pointer-events-none">
         {showLogoCard && (
-          <div className="w-[76px] h-[76px] sm:w-[88px] sm:h-[88px] bg-white dark:bg-zinc-900 rounded-[20px] sm:rounded-[26px] shadow-[0_12px_28px_rgba(0,0,0,0.18)] p-3 flex items-center justify-center transition-transform hover:scale-105 duration-300 border border-white/20">
+          <div className="w-[76px] h-[76px] sm:w-[88px] sm:h-[88px] bg-white dark:bg-zinc-900 rounded-[20px] sm:rounded-[26px] shadow-[0_12px_28px_rgba(0,0,0,0.18)] p-3 flex items-center justify-center transition-transform hover:scale-105 duration-300 border border-white/20 pointer-events-auto">
             <div className="w-full h-full bg-[#1f2732] rounded-[12px] sm:rounded-[18px] flex items-center justify-center text-white shadow-inner">
               {logoIcon || <Kanban className="size-8 sm:size-10 text-white" />}
             </div>
@@ -93,7 +93,7 @@ export function AuthHeader({
         )}
 
         {title && (
-          <h1 className="text-white text-2xl sm:text-3xl lg:text-4xl font-extrabold tracking-[-1px] text-center drop-shadow-sm">
+          <h1 className="text-white text-2xl sm:text-3xl lg:text-4xl font-extrabold tracking-[-1px] text-center drop-shadow-sm pointer-events-auto">
             {title}
           </h1>
         )}

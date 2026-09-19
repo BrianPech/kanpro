@@ -28,29 +28,18 @@ export function useUserSession(): UserSessionState {
 
         if (currentUser) {
           setUser(currentUser);
-          let userRole: UserRole =
-            (currentUser.user_metadata?.role as UserRole) || "candidate";
+          const { data: profile } = await supabase
+            .from("profiles")
+            .select("role")
+            .eq("id", currentUser.id)
+            .maybeSingle();
 
-          // Fallback if role is not directly in metadata
-          if (!currentUser.user_metadata?.role) {
-            const { data: adminProfile } = await (supabase.from as any)("admin_profiles")
-              .select("id")
-              .eq("id", currentUser.id)
-              .maybeSingle();
-
-            if (adminProfile) {
-              userRole = "admin";
-            } else {
-              const { data: companyProfile } = await supabase
-                .from("company_profiles")
-                .select("id")
-                .eq("id", currentUser.id)
-                .maybeSingle();
-
-              if (companyProfile) {
-                userRole = "company";
-              }
-            }
+          let userRole: UserRole = "candidate";
+          if (profile?.role === "admin" || profile?.role === "company" || profile?.role === "candidate") {
+            userRole = profile.role as UserRole;
+          } else {
+            const metaRole = currentUser.user_metadata?.role;
+            userRole = metaRole === "company" ? "company" : "candidate";
           }
 
           setRole(userRole);
@@ -70,11 +59,22 @@ export function useUserSession(): UserSessionState {
     // Escuchar cambios de estado de autenticación en tiempo real (persistencia y reactividad)
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, session) => {
+    } = supabase.auth.onAuthStateChange(async (_event, session) => {
       if (session?.user) {
         setUser(session.user);
-        const userRole: UserRole =
-          (session.user.user_metadata?.role as UserRole) || "candidate";
+        const { data: profile } = await supabase
+          .from("profiles")
+          .select("role")
+          .eq("id", session.user.id)
+          .maybeSingle();
+
+        let userRole: UserRole = "candidate";
+        if (profile?.role === "admin" || profile?.role === "company" || profile?.role === "candidate") {
+          userRole = profile.role as UserRole;
+        } else {
+          const metaRole = session.user.user_metadata?.role;
+          userRole = metaRole === "company" ? "company" : "candidate";
+        }
         setRole(userRole);
       } else {
         setUser(null);

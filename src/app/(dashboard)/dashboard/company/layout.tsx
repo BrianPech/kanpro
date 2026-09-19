@@ -1,9 +1,10 @@
 import * as React from "react";
 import { SidebarProvider, SidebarInset } from "@/components/ui/sidebar";
-import { CompanySidebar } from "@/components/dashboard/company-sidebar";
+import { CompanySidebar } from "@/modules/company/components/navigation/company-sidebar";
 import { getDashboardSession } from "@/modules/auth/services/dashboard-session";
-import { DashboardTopbar } from "@/components/dashboard/dashboard-topbar";
-import { CompanyBottomNav } from "@/components/dashboard/company-bottom-nav";
+import { CompanyTopbar } from "@/modules/company/components/navigation/company-topbar";
+import { CompanyBottomNav } from "@/modules/company/components/navigation/company-bottom-nav";
+import { ScrollArea } from "@/components/ui/scroll-area";
 
 export default async function CompanyDashboardLayout({
   children,
@@ -13,16 +14,28 @@ export default async function CompanyDashboardLayout({
   const { userName, userInitials, role, plan } = await getDashboardSession();
 
   return (
-    <SidebarProvider className="h-screen overflow-hidden flex bg-background">
-      <CompanySidebar />
+    <SidebarProvider
+      style={
+        {
+          "--sidebar-width": "21rem",
+          "--header-height": "4rem",
+        } as React.CSSProperties
+      }
+      className="h-screen overflow-hidden flex bg-sidebar"
+    >
+      <CompanySidebar variant="inset" />
       <SidebarInset className="flex flex-1 flex-col overflow-hidden bg-background">
-        <DashboardTopbar
+        <CompanyTopbar
           userName={userName}
           userInitials={userInitials}
           plan={plan}
           role={role}
         />
-        <div className="flex-1 overflow-y-auto min-h-0 bg-background pb-16 md:pb-0" style={{ WebkitOverflowScrolling: "touch" }}>{children}</div>
+        <ScrollArea className="flex-1 min-h-0 w-full" style={{ WebkitOverflowScrolling: "touch" }}>
+          <main className="flex-1 flex flex-col p-4 md:p-6 lg:p-8 pb-[calc(5rem+env(safe-area-inset-bottom,0px))] md:pb-8 w-full">
+            {children}
+          </main>
+        </ScrollArea>
         <CompanyBottomNav />
       </SidebarInset>
     </SidebarProvider>
