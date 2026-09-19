@@ -1787,15 +1787,52 @@ export function ApplicationsInbox() {
                               <Calendar className="size-3.5" />
                               Cita de Entrevista Programada
                             </span>
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              onClick={() => handleOpenScheduleInterview(selectedApplicant)}
-                              className="h-7 text-[11px] font-bold rounded-lg border-purple-500/30 text-purple-700 dark:text-purple-300 hover:bg-purple-500/20 cursor-pointer"
-                            >
-                              Reagendar Cita
-                            </Button>
+                            <div className="flex items-center gap-2">
+                              {selectedApplicant.interview.status === "confirmed" ? (
+                                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border border-emerald-500/30">
+                                  <CheckCircle2 className="size-3" />
+                                  Asistencia Confirmada
+                                </span>
+                              ) : selectedApplicant.interview.status === "rescheduled" ? (
+                                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-amber-500/15 text-amber-700 dark:text-amber-300 border border-amber-500/30">
+                                  <Clock className="size-3" />
+                                  Reagendamiento Solicitado
+                                </span>
+                              ) : (
+                                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-purple-500/20 text-purple-700 dark:text-purple-300">
+                                  Pendiente de respuesta
+                                </span>
+                              )}
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => handleOpenScheduleInterview(selectedApplicant)}
+                                className="h-7 text-[11px] font-bold rounded-lg border-purple-500/30 text-purple-700 dark:text-purple-300 hover:bg-purple-500/20 cursor-pointer"
+                              >
+                                Reagendar Cita
+                              </Button>
+                            </div>
                           </div>
+
+                          {selectedApplicant.interview.status === "rescheduled" && (
+                            <div className="p-2.5 rounded-xl bg-amber-500/15 border border-amber-500/30 text-xs text-amber-900 dark:text-amber-200 space-y-1">
+                              <p className="font-bold flex items-center gap-1.5">
+                                <Clock className="size-3.5 text-amber-600 shrink-0" />
+                                <span>El candidato solicita reagendar la fecha/horario</span>
+                              </p>
+                              {selectedApplicant.interview.candidateResponseNotes && (
+                                <p className="text-[11px] text-muted-foreground italic">
+                                  Motivo: &ldquo;{selectedApplicant.interview.candidateResponseNotes}&rdquo;
+                                </p>
+                              )}
+                              {(selectedApplicant.interview.proposedDate || selectedApplicant.interview.proposedTime) && (
+                                <p className="text-[11px] font-bold text-amber-800 dark:text-amber-300">
+                                  Propuesta del candidato: {selectedApplicant.interview.proposedDate} {selectedApplicant.interview.proposedTime ? `a las ${selectedApplicant.interview.proposedTime}` : ""}
+                                </p>
+                              )}
+                            </div>
+                          )}
+
                           <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs font-semibold text-foreground pt-1">
                             <div className="flex items-center gap-2">
                               <Clock className="size-3.5 text-purple-600 shrink-0" />
@@ -1815,7 +1852,7 @@ export function ApplicationsInbox() {
                           </div>
                           {selectedApplicant.interview.notes && (
                             <p className="text-[11px] text-muted-foreground font-medium pt-1.5 border-t border-purple-500/20">
-                              <strong className="text-foreground">Indicaciones:</strong> {selectedApplicant.interview.notes}
+                              <strong className="text-foreground">Indicaciones enviadas:</strong> {selectedApplicant.interview.notes}
                             </p>
                           )}
                         </div>

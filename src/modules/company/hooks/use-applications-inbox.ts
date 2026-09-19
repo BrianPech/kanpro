@@ -27,6 +27,11 @@ export interface InterviewDetails {
   locationOrLink: string;
   notes?: string;
   scheduledAt?: string;
+  status?: "pending" | "confirmed" | "rescheduled" | "cancelled" | "completed";
+  candidateResponseNotes?: string;
+  proposedDate?: string;
+  proposedTime?: string;
+  respondedAt?: string;
 }
 
 export interface Applicant {

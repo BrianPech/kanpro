@@ -17,6 +17,7 @@ import {
   Building2,
   FileSpreadsheet,
   Users,
+  Loader2,
 } from "lucide-react";
 import Link from "next/link";
 import { Card } from "@/components/ui/card";
@@ -35,10 +36,13 @@ import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { VacationRequest, RequestStatus } from "../../types/employee-dossier";
 import { VacationRequestModal } from "./vacation-request-modal";
+import { respondToCompanyLeaveAction } from "../../actions/leaves";
+import { CompanyEmployeeRosterItem } from "../../services/company-dossier";
 
 interface CompanyLeavesViewProps {
   initialRequests: VacationRequest[];
   companyName: string;
+  employees?: CompanyEmployeeRosterItem[];
   stats: {
     pendingCount: number;
     approvedThisMonth: number;
@@ -50,6 +54,7 @@ interface CompanyLeavesViewProps {
 export function CompanyLeavesView({
   initialRequests,
   companyName,
+  employees = [],
   stats: initialStats,
 }: CompanyLeavesViewProps) {
   const [requests, setRequests] = useState<VacationRequest[]>(initialRequests);
@@ -57,6 +62,7 @@ export function CompanyLeavesView({
   const [statusFilter, setStatusFilter] = useState("all");
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
+  const [processingId, setProcessingId] = useState<string | null>(null);
 
   const filteredRequests = requests.filter((req) => {
     const query = searchQuery.toLowerCase();
@@ -71,28 +77,40 @@ export function CompanyLeavesView({
     return matchesSearch && matchesStatus;
   });
 
-  const handleDecision = (id: string, decision: "aprobada" | "rechazada") => {
-    setRequests((prev) =>
-      prev.map((r) =>
-        r.id === id
-          ? {
-              ...r,
-              status: decision,
-              reviewedAt: "Hoy",
-              reviewedBy: "Recursos Humanos",
-            }
-          : r
-      )
-    );
+  const handleDecision = async (id: string, decision: "aprobada" | "rechazada") => {
+    try {
+      setProcessingId(id);
+      const res = await respondToCompanyLeaveAction({
+        requestId: id,
+        decision,
+      });
 
-    if (decision === "aprobada") {
-      toast.success("Solicitud aprobada con éxito", {
-        description: `Los días han sido descontados del saldo de vacaciones del colaborador.`,
-      });
-    } else {
-      toast.error("Solicitud rechazada", {
-        description: `Se ha notificado al colaborador sobre la resolución.`,
-      });
+      setRequests((prev) =>
+        prev.map((r) =>
+          r.id === id
+            ? {
+                ...r,
+                status: decision,
+                reviewedAt: "Hoy",
+                reviewedBy: "Recursos Humanos",
+              }
+            : r
+        )
+      );
+
+      if (decision === "aprobada") {
+        toast.success("Solicitud aprobada con éxito", {
+          description: res.message || "Los días han sido descontados del saldo de vacaciones del colaborador.",
+        });
+      } else {
+        toast.error("Solicitud rechazada", {
+          description: res.message || "Se ha notificado al colaborador sobre la resolución.",
+        });
+      }
+    } catch (err: any) {
+      toast.error(err?.message || "Error al procesar la resolución de la solicitud.");
+    } finally {
+      setProcessingId(null);
     }
   };
 
@@ -308,16 +326,29 @@ export function CompanyLeavesView({
                           size="sm"
                           variant="outline"
                           onClick={() => handleDecision(req.id, "rechazada")}
-                          className="h-9 px-3 rounded-xl text-xs font-bold text-destructive hover:bg-destructive/10 hover:border-destructive/30"
+                          disabled={processingId === req.id}
+                          className="h-9 px-3 rounded-xl text-xs font-bold text-destructive hover:bg-destructive/10 hover:border-destructive/30 cursor-pointer"
                         >
-                          Rechazar
+                          {processingId === req.id ? (
+                            <Loader2 className="size-3.5 animate-spin" />
+                          ) : (
+                            "Rechazar"
+                          )}
                         </Button>
                         <Button
                           size="sm"
                           onClick={() => handleDecision(req.id, "aprobada")}
-                          className="h-9 px-4 rounded-xl text-xs font-bold bg-emerald-600 hover:bg-emerald-700 text-white shadow-xs"
+                          disabled={processingId === req.id}
+                          className="h-9 px-4 rounded-xl text-xs font-bold bg-emerald-600 hover:bg-emerald-700 text-white shadow-xs cursor-pointer gap-1.5"
                         >
-                          Aprobar Solicitud
+                          {processingId === req.id ? (
+                            <>
+                              <Loader2 className="size-3.5 animate-spin" />
+                              <span>Aprobando...</span>
+                            </>
+                          ) : (
+                            "Aprobar Solicitud"
+                          )}
                         </Button>
                       </>
                     ) : (
@@ -337,7 +368,7 @@ export function CompanyLeavesView({
                       size="sm"
                       variant="ghost"
                       render={<Link href={`/dashboard/company/employees/${req.employeeId}`} />}
-                      className="h-9 px-3 text-xs font-bold text-muted-foreground hover:text-foreground rounded-xl"
+                      className="h-9 px-3 text-xs font-bold text-muted-foreground hover:text-foreground rounded-xl cursor-pointer"
                     >
                       <span>Ver Expediente</span>
                     </Button>
@@ -354,6 +385,7 @@ export function CompanyLeavesView({
         isOpen={isModalOpen}
         onOpenChange={setIsModalOpen}
         onRequestCreated={handleRequestCreated}
+        employees={employees}
       />
     </div>
   );

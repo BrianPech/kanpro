@@ -2,8 +2,44 @@ import { createClient } from "@/lib/supabase/server";
 import { parseLocation, cleanCityName } from "@/lib/formatters";
 import { getCoordsForZone, haversineDistanceKm, GEO_CONFIG } from "@/config/geo";
 
-export interface CandidateApplication {
+export interface CandidateContractSummary {
+  id: string
+  folio: string
+  jobTitle: string
+  department: string
+  contractType: string
+  templateType: string
+  startDate: string
+  endDate?: string | null
+  salary: number
+  paymentFrequency: string
+  companySigned: boolean
+  companySignatureUrl?: string | null
+  employeeSigned: boolean
+  employeeSignatureUrl?: string | null
+  status: string
+  companyName?: string
+  companyRfc?: string | null
+  companyAddress?: string | null
+  companyLegalRep?: string | null
+}
 
+export interface CandidateInterviewDetails {
+  date: string
+  time?: string
+  modality: "presencial" | "virtual"
+  locationOrLink: string
+  notes?: string
+  scheduledAt?: string | null
+  status?: "pending" | "confirmed" | "rescheduled" | "reschedule_requested" | "cancelled" | "completed" | null
+  candidateResponseNotes?: string | null
+  proposedDate?: string | null
+  proposedTime?: string | null
+  scheduledInterviewAt?: string | null
+  interviewStatus?: string | null
+}
+
+export interface CandidateApplication {
   id: string
   vacancy_id?: string
   position: string
@@ -20,6 +56,8 @@ export interface CandidateApplication {
   salary_min: number | null
   salary_max: number | null
   companyPhone: string | null
+  interviewDetails?: CandidateInterviewDetails | null
+  contract?: CandidateContractSummary | null
 }
 
 export interface VacancyItem {
@@ -56,15 +94,19 @@ export interface CandidateDashboardData {
     is_approved: boolean
     is_validated: boolean
     completionScore: number
+    rfc?: string | null
+    curp?: string | null
   } | null
   applications: CandidateApplication[]
   stats: {
     total: number
     reviewing: number
     hired: number
+    pendingContracts: number
   }
   featuredVacancies: VacancyItem[]
   nearbyVacancies: VacancyItem[]
+  pendingContractsCount: number
 }
 
 export async function getCandidateDashboardData(): Promise<CandidateDashboardData> {
@@ -80,15 +122,17 @@ export async function getCandidateDashboardData(): Promise<CandidateDashboardDat
       stats: {
         total: 0,
         reviewing: 0,
-        hired: 0
+        hired: 0,
+        pendingContracts: 0,
       },
       featuredVacancies: [],
-      nearbyVacancies: []
+      nearbyVacancies: [],
+      pendingContractsCount: 0,
     }
   }
 
-  // 2. Fetch candidate profile
-  const [{ data: baseProfile }, { data: candProfile }] = await Promise.all([
+  // 2. Fetch candidate profile and private info
+  const [{ data: baseProfile }, { data: candProfile }, { data: privateProfile }] = await Promise.all([
     supabase
       .from("profiles")
       .select("id, full_name, email, whatsapp_number, avatar_url, location")
@@ -97,6 +141,11 @@ export async function getCandidateDashboardData(): Promise<CandidateDashboardDat
     supabase
       .from("candidate_profiles")
       .select("id, headline, bio, skills, experience, portfolio_links, preferred_zone")
+      .eq("id", user.id)
+      .maybeSingle(),
+    supabase
+      .from("candidate_private_profiles")
+      .select("rfc, curp, birth_date")
       .eq("id", user.id)
       .maybeSingle(),
   ]);
@@ -112,7 +161,9 @@ export async function getCandidateDashboardData(): Promise<CandidateDashboardDat
     is_approved: true,
     is_validated: true,
     experience: candProfile?.experience || null,
-    cv_url: null
+    cv_url: null,
+    rfc: privateProfile?.rfc || null,
+    curp: privateProfile?.curp || null,
   } : null;
 
   let completionScore = 0
@@ -126,34 +177,79 @@ export async function getCandidateDashboardData(): Promise<CandidateDashboardDat
     if (profileData.experience && Array.isArray(profileData.experience) && profileData.experience.length > 0) completionScore += 10
   }
 
-  // 3. Fetch candidate applications
-  const { data: dbApplications } = await supabase
-    .from("applications")
-    .select(`
-      id,
-      status,
-      applied_at,
-      vacancy_id,
-      vacancy:vacancies (
+  // 3. Fetch candidate applications and formal contracts in parallel
+  const [{ data: dbApplications }, { data: dbContracts }] = await Promise.all([
+    supabase
+      .from("applications")
+      .select(`
         id,
-        title,
-        location,
-        modality,
-        skills,
-        salary_min,
-        salary_max,
+        status,
+        applied_at,
         created_at,
-        company_id
-      )
-    `)
-    .eq("candidate_id", user.id)
-    .order("applied_at", { ascending: false })
+        vacancy_id,
+        interview_details,
+        scheduled_interview_at,
+        interview_status,
+        hired_at,
+        vacancy:vacancies (
+          id,
+          title,
+          location,
+          modality,
+          skills,
+          salary_min,
+          salary_max,
+          created_at,
+          company_id
+        )
+      `)
+      .eq("candidate_id", user.id)
+      .order("applied_at", { ascending: false }),
+    supabase
+      .from("company_contracts")
+      .select(`
+        id,
+        folio,
+        company_id,
+        candidate_id,
+        employee_id,
+        application_id,
+        job_title,
+        department,
+        contract_type,
+        template_type,
+        start_date,
+        end_date,
+        salary,
+        payment_frequency,
+        company_signed,
+        company_signature_url,
+        employee_signed,
+        employee_signature_url,
+        status,
+        created_at,
+        company:company_profiles (
+          id,
+          company_name,
+          legal_name,
+          rfc,
+          fiscal_address,
+          legal_rep_name
+        )
+      `)
+      .eq("candidate_id", user.id)
+      .order("created_at", { ascending: false }),
+  ]);
 
   interface DBApplication {
     id: string
     status: string
     applied_at: string | null
     created_at?: string | null
+    interview_details?: any
+    scheduled_interview_at?: string | null
+    interview_status?: string | null
+    hired_at?: string | null
     vacancy: {
       id: string
       title: string
@@ -169,7 +265,47 @@ export async function getCandidateDashboardData(): Promise<CandidateDashboardDat
 
   const typedApplications = (dbApplications as unknown as DBApplication[]) || []
 
-  // 4. Fetch ALL active vacancies (flexible status & is_active checks)
+  // 4. Map contracts by application_id and company_id
+  const contractsByAppId: Record<string, CandidateContractSummary> = {};
+  const contractsByCompanyId: Record<string, CandidateContractSummary> = {};
+
+  (dbContracts || []).forEach((c: any) => {
+    const comp = Array.isArray(c.company) ? c.company[0] : c.company;
+    const summary: CandidateContractSummary = {
+      id: c.id,
+      folio: c.folio,
+      jobTitle: c.job_title,
+      department: c.department,
+      contractType: c.contract_type,
+      templateType: c.template_type,
+      startDate: c.start_date,
+      endDate: c.end_date || null,
+      salary: Number(c.salary) || 0,
+      paymentFrequency: c.payment_frequency || "quincenal",
+      companySigned: Boolean(c.company_signed),
+      companySignatureUrl: c.company_signature_url || null,
+      employeeSigned: Boolean(c.employee_signed),
+      employeeSignatureUrl: c.employee_signature_url || null,
+      status: c.status || "vigente",
+      companyName: comp?.company_name || comp?.legal_name || "Empresa Contratante",
+      companyRfc: comp?.rfc || null,
+      companyAddress: comp?.fiscal_address || null,
+      companyLegalRep: comp?.legal_rep_name || null,
+    };
+
+    if (c.application_id) {
+      contractsByAppId[c.application_id] = summary;
+    }
+    if (c.company_id && !contractsByCompanyId[c.company_id]) {
+      contractsByCompanyId[c.company_id] = summary;
+    }
+  });
+
+  const pendingContractsCount = (dbContracts || []).filter(
+    (c: any) => !c.employee_signed && c.status !== "cancelado"
+  ).length;
+
+  // 5. Fetch ALL active vacancies (flexible status & is_active checks)
   const { data: rawVacancies, error: vacErr } = await supabase
     .from("vacancies")
     .select(`
@@ -197,7 +333,7 @@ export async function getCandidateDashboardData(): Promise<CandidateDashboardDat
 
   const allActiveVacancies = rawVacancies || [];
 
-  // 5. Gather company IDs to fetch company profiles in batch
+  // 6. Gather company IDs to fetch company profiles in batch
   const companyIds = Array.from(
     new Set([
       ...typedApplications.map((app) => app.vacancy?.company_id).filter(Boolean),
@@ -224,13 +360,18 @@ export async function getCandidateDashboardData(): Promise<CandidateDashboardDat
     }
   }
 
-  // 6. Format applications
+  // 7. Format applications
   const formattedApplications: CandidateApplication[] = typedApplications.map((app) => {
     const vacancy = app.vacancy
     const companyInfo = vacancy ? companies[vacancy.company_id] : null
     const companyName = companyInfo?.company_name || "Empresa"
     const logoUrl = companyInfo?.logo_url || null
     const companyInitials = companyName.substring(0, 2).toUpperCase()
+
+    const matchedContract = 
+      contractsByAppId[app.id] || 
+      (app.status === "Contratado" && vacancy?.company_id ? contractsByCompanyId[vacancy.company_id] : null) ||
+      null;
 
     let statusLabel = app.status
     let statusColor = "text-zinc-500 bg-zinc-500/10 border-zinc-500/20 dark:text-zinc-400 dark:bg-zinc-400/10 dark:border-zinc-400/20"
@@ -248,7 +389,8 @@ export async function getCandidateDashboardData(): Promise<CandidateDashboardDat
         progress = 50
         break
       case "Preseleccionado":
-        statusLabel = "Preseleccionado"
+      case "Entrevista":
+        statusLabel = app.status === "Entrevista" ? "En Entrevista" : "Preseleccionado"
         statusColor = "text-indigo-500 bg-indigo-500/10 border-indigo-500/20 dark:text-indigo-400 dark:bg-indigo-400/10 dark:border-indigo-400/20"
         progress = 75
         break
@@ -262,6 +404,39 @@ export async function getCandidateDashboardData(): Promise<CandidateDashboardDat
         statusColor = "text-rose-500 bg-rose-500/10 border-rose-500/20 dark:text-rose-400 dark:bg-rose-400/10 dark:border-rose-400/20"
         progress = 100
         break
+    }
+
+    const rawDetails = app.interview_details;
+    const interviewStatus = app.interview_status || rawDetails?.status || (rawDetails ? "pending" : null);
+
+    let interviewDetails: CandidateInterviewDetails | null = null;
+    if (rawDetails || app.scheduled_interview_at) {
+      let dateStr = rawDetails?.date || "";
+      let timeStr = rawDetails?.time || "";
+      if (!dateStr && app.scheduled_interview_at) {
+        try {
+          const d = new Date(app.scheduled_interview_at);
+          dateStr = d.toISOString().split("T")[0];
+          timeStr = d.toTimeString().slice(0, 5);
+        } catch {
+          dateStr = "";
+        }
+      }
+
+      interviewDetails = {
+        date: dateStr,
+        time: timeStr,
+        modality: rawDetails?.modality || "virtual",
+        locationOrLink: rawDetails?.locationOrLink || (rawDetails?.modality === "presencial" ? "Oficinas de la empresa" : "Google Meet"),
+        notes: rawDetails?.notes || "",
+        scheduledAt: rawDetails?.scheduledAt || app.scheduled_interview_at || null,
+        status: (interviewStatus as any) || "pending",
+        candidateResponseNotes: rawDetails?.candidateResponseNotes || null,
+        proposedDate: rawDetails?.proposedDate || null,
+        proposedTime: rawDetails?.proposedTime || null,
+        scheduledInterviewAt: app.scheduled_interview_at || null,
+        interviewStatus,
+      };
     }
 
     const appDateStr = app.applied_at || app.created_at
@@ -289,7 +464,9 @@ export async function getCandidateDashboardData(): Promise<CandidateDashboardDat
       created_at: appDateStr || new Date().toISOString(),
       salary_min: vacancy?.salary_min ?? null,
       salary_max: vacancy?.salary_max ?? null,
-      companyPhone: companyInfo?.phone || null
+      companyPhone: companyInfo?.phone || null,
+      interviewDetails,
+      contract: matchedContract,
     }
   })
 
@@ -453,9 +630,11 @@ export async function getCandidateDashboardData(): Promise<CandidateDashboardDat
     stats: {
       total,
       reviewing,
-      hired
+      hired,
+      pendingContracts: pendingContractsCount
     },
     featuredVacancies,
-    nearbyVacancies
+    nearbyVacancies,
+    pendingContractsCount
   }
 }

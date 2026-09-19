@@ -21,9 +21,11 @@ import {
   Check,
   X,
   SlidersHorizontal,
-  Building2,
   Share2,
-  CheckCheck
+  CheckCheck,
+  FileCheck2,
+  PenTool,
+  ArrowRight,
 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -273,6 +275,36 @@ export function CandidateDashboardView({
   return (
     <div className="w-full space-y-6 animate-in fade-in duration-300 pb-16 font-sans">
       
+      {/* ── PENDING CONTRACT SIGNATURE URGENT ALERT BANNER ── */}
+      {(initialData?.pendingContractsCount ?? 0) > 0 && (
+        <div className="p-4 sm:p-5 rounded-3xl bg-amber-500/10 border-2 border-amber-500/30 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 animate-in slide-in-from-top-2 duration-300 shadow-2xs">
+          <div className="flex items-start sm:items-center gap-3.5">
+            <div className="size-11 rounded-2xl bg-amber-500/20 text-amber-700 dark:text-amber-300 flex items-center justify-center shrink-0">
+              <FileCheck2 className="size-6" />
+            </div>
+            <div className="space-y-0.5">
+              <div className="flex items-center gap-2">
+                <h2 className="text-sm sm:text-base font-black text-amber-950 dark:text-amber-100">
+                  ¡Tienes {initialData.pendingContractsCount} contrato{initialData.pendingContractsCount > 1 ? "s" : ""} laboral pendiente de firma digital!
+                </h2>
+                <span className="size-2 rounded-full bg-amber-500 animate-ping" />
+              </div>
+              <p className="text-xs text-amber-900/80 dark:text-amber-200/80 font-medium">
+                Una empresa ha formalizado tu contratación conforme a la Ley Federal del Trabajo. Revisa las cláusulas y estampa tu firma legal.
+              </p>
+            </div>
+          </div>
+
+          <Link href="/dashboard/candidate/contracts" className="shrink-0 w-full sm:w-auto">
+            <Button className="w-full sm:w-auto h-10 px-4 rounded-xl text-xs font-bold bg-amber-600 hover:bg-amber-700 text-white gap-2 cursor-pointer shadow-xs">
+              <PenTool className="size-3.5" />
+              <span>Revisar y Firmar Contrato</span>
+              <ArrowRight className="size-3.5 ml-0.5" />
+            </Button>
+          </Link>
+        </div>
+      )}
+
       {/* ── 0. MINIMALIST SEARCH & EXPLORATION HEADER ── */}
       <div className="space-y-3">
         <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">

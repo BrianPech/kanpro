@@ -90,8 +90,10 @@ export type Database = {
           hired_at: string | null
           id: string
           interview_details: Json | null
+          interview_status: string | null
           notes: string | null
           rating: number | null
+          scheduled_interview_at: string | null
           status: string
           updated_at: string
           vacancy_id: string
@@ -102,8 +104,10 @@ export type Database = {
           hired_at?: string | null
           id?: string
           interview_details?: Json | null
+          interview_status?: string | null
           notes?: string | null
           rating?: number | null
+          scheduled_interview_at?: string | null
           status?: string
           updated_at?: string
           vacancy_id: string
@@ -114,8 +118,10 @@ export type Database = {
           hired_at?: string | null
           id?: string
           interview_details?: Json | null
+          interview_status?: string | null
           notes?: string | null
           rating?: number | null
+          scheduled_interview_at?: string | null
           status?: string
           updated_at?: string
           vacancy_id?: string
@@ -366,6 +372,79 @@ export type Database = {
           },
           {
             foreignKeyName: "company_contracts_employee_id_fkey"
+            columns: ["employee_id"]
+            referencedRelation: "company_employees"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      company_leaves: {
+        Row: {
+          candidate_id: string | null
+          company_id: string
+          created_at: string
+          employee_id: string | null
+          end_date: string
+          id: string
+          reason: string | null
+          rejection_reason: string | null
+          request_type: string
+          reviewed_at: string | null
+          reviewed_by: string | null
+          start_date: string
+          status: string
+          total_working_days: number
+          updated_at: string
+        }
+        Insert: {
+          candidate_id?: string | null
+          company_id: string
+          created_at?: string
+          employee_id?: string | null
+          end_date: string
+          id?: string
+          reason?: string | null
+          rejection_reason?: string | null
+          request_type: string
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          start_date: string
+          status?: string
+          total_working_days: number
+          updated_at?: string
+        }
+        Update: {
+          candidate_id?: string | null
+          company_id?: string
+          created_at?: string
+          employee_id?: string | null
+          end_date?: string
+          id?: string
+          reason?: string | null
+          rejection_reason?: string | null
+          request_type?: string
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          start_date?: string
+          status?: string
+          total_working_days?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "company_leaves_candidate_id_fkey"
+            columns: ["candidate_id"]
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "company_leaves_company_id_fkey"
+            columns: ["company_id"]
+            referencedRelation: "company_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "company_leaves_employee_id_fkey"
             columns: ["employee_id"]
             referencedRelation: "company_employees"
             referencedColumns: ["id"]

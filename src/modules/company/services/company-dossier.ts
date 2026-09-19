@@ -357,9 +357,17 @@ export async function getEmployeeDossierById(
 /**
  * Fetches all company vacation and leave requests from backend.
  */
+export interface CompanyEmployeeRosterItem {
+  id: string;
+  fullName: string;
+  department?: string | null;
+  hireDate?: string | null;
+}
+
 export async function getCompanyVacationRequests(): Promise<{
   companyName: string;
   requests: VacationRequest[];
+  employees: CompanyEmployeeRosterItem[];
   stats: {
     pendingCount: number;
     approvedThisMonth: number;
@@ -373,28 +381,191 @@ export async function getCompanyVacationRequests(): Promise<{
   } = await supabase.auth.getUser();
 
   let companyName = "Mi Empresa";
-  if (user) {
-    const { data: profile } = await supabase
-      .from("company_profiles")
-      .select("company_name, legal_name")
-      .eq("id", user.id)
-      .maybeSingle();
-    if (profile?.legal_name || profile?.company_name) {
-      companyName = profile.legal_name || profile.company_name;
+  if (!user) {
+    return {
+      companyName,
+      requests: [],
+      employees: [],
+      stats: {
+        pendingCount: 0,
+        approvedThisMonth: 0,
+        employeesOnLeaveToday: 0,
+        averageVacationBalance: 12.0,
+      },
+    };
+  }
+
+  const { data: profile } = await supabase
+    .from("company_profiles")
+    .select("company_name, legal_name")
+    .eq("id", user.id)
+    .maybeSingle();
+
+  if (profile?.legal_name || profile?.company_name) {
+    companyName = profile.legal_name || profile.company_name;
+  }
+
+  // 1. Fetch real leave requests from company_leaves
+  const { data: dbLeaves, error: leavesErr } = await supabase
+    .from("company_leaves")
+    .select(`
+      id,
+      company_id,
+      employee_id,
+      candidate_id,
+      request_type,
+      start_date,
+      end_date,
+      total_working_days,
+      reason,
+      status,
+      reviewed_at,
+      reviewed_by,
+      rejection_reason,
+      created_at,
+      employee:company_employees (
+        id,
+        full_name,
+        department,
+        avatar_url
+      )
+    `)
+    .eq("company_id", user.id)
+    .order("created_at", { ascending: false });
+
+  if (leavesErr) {
+    console.error("[getCompanyVacationRequests] Error fetching leaves:", leavesErr);
+  }
+
+  const rawLeaves = dbLeaves || [];
+
+  // Batch fetch candidate profiles if some leaves only have candidate_id
+  const candidateIdsToFetch = Array.from(
+    new Set(
+      rawLeaves
+        .filter((l: any) => !l.employee && l.candidate_id)
+        .map((l: any) => l.candidate_id)
+    )
+  ) as string[];
+
+  const candidateProfilesMap: Record<string, { full_name: string; avatar_url: string | null }> = {};
+  if (candidateIdsToFetch.length > 0) {
+    const { data: cProfiles } = await supabase
+      .from("profiles")
+      .select("id, full_name, avatar_url")
+      .in("id", candidateIdsToFetch);
+
+    if (cProfiles) {
+      cProfiles.forEach((cp: any) => {
+        candidateProfilesMap[cp.id] = {
+          full_name: cp.full_name || "Colaborador",
+          avatar_url: cp.avatar_url || null,
+        };
+      });
     }
   }
 
-  // Pure real state: 0 fake requests
-  const requests: VacationRequest[] = [];
+  const typeLabels: Record<string, string> = {
+    vacaciones: "Vacaciones LFT",
+    permiso_con_goce: "Permiso con Goce de Sueldo",
+    permiso_sin_goce: "Permiso sin Goce de Sueldo",
+    paternidad: "Permiso por Paternidad",
+    maternidad: "Incapacidad por Maternidad",
+    luto: "Permiso por Luto",
+  };
+
+  const requests: VacationRequest[] = rawLeaves.map((l: any) => {
+    const emp = Array.isArray(l.employee) ? l.employee[0] : l.employee;
+    const cand = l.candidate_id ? candidateProfilesMap[l.candidate_id] : null;
+
+    const employeeName = emp?.full_name || cand?.full_name || "Colaborador";
+    const avatarUrl = emp?.avatar_url || cand?.avatar_url || null;
+    const department = emp?.department || "Operaciones";
+
+    return {
+      id: l.id,
+      employeeId: l.employee_id || l.candidate_id || l.id,
+      employeeName,
+      avatarUrl,
+      department,
+      requestType: l.request_type,
+      typeLabel: typeLabels[l.request_type] || "Vacaciones LFT",
+      startDate: l.start_date,
+      endDate: l.end_date,
+      totalWorkingDays: l.total_working_days,
+      reason: l.reason || "Sin observaciones registradas.",
+      status: l.status,
+      requestedAt: l.created_at
+        ? new Date(l.created_at).toLocaleDateString("es-MX", {
+            day: "numeric",
+            month: "short",
+            year: "numeric",
+          })
+        : "Reciente",
+      reviewedAt: l.reviewed_at
+        ? new Date(l.reviewed_at).toLocaleDateString("es-MX", {
+            day: "numeric",
+            month: "short",
+            year: "numeric",
+          })
+        : undefined,
+      reviewedBy: l.reviewed_by || undefined,
+      rejectionReason: l.rejection_reason || undefined,
+    };
+  });
+
+  // 2. Compute accurate stats
+  const now = new Date();
+  const currentYear = now.getFullYear();
+  const currentMonth = now.getMonth();
+  const todayStr = now.toISOString().split("T")[0];
+
+  const pendingCount = requests.filter((r) => r.status === "pendiente").length;
+
+  const approvedThisMonth = requests.filter((r) => {
+    if (r.status !== "aprobada") return false;
+    const d = new Date(r.startDate);
+    return d.getFullYear() === currentYear && d.getMonth() === currentMonth;
+  }).length;
+
+  const employeesOnLeaveToday = requests.filter(
+    (r) => r.status === "aprobada" && r.startDate <= todayStr && r.endDate >= todayStr
+  ).length;
+
+  // Compute average vacation balance across company employees and gather roster
+  const { data: employees } = await supabase
+    .from("company_employees")
+    .select("id, full_name, department, hire_date")
+    .eq("company_id", user.id)
+    .eq("status", "active")
+    .order("full_name", { ascending: true });
+
+  const roster: CompanyEmployeeRosterItem[] = (employees || []).map((e: any) => ({
+    id: e.id,
+    fullName: e.full_name,
+    department: e.department || null,
+    hireDate: e.hire_date || null,
+  }));
+
+  let averageVacationBalance = 12.0;
+  if (roster.length > 0) {
+    const totalDays = roster.reduce((sum, e) => {
+      const lft = calculateLFTVacationDays(e.hireDate || todayStr);
+      return sum + lft.totalDaysAccrued;
+    }, 0);
+    averageVacationBalance = Number((totalDays / roster.length).toFixed(1));
+  }
 
   return {
     companyName,
     requests,
+    employees: roster,
     stats: {
-      pendingCount: 0,
-      approvedThisMonth: 0,
-      employeesOnLeaveToday: 0,
-      averageVacationBalance: 12.0,
+      pendingCount,
+      approvedThisMonth,
+      employeesOnLeaveToday,
+      averageVacationBalance,
     },
   };
 }
+

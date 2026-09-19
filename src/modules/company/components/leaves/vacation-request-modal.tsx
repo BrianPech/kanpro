@@ -10,6 +10,8 @@ import {
   Clock,
   CheckCircle2,
   AlertTriangle,
+  Loader2,
+  Send,
 } from "lucide-react";
 import {
   Dialog,
@@ -33,21 +35,26 @@ import {
 } from "@/components/ui/select";
 import { toast } from "sonner";
 import { VacationRequest, VacationRequestType } from "../../types/employee-dossier";
-import { calculateWorkingDays } from "../../utils/vacation-calculator";
+import { calculateWorkingDays, calculateLFTVacationDays } from "../../utils/vacation-calculator";
+import { createCompanyLeaveAction } from "../../actions/leaves";
+import { CompanyEmployeeRosterItem } from "../../services/company-dossier";
 
 interface VacationRequestModalProps {
   isOpen: boolean;
   onOpenChange: (open: boolean) => void;
-  onRequestCreated: (req: VacationRequest) => void;
+  onRequestCreated?: (req: VacationRequest) => void;
+  employees?: CompanyEmployeeRosterItem[];
 }
 
 export function VacationRequestModal({
   isOpen,
   onOpenChange,
   onRequestCreated,
+  employees = [],
 }: VacationRequestModalProps) {
-  const [employeeName, setEmployeeName] = useState("");
-  const [department, setDepartment] = useState("Operaciones");
+  const [selectedEmployeeId, setSelectedEmployeeId] = useState<string>(
+    employees.length > 0 ? employees[0].id : ""
+  );
   const [requestType, setRequestType] = useState<VacationRequestType>("vacaciones");
   const [startDate, setStartDate] = useState(
     new Date().toISOString().split("T")[0]
@@ -58,88 +65,132 @@ export function VacationRequestModal({
   const [reason, setReason] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const availableDaysBalance = 8; // Available balance for demo employee
+  // Selected employee data
+  const selectedEmp = employees.find((e) => e.id === selectedEmployeeId) || employees[0];
+  const lftDays = selectedEmp?.hireDate
+    ? calculateLFTVacationDays(selectedEmp.hireDate).totalDaysAccrued
+    : 12;
+
+  const availableDaysBalance = lftDays;
   const workingDays = calculateWorkingDays(startDate, endDate);
   const exceedsBalance = requestType === "vacaciones" && workingDays > availableDaysBalance;
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!employeeName.trim() || workingDays <= 0) {
+
+    const empId = selectedEmployeeId || selectedEmp?.id;
+    if (!empId) {
+      toast.error("Selecciona un colaborador de la plantilla.");
+      return;
+    }
+
+    if (workingDays <= 0) {
       toast.error("Selecciona un rango de fechas válido.");
       return;
     }
 
     if (exceedsBalance) {
       toast.error("Saldo insuficiente de vacaciones", {
-        description: `Estás solicitando ${workingDays} días pero el colaborador solo cuenta con ${availableDaysBalance} días disponibles.`,
+        description: `Estás solicitando ${workingDays} días pero el colaborador cuenta con ${availableDaysBalance} días disponibles.`,
       });
       return;
     }
 
-    setIsSubmitting(true);
-    setTimeout(() => {
-      setIsSubmitting(false);
-
-      const typeLabels: Record<VacationRequestType, string> = {
-        vacaciones: "Vacaciones LFT",
-        permiso_con_goce: "Permiso con Goce de Sueldo",
-        permiso_sin_goce: "Permiso sin Goce de Sueldo",
-        paternidad: "Permiso por Paternidad",
-        maternidad: "Incapacidad por Maternidad",
-        luto: "Permiso por Luto",
-      };
-
-      const newReq: VacationRequest = {
-        id: `vreq-${Date.now()}`,
-        employeeId: `emp-${Date.now()}`,
-        employeeName: employeeName.trim(),
-        department,
+    try {
+      setIsSubmitting(true);
+      const res = await createCompanyLeaveAction({
+        employeeId: empId,
         requestType,
-        typeLabel: typeLabels[requestType] || "Vacaciones",
         startDate,
         endDate,
-        totalWorkingDays: workingDays,
-        reason: reason.trim() || "Solicitud registrada desde el portal.",
-        status: "pendiente",
-        requestedAt: "Hoy",
-      };
-
-      onRequestCreated(newReq);
-      toast.success("Solicitud de vacaciones enviada", {
-        description: `Se enviaron ${workingDays} días hábiles para revisión de Recursos Humanos.`,
+        reason,
       });
 
+      toast.success("Permiso registrado con éxito", {
+        description: res.message,
+      });
+
+      if (onRequestCreated) {
+        const typeLabels: Record<VacationRequestType, string> = {
+          vacaciones: "Vacaciones LFT",
+          permiso_con_goce: "Permiso con Goce de Sueldo",
+          permiso_sin_goce: "Permiso sin Goce de Sueldo",
+          paternidad: "Permiso por Paternidad",
+          maternidad: "Incapacidad por Maternidad",
+          luto: "Permiso por Luto",
+        };
+
+        const newReq: VacationRequest = {
+          id: res.leaveId || `vreq-${Date.now()}`,
+          employeeId: empId,
+          employeeName: selectedEmp?.fullName || "Colaborador",
+          department: selectedEmp?.department || "Operaciones",
+          requestType,
+          typeLabel: typeLabels[requestType] || "Vacaciones",
+          startDate,
+          endDate,
+          totalWorkingDays: workingDays,
+          reason: reason.trim() || "Registrado directamente por Recursos Humanos.",
+          status: "aprobada",
+          requestedAt: "Hoy",
+          reviewedAt: "Hoy",
+          reviewedBy: "Recursos Humanos",
+        };
+        onRequestCreated(newReq);
+      }
+
       onOpenChange(false);
-    }, 600);
+    } catch (err: any) {
+      toast.error(err?.message || "Error al registrar la solicitud.");
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[480px] rounded-3xl p-6 bg-card border-border/80">
+      <DialogContent className="sm:max-w-[480px] rounded-3xl p-6 bg-card border-border/80 max-h-[92vh] overflow-y-auto">
         <form onSubmit={handleSubmit} className="space-y-4">
           <DialogHeader className="space-y-1.5 text-left">
             <div className="flex items-center gap-2 text-primary font-bold text-xs uppercase tracking-wider">
               <Plane className="size-3.5 text-primary" />
-              <span>Solicitud de Ausencia Laboral</span>
+              <span>Gestión de Ausencias • Recursos Humanos</span>
             </div>
             <DialogTitle className="text-lg font-extrabold text-foreground tracking-tight">
-              Solicitar Vacaciones o Permiso
+              Registrar Vacaciones o Permiso
             </DialogTitle>
             <DialogDescription className="text-xs text-muted-foreground font-medium">
-              Calcula automáticamente días hábiles y descuenta de tu saldo LFT.
+              Calcula automáticamente días hábiles conforme a la LFT y descuenta de su saldo legal.
             </DialogDescription>
           </DialogHeader>
 
           <div className="space-y-3">
+            {/* Employee Selector */}
             <div className="space-y-1.5">
-              <Label className="text-xs font-bold text-foreground">Colaborador</Label>
-              <Input
-                placeholder="Nombre del colaborador"
-                value={employeeName}
-                onChange={(e) => setEmployeeName(e.target.value)}
-                className="h-10 rounded-xl bg-background border-border/80 text-xs font-medium"
-                required
-              />
+              <Label className="text-xs font-bold text-foreground">Colaborador de la Plantilla</Label>
+              {employees.length > 0 ? (
+                <Select
+                  value={selectedEmployeeId || employees[0]?.id}
+                  onValueChange={(val) => val && setSelectedEmployeeId(val)}
+                >
+                  <SelectTrigger className="h-10 rounded-xl bg-background border-border/80 text-xs font-medium">
+                    <SelectValue placeholder="Seleccionar colaborador" />
+                  </SelectTrigger>
+                  <SelectContent className="rounded-xl max-h-56">
+                    {employees.map((emp) => (
+                      <SelectItem key={emp.id} value={emp.id} className="text-xs font-medium py-1.5">
+                        {emp.fullName} {emp.department ? `(${emp.department})` : ""}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              ) : (
+                <Input
+                  value="No hay colaboradores registrados en la plantilla"
+                  disabled
+                  className="h-10 rounded-xl bg-muted text-xs font-medium"
+                />
+              )}
             </div>
 
             <div className="space-y-1.5">
@@ -152,10 +203,11 @@ export function VacationRequestModal({
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent className="rounded-xl">
-                  <SelectItem value="vacaciones">Vacaciones Ordinarias (LFT)</SelectItem>
+                  <SelectItem value="vacaciones">Vacaciones Ordinarias (LFT Art. 76)</SelectItem>
                   <SelectItem value="permiso_con_goce">Permiso con Goce de Sueldo</SelectItem>
                   <SelectItem value="permiso_sin_goce">Permiso sin Goce de Sueldo</SelectItem>
-                  <SelectItem value="paternidad">Permiso de Paternidad</SelectItem>
+                  <SelectItem value="paternidad">Permiso de Paternidad (LFT)</SelectItem>
+                  <SelectItem value="maternidad">Incapacidad por Maternidad (LFT/IMSS)</SelectItem>
                   <SelectItem value="luto">Permiso por Duelo / Luto</SelectItem>
                 </SelectContent>
               </Select>
@@ -170,7 +222,12 @@ export function VacationRequestModal({
                   id="req-start"
                   type="date"
                   value={startDate}
-                  onChange={(e) => setStartDate(e.target.value)}
+                  onChange={(e) => {
+                    setStartDate(e.target.value);
+                    if (new Date(e.target.value) > new Date(endDate)) {
+                      setEndDate(e.target.value);
+                    }
+                  }}
                   className="h-10 rounded-xl bg-background border-border/80 text-xs font-medium"
                   required
                 />
@@ -184,6 +241,7 @@ export function VacationRequestModal({
                   id="req-end"
                   type="date"
                   value={endDate}
+                  min={startDate}
                   onChange={(e) => setEndDate(e.target.value)}
                   className="h-10 rounded-xl bg-background border-border/80 text-xs font-medium"
                   required
@@ -194,17 +252,17 @@ export function VacationRequestModal({
             {/* Live Calculation Feedback Card */}
             <div className="p-3.5 rounded-xl bg-muted/30 border border-border/50 space-y-1.5 text-xs">
               <div className="flex items-center justify-between font-bold">
-                <span className="text-muted-foreground">Días hábiles solicitados:</span>
+                <span className="text-muted-foreground">Días hábiles calculados:</span>
                 <span className="text-foreground text-sm font-extrabold">
-                  {workingDays} días
+                  {workingDays} día{workingDays !== 1 ? "s" : ""}
                 </span>
               </div>
 
               {requestType === "vacaciones" && (
                 <div className="flex items-center justify-between font-semibold pt-1 border-t border-border/40 text-[11px]">
-                  <span className="text-muted-foreground">Saldo disponible del colaborador:</span>
+                  <span className="text-muted-foreground">Derecho LFT del colaborador:</span>
                   <span className={exceedsBalance ? "text-destructive font-bold" : "text-emerald-600 dark:text-emerald-400 font-bold"}>
-                    {availableDaysBalance} días disponibles
+                    {availableDaysBalance} días LFT
                   </span>
                 </div>
               )}
@@ -216,7 +274,7 @@ export function VacationRequestModal({
               </Label>
               <Textarea
                 id="req-reason"
-                placeholder="Ej. Viaje familiar programado..."
+                placeholder="Ej. Registro de vacaciones pactadas..."
                 value={reason}
                 onChange={(e) => setReason(e.target.value)}
                 className="min-h-[70px] rounded-xl bg-background border-border/80 text-xs resize-none font-medium"
@@ -229,16 +287,27 @@ export function VacationRequestModal({
               type="button"
               variant="outline"
               onClick={() => onOpenChange(false)}
+              disabled={isSubmitting}
               className="rounded-xl text-xs font-bold h-10 px-4"
             >
               Cancelar
             </Button>
             <Button
               type="submit"
-              disabled={isSubmitting || exceedsBalance || workingDays <= 0}
-              className="rounded-xl text-xs font-bold h-10 px-5 bg-primary text-primary-foreground hover:bg-primary/90 shadow-xs"
+              disabled={isSubmitting || exceedsBalance || workingDays <= 0 || employees.length === 0}
+              className="rounded-xl text-xs font-bold h-10 px-5 bg-primary text-primary-foreground hover:bg-primary/90 shadow-xs gap-1.5"
             >
-              Enviar Solicitud
+              {isSubmitting ? (
+                <>
+                  <Loader2 className="size-3.5 animate-spin" />
+                  <span>Registrando...</span>
+                </>
+              ) : (
+                <>
+                  <Send className="size-3.5" />
+                  <span>Registrar y Aprobar Permiso</span>
+                </>
+              )}
             </Button>
           </DialogFooter>
         </form>

@@ -184,6 +184,8 @@ export const companyService = {
         notes,
         rating,
         interview_details,
+        scheduled_interview_at,
+        interview_status,
         hired_at,
         applied_at,
         updated_at,
@@ -231,11 +233,19 @@ export const companyService = {
       const vacObj = app.vacancies;
       const vacancy = Array.isArray(vacObj) ? vacObj[0] : vacObj;
 
+      const interviewData = app.interview_details ? {
+        ...app.interview_details,
+        status: app.interview_status || app.interview_details.status || "pending",
+        scheduledInterviewAt: app.scheduled_interview_at || null,
+      } : null;
+
       return {
         ...app,
         notes: app.notes || "",
         rating: app.rating ?? 5,
-        interview_details: app.interview_details || null,
+        interview_details: interviewData,
+        scheduled_interview_at: app.scheduled_interview_at || null,
+        interview_status: app.interview_status || (interviewData?.status) || null,
         hired_at: app.hired_at || null,
         vacancies: vacancy || { id: app.vacancy_id, title: "Vacante", company_id: companyId },
         candidate: {
@@ -269,7 +279,7 @@ export const companyService = {
     const supabase = createClient();
     const { error } = await supabase
       .from("applications")
-      .update({ notes: notes.trim(), updated_at: new Date().toISOString() })
+      .update({ notes, updated_at: new Date().toISOString() })
       .eq("id", applicationId);
 
     if (error) throw error;
@@ -287,10 +297,26 @@ export const companyService = {
 
   async updateApplicationInterview(applicationId: string, interviewDetails: any) {
     const supabase = createClient();
+    
+    let scheduledDateTime: string | null = null;
+    if (interviewDetails?.date) {
+      const timeStr = interviewDetails?.time || "10:00";
+      try {
+        scheduledDateTime = new Date(`${interviewDetails.date}T${timeStr}:00`).toISOString();
+      } catch {
+        scheduledDateTime = null;
+      }
+    }
+
     const { error } = await supabase
       .from("applications")
       .update({ 
-        interview_details: interviewDetails,
+        interview_details: {
+          ...interviewDetails,
+          status: interviewDetails?.status || "pending",
+        },
+        scheduled_interview_at: scheduledDateTime,
+        interview_status: interviewDetails?.status || "pending",
         status: "Entrevista",
         updated_at: new Date().toISOString() 
       })
