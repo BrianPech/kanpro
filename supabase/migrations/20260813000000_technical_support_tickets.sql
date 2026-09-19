@@ -5,7 +5,7 @@
 
 -- 1. Tabla de Tickets de Soporte
 CREATE TABLE IF NOT EXISTS public.support_tickets (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   ticket_number TEXT UNIQUE NOT NULL,
   user_id UUID REFERENCES public.profiles(id) ON DELETE CASCADE,
   subject TEXT NOT NULL,
@@ -21,7 +21,7 @@ CREATE TABLE IF NOT EXISTS public.support_tickets (
 
 -- 2. Tabla de Mensajes e Historial del Ticket
 CREATE TABLE IF NOT EXISTS public.support_ticket_messages (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   ticket_id UUID NOT NULL REFERENCES public.support_tickets(id) ON DELETE CASCADE,
   sender_id UUID NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
   is_internal_note BOOLEAN NOT NULL DEFAULT FALSE,

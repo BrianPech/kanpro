@@ -98,7 +98,7 @@ CREATE TABLE public.company_profiles (
 -- 5. PLANTILLA DE EMPLEADOS (B2B)
 -- ============================================================================
 CREATE TABLE public.company_employees (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   company_id UUID NOT NULL REFERENCES public.company_profiles(id) ON DELETE CASCADE,
   employee_id UUID NOT NULL REFERENCES public.candidate_profiles(id) ON DELETE CASCADE,
   job_title TEXT NOT NULL,
@@ -115,7 +115,7 @@ CREATE TABLE public.company_employees (
 -- 6. EXPEDIENTE DIGITAL Y DOCUMENTOS
 -- ============================================================================
 CREATE TABLE public.profile_documents (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   owner_id UUID NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
   doc_type document_type NOT NULL,
   file_url TEXT NOT NULL,
@@ -131,7 +131,7 @@ CREATE TABLE public.profile_documents (
 -- 7. VACANTES Y POSTULACIONES
 -- ============================================================================
 CREATE TABLE public.vacancies (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   company_id UUID NOT NULL REFERENCES public.company_profiles(id) ON DELETE CASCADE,
   recruiter_id UUID NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
   title TEXT NOT NULL,
@@ -156,7 +156,7 @@ CREATE TABLE public.vacancies (
 );
 
 CREATE TABLE public.applications (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   vacancy_id UUID NOT NULL REFERENCES public.vacancies(id) ON DELETE CASCADE,
   candidate_id UUID NOT NULL REFERENCES public.candidate_profiles(id) ON DELETE CASCADE,
   status VARCHAR(30) NOT NULL DEFAULT 'applied',
@@ -166,7 +166,7 @@ CREATE TABLE public.applications (
 );
 
 CREATE TABLE public.saved_vacancies (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   candidate_id UUID NOT NULL REFERENCES public.candidate_profiles(id) ON DELETE CASCADE,
   vacancy_id UUID NOT NULL REFERENCES public.vacancies(id) ON DELETE CASCADE,
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
@@ -174,7 +174,7 @@ CREATE TABLE public.saved_vacancies (
 );
 
 CREATE TABLE public.notifications (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id UUID NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
   title TEXT NOT NULL,
   description TEXT NOT NULL,

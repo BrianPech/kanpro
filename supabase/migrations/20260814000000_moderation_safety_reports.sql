@@ -4,7 +4,7 @@
 -- ============================================================================
 
 CREATE TABLE IF NOT EXISTS public.vacancy_reports (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   vacancy_id UUID REFERENCES public.vacancies(id) ON DELETE CASCADE,
   reporter_id UUID REFERENCES public.profiles(id) ON DELETE SET NULL,
   reason TEXT NOT NULL DEFAULT 'cobro_dinero', -- 'cobro_dinero', 'vacante_falsa', 'discriminacion', 'suplantacion', 'condiciones_abusivas'
