@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect } from "react";
 import {
   Calendar as CalendarIcon,
   Clock,
@@ -52,7 +52,33 @@ export function EmployeeAttendanceDossierModal({
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
   const [isExporting, setIsExporting] = useState(false);
 
-  const history: EmployeeAttendanceHistory = useMemo(() => {
+  const [dbHistory, setDbHistory] = useState<EmployeeAttendanceHistory | null>(null);
+  const [isLoadingHistory, setIsLoadingHistory] = useState(false);
+
+  useEffect(() => {
+    if (!employee || !isOpen) return;
+    let isMounted = true;
+    setIsLoadingHistory(true);
+    import("../../actions/attendance")
+      .then(({ getEmployeeAttendanceHistoryAction }) =>
+        getEmployeeAttendanceHistoryAction(employee.employeeId, selectedMonth, selectedYear)
+      )
+      .then((res) => {
+        if (isMounted && res.success && res.history) {
+          setDbHistory(res.history);
+        }
+      })
+      .catch((err) => console.error("Error fetching attendance history:", err))
+      .finally(() => {
+        if (isMounted) setIsLoadingHistory(false);
+      });
+
+    return () => {
+      isMounted = false;
+    };
+  }, [employee, selectedMonth, selectedYear, isOpen]);
+
+  const fallbackHistory: EmployeeAttendanceHistory = useMemo(() => {
     if (!employee) {
       return getIndividualAttendanceHistory("emp-default", "Colaborador", selectedMonth, selectedYear);
     }
@@ -63,6 +89,8 @@ export function EmployeeAttendanceDossierModal({
       selectedYear
     );
   }, [employee, selectedMonth, selectedYear]);
+
+  const history = dbHistory || fallbackHistory;
 
   if (!employee) return null;
 

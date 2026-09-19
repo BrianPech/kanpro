@@ -42,6 +42,10 @@ import {
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { PendingIncidentItem, TodayAttendanceItem } from "../../types/dashboard";
+import {
+  createIncidentAction,
+  updateIncidentStatusAction,
+} from "../../actions/incidents";
 
 interface IncidentsAttendanceCardProps {
   initialIncidents: PendingIncidentItem[];
@@ -64,59 +68,91 @@ export function IncidentsAttendanceCard({
   const [newDescription, setNewDescription] = useState("");
   const [newSeverity, setNewSeverity] = useState<PendingIncidentItem["severity"]>("media");
 
-  const handleResolveIncident = (id: string, newStatus: "aprobado" | "rechazado") => {
-    setIncidents((prev) =>
-      prev.map((inc) => (inc.id === id ? { ...inc, status: newStatus } : inc))
-    );
-    toast.success(
-      newStatus === "aprobado"
-        ? "Incidencia autorizada con éxito"
-        : "Incidencia rechazada",
-      {
-        description: "El estatus ha sido actualizado para el cierre de nómina.",
-      }
+  const handleResolveIncident = async (id: string, newStatus: "aprobado" | "rechazado") => {
+    const prev = [...incidents];
+    setIncidents((curr) =>
+      curr.map((inc) => (inc.id === id ? { ...inc, status: newStatus } : inc))
     );
     setIsDetailModalOpen(false);
+
+    try {
+      const res = await updateIncidentStatusAction({
+        incidentId: id,
+        status: newStatus,
+      });
+
+      if (!res.success) {
+        setIncidents(prev);
+        toast.error("Error al actualizar la incidencia", { description: res.error });
+        return;
+      }
+
+      toast.success(
+        newStatus === "aprobado"
+          ? "Incidencia autorizada con éxito"
+          : "Incidencia rechazada",
+        {
+          description: "El estatus ha sido actualizado para el cierre de nómina.",
+        }
+      );
+    } catch (err: any) {
+      setIncidents(prev);
+      toast.error("Error al comunicar con el servidor", { description: err.message });
+    }
   };
 
-  const handleCreateIncident = (e: React.FormEvent) => {
+  const handleCreateIncident = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newEmployeeName.trim() || !newTitle.trim()) {
       toast.error("Por favor completa los campos requeridos.");
       return;
     }
 
-    const createdItem: PendingIncidentItem = {
-      id: `inc-manual-${Date.now()}`,
-      employeeId: "emp-manual",
-      employeeName: newEmployeeName.trim(),
-      avatarUrl: null,
-      department: "Operaciones",
-      type: newType,
-      typeLabel:
-        newType === "permiso"
-          ? "Permiso Personal"
-          : newType === "incapacidad"
-          ? "Incapacidad IMSS"
-          : newType === "horas_extra"
-          ? "Horas Extra"
-          : "Incidencia Operativa",
-      title: newTitle.trim(),
-      description: newDescription.trim() || "Registrada manualmente desde el panel.",
-      date: new Date().toISOString().split("T")[0],
-      severity: newSeverity,
-      status: "pendiente",
-    };
+    try {
+      const category = (
+        newType === "horas_extra" ? "otro" : newType
+      ) as any;
 
-    setIncidents((prev) => [createdItem, ...prev]);
-    toast.success("Incidencia registrada con éxito", {
-      description: "Aparecerá en la lista para su revisión y cómputo.",
-    });
+      const res = await createIncidentAction({
+        employeeName: newEmployeeName.trim(),
+        title: newTitle.trim(),
+        description: newDescription.trim() || "Registrada manualmente desde el panel.",
+        category,
+        severity: newSeverity,
+      });
 
-    setNewEmployeeName("");
-    setNewTitle("");
-    setNewDescription("");
-    setIsNewIncidentOpen(false);
+      if (!res.success || !res.incident) {
+        toast.error("Error al registrar incidencia", { description: res.error });
+        return;
+      }
+
+      const createdItem: PendingIncidentItem = {
+        id: res.incident.id,
+        employeeId: res.incident.employeeId || "",
+        employeeName: res.incident.employeeName,
+        avatarUrl: res.incident.avatarUrl || null,
+        department: res.incident.department,
+        type: newType,
+        typeLabel: res.incident.categoryLabel,
+        title: res.incident.title,
+        description: res.incident.description,
+        date: res.incident.incidentDate,
+        severity: res.incident.severity,
+        status: "pendiente",
+      };
+
+      setIncidents((prev) => [createdItem, ...prev]);
+      toast.success("Incidencia registrada con éxito", {
+        description: "Aparecerá en la lista para su revisión y cómputo.",
+      });
+
+      setNewEmployeeName("");
+      setNewTitle("");
+      setNewDescription("");
+      setIsNewIncidentOpen(false);
+    } catch (err: any) {
+      toast.error("Error al guardar incidencia", { description: err.message });
+    }
   };
 
   const pendingCount = incidents.filter((i) => i.status === "pendiente").length;

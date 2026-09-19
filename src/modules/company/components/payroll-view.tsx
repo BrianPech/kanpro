@@ -21,6 +21,8 @@ import {
   Edit2,
   UserCheck,
   AlertTriangle,
+  Loader2,
+  Layers,
 } from "lucide-react";
 import Link from "next/link";
 import { Card } from "@/components/ui/card";
@@ -28,139 +30,65 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+} from "@/components/ui/dropdown-menu";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { PayrollSummaryData, WorkforceKPIs } from "../types/dashboard";
-import { PayrollEmployeeItem } from "../types/payroll";
+import { PayrollEmployeeItem, PayrollPeriodSummary } from "../types/payroll";
 import { PayrollSlipModal } from "./payroll/payroll-slip-modal";
 import { AdjustPayrollItemModal } from "./payroll/adjust-payroll-item-modal";
+import {
+  adjustEmployeeBonusesAction,
+  disperseCompanyPayrollAction,
+} from "../actions/payroll";
+import {
+  generateBankDispersalLayout,
+  BankLayoutType,
+} from "../utils/bank-layout-generator";
 
 interface PayrollViewProps {
-  payroll: PayrollSummaryData;
-  kpis: WorkforceKPIs;
+  payrollSummary?: PayrollPeriodSummary;
+  companyName?: string;
+  kpis?: WorkforceKPIs;
+  payroll?: PayrollSummaryData;
 }
 
-export function PayrollView({ payroll: initialPayroll, kpis }: PayrollViewProps) {
-  const [isExporting, setIsExporting] = useState(false);
-  const [isSimulatingPayout, setIsSimulatingPayout] = useState(false);
-  const [currentStatus, setCurrentStatus] = useState(initialPayroll.status);
+export function PayrollView({
+  payrollSummary,
+  companyName = "Mi Empresa",
+  kpis,
+  payroll: fallbackPayroll,
+}: PayrollViewProps) {
+  const periodName =
+    payrollSummary?.periodName ||
+    fallbackPayroll?.periodName ||
+    "Quincena Actual";
+  const startDate = payrollSummary?.startDate || "2026-09-01";
+  const endDate = payrollSummary?.endDate || "2026-09-15";
+  const payoutDate = payrollSummary?.payoutDate || endDate;
+
+  const [employees, setEmployees] = useState<PayrollEmployeeItem[]>(
+    payrollSummary?.employees || []
+  );
+  const [currentStatus, setCurrentStatus] = useState<"borrador" | "calculada" | "pagada">(
+    payrollSummary?.status === "dispersada" || payrollSummary?.status === "pagada"
+      ? "pagada"
+      : (payrollSummary?.status as "borrador" | "calculada") ||
+        (fallbackPayroll?.status === "pagada" ? "pagada" : "calculada")
+  );
   const [searchQuery, setSearchQuery] = useState("");
+  const [isDispersing, setIsDispersing] = useState(false);
 
   // Modals state
   const [selectedSlipEmployee, setSelectedSlipEmployee] = useState<PayrollEmployeeItem | null>(null);
   const [selectedAdjustEmployee, setSelectedAdjustEmployee] = useState<PayrollEmployeeItem | null>(null);
-
-  // Realistic employee breakdown for pre-payroll
-  const [employees, setEmployees] = useState<PayrollEmployeeItem[]>([
-    {
-      id: "pay-001",
-      employeeId: "emp-001",
-      employeeName: "Carlos Mendoza",
-      jobTitle: "Supervisor de Mantenimiento",
-      department: "Operaciones",
-      baseSalaryPeriod: 9250, // quincena
-      daysWorked: 15,
-      overtimeHours: 6.5,
-      overtimePay: 1235,
-      punctualityBonus: 500,
-      attendanceBonus: 500,
-      performanceBonus: 800,
-      unjustifiedAbsences: 0,
-      absenceDeductions: 0,
-      lateArrivals: 0,
-      delayDeductions: 0,
-      imssDeduction: 285,
-      isrEstimated: 840,
-      totalPerceptions: 12285,
-      totalDeductions: 1125,
-      netPayEstimated: 11160,
-      bankAccount: {
-        bankName: "BBVA México",
-        clabe: "012691001234567890",
-      },
-    },
-    {
-      id: "pay-002",
-      employeeId: "emp-002",
-      employeeName: "Mariana Silva",
-      jobTitle: "Capitán de Meseros",
-      department: "Alimentos y Bebidas",
-      baseSalaryPeriod: 8000,
-      daysWorked: 15,
-      overtimeHours: 0,
-      overtimePay: 0,
-      punctualityBonus: 0, // perdió por retardo
-      attendanceBonus: 400,
-      performanceBonus: 600,
-      unjustifiedAbsences: 0,
-      absenceDeductions: 0,
-      lateArrivals: 1,
-      delayDeductions: 150,
-      imssDeduction: 245,
-      isrEstimated: 680,
-      totalPerceptions: 9000,
-      totalDeductions: 1075,
-      netPayEstimated: 7925,
-      bankAccount: {
-        bankName: "Santander México",
-        clabe: "014691009876543210",
-      },
-    },
-    {
-      id: "pay-003",
-      employeeId: "emp-003",
-      employeeName: "Alejandro Ruiz",
-      jobTitle: "Cocinero A",
-      department: "Cocina & Producción",
-      baseSalaryPeriod: 7500,
-      daysWorked: 15,
-      overtimeHours: 4.0,
-      overtimePay: 700,
-      punctualityBonus: 400,
-      attendanceBonus: 400,
-      performanceBonus: 0,
-      unjustifiedAbsences: 0,
-      absenceDeductions: 0,
-      lateArrivals: 0,
-      delayDeductions: 0,
-      imssDeduction: 220,
-      isrEstimated: 590,
-      totalPerceptions: 9000,
-      totalDeductions: 810,
-      netPayEstimated: 8190,
-      bankAccount: {
-        bankName: "Banorte",
-        clabe: "072691004561237890",
-      },
-    },
-    {
-      id: "pay-004",
-      employeeId: "emp-004",
-      employeeName: "Sofía Morales",
-      jobTitle: "Recepcionista Bilingüe",
-      department: "Front Desk",
-      baseSalaryPeriod: 8500,
-      daysWorked: 14,
-      overtimeHours: 0,
-      overtimePay: 0,
-      punctualityBonus: 0,
-      attendanceBonus: 0,
-      performanceBonus: 300,
-      unjustifiedAbsences: 1,
-      absenceDeductions: 566,
-      lateArrivals: 0,
-      delayDeductions: 0,
-      imssDeduction: 255,
-      isrEstimated: 620,
-      totalPerceptions: 8800,
-      totalDeductions: 1441,
-      netPayEstimated: 7359,
-      bankAccount: {
-        bankName: "BBVA México",
-        clabe: "012691005544332211",
-      },
-    },
-  ]);
 
   const filteredEmployees = employees.filter(
     (e) =>
@@ -174,12 +102,15 @@ export function PayrollView({ payroll: initialPayroll, kpis }: PayrollViewProps)
   const totalNetCalculated = employees.reduce((acc, curr) => acc + curr.netPayEstimated, 0);
   const totalOvertimeCalculated = employees.reduce((acc, curr) => acc + curr.overtimePay, 0);
 
-  const handleAdjustBonus = (
+  const handleAdjustBonus = async (
     employeeId: string,
     punctuality: number,
     attendance: number,
     performance: number
   ) => {
+    const prevEmployees = [...employees];
+
+    // Actualización optimista
     setEmployees((prev) =>
       prev.map((emp) => {
         if (emp.employeeId === employeeId) {
@@ -189,7 +120,7 @@ export function PayrollView({ payroll: initialPayroll, kpis }: PayrollViewProps)
             punctuality +
             attendance +
             performance;
-          const netPayEstimated = totalPerceptions - emp.totalDeductions;
+          const netPayEstimated = Math.max(0, totalPerceptions - emp.totalDeductions);
           return {
             ...emp,
             punctualityBonus: punctuality,
@@ -202,27 +133,105 @@ export function PayrollView({ payroll: initialPayroll, kpis }: PayrollViewProps)
         return emp;
       })
     );
+
+    try {
+      const res = await adjustEmployeeBonusesAction({
+        employeeId,
+        punctualityBonus: punctuality,
+        attendanceBonus: attendance,
+        performanceBonus: performance,
+        startDate,
+        endDate,
+      });
+
+      if (!res.success) {
+        setEmployees(prevEmployees);
+        toast.error("No se pudo guardar el ajuste de bonos", { description: res.error });
+        return;
+      }
+
+      toast.success("Bonos guardados en base de datos", {
+        description: "El cálculo de la pre-nómina ha sido actualizado permanentemente.",
+      });
+    } catch (err: any) {
+      setEmployees(prevEmployees);
+      toast.error("Error al guardar bonos", { description: err.message });
+    }
   };
 
-  const handleExport = () => {
-    setIsExporting(true);
-    setTimeout(() => {
-      setIsExporting(false);
+  const handleDownloadLayout = (layoutType: BankLayoutType) => {
+    if (employees.length === 0) {
+      toast.error("No hay colaboradores para generar el layout bancario.");
+      return;
+    }
+
+    try {
+      const result = generateBankDispersalLayout(employees, periodName, layoutType);
+
+      const blob = new Blob([result.content], { type: result.mimeType });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = result.fileName;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+
       toast.success("Layout de Dispersión Bancaria Generado", {
-        description: `Se descargó el archivo TXT/CSV para transferencia masiva (BBVA, Banorte, Santander, STP).`,
+        description: `Se descargó exitosamente: ${result.fileName} con ${employees.length} registros.`,
       });
-    }, 1000);
+    } catch {
+      toast.error("Error al generar layout bancario.");
+    }
   };
 
-  const handleSimulatePayout = () => {
-    setIsSimulatingPayout(true);
-    setTimeout(() => {
-      setIsSimulatingPayout(false);
-      setCurrentStatus("pagada");
-      toast.success("Nómina dispersada con éxito", {
-        description: `Se procesó la orden de transferencia por $${totalNetCalculated.toLocaleString()} MXN para ${employees.length} colaboradores.`,
+  const handleDispersePayout = async () => {
+    if (employees.length === 0) {
+      toast.error("No hay colaboradores para dispersar la nómina.");
+      return;
+    }
+
+    if (
+      !confirm(
+        `¿Deseas confirmar la dispersión de la ${periodName} por un monto total neto de $${totalNetCalculated.toLocaleString()} MXN para ${employees.length} colaboradores?`
+      )
+    ) {
+      return;
+    }
+
+    setIsDispersing(true);
+    try {
+      const res = await disperseCompanyPayrollAction({
+        periodName,
+        startDate,
+        endDate,
+        payoutDate,
+        totalGross: totalGrossCalculated,
+        totalOvertime: totalOvertimeCalculated,
+        totalBonuses: employees.reduce(
+          (acc, e) => acc + e.punctualityBonus + e.attendanceBonus + e.performanceBonus,
+          0
+        ),
+        totalDeductions: totalDeductionsCalculated,
+        totalNet: totalNetCalculated,
+        employees,
       });
-    }, 1200);
+
+      if (!res.success) {
+        toast.error("Error al procesar dispersión", { description: res.error });
+        return;
+      }
+
+      setCurrentStatus("pagada");
+      toast.success("Nómina dispersada y registrada con éxito", {
+        description: `Se procesó la orden por $${totalNetCalculated.toLocaleString()} MXN respaldada en Supabase.`,
+      });
+    } catch (err: any) {
+      toast.error("Error al comunicar con el servidor", { description: err.message });
+    } finally {
+      setIsDispersing(false);
+    }
   };
 
   return (
@@ -244,36 +253,82 @@ export function PayrollView({ payroll: initialPayroll, kpis }: PayrollViewProps)
             <span>Nómina, Percepciones & Dispersión</span>
           </h1>
           <p className="text-xs sm:text-sm text-muted-foreground font-semibold">
-            {`Pre-nómina para la ${initialPayroll.periodName} (${initialPayroll.periodDates || "Periodo en curso"}). Cálculo automático de incidencias y asistencias.`}
+            {`Pre-nómina para la ${periodName} (${startDate} al ${endDate}). Cálculo automático de LFT, IMSS, ISR y asistencias.`}
           </p>
         </div>
 
         <div className="flex items-center gap-2.5 flex-wrap">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={handleExport}
-            disabled={isExporting}
-            className="rounded-xl text-xs font-bold h-10 px-4 border-border/70 shadow-xs flex items-center gap-1.5"
-          >
-            <FileSpreadsheet className="size-3.5" />
-            <span>{isExporting ? "Generando..." : "Descargar Layout Bancario"}</span>
-          </Button>
+          {/* Dropdown de layouts bancarios */}
+          <DropdownMenu>
+            <DropdownMenuTrigger
+              render={
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="rounded-xl text-xs font-bold h-10 px-4 border-border/70 shadow-xs flex items-center gap-1.5"
+                >
+                  <FileSpreadsheet className="size-3.5" />
+                  <span>Descargar Layout Bancario</span>
+                </Button>
+              }
+            />
+            <DropdownMenuContent align="end" className="rounded-xl w-60">
+              <DropdownMenuLabel className="text-xs font-bold">
+                Formatos de Banca Empresarial
+              </DropdownMenuLabel>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem
+                onClick={() => handleDownloadLayout("csv_universal")}
+                className="text-xs font-medium cursor-pointer"
+              >
+                <FileSpreadsheet className="size-3.5 mr-2 text-emerald-600" />
+                <span>CSV Universal (Banca / Excel)</span>
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                onClick={() => handleDownloadLayout("bbva")}
+                className="text-xs font-medium cursor-pointer"
+              >
+                <Building2 className="size-3.5 mr-2 text-blue-600" />
+                <span>Layout BBVA (.TXT)</span>
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                onClick={() => handleDownloadLayout("banorte")}
+                className="text-xs font-medium cursor-pointer"
+              >
+                <Building2 className="size-3.5 mr-2 text-red-600" />
+                <span>Layout Banorte B-Net (.TXT)</span>
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                onClick={() => handleDownloadLayout("stp")}
+                className="text-xs font-medium cursor-pointer"
+              >
+                <Layers className="size-3.5 mr-2 text-indigo-600" />
+                <span>Layout STP SPEI Masivo (.CSV)</span>
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
 
           <Button
             size="sm"
-            onClick={handleSimulatePayout}
-            disabled={isSimulatingPayout || currentStatus === "pagada"}
+            onClick={handleDispersePayout}
+            disabled={isDispersing || currentStatus === "pagada" || employees.length === 0}
             className="rounded-xl text-xs font-bold h-10 px-4 bg-primary text-primary-foreground hover:bg-primary/90 shadow-xs flex items-center gap-1.5"
           >
-            <Receipt className="size-4" />
-            <span>
-              {isSimulatingPayout
-                ? "Dispersando..."
-                : currentStatus === "pagada"
-                ? "Nómina Dispersada"
-                : "Aprobar & Dispersar Nómina"}
-            </span>
+            {isDispersing ? (
+              <>
+                <Loader2 className="size-4 animate-spin" />
+                <span>Dispersando...</span>
+              </>
+            ) : (
+              <>
+                <Receipt className="size-4" />
+                <span>
+                  {currentStatus === "pagada"
+                    ? "Nómina Dispersada"
+                    : "Aprobar & Dispersar Nómina"}
+                </span>
+              </>
+            )}
           </Button>
         </div>
       </div>
@@ -315,22 +370,29 @@ export function PayrollView({ payroll: initialPayroll, kpis }: PayrollViewProps)
             -${totalDeductionsCalculated.toLocaleString()} MXN
           </div>
           <p className="text-[11px] text-muted-foreground font-medium">
-            Faltas, retardos, IMSS e ISR estimado
+            Faltas, retardos, IMSS e ISR Art. 96
           </p>
         </Card>
 
         <Card className="rounded-2xl border border-border/40 bg-card p-5 space-y-2 shadow-xs">
           <div className="flex items-center justify-between text-xs font-bold text-muted-foreground">
             <span>Dispersión Neta Total</span>
-            <Badge className="bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border-none text-[10px]">
-              {currentStatus === "pagada" ? "Dispersada" : "Por Pagar"}
+            <Badge
+              className={cn(
+                "border-none text-[10px]",
+                currentStatus === "pagada"
+                  ? "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 font-bold"
+                  : "bg-amber-500/15 text-amber-700 dark:text-amber-300 font-bold"
+              )}
+            >
+              {currentStatus === "pagada" ? "Dispersada" : "Por Dispersar"}
             </Badge>
           </div>
           <div className="text-2xl sm:text-3xl font-extrabold text-emerald-600 dark:text-emerald-400">
             ${totalNetCalculated.toLocaleString()} MXN
           </div>
           <p className="text-[11px] text-muted-foreground font-medium">
-            Monto total a transferir a colaboradores
+            Monto transferido a {employees.length} colaboradores
           </p>
         </Card>
       </div>
@@ -348,101 +410,151 @@ export function PayrollView({ payroll: initialPayroll, kpis }: PayrollViewProps)
             />
           </div>
 
-          <Badge variant="outline" className="text-xs font-bold py-1.5 px-3 rounded-xl border-border/70 self-start sm:self-center">
+          <Badge
+            variant="outline"
+            className="text-xs font-bold py-1.5 px-3 rounded-xl border-border/70 self-start sm:self-center"
+          >
             {`${filteredEmployees.length} colaboradores en pre-nómina`}
           </Badge>
         </div>
 
-        <div className="space-y-3">
-          {filteredEmployees.map((emp) => (
-            <div
-              key={emp.id}
-              className="p-4 rounded-xl border border-border/50 bg-background hover:border-border transition-all flex flex-col lg:flex-row lg:items-center justify-between gap-4"
+        {employees.length === 0 ? (
+          <div className="p-12 text-center bg-muted/20 rounded-xl border border-dashed border-border/60 space-y-3">
+            <Users className="size-8 text-muted-foreground mx-auto stroke-1" />
+            <div className="space-y-1">
+              <p className="text-sm font-bold text-foreground">
+                No hay colaboradores activos en la plantilla
+              </p>
+              <p className="text-xs text-muted-foreground max-w-sm mx-auto">
+                Para calcular la nómina y dispersión bancaria, agrega colaboradores en el módulo de Plantilla o contrata candidatos desde reclutamiento.
+              </p>
+            </div>
+            <Button
+              render={<Link href="/dashboard/company/employees" />}
+              variant="outline"
+              size="sm"
+              className="mt-2 rounded-xl text-xs font-bold"
             >
-              <div className="flex items-start gap-3.5 min-w-0">
-                <Avatar className="size-11 rounded-xl shrink-0 border border-border/40">
-                  <AvatarImage src={emp.avatarUrl || ""} />
-                  <AvatarFallback className="rounded-xl text-xs font-bold bg-muted text-muted-foreground">
-                    {emp.employeeName.slice(0, 2).toUpperCase()}
-                  </AvatarFallback>
-                </Avatar>
+              <Plus className="size-3.5 mr-1" />
+              Ir a Plantilla de Colaboradores
+            </Button>
+          </div>
+        ) : filteredEmployees.length === 0 ? (
+          <div className="p-8 text-center bg-muted/20 rounded-xl border border-dashed border-border/60">
+            <p className="text-xs text-muted-foreground">
+              No se encontraron colaboradores que coincidan con la búsqueda.
+            </p>
+          </div>
+        ) : (
+          <div className="space-y-3">
+            {filteredEmployees.map((emp) => (
+              <div
+                key={emp.id}
+                className="p-4 rounded-xl border border-border/50 bg-background hover:border-border transition-all flex flex-col lg:flex-row lg:items-center justify-between gap-4"
+              >
+                <div className="flex items-start gap-3.5 min-w-0">
+                  <Avatar className="size-11 rounded-xl shrink-0 border border-border/40">
+                    <AvatarImage src={emp.avatarUrl || ""} />
+                    <AvatarFallback className="rounded-xl text-xs font-bold bg-muted text-muted-foreground">
+                      {emp.employeeName.slice(0, 2).toUpperCase()}
+                    </AvatarFallback>
+                  </Avatar>
 
-                <div className="space-y-1 min-w-0">
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <h4 className="text-sm font-extrabold text-foreground truncate">
-                      {emp.employeeName}
-                    </h4>
-                    <span className="text-xs text-muted-foreground font-medium">
-                      • {emp.jobTitle} ({emp.department})
+                  <div className="space-y-1 min-w-0">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <h4 className="text-sm font-extrabold text-foreground truncate">
+                        {emp.employeeName}
+                      </h4>
+                      <span className="text-xs text-muted-foreground font-medium">
+                        • {emp.jobTitle} ({emp.department})
+                      </span>
+                    </div>
+
+                    <div className="flex items-center gap-3 text-xs text-muted-foreground font-semibold flex-wrap">
+                      <span>
+                        Sueldo Base:{" "}
+                        <strong className="text-foreground">
+                          ${emp.baseSalaryPeriod.toLocaleString()}
+                        </strong>
+                      </span>
+                      <span>•</span>
+                      <span>
+                        Días:{" "}
+                        <strong className="text-foreground">{emp.daysWorked}</strong>
+                      </span>
+                      {emp.overtimeHours > 0 && (
+                        <>
+                          <span>•</span>
+                          <span className="text-indigo-600 dark:text-indigo-400 font-bold">
+                            +{emp.overtimeHours}h Extra (+${emp.overtimePay.toLocaleString()})
+                          </span>
+                        </>
+                      )}
+                      {(emp.punctualityBonus > 0 ||
+                        emp.attendanceBonus > 0 ||
+                        emp.performanceBonus > 0) && (
+                        <>
+                          <span>•</span>
+                          <span className="text-emerald-600 dark:text-emerald-400 font-bold">
+                            +${emp.punctualityBonus + emp.attendanceBonus + emp.performanceBonus} Bonos
+                          </span>
+                        </>
+                      )}
+                      {emp.unjustifiedAbsences > 0 && (
+                        <>
+                          <span>•</span>
+                          <span className="text-destructive font-bold">
+                            -{emp.unjustifiedAbsences} Falta (-${emp.absenceDeductions})
+                          </span>
+                        </>
+                      )}
+                      {emp.bankAccount && (
+                        <>
+                          <span>•</span>
+                          <span className="font-mono text-[11px] text-muted-foreground">
+                            {emp.bankAccount.bankName} ••••{emp.bankAccount.clabe.slice(-4)}
+                          </span>
+                        </>
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Net Pay and Actions */}
+                <div className="flex items-center gap-3 self-end lg:self-center shrink-0">
+                  <div className="text-right">
+                    <span className="text-[10px] font-bold text-muted-foreground uppercase block">
+                      Pago Neto Estimado
+                    </span>
+                    <span className="text-base font-extrabold text-emerald-600 dark:text-emerald-400">
+                      ${emp.netPayEstimated.toLocaleString()} MXN
                     </span>
                   </div>
 
-                  <div className="flex items-center gap-3 text-xs text-muted-foreground font-semibold flex-wrap">
-                    <span>Sueldo Base: <strong className="text-foreground">${emp.baseSalaryPeriod.toLocaleString()}</strong></span>
-                    <span>•</span>
-                    <span>Días: <strong className="text-foreground">{emp.daysWorked}</strong></span>
-                    {emp.overtimeHours > 0 && (
-                      <>
-                        <span>•</span>
-                        <span className="text-indigo-600 dark:text-indigo-400 font-bold">
-                          +{emp.overtimeHours}h Extra (+${emp.overtimePay.toLocaleString()})
-                        </span>
-                      </>
-                    )}
-                    {(emp.punctualityBonus > 0 || emp.attendanceBonus > 0 || emp.performanceBonus > 0) && (
-                      <>
-                        <span>•</span>
-                        <span className="text-emerald-600 dark:text-emerald-400 font-bold">
-                          +${emp.punctualityBonus + emp.attendanceBonus + emp.performanceBonus} Bonos
-                        </span>
-                      </>
-                    )}
-                    {emp.unjustifiedAbsences > 0 && (
-                      <>
-                        <span>•</span>
-                        <span className="text-destructive font-bold">
-                          -{emp.unjustifiedAbsences} Falta (-${emp.absenceDeductions})
-                        </span>
-                      </>
-                    )}
-                  </div>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => setSelectedAdjustEmployee(emp)}
+                    className="h-8 px-2.5 rounded-lg text-xs font-bold border-border/70 flex items-center gap-1"
+                  >
+                    <Edit2 className="size-3" />
+                    <span>Ajustar Bonos</span>
+                  </Button>
+
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => setSelectedSlipEmployee(emp)}
+                    className="h-8 px-2.5 rounded-lg text-xs font-bold border-border/70 flex items-center gap-1"
+                  >
+                    <Eye className="size-3" />
+                    <span>Ver Recibo</span>
+                  </Button>
                 </div>
               </div>
-
-              {/* Net Pay and Actions */}
-              <div className="flex items-center gap-3 self-end lg:self-center shrink-0">
-                <div className="text-right">
-                  <span className="text-[10px] font-bold text-muted-foreground uppercase block">
-                    Pago Neto Estimado
-                  </span>
-                  <span className="text-base font-extrabold text-emerald-600 dark:text-emerald-400">
-                    ${emp.netPayEstimated.toLocaleString()} MXN
-                  </span>
-                </div>
-
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={() => setSelectedAdjustEmployee(emp)}
-                  className="h-8 px-2.5 rounded-lg text-xs font-bold border-border/70 flex items-center gap-1"
-                >
-                  <Edit2 className="size-3" />
-                  <span>Ajustar Bonos</span>
-                </Button>
-
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={() => setSelectedSlipEmployee(emp)}
-                  className="h-8 px-2.5 rounded-lg text-xs font-bold border-border/70 flex items-center gap-1"
-                >
-                  <Eye className="size-3" />
-                  <span>Ver Recibo</span>
-                </Button>
-              </div>
-            </div>
-          ))}
-        </div>
+            ))}
+          </div>
+        )}
       </Card>
 
       {/* Modal 1: Individual Pay Slip */}
@@ -450,7 +562,8 @@ export function PayrollView({ payroll: initialPayroll, kpis }: PayrollViewProps)
         isOpen={!!selectedSlipEmployee}
         onOpenChange={(open) => !open && setSelectedSlipEmployee(null)}
         employee={selectedSlipEmployee}
-        periodName={initialPayroll.periodName}
+        periodName={periodName}
+        companyName={companyName}
       />
 
       {/* Modal 2: Adjust Bonuses */}

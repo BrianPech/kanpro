@@ -13,6 +13,7 @@ import {
   Award,
   HeartPulse,
   MessageSquareWarning,
+  Loader2,
 } from "lucide-react";
 import {
   Dialog,
@@ -35,19 +36,32 @@ import {
 } from "@/components/ui/select";
 import { toast } from "sonner";
 import { LaborIncident, IncidentCategory, IncidentSeverity } from "../../types/incidents";
+import { createIncidentAction } from "../../actions/incidents";
+
+export interface EmployeeRosterOption {
+  id: string;
+  fullName: string;
+  jobTitle?: string | null;
+  department?: string | null;
+}
 
 interface NewIncidentModalProps {
   isOpen: boolean;
   onOpenChange: (open: boolean) => void;
   onIncidentCreated: (incident: LaborIncident) => void;
+  employees?: EmployeeRosterOption[];
 }
 
 export function NewIncidentModal({
   isOpen,
   onOpenChange,
   onIncidentCreated,
+  employees = [],
 }: NewIncidentModalProps) {
+  const [selectedEmployeeId, setSelectedEmployeeId] = useState<string>("");
   const [employeeName, setEmployeeName] = useState("");
+  const [jobTitle, setJobTitle] = useState("");
+  const [department, setDepartment] = useState("");
   const [category, setCategory] = useState<IncidentCategory>("falta_injustificada");
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
@@ -56,6 +70,7 @@ export function NewIncidentModal({
   const [supervisor, setSupervisor] = useState("");
   const [hasEvidence, setHasEvidence] = useState(false);
   const [evidenceFileName, setEvidenceFileName] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const categoryLabels: Record<IncidentCategory, string> = {
     falta_injustificada: "Falta Injustificada",
@@ -64,52 +79,87 @@ export function NewIncidentModal({
     queja: "Queja / Reporte de Conducta",
     permiso: "Permiso Especial",
     suspension: "Suspensión Administrativa",
-    incumplimiento: "Incumplimiento / Acta Administrativa",
+    incumplimiento: "Acta Administrativa / Incumplimiento",
     reconocimiento: "⭐ Reconocimiento / Desempeño Destacado",
+    incapacidad: "Incapacidad Médica (IMSS)",
+    otro: "Otra Incidencia",
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSelectEmployee = (empId: string) => {
+    setSelectedEmployeeId(empId);
+    const emp = employees.find((e) => e.id === empId);
+    if (emp) {
+      setEmployeeName(emp.fullName);
+      setJobTitle(emp.jobTitle || "Colaborador");
+      setDepartment(emp.department || "Operaciones");
+    }
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!employeeName.trim() || !title.trim() || !description.trim()) {
       toast.error("Por favor completa todos los campos requeridos.");
       return;
     }
 
-    const newInc: LaborIncident = {
-      id: `inc-${Date.now()}`,
-      employeeId: `emp-${Date.now()}`,
-      employeeName: employeeName.trim(),
-      jobTitle: "Colaborador K'anPro",
-      department: "Operaciones",
-      category,
-      categoryLabel: categoryLabels[category],
-      title: title.trim(),
-      description: description.trim(),
-      incidentDate,
-      severity,
-      evidenceUrl: hasEvidence ? "/assets/docs/evidencia_sample.pdf" : undefined,
-      evidenceFileName: hasEvidence ? evidenceFileName || "Evidencia_Incidencia.pdf" : undefined,
-      evidenceType: category === "accidente" ? "receta_medica" : category === "incumplimiento" ? "acta_administrativa" : "documento",
-      responsibleSupervisor: supervisor.trim(),
-      status: category === "reconocimiento" ? "resuelto" : "pendiente",
-      createdAt: "Hoy",
-    };
+    setIsSubmitting(true);
+    try {
+      const res = await createIncidentAction({
+        employeeId: selectedEmployeeId || undefined,
+        employeeName: employeeName.trim(),
+        jobTitle: jobTitle.trim() || undefined,
+        department: department.trim() || undefined,
+        category,
+        categoryLabel: categoryLabels[category],
+        title: title.trim(),
+        description: description.trim(),
+        incidentDate,
+        severity,
+        responsibleSupervisor: supervisor.trim() || undefined,
+        evidenceUrl: hasEvidence ? "/assets/docs/evidencia_sample.pdf" : undefined,
+        evidenceFileName: hasEvidence ? evidenceFileName || "Evidencia_Incidencia.pdf" : undefined,
+        evidenceType:
+          category === "accidente" || category === "incapacidad"
+            ? "receta_medica"
+            : category === "incumplimiento" || category === "falta_injustificada"
+            ? "acta_administrativa"
+            : "documento",
+      });
 
-    onIncidentCreated(newInc);
-    toast.success("Incidencia registrada en el expediente laboral", {
-      description: `${categoryLabels[category]} registrada para ${employeeName}.`,
-    });
+      if (!res.success || !res.incident) {
+        toast.error("Error al registrar incidencia", {
+          description: res.error || "Ocurrió un problema con el servidor.",
+        });
+        return;
+      }
 
-    // Reset
-    setTitle("");
-    setDescription("");
-    setHasEvidence(false);
-    onOpenChange(false);
+      onIncidentCreated(res.incident);
+      toast.success("Incidencia registrada en el expediente laboral", {
+        description: `${categoryLabels[category]} registrada para ${employeeName}.`,
+      });
+
+      // Reset
+      setTitle("");
+      setDescription("");
+      setHasEvidence(false);
+      setEvidenceFileName("");
+      setSelectedEmployeeId("");
+      setEmployeeName("");
+      setJobTitle("");
+      setDepartment("");
+      onOpenChange(false);
+    } catch (err: any) {
+      toast.error("Error inesperado", {
+        description: err.message || "No se pudo conectar con la base de datos.",
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[560px] rounded-3xl p-6 bg-card border-border/80 max-h-[90vh] overflow-y-auto">
+      <DialogContent className="sm:max-w-[580px] rounded-3xl p-6 bg-card border-border/80 max-h-[90vh] overflow-y-auto">
         <form onSubmit={handleSubmit} className="space-y-4">
           <DialogHeader className="space-y-1.5 text-left pb-2 border-b border-border/40">
             <div className="flex items-center gap-2 text-primary font-bold text-xs uppercase tracking-wider">
@@ -120,24 +170,74 @@ export function NewIncidentModal({
               Registrar Nueva Incidencia Laboral
             </DialogTitle>
             <DialogDescription className="text-xs text-muted-foreground font-medium">
-              Documenta eventos operativos, actas administrativas o reconocimientos destacados con evidencia.
+              Documenta eventos operativos, actas administrativas o reconocimientos destacados respaldados en la nube.
             </DialogDescription>
           </DialogHeader>
 
           <div className="space-y-3.5 pt-1">
+            {/* Selector de Colaborador */}
+            <div className="space-y-1.5">
+              <Label className="text-xs font-bold text-foreground">
+                Colaborador de la Plantilla *
+              </Label>
+              {employees.length > 0 ? (
+                <Select
+                  value={selectedEmployeeId}
+                  onValueChange={(val) => {
+                    if (val) handleSelectEmployee(val);
+                  }}
+                >
+                  <SelectTrigger className="h-10 rounded-xl bg-background border-border/80 text-xs font-medium">
+                    <SelectValue placeholder="Selecciona un colaborador..." />
+                  </SelectTrigger>
+                  <SelectContent className="rounded-xl max-h-60">
+                    {employees.map((emp) => (
+                      <SelectItem key={emp.id} value={emp.id} className="text-xs">
+                        {emp.fullName} {emp.jobTitle ? `— ${emp.jobTitle}` : ""}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              ) : null}
+
+              {/* Si no hay colaboradores en lista o se desea capturar manualmente */}
+              <Input
+                value={employeeName}
+                onChange={(e) => {
+                  setEmployeeName(e.target.value);
+                  setSelectedEmployeeId("");
+                }}
+                placeholder="O escribe el nombre completo del colaborador..."
+                className="h-10 rounded-xl bg-background border-border/80 text-xs font-medium mt-1.5"
+                required
+              />
+            </div>
+
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div className="space-y-1.5">
-                <Label className="text-xs font-bold text-foreground">Colaborador Involucrado *</Label>
+                <Label className="text-xs font-bold text-foreground">Puesto / Cargo</Label>
                 <Input
-                  value={employeeName}
-                  onChange={(e) => setEmployeeName(e.target.value)}
+                  value={jobTitle}
+                  onChange={(e) => setJobTitle(e.target.value)}
+                  placeholder="Ej. Cocinero A, Auxiliar..."
                   className="h-10 rounded-xl bg-background border-border/80 text-xs font-medium"
-                  required
                 />
               </div>
 
               <div className="space-y-1.5">
-                <Label className="text-xs font-bold text-foreground">Fecha del Suceso</Label>
+                <Label className="text-xs font-bold text-foreground">Departamento / Área</Label>
+                <Input
+                  value={department}
+                  onChange={(e) => setDepartment(e.target.value)}
+                  placeholder="Ej. Operaciones, Ventas..."
+                  className="h-10 rounded-xl bg-background border-border/80 text-xs font-medium"
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div className="space-y-1.5">
+                <Label className="text-xs font-bold text-foreground">Fecha del Suceso *</Label>
                 <Input
                   type="date"
                   value={incidentDate}
@@ -145,31 +245,6 @@ export function NewIncidentModal({
                   className="h-10 rounded-xl bg-background border-border/80 text-xs font-medium"
                   required
                 />
-              </div>
-            </div>
-
-            {/* Categoría (8 tipos) */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <div className="space-y-1.5">
-                <Label className="text-xs font-bold text-foreground">Tipo de Incidencia (8 Tipos) *</Label>
-                <Select
-                  value={category}
-                  onValueChange={(val) => val && setCategory(val as IncidentCategory)}
-                >
-                  <SelectTrigger className="h-10 rounded-xl bg-background border-border/80 text-xs font-medium">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent className="rounded-xl">
-                    <SelectItem value="falta_injustificada">Falta Injustificada</SelectItem>
-                    <SelectItem value="retardo">Retardo de Turno</SelectItem>
-                    <SelectItem value="accidente">Accidente de Trabajo</SelectItem>
-                    <SelectItem value="queja">Queja / Conducta</SelectItem>
-                    <SelectItem value="permiso">Permiso Especial</SelectItem>
-                    <SelectItem value="suspension">Suspensión Administrativa</SelectItem>
-                    <SelectItem value="incumplimiento">Acta Administrativa / Incumplimiento</SelectItem>
-                    <SelectItem value="reconocimiento">⭐ Reconocimiento / Desempeño Destacado</SelectItem>
-                  </SelectContent>
-                </Select>
               </div>
 
               <div className="space-y-1.5">
@@ -191,12 +266,37 @@ export function NewIncidentModal({
               </div>
             </div>
 
+            {/* Categoría */}
+            <div className="space-y-1.5">
+              <Label className="text-xs font-bold text-foreground">Tipo de Incidencia / Trámite *</Label>
+              <Select
+                value={category}
+                onValueChange={(val) => val && setCategory(val as IncidentCategory)}
+              >
+                <SelectTrigger className="h-10 rounded-xl bg-background border-border/80 text-xs font-medium">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent className="rounded-xl max-h-60">
+                  <SelectItem value="falta_injustificada">Falta Injustificada</SelectItem>
+                  <SelectItem value="retardo">Retardo de Turno</SelectItem>
+                  <SelectItem value="accidente">Accidente de Trabajo (ST-7)</SelectItem>
+                  <SelectItem value="incapacidad">Incapacidad Médica (IMSS)</SelectItem>
+                  <SelectItem value="queja">Queja / Reporte de Conducta</SelectItem>
+                  <SelectItem value="permiso">Permiso Especial</SelectItem>
+                  <SelectItem value="suspension">Suspensión Administrativa</SelectItem>
+                  <SelectItem value="incumplimiento">Acta Administrativa / Incumplimiento</SelectItem>
+                  <SelectItem value="reconocimiento">⭐ Reconocimiento / Desempeño Destacado</SelectItem>
+                  <SelectItem value="otro">Otra Incidencia</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
             <div className="space-y-1.5">
               <Label className="text-xs font-bold text-foreground">Título Resumido *</Label>
               <Input
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
-                placeholder="Ej. Acta administrativa por inasistencia no justificada en fin de semana"
+                placeholder="Ej. Falta injustificada sin aviso en fin de semana"
                 className="h-10 rounded-xl bg-background border-border/80 text-xs font-medium"
                 required
               />
@@ -220,12 +320,12 @@ export function NewIncidentModal({
               <Input
                 value={supervisor}
                 onChange={(e) => setSupervisor(e.target.value)}
+                placeholder="Ej. Ing. Carlos Salinas / Recursos Humanos"
                 className="h-10 rounded-xl bg-background border-border/80 text-xs font-medium"
-                required
               />
             </div>
 
-            {/* Evidence Attachment Simulation */}
+            {/* Evidence Attachment */}
             <div
               onClick={() => {
                 setHasEvidence(true);
@@ -246,15 +346,24 @@ export function NewIncidentModal({
               type="button"
               variant="outline"
               onClick={() => onOpenChange(false)}
+              disabled={isSubmitting}
               className="rounded-xl text-xs font-bold h-10 px-4"
             >
               Cancelar
             </Button>
             <Button
               type="submit"
-              className="rounded-xl text-xs font-bold h-10 px-5 bg-primary text-primary-foreground hover:bg-primary/90 shadow-xs"
+              disabled={isSubmitting}
+              className="rounded-xl text-xs font-bold h-10 px-5 bg-primary text-primary-foreground hover:bg-primary/90 shadow-xs flex items-center gap-2"
             >
-              Registrar Incidencia
+              {isSubmitting ? (
+                <>
+                  <Loader2 className="size-3.5 animate-spin" />
+                  <span>Guardando...</span>
+                </>
+              ) : (
+                <span>Registrar Incidencia</span>
+              )}
             </Button>
           </DialogFooter>
         </form>

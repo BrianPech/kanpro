@@ -92,12 +92,19 @@ import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 
+import { useRouter } from "next/navigation";
 import {
   AttendanceRecord,
   AttendanceOverviewStats,
   GeofenceConfig,
   AttendanceStatus,
+  EmployeeSelectOption,
 } from "../types/attendance";
+import {
+  createManualAttendanceAction,
+  authorizeOvertimeAction,
+  reviewAttendanceJustificationAction,
+} from "../actions/attendance";
 import { MobileCheckInSheet } from "./attendance/mobile-checkin-sheet";
 import { BranchQrKioskModal } from "./attendance/branch-qr-kiosk-modal";
 import { EmployeeAttendanceDossierModal } from "./attendance/employee-attendance-dossier-modal";
@@ -110,6 +117,7 @@ interface AttendanceViewProps {
   branchConfig: GeofenceConfig;
   companyName: string;
   workDate: string;
+  employees?: EmployeeSelectOption[];
 }
 
 export function AttendanceView({
@@ -118,10 +126,20 @@ export function AttendanceView({
   branchConfig,
   companyName,
   workDate,
+  employees = [],
 }: AttendanceViewProps) {
+  const router = useRouter();
   const [records, setRecords] = React.useState<AttendanceRecord[]>(initialRecords);
   const [stats, setStats] = React.useState<AttendanceOverviewStats>(initialStats);
   const [searchQuery, setSearchQuery] = React.useState("");
+
+  React.useEffect(() => {
+    setRecords(initialRecords);
+  }, [initialRecords]);
+
+  React.useEffect(() => {
+    setStats(initialStats);
+  }, [initialStats]);
 
   // Filters state (all unified inside the table header)
   const [statusFilter, setStatusFilter] = React.useState<string>("all");
@@ -146,10 +164,12 @@ export function AttendanceView({
   const [isExporting, setIsExporting] = React.useState(false);
 
   // Manual Check-in Form
+  const [selectedEmployeeId, setSelectedEmployeeId] = React.useState<string>("");
   const [manualName, setManualName] = React.useState("");
   const [manualTime, setManualTime] = React.useState("08:00");
   const [manualStatus, setManualStatus] =
     React.useState<AttendanceStatus>("presente");
+  const [isSubmittingManual, setIsSubmittingManual] = React.useState(false);
 
   const getInitials = (name: string) => {
     return name
@@ -182,10 +202,12 @@ export function AttendanceView({
     });
   };
 
-  const handleJustificationDecision = (
+  const handleJustificationDecision = async (
     recordId: string,
-    decision: "aprobada" | "rechazada"
+    decision: "aprobada" | "rechazada",
+    comments?: string
   ) => {
+    // Optimistic UI update
     setRecords((prev) =>
       prev.map((r) => {
         if (r.id === recordId) {
@@ -208,13 +230,39 @@ export function AttendanceView({
         return r;
       })
     );
+
+    try {
+      const res = await reviewAttendanceJustificationAction({
+        recordId,
+        decision,
+        comments,
+      });
+
+      if (res.success) {
+        toast.success(
+          `Justificante ${decision === "aprobada" ? "aprobado" : "rechazado"} con éxito`,
+          {
+            description: "El estatus de la falta ha sido actualizado en la base de datos.",
+          }
+        );
+        router.refresh();
+      } else {
+        toast.error("Error al actualizar justificante", {
+          description: res.error || "No se pudo guardar la resolución.",
+        });
+      }
+    } catch (err: any) {
+      console.error("Error reviewing justification:", err);
+      toast.error("Error de comunicación con el servidor");
+    }
   };
 
-  const handleAuthorizeOvertime = (
+  const handleAuthorizeOvertime = async (
     recordId: string,
     hours: number,
     rateType: "doble" | "triple"
   ) => {
+    // Optimistic update
     setRecords((prev) =>
       prev.map((r) =>
         r.id === recordId
@@ -222,47 +270,102 @@ export function AttendanceView({
               ...r,
               overtimeHours: hours,
               overtimeStatus: "autorizado",
+              overtimeRateType: rateType,
             }
           : r
       )
     );
+
+    try {
+      const res = await authorizeOvertimeAction({
+        recordId,
+        hours,
+        rateType,
+      });
+
+      if (res.success) {
+        toast.success(`Horas extras (${hours}h ${rateType}) autorizadas con éxito`, {
+          description: "Se aplicará el multiplicador legal para el cálculo de nómina.",
+        });
+        router.refresh();
+      } else {
+        toast.error("Error al autorizar horas extras", {
+          description: res.error || "No se pudo guardar la autorización.",
+        });
+      }
+    } catch (err: any) {
+      console.error("Error authorizing overtime:", err);
+      toast.error("Error de comunicación con el servidor");
+    }
   };
 
-  const handleAddManualCheckIn = (e: React.FormEvent) => {
+  const handleAddManualCheckIn = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!manualName.trim()) return;
+    if (!selectedEmployeeId) {
+      toast.error("Por favor selecciona un colaborador de la plantilla.");
+      return;
+    }
 
-    const newRecord: AttendanceRecord = {
-      id: `manual-att-${Date.now()}`,
-      employeeId: `emp-${Date.now()}`,
-      employeeName: manualName.trim(),
-      avatarUrl: null,
-      jobTitle: "Colaborador K'anPro",
-      department: "Operaciones",
-      workDate,
-      scheduledCheckIn: "08:00",
-      scheduledCheckOut: "17:00",
-      checkInTime:
-        manualStatus === "falta_injustificada" ||
-        manualStatus === "falta_justificada"
-          ? null
-          : manualTime,
-      checkOutTime: null,
-      breakStartTime: null,
-      breakEndTime: null,
-      checkInMethod: "manual",
-      delayMinutes: manualStatus === "retardo" ? 20 : 0,
-      status: manualStatus,
-      overtimeHours: 0,
-    };
+    const selectedEmp = employees.find((emp) => emp.id === selectedEmployeeId);
+    const empName = selectedEmp?.name || manualName || "Colaborador";
 
-    handleRecordCreated(newRecord);
-    toast.success("Registro de checador manual añadido", {
-      description: `Se registró la marca para ${manualName}.`,
-    });
+    setIsSubmittingManual(true);
 
-    setManualName("");
-    setIsManualModalOpen(false);
+    try {
+      const res = await createManualAttendanceAction({
+        employeeId: selectedEmployeeId,
+        workDate,
+        checkInTime:
+          manualStatus === "falta_injustificada" ||
+          manualStatus === "falta_justificada"
+            ? null
+            : manualTime,
+        status: manualStatus,
+        delayMinutes: manualStatus === "retardo" ? 20 : 0,
+      });
+
+      if (res.success && res.record) {
+        const raw = res.record;
+        const newRecord: AttendanceRecord = {
+          id: raw.id,
+          employeeId: raw.employee_id,
+          employeeName: empName,
+          avatarUrl: selectedEmp?.avatarUrl || null,
+          jobTitle: selectedEmp?.jobTitle || "Colaborador",
+          department: selectedEmp?.department || "Operaciones",
+          workDate,
+          scheduledCheckIn: raw.scheduled_check_in,
+          scheduledCheckOut: raw.scheduled_check_out,
+          checkInTime: raw.check_in_time,
+          checkOutTime: raw.check_out_time,
+          breakStartTime: raw.break_start_time,
+          breakEndTime: raw.break_end_time,
+          checkInMethod: "manual",
+          delayMinutes: raw.delay_minutes || 0,
+          status: raw.status as AttendanceStatus,
+          overtimeHours: Number(raw.overtime_hours) || 0,
+        };
+
+        handleRecordCreated(newRecord);
+        toast.success("Registro de checador manual guardado", {
+          description: `Se registró en la base de datos para ${empName}.`,
+        });
+
+        setSelectedEmployeeId("");
+        setManualName("");
+        setIsManualModalOpen(false);
+        router.refresh();
+      } else {
+        toast.error("Error al guardar asistencia manual", {
+          description: res.error || "No se pudo guardar el registro.",
+        });
+      }
+    } catch (err: any) {
+      console.error("Error saving manual checkin:", err);
+      toast.error("Error de comunicación con el servidor");
+    } finally {
+      setIsSubmittingManual(false);
+    }
   };
 
   const handleExport = () => {
@@ -848,6 +951,20 @@ export function AttendanceView({
         </div>
 
         <div className="flex items-center gap-2 flex-wrap">
+          <div className="flex items-center gap-2 bg-muted/40 border border-border/50 rounded-xl px-2.5 h-9">
+            <Calendar className="size-3.5 text-muted-foreground" />
+            <input
+              type="date"
+              value={workDate}
+              onChange={(e) => {
+                if (e.target.value) {
+                  router.push(`/dashboard/company/attendance?date=${e.target.value}`);
+                }
+              }}
+              className="bg-transparent text-xs font-semibold text-foreground outline-none cursor-pointer"
+            />
+          </div>
+
           <Button
             variant="outline"
             size="sm"
@@ -1311,6 +1428,7 @@ export function AttendanceView({
         onOpenChange={setIsMobileSheetOpen}
         branchConfig={branchConfig}
         onRecordCreated={handleRecordCreated}
+        employees={employees}
       />
 
       {/* Modal 2: QR Kiosk Poster */}
@@ -1360,20 +1478,41 @@ export function AttendanceView({
 
             <div className="space-y-3.5 pt-1">
               <div className="space-y-1.5">
-                <Label
-                  htmlFor="att-manual-name"
-                  className="text-xs font-bold text-foreground"
-                >
-                  Nombre del Colaborador *
+                <Label className="text-xs font-bold text-foreground">
+                  Colaborador de la Plantilla *
                 </Label>
-                <Input
-                  id="att-manual-name"
-                  placeholder="Ej. Roberto Sánchez Gómez"
-                  value={manualName}
-                  onChange={(e) => setManualName(e.target.value)}
-                  className="h-10 rounded-xl bg-background border-border/80 text-xs font-medium"
-                  required
-                />
+                {employees.length > 0 ? (
+                  <Select
+                    value={selectedEmployeeId}
+                    onValueChange={(val) => {
+                      if (val) {
+                        setSelectedEmployeeId(val);
+                        const emp = employees.find((e) => e.id === val);
+                        if (emp) setManualName(emp.name);
+                      }
+                    }}
+                  >
+                    <SelectTrigger className="h-10 rounded-xl bg-background border-border/80 text-xs font-medium">
+                      <SelectValue placeholder="Selecciona un colaborador..." />
+                    </SelectTrigger>
+                    <SelectContent className="rounded-xl max-h-56">
+                      {employees.map((emp) => (
+                        <SelectItem key={emp.id} value={emp.id} className="text-xs font-medium">
+                          {emp.name} — {emp.jobTitle} ({emp.department})
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                ) : (
+                  <Input
+                    id="att-manual-name"
+                    placeholder="Nombre del colaborador"
+                    value={manualName}
+                    onChange={(e) => setManualName(e.target.value)}
+                    className="h-10 rounded-xl bg-background border-border/80 text-xs font-medium"
+                    required
+                  />
+                )}
               </div>
 
               <div className="grid grid-cols-2 gap-3">
@@ -1446,9 +1585,10 @@ export function AttendanceView({
               </Button>
               <Button
                 type="submit"
+                disabled={isSubmittingManual || (!selectedEmployeeId && !manualName.trim())}
                 className="rounded-xl text-xs font-bold h-10 px-5 bg-primary text-primary-foreground hover:bg-primary/90 shadow-xs cursor-pointer"
               >
-                Guardar Registro
+                {isSubmittingManual ? "Guardando..." : "Guardar Registro"}
               </Button>
             </DialogFooter>
           </form>

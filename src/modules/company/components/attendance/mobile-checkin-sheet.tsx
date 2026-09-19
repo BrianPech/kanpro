@@ -2,22 +2,21 @@
 
 import React, { useState, useEffect } from "react";
 import {
-  Clock,
   MapPin,
   QrCode,
   CheckCircle2,
   AlertTriangle,
-  Radio,
-  Coffee,
-  LogOut,
-  LogIn,
+  Clock,
   Smartphone,
-  Navigation,
   Sparkles,
-  ShieldCheck,
+  RotateCw,
+  LogOut,
+  Coffee,
+  LogIn,
+  Check,
   Building2,
-  RefreshCw,
-  Camera,
+  ShieldCheck,
+  User,
 } from "lucide-react";
 import {
   Dialog,
@@ -29,8 +28,14 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import {
@@ -38,14 +43,17 @@ import {
   CheckInMethod,
   MobileCheckInPayload,
   AttendanceRecord,
+  EmployeeSelectOption,
 } from "../../types/attendance";
 import { calculateDistanceInMeters } from "../../utils/attendance-utils";
+import { recordAttendanceCheckInAction } from "../../actions/attendance";
 
 interface MobileCheckInSheetProps {
   isOpen: boolean;
   onOpenChange: (open: boolean) => void;
   branchConfig: GeofenceConfig;
   onRecordCreated: (record: AttendanceRecord) => void;
+  employees?: EmployeeSelectOption[];
 }
 
 export function MobileCheckInSheet({
@@ -53,6 +61,7 @@ export function MobileCheckInSheet({
   onOpenChange,
   branchConfig,
   onRecordCreated,
+  employees = [],
 }: MobileCheckInSheetProps) {
   const [activeTab, setActiveTab] = useState<CheckInMethod>("gps");
   const [currentTime, setCurrentTime] = useState<string>("");
@@ -72,10 +81,17 @@ export function MobileCheckInSheet({
   const [qrToken, setQrToken] = useState("");
   const [isScanning, setIsScanning] = useState(false);
 
-  // Employee state
-  const [employeeName, setEmployeeName] = useState("Carlos Mendoza");
-  const [selectedShift, setSelectedShift] = useState("08:00 - 17:00");
+  // Employee selection
+  const [selectedEmployeeId, setSelectedEmployeeId] = useState<string>("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  useEffect(() => {
+    if (employees.length > 0 && !selectedEmployeeId) {
+      setSelectedEmployeeId(employees[0].id);
+    }
+  }, [employees, selectedEmployeeId]);
+
+  const activeEmployee = employees.find((e) => e.id === selectedEmployeeId);
 
   // Ticking digital clock
   useEffect(() => {
@@ -126,7 +142,7 @@ export function MobileCheckInSheet({
           setIsLocating(false);
         },
         (_err) => {
-          // Fallback simulation inside branch
+          // Fallback location near branch
           const fallbackLat = branchConfig.latitude + 0.0001;
           const fallbackLng = branchConfig.longitude + 0.0001;
           setGpsCoords({ lat: fallbackLat, lng: fallbackLng, accuracy: 8 });
@@ -157,16 +173,18 @@ export function MobileCheckInSheet({
     setIsScanning(true);
     setTimeout(() => {
       setIsScanning(false);
-      setQrToken(`KANPRO-${branchConfig.branchName.toUpperCase().slice(0, 4)}-${Date.now().toString().slice(-4)}`);
+      setQrToken(
+        `KANPRO-${branchConfig.branchName.toUpperCase().slice(0, 4)}-${Date.now().toString().slice(-4)}`
+      );
       toast.success("Código QR escaneado con éxito", {
         description: `Validado para: ${branchConfig.branchName}.`,
       });
     }, 1200);
   };
 
-  const handleExecuteAction = (actionType: MobileCheckInPayload["actionType"]) => {
-    if (!employeeName.trim()) {
-      toast.error("Por favor ingresa tu nombre de colaborador.");
+  const handleExecuteAction = async (actionType: MobileCheckInPayload["actionType"]) => {
+    if (!selectedEmployeeId) {
+      toast.error("Por favor selecciona un colaborador de la plantilla.");
       return;
     }
 
@@ -184,43 +202,42 @@ export function MobileCheckInSheet({
 
     setIsSubmitting(true);
 
-    setTimeout(() => {
-      setIsSubmitting(false);
-      const now = new Date();
-      const timeStr = now.toLocaleTimeString("es-MX", { hour: "2-digit", minute: "2-digit", hour12: false });
-      const currentHour = now.getHours();
-      const currentMin = now.getMinutes();
+    try {
+      const res = await recordAttendanceCheckInAction({
+        employeeId: selectedEmployeeId,
+        actionType,
+        method: activeTab,
+        coordinates: gpsCoords ? { lat: gpsCoords.lat, lng: gpsCoords.lng, accuracy: gpsCoords.accuracy } : undefined,
+        distanceMeters,
+        qrToken: activeTab === "qr" ? qrToken : undefined,
+      });
 
-      // Scheduled 08:00 with 15m tolerance
-      const isLate = currentHour > 8 || (currentHour === 8 && currentMin > 15);
-      const delay = isLate ? (currentHour - 8) * 60 + currentMin : 0;
+      if (!res.success || !res.record) {
+        toast.error("Error al registrar checada", {
+          description: res.error || "No se pudo conectar con el servidor.",
+        });
+        return;
+      }
 
+      const raw = res.record;
       const newRecord: AttendanceRecord = {
-        id: `att-mob-${Date.now()}`,
-        employeeId: `emp-${Date.now()}`,
-        employeeName: employeeName.trim(),
-        avatarUrl: null,
-        jobTitle: "Colaborador K'anPro",
-        department: "Operaciones",
-        workDate: now.toISOString().split("T")[0],
-        scheduledCheckIn: "08:00",
-        scheduledCheckOut: "17:00",
-        checkInTime: actionType === "check_in" ? timeStr : "08:00",
-        checkOutTime: actionType === "check_out" ? timeStr : null,
-        breakStartTime: actionType === "break_start" ? timeStr : null,
-        breakEndTime: actionType === "break_end" ? timeStr : null,
-        checkInMethod: activeTab,
-        checkInLocation:
-          activeTab === "gps"
-            ? {
-                lat: gpsCoords?.lat || branchConfig.latitude,
-                lng: gpsCoords?.lng || branchConfig.longitude,
-                distanceToBranchMeters: distanceMeters,
-              }
-            : undefined,
-        delayMinutes: isLate ? delay : 0,
-        status: isLate ? "retardo" : "presente",
-        overtimeHours: 0,
+        id: raw.id,
+        employeeId: raw.employee_id,
+        employeeName: activeEmployee?.name || "Colaborador",
+        avatarUrl: activeEmployee?.avatarUrl || null,
+        jobTitle: activeEmployee?.jobTitle || "Colaborador",
+        department: activeEmployee?.department || "Operaciones",
+        workDate: raw.work_date,
+        scheduledCheckIn: raw.scheduled_check_in,
+        scheduledCheckOut: raw.scheduled_check_out,
+        checkInTime: raw.check_in_time,
+        checkOutTime: raw.check_out_time,
+        breakStartTime: raw.break_start_time,
+        breakEndTime: raw.break_end_time,
+        checkInMethod: raw.check_in_method as CheckInMethod,
+        delayMinutes: raw.delay_minutes || 0,
+        status: raw.status as any,
+        overtimeHours: Number(raw.overtime_hours) || 0,
       };
 
       onRecordCreated(newRecord);
@@ -231,13 +248,20 @@ export function MobileCheckInSheet({
       if (actionType === "break_end") actionLabel = "Fin de receso registrado";
 
       toast.success(actionLabel, {
-        description: isLate
-          ? `Registro exitoso a las ${timeStr} con ${delay} min de retardo.`
-          : `Registro puntual exitoso a las ${timeStr} (${activeTab.toUpperCase()}).`,
+        description: res.isLate
+          ? `Registro exitoso a las ${res.timeStr} con ${res.delayMinutes} min de retardo.`
+          : `Registro puntual exitoso a las ${res.timeStr} (${activeTab.toUpperCase()}).`,
       });
 
       onOpenChange(false);
-    }, 800);
+    } catch (err: any) {
+      console.error("Error executing check-in:", err);
+      toast.error("Error al procesar la checada", {
+        description: err?.message || "Intenta nuevamente.",
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -267,189 +291,200 @@ export function MobileCheckInSheet({
 
         {/* Employee selector */}
         <div className="space-y-1.5">
-          <Label htmlFor="emp-mobile-name" className="text-xs font-bold text-foreground">
-            Nombre del Colaborador
+          <Label className="text-xs font-bold text-foreground">
+            Colaborador Activo *
           </Label>
-          <Input
-            id="emp-mobile-name"
-            placeholder="Ej. Carlos Mendoza"
-            value={employeeName}
-            onChange={(e) => setEmployeeName(e.target.value)}
-            className="h-10 rounded-xl bg-background border-border/80 text-xs font-medium"
-          />
+          {employees.length > 0 ? (
+            <Select
+              value={selectedEmployeeId}
+              onValueChange={(val) => {
+                if (val) setSelectedEmployeeId(val);
+              }}
+            >
+              <SelectTrigger className="h-10 rounded-xl bg-background border-border/80 text-xs font-medium">
+                <SelectValue placeholder="Selecciona un colaborador..." />
+              </SelectTrigger>
+              <SelectContent className="rounded-xl max-h-56">
+                {employees.map((emp) => (
+                  <SelectItem key={emp.id} value={emp.id} className="text-xs font-medium">
+                    {emp.name} — {emp.jobTitle} ({emp.department})
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          ) : (
+            <div className="p-3 rounded-xl bg-muted/50 border border-border/60 text-xs text-muted-foreground text-center">
+              No hay colaboradores registrados en la plantilla.
+            </div>
+          )}
         </div>
 
         {/* Verification Method Tabs */}
         <Tabs
           value={activeTab}
           onValueChange={(val) => setActiveTab(val as CheckInMethod)}
-          className="space-y-4"
+          className="w-full space-y-4 pt-1"
         >
-          <TabsList className="grid grid-cols-2 p-1 h-11 rounded-xl bg-muted/60">
+          <TabsList className="grid grid-cols-2 p-1 bg-muted/60 rounded-xl h-11 border border-border/40">
             <TabsTrigger
               value="gps"
-              className="rounded-lg text-xs font-bold data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-xs flex items-center gap-1.5"
+              className="rounded-lg text-xs font-bold data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-xs transition-all gap-1.5"
             >
               <MapPin className="size-3.5" />
-              <span>GPS / Geocerca</span>
+              <span>Geolocalización GPS</span>
             </TabsTrigger>
             <TabsTrigger
               value="qr"
-              className="rounded-lg text-xs font-bold data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-xs flex items-center gap-1.5"
+              className="rounded-lg text-xs font-bold data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-xs transition-all gap-1.5"
             >
               <QrCode className="size-3.5" />
-              <span>Código QR Local</span>
+              <span>Código QR Sucursal</span>
             </TabsTrigger>
           </TabsList>
 
-          {/* TAB GPS */}
-          <TabsContent value="gps" className="space-y-3 mt-0">
-            <div className="p-4 rounded-xl border border-border/60 bg-background space-y-3">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <div className="relative">
-                    <Radio className="size-4 text-primary animate-pulse" />
+          {/* GPS Tab */}
+          <TabsContent value="gps" className="space-y-3 mt-0 focus-visible:outline-none">
+            <div
+              className={cn(
+                "p-4 rounded-2xl border transition-all space-y-2.5 text-center",
+                isWithinGeofence
+                  ? "bg-emerald-500/5 border-emerald-500/30 text-emerald-900 dark:text-emerald-300"
+                  : "bg-rose-500/5 border-rose-500/30 text-rose-900 dark:text-rose-300"
+              )}
+            >
+              <div className="flex items-center justify-center gap-2">
+                {isWithinGeofence ? (
+                  <div className="size-8 rounded-full bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 flex items-center justify-center">
+                    <CheckCircle2 className="size-4" />
                   </div>
-                  <span className="text-xs font-bold text-foreground">
-                    Radar de Ubicación
-                  </span>
+                ) : (
+                  <div className="size-8 rounded-full bg-rose-500/20 text-rose-600 dark:text-rose-400 flex items-center justify-center">
+                    <AlertTriangle className="size-4" />
+                  </div>
+                )}
+                <span className="text-xs font-extrabold">
+                  {isWithinGeofence
+                    ? "Ubicación Validada (Dentro del Geofence)"
+                    : "Fuera del Perímetro de Trabajo"}
+                </span>
+              </div>
+
+              <div className="flex justify-center items-center gap-4 text-xs font-semibold">
+                <div>
+                  <span className="text-muted-foreground font-normal">Distancia:</span>{" "}
+                  <span className="font-mono font-bold">{distanceMeters}m</span>
                 </div>
-                <Button
-                  size="sm"
-                  variant="ghost"
-                  onClick={handleRequestGPS}
-                  disabled={isLocating}
-                  className="h-7 px-2 text-[11px] font-bold text-muted-foreground hover:text-foreground"
-                >
-                  <RefreshCw className={cn("size-3 mr-1", isLocating && "animate-spin")} />
-                  {isLocating ? "Detectando..." : "Actualizar GPS"}
-                </Button>
+                <div className="size-1 rounded-full bg-border" />
+                <div>
+                  <span className="text-muted-foreground font-normal">Radio permitido:</span>{" "}
+                  <span className="font-mono font-bold">{branchConfig.radiusMeters}m</span>
+                </div>
               </div>
 
-              <div className="flex items-center justify-between text-xs font-medium pt-1 border-t border-border/40">
-                <span className="text-muted-foreground">Distancia a sucursal:</span>
-                <span className="font-extrabold text-foreground">
-                  {distanceMeters} metros
-                </span>
-              </div>
-
-              <div className="flex items-center justify-between text-xs font-medium">
-                <span className="text-muted-foreground">Radio autorizado:</span>
-                <span className="font-bold text-foreground">
-                  Hasta {branchConfig.radiusMeters}m
-                </span>
-              </div>
-
-              <div className="pt-2">
-                <Badge
-                  className={cn(
-                    "w-full justify-center py-1.5 rounded-lg text-xs font-bold border-none",
-                    isWithinGeofence
-                      ? "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400"
-                      : "bg-destructive/15 text-destructive"
-                  )}
-                >
-                  {isWithinGeofence ? (
-                    <span className="flex items-center gap-1">
-                      <CheckCircle2 className="size-3.5" />
-                      Dentro de la zona autorizada
-                    </span>
-                  ) : (
-                    <span className="flex items-center gap-1">
-                      <AlertTriangle className="size-3.5" />
-                      Fuera de rango (Excede {branchConfig.radiusMeters}m)
-                    </span>
-                  )}
-                </Badge>
-              </div>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleRequestGPS}
+                disabled={isLocating}
+                className="h-8 rounded-lg text-xs font-bold gap-1.5 mx-auto bg-background/80"
+              >
+                <RotateCw className={cn("size-3", isLocating && "animate-spin")} />
+                <span>{isLocating ? "Obteniendo GPS..." : "Actualizar Coordenadas"}</span>
+              </Button>
             </div>
           </TabsContent>
 
-          {/* TAB QR */}
-          <TabsContent value="qr" className="space-y-3 mt-0">
-            <div className="p-4 rounded-xl border border-border/60 bg-background space-y-3 text-center">
-              <div className="size-16 mx-auto rounded-2xl bg-muted/40 flex items-center justify-center border border-dashed border-border/80">
-                <Camera className="size-8 text-muted-foreground" />
+          {/* QR Tab */}
+          <TabsContent value="qr" className="space-y-3 mt-0 focus-visible:outline-none">
+            <div className="p-4 rounded-2xl bg-muted/40 border border-border/80 text-center space-y-3">
+              <div className="size-12 rounded-2xl bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 flex items-center justify-center mx-auto">
+                <QrCode className="size-6" />
               </div>
-
-              <div className="space-y-1">
-                <h4 className="text-xs font-extrabold text-foreground">
-                  Escáner de Kiosco QR
-                </h4>
-                <p className="text-[11px] text-muted-foreground">
-                  Apunta tu cámara al código QR impreso en recepción.
+              <div>
+                <p className="text-xs font-extrabold text-foreground">
+                  Escanea el Código QR del Kiosco de Sucursal
+                </p>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  Ubicado físicamente en la entrada o recepción del centro de trabajo.
                 </p>
               </div>
 
-              <div className="flex items-center gap-2 justify-center">
+              {qrToken ? (
+                <div className="p-2 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-xs font-mono font-bold text-emerald-600 flex items-center justify-center gap-1.5">
+                  <Check className="size-3.5" />
+                  <span>Token: {qrToken}</span>
+                </div>
+              ) : (
                 <Button
-                  size="sm"
                   onClick={handleSimulateQRScan}
                   disabled={isScanning}
-                  className="rounded-xl text-xs font-bold h-9 px-4 bg-primary text-primary-foreground hover:bg-primary/90 shadow-xs flex items-center gap-1.5"
+                  className="w-full h-9 rounded-xl text-xs font-bold gap-2 bg-indigo-600 hover:bg-indigo-700 text-white"
                 >
-                  <QrCode className="size-3.5" />
-                  <span>{isScanning ? "Escaneando..." : "Escanear QR de Entrada"}</span>
+                  <Sparkles className="size-3.5" />
+                  <span>{isScanning ? "Escaneando cámara..." : "Escanear QR de Sucursal"}</span>
                 </Button>
-              </div>
-
-              {qrToken && (
-                <div className="p-2.5 rounded-lg bg-emerald-500/10 border border-emerald-500/30 text-[11px] text-emerald-600 dark:text-emerald-400 font-bold flex items-center justify-center gap-1.5">
-                  <CheckCircle2 className="size-3.5" />
-                  <span>Token verificado: {qrToken}</span>
-                </div>
               )}
             </div>
           </TabsContent>
         </Tabs>
 
-        {/* Action Tactical Buttons */}
-        <div className="space-y-2 pt-2 border-t border-border/40">
-          <div className="grid grid-cols-2 gap-2.5">
-            <Button
-              type="button"
-              onClick={() => handleExecuteAction("check_in")}
-              disabled={isSubmitting || (activeTab === "gps" && !isWithinGeofence)}
-              className="h-12 rounded-xl text-xs font-extrabold bg-emerald-600 hover:bg-emerald-700 text-white shadow-xs flex items-center justify-center gap-2"
-            >
+        {/* Action Grid */}
+        <div className="grid grid-cols-2 gap-2.5 pt-2">
+          <Button
+            onClick={() => handleExecuteAction("check_in")}
+            disabled={isSubmitting || !selectedEmployeeId}
+            className="h-14 rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-white flex flex-col items-center justify-center gap-1 shadow-md shadow-emerald-600/20"
+          >
+            <div className="flex items-center gap-1.5 text-xs font-black tracking-wide">
               <LogIn className="size-4" />
-              <span>REGISTRAR ENTRADA</span>
-            </Button>
+              <span>ENTRADA</span>
+            </div>
+            <span className="text-[10px] opacity-80 font-medium">Inicio de Turno</span>
+          </Button>
 
-            <Button
-              type="button"
-              onClick={() => handleExecuteAction("check_out")}
-              disabled={isSubmitting || (activeTab === "gps" && !isWithinGeofence)}
-              className="h-12 rounded-xl text-xs font-extrabold bg-indigo-600 hover:bg-indigo-700 text-white shadow-xs flex items-center justify-center gap-2"
-            >
+          <Button
+            onClick={() => handleExecuteAction("check_out")}
+            disabled={isSubmitting || !selectedEmployeeId}
+            variant="outline"
+            className="h-14 rounded-2xl border-rose-500/30 bg-rose-500/5 hover:bg-rose-500/10 text-rose-600 dark:text-rose-400 flex flex-col items-center justify-center gap-1"
+          >
+            <div className="flex items-center gap-1.5 text-xs font-black tracking-wide">
               <LogOut className="size-4" />
-              <span>REGISTRAR SALIDA</span>
-            </Button>
-          </div>
+              <span>SALIDA</span>
+            </div>
+            <span className="text-[10px] opacity-80 font-medium">Cierre de Jornada</span>
+          </Button>
 
-          <div className="grid grid-cols-2 gap-2.5">
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => handleExecuteAction("break_start")}
-              disabled={isSubmitting}
-              className="h-10 rounded-xl text-xs font-bold border-border/70 flex items-center justify-center gap-1.5"
-            >
-              <Coffee className="size-3.5 text-amber-600 dark:text-amber-400" />
-              <span>Iniciar Receso</span>
-            </Button>
+          <Button
+            onClick={() => handleExecuteAction("break_start")}
+            disabled={isSubmitting || !selectedEmployeeId}
+            variant="ghost"
+            className="h-11 rounded-xl text-xs font-bold text-muted-foreground hover:text-foreground border border-border/60 hover:bg-muted/50 gap-1.5"
+          >
+            <Coffee className="size-3.5 text-amber-500" />
+            <span>Inicio Receso</span>
+          </Button>
 
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => handleExecuteAction("break_end")}
-              disabled={isSubmitting}
-              className="h-10 rounded-xl text-xs font-bold border-border/70 flex items-center justify-center gap-1.5"
-            >
-              <CheckCircle2 className="size-3.5 text-emerald-600 dark:text-emerald-400" />
-              <span>Fin de Receso</span>
-            </Button>
+          <Button
+            onClick={() => handleExecuteAction("break_end")}
+            disabled={isSubmitting || !selectedEmployeeId}
+            variant="ghost"
+            className="h-11 rounded-xl text-xs font-bold text-muted-foreground hover:text-foreground border border-border/60 hover:bg-muted/50 gap-1.5"
+          >
+            <Clock className="size-3.5 text-blue-500" />
+            <span>Fin Receso</span>
+          </Button>
+        </div>
+
+        {/* Shift info note */}
+        <div className="p-3 rounded-xl bg-muted/40 border border-border/60 flex items-center justify-between text-[11px] text-muted-foreground">
+          <div className="flex items-center gap-1.5">
+            <Building2 className="size-3.5 text-primary" />
+            <span className="font-semibold">Horario Asignado:</span>
           </div>
+          <span className="font-mono font-bold text-foreground">
+            {activeEmployee?.workSchedule || "08:00 - 17:00"}
+          </span>
         </div>
       </DialogContent>
     </Dialog>

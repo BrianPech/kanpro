@@ -130,3 +130,104 @@ export async function deleteEvaluationAction(evaluationId: string) {
   revalidatePath("/dashboard/company/evaluations");
   return { success: true };
 }
+
+export interface CreateNom035SurveyInput {
+  employeeId?: string | null;
+  employeeName: string;
+  jobTitle?: string | null;
+  department?: string | null;
+  guideType?: "guia_i" | "guia_ii" | "guia_iii";
+  surveyDate?: string;
+  environmentScore: number;
+  activityFactorsScore: number;
+  timeOrganizationScore: number;
+  leadershipRelationsScore: number;
+  organizationalClimateScore: number;
+  actionPlan?: string;
+  status?: "borrador" | "completada";
+}
+
+/**
+ * Registra una evaluación de clima laboral y factores psicosociales (NOM-035-STPS-2018)
+ */
+export async function createNom035SurveyAction(input: CreateNom035SurveyInput) {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    return { success: false, error: "No autorizado." };
+  }
+
+  const totalScore =
+    Number(input.environmentScore || 0) +
+    Number(input.activityFactorsScore || 0) +
+    Number(input.timeOrganizationScore || 0) +
+    Number(input.leadershipRelationsScore || 0) +
+    Number(input.organizationalClimateScore || 0);
+
+  let riskLevel: "nulo" | "bajo" | "medio" | "alto" | "muy_alto" = "bajo";
+  if (totalScore < 20) riskLevel = "nulo";
+  else if (totalScore < 45) riskLevel = "bajo";
+  else if (totalScore < 70) riskLevel = "medio";
+  else if (totalScore < 90) riskLevel = "alto";
+  else riskLevel = "muy_alto";
+
+  const { data, error } = await supabase
+    .from("company_nom035_surveys")
+    .insert({
+      company_id: user.id,
+      employee_id: input.employeeId || null,
+      employee_name: input.employeeName.trim(),
+      job_title: input.jobTitle?.trim() || null,
+      department: input.department?.trim() || null,
+      guide_type: input.guideType || "guia_ii",
+      survey_date: input.surveyDate || new Date().toISOString().split("T")[0],
+      environment_score: input.environmentScore,
+      activity_factors_score: input.activityFactorsScore,
+      time_organization_score: input.timeOrganizationScore,
+      leadership_relations_score: input.leadershipRelationsScore,
+      organizational_climate_score: input.organizationalClimateScore,
+      total_score: totalScore,
+      risk_level: riskLevel,
+      action_plan: input.actionPlan?.trim() || null,
+      status: input.status || "completada",
+    })
+    .select("id")
+    .single();
+
+  if (error) {
+    console.error("Error creating NOM-035 survey:", error);
+    return { success: false, error: error.message };
+  }
+
+  revalidatePath("/dashboard/company/evaluations");
+  revalidatePath("/dashboard/company");
+
+  return { success: true, surveyId: data.id, totalScore, riskLevel };
+}
+
+export async function deleteNom035SurveyAction(surveyId: string) {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    return { success: false, error: "No autorizado." };
+  }
+
+  const { error } = await supabase
+    .from("company_nom035_surveys")
+    .delete()
+    .eq("id", surveyId)
+    .eq("company_id", user.id);
+
+  if (error) {
+    return { success: false, error: error.message };
+  }
+
+  revalidatePath("/dashboard/company/evaluations");
+  return { success: true };
+}

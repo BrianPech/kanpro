@@ -42,7 +42,17 @@ export interface AttendanceRecord {
   status: AttendanceStatus;
   overtimeHours: number; // e.g. 0.5
   overtimeStatus?: "pendiente" | "autorizado" | "rechazado";
+  overtimeRateType?: "doble" | "triple";
   justification?: AttendanceJustification;
+}
+
+export interface EmployeeSelectOption {
+  id: string;
+  name: string;
+  jobTitle: string;
+  department: string;
+  avatarUrl?: string | null;
+  workSchedule?: string | null;
 }
 
 export interface AttendanceJustification {

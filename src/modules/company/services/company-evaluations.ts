@@ -1,5 +1,10 @@
 import { createClient } from "@/lib/supabase/server";
-import { EmployeeEvaluation } from "../types/evaluations";
+import {
+  EmployeeEvaluation,
+  Nom035Survey,
+  Nom035Metrics,
+  Nom035RiskLevel,
+} from "../types/evaluations";
 
 export interface EmployeeSelectOption {
   id: string;
@@ -12,6 +17,8 @@ export interface EmployeeSelectOption {
 export interface CompanyEvaluationsData {
   evaluations: EmployeeEvaluation[];
   employees: EmployeeSelectOption[];
+  nom035Surveys: Nom035Survey[];
+  nom035Metrics: Nom035Metrics;
   companyName: string;
 }
 
@@ -21,15 +28,31 @@ export async function getCompanyEvaluationsData(): Promise<CompanyEvaluationsDat
     data: { user },
   } = await supabase.auth.getUser();
 
+  const defaultMetrics: Nom035Metrics = {
+    totalSurveys: 0,
+    averageTotalScore: 0,
+    overallRiskLevel: "nulo",
+    riskCounts: { nulo: 0, bajo: 0, medio: 0, alto: 0, muy_alto: 0 },
+    dimensionAverages: {
+      environment: 0,
+      activityFactors: 0,
+      timeOrganization: 0,
+      leadershipRelations: 0,
+      organizationalClimate: 0,
+    },
+  };
+
   if (!user) {
     return {
       evaluations: [],
       employees: [],
+      nom035Surveys: [],
+      nom035Metrics: defaultMetrics,
       companyName: "K'anPro",
     };
   }
 
-  const [companyRes, evaluationsRes, employeesRes] = await Promise.all([
+  const [companyRes, evaluationsRes, employeesRes, nom035Res] = await Promise.all([
     supabase
       .from("company_profiles")
       .select("company_name")
@@ -76,6 +99,11 @@ export async function getCompanyEvaluationsData(): Promise<CompanyEvaluationsDat
       .select("id, full_name, job_title, department, avatar_url, status")
       .eq("company_id", user.id)
       .order("full_name", { ascending: true }),
+    supabase
+      .from("company_nom035_surveys")
+      .select("*")
+      .eq("company_id", user.id)
+      .order("survey_date", { ascending: false }),
   ]);
 
   const companyName = companyRes.data?.company_name || "Mi Empresa";
@@ -137,9 +165,114 @@ export async function getCompanyEvaluationsData(): Promise<CompanyEvaluationsDat
     };
   });
 
+  // Map NOM-035 surveys
+  const rawNom035 = nom035Res.data || [];
+  const nom035Surveys: Nom035Survey[] = rawNom035.map((s: any) => ({
+    id: s.id,
+    employeeId: s.employee_id,
+    employeeName: s.employee_name || "Colaborador",
+    jobTitle: s.job_title,
+    department: s.department,
+    guideType: s.guide_type,
+    surveyDate: s.survey_date,
+    environmentScore: Number(s.environment_score) || 0,
+    activityFactorsScore: Number(s.activity_factors_score) || 0,
+    timeOrganizationScore: Number(s.time_organization_score) || 0,
+    leadershipRelationsScore: Number(s.leadership_relations_score) || 0,
+    organizationalClimateScore: Number(s.organizational_climate_score) || 0,
+    totalScore: Number(s.total_score) || 0,
+    riskLevel: s.risk_level as Nom035RiskLevel,
+    actionPlan: s.action_plan,
+    status: (s.status as "borrador" | "completada") || "completada",
+  }));
+
+  // Calculate NOM-035 Metrics
+  const totalSurveys = nom035Surveys.length;
+  const sumTotal = nom035Surveys.reduce((acc, s) => acc + s.totalScore, 0);
+  const avgTotal =
+    totalSurveys > 0 ? Math.round((sumTotal / totalSurveys) * 10) / 10 : 0;
+
+  let overallRiskLevel: Nom035RiskLevel = "nulo";
+  if (avgTotal >= 90) overallRiskLevel = "muy_alto";
+  else if (avgTotal >= 70) overallRiskLevel = "alto";
+  else if (avgTotal >= 45) overallRiskLevel = "medio";
+  else if (avgTotal >= 20) overallRiskLevel = "bajo";
+  else overallRiskLevel = "nulo";
+
+  const riskCounts: Record<Nom035RiskLevel, number> = {
+    nulo: 0,
+    bajo: 0,
+    medio: 0,
+    alto: 0,
+    muy_alto: 0,
+  };
+
+  nom035Surveys.forEach((s) => {
+    if (riskCounts[s.riskLevel] !== undefined) {
+      riskCounts[s.riskLevel]++;
+    }
+  });
+
+  const nom035Metrics: Nom035Metrics = {
+    totalSurveys,
+    averageTotalScore: avgTotal,
+    overallRiskLevel,
+    riskCounts,
+    dimensionAverages: {
+      environment:
+        totalSurveys > 0
+          ? Math.round(
+              (nom035Surveys.reduce((a, s) => a + s.environmentScore, 0) /
+                totalSurveys) *
+                10
+            ) / 10
+          : 0,
+      activityFactors:
+        totalSurveys > 0
+          ? Math.round(
+              (nom035Surveys.reduce((a, s) => a + s.activityFactorsScore, 0) /
+                totalSurveys) *
+                10
+            ) / 10
+          : 0,
+      timeOrganization:
+        totalSurveys > 0
+          ? Math.round(
+              (nom035Surveys.reduce((a, s) => a + s.timeOrganizationScore, 0) /
+                totalSurveys) *
+                10
+            ) / 10
+          : 0,
+      leadershipRelations:
+        totalSurveys > 0
+          ? Math.round(
+              (nom035Surveys.reduce(
+                (a, s) => a + s.leadershipRelationsScore,
+                0
+              ) /
+                totalSurveys) *
+                10
+            ) / 10
+          : 0,
+      organizationalClimate:
+        totalSurveys > 0
+          ? Math.round(
+              (nom035Surveys.reduce(
+                (a, s) => a + s.organizationalClimateScore,
+                0
+              ) /
+                totalSurveys) *
+                10
+            ) / 10
+          : 0,
+    },
+  };
+
   return {
     evaluations,
     employees,
+    nom035Surveys,
+    nom035Metrics,
     companyName,
   };
 }

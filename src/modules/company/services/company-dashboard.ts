@@ -121,8 +121,10 @@ export async function getCompanyDashboardData(): Promise<CompanyDashboardData> {
   let recentCandidates: RecentCandidateItem[] = [];
 
   if (user) {
-    // 1. Fetch Company Profile, Vacancies, Employees & Contracts in parallel
-    const [companyRes, vacanciesRes, employeesRes, contractsRes] = await Promise.all([
+    const todayStr = now.toISOString().split("T")[0];
+
+    // 1. Fetch Company Profile, Vacancies, Employees, Contracts, Attendance & Incidents in parallel
+    const [companyRes, vacanciesRes, employeesRes, contractsRes, attendanceRes, incidentsRes] = await Promise.all([
       supabase
         .from("company_profiles")
         .select(`
@@ -191,6 +193,16 @@ export async function getCompanyDashboardData(): Promise<CompanyDashboardData> {
         `)
         .eq("company_id", user.id)
         .eq("status", "vigente"),
+      supabase
+        .from("company_attendance")
+        .select("*")
+        .eq("company_id", user.id)
+        .eq("work_date", todayStr),
+      supabase
+        .from("company_incidents")
+        .select("*")
+        .eq("company_id", user.id)
+        .order("incident_date", { ascending: false }),
     ]);
 
     if (companyRes.data) {
@@ -433,6 +445,10 @@ export async function getCompanyDashboardData(): Promise<CompanyDashboardData> {
     expiringContracts.sort((a, b) => a.daysRemaining - b.daysRemaining);
 
     // 4. Build Attendance and Department tallies for active employees
+    const rawAttendance = attendanceRes?.data || [];
+    const attByEmp = new Map<string, any>();
+    rawAttendance.forEach((a: any) => attByEmp.set(a.employee_id, a));
+
     if (activeList.length > 0) {
       activeList.forEach((emp: any, index: number) => {
         const candidateData = Array.isArray(emp.candidate) ? emp.candidate[0] : emp.candidate;
@@ -455,24 +471,40 @@ export async function getCompanyDashboardData(): Promise<CompanyDashboardData> {
         departmentTally[dept].headcount += 1;
         departmentTally[dept].amount += empSalary;
 
-        // Clean attendance record for active employees (no simulated absences or delays)
+        // Real attendance record for active employees mapped from database
+        const existingAtt = attByEmp.get(emp.id);
+        const attStatus = existingAtt?.status || "presente";
+
+        let dashboardAttStatus: TodayAttendanceItem["status"] = "presente";
+        if (attStatus === "retardo") dashboardAttStatus = "retardo";
+        else if (attStatus === "falta_injustificada" || attStatus === "ausente") dashboardAttStatus = "ausente";
+        else if (attStatus === "falta_justificada" || attStatus === "justificado" || attStatus === "incapacidad")
+          dashboardAttStatus = "justificado";
+        else if (attStatus === "vacaciones") dashboardAttStatus = "vacaciones";
+
         todayAttendance.push({
-          id: `att-${emp.id}`,
+          id: existingAtt ? existingAtt.id : `att-${emp.id}`,
           employeeId: emp.id,
           employeeName,
           avatarUrl,
           jobTitle,
           department: dept,
-          checkInTime: null,
-          status: "presente",
+          checkInTime: existingAtt?.check_in_time || null,
+          status: dashboardAttStatus,
         });
       });
 
-      kpis.punctualityRate = 100;
-      kpis.absentCountToday = 0;
-      kpis.unjustifiedAbsences = 0;
-      kpis.justifiedAbsences = 0;
-      kpis.lateArrivalsToday = 0;
+      const presents = todayAttendance.filter((a) => a.status === "presente").length;
+      const lates = todayAttendance.filter((a) => a.status === "retardo").length;
+      const unjustifiedAbs = todayAttendance.filter((a) => a.status === "ausente").length;
+      const justifiedAbs = todayAttendance.filter((a) => a.status === "justificado").length;
+      const totalAttended = presents + lates;
+
+      kpis.punctualityRate = totalAttended > 0 ? Math.round((presents / totalAttended) * 100) : 100;
+      kpis.absentCountToday = unjustifiedAbs + justifiedAbs;
+      kpis.unjustifiedAbsences = unjustifiedAbs;
+      kpis.justifiedAbsences = justifiedAbs;
+      kpis.lateArrivalsToday = lates;
 
       // Calculate Payroll Summary
       let totalEstPayroll = 0;
@@ -510,9 +542,39 @@ export async function getCompanyDashboardData(): Promise<CompanyDashboardData> {
       payrollSummary.departmentBreakdown = [];
     }
 
-    // Incidents: Real data only (no mock records, empty until real incidents table is created)
-    kpis.pendingIncidentsCount = 0;
-    kpis.criticalIncidentsCount = 0;
+    // Incidents: Real data from company_incidents table
+    const allIncidents = incidentsRes?.data || [];
+    const pendingIncidentsList = allIncidents.filter((i: any) => i.status === "pendiente");
+    const criticalIncidentsList = allIncidents.filter(
+      (i: any) => (i.severity === "alta" || i.severity === "critica") && i.status !== "resuelto"
+    );
+
+    kpis.pendingIncidentsCount = pendingIncidentsList.length;
+    kpis.criticalIncidentsCount = criticalIncidentsList.length;
+
+    const empAvatarMap = new Map<string, string | null>();
+    (employeesRes.data || []).forEach((emp: any) => {
+      if (emp.id) {
+        empAvatarMap.set(emp.id, emp.avatar_url || null);
+      }
+    });
+
+    pendingIncidents.push(
+      ...pendingIncidentsList.map((row: any) => ({
+        id: row.id,
+        employeeId: row.employee_id || "",
+        employeeName: row.employee_name,
+        avatarUrl: row.employee_id ? empAvatarMap.get(row.employee_id) || null : null,
+        department: row.department || "Operaciones",
+        type: row.category,
+        typeLabel: row.category_label || row.category,
+        title: row.title,
+        description: row.description,
+        date: row.incident_date,
+        severity: row.severity,
+        status: row.status,
+      }))
+    );
 
     // 8. Generate Operational Alerts
     if (kpis.imminentContractsCount > 0) {

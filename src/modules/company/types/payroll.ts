@@ -43,7 +43,7 @@ export interface PayrollPeriodSummary {
   startDate: string;
   endDate: string;
   payoutDate: string;
-  status: "borrador" | "calculada" | "dispersada";
+  status: "borrador" | "calculada" | "dispersada" | "pagada";
 
   totalGross: number;
   totalOvertime: number;

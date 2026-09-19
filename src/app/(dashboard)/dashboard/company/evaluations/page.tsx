@@ -8,12 +8,15 @@ export const metadata = {
 };
 
 export default async function CompanyEvaluationsPage() {
-  const { evaluations, employees, companyName } = await getCompanyEvaluationsData();
+  const { evaluations, employees, nom035Surveys, nom035Metrics, companyName } =
+    await getCompanyEvaluationsData();
 
   return (
     <EvaluationsView
       initialEvaluations={evaluations}
       employees={employees}
+      nom035Surveys={nom035Surveys}
+      nom035Metrics={nom035Metrics}
       companyName={companyName}
     />
   );

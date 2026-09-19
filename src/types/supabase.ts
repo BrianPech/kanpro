@@ -272,6 +272,124 @@ export type Database = {
           },
         ]
       }
+      company_attendance: {
+        Row: {
+          break_end_time: string | null
+          break_start_time: string | null
+          check_in_accuracy: number | null
+          check_in_distance_meters: number | null
+          check_in_lat: number | null
+          check_in_lng: number | null
+          check_in_method: string
+          check_in_time: string | null
+          check_out_time: string | null
+          company_id: string
+          created_at: string
+          delay_minutes: number
+          employee_id: string
+          id: string
+          justification_comments: string | null
+          justification_evidence_url: string | null
+          justification_label: string | null
+          justification_reason_type: string | null
+          justification_reviewed_at: string | null
+          justification_reviewed_by: string | null
+          justification_status: string | null
+          justification_submitted_at: string | null
+          notes: string | null
+          overtime_hours: number
+          overtime_notes: string | null
+          overtime_rate_type: string | null
+          overtime_status: string | null
+          scheduled_check_in: string
+          scheduled_check_out: string
+          status: string
+          updated_at: string
+          work_date: string
+        }
+        Insert: {
+          break_end_time?: string | null
+          break_start_time?: string | null
+          check_in_accuracy?: number | null
+          check_in_distance_meters?: number | null
+          check_in_lat?: number | null
+          check_in_lng?: number | null
+          check_in_method?: string
+          check_in_time?: string | null
+          check_out_time?: string | null
+          company_id: string
+          created_at?: string
+          delay_minutes?: number
+          employee_id: string
+          id?: string
+          justification_comments?: string | null
+          justification_evidence_url?: string | null
+          justification_label?: string | null
+          justification_reason_type?: string | null
+          justification_reviewed_at?: string | null
+          justification_reviewed_by?: string | null
+          justification_status?: string | null
+          justification_submitted_at?: string | null
+          notes?: string | null
+          overtime_hours?: number
+          overtime_notes?: string | null
+          overtime_rate_type?: string | null
+          overtime_status?: string | null
+          scheduled_check_in?: string
+          scheduled_check_out?: string
+          status?: string
+          updated_at?: string
+          work_date: string
+        }
+        Update: {
+          break_end_time?: string | null
+          break_start_time?: string | null
+          check_in_accuracy?: number | null
+          check_in_distance_meters?: number | null
+          check_in_lat?: number | null
+          check_in_lng?: number | null
+          check_in_method?: string
+          check_in_time?: string | null
+          check_out_time?: string | null
+          company_id?: string
+          created_at?: string
+          delay_minutes?: number
+          employee_id?: string
+          id?: string
+          justification_comments?: string | null
+          justification_evidence_url?: string | null
+          justification_label?: string | null
+          justification_reason_type?: string | null
+          justification_reviewed_at?: string | null
+          justification_reviewed_by?: string | null
+          justification_status?: string | null
+          justification_submitted_at?: string | null
+          notes?: string | null
+          overtime_hours?: number
+          overtime_notes?: string | null
+          overtime_rate_type?: string | null
+          overtime_status?: string | null
+          scheduled_check_in?: string
+          scheduled_check_out?: string
+          status?: string
+          updated_at?: string
+          work_date?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "company_attendance_company_id_fkey"
+            columns: ["company_id"]
+            referencedRelation: "company_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "company_attendance_employee_id_fkey"
+            columns: ["employee_id"]
+            referencedRelation: "company_employees"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       company_contracts: {
         Row: {
           application_id: string | null
@@ -454,7 +572,9 @@ export type Database = {
       company_employees: {
         Row: {
           avatar_url: string | null
+          bank_name: string | null
           base_salary_monthly: number | null
+          clabe_account: string | null
           company_id: string
           created_at: string
           curp: string | null
@@ -480,7 +600,9 @@ export type Database = {
         }
         Insert: {
           avatar_url?: string | null
+          bank_name?: string | null
           base_salary_monthly?: number | null
+          clabe_account?: string | null
           company_id: string
           created_at?: string
           curp?: string | null
@@ -506,7 +628,9 @@ export type Database = {
         }
         Update: {
           avatar_url?: string | null
+          bank_name?: string | null
           base_salary_monthly?: number | null
+          clabe_account?: string | null
           company_id?: string
           created_at?: string
           curp?: string | null
@@ -656,6 +780,349 @@ export type Database = {
             foreignKeyName: "company_evaluations_employee_id_fkey"
             columns: ["employee_id"]
             referencedRelation: "company_employees"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      company_incidents: {
+        Row: {
+          category: string
+          category_label: string | null
+          company_id: string
+          created_at: string
+          department: string | null
+          description: string
+          employee_id: string | null
+          employee_name: string
+          evidence_file_name: string | null
+          evidence_type: string | null
+          evidence_url: string | null
+          id: string
+          incident_date: string
+          job_title: string | null
+          resolution_notes: string | null
+          responsible_supervisor: string | null
+          severity: string
+          status: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          category: string
+          category_label?: string | null
+          company_id: string
+          created_at?: string
+          department?: string | null
+          description: string
+          employee_id?: string | null
+          employee_name: string
+          evidence_file_name?: string | null
+          evidence_type?: string | null
+          evidence_url?: string | null
+          id?: string
+          incident_date?: string
+          job_title?: string | null
+          resolution_notes?: string | null
+          responsible_supervisor?: string | null
+          severity?: string
+          status?: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          category?: string
+          category_label?: string | null
+          company_id?: string
+          created_at?: string
+          department?: string | null
+          description?: string
+          employee_id?: string | null
+          employee_name?: string
+          evidence_file_name?: string | null
+          evidence_type?: string | null
+          evidence_url?: string | null
+          id?: string
+          incident_date?: string
+          job_title?: string | null
+          resolution_notes?: string | null
+          responsible_supervisor?: string | null
+          severity?: string
+          status?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "company_incidents_company_id_fkey"
+            columns: ["company_id"]
+            referencedRelation: "company_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "company_incidents_employee_id_fkey"
+            columns: ["employee_id"]
+            referencedRelation: "company_employees"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      company_nom035_surveys: {
+        Row: {
+          action_plan: string | null
+          activity_factors_score: number
+          company_id: string
+          created_at: string
+          department: string | null
+          employee_id: string | null
+          employee_name: string
+          environment_score: number
+          guide_type: "guia_i" | "guia_ii" | "guia_iii"
+          id: string
+          job_title: string | null
+          leadership_relations_score: number
+          organizational_climate_score: number
+          risk_level: "nulo" | "bajo" | "medio" | "alto" | "muy_alto"
+          status: "borrador" | "completada"
+          survey_date: string
+          time_organization_score: number
+          total_score: number
+          updated_at: string
+        }
+        Insert: {
+          action_plan?: string | null
+          activity_factors_score?: number
+          company_id: string
+          created_at?: string
+          department?: string | null
+          employee_id?: string | null
+          employee_name: string
+          environment_score?: number
+          guide_type?: "guia_i" | "guia_ii" | "guia_iii"
+          id?: string
+          job_title?: string | null
+          leadership_relations_score?: number
+          organizational_climate_score?: number
+          risk_level?: "nulo" | "bajo" | "medio" | "alto" | "muy_alto"
+          status?: "borrador" | "completada"
+          survey_date?: string
+          time_organization_score?: number
+          total_score?: number
+          updated_at?: string
+        }
+        Update: {
+          action_plan?: string | null
+          activity_factors_score?: number
+          company_id?: string
+          created_at?: string
+          department?: string | null
+          employee_id?: string | null
+          employee_name?: string
+          environment_score?: number
+          guide_type?: "guia_i" | "guia_ii" | "guia_iii"
+          id?: string
+          job_title?: string | null
+          leadership_relations_score?: number
+          organizational_climate_score?: number
+          risk_level?: "nulo" | "bajo" | "medio" | "alto" | "muy_alto"
+          status?: "borrador" | "completada"
+          survey_date?: string
+          time_organization_score?: number
+          total_score?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "company_nom035_surveys_company_id_fkey"
+            columns: ["company_id"]
+            referencedRelation: "company_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "company_nom035_surveys_employee_id_fkey"
+            columns: ["employee_id"]
+            referencedRelation: "company_employees"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      company_payrolls: {
+        Row: {
+          company_id: string
+          created_at: string
+          dispersed_at: string | null
+          employees_count: number
+          end_date: string
+          id: string
+          notes: string | null
+          payout_date: string
+          period_name: string
+          period_type: "semanal" | "quincenal" | "mensual"
+          start_date: string
+          status: "borrador" | "calculada" | "pagada"
+          total_bonuses: number
+          total_deductions: number
+          total_gross: number
+          total_net: number
+          total_overtime: number
+          updated_at: string
+        }
+        Insert: {
+          company_id: string
+          created_at?: string
+          dispersed_at?: string | null
+          employees_count?: number
+          end_date: string
+          id?: string
+          notes?: string | null
+          payout_date: string
+          period_name: string
+          period_type?: "semanal" | "quincenal" | "mensual"
+          start_date: string
+          status?: "borrador" | "calculada" | "pagada"
+          total_bonuses?: number
+          total_deductions?: number
+          total_gross?: number
+          total_net?: number
+          total_overtime?: number
+          updated_at?: string
+        }
+        Update: {
+          company_id?: string
+          created_at?: string
+          dispersed_at?: string | null
+          employees_count?: number
+          end_date?: string
+          id?: string
+          notes?: string | null
+          payout_date?: string
+          period_name?: string
+          period_type?: "semanal" | "quincenal" | "mensual"
+          start_date?: string
+          status?: "borrador" | "calculada" | "pagada"
+          total_bonuses?: number
+          total_deductions?: number
+          total_gross?: number
+          total_net?: number
+          total_overtime?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "company_payrolls_company_id_fkey"
+            columns: ["company_id"]
+            referencedRelation: "company_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      company_payroll_items: {
+        Row: {
+          absence_deductions: number
+          attendance_bonus: number
+          bank_name: string | null
+          base_salary_period: number
+          clabe: string | null
+          company_id: string
+          created_at: string
+          days_worked: number
+          delay_deductions: number
+          department: string | null
+          employee_id: string
+          employee_name: string
+          id: string
+          imss_deduction: number
+          isr_estimated: number
+          job_title: string | null
+          late_arrivals: number
+          net_pay: number
+          notes: string | null
+          overtime_hours: number
+          overtime_pay: number
+          payroll_id: string
+          performance_bonus: number
+          punctuality_bonus: number
+          total_deductions: number
+          total_perceptions: number
+          unjustified_absences: number
+          updated_at: string
+        }
+        Insert: {
+          absence_deductions?: number
+          attendance_bonus?: number
+          bank_name?: string | null
+          base_salary_period?: number
+          clabe?: string | null
+          company_id: string
+          created_at?: string
+          days_worked?: number
+          delay_deductions?: number
+          department?: string | null
+          employee_id: string
+          employee_name: string
+          id?: string
+          imss_deduction?: number
+          isr_estimated?: number
+          job_title?: string | null
+          late_arrivals?: number
+          net_pay?: number
+          notes?: string | null
+          overtime_hours?: number
+          overtime_pay?: number
+          payroll_id: string
+          performance_bonus?: number
+          punctuality_bonus?: number
+          total_deductions?: number
+          total_perceptions?: number
+          unjustified_absences?: number
+          updated_at?: string
+        }
+        Update: {
+          absence_deductions?: number
+          attendance_bonus?: number
+          bank_name?: string | null
+          base_salary_period?: number
+          clabe?: string | null
+          company_id?: string
+          created_at?: string
+          days_worked?: number
+          delay_deductions?: number
+          department?: string | null
+          employee_id?: string
+          employee_name?: string
+          id?: string
+          imss_deduction?: number
+          isr_estimated?: number
+          job_title?: string | null
+          late_arrivals?: number
+          net_pay?: number
+          notes?: string | null
+          overtime_hours?: number
+          overtime_pay?: number
+          payroll_id?: string
+          performance_bonus?: number
+          punctuality_bonus?: number
+          total_deductions?: number
+          total_perceptions?: number
+          unjustified_absences?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "company_payroll_items_company_id_fkey"
+            columns: ["company_id"]
+            referencedRelation: "company_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "company_payroll_items_employee_id_fkey"
+            columns: ["employee_id"]
+            referencedRelation: "company_employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "company_payroll_items_payroll_id_fkey"
+            columns: ["payroll_id"]
+            referencedRelation: "company_payrolls"
             referencedColumns: ["id"]
           },
         ]

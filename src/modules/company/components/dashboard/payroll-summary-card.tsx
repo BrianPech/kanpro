@@ -18,6 +18,7 @@ import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import Link from "next/link";
 import { PayrollSummaryData } from "../../types/dashboard";
 
 interface PayrollSummaryCardProps {
@@ -29,12 +30,37 @@ export function PayrollSummaryCard({ payroll }: PayrollSummaryCardProps) {
 
   const handleExportPayroll = () => {
     setIsExporting(true);
-    setTimeout(() => {
-      setIsExporting(false);
+    try {
+      const headers = ["Departamento", "Presupuesto_MXN", "Headcount", "Porcentaje"];
+      const rows = payroll.departmentBreakdown.map((d) => [
+        `"${d.department.replace(/"/g, '""')}"`,
+        `${d.amount.toFixed(2)}`,
+        `${d.headcount}`,
+        `"${d.percentage}%"`,
+      ]);
+
+      const csvContent =
+        "data:text/csv;charset=utf-8,\uFEFF" +
+        [headers.join(","), ...rows.map((r) => r.join(","))].join("\n");
+      const encodedUri = encodeURI(csvContent);
+      const link = document.createElement("a");
+      link.setAttribute("href", encodedUri);
+      link.setAttribute(
+        "download",
+        `resumen_nomina_${payroll.periodName.replace(/\s+/g, "_").toLowerCase()}.csv`
+      );
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+
       toast.success("Resumen de Nómina descargado", {
         description: `Se ha generado el preliminar para la ${payroll.periodName}.`,
       });
-    }, 1000);
+    } catch {
+      toast.error("Error al exportar el resumen.");
+    } finally {
+      setIsExporting(false);
+    }
   };
 
   const getStatusBadge = (status: PayrollSummaryData["status"]) => {
@@ -80,16 +106,27 @@ export function PayrollSummaryCard({ payroll }: PayrollSummaryCardProps) {
           </div>
         </div>
 
-        <Button
-          size="sm"
-          variant="outline"
-          onClick={handleExportPayroll}
-          disabled={isExporting}
-          className="rounded-xl text-xs font-bold h-9 px-3 border-border/60 flex items-center gap-1.5"
-        >
-          <FileSpreadsheet className="size-3.5" />
-          <span>{isExporting ? "Exportando..." : "Descargar"}</span>
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={handleExportPayroll}
+            disabled={isExporting}
+            className="rounded-xl text-xs font-bold h-9 px-3 border-border/60 flex items-center gap-1.5"
+          >
+            <FileSpreadsheet className="size-3.5" />
+            <span>{isExporting ? "Exportando..." : "Descargar"}</span>
+          </Button>
+
+          <Button
+            size="sm"
+            render={<Link href="/dashboard/company/payroll" />}
+            className="rounded-xl text-xs font-bold h-9 px-3 bg-primary text-primary-foreground flex items-center gap-1"
+          >
+            <span>Ver Pre-Nómina</span>
+            <ArrowUpRight className="size-3.5" />
+          </Button>
+        </div>
       </div>
 
       {/* Main Budget Card */}

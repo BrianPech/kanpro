@@ -4,20 +4,15 @@ import React, { useState } from "react";
 import {
   ShieldAlert,
   Search,
-  Filter,
   Plus,
   ArrowLeft,
-  FileText,
-  Clock,
-  Download,
+  FileSpreadsheet,
   AlertTriangle,
-  CheckCircle2,
-  Paperclip,
   Award,
   Eye,
-  Check,
-  X,
-  FileSpreadsheet,
+  Paperclip,
+  CheckCircle2,
+  Trash2,
 } from "lucide-react";
 import Link from "next/link";
 import { Card } from "@/components/ui/card";
@@ -34,86 +29,26 @@ import {
 } from "@/components/ui/select";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
-import { LaborIncident, IncidentCategory, IncidentSeverity, IncidentStatus } from "../types/incidents";
-import { NewIncidentModal } from "./incidents/new-incident-modal";
+import { LaborIncident } from "../types/incidents";
+import { NewIncidentModal, EmployeeRosterOption } from "./incidents/new-incident-modal";
 import { IncidentEvidenceModal } from "./incidents/incident-evidence-modal";
+import { updateIncidentStatusAction, deleteIncidentAction } from "../actions/incidents";
 
 interface IncidentsViewProps {
-  initialIncidents?: any[];
-  kpis?: any;
+  initialIncidents?: LaborIncident[];
+  employees?: EmployeeRosterOption[];
+  kpis?: {
+    pendingIncidentsCount?: number;
+    criticalIncidentsCount?: number;
+  };
 }
 
-export function IncidentsView({ initialIncidents, kpis }: IncidentsViewProps) {
-  const [incidents, setIncidents] = useState<LaborIncident[]>([
-    {
-      id: "inc-001",
-      employeeId: "emp-001",
-      employeeName: "Carlos Mendoza",
-      jobTitle: "Supervisor de Mantenimiento",
-      department: "Operaciones",
-      category: "reconocimiento",
-      categoryLabel: "⭐ Reconocimiento al Desempeño",
-      title: "Mención honorífica por resolución de contingencia eléctrica",
-      description: "Restableció el suministro del área de refrigeración en tiempo récord evitando pérdida de insumos.",
-      incidentDate: "2026-06-20",
-      severity: "baja",
-      evidenceFileName: "Carta_Felicitacion_Gerencia.pdf",
-      responsibleSupervisor: "Lic. Andrea Garza Ramos",
-      status: "resuelto",
-      createdAt: "20 Jun 2026",
-    },
-    {
-      id: "inc-002",
-      employeeId: "emp-002",
-      employeeName: "Mariana Silva",
-      jobTitle: "Capitán de Meseros",
-      department: "Alimentos y Bebidas",
-      category: "retardo",
-      categoryLabel: "Retardo de Turno",
-      title: "Llegada con 25 minutos de retraso en turno matutino",
-      description: "Retraso atribuible a bloqueo vial en Av. Constituyentes. Notificó por WhatsApp a su superior.",
-      incidentDate: "2026-06-22",
-      severity: "media",
-      responsibleSupervisor: "Gerente de Restaurante",
-      status: "aprobado",
-      createdAt: "22 Jun 2026",
-    },
-    {
-      id: "inc-003",
-      employeeId: "emp-004",
-      employeeName: "Sofía Morales",
-      jobTitle: "Recepcionista Bilingüe",
-      department: "Front Desk",
-      category: "falta_injustificada",
-      categoryLabel: "Falta Injustificada",
-      title: "Inasistencia sin notificación en fin de semana",
-      description: "No se presentó a su turno programado de sábado ni presentó justificante médico en el plazo de 48 horas.",
-      incidentDate: "2026-06-21",
-      severity: "alta",
-      evidenceFileName: "Acta_Circunstanciada_Falta.pdf",
-      responsibleSupervisor: "Gerente de Front Desk",
-      status: "pendiente",
-      createdAt: "21 Jun 2026",
-    },
-    {
-      id: "inc-004",
-      employeeId: "emp-003",
-      employeeName: "Alejandro Ruiz",
-      jobTitle: "Cocinero A",
-      department: "Cocina & Producción",
-      category: "permiso",
-      categoryLabel: "Permiso Especial",
-      title: "Permiso de 2 días por titulación académica",
-      description: "Presentó comprobante oficial de examen profesional para ausentarse con goce de sueldo.",
-      incidentDate: "2026-06-25",
-      severity: "baja",
-      evidenceFileName: "Constancia_Examen_Profesional.pdf",
-      responsibleSupervisor: "Chef Ejecutivo",
-      status: "aprobado",
-      createdAt: "19 Jun 2026",
-    },
-  ]);
-
+export function IncidentsView({
+  initialIncidents = [],
+  employees = [],
+  kpis,
+}: IncidentsViewProps) {
+  const [incidents, setIncidents] = useState<LaborIncident[]>(initialIncidents);
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [categoryFilter, setCategoryFilter] = useState("all");
@@ -136,13 +71,58 @@ export function IncidentsView({ initialIncidents, kpis }: IncidentsViewProps) {
     return matchesSearch && matchesStatus && matchesCategory;
   });
 
-  const handleResolve = (id: string, newStatus: "aprobado" | "rechazado" | "resuelto") => {
+  const handleResolve = async (id: string, newStatus: "aprobado" | "rechazado" | "resuelto") => {
+    const prevIncidents = [...incidents];
+    // Optimistic update
     setIncidents((prev) =>
       prev.map((i) => (i.id === id ? { ...i, status: newStatus } : i))
     );
-    toast.success("Estatus de la incidencia actualizado", {
-      description: `Se actualizó la resolución de la incidencia laboral.`,
-    });
+
+    try {
+      const res = await updateIncidentStatusAction({
+        incidentId: id,
+        status: newStatus,
+      });
+
+      if (!res.success) {
+        setIncidents(prevIncidents);
+        toast.error("Error al actualizar la incidencia", {
+          description: res.error || "No se pudo guardar la resolución.",
+        });
+        return;
+      }
+
+      toast.success("Estatus de la incidencia actualizado", {
+        description: `La resolución ha sido guardada en la base de datos.`,
+      });
+    } catch (err: any) {
+      setIncidents(prevIncidents);
+      toast.error("Error de conexión", {
+        description: err.message || "No se pudo comunicar con el servidor.",
+      });
+    }
+  };
+
+  const handleDelete = async (id: string) => {
+    if (!confirm("¿Deseas eliminar este registro de incidencia permanentemente?")) return;
+
+    const prevIncidents = [...incidents];
+    setIncidents((prev) => prev.filter((i) => i.id !== id));
+
+    try {
+      const res = await deleteIncidentAction(id);
+      if (!res.success) {
+        setIncidents(prevIncidents);
+        toast.error("No se pudo eliminar la incidencia", {
+          description: res.error,
+        });
+        return;
+      }
+      toast.success("Incidencia eliminada del expediente");
+    } catch (err: any) {
+      setIncidents(prevIncidents);
+      toast.error("Error al eliminar", { description: err.message });
+    }
   };
 
   const handleIncidentCreated = (newInc: LaborIncident) => {
@@ -150,13 +130,61 @@ export function IncidentsView({ initialIncidents, kpis }: IncidentsViewProps) {
   };
 
   const handleExport = () => {
+    if (incidents.length === 0) {
+      toast.error("No hay incidencias registradas para exportar.");
+      return;
+    }
+
     setIsExporting(true);
-    setTimeout(() => {
-      setIsExporting(false);
+    try {
+      const headers = [
+        "Colaborador",
+        "Puesto",
+        "Departamento",
+        "Categoría",
+        "Título",
+        "Descripción",
+        "Fecha",
+        "Severidad",
+        "Supervisor",
+        "Estatus",
+      ];
+
+      const rows = incidents.map((i) => [
+        `"${(i.employeeName || "").replace(/"/g, '""')}"`,
+        `"${(i.jobTitle || "").replace(/"/g, '""')}"`,
+        `"${(i.department || "").replace(/"/g, '""')}"`,
+        `"${(i.categoryLabel || "").replace(/"/g, '""')}"`,
+        `"${(i.title || "").replace(/"/g, '""')}"`,
+        `"${(i.description || "").replace(/"/g, '""')}"`,
+        `"${i.incidentDate || ""}"`,
+        `"${i.severity || ""}"`,
+        `"${(i.responsibleSupervisor || "").replace(/"/g, '""')}"`,
+        `"${i.status || ""}"`,
+      ]);
+
+      const csvContent =
+        "data:text/csv;charset=utf-8,\uFEFF" +
+        [headers.join(","), ...rows.map((r) => r.join(","))].join("\n");
+      const encodedUri = encodeURI(csvContent);
+      const link = document.createElement("a");
+      link.setAttribute("href", encodedUri);
+      link.setAttribute(
+        "download",
+        `bitacora_incidencias_${new Date().toISOString().split("T")[0]}.csv`
+      );
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+
       toast.success("Bitácora de Incidencias descargada", {
-        description: "Archivo Excel de incidencias y actas generado con éxito.",
+        description: `Exportados ${incidents.length} registros en formato CSV.`,
       });
-    }, 1000);
+    } catch {
+      toast.error("Error al exportar los datos.");
+    } finally {
+      setIsExporting(false);
+    }
   };
 
   const pendingCount = incidents.filter((i) => i.status === "pendiente").length;
@@ -182,7 +210,7 @@ export function IncidentsView({ initialIncidents, kpis }: IncidentsViewProps) {
             <span>Incidencias Laborales & Reconocimientos</span>
           </h1>
           <p className="text-xs sm:text-sm text-muted-foreground font-semibold">
-            Registro formal de las 8 categorías: faltas, retardos, accidentes, quejas, permisos y méritos destacados.
+            Registro formal de faltas, retardos, accidentes ST-7, incapacidades IMSS, quejas, permisos y méritos destacados.
           </p>
         </div>
 
@@ -279,11 +307,13 @@ export function IncidentsView({ initialIncidents, kpis }: IncidentsViewProps) {
                 <SelectItem value="falta_injustificada">Falta Injustificada</SelectItem>
                 <SelectItem value="retardo">Retardo</SelectItem>
                 <SelectItem value="accidente">Accidente de Trabajo</SelectItem>
+                <SelectItem value="incapacidad">Incapacidad Médica</SelectItem>
                 <SelectItem value="queja">Queja / Conducta</SelectItem>
                 <SelectItem value="permiso">Permiso Especial</SelectItem>
                 <SelectItem value="suspension">Suspensión</SelectItem>
                 <SelectItem value="incumplimiento">Acta Administrativa</SelectItem>
                 <SelectItem value="reconocimiento">⭐ Reconocimiento</SelectItem>
+                <SelectItem value="otro">Otra Incidencia</SelectItem>
               </SelectContent>
             </Select>
 
@@ -306,10 +336,23 @@ export function IncidentsView({ initialIncidents, kpis }: IncidentsViewProps) {
         </div>
 
         {filteredIncidents.length === 0 ? (
-          <div className="p-8 text-center bg-muted/20 rounded-xl border border-dashed border-border/60 space-y-2">
-            <p className="text-xs text-muted-foreground">
-              No se encontraron incidencias que coincidan con los filtros.
+          <div className="p-12 text-center bg-muted/20 rounded-xl border border-dashed border-border/60 space-y-2">
+            <CheckCircle2 className="size-8 text-muted-foreground mx-auto stroke-1" />
+            <p className="text-sm font-bold text-foreground">
+              Sin incidencias registradas
             </p>
+            <p className="text-xs text-muted-foreground max-w-sm mx-auto">
+              No hay incidencias que coincidan con los filtros seleccionados o aún no se han registrado eventos para la empresa.
+            </p>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setIsNewModalOpen(true)}
+              className="mt-2 rounded-xl text-xs font-bold"
+            >
+              <Plus className="size-3.5 mr-1" />
+              Registrar Primera Incidencia
+            </Button>
           </div>
         ) : (
           <div className="space-y-3">
@@ -399,6 +442,16 @@ export function IncidentsView({ initialIncidents, kpis }: IncidentsViewProps) {
                       <Eye className="size-3" />
                       <span>Ver Ficha / Evidencia</span>
                     </Button>
+
+                    <Button
+                      size="icon"
+                      variant="ghost"
+                      onClick={() => handleDelete(inc.id)}
+                      className="h-8 w-8 rounded-lg text-muted-foreground hover:text-destructive hover:bg-destructive/10"
+                      title="Eliminar incidencia"
+                    >
+                      <Trash2 className="size-3.5" />
+                    </Button>
                   </div>
                 </div>
               );
@@ -412,6 +465,7 @@ export function IncidentsView({ initialIncidents, kpis }: IncidentsViewProps) {
         isOpen={isNewModalOpen}
         onOpenChange={setIsNewModalOpen}
         onIncidentCreated={handleIncidentCreated}
+        employees={employees}
       />
 
       {/* Modal 2: Evidence & Details */}

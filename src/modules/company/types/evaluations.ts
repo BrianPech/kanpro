@@ -35,3 +35,40 @@ export interface EmployeeEvaluation {
   comments: string;
   status: "completada" | "borrador";
 }
+
+export type Nom035RiskLevel = "nulo" | "bajo" | "medio" | "alto" | "muy_alto";
+export type Nom035GuideType = "guia_i" | "guia_ii" | "guia_iii";
+
+export interface Nom035Survey {
+  id: string;
+  employeeId?: string | null;
+  employeeName: string;
+  jobTitle?: string | null;
+  department?: string | null;
+  guideType: Nom035GuideType;
+  surveyDate: string;
+  environmentScore: number;
+  activityFactorsScore: number;
+  timeOrganizationScore: number;
+  leadershipRelationsScore: number;
+  organizationalClimateScore: number;
+  totalScore: number;
+  riskLevel: Nom035RiskLevel;
+  actionPlan?: string | null;
+  status: "borrador" | "completada";
+}
+
+export interface Nom035Metrics {
+  totalSurveys: number;
+  averageTotalScore: number;
+  overallRiskLevel: Nom035RiskLevel;
+  riskCounts: Record<Nom035RiskLevel, number>;
+  dimensionAverages: {
+    environment: number;
+    activityFactors: number;
+    timeOrganization: number;
+    leadershipRelations: number;
+    organizationalClimate: number;
+  };
+}
+

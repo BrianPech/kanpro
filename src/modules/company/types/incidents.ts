@@ -6,7 +6,9 @@ export type IncidentCategory =
   | "permiso"
   | "suspension"
   | "incumplimiento"
-  | "reconocimiento";
+  | "reconocimiento"
+  | "incapacidad"
+  | "otro";
 
 export type IncidentSeverity = "baja" | "media" | "alta" | "critica";
 export type IncidentStatus = "pendiente" | "en_revision" | "aprobado" | "rechazado" | "resuelto";
