@@ -1,24 +1,49 @@
-export type ReportCategory =
-  | "asistencia_mensual"
-  | "horas_trabajadas"
-  | "faltas_retardos"
-  | "rotacion_personal"
-  | "vacaciones_lft"
-  | "incidencias_clima"
-  | "censo_plantilla"
-  | "costos_nomina";
+export type ReportCategoryGroup =
+  | "all"
+  | "talento"
+  | "legal"
+  | "finanzas"
+  | "evaluaciones";
 
-export interface ReportItemDefinition {
-  id: ReportCategory;
-  title: string;
-  category: "operaciones" | "talento" | "finanzas" | "legal";
-  description: string;
-  iconName: string;
-  recommendedFrequency: string;
-  fieldsIncluded: string[];
+export type ReportKey =
+  | "censo_plantilla"
+  | "vacaciones_lft"
+  | "contratos_vigencias"
+  | "costos_nomina"
+  | "evaluaciones_desempeno"
+  | "vacantes_atraccion";
+
+export interface ReportColumn {
+  key: string;
+  label: string;
+  format?: "currency" | "date" | "badge" | "number" | "text";
 }
 
-export interface QuickInsightAnswer {
+export interface ReportDefinition {
+  id: ReportKey;
+  title: string;
+  category: ReportCategoryGroup;
+  categoryLabel: string;
+  description: string;
+  recommendedFrequency: string;
+  columns: ReportColumn[];
+  data: Record<string, any>[];
+  recordCount: number;
+}
+
+export interface ReportsExecutiveKPIs {
+  activeEmployees: number;
+  totalEmployees: number;
+  retentionRate: number;
+  totalMonthlyPayroll: number;
+  averageSalary: number;
+  totalAccruedVacationDays: number;
+  totalContractsCount: number;
+  totalEvaluationsCount: number;
+  evaluationsAverageScore: number;
+}
+
+export interface QuickInsight {
   id: string;
   question: string;
   category: string;
@@ -27,12 +52,15 @@ export interface QuickInsightAnswer {
   metricSubtitle: string;
   badge: string;
   badgeColor?: string;
-  employeeHighlight?: {
-    name: string;
-    jobTitle: string;
-    department: string;
-    detail: string;
-    employeeId: string;
-  };
   explanation: string;
+  linkHref?: string;
+  linkLabel?: string;
+}
+
+export interface CompanyReportsData {
+  companyName: string;
+  kpis: ReportsExecutiveKPIs;
+  insights: QuickInsight[];
+  reports: ReportDefinition[];
+  departments: string[];
 }
