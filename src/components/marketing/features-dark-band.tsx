@@ -1,234 +1,165 @@
 "use client";
 
-import React, { useState } from "react";
-import Link from "next/link";
-import { 
-  Building2, 
-  UserCheck, 
-  ArrowRight, 
-  ShieldCheck 
+import React from "react";
+import { cn } from "@/lib/utils";
+import { Badge } from "@/components/ui/badge";
+import {
+  CirclePercent,
+  MessageSquare,
+  ShieldCheck,
+  MapPin,
+  Kanban,
+  Scale,
+  Lock,
+  Headphones,
+  Sparkles,
 } from "lucide-react";
 
 export function FeaturesDarkBand() {
-  const [activeRole, setActiveRole] = useState<"company" | "candidate">("company");
+  const features = [
+    {
+      title: "0% Comisiones por Éxito",
+      description:
+        "Sin deducciones de sueldos ni tarifas del 20% al 30% como las agencias de reclutamiento tradicionales.",
+      icon: <CirclePercent className="size-6" />,
+    },
+    {
+      title: "Contacto en 1-Clic por WhatsApp",
+      description:
+        "Inicia conversaciones directas con candidatos preseleccionados con plantillas de entrevista precargadas.",
+      icon: <MessageSquare className="size-6" />,
+    },
+    {
+      title: "Expedientes Auditados SAT",
+      description:
+        "Cotejo de RFC, Constancia de Situación Fiscal y Razón Social de 13 puntos para evitar fraudes.",
+      icon: <ShieldCheck className="size-6" />,
+    },
+    {
+      title: "Filtro Hiperlocal por Colonia",
+      description:
+        "Delimita vacantes en Mérida, Cancún y Playa del Carmen para priorizar personal a menos de 3.5 km.",
+      icon: <MapPin className="size-6" />,
+    },
+    {
+      title: "Pipeline Kanban en Vivo",
+      description:
+        "Controla cada postulación en tiempo real en etapas: en revisión, preseleccionado, citado y contratado.",
+      icon: <Kanban className="size-6" />,
+    },
+    {
+      title: "Cumplimiento LFT & NOM-035",
+      description:
+        "Módulos integrados para evaluaciones de clima laboral, actas administrativas y contratos digitales.",
+      icon: <Scale className="size-6" />,
+    },
+    {
+      title: "Protección de Datos LFPDPPP",
+      description:
+        "Documentos sensibles (INE, CURP) cifrados con acceso únicamente bajo autorización del trabajador.",
+      icon: <Lock className="size-6" />,
+    },
+    {
+      title: "Soporte Regional en el Sureste",
+      description:
+        "Asistencia dedicada para empresas y candidatos con equipo basado en Yucatán y Quintana Roo.",
+      icon: <Headphones className="size-6" />,
+    },
+  ];
 
   return (
-    <section id="empresas" className="bg-white text-[var(--color-fiord-950)] py-20 sm:py-28 border-b border-[var(--color-fiord-200)] text-left scroll-mt-16">
-      <div id="candidatos" className="max-w-[1200px] mx-auto px-4 sm:px-6 lg:px-8 space-y-14">
-        
-        {/* Section Header & Sub-Nav Switcher */}
-        <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 pb-6 border-b border-[var(--color-fiord-200)]">
-          <div className="space-y-3 max-w-2xl">
-            <span className="text-[13px] font-bold text-[var(--color-fiord-800)] tracking-[0.24px] uppercase block font-mono">
-              Suite de Operación y Contratación
-            </span>
-            <h2 className="text-3xl sm:text-5xl font-bold tracking-[-0.48px] leading-[1.08] text-[var(--color-fiord-950)] font-sans">
-              Herramientas creadas para la realidad laboral del Sureste
-            </h2>
-          </div>
+    <section id="features" className="w-full py-20 sm:py-28 lg:py-32 bg-transparent text-foreground relative overflow-hidden">
+      
+      {/* Sutil halo ambiental con tokens de shadcn */}
+      <div
+        className="pointer-events-none absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[700px] h-[350px] rounded-full bg-primary/5 blur-[140px]"
+        aria-hidden="true"
+      />
 
-          <div className="inline-flex p-1 rounded-full bg-[var(--color-fiord-100)] border border-[var(--color-fiord-200)] self-start md:self-auto">
-            <button
-              onClick={() => setActiveRole("company")}
-              className={`flex items-center gap-2 px-5 py-2.5 rounded-full text-[13px] font-semibold transition-all cursor-pointer ${
-                activeRole === "company"
-                  ? "bg-[var(--color-fiord-950)] text-white shadow-xs"
-                  : "text-[var(--color-fiord-700)] hover:text-[var(--color-fiord-950)]"
-              }`}
-            >
-              <Building2 className="size-3.5" />
-              <span>Para Empresas</span>
-            </button>
-            <button
-              onClick={() => setActiveRole("candidate")}
-              className={`flex items-center gap-2 px-5 py-2.5 rounded-full text-[13px] font-semibold transition-all cursor-pointer ${
-                activeRole === "candidate"
-                  ? "bg-[var(--color-fiord-950)] text-white shadow-xs"
-                  : "text-[var(--color-fiord-700)] hover:text-[var(--color-fiord-950)]"
-              }`}
-            >
-              <UserCheck className="size-3.5" />
-              <span>Para Candidatos</span>
-            </button>
-          </div>
+      <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10 space-y-12 sm:space-y-16">
+        
+        {/* Section Header */}
+        <div className="space-y-4 text-center max-w-2xl mx-auto">
+          <Badge
+            variant="outline"
+            className="text-xs font-mono font-bold uppercase tracking-wider text-primary border-primary/20 bg-primary/5 px-3.5 py-1 rounded-full gap-1.5 shadow-2xs"
+          >
+            <Sparkles className="size-3.5" />
+            <span>Suite de Operación y Contratación</span>
+          </Badge>
+
+          <h2 className="text-3xl sm:text-5xl font-black tracking-tight text-foreground font-sans leading-[1.08] text-balance">
+            Herramientas creadas para la realidad del Sureste
+          </h2>
+
+          <p className="text-base sm:text-lg text-muted-foreground font-normal leading-relaxed text-balance">
+            Todo lo necesario para publicar vacantes, verificar expedientes y vincular talento en Mérida, Cancún y la Riviera Maya sin fricción.
+          </p>
         </div>
 
-        {/* 3 High-Contrast Feature Cards Grid */}
-        {activeRole === "company" ? (
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            
-            {/* Card 1 */}
-            <div className="p-8 rounded-[20px] bg-[var(--color-fiord-50)] border border-[var(--color-fiord-200)] hover:border-[var(--color-fiord-950)] transition-all space-y-6 flex flex-col justify-between shadow-2xs">
-              <div className="space-y-4">
-                <div className="size-11 rounded-full bg-white border border-[var(--color-fiord-200)] text-[var(--color-fiord-950)] flex items-center justify-center font-bold text-sm shadow-2xs">
-                  01
-                </div>
-                <h3 className="text-xl font-bold tracking-tight text-[var(--color-fiord-950)] font-sans">
-                  Wizard en 4 pasos con prestaciones de ley
-                </h3>
-                <p className="text-[14px] text-[var(--color-fiord-700)] leading-relaxed font-medium">
-                  Publica vacantes en minutos. Configura sueldo en MXN, colonia exacta de tu sucursal y selecciona beneficios: IMSS, propinas, comedor, transporte y uniformes.
-                </p>
-              </div>
-
-              <div className="p-3.5 rounded-[12px] bg-white border border-[var(--color-fiord-200)] text-[12px] font-mono text-[var(--color-fiord-700)] space-y-1 font-semibold">
-                <div>✓ IMSS Día 1</div>
-                <div>✓ Comedor de Personal</div>
-                <div>✓ Propinas Semanales</div>
-              </div>
-            </div>
-
-            {/* Card 2 */}
-            <div className="p-8 rounded-[20px] bg-[var(--color-fiord-50)] border border-[var(--color-fiord-200)] hover:border-[var(--color-fiord-950)] transition-all space-y-6 flex flex-col justify-between shadow-2xs">
-              <div className="space-y-4">
-                <div className="size-11 rounded-full bg-white border border-[var(--color-fiord-200)] text-[var(--color-fiord-950)] flex items-center justify-center font-bold text-sm shadow-2xs">
-                  02
-                </div>
-                <h3 className="text-xl font-bold tracking-tight text-[var(--color-fiord-950)] font-sans">
-                  Applications Inbox & Pipeline en vivo
-                </h3>
-                <p className="text-[14px] text-[var(--color-fiord-700)] leading-relaxed font-medium">
-                  Gestiona a tus postulantes ordenados por proximidad a tu sucursal. Clasifica en estados (Pendiente, En revisión, Preseleccionado), califica y agrega notas privadas.
-                </p>
-              </div>
-
-              <div className="p-3.5 rounded-[12px] bg-white border border-[var(--color-fiord-200)] text-[12px] font-mono text-[var(--color-fiord-700)] flex items-center justify-between font-semibold">
-                <span>Calificación de aspirante:</span>
-                <span className="text-[#d97706] font-bold">★ 4.9 / 5.0</span>
-              </div>
-            </div>
-
-            {/* Card 3 */}
-            <div className="p-8 rounded-[20px] bg-[var(--color-fiord-50)] border border-[var(--color-fiord-200)] hover:border-[var(--color-fiord-950)] transition-all space-y-6 flex flex-col justify-between shadow-2xs">
-              <div className="space-y-4">
-                <div className="size-11 rounded-full bg-white border border-[var(--color-fiord-200)] text-[var(--color-fiord-950)] flex items-center justify-center font-bold text-sm shadow-2xs">
-                  03
-                </div>
-                <h3 className="text-xl font-bold tracking-tight text-[var(--color-fiord-950)] font-sans">
-                  Conexión directa e inmediata en WhatsApp
-                </h3>
-                <p className="text-[14px] text-[var(--color-fiord-700)] leading-relaxed font-medium">
-                  Con un solo clic se dispara una conversación oficial en WhatsApp con el aspirante para agendar su entrevista presencial en cuestión de horas.
-                </p>
-              </div>
-
-              <Link
-                href="/register/company"
-                className="w-full h-12 rounded-full bg-[var(--color-fiord-950)] text-white hover:bg-[var(--color-fiord-900)] font-semibold text-[13px] flex items-center justify-center gap-2 transition-colors shadow-xs"
-              >
-                <span>Empezar a reclutar gratis</span>
-                <ArrowRight className="size-3.5" />
-              </Link>
-            </div>
-
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            
-            {/* Candidate Card 1 */}
-            <div className="p-8 rounded-[20px] bg-[var(--color-fiord-50)] border border-[var(--color-fiord-200)] hover:border-[var(--color-fiord-950)] transition-all space-y-6 flex flex-col justify-between shadow-2xs">
-              <div className="space-y-4">
-                <div className="size-11 rounded-full bg-white border border-[var(--color-fiord-200)] text-[var(--color-fiord-950)] flex items-center justify-center font-bold text-sm shadow-2xs">
-                  01
-                </div>
-                <h3 className="text-xl font-bold tracking-tight text-[var(--color-fiord-950)] font-sans">
-                  Búsqueda por cercanía a tu domicilio
-                </h3>
-                <p className="text-[14px] text-[var(--color-fiord-700)] leading-relaxed font-medium">
-                  Encuentra vacantes a menos de 3.5 km de tu casa en Mérida o Quintana Roo. Ahorra 2 horas diarias de transporte público y gastos diarios de pasajes.
-                </p>
-              </div>
-
-              <div className="p-3.5 rounded-[12px] bg-white border border-[var(--color-fiord-200)] text-[12px] font-mono text-[var(--color-fiord-700)] font-semibold">
-                Radio promedio: 10 a 15 minutos de traslado
-              </div>
-            </div>
-
-            {/* Candidate Card 2 */}
-            <div className="p-8 rounded-[20px] bg-[var(--color-fiord-50)] border border-[var(--color-fiord-200)] hover:border-[var(--color-fiord-950)] transition-all space-y-6 flex flex-col justify-between shadow-2xs">
-              <div className="space-y-4">
-                <div className="size-11 rounded-full bg-white border border-[var(--color-fiord-200)] text-[var(--color-fiord-950)] flex items-center justify-center font-bold text-sm shadow-2xs">
-                  02
-                </div>
-                <h3 className="text-xl font-bold tracking-tight text-[var(--color-fiord-950)] font-sans">
-                  Expediente 100% y Prioridad Máxima
-                </h3>
-                <p className="text-[14px] text-[var(--color-fiord-700)] leading-relaxed font-medium">
-                  Coteja tu INE, CURP oficial SAT, comprobante y cartas de trabajo. Tu perfil recibe la insignia de Prioridad Máxima ante los departamentos de recursos humanos.
-                </p>
-              </div>
-
-              <div className="p-3.5 rounded-[12px] bg-white border border-[var(--color-fiord-200)] text-[12px] font-mono text-[#047857] flex items-center justify-between font-bold">
-                <span>Insignia de Cotejo Activa</span>
-                <span>100% ✓</span>
-              </div>
-            </div>
-
-            {/* Candidate Card 3 */}
-            <div className="p-8 rounded-[20px] bg-[var(--color-fiord-50)] border border-[var(--color-fiord-200)] hover:border-[var(--color-fiord-950)] transition-all space-y-6 flex flex-col justify-between shadow-2xs">
-              <div className="space-y-4">
-                <div className="size-11 rounded-full bg-white border border-[var(--color-fiord-200)] text-[var(--color-fiord-950)] flex items-center justify-center font-bold text-sm shadow-2xs">
-                  03
-                </div>
-                <h3 className="text-xl font-bold tracking-tight text-[var(--color-fiord-950)] font-sans">
-                  Postulación en 1 clic y privacidad LFPDPPP
-                </h3>
-                <p className="text-[14px] text-[var(--color-fiord-700)] leading-relaxed font-medium">
-                  Aplica al instante sin llenar formularios repetitivos. Tus documentos sensibles permanecen cifrados y solo se comparten cuando tú lo autorices.
-                </p>
-              </div>
-
-              <Link
-                href="/register/candidate"
-                className="w-full h-12 rounded-full bg-[var(--color-fiord-950)] text-white hover:bg-[var(--color-fiord-900)] font-semibold text-[13px] flex items-center justify-center gap-2 transition-colors shadow-xs"
-              >
-                <span>Crear mi expediente gratis</span>
-                <ArrowRight className="size-3.5" />
-              </Link>
-            </div>
-
-          </div>
-        )}
-
-        {/* SAT 13-Point Audit Callout Block */}
-        <div id="verificacion" className="p-8 sm:p-10 rounded-[28px] bg-[var(--color-fiord-50)] border border-[var(--color-fiord-200)] space-y-6 shadow-2xs">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-[var(--color-fiord-200)]">
-            <div className="flex items-center gap-3">
-              <div className="size-10 rounded-full bg-[#059669]/15 text-[#047857] flex items-center justify-center">
-                <ShieldCheck className="size-5" />
-              </div>
-              <div>
-                <h3 className="text-xl font-bold text-[var(--color-fiord-950)] font-sans">
-                  Protocolo de Verificación Legal SAT (13 Puntos)
-                </h3>
-                <p className="text-[13px] text-[var(--color-fiord-700)] font-mono font-medium">
-                  Auditoría obligatoria de legitimidad para todas las empresas empleadoras
-                </p>
-              </div>
-            </div>
-
-            <span className="px-3.5 py-1 rounded-full bg-[#059669]/15 text-[#047857] border border-[#059669]/25 text-[11px] font-bold font-mono self-start sm:self-auto">
-              SELLO DE CONFIANZA PENINSULAR
-            </span>
-          </div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 text-[13px] font-mono text-[var(--color-fiord-800)] font-semibold">
-            <div className="p-3.5 rounded-[12px] bg-white border border-[var(--color-fiord-200)]">
-              1. Acta Constitutiva & Folio
-            </div>
-            <div className="p-3.5 rounded-[12px] bg-white border border-[var(--color-fiord-200)]">
-              2. RFC Activo con CSF SAT
-            </div>
-            <div className="p-3.5 rounded-[12px] bg-white border border-[var(--color-fiord-200)]">
-              3. Domicilio Fiscal Comprobable
-            </div>
-            <div className="p-3.5 rounded-[12px] bg-white border border-[var(--color-fiord-200)]">
-              4. Poder Notarial Representante
-            </div>
-          </div>
+        {/* Aceternity-style Grid con tokens de shadcn */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 relative z-10">
+          {features.map((feature, index) => (
+            <Feature key={feature.title} {...feature} index={index} />
+          ))}
         </div>
 
       </div>
     </section>
   );
 }
+
+const Feature = ({
+  title,
+  description,
+  icon,
+  index,
+}: {
+  title: string;
+  description: string;
+  icon: React.ReactNode;
+  index: number;
+}) => {
+  return (
+    <div
+      className={cn(
+        "flex flex-col py-10 relative group/feature transition-colors duration-200 border-border",
+        // Mobile (1 col)
+        "border-b last:border-b-0",
+        // Tablet (2 cols: md)
+        "md:border-b md:last:border-b-0",
+        index % 2 === 0 ? "md:border-l md:border-r" : "md:border-r",
+        (index === 6 || index === 7) && "md:border-b-0",
+        // Desktop (4 cols: lg)
+        "lg:border-r",
+        (index === 0 || index === 4) ? "lg:border-l" : "lg:border-l-0",
+        index < 4 ? "lg:border-b" : "lg:border-b-0"
+      )}
+    >
+      {/* Hover Background Gradients using shadcn muted token */}
+      {index < 4 ? (
+        <div className="opacity-0 group-hover/feature:opacity-100 transition duration-300 absolute inset-0 h-full w-full bg-gradient-to-t from-muted/60 to-transparent pointer-events-none" />
+      ) : (
+        <div className="opacity-0 group-hover/feature:opacity-100 transition duration-300 absolute inset-0 h-full w-full bg-gradient-to-b from-muted/60 to-transparent pointer-events-none" />
+      )}
+
+      {/* Icon */}
+      <div className="mb-4 relative z-10 px-8 sm:px-10 text-muted-foreground group-hover/feature:text-primary transition-colors duration-200">
+        {icon}
+      </div>
+
+      {/* Title with left pill indicator */}
+      <div className="text-base sm:text-lg font-bold mb-2 relative z-10 px-8 sm:px-10 text-foreground">
+        <div className="absolute left-0 inset-y-0 h-6 group-hover/feature:h-8 w-1 rounded-tr-full rounded-br-full bg-border group-hover/feature:bg-primary transition-all duration-200 origin-center" />
+        <span className="group-hover/feature:translate-x-2 transition duration-200 inline-block">
+          {title}
+        </span>
+      </div>
+
+      {/* Description */}
+      <p className="text-xs sm:text-sm text-muted-foreground max-w-xs relative z-10 px-8 sm:px-10 leading-relaxed font-normal">
+        {description}
+      </p>
+    </div>
+  );
+};

@@ -2,10 +2,9 @@
 
 import React from "react";
 import { Navbar } from "@/components/marketing/navbar";
-import { HeroBand } from "@/components/marketing/hero-band";
+import { HeroSection } from "@/components/marketing/hero-section";
 import { FeaturesDarkBand } from "@/components/marketing/features-dark-band";
 import { ComparisonLightBand } from "@/components/marketing/comparison-light-band";
-import { PricingDarkBand } from "@/components/marketing/pricing-dark-band";
 import { FaqLightBand } from "@/components/marketing/faq-light-band";
 import { Footer } from "@/components/marketing/footer";
 
@@ -17,8 +16,8 @@ export function LandingPage() {
 
       {/* 2. Light Fiord Marketing Bands */}
       <main className="flex-1">
-        {/* Band 1: Fiord Gradient Hero with Flagship Typography & Live Product UI */}
-        <HeroBand />
+        {/* Band 1: Interactive Split Hero Section */}
+        <HeroSection />
 
         {/* Band 2: Operating Suite Band (Empresas, Candidatos & SAT Audit) */}
         <FeaturesDarkBand />
@@ -26,10 +25,7 @@ export function LandingPage() {
         {/* Band 3: Economic Comparison & Territorial Corridors */}
         <ComparisonLightBand />
 
-        {/* Band 4: Transparent Pricing Grid with Featured SAT Verification */}
-        <PricingDarkBand />
-
-        {/* Band 5: FAQ Accordion Band */}
+        {/* Band 4: FAQ Accordion Band */}
         <FaqLightBand />
       </main>
 
