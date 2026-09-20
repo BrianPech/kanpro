@@ -6,6 +6,7 @@ import { HeroSection } from "@/components/marketing/hero-section";
 import { FeaturesDarkBand } from "@/components/marketing/features-dark-band";
 import { ComparisonLightBand } from "@/components/marketing/comparison-light-band";
 import { FaqLightBand } from "@/components/marketing/faq-light-band";
+import { CtaBanner } from "@/components/marketing/cta-banner";
 import { Footer } from "@/components/marketing/footer";
 
 export function LandingPage() {
@@ -27,6 +28,9 @@ export function LandingPage() {
 
         {/* Band 4: FAQ Accordion Band */}
         <FaqLightBand />
+
+        {/* Band 5: Floating Light CTA Banner */}
+        <CtaBanner />
       </main>
 
       {/* 3. Global Footer */}
