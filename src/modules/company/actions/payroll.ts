@@ -2,36 +2,62 @@
 
 import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
-import { PayrollEmployeeItem } from "../types/payroll";
-import { getFortnightPeriodInfo } from "../utils/payroll-calculator";
+import {
+  adjustBonusesSchema,
+  dispersePayrollSchema,
+  updateEmployeeBankDetailsSchema,
+  closePayrollPeriodSchema,
+  type AdjustBonusesInput,
+  type DispersePayrollInput,
+  type UpdateEmployeeBankDetailsInput,
+  type ClosePayrollPeriodInput,
+} from "../schemas/payroll.schema";
+import {
+  CompanyPayrollService,
+  type PayrollRow,
+} from "../services/company-payroll";
 
-export interface AdjustBonusesInput {
-  employeeId: string;
-  punctualityBonus: number;
-  attendanceBonus: number;
-  performanceBonus: number;
-  startDate?: string;
-  endDate?: string;
+export type {
+  AdjustBonusesInput,
+  DispersePayrollInput,
+  UpdateEmployeeBankDetailsInput,
+  ClosePayrollPeriodInput,
+};
+
+export interface ActionResponse<T> {
+  success: boolean;
+  data?: T;
+  error?: string;
 }
 
-export interface DispersePayrollInput {
-  periodName: string;
-  startDate: string;
-  endDate: string;
-  payoutDate: string;
-  periodType?: "semanal" | "quincenal" | "mensual";
-  totalGross: number;
-  totalOvertime: number;
-  totalBonuses: number;
-  totalDeductions: number;
-  totalNet: number;
-  employees: PayrollEmployeeItem[];
+export interface AdjustBonusesActionResult extends ActionResponse<{ payrollId: string }> {
+  payrollId?: string;
+}
+
+export interface DispersePayrollActionResult extends ActionResponse<{ payrollId: string }> {
+  payrollId?: string;
+}
+
+export interface UpdateBankDetailsActionResult extends ActionResponse<{ employeeId: string }> {
+  employeeId?: string;
+}
+
+export interface ClosePayrollPeriodActionResult extends ActionResponse<PayrollRow> {
+  payroll?: PayrollRow;
 }
 
 /**
  * Ajusta y persiste los bonos de un colaborador en la pre-nómina
  */
-export async function adjustEmployeeBonusesAction(input: AdjustBonusesInput) {
+export async function adjustEmployeeBonusesAction(
+  rawInput: AdjustBonusesInput
+): Promise<AdjustBonusesActionResult> {
+  const parsed = adjustBonusesSchema.safeParse(rawInput);
+  if (!parsed.success) {
+    const errorMsg = parsed.error.issues[0]?.message || "Datos de ajuste de bonos inválidos.";
+    return { success: false, error: errorMsg };
+  }
+
   const supabase = await createClient();
   const {
     data: { user },
@@ -41,90 +67,36 @@ export async function adjustEmployeeBonusesAction(input: AdjustBonusesInput) {
     return { success: false, error: "No autorizado. Inicia sesión para continuar." };
   }
 
-  const periodInfo = getFortnightPeriodInfo();
-  const startDate = input.startDate || periodInfo.startDate;
-  const endDate = input.endDate || periodInfo.endDate;
+  try {
+    const service = new CompanyPayrollService(supabase);
+    const result = await service.adjustEmployeeBonuses(user.id, parsed.data);
 
-  // 1. Obtener o crear el registro maestro de nómina
-  let { data: payroll } = await supabase
-    .from("company_payrolls")
-    .select("id")
-    .eq("company_id", user.id)
-    .eq("start_date", startDate)
-    .eq("end_date", endDate)
-    .maybeSingle();
+    revalidatePath("/dashboard/company/payroll");
+    revalidatePath("/dashboard/company");
 
-  if (!payroll) {
-    const { data: newPayroll, error: createError } = await supabase
-      .from("company_payrolls")
-      .insert({
-        company_id: user.id,
-        period_name: periodInfo.periodName,
-        period_type: periodInfo.periodType,
-        start_date: startDate,
-        end_date: endDate,
-        payout_date: periodInfo.payoutDate,
-        status: "borrador",
-      })
-      .select("id")
-      .single();
-
-    if (createError || !newPayroll) {
-      return { success: false, error: createError?.message || "No se pudo inicializar la nómina." };
-    }
-    payroll = newPayroll;
+    return {
+      success: true,
+      data: result,
+      payrollId: result.payrollId,
+    };
+  } catch (error) {
+    const errorMsg = error instanceof Error ? error.message : "Error inesperado al ajustar bonos.";
+    return { success: false, error: errorMsg };
   }
-
-  // 2. Obtener datos del colaborador
-  const { data: employee } = await supabase
-    .from("company_employees")
-    .select("full_name, job_title, department, base_salary_monthly, bank_name, clabe_account")
-    .eq("id", input.employeeId)
-    .single();
-
-  if (!employee) {
-    return { success: false, error: "Colaborador no encontrado." };
-  }
-
-  const monthly = Number(employee.base_salary_monthly) || 8500;
-  const baseSalaryPeriod = Math.round(monthly / 2);
-
-  // 3. Upsert del item de nómina
-  const { error: itemError } = await supabase
-    .from("company_payroll_items")
-    .upsert(
-      {
-        payroll_id: payroll.id,
-        company_id: user.id,
-        employee_id: input.employeeId,
-        employee_name: employee.full_name,
-        job_title: employee.job_title,
-        department: employee.department,
-        base_salary_period: baseSalaryPeriod,
-        punctuality_bonus: input.punctualityBonus,
-        attendance_bonus: input.attendanceBonus,
-        performance_bonus: input.performanceBonus,
-        bank_name: employee.bank_name || "BBVA México",
-        clabe: employee.clabe_account || null,
-        updated_at: new Date().toISOString(),
-      },
-      { onConflict: "payroll_id,employee_id" }
-    );
-
-  if (itemError) {
-    return { success: false, error: itemError.message };
-  }
-
-  revalidatePath("/dashboard/company/payroll");
-  revalidatePath("/dashboard/company");
-
-  return { success: true };
 }
 
 /**
  * Aprueba y procesa la dispersión formal de la nómina
  */
-export async function disperseCompanyPayrollAction(input: DispersePayrollInput) {
+export async function disperseCompanyPayrollAction(
+  rawInput: DispersePayrollInput
+): Promise<DispersePayrollActionResult> {
+  const parsed = dispersePayrollSchema.safeParse(rawInput);
+  if (!parsed.success) {
+    const errorMsg = parsed.error.issues[0]?.message || "Datos de dispersión de nómina inválidos.";
+    return { success: false, error: errorMsg };
+  }
+
   const supabase = await createClient();
   const {
     data: { user },
@@ -134,103 +106,22 @@ export async function disperseCompanyPayrollAction(input: DispersePayrollInput) 
     return { success: false, error: "No autorizado." };
   }
 
-  // 1. Guardar o actualizar registro maestro con status 'pagada'
-  let payrollId: string;
-  const { data: existingPayroll } = await supabase
-    .from("company_payrolls")
-    .select("id")
-    .eq("company_id", user.id)
-    .eq("start_date", input.startDate)
-    .eq("end_date", input.endDate)
-    .maybeSingle();
+  try {
+    const service = new CompanyPayrollService(supabase);
+    const result = await service.disperseCompanyPayroll(user.id, parsed.data);
 
-  const nowIso = new Date().toISOString();
+    revalidatePath("/dashboard/company/payroll");
+    revalidatePath("/dashboard/company");
 
-  if (existingPayroll) {
-    payrollId = existingPayroll.id;
-    await supabase
-      .from("company_payrolls")
-      .update({
-        status: "pagada",
-        dispersed_at: nowIso,
-        total_gross: input.totalGross,
-        total_overtime: input.totalOvertime,
-        total_bonuses: input.totalBonuses,
-        total_deductions: input.totalDeductions,
-        total_net: input.totalNet,
-        employees_count: input.employees.length,
-        updated_at: nowIso,
-      })
-      .eq("id", payrollId);
-  } else {
-    const { data: newPayroll, error: insertError } = await supabase
-      .from("company_payrolls")
-      .insert({
-        company_id: user.id,
-        period_name: input.periodName,
-        period_type: input.periodType || "quincenal",
-        start_date: input.startDate,
-        end_date: input.endDate,
-        payout_date: input.payoutDate,
-        status: "pagada",
-        dispersed_at: nowIso,
-        total_gross: input.totalGross,
-        total_overtime: input.totalOvertime,
-        total_bonuses: input.totalBonuses,
-        total_deductions: input.totalDeductions,
-        total_net: input.totalNet,
-        employees_count: input.employees.length,
-      })
-      .select("id")
-      .single();
-
-    if (insertError || !newPayroll) {
-      return { success: false, error: insertError?.message || "Error al crear la orden de dispersión." };
-    }
-    payrollId = newPayroll.id;
+    return {
+      success: true,
+      data: result,
+      payrollId: result.payrollId,
+    };
+  } catch (error) {
+    const errorMsg = error instanceof Error ? error.message : "Error inesperado al dispersar nómina.";
+    return { success: false, error: errorMsg };
   }
-
-  // 2. Guardar el desglose de cada colaborador
-  const itemsPayload = input.employees.map((emp) => ({
-    payroll_id: payrollId,
-    company_id: user.id,
-    employee_id: emp.employeeId,
-    employee_name: emp.employeeName,
-    job_title: emp.jobTitle,
-    department: emp.department,
-    base_salary_period: emp.baseSalaryPeriod,
-    days_worked: emp.daysWorked,
-    overtime_hours: emp.overtimeHours,
-    overtime_pay: emp.overtimePay,
-    punctuality_bonus: emp.punctualityBonus,
-    attendance_bonus: emp.attendanceBonus,
-    performance_bonus: emp.performanceBonus,
-    unjustified_absences: emp.unjustifiedAbsences,
-    absence_deductions: emp.absenceDeductions,
-    late_arrivals: emp.lateArrivals,
-    delay_deductions: emp.delayDeductions,
-    imss_deduction: emp.imssDeduction,
-    isr_estimated: emp.isrEstimated,
-    total_perceptions: emp.totalPerceptions,
-    total_deductions: emp.totalDeductions,
-    net_pay: emp.netPayEstimated,
-    bank_name: emp.bankAccount?.bankName || null,
-    clabe: emp.bankAccount?.clabe || null,
-    updated_at: nowIso,
-  }));
-
-  const { error: upsertItemsError } = await supabase
-    .from("company_payroll_items")
-    .upsert(itemsPayload, { onConflict: "payroll_id,employee_id" });
-
-  if (upsertItemsError) {
-    console.error("Error guardando ítems de dispersión:", upsertItemsError);
-  }
-
-  revalidatePath("/dashboard/company/payroll");
-  revalidatePath("/dashboard/company");
-
-  return { success: true, payrollId };
 }
 
 /**
@@ -240,7 +131,18 @@ export async function updateEmployeeBankDetailsAction(
   employeeId: string,
   bankName: string,
   clabeAccount: string
-) {
+): Promise<UpdateBankDetailsActionResult> {
+  const parsed = updateEmployeeBankDetailsSchema.safeParse({
+    employeeId,
+    bankName,
+    clabeAccount,
+  });
+
+  if (!parsed.success) {
+    const errorMsg = parsed.error.issues[0]?.message || "Datos bancarios inválidos.";
+    return { success: false, error: errorMsg };
+  }
+
   const supabase = await createClient();
   const {
     data: { user },
@@ -250,22 +152,59 @@ export async function updateEmployeeBankDetailsAction(
     return { success: false, error: "No autorizado." };
   }
 
-  const { error } = await supabase
-    .from("company_employees")
-    .update({
-      bank_name: bankName.trim(),
-      clabe_account: clabeAccount.trim(),
-      updated_at: new Date().toISOString(),
-    })
-    .eq("id", employeeId)
-    .eq("company_id", user.id);
+  try {
+    const service = new CompanyPayrollService(supabase);
+    await service.updateEmployeeBankDetails(user.id, parsed.data);
 
-  if (error) {
-    return { success: false, error: error.message };
+    revalidatePath("/dashboard/company/payroll");
+    revalidatePath("/dashboard/company/employees");
+
+    return {
+      success: true,
+      data: { employeeId: parsed.data.employeeId },
+      employeeId: parsed.data.employeeId,
+    };
+  } catch (error) {
+    const errorMsg = error instanceof Error ? error.message : "Error inesperado al actualizar datos bancarios.";
+    return { success: false, error: errorMsg };
+  }
+}
+
+/**
+ * Cierra formalmente un periodo de nómina
+ */
+export async function closePayrollPeriodAction(
+  rawInput: ClosePayrollPeriodInput
+): Promise<ClosePayrollPeriodActionResult> {
+  const parsed = closePayrollPeriodSchema.safeParse(rawInput);
+  if (!parsed.success) {
+    const errorMsg = parsed.error.issues[0]?.message || "Datos de cierre de periodo inválidos.";
+    return { success: false, error: errorMsg };
   }
 
-  revalidatePath("/dashboard/company/payroll");
-  revalidatePath("/dashboard/company/employees");
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
 
-  return { success: true };
+  if (!user) {
+    return { success: false, error: "No autorizado." };
+  }
+
+  try {
+    const service = new CompanyPayrollService(supabase);
+    const payroll = await service.closePayrollPeriod(user.id, parsed.data);
+
+    revalidatePath("/dashboard/company/payroll");
+    revalidatePath("/dashboard/company");
+
+    return {
+      success: true,
+      data: payroll,
+      payroll,
+    };
+  } catch (error) {
+    const errorMsg = error instanceof Error ? error.message : "Error inesperado al cerrar periodo de nómina.";
+    return { success: false, error: errorMsg };
+  }
 }

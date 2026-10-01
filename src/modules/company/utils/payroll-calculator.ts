@@ -166,3 +166,79 @@ export function generateValidClabe(employeeId: string, bankCode = "012"): string
 
   return `${base17}${checkDigit}`;
 }
+
+/**
+ * Value Object para CLABE interbancaria (18 dígitos según la norma bancaria mexicana ABM)
+ */
+export class MexicanCLABE {
+  private readonly value: string;
+
+  constructor(raw: string) {
+    const clean = raw.trim();
+    if (!MexicanCLABE.isValid(clean)) {
+      throw new Error("CLABE interbancaria inválida: debe tener 18 dígitos y dígito verificador correcto.");
+    }
+    this.value = clean;
+  }
+
+  public getValue(): string {
+    return this.value;
+  }
+
+  public getBankCode(): string {
+    return this.value.slice(0, 3);
+  }
+
+  public getPlaza(): string {
+    return this.value.slice(3, 6);
+  }
+
+  public getAccountNumber(): string {
+    return this.value.slice(6, 17);
+  }
+
+  public getCheckDigit(): string {
+    return this.value.slice(17, 18);
+  }
+
+  public static isValid(clabe: string): boolean {
+    if (!/^\d{18}$/.test(clabe)) return false;
+    const weights = [3, 7, 1, 3, 7, 1, 3, 7, 1, 3, 7, 1, 3, 7, 1, 3, 7];
+    let sum = 0;
+    for (let i = 0; i < 17; i++) {
+      sum += (parseInt(clabe.charAt(i), 10) * weights[i]) % 10;
+    }
+    const expected = (10 - (sum % 10)) % 10;
+    return parseInt(clabe.charAt(17), 10) === expected;
+  }
+}
+
+/**
+ * Motor de Dominio para orquestar y encapsular reglas laborales y fiscales mexicanas
+ */
+export class MexicanPayrollEngine {
+  getFortnightPeriod(refDate = new Date()): FortnightPeriodInfo {
+    return getFortnightPeriodInfo(refDate);
+  }
+
+  calculateISR(taxableBaseQuincenal: number): number {
+    return calculateMexicanISR(taxableBaseQuincenal);
+  }
+
+  calculateIMSS(monthlySalary: number): number {
+    return calculateIMSSWorkerShare(monthlySalary);
+  }
+
+  calculateOvertime(
+    monthlySalary: number,
+    hours: number,
+    rateType: "doble" | "triple" = "doble"
+  ): number {
+    return calculateOvertimePay(monthlySalary, hours, rateType);
+  }
+
+  calculateAbsence(monthlySalary: number, absences: number): number {
+    return calculateAbsenceDeduction(monthlySalary, absences);
+  }
+}
+
