@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import Link from "next/link";
 import { toast } from "sonner";
 import {
   Drawer,
@@ -24,6 +25,11 @@ import {
   sendDirectUserNotification,
   adjustCompanyCredits,
   quickResetUserStatus,
+  getCompanyInvitationsForSupport,
+  resendEmployeeInvitation,
+  cancelEmployeeInvitation,
+  resetCompanyAttendanceKiosk,
+  type SupportCompanyInvitation,
 } from "@/app/(dashboard)/dashboard/admin/support/actions";
 import { startImpersonating } from "@/lib/auth/impersonation";
 import {
@@ -38,6 +44,12 @@ import {
   Building2Icon,
   UserIcon,
   SparklesIcon,
+  ExternalLinkIcon,
+  RotateCcwIcon,
+  XCircleIcon,
+  ClockIcon,
+  QrCodeIcon,
+  UserPlusIcon,
 } from "lucide-react";
 
 export interface SupportUserResult {
@@ -75,6 +87,75 @@ export function SupportToolsDrawer({ open, onOpenChange }: SupportToolsDrawerPro
   const [updatingCredits, setUpdatingCredits] = React.useState(false);
 
   const [togglingVerify, setTogglingVerify] = React.useState(false);
+
+  // Company Operational Support States
+  const [invitations, setInvitations] = React.useState<SupportCompanyInvitation[]>([]);
+  const [loadingInvitations, setLoadingInvitations] = React.useState(false);
+  const [actionInProgressId, setActionInProgressId] = React.useState<string | null>(null);
+  const [resettingKiosk, setResettingKiosk] = React.useState(false);
+
+  const loadCompanyInvitations = React.useCallback(async (companyId: string) => {
+    setLoadingInvitations(true);
+    try {
+      const data = await getCompanyInvitationsForSupport(companyId);
+      setInvitations(data);
+    } catch (err: unknown) {
+      console.error("Error al cargar invitaciones:", err);
+    } finally {
+      setLoadingInvitations(false);
+    }
+  }, []);
+
+  React.useEffect(() => {
+    if (selectedUser?.role === "company") {
+      loadCompanyInvitations(selectedUser.id);
+    } else {
+      setInvitations([]);
+    }
+  }, [selectedUser?.id, selectedUser?.role, loadCompanyInvitations]);
+
+  const handleResendInvitation = async (invitationId: string) => {
+    setActionInProgressId(invitationId);
+    try {
+      const res = await resendEmployeeInvitation(invitationId);
+      toast.success(res.message || "Invitación renovada con éxito por 7 días.");
+      if (selectedUser) {
+        await loadCompanyInvitations(selectedUser.id);
+      }
+    } catch (err: unknown) {
+      toast.error((err as Error).message || "Error al reenviar invitación.");
+    } finally {
+      setActionInProgressId(null);
+    }
+  };
+
+  const handleCancelInvitation = async (invitationId: string) => {
+    setActionInProgressId(invitationId);
+    try {
+      await cancelEmployeeInvitation(invitationId);
+      toast.success("Invitación cancelada correctamente.");
+      if (selectedUser) {
+        await loadCompanyInvitations(selectedUser.id);
+      }
+    } catch (err: unknown) {
+      toast.error((err as Error).message || "Error al cancelar invitación.");
+    } finally {
+      setActionInProgressId(null);
+    }
+  };
+
+  const handleResetKiosk = async () => {
+    if (!selectedUser || selectedUser.role !== "company") return;
+    setResettingKiosk(true);
+    try {
+      const res = await resetCompanyAttendanceKiosk(selectedUser.id);
+      toast.success(`Kiosco QR restablecido. Token rotado: ${res.kioskToken}`);
+    } catch (err: unknown) {
+      toast.error((err as Error).message || "Error al restablecer kiosco.");
+    } finally {
+      setResettingKiosk(false);
+    }
+  };
 
   const handleSearch = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -294,6 +375,18 @@ export function SupportToolsDrawer({ open, onOpenChange }: SupportToolsDrawerPro
                 <span>Log in as User (Impersonar Sesión de Soporte)</span>
               </Button>
 
+              {/* Link: Ficha Diagnóstica 360° */}
+              {selectedUser.role === "company" && (
+                <Button
+                  variant="outline"
+                  className="w-full h-9 border-indigo-500/40 bg-indigo-500/5 hover:bg-indigo-500/10 text-indigo-700 dark:text-indigo-300 font-bold text-xs gap-2 rounded-xl shadow-xs"
+                  render={<Link href={`/dashboard/admin/companies/${selectedUser.id}`} />}
+                >
+                  <ExternalLinkIcon className="size-3.5" />
+                  <span>Abrir Ficha Diagnóstica 360°</span>
+                </Button>
+              )}
+
               <Separator className="my-1" />
 
               {/* Action 1: Direct Notification */}
@@ -367,6 +460,129 @@ export function SupportToolsDrawer({ open, onOpenChange }: SupportToolsDrawerPro
                     : "Validar y Habilitar Cuenta"}
                 </Button>
               </div>
+
+              {/* Action 4: Company Attendance Kiosk Reset */}
+              {selectedUser.role === "company" && (
+                <div className="flex items-center justify-between pt-2 border-t border-border/30">
+                  <div className="flex items-center gap-2">
+                    <QrCodeIcon className="size-4 text-indigo-500" />
+                    <div className="flex flex-col">
+                      <span className="text-xs font-bold text-foreground">Kiosco de Asistencia QR</span>
+                      <span className="text-[10px] text-muted-foreground">Rotar credencial del cartel checador</span>
+                    </div>
+                  </div>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={handleResetKiosk}
+                    disabled={resettingKiosk}
+                    className="h-8 text-xs font-semibold gap-1.5 border-indigo-500/30 text-indigo-600 hover:text-indigo-700 hover:bg-indigo-50 dark:text-indigo-400 dark:hover:bg-indigo-950/30"
+                  >
+                    <RotateCcwIcon className={`size-3.5 ${resettingKiosk ? "animate-spin" : ""}`} />
+                    <span>{resettingKiosk ? "Restableciendo..." : "Restablecer Kiosco"}</span>
+                  </Button>
+                </div>
+              )}
+
+              {/* Action 5: Employee Invitations Section */}
+              {selectedUser.role === "company" && (
+                <div className="flex flex-col gap-2.5 pt-2 border-t border-border/30">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <UserPlusIcon className="size-4 text-emerald-600" />
+                      <span className="text-xs font-bold text-foreground">Invitaciones de Empleados</span>
+                    </div>
+                    <Badge variant="secondary" className="text-[10px] px-1.5 py-0 font-medium">
+                      {invitations.length} {invitations.length === 1 ? "invitación" : "invitaciones"}
+                    </Badge>
+                  </div>
+
+                  {loadingInvitations ? (
+                    <div className="flex items-center justify-center p-4 text-xs text-muted-foreground gap-1.5">
+                      <ClockIcon className="size-3.5 animate-spin text-muted-foreground" />
+                      <span>Cargando invitaciones...</span>
+                    </div>
+                  ) : invitations.length === 0 ? (
+                    <div className="p-3 rounded-lg bg-muted/20 border border-dashed border-border/60 text-center text-xs text-muted-foreground">
+                      No hay invitaciones registradas para esta empresa.
+                    </div>
+                  ) : (
+                    <div className="flex flex-col gap-2 max-h-60 overflow-y-auto pr-1">
+                      {invitations.map((inv) => {
+                        const isPendingOrSent = inv.status === "sent" || inv.status === "pending";
+                        return (
+                          <div
+                            key={inv.id}
+                            className="flex flex-col gap-1.5 p-2.5 rounded-lg border border-border/40 bg-muted/20 text-xs"
+                          >
+                            <div className="flex items-start justify-between gap-2">
+                              <div className="flex flex-col min-w-0">
+                                <span className="font-semibold text-foreground truncate">
+                                  {inv.fullName || "Sin nombre"}
+                                </span>
+                                <span className="text-[11px] text-muted-foreground truncate">{inv.email}</span>
+                                <span className="text-[10px] text-muted-foreground/80 truncate">
+                                  Puesto: {inv.position}
+                                </span>
+                              </div>
+                              <Badge
+                                variant="outline"
+                                className={`text-[10px] px-1.5 py-0 capitalize shrink-0 ${
+                                  isPendingOrSent
+                                    ? "border-amber-500/40 text-amber-600 bg-amber-500/10"
+                                    : inv.status === "accepted"
+                                    ? "border-emerald-500/40 text-emerald-600 bg-emerald-500/10"
+                                    : "border-muted-foreground/30 text-muted-foreground"
+                                }`}
+                              >
+                                {inv.status === "sent"
+                                  ? "Enviada"
+                                  : inv.status === "pending"
+                                  ? "Pendiente"
+                                  : inv.status === "accepted"
+                                  ? "Aceptada"
+                                  : inv.status === "cancelled"
+                                  ? "Cancelada"
+                                  : inv.status}
+                              </Badge>
+                            </div>
+
+                            <div className="flex items-center justify-between text-[10px] text-muted-foreground pt-1 border-t border-border/20">
+                              <span>Vence: {new Date(inv.expiresAt).toLocaleDateString("es-ES")}</span>
+                              <div className="flex items-center gap-1.5">
+                                {inv.status !== "cancelled" && inv.status !== "accepted" && (
+                                  <>
+                                    <Button
+                                      size="xs"
+                                      variant="outline"
+                                      disabled={actionInProgressId === inv.id}
+                                      onClick={() => handleResendInvitation(inv.id)}
+                                      className="h-6 text-[10px] px-2 font-medium text-indigo-600 hover:text-indigo-700 hover:bg-indigo-50 dark:text-indigo-400 dark:hover:bg-indigo-950/30 gap-1"
+                                    >
+                                      <RotateCcwIcon className={`size-2.5 ${actionInProgressId === inv.id ? "animate-spin" : ""}`} />
+                                      <span>Reenviar</span>
+                                    </Button>
+                                    <Button
+                                      size="xs"
+                                      variant="ghost"
+                                      disabled={actionInProgressId === inv.id}
+                                      onClick={() => handleCancelInvitation(inv.id)}
+                                      className="h-6 text-[10px] px-2 font-medium text-rose-600 hover:text-rose-700 hover:bg-rose-50 dark:text-rose-400 dark:hover:bg-rose-950/30 gap-1"
+                                    >
+                                      <XCircleIcon className="size-2.5" />
+                                      <span>Cancelar</span>
+                                    </Button>
+                                  </>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
           ) : (
             <div className="flex flex-col items-center justify-center p-8 border border-dashed rounded-xl text-center gap-2">

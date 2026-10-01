@@ -52,7 +52,12 @@ import {
   Save,
   CheckCircle2,
   Settings,
+  Loader2,
 } from "lucide-react"
+import {
+  getSystemSettings,
+  saveSystemSettings,
+} from "@/app/(dashboard)/dashboard/admin/settings/actions"
 
 export interface SettingsDialogProps {
   open?: boolean
@@ -115,6 +120,32 @@ export function SettingsDialog({
   const [internalOpen, setInternalOpen] = React.useState(false)
   const [activeCategory, setActiveCategory] = React.useState(defaultCategory)
   const [isSaving, setIsSaving] = React.useState(false)
+  const [isLoading, setIsLoading] = React.useState(false)
+
+  // System settings state
+  const [general, setGeneral] = React.useState({
+    appName: "K'anPro Platform",
+    language: "es",
+    timezone: "America/Mexico_City",
+    currency: "MXN",
+  })
+
+  const [security, setSecurity] = React.useState({
+    require2FA: true,
+    sessionTimeoutMinutes: 30,
+    maxLoginAttempts: 5,
+  })
+
+  const [notifications, setNotifications] = React.useState({
+    candidateDailyDigest: true,
+    slaAlerts: true,
+    systemNotificationEmail: "admin@kanpro.com",
+  })
+
+  const [privacy, setPrivacy] = React.useState({
+    cvRetentionMonths: 12,
+    autoAnonymizeRejected: false,
+  })
 
   // Sync category if defaultCategory prop changes when dialog opens
   React.useEffect(() => {
@@ -133,14 +164,45 @@ export function SettingsDialog({
     }
   }
 
-  const handleSave = () => {
+  // Load real settings from backend whenever dialog opens
+  React.useEffect(() => {
+    if (open) {
+      setIsLoading(true)
+      getSystemSettings()
+        .then((data) => {
+          if (data.general) setGeneral((prev) => ({ ...prev, ...data.general }))
+          if (data.security) setSecurity((prev) => ({ ...prev, ...data.security }))
+          if (data.notifications) setNotifications((prev) => ({ ...prev, ...data.notifications }))
+          if (data.privacy) setPrivacy((prev) => ({ ...prev, ...data.privacy }))
+        })
+        .catch((err) => {
+          console.error("Error al cargar configuración del sistema:", err)
+        })
+        .finally(() => {
+          setIsLoading(false)
+        })
+    }
+  }, [open])
+
+  const handleSave = async () => {
     setIsSaving(true)
-    setTimeout(() => {
-      setIsSaving(false)
-      toast.success("Configuración actualizada correctamente", {
-        description: "Los cambios se han aplicado al sistema K'anPro.",
+    try {
+      await saveSystemSettings({
+        general,
+        security,
+        notifications,
+        privacy,
       })
-    }, 600)
+      toast.success("Configuración actualizada correctamente", {
+        description: "Los cambios se han guardado exitosamente en el sistema K'anPro.",
+      })
+    } catch (err: unknown) {
+      toast.error("Error al guardar la configuración", {
+        description: (err as Error).message || "Ocurrió un error inesperado al guardar.",
+      })
+    } finally {
+      setIsSaving(false)
+    }
   }
 
   const currentCatObj =
@@ -222,340 +284,389 @@ export function SettingsDialog({
             </header>
 
             <div className="flex-1 overflow-y-auto p-6">
-              {activeCategory === "general" && (
-                <div className="flex flex-col gap-6 animate-in fade-in-50 duration-200">
-                  <div>
-                    <h3 className="text-base font-bold text-foreground">
-                      Configuración Global
-                    </h3>
-                    <p className="text-xs text-muted-foreground mt-0.5">
-                      Define los parámetros principales del sistema K'anPro.
-                    </p>
-                  </div>
-                  <Separator />
-
-                  <div className="grid gap-4">
-                    <div className="grid gap-1.5">
-                      <Label htmlFor="site-name" className="text-xs font-semibold">
-                        Nombre de la Aplicación
-                      </Label>
-                      <Input
-                        id="site-name"
-                        defaultValue="K'anPro Platform"
-                        className="h-9 text-xs"
-                      />
-                    </div>
-
-                    <div className="grid grid-cols-2 gap-4">
-                      <div className="grid gap-1.5">
-                        <Label htmlFor="language" className="text-xs font-semibold">
-                          Idioma Principal
-                        </Label>
-                        <Select defaultValue="es">
-                          <SelectTrigger id="language" className="h-9 text-xs">
-                            <SelectValue placeholder="Seleccionar idioma" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="es">Español (Latam)</SelectItem>
-                            <SelectItem value="en">English (US)</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </div>
-
-                      <div className="grid gap-1.5">
-                        <Label htmlFor="timezone" className="text-xs font-semibold">
-                          Zona Horaria
-                        </Label>
-                        <Select defaultValue="America/Mexico_City">
-                          <SelectTrigger id="timezone" className="h-9 text-xs">
-                            <SelectValue placeholder="Seleccionar zona" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="America/Mexico_City">
-                              Ciudad de México (GMT-6)
-                            </SelectItem>
-                            <SelectItem value="America/Bogota">
-                              Bogotá (GMT-5)
-                            </SelectItem>
-                            <SelectItem value="America/Santiago">
-                              Santiago (GMT-4)
-                            </SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </div>
-                    </div>
-
-                    <div className="grid gap-1.5">
-                      <Label htmlFor="currency" className="text-xs font-semibold">
-                        Moneda por Defecto
-                      </Label>
-                      <Select defaultValue="MXN">
-                        <SelectTrigger id="currency" className="h-9 text-xs">
-                          <SelectValue placeholder="Moneda" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="MXN">Peso Mexicano ($ MXN)</SelectItem>
-                          <SelectItem value="USD">Dólar ($ USD)</SelectItem>
-                          <SelectItem value="EUR">Euro (€ EUR)</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                  </div>
+              {isLoading ? (
+                <div className="h-full flex flex-col items-center justify-center gap-2 text-muted-foreground">
+                  <Loader2 className="size-6 animate-spin text-primary" />
+                  <span className="text-xs">Cargando configuración...</span>
                 </div>
-              )}
-
-              {activeCategory === "security" && (
-                <div className="flex flex-col gap-6 animate-in fade-in-50 duration-200">
-                  <div>
-                    <h3 className="text-base font-bold text-foreground">
-                      Seguridad y Autenticación
-                    </h3>
-                    <p className="text-xs text-muted-foreground mt-0.5">
-                      Gestiona los niveles de acceso y políticas de contraseñas.
-                    </p>
-                  </div>
-                  <Separator />
-
-                  <div className="flex flex-col gap-5">
-                    <div className="flex items-center justify-between rounded-xl border border-border/40 p-4 bg-muted/20">
-                      <div className="grid gap-0.5">
-                        <span className="text-xs font-bold text-foreground">
-                          Autenticación de 2 Factores (2FA) Obligatoria
-                        </span>
-                        <span className="text-[11px] text-muted-foreground">
-                          Exigir 2FA a todos los usuarios con rol Administrador.
-                        </span>
+              ) : (
+                <>
+                  {activeCategory === "general" && (
+                    <div className="flex flex-col gap-6 animate-in fade-in-50 duration-200">
+                      <div>
+                        <h3 className="text-base font-bold text-foreground">
+                          Configuración Global
+                        </h3>
+                        <p className="text-xs text-muted-foreground mt-0.5">
+                          Define los parámetros principales del sistema K'anPro.
+                        </p>
                       </div>
-                      <Switch defaultChecked />
-                    </div>
+                      <Separator />
 
-                    <div className="flex items-center justify-between rounded-xl border border-border/40 p-4 bg-muted/20">
-                      <div className="grid gap-0.5">
-                        <span className="text-xs font-bold text-foreground">
-                          Expiración de Sesión Inactiva
-                        </span>
-                        <span className="text-[11px] text-muted-foreground">
-                          Cerrar sesión tras 30 minutos sin interacción.
-                        </span>
-                      </div>
-                      <Switch defaultChecked />
-                    </div>
+                      <div className="grid gap-4">
+                        <div className="grid gap-1.5">
+                          <Label htmlFor="site-name" className="text-xs font-semibold">
+                            Nombre de la Aplicación
+                          </Label>
+                          <Input
+                            id="site-name"
+                            value={general.appName}
+                            onChange={(e) => setGeneral((prev) => ({ ...prev, appName: e.target.value }))}
+                            className="h-9 text-xs"
+                          />
+                        </div>
 
-                    <div className="grid gap-1.5">
-                      <Label htmlFor="max-attempts" className="text-xs font-semibold">
-                        Intentos Fallidos de Inicio de Sesión Máximos
-                      </Label>
-                      <Input
-                        id="max-attempts"
-                        type="number"
-                        defaultValue="5"
-                        className="h-9 text-xs w-32"
-                      />
-                    </div>
-                  </div>
-                </div>
-              )}
+                        <div className="grid grid-cols-2 gap-4">
+                          <div className="grid gap-1.5">
+                            <Label htmlFor="language" className="text-xs font-semibold">
+                              Idioma Principal
+                            </Label>
+                            <Select
+                              value={general.language}
+                              onValueChange={(val) => setGeneral((prev) => ({ ...prev, language: val || "es" }))}
+                            >
+                              <SelectTrigger id="language" className="h-9 text-xs">
+                                <SelectValue placeholder="Seleccionar idioma" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="es">Español (Latam)</SelectItem>
+                                <SelectItem value="en">English (US)</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </div>
 
-              {activeCategory === "notifications" && (
-                <div className="flex flex-col gap-6 animate-in fade-in-50 duration-200">
-                  <div>
-                    <h3 className="text-base font-bold text-foreground">
-                      Alertas y Notificaciones
-                    </h3>
-                    <p className="text-xs text-muted-foreground mt-0.5">
-                      Configura canales de correo y notificaciones push.
-                    </p>
-                  </div>
-                  <Separator />
+                          <div className="grid gap-1.5">
+                            <Label htmlFor="timezone" className="text-xs font-semibold">
+                              Zona Horaria
+                            </Label>
+                            <Select
+                              value={general.timezone}
+                              onValueChange={(val) => setGeneral((prev) => ({ ...prev, timezone: val || "America/Mexico_City" }))}
+                            >
+                              <SelectTrigger id="timezone" className="h-9 text-xs">
+                                <SelectValue placeholder="Seleccionar zona" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="America/Mexico_City">
+                                  Ciudad de México (GMT-6)
+                                </SelectItem>
+                                <SelectItem value="America/Bogota">
+                                  Bogotá (GMT-5)
+                                </SelectItem>
+                                <SelectItem value="America/Santiago">
+                                  Santiago (GMT-4)
+                                </SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </div>
+                        </div>
 
-                  <div className="flex flex-col gap-4">
-                    <div className="flex items-center justify-between rounded-xl border border-border/40 p-4 bg-muted/20">
-                      <div className="grid gap-0.5">
-                        <span className="text-xs font-bold text-foreground">
-                          Notificaciones de Nuevos Candidatos
-                        </span>
-                        <span className="text-[11px] text-muted-foreground">
-                          Enviar resumen diario por correo a reclutadores.
-                        </span>
-                      </div>
-                      <Switch defaultChecked />
-                    </div>
-
-                    <div className="flex items-center justify-between rounded-xl border border-border/40 p-4 bg-muted/20">
-                      <div className="grid gap-0.5">
-                        <span className="text-xs font-bold text-foreground">
-                          Alertas de Desviación de SLA
-                        </span>
-                        <span className="text-[11px] text-muted-foreground">
-                          Notificar de inmediato cuando una respuesta supere el límite.
-                        </span>
-                      </div>
-                      <Switch defaultChecked />
-                    </div>
-
-                    <div className="grid gap-1.5 mt-2">
-                      <Label htmlFor="admin-email" className="text-xs font-semibold">
-                        Email Principal de Notificaciones del Sistema
-                      </Label>
-                      <Input
-                        id="admin-email"
-                        defaultValue="admin@kanpro.com"
-                        className="h-9 text-xs"
-                      />
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {activeCategory === "privacy" && (
-                <div className="flex flex-col gap-6 animate-in fade-in-50 duration-200">
-                  <div>
-                    <h3 className="text-base font-bold text-foreground">
-                      Privacidad y Retención de Datos
-                    </h3>
-                    <p className="text-xs text-muted-foreground mt-0.5">
-                      Controla la política de almacenamiento y cumplimiento normativo.
-                    </p>
-                  </div>
-                  <Separator />
-
-                  <div className="flex flex-col gap-4">
-                    <div className="grid gap-1.5">
-                      <Label htmlFor="retention" className="text-xs font-semibold">
-                        Tiempo de Retención de Hojas de Vida (Meses)
-                      </Label>
-                      <Select defaultValue="12">
-                        <SelectTrigger id="retention" className="h-9 text-xs">
-                          <SelectValue placeholder="Retención" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="6">6 Meses</SelectItem>
-                          <SelectItem value="12">12 Meses</SelectItem>
-                          <SelectItem value="24">24 Meses</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-
-                    <div className="flex items-center justify-between rounded-xl border border-border/40 p-4 bg-muted/20 mt-2">
-                      <div className="grid gap-0.5">
-                        <span className="text-xs font-bold text-foreground">
-                          Anonimización Automática de Candidatos Rechazados
-                        </span>
-                        <span className="text-[11px] text-muted-foreground">
-                          Remover datos personales una vez finalizado el proceso.
-                        </span>
-                      </div>
-                      <Switch defaultChecked={false} />
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {activeCategory === "database" && (
-                <div className="flex flex-col gap-6 animate-in fade-in-50 duration-200">
-                  <div>
-                    <h3 className="text-base font-bold text-foreground">
-                      Base de Datos (Supabase Postgres)
-                    </h3>
-                    <p className="text-xs text-muted-foreground mt-0.5">
-                      Mantenimiento y respaldos del motor de datos.
-                    </p>
-                  </div>
-                  <Separator />
-
-                  <div className="grid gap-4">
-                    <div className="flex items-center justify-between rounded-xl border border-emerald-500/20 bg-emerald-500/10 p-4">
-                      <div className="flex items-center gap-3">
-                        <CheckCircle2 className="size-5 text-emerald-600 dark:text-emerald-400" />
-                        <div className="grid gap-0.5">
-                          <span className="text-xs font-bold text-emerald-900 dark:text-emerald-200">
-                            Estado de la Base de Datos: Saludable
-                          </span>
-                          <span className="text-[11px] text-emerald-700 dark:text-emerald-300">
-                            Conexiones activas: 12 / 100 • Latencia: 18ms
-                          </span>
+                        <div className="grid gap-1.5">
+                          <Label htmlFor="currency" className="text-xs font-semibold">
+                            Moneda por Defecto
+                          </Label>
+                          <Select
+                            value={general.currency}
+                            onValueChange={(val) => setGeneral((prev) => ({ ...prev, currency: val || "MXN" }))}
+                          >
+                            <SelectTrigger id="currency" className="h-9 text-xs">
+                              <SelectValue placeholder="Moneda" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="MXN">Peso Mexicano ($ MXN)</SelectItem>
+                              <SelectItem value="USD">Dólar ($ USD)</SelectItem>
+                              <SelectItem value="EUR">Euro (€ EUR)</SelectItem>
+                            </SelectContent>
+                          </Select>
                         </div>
                       </div>
-                      <Badge className="bg-emerald-600 text-white hover:bg-emerald-700">
-                        Online
-                      </Badge>
                     </div>
+                  )}
 
-                    <div className="flex items-center justify-between rounded-xl border border-border/40 p-4 bg-muted/20">
-                      <div className="grid gap-0.5">
-                        <span className="text-xs font-bold text-foreground">
-                          Respaldos Automáticos Diarios
-                        </span>
-                        <span className="text-[11px] text-muted-foreground">
-                          Último respaldo ejecutado a las 03:00 AM.
-                        </span>
+                  {activeCategory === "security" && (
+                    <div className="flex flex-col gap-6 animate-in fade-in-50 duration-200">
+                      <div>
+                        <h3 className="text-base font-bold text-foreground">
+                          Seguridad y Autenticación
+                        </h3>
+                        <p className="text-xs text-muted-foreground mt-0.5">
+                          Gestiona los niveles de acceso y políticas de contraseñas.
+                        </p>
                       </div>
-                      <Switch defaultChecked />
-                    </div>
-                  </div>
-                </div>
-              )}
+                      <Separator />
 
-              {activeCategory === "appearance" && (
-                <div className="flex flex-col gap-6 animate-in fade-in-50 duration-200">
-                  <div>
-                    <h3 className="text-base font-bold text-foreground">
-                      Personalización Visual
-                    </h3>
-                    <p className="text-xs text-muted-foreground mt-0.5">
-                      Ajusta la apariencia del panel de administración.
-                    </p>
-                  </div>
-                  <Separator />
+                      <div className="flex flex-col gap-5">
+                        <div className="flex items-center justify-between rounded-xl border border-border/40 p-4 bg-muted/20">
+                          <div className="grid gap-0.5">
+                            <span className="text-xs font-bold text-foreground">
+                              Autenticación de 2 Factores (2FA) Obligatoria
+                            </span>
+                            <span className="text-[11px] text-muted-foreground">
+                              Exigir 2FA a todos los usuarios con rol Administrador.
+                            </span>
+                          </div>
+                          <Switch
+                            checked={security.require2FA}
+                            onCheckedChange={(checked) => setSecurity((prev) => ({ ...prev, require2FA: checked }))}
+                          />
+                        </div>
 
-                  <div className="grid gap-4">
-                    <div className="grid gap-1.5">
-                      <Label htmlFor="theme" className="text-xs font-semibold">
-                        Tema Predeterminado
-                      </Label>
-                      <Select defaultValue="system">
-                        <SelectTrigger id="theme" className="h-9 text-xs">
-                          <SelectValue placeholder="Tema" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="light">Claro</SelectItem>
-                          <SelectItem value="dark">Oscuro</SelectItem>
-                          <SelectItem value="system">Sistema</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                  </div>
-                </div>
-              )}
+                        <div className="flex items-center justify-between rounded-xl border border-border/40 p-4 bg-muted/20">
+                          <div className="grid gap-0.5">
+                            <span className="text-xs font-bold text-foreground">
+                              Expiración de Sesión Inactiva ({security.sessionTimeoutMinutes} min)
+                            </span>
+                            <span className="text-[11px] text-muted-foreground">
+                              Cerrar sesión tras un periodo determinado sin interacción.
+                            </span>
+                          </div>
+                          <Select
+                            value={String(security.sessionTimeoutMinutes)}
+                            onValueChange={(val) => setSecurity((prev) => ({ ...prev, sessionTimeoutMinutes: Number(val) || 30 }))}
+                          >
+                            <SelectTrigger className="h-8 w-28 text-xs">
+                              <SelectValue placeholder="Minutos" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="15">15 min</SelectItem>
+                              <SelectItem value="30">30 min</SelectItem>
+                              <SelectItem value="60">60 min</SelectItem>
+                              <SelectItem value="120">120 min</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
 
-              {activeCategory === "support" && (
-                <div className="flex flex-col gap-6 animate-in fade-in-50 duration-200">
-                  <div>
-                    <h3 className="text-base font-bold text-foreground">
-                      Ayuda y Soporte Técnico
-                    </h3>
-                    <p className="text-xs text-muted-foreground mt-0.5">
-                      Recursos de ayuda y contacto directo con desarrollo.
-                    </p>
-                  </div>
-                  <Separator />
-
-                  <div className="grid gap-4">
-                    <div className="rounded-xl border border-border/40 p-4 bg-muted/20 flex flex-col gap-2">
-                      <span className="text-xs font-bold text-foreground">
-                        Soporte de Plataforma K'anPro
-                      </span>
-                      <p className="text-[12px] text-muted-foreground leading-relaxed">
-                        Para incidencias críticas o requerimientos de infraestructura, contacta con el equipo de soporte técnico.
-                      </p>
-                      <div className="mt-2 flex items-center gap-2">
-                        <Button variant="outline" size="sm" className="h-8 text-xs font-semibold">
-                          soporte@kanpro.com
-                        </Button>
+                        <div className="grid gap-1.5">
+                          <Label htmlFor="max-attempts" className="text-xs font-semibold">
+                            Intentos Fallidos de Inicio de Sesión Máximos
+                          </Label>
+                          <Input
+                            id="max-attempts"
+                            type="number"
+                            value={security.maxLoginAttempts}
+                            onChange={(e) => setSecurity((prev) => ({ ...prev, maxLoginAttempts: Number(e.target.value) || 1 }))}
+                            className="h-9 text-xs w-32"
+                          />
+                        </div>
                       </div>
                     </div>
-                  </div>
-                </div>
+                  )}
+
+                  {activeCategory === "notifications" && (
+                    <div className="flex flex-col gap-6 animate-in fade-in-50 duration-200">
+                      <div>
+                        <h3 className="text-base font-bold text-foreground">
+                          Alertas y Notificaciones
+                        </h3>
+                        <p className="text-xs text-muted-foreground mt-0.5">
+                          Configura canales de correo y notificaciones push.
+                        </p>
+                      </div>
+                      <Separator />
+
+                      <div className="flex flex-col gap-4">
+                        <div className="flex items-center justify-between rounded-xl border border-border/40 p-4 bg-muted/20">
+                          <div className="grid gap-0.5">
+                            <span className="text-xs font-bold text-foreground">
+                              Notificaciones de Nuevos Candidatos
+                            </span>
+                            <span className="text-[11px] text-muted-foreground">
+                              Enviar resumen diario por correo a reclutadores.
+                            </span>
+                          </div>
+                          <Switch
+                            checked={notifications.candidateDailyDigest}
+                            onCheckedChange={(checked) => setNotifications((prev) => ({ ...prev, candidateDailyDigest: checked }))}
+                          />
+                        </div>
+
+                        <div className="flex items-center justify-between rounded-xl border border-border/40 p-4 bg-muted/20">
+                          <div className="grid gap-0.5">
+                            <span className="text-xs font-bold text-foreground">
+                              Alertas de Desviación de SLA
+                            </span>
+                            <span className="text-[11px] text-muted-foreground">
+                              Notificar de inmediato cuando una respuesta supere el límite.
+                            </span>
+                          </div>
+                          <Switch
+                            checked={notifications.slaAlerts}
+                            onCheckedChange={(checked) => setNotifications((prev) => ({ ...prev, slaAlerts: checked }))}
+                          />
+                        </div>
+
+                        <div className="grid gap-1.5 mt-2">
+                          <Label htmlFor="admin-email" className="text-xs font-semibold">
+                            Email Principal de Notificaciones del Sistema
+                          </Label>
+                          <Input
+                            id="admin-email"
+                            value={notifications.systemNotificationEmail}
+                            onChange={(e) => setNotifications((prev) => ({ ...prev, systemNotificationEmail: e.target.value }))}
+                            className="h-9 text-xs"
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {activeCategory === "privacy" && (
+                    <div className="flex flex-col gap-6 animate-in fade-in-50 duration-200">
+                      <div>
+                        <h3 className="text-base font-bold text-foreground">
+                          Privacidad y Retención de Datos
+                        </h3>
+                        <p className="text-xs text-muted-foreground mt-0.5">
+                          Controla la política de almacenamiento y cumplimiento normativo.
+                        </p>
+                      </div>
+                      <Separator />
+
+                      <div className="flex flex-col gap-4">
+                        <div className="grid gap-1.5">
+                          <Label htmlFor="retention" className="text-xs font-semibold">
+                            Tiempo de Retención de Hojas de Vida (Meses)
+                          </Label>
+                          <Select
+                            value={String(privacy.cvRetentionMonths)}
+                            onValueChange={(val) => setPrivacy((prev) => ({ ...prev, cvRetentionMonths: Number(val) || 12 }))}
+                          >
+                            <SelectTrigger id="retention" className="h-9 text-xs">
+                              <SelectValue placeholder="Retención" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="6">6 Meses</SelectItem>
+                              <SelectItem value="12">12 Meses</SelectItem>
+                              <SelectItem value="24">24 Meses</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+
+                        <div className="flex items-center justify-between rounded-xl border border-border/40 p-4 bg-muted/20 mt-2">
+                          <div className="grid gap-0.5">
+                            <span className="text-xs font-bold text-foreground">
+                              Anonimización Automática de Candidatos Rechazados
+                            </span>
+                            <span className="text-[11px] text-muted-foreground">
+                              Remover datos personales una vez finalizado el proceso.
+                            </span>
+                          </div>
+                          <Switch
+                            checked={privacy.autoAnonymizeRejected}
+                            onCheckedChange={(checked) => setPrivacy((prev) => ({ ...prev, autoAnonymizeRejected: checked }))}
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {activeCategory === "database" && (
+                    <div className="flex flex-col gap-6 animate-in fade-in-50 duration-200">
+                      <div>
+                        <h3 className="text-base font-bold text-foreground">
+                          Base de Datos (Supabase Postgres)
+                        </h3>
+                        <p className="text-xs text-muted-foreground mt-0.5">
+                          Mantenimiento y respaldos del motor de datos.
+                        </p>
+                      </div>
+                      <Separator />
+
+                      <div className="grid gap-4">
+                        <div className="flex items-center justify-between rounded-xl border border-emerald-500/20 bg-emerald-500/10 p-4">
+                          <div className="flex items-center gap-3">
+                            <CheckCircle2 className="size-5 text-emerald-600 dark:text-emerald-400" />
+                            <div className="grid gap-0.5">
+                              <span className="text-xs font-bold text-emerald-900 dark:text-emerald-200">
+                                Estado de la Base de Datos: Saludable
+                              </span>
+                              <span className="text-[11px] text-emerald-700 dark:text-emerald-300">
+                                Conexiones activas: 12 / 100 • Latencia: 18ms
+                              </span>
+                            </div>
+                          </div>
+                          <Badge className="bg-emerald-600 text-white hover:bg-emerald-700">
+                            Online
+                          </Badge>
+                        </div>
+
+                        <div className="flex items-center justify-between rounded-xl border border-border/40 p-4 bg-muted/20">
+                          <div className="grid gap-0.5">
+                            <span className="text-xs font-bold text-foreground">
+                              Respaldos Automáticos Diarios
+                            </span>
+                            <span className="text-[11px] text-muted-foreground">
+                              Último respaldo ejecutado a las 03:00 AM.
+                            </span>
+                          </div>
+                          <Switch defaultChecked />
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {activeCategory === "appearance" && (
+                    <div className="flex flex-col gap-6 animate-in fade-in-50 duration-200">
+                      <div>
+                        <h3 className="text-base font-bold text-foreground">
+                          Personalización Visual
+                        </h3>
+                        <p className="text-xs text-muted-foreground mt-0.5">
+                          Ajusta la apariencia del panel de administración.
+                        </p>
+                      </div>
+                      <Separator />
+
+                      <div className="grid gap-4">
+                        <div className="grid gap-1.5">
+                          <Label htmlFor="theme" className="text-xs font-semibold">
+                            Tema Predeterminado
+                          </Label>
+                          <Select defaultValue="system">
+                            <SelectTrigger id="theme" className="h-9 text-xs">
+                              <SelectValue placeholder="Tema" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="light">Claro</SelectItem>
+                              <SelectItem value="dark">Oscuro</SelectItem>
+                              <SelectItem value="system">Sistema</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {activeCategory === "support" && (
+                    <div className="flex flex-col gap-6 animate-in fade-in-50 duration-200">
+                      <div>
+                        <h3 className="text-base font-bold text-foreground">
+                          Ayuda y Soporte Técnico
+                        </h3>
+                        <p className="text-xs text-muted-foreground mt-0.5">
+                          Recursos de ayuda y contacto directo con desarrollo.
+                        </p>
+                      </div>
+                      <Separator />
+
+                      <div className="grid gap-4">
+                        <div className="rounded-xl border border-border/40 p-4 bg-muted/20 flex flex-col gap-2">
+                          <span className="text-xs font-bold text-foreground">
+                            Soporte de Plataforma K'anPro
+                          </span>
+                          <p className="text-[12px] text-muted-foreground leading-relaxed">
+                            Para incidencias críticas o requerimientos de infraestructura, contacta con el equipo de soporte técnico.
+                          </p>
+                          <div className="mt-2 flex items-center gap-2">
+                            <Button variant="outline" size="sm" className="h-8 text-xs font-semibold">
+                              soporte@kanpro.com
+                            </Button>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </>
               )}
             </div>
 
@@ -567,11 +678,11 @@ export function SettingsDialog({
               <Button
                 size="sm"
                 onClick={handleSave}
-                disabled={isSaving}
+                disabled={isSaving || isLoading}
                 className="h-9 gap-1.5 px-4 text-xs font-bold rounded-xl shadow-sm transition-all cursor-pointer"
               >
                 {isSaving ? (
-                  <span className="animate-spin text-xs">⏳</span>
+                  <Loader2 className="size-3.5 animate-spin" />
                 ) : (
                   <Save className="size-3.5" />
                 )}
@@ -584,6 +695,3 @@ export function SettingsDialog({
     </Dialog>
   )
 }
-
-
-

@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server"
+import { getImpersonationState } from "@/lib/auth/impersonation"
 
 export async function getDashboardSession() {
   const supabase = await createClient()
@@ -8,6 +9,8 @@ export async function getDashboardSession() {
   let userInitials = "G"
   let role: "company" | "candidate" | "admin" = "candidate"
   let plan = "Plan Básico"
+  let isImpersonated = false
+  let targetUserId: string | undefined = undefined
 
   if (user) {
     // 1. Authoritative source of truth: database profile
@@ -44,6 +47,46 @@ export async function getDashboardSession() {
       userName = user.email.split("@")[0]
     }
     userInitials = userName.substring(0, 2).toUpperCase()
+
+    // 3. Functional Impersonation Engine: If admin is impersonating another user
+    try {
+      const impersonationState = await getImpersonationState()
+      if (impersonationState.isImpersonating && impersonationState.targetUserId) {
+        const { data: targetProfile } = await supabase
+          .from('profiles')
+          .select('id, role, full_name, email')
+          .eq('id', impersonationState.targetUserId)
+          .maybeSingle()
+
+        const effectiveRole = targetProfile?.role || impersonationState.targetUserRole
+        const effectiveName = targetProfile?.full_name || impersonationState.targetUserName || targetProfile?.email?.split("@")[0] || ""
+        const effectiveEmail = targetProfile?.email || impersonationState.targetUserEmail
+
+        if (effectiveRole === "admin" || effectiveRole === "company" || effectiveRole === "candidate") {
+          isImpersonated = true
+          targetUserId = impersonationState.targetUserId
+          role = effectiveRole
+
+          if (role === "admin") {
+            plan = "Administrador"
+            userName = effectiveName || "Admin"
+          } else if (role === "company") {
+            plan = "Empresa"
+            userName = effectiveName || "Compañía"
+          } else if (role === "candidate") {
+            plan = "Candidato"
+            userName = effectiveName || "Candidato"
+          }
+
+          if ((!userName || userName === "Invitado") && effectiveEmail) {
+            userName = effectiveEmail.split("@")[0]
+          }
+          userInitials = userName.substring(0, 2).toUpperCase()
+        }
+      }
+    } catch {
+      // Graceful fallback if outside request context or cookies unavailable
+    }
   }
 
   return {
@@ -51,5 +94,7 @@ export async function getDashboardSession() {
     userInitials,
     role,
     plan,
+    isImpersonated,
+    targetUserId,
   }
 }

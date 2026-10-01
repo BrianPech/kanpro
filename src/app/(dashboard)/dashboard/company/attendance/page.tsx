@@ -1,4 +1,5 @@
 import * as React from "react";
+import { createClient } from "@/lib/supabase/server";
 import { getCompanyAttendanceData } from "@/modules/company/services/company-attendance";
 import { AttendanceView } from "@/modules/company/components/attendance-view";
 
@@ -16,7 +17,13 @@ interface CompanyAttendancePageProps {
 export default async function CompanyAttendancePage({ searchParams }: CompanyAttendancePageProps) {
   const resolvedParams = searchParams ? await searchParams : undefined;
   const targetDate = resolvedParams?.date;
-  const data = await getCompanyAttendanceData(targetDate);
+
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  const data = await getCompanyAttendanceData(supabase, user?.id || "", targetDate);
 
   return (
     <AttendanceView

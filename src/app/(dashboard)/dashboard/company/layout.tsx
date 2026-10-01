@@ -11,7 +11,7 @@ export default async function CompanyDashboardLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const { userName, userInitials, role, plan } = await getDashboardSession();
+  const { userName, userInitials, role, plan, isImpersonated } = await getDashboardSession();
 
   return (
     <SidebarProvider
@@ -21,7 +21,11 @@ export default async function CompanyDashboardLayout({
           "--header-height": "4rem",
         } as React.CSSProperties
       }
-      className="h-screen overflow-hidden flex bg-sidebar"
+      className={
+        isImpersonated
+          ? "h-[calc(100vh-49px)] overflow-hidden flex bg-sidebar"
+          : "h-screen overflow-hidden flex bg-sidebar"
+      }
     >
       <CompanySidebar variant="inset" />
       <SidebarInset className="flex flex-1 flex-col overflow-hidden bg-background">

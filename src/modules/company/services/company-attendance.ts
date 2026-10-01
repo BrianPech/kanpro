@@ -1,4 +1,5 @@
-import { createClient } from "@/lib/supabase/server";
+import type { SupabaseClient } from "@supabase/supabase-js";
+import type { Database } from "@/types/supabase";
 import {
   AttendanceRecord,
   AttendanceOverviewStats,
@@ -6,8 +7,17 @@ import {
   EmployeeSelectOption,
   AttendanceStatus,
   CheckInMethod,
+  EmployeeAttendanceHistory,
+  EmployeeAttendanceDay,
 } from "../types/attendance";
 import { DEFAULT_GEOFENCE } from "../utils/attendance-utils";
+import type {
+  MobileCheckInInput,
+  ManualAttendanceInput,
+  AuthorizeOvertimeInput,
+  ReviewJustificationInput,
+  GetAttendanceHistoryInput,
+} from "../schemas/attendance.schema";
 
 export {
   DEFAULT_GEOFENCE,
@@ -24,26 +34,575 @@ export interface CompanyAttendanceResponse {
   employees: EmployeeSelectOption[];
 }
 
-/**
- * Consulta la asistencia real de los colaboradores de la empresa para una fecha determinada.
- * Cero mock data: lee directamente de public.company_employees, public.company_attendance y public.company_leaves.
- */
-export async function getCompanyAttendanceData(
-  targetDate?: string
-): Promise<CompanyAttendanceResponse> {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+export type AttendanceRow = Database["public"]["Tables"]["company_attendance"]["Row"];
+export type AttendanceInsert = Database["public"]["Tables"]["company_attendance"]["Insert"];
+export type AttendanceUpdate = Database["public"]["Tables"]["company_attendance"]["Update"];
 
-  const todayStr = targetDate || new Date().toISOString().split("T")[0];
+export interface MobileCheckInResult {
+  record: AttendanceRow;
+  timeStr: string;
+  isLate: boolean;
+  delayMinutes: number;
+}
 
-  let companyName = "Mi Empresa";
-  const branchConfig: GeofenceConfig = { ...DEFAULT_GEOFENCE };
+const MONTH_NAMES = [
+  "Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio",
+  "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre",
+] as const;
 
-  if (!user) {
+const DAY_NAMES_SHORT = ["Dom", "Lun", "Mar", "Mié", "Jue", "Vie", "Sáb"] as const;
+
+export function resolveWorkSchedule(schedule?: string | null): {
+  scheduledCheckIn: string;
+  scheduledCheckOut: string;
+} {
+  let scheduledCheckIn = "08:00";
+  let scheduledCheckOut = "17:00";
+  if (schedule && schedule.includes("-")) {
+    const parts = schedule.split("-").map((p) => p.trim());
+    if (parts[0]) scheduledCheckIn = parts[0];
+    if (parts[1]) scheduledCheckOut = parts[1];
+  }
+  return { scheduledCheckIn, scheduledCheckOut };
+}
+
+export function calculateDelayMinutes(
+  scheduledCheckIn: string,
+  now: Date = new Date(),
+  toleranceMinutes = 15
+): {
+  workDate: string;
+  timeStr: string;
+  isLate: boolean;
+  delayMinutes: number;
+} {
+  const workDate = now.toISOString().split("T")[0];
+  const timeStr = now.toLocaleTimeString("es-MX", {
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+  });
+
+  const currentHour = now.getHours();
+  const currentMin = now.getMinutes();
+  const scheduledHour = parseInt(scheduledCheckIn.split(":")[0], 10) || 8;
+  const scheduledMin = parseInt(scheduledCheckIn.split(":")[1], 10) || 0;
+
+  const currentMinutesFromMidnight = currentHour * 60 + currentMin;
+  const scheduledMinutesFromMidnight = scheduledHour * 60 + scheduledMin;
+
+  const isLate = currentMinutesFromMidnight > scheduledMinutesFromMidnight + toleranceMinutes;
+  const delayMinutes = isLate ? currentMinutesFromMidnight - scheduledMinutesFromMidnight : 0;
+
+  return { workDate, timeStr, isLate, delayMinutes };
+}
+
+export class CompanyAttendanceService {
+  constructor(private readonly supabase: SupabaseClient<Database>) {}
+
+  async recordMobileCheckIn(
+    companyId: string,
+    input: MobileCheckInInput
+  ): Promise<MobileCheckInResult> {
+    const { data: employee, error: empError } = await this.supabase
+      .from("company_employees")
+      .select("id, company_id, full_name, work_schedule, department, job_title")
+      .eq("id", input.employeeId)
+      .single();
+
+    if (empError || !employee || employee.company_id !== companyId) {
+      throw new Error("Colaborador no encontrado en la plantilla de la empresa.");
+    }
+
+    const { scheduledCheckIn, scheduledCheckOut } = resolveWorkSchedule(employee.work_schedule);
+    const now = new Date();
+    const { workDate, timeStr, isLate, delayMinutes } = calculateDelayMinutes(scheduledCheckIn, now);
+
+    const { data: existingRecord } = await this.supabase
+      .from("company_attendance")
+      .select("*")
+      .eq("company_id", employee.company_id)
+      .eq("employee_id", employee.id)
+      .eq("work_date", workDate)
+      .maybeSingle();
+
+    if (existingRecord) {
+      const updatePayload = this.buildMobileUpdatePayload(input, timeStr, isLate, delayMinutes);
+      const { data, error } = await this.supabase
+        .from("company_attendance")
+        .update(updatePayload)
+        .eq("id", existingRecord.id)
+        .select()
+        .single();
+
+      if (error || !data) {
+        throw new Error(error?.message || "Error al actualizar registro de asistencia.");
+      }
+      return { record: data, timeStr, isLate, delayMinutes };
+    }
+
+    const insertPayload = this.buildMobileInsertPayload(
+      employee.company_id,
+      employee.id,
+      workDate,
+      scheduledCheckIn,
+      scheduledCheckOut,
+      input,
+      timeStr,
+      isLate,
+      delayMinutes
+    );
+    const { data, error } = await this.supabase
+      .from("company_attendance")
+      .insert(insertPayload)
+      .select()
+      .single();
+
+    if (error || !data) {
+      throw new Error(error?.message || "Error al registrar checada de asistencia.");
+    }
+
+    return { record: data, timeStr, isLate, delayMinutes };
+  }
+
+  async createManualAttendance(
+    companyId: string,
+    input: ManualAttendanceInput
+  ): Promise<AttendanceRow> {
+    const { data: employee, error: empError } = await this.supabase
+      .from("company_employees")
+      .select("id, company_id, full_name, work_schedule")
+      .eq("id", input.employeeId)
+      .single();
+
+    if (empError || !employee || employee.company_id !== companyId) {
+      throw new Error("Colaborador no encontrado o no pertenece a tu empresa.");
+    }
+
+    const { scheduledCheckIn, scheduledCheckOut } = resolveWorkSchedule(employee.work_schedule);
+
+    const payload: AttendanceInsert = {
+      company_id: companyId,
+      employee_id: input.employeeId,
+      work_date: input.workDate,
+      scheduled_check_in: scheduledCheckIn,
+      scheduled_check_out: scheduledCheckOut,
+      check_in_time: input.checkInTime || null,
+      check_out_time: input.checkOutTime || null,
+      check_in_method: "manual",
+      delay_minutes: input.delayMinutes ?? (input.status === "retardo" ? 20 : 0),
+      status: input.status,
+      notes: input.notes?.trim() || null,
+      updated_at: new Date().toISOString(),
+    };
+
+    const { data, error } = await this.supabase
+      .from("company_attendance")
+      .upsert(payload, { onConflict: "company_id,employee_id,work_date" })
+      .select()
+      .single();
+
+    if (error || !data) {
+      throw new Error(error?.message || "Error al registrar asistencia manual.");
+    }
+
+    return data;
+  }
+
+  async authorizeOvertime(
+    companyId: string,
+    input: AuthorizeOvertimeInput
+  ): Promise<AttendanceRow> {
+    const updatePayload: AttendanceUpdate = {
+      overtime_hours: input.hours,
+      overtime_status: "autorizado",
+      overtime_rate_type: input.rateType,
+      overtime_notes: input.notes?.trim() || `Autorizadas ${input.hours} horas a tarifa ${input.rateType}`,
+      updated_at: new Date().toISOString(),
+    };
+
+    const { data, error } = await this.supabase
+      .from("company_attendance")
+      .update(updatePayload)
+      .eq("id", input.recordId)
+      .eq("company_id", companyId)
+      .select()
+      .single();
+
+    if (error || !data) {
+      throw new Error("Registro de asistencia no encontrado o no autorizado.");
+    }
+
+    return data;
+  }
+
+  async reviewJustification(
+    companyId: string,
+    reviewerEmail: string,
+    input: ReviewJustificationInput
+  ): Promise<AttendanceRow> {
+    const newStatus: AttendanceStatus =
+      input.decision === "aprobada" ? "falta_justificada" : "falta_injustificada";
+
+    const updatePayload: AttendanceUpdate = {
+      status: newStatus,
+      justification_status: input.decision,
+      justification_reviewed_at: new Date().toISOString(),
+      justification_reviewed_by: reviewerEmail || "Recursos Humanos",
+      justification_comments: input.comments?.trim() || null,
+      updated_at: new Date().toISOString(),
+    };
+
+    const { data, error } = await this.supabase
+      .from("company_attendance")
+      .update(updatePayload)
+      .eq("id", input.recordId)
+      .eq("company_id", companyId)
+      .select()
+      .single();
+
+    if (error || !data) {
+      throw new Error(error?.message || "Registro no encontrado para resolver justificante.");
+    }
+
+    return data;
+  }
+
+  async getEmployeeAttendanceHistory(
+    companyId: string,
+    input: GetAttendanceHistoryInput
+  ): Promise<EmployeeAttendanceHistory> {
+    const month = input.month ?? new Date().getMonth() + 1;
+    const year = input.year ?? new Date().getFullYear();
+
+    const { data: employee, error: empError } = await this.supabase
+      .from("company_employees")
+      .select("id, full_name, avatar_url, job_title, department")
+      .eq("id", input.employeeId)
+      .eq("company_id", companyId)
+      .single();
+
+    if (empError || !employee) {
+      throw new Error("Colaborador no encontrado.");
+    }
+
+    const startDate = `${year}-${String(month).padStart(2, "0")}-01`;
+    const daysInMonth = new Date(year, month, 0).getDate();
+    const endDate = `${year}-${String(month).padStart(2, "0")}-${String(daysInMonth).padStart(2, "0")}`;
+
+    const { data: records, error: attError } = await this.supabase
+      .from("company_attendance")
+      .select("*")
+      .eq("employee_id", input.employeeId)
+      .eq("company_id", companyId)
+      .gte("work_date", startDate)
+      .lte("work_date", endDate)
+      .order("work_date", { ascending: true });
+
+    if (attError) {
+      throw new Error(attError.message);
+    }
+
+    return this.buildEmployeeAttendanceHistory(
+      employee,
+      records || [],
+      year,
+      month,
+      daysInMonth
+    );
+  }
+
+  async getCompanyAttendanceData(
+    companyId: string,
+    targetDate?: string
+  ): Promise<CompanyAttendanceResponse> {
+    const todayStr = targetDate || new Date().toISOString().split("T")[0];
+    const branchConfig: GeofenceConfig = { ...DEFAULT_GEOFENCE };
+
+    if (!companyId) {
+      return this.buildEmptyAttendanceResponse(todayStr, branchConfig);
+    }
+
+    const [profileRes, employeesRes, attendanceRes, leavesRes] = await Promise.all([
+      this.supabase
+        .from("company_profiles")
+        .select("company_name, address_details, fiscal_address")
+        .eq("id", companyId)
+        .maybeSingle(),
+      this.supabase
+        .from("company_employees")
+        .select("id, full_name, job_title, department, avatar_url, work_schedule, status")
+        .eq("company_id", companyId)
+        .not("status", "eq", "terminated")
+        .order("full_name", { ascending: true }),
+      this.supabase
+        .from("company_attendance")
+        .select("*")
+        .eq("company_id", companyId)
+        .eq("work_date", todayStr),
+      this.supabase
+        .from("company_leaves")
+        .select("*")
+        .eq("company_id", companyId)
+        .eq("status", "aprobada")
+        .lte("start_date", todayStr)
+        .gte("end_date", todayStr),
+    ]);
+
+    const companyName = profileRes.data?.company_name || "Mi Empresa";
+    if (profileRes.data?.company_name) {
+      branchConfig.branchName = `Sucursal Principal - ${profileRes.data.company_name}`;
+      if (profileRes.data.address_details || profileRes.data.fiscal_address) {
+        branchConfig.address =
+          profileRes.data.address_details || profileRes.data.fiscal_address || branchConfig.address;
+      }
+    }
+
+    const rawEmployees = employeesRes.data || [];
+    const rawAttendance = attendanceRes.data || [];
+    const rawLeaves = leavesRes.data || [];
+
+    const employeeOptions: EmployeeSelectOption[] = rawEmployees.map((emp) => ({
+      id: emp.id,
+      name: emp.full_name || "Colaborador",
+      jobTitle: emp.job_title || "Puesto General",
+      department: emp.department || "Operaciones",
+      avatarUrl: emp.avatar_url || null,
+      workSchedule: emp.work_schedule || "08:00 - 17:00",
+    }));
+
+    const attendanceByEmployee = new Map<string, AttendanceRow>();
+    rawAttendance.forEach((att) => {
+      attendanceByEmployee.set(att.employee_id, att);
+    });
+
+    const leavesByEmployee = new Map<string, (typeof rawLeaves)[number]>();
+    rawLeaves.forEach((leave) => {
+      if (leave.employee_id) {
+        leavesByEmployee.set(leave.employee_id, leave);
+      }
+    });
+
+    const dateObj = new Date(todayStr + "T12:00:00Z");
+    const isSunday = dateObj.getDay() === 0;
+
+    const records: AttendanceRecord[] = rawEmployees.map((emp) => {
+      const existing = attendanceByEmployee.get(emp.id);
+      const activeLeave = leavesByEmployee.get(emp.id);
+      const { scheduledCheckIn, scheduledCheckOut } = resolveWorkSchedule(emp.work_schedule);
+
+      if (existing) {
+        return this.mapExistingToAttendanceRecord(existing, emp, todayStr, scheduledCheckIn, scheduledCheckOut);
+      }
+
+      let defaultStatus: AttendanceStatus = "falta_injustificada";
+      if (activeLeave) {
+        defaultStatus = activeLeave.request_type === "vacaciones" ? "vacaciones" : "falta_justificada";
+      } else if (isSunday) {
+        defaultStatus = "descanso";
+      }
+
+      return {
+        id: `virtual-${emp.id}`,
+        employeeId: emp.id,
+        employeeName: emp.full_name,
+        avatarUrl: emp.avatar_url || null,
+        jobTitle: emp.job_title || "Colaborador",
+        department: emp.department || "Operaciones",
+        workDate: todayStr,
+        scheduledCheckIn,
+        scheduledCheckOut,
+        checkInTime: null,
+        checkOutTime: null,
+        breakStartTime: null,
+        breakEndTime: null,
+        checkInMethod: "manual",
+        delayMinutes: 0,
+        status: defaultStatus,
+        overtimeHours: 0,
+      };
+    });
+
+    const stats = this.computeOverviewStats(records);
+
     return {
       companyName,
+      workDate: todayStr,
+      branchConfig,
+      records,
+      stats,
+      employees: employeeOptions,
+    };
+  }
+
+  private buildMobileUpdatePayload(
+    input: MobileCheckInInput,
+    timeStr: string,
+    isLate: boolean,
+    delayMinutes: number
+  ): AttendanceUpdate {
+    const updatePayload: AttendanceUpdate = {
+      updated_at: new Date().toISOString(),
+    };
+
+    if (input.actionType === "check_in") {
+      updatePayload.check_in_time = timeStr;
+      updatePayload.check_in_method = input.method;
+      updatePayload.delay_minutes = delayMinutes;
+      updatePayload.status = isLate ? "retardo" : "presente";
+      if (input.coordinates) {
+        updatePayload.check_in_lat = input.coordinates.lat;
+        updatePayload.check_in_lng = input.coordinates.lng;
+        updatePayload.check_in_accuracy = input.coordinates.accuracy ?? null;
+      }
+      if (input.distanceMeters != null) {
+        updatePayload.check_in_distance_meters = input.distanceMeters;
+      }
+    } else if (input.actionType === "check_out") {
+      updatePayload.check_out_time = timeStr;
+    } else if (input.actionType === "break_start") {
+      updatePayload.break_start_time = timeStr;
+    } else if (input.actionType === "break_end") {
+      updatePayload.break_end_time = timeStr;
+    }
+
+    return updatePayload;
+  }
+
+  private buildMobileInsertPayload(
+    companyId: string,
+    employeeId: string,
+    workDate: string,
+    scheduledCheckIn: string,
+    scheduledCheckOut: string,
+    input: MobileCheckInInput,
+    timeStr: string,
+    isLate: boolean,
+    delayMinutes: number
+  ): AttendanceInsert {
+    return {
+      company_id: companyId,
+      employee_id: employeeId,
+      work_date: workDate,
+      scheduled_check_in: scheduledCheckIn,
+      scheduled_check_out: scheduledCheckOut,
+      check_in_method: input.method,
+      check_in_time: input.actionType === "check_in" ? timeStr : null,
+      check_out_time: input.actionType === "check_out" ? timeStr : null,
+      break_start_time: input.actionType === "break_start" ? timeStr : null,
+      break_end_time: input.actionType === "break_end" ? timeStr : null,
+      delay_minutes: input.actionType === "check_in" && isLate ? delayMinutes : 0,
+      status: input.actionType === "check_in" && isLate ? "retardo" : "presente",
+      check_in_lat: input.coordinates?.lat ?? null,
+      check_in_lng: input.coordinates?.lng ?? null,
+      check_in_accuracy: input.coordinates?.accuracy ?? null,
+      check_in_distance_meters: input.distanceMeters ?? null,
+    };
+  }
+
+  private mapExistingToAttendanceRecord(
+    existing: AttendanceRow,
+    emp: { full_name: string; avatar_url?: string | null; job_title?: string | null; department?: string | null },
+    todayStr: string,
+    fallbackCheckIn: string,
+    fallbackCheckOut: string
+  ): AttendanceRecord {
+    const justification = existing.justification_status || existing.justification_reason_type
+      ? {
+          id: `just-${existing.id}`,
+          attendanceRecordId: existing.id,
+          employeeId: existing.employee_id,
+          employeeName: emp.full_name,
+          workDate: todayStr,
+          reasonType: (existing.justification_reason_type || "personal") as "medica" | "transporte" | "fuerza_mayor" | "personal",
+          reasonLabel: existing.justification_label || "Justificante Laboral",
+          comments: existing.justification_comments || "",
+          evidenceUrl: existing.justification_evidence_url || null,
+          status: (existing.justification_status || "pendiente") as "pendiente" | "aprobada" | "rechazada",
+          submittedAt: existing.justification_submitted_at
+            ? new Date(existing.justification_submitted_at).toLocaleTimeString("es-MX", {
+                hour: "2-digit",
+                minute: "2-digit",
+              })
+            : "Hoy",
+          reviewedAt: existing.justification_reviewed_at
+            ? new Date(existing.justification_reviewed_at).toLocaleTimeString("es-MX", {
+                hour: "2-digit",
+                minute: "2-digit",
+              })
+            : undefined,
+          reviewedBy: existing.justification_reviewed_by || undefined,
+        }
+      : undefined;
+
+    const checkInLocation = existing.check_in_lat && existing.check_in_lng
+      ? {
+          lat: Number(existing.check_in_lat),
+          lng: Number(existing.check_in_lng),
+          accuracyMeters: existing.check_in_accuracy ? Number(existing.check_in_accuracy) : undefined,
+          distanceToBranchMeters: existing.check_in_distance_meters
+            ? Number(existing.check_in_distance_meters)
+            : 0,
+        }
+      : undefined;
+
+    return {
+      id: existing.id,
+      employeeId: existing.employee_id,
+      employeeName: emp.full_name,
+      avatarUrl: emp.avatar_url || null,
+      jobTitle: emp.job_title || "Colaborador",
+      department: emp.department || "Operaciones",
+      workDate: todayStr,
+      scheduledCheckIn: existing.scheduled_check_in || fallbackCheckIn,
+      scheduledCheckOut: existing.scheduled_check_out || fallbackCheckOut,
+      checkInTime: existing.check_in_time || null,
+      checkOutTime: existing.check_out_time || null,
+      breakStartTime: existing.break_start_time || null,
+      breakEndTime: existing.break_end_time || null,
+      checkInMethod: (existing.check_in_method || "manual") as CheckInMethod,
+      checkInLocation,
+      delayMinutes: existing.delay_minutes || 0,
+      status: existing.status as AttendanceStatus,
+      overtimeHours: Number(existing.overtime_hours) || 0,
+      overtimeStatus: (existing.overtime_status as "pendiente" | "autorizado" | "rechazado") || undefined,
+      overtimeRateType: (existing.overtime_rate_type as "doble" | "triple") || undefined,
+      justification,
+    };
+  }
+
+  private computeOverviewStats(records: AttendanceRecord[]): AttendanceOverviewStats {
+    const presentCount = records.filter((r) => r.status === "presente").length;
+    const lateCount = records.filter((r) => r.status === "retardo").length;
+    const unjustifiedAbsences = records.filter((r) => r.status === "falta_injustificada").length;
+    const justifiedAbsences = records.filter(
+      (r) => r.status === "falta_justificada" || r.status === "incapacidad"
+    ).length;
+    const totalScheduled = records.filter((r) => r.status !== "descanso" && r.status !== "vacaciones").length;
+
+    const attended = presentCount + lateCount;
+    const punctualityRate = attended > 0 ? Math.round((presentCount / attended) * 100) : 100;
+    const totalOvertimeHoursToday = records.reduce((acc, curr) => acc + (curr.overtimeHours || 0), 0);
+    const pendingJustificationsCount = records.filter((r) => r.justification?.status === "pendiente").length;
+
+    return {
+      totalScheduled,
+      presentCount,
+      lateCount,
+      unjustifiedAbsences,
+      justifiedAbsences,
+      punctualityRate,
+      totalOvertimeHoursToday,
+      pendingJustificationsCount,
+    };
+  }
+
+  private buildEmptyAttendanceResponse(
+    todayStr: string,
+    branchConfig: GeofenceConfig
+  ): CompanyAttendanceResponse {
+    return {
+      companyName: "Mi Empresa",
       workDate: todayStr,
       branchConfig,
       records: [],
@@ -61,224 +620,109 @@ export async function getCompanyAttendanceData(
     };
   }
 
-  // 1. Consultar perfil de la empresa, colaboradores activos, asistencias de la fecha y permisos aprobados
-  const [profileRes, employeesRes, attendanceRes, leavesRes] =
-    await Promise.all([
-      supabase
-        .from("company_profiles")
-        .select("company_name, address_details, fiscal_address")
-        .eq("id", user.id)
-        .maybeSingle(),
-      supabase
-        .from("company_employees")
-        .select(`
-          id,
-          full_name,
-          job_title,
-          department,
-          avatar_url,
-          work_schedule,
-          status
-        `)
-        .eq("company_id", user.id)
-        .not("status", "eq", "terminated")
-        .order("full_name", { ascending: true }),
-      supabase
-        .from("company_attendance")
-        .select("*")
-        .eq("company_id", user.id)
-        .eq("work_date", todayStr),
-      supabase
-        .from("company_leaves")
-        .select("*")
-        .eq("company_id", user.id)
-        .eq("status", "aprobada")
-        .lte("start_date", todayStr)
-        .gte("end_date", todayStr),
-    ]);
+  private buildEmployeeAttendanceHistory(
+    employee: { id: string; full_name: string; avatar_url: string | null; job_title: string | null; department: string | null },
+    records: AttendanceRow[],
+    year: number,
+    month: number,
+    daysInMonth: number
+  ): EmployeeAttendanceHistory {
+    const recordsByDate = new Map<string, AttendanceRow>();
+    records.forEach((r) => {
+      recordsByDate.set(r.work_date, r);
+    });
 
-  if (profileRes.data?.company_name) {
-    companyName = profileRes.data.company_name;
-    branchConfig.branchName = `Sucursal Principal - ${profileRes.data.company_name}`;
-    if (profileRes.data.address_details || profileRes.data.fiscal_address) {
-      branchConfig.address =
-        profileRes.data.address_details || profileRes.data.fiscal_address || branchConfig.address;
-    }
-  }
+    const days: EmployeeAttendanceDay[] = [];
+    let daysPresent = 0;
+    let daysLate = 0;
+    let daysAbsent = 0;
+    let daysJustified = 0;
+    let totalEffectiveHours = 0;
+    let totalOvertimeHours = 0;
 
-  const rawEmployees = employeesRes.data || [];
-  const rawAttendance = attendanceRes.data || [];
-  const rawLeaves = leavesRes.data || [];
+    for (let d = 1; d <= daysInMonth; d++) {
+      const dateObj = new Date(year, month - 1, d);
+      const dayOfWeekIndex = dateObj.getDay();
+      const dayOfWeek = DAY_NAMES_SHORT[dayOfWeekIndex];
+      const isSunday = dayOfWeekIndex === 0;
+      const dateStr = `${year}-${String(month).padStart(2, "0")}-${String(d).padStart(2, "0")}`;
 
-  // Mapear opciones para selectores de colaboradores
-  const employeeOptions: EmployeeSelectOption[] = rawEmployees.map((emp) => ({
-    id: emp.id,
-    name: emp.full_name || "Colaborador",
-    jobTitle: emp.job_title || "Puesto General",
-    department: emp.department || "Operaciones",
-    avatarUrl: emp.avatar_url || null,
-    workSchedule: emp.work_schedule || "08:00 - 17:00",
-  }));
+      const existing = recordsByDate.get(dateStr);
 
-  // Indexar checadas existentes por employee_id
-  const attendanceByEmployee = new Map<string, any>();
-  rawAttendance.forEach((att) => {
-    attendanceByEmployee.set(att.employee_id, att);
-  });
+      if (existing) {
+        const status = existing.status as AttendanceStatus;
+        if (status === "presente") daysPresent++;
+        else if (status === "retardo") {
+          daysPresent++;
+          daysLate++;
+        } else if (status === "falta_injustificada") daysAbsent++;
+        else if (status === "falta_justificada") daysJustified++;
 
-  // Indexar permisos aprobados por employee_id
-  const leavesByEmployee = new Map<string, any>();
-  rawLeaves.forEach((leave) => {
-    if (leave.employee_id) {
-      leavesByEmployee.set(leave.employee_id, leave);
-    }
-  });
+        const effectiveHours = existing.check_in_time && existing.check_out_time ? 8 : existing.check_in_time ? 4 : 0;
+        totalEffectiveHours += effectiveHours;
+        totalOvertimeHours += Number(existing.overtime_hours) || 0;
 
-  // Determinar si hoy es domingo
-  const dateObj = new Date(todayStr + "T12:00:00Z");
-  const isSunday = dateObj.getDay() === 0;
-
-  // 2. Construir los registros de asistencia combinando plantilla y registros reales
-  const records: AttendanceRecord[] = rawEmployees.map((emp) => {
-    const existing = attendanceByEmployee.get(emp.id);
-    const activeLeave = leavesByEmployee.get(emp.id);
-
-    let scheduledCheckIn = "08:00";
-    let scheduledCheckOut = "17:00";
-    if (emp.work_schedule && emp.work_schedule.includes("-")) {
-      const parts = emp.work_schedule.split("-").map((p: string) => p.trim());
-      if (parts[0]) scheduledCheckIn = parts[0];
-      if (parts[1]) scheduledCheckOut = parts[1];
-    }
-
-    if (existing) {
-      let justification = undefined;
-      if (existing.justification_status || existing.justification_reason_type) {
-        justification = {
-          id: `just-${existing.id}`,
-          attendanceRecordId: existing.id,
-          employeeId: emp.id,
-          employeeName: emp.full_name,
-          workDate: todayStr,
-          reasonType: (existing.justification_reason_type || "personal") as any,
-          reasonLabel: existing.justification_label || "Justificante Laboral",
-          comments: existing.justification_comments || "",
-          evidenceUrl: existing.justification_evidence_url || null,
-          status: (existing.justification_status || "pendiente") as any,
-          submittedAt: existing.justification_submitted_at
-            ? new Date(existing.justification_submitted_at).toLocaleTimeString("es-MX", {
-                hour: "2-digit",
-                minute: "2-digit",
-              })
-            : "Hoy",
-          reviewedAt: existing.justification_reviewed_at
-            ? new Date(existing.justification_reviewed_at).toLocaleTimeString("es-MX", {
-                hour: "2-digit",
-                minute: "2-digit",
-              })
-            : undefined,
-          reviewedBy: existing.justification_reviewed_by || undefined,
-        };
+        days.push({
+          date: dateStr,
+          dayOfWeek,
+          dayNumber: d,
+          status,
+          checkInTime: existing.check_in_time,
+          checkOutTime: existing.check_out_time,
+          effectiveHours,
+          delayMinutes: existing.delay_minutes || 0,
+          overtimeHours: Number(existing.overtime_hours) || 0,
+          notes: existing.notes || undefined,
+        });
+      } else {
+        days.push({
+          date: dateStr,
+          dayOfWeek,
+          dayNumber: d,
+          status: "descanso",
+          checkInTime: null,
+          checkOutTime: null,
+          effectiveHours: 0,
+          delayMinutes: 0,
+          overtimeHours: 0,
+          notes: isSunday ? "Día de descanso semanal" : undefined,
+        });
       }
-
-      let checkInLocation = undefined;
-      if (existing.check_in_lat && existing.check_in_lng) {
-        checkInLocation = {
-          lat: Number(existing.check_in_lat),
-          lng: Number(existing.check_in_lng),
-          accuracyMeters: existing.check_in_accuracy ? Number(existing.check_in_accuracy) : undefined,
-          distanceToBranchMeters: existing.check_in_distance_meters
-            ? Number(existing.check_in_distance_meters)
-            : 0,
-        };
-      }
-
-      return {
-        id: existing.id,
-        employeeId: emp.id,
-        employeeName: emp.full_name,
-        avatarUrl: emp.avatar_url || null,
-        jobTitle: emp.job_title || "Colaborador",
-        department: emp.department || "Operaciones",
-        workDate: todayStr,
-        scheduledCheckIn: existing.scheduled_check_in || scheduledCheckIn,
-        scheduledCheckOut: existing.scheduled_check_out || scheduledCheckOut,
-        checkInTime: existing.check_in_time || null,
-        checkOutTime: existing.check_out_time || null,
-        breakStartTime: existing.break_start_time || null,
-        breakEndTime: existing.break_end_time || null,
-        checkInMethod: (existing.check_in_method || "manual") as CheckInMethod,
-        checkInLocation,
-        delayMinutes: existing.delay_minutes || 0,
-        status: existing.status as AttendanceStatus,
-        overtimeHours: Number(existing.overtime_hours) || 0,
-        overtimeStatus: existing.overtime_status || undefined,
-        overtimeRateType: existing.overtime_rate_type || undefined,
-        justification,
-      };
     }
 
-    // Si no hay registro previo en la BD para hoy:
-    let defaultStatus: AttendanceStatus = "falta_injustificada";
-    if (activeLeave) {
-      defaultStatus = activeLeave.request_type === "vacaciones" ? "vacaciones" : "falta_justificada";
-    } else if (isSunday) {
-      defaultStatus = "descanso";
-    }
+    const attended = daysPresent;
+    const punctualityRate = attended > 0 ? Math.round(((daysPresent - daysLate) / attended) * 100) : 100;
 
     return {
-      id: `virtual-${emp.id}`,
-      employeeId: emp.id,
-      employeeName: emp.full_name,
-      avatarUrl: emp.avatar_url || null,
-      jobTitle: emp.job_title || "Colaborador",
-      department: emp.department || "Operaciones",
-      workDate: todayStr,
-      scheduledCheckIn,
-      scheduledCheckOut,
-      checkInTime: null,
-      checkOutTime: null,
-      breakStartTime: null,
-      breakEndTime: null,
-      checkInMethod: "manual",
-      delayMinutes: 0,
-      status: defaultStatus,
-      overtimeHours: 0,
+      employeeId: employee.id,
+      employeeName: employee.full_name,
+      avatarUrl: employee.avatar_url,
+      jobTitle: employee.job_title || "Colaborador",
+      department: employee.department || "Operaciones",
+      month,
+      year,
+      monthName: MONTH_NAMES[month - 1],
+      totalWorkDays: daysInMonth,
+      daysPresent,
+      daysLate,
+      daysAbsent,
+      daysJustified,
+      totalEffectiveHours,
+      totalOvertimeHours,
+      individualPunctualityRate: punctualityRate,
+      days,
     };
-  });
+  }
+}
 
-  // 3. Calcular métricas ejecutivas de asistencia reales
-  const presentCount = records.filter((r) => r.status === "presente").length;
-  const lateCount = records.filter((r) => r.status === "retardo").length;
-  const unjustifiedAbsences = records.filter((r) => r.status === "falta_injustificada").length;
-  const justifiedAbsences = records.filter(
-    (r) => r.status === "falta_justificada" || r.status === "incapacidad"
-  ).length;
-  const totalScheduled = records.filter((r) => r.status !== "descanso" && r.status !== "vacaciones").length;
-
-  const attended = presentCount + lateCount;
-  const punctualityRate = attended > 0 ? Math.round((presentCount / attended) * 100) : 100;
-
-  const totalOvertimeHoursToday = records.reduce((acc, curr) => acc + (curr.overtimeHours || 0), 0);
-  const pendingJustificationsCount = records.filter((r) => r.justification?.status === "pendiente").length;
-
-  const stats: AttendanceOverviewStats = {
-    totalScheduled,
-    presentCount,
-    lateCount,
-    unjustifiedAbsences,
-    justifiedAbsences,
-    punctualityRate,
-    totalOvertimeHoursToday,
-    pendingJustificationsCount,
-  };
-
-  return {
-    companyName,
-    workDate: todayStr,
-    branchConfig,
-    records,
-    stats,
-    employees: employeeOptions,
-  };
+/**
+ * Función helper de consulta directa inyectando el cliente Supabase
+ */
+export async function getCompanyAttendanceData(
+  supabase: SupabaseClient<Database>,
+  companyId: string,
+  targetDate?: string
+): Promise<CompanyAttendanceResponse> {
+  const service = new CompanyAttendanceService(supabase);
+  return service.getCompanyAttendanceData(companyId, targetDate);
 }

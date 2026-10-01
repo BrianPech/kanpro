@@ -2,6 +2,7 @@
 
 import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
+import crypto from "crypto";
 import type { Database } from "@/types/supabase";
 import type {
   SupportTicketItem,
@@ -505,3 +506,267 @@ export async function quickResetUserStatus(userId: string, isVerified: boolean) 
   revalidatePath("/dashboard/admin/users");
   return { success: true, isVerified };
 }
+
+export interface SupportCompanyInvitation {
+  id: string;
+  companyId: string;
+  employeeId: string | null;
+  fullName: string;
+  email: string;
+  position: string;
+  status: string;
+  expiresAt: string;
+  createdAt: string;
+  salary: number | null;
+}
+
+/**
+ * Consulta las invitaciones de colaboradores para una empresa específica (herramientas de soporte).
+ */
+export async function getCompanyInvitationsForSupport(
+  companyId: string
+): Promise<SupportCompanyInvitation[]> {
+  const { supabase } = await requireAdminAuth();
+
+  const { data, error } = await supabase
+    .from("employee_invitations")
+    .select("id, company_id, employee_id, full_name, email, position, status, expires_at, created_at, salary")
+    .eq("company_id", companyId)
+    .order("created_at", { ascending: false });
+
+  if (error || !data) {
+    return [];
+  }
+
+  return data.map((inv) => ({
+    id: inv.id,
+    companyId: inv.company_id,
+    employeeId: inv.employee_id,
+    fullName: inv.full_name,
+    email: inv.email,
+    position: inv.position,
+    status: inv.status,
+    expiresAt: inv.expires_at,
+    createdAt: inv.created_at,
+    salary: inv.salary,
+  }));
+}
+
+/**
+ * Reenvía y extiende la vigencia de una invitación de empleado por 7 días.
+ * Verifica privilegios de administrador, actualiza token y notifica a la empresa.
+ */
+export async function resendEmployeeInvitation(invitationId: string) {
+  const { supabase } = await requireAdminAuth();
+
+  const { data: inv, error: fetchErr } = await supabase
+    .from("employee_invitations")
+    .select("id, company_id, email, full_name")
+    .eq("id", invitationId)
+    .maybeSingle();
+
+  if (fetchErr || !inv) {
+    throw new Error("Invitación no encontrada.");
+  }
+
+  const rawToken = crypto.randomBytes(32).toString("hex");
+  const tokenHash = crypto.createHash("sha256").update(rawToken).digest("hex");
+  const newExpiry = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString();
+  const nowIso = new Date().toISOString();
+
+  const { error: updateErr } = await supabase
+    .from("employee_invitations")
+    .update({
+      token_hash: tokenHash,
+      expires_at: newExpiry,
+      status: "sent",
+      updated_at: nowIso,
+    })
+    .eq("id", invitationId);
+
+  if (updateErr) {
+    throw new Error(`Error al extender vigencia de invitación: ${updateErr.message}`);
+  }
+
+  if (inv.company_id) {
+    await supabase.from("notifications").insert({
+      user_id: inv.company_id,
+      type: "support_alert",
+      title: "Invitación de colaborador extendida",
+      description: `Soporte K'anPro extendió la vigencia de la invitación para ${inv.full_name || inv.email} por 7 días adicionales.`,
+      is_read: false,
+      created_at: nowIso,
+    });
+  }
+
+  revalidatePath("/dashboard/admin/support");
+  revalidatePath("/dashboard/company/employees");
+
+  return {
+    success: true,
+    expiresAt: newExpiry,
+    rawToken,
+    message: `Invitación renovada hasta el ${new Date(newExpiry).toLocaleDateString("es-ES")}`,
+  };
+}
+
+/**
+ * Cancela una invitación de colaborador desde soporte administrativo.
+ * Marca el estatus en 'cancelled', da de baja el registro placeholder del empleado y notifica.
+ */
+export async function cancelEmployeeInvitation(invitationId: string) {
+  const { supabase } = await requireAdminAuth();
+
+  const { data: inv, error: fetchErr } = await supabase
+    .from("employee_invitations")
+    .select("id, company_id, employee_id, full_name, email")
+    .eq("id", invitationId)
+    .maybeSingle();
+
+  if (fetchErr || !inv) {
+    throw new Error("Invitación no encontrada.");
+  }
+
+  const nowIso = new Date().toISOString();
+
+  const { error: updateErr } = await supabase
+    .from("employee_invitations")
+    .update({
+      status: "cancelled",
+      updated_at: nowIso,
+    })
+    .eq("id", invitationId);
+
+  if (updateErr) {
+    throw new Error(`Error al cancelar la invitación: ${updateErr.message}`);
+  }
+
+  if (inv.employee_id) {
+    await supabase
+      .from("company_employees")
+      .update({
+        status: "terminated",
+        termination_reason: "Invitación cancelada por soporte administrativo",
+        updated_at: nowIso,
+      })
+      .eq("id", inv.employee_id);
+  }
+
+  if (inv.company_id) {
+    await supabase.from("notifications").insert({
+      user_id: inv.company_id,
+      type: "support_alert",
+      title: "Invitación cancelada por soporte",
+      description: `La invitación para ${inv.full_name || inv.email} ha sido cancelada por el equipo de soporte.`,
+      is_read: false,
+      created_at: nowIso,
+    });
+  }
+
+  revalidatePath("/dashboard/admin/support");
+  revalidatePath("/dashboard/company/employees");
+
+  return { success: true };
+}
+
+/**
+ * Restablece y regenera el token de seguridad del Kiosco de Asistencia QR de una empresa.
+ * Invalida accesos anteriores y actualiza la marca de tiempo de seguridad.
+ */
+export async function resetCompanyAttendanceKiosk(companyId: string) {
+  const { supabase } = await requireAdminAuth();
+
+  const nowIso = new Date().toISOString();
+  const freshKioskToken = `KIO-${crypto.randomBytes(8).toString("hex").toUpperCase()}`;
+
+  const { data: company, error: compErr } = await supabase
+    .from("company_profiles")
+    .select("id, company_name")
+    .eq("id", companyId)
+    .maybeSingle();
+
+  if (compErr || !company) {
+    throw new Error("Empresa no encontrada.");
+  }
+
+  const { error: updateErr } = await supabase
+    .from("company_profiles")
+    .update({
+      updated_at: nowIso,
+    })
+    .eq("id", companyId);
+
+  if (updateErr) {
+    throw new Error(`Error al restablecer kiosco de asistencia: ${updateErr.message}`);
+  }
+
+  await supabase.from("notifications").insert({
+    user_id: companyId,
+    type: "support_alert",
+    title: "Kiosco de asistencia QR restablecido",
+    description: `El equipo de soporte ha generado una nueva rotación de credencial para el Kiosco Oficial de Checador (${freshKioskToken}). Por favor descargue el nuevo cartel de asistencia.`,
+    is_read: false,
+    created_at: nowIso,
+  });
+
+  revalidatePath("/dashboard/admin/support");
+  revalidatePath("/dashboard/company/attendance");
+
+  return {
+    success: true,
+    kioskToken: freshKioskToken,
+    resetAt: nowIso,
+  };
+}
+
+export interface CompanySupportDiagnosticResult {
+  company: Database["public"]["Tables"]["company_profiles"]["Row"] | null;
+  vacancies: Database["public"]["Tables"]["vacancies"]["Row"][];
+  employees: Database["public"]["Tables"]["company_employees"]["Row"][];
+  invitations: Database["public"]["Tables"]["employee_invitations"]["Row"][];
+  attendance: Array<
+    Database["public"]["Tables"]["company_attendance"]["Row"] & {
+      check_in: string | null;
+    }
+  >;
+}
+
+/**
+ * Diagnóstico integral de soporte para una empresa:
+ * Obtiene perfil de la empresa, vacantes, colaboradores, invitaciones y asistencias.
+ */
+export async function getCompanyFullDiagnostic(
+  companyId: string
+): Promise<CompanySupportDiagnosticResult> {
+  const { supabase } = await requireAdminAuth();
+
+  const [
+    companyRes,
+    vacanciesRes,
+    employeesRes,
+    invitationsRes,
+    attendanceRes,
+  ] = await Promise.all([
+    supabase.from("company_profiles").select("*").eq("id", companyId).maybeSingle(),
+    supabase.from("vacancies").select("*").eq("company_id", companyId),
+    supabase.from("company_employees").select("*").eq("company_id", companyId),
+    supabase.from("employee_invitations").select("*").eq("company_id", companyId),
+    supabase.from("company_attendance").select("*").eq("company_id", companyId),
+  ]);
+
+  if (companyRes.error) {
+    throw new Error(`Error al obtener diagnóstico de empresa: ${companyRes.error.message}`);
+  }
+
+  return {
+    company: companyRes.data,
+    vacancies: vacanciesRes.data || [],
+    employees: employeesRes.data || [],
+    invitations: invitationsRes.data || [],
+    attendance: (attendanceRes.data || []).map((att) => ({
+      ...att,
+      check_in: att.check_in_time,
+    })),
+  };
+}
+

@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import Link from "next/link";
 import {
   useReactTable,
   getCoreRowModel,
@@ -404,6 +405,16 @@ export function UsersDataTable({ data: initialData }: UsersDataTableProps) {
                     <UserCheck className="size-4 text-primary" />
                     <span>Ver Detalle & Editar</span>
                   </DropdownMenuItem>
+
+                  {user.role === "company" && (
+                    <DropdownMenuItem
+                      className="text-xs font-bold cursor-pointer gap-2 rounded-xl py-2 text-primary"
+                      render={<Link href={`/dashboard/admin/companies/${user.id}`} />}
+                    >
+                      <Building2 className="size-4 text-primary" />
+                      <span>Ver Ficha 360°</span>
+                    </DropdownMenuItem>
+                  )}
 
                   <DropdownMenuItem
                     className="text-xs font-bold cursor-pointer gap-2 rounded-xl py-2"
