@@ -112,8 +112,8 @@ export function calculateWorkingDays(
   endDateStr: string,
   excludeSaturdays = false
 ): number {
-  const start = new Date(startDateStr);
-  const end = new Date(endDateStr);
+  const start = new Date(startDateStr.includes("T") ? startDateStr : `${startDateStr}T12:00:00`);
+  const end = new Date(endDateStr.includes("T") ? endDateStr : `${endDateStr}T12:00:00`);
 
   if (isNaN(start.getTime()) || isNaN(end.getTime()) || start > end) {
     return 0;
