@@ -1,7 +1,50 @@
-"use server"
+"use server";
 
-import { createClient } from "@/lib/supabase/server"
-import { revalidatePath } from "next/cache"
+import { createClient } from "@/lib/supabase/server";
+import { revalidatePath } from "next/cache";
+import {
+  requestDocumentAccessSchema,
+  respondDocumentAccessSchema,
+  getDocumentAccessStatusSchema,
+  getAuthorizedDocumentsSchema,
+  getCandidateCvDocumentSchema,
+  type RequestDocumentAccessInput,
+  type RespondDocumentAccessInput,
+} from "../schemas/document-access.schema";
+import {
+  CompanyDocumentAccessService,
+  type AuthorizedCandidateDocumentsResponse,
+  type CandidateCvResponse,
+} from "../services/company-document-access";
+
+export type {
+  RequestDocumentAccessInput,
+  RespondDocumentAccessInput,
+  AuthorizedCandidateDocumentsResponse,
+  CandidateCvResponse,
+};
+
+export type RequestDocumentAccessActionResult =
+  | {
+      success: true;
+      data: { requestId?: string; status: "pending" | "approved" | "rejected"; message?: string };
+      requestId?: string;
+      status: "pending" | "approved" | "rejected";
+      message?: string;
+      error?: undefined;
+    }
+  | {
+      success: false;
+      error: string;
+      data?: undefined;
+      requestId?: undefined;
+      status?: undefined;
+      message?: undefined;
+    };
+
+export type RespondDocumentAccessActionResult =
+  | { success: true; error?: undefined }
+  | { success: false; error: string };
 
 /**
  * Sends a document access request from a company to a candidate for hiring purposes.
@@ -10,68 +53,53 @@ export async function requestDocumentAccess(
   applicationId: string,
   candidateId: string,
   requestedDocuments: string[] = ["curp", "rfc", "ine"]
-) {
-  const supabase = await createClient()
+): Promise<RequestDocumentAccessActionResult> {
+  const parsed = requestDocumentAccessSchema.safeParse({
+    applicationId,
+    candidateId,
+    requestedDocuments,
+  });
 
-  const { data: { user }, error: authError } = await supabase.auth.getUser()
+  if (!parsed.success) {
+    const errorMsg = parsed.error.issues[0]?.message || "Datos de solicitud inválidos.";
+    return { success: false, error: errorMsg };
+  }
+
+  const supabase = await createClient();
+  const {
+    data: { user },
+    error: authError,
+  } = await supabase.auth.getUser();
+
   if (authError || !user) {
-    throw new Error("No autorizado. Inicie sesión para continuar.")
+    return { success: false, error: "No autorizado. Inicie sesión para continuar." };
   }
 
-  // Check if a request already exists for this application
-  const { data: existingRequest } = await supabase
-    .from("document_access_requests")
-    .select("id, status")
-    .eq("company_id", user.id)
-    .eq("application_id", applicationId)
-    .maybeSingle()
+  try {
+    const result = await CompanyDocumentAccessService.requestDocumentAccess(
+      supabase,
+      user.id,
+      parsed.data
+    );
 
-  if (existingRequest) {
-    if (existingRequest.status === "approved") {
-      return { success: true, message: "La documentación ya fue autorizada por el candidato.", status: "approved" }
-    }
-    if (existingRequest.status === "pending") {
-      return { success: true, message: "Ya existe una solicitud pendiente enviada al candidato.", status: "pending" }
-    }
+    revalidatePath("/dashboard/company/applications");
+
+    return {
+      success: true,
+      data: {
+        requestId: result.requestId,
+        status: result.status,
+        message: result.message,
+      },
+      requestId: result.requestId,
+      status: result.status,
+      message: result.message,
+    };
+  } catch (err) {
+    const errorMsg =
+      err instanceof Error ? err.message : "No se pudo enviar la solicitud de documentos.";
+    return { success: false, error: errorMsg };
   }
-
-  // Insert new request
-  const { data: inserted, error } = await supabase
-    .from("document_access_requests")
-    .insert({
-      company_id: user.id,
-      candidate_id: candidateId,
-      application_id: applicationId,
-      requested_documents: requestedDocuments,
-      status: "pending"
-    })
-    .select("id")
-    .single()
-
-  if (error) {
-    console.error("Error creating document access request:", error)
-    throw new Error("No se pudo enviar la solicitud de documentos.")
-  }
-
-  // Send platform notification to candidate
-  const { data: companyProfile } = await supabase
-    .from("company_profiles")
-    .select("company_name")
-    .eq("id", user.id)
-    .single()
-
-  const companyName = companyProfile?.company_name || "La empresa"
-
-  await supabase.from("notifications").insert({
-    user_id: candidateId,
-    title: "Solicitud de Documentos de Contratación",
-    description: `${companyName} solicita tu autorización para revisar tus documentos (INE, CURP, RFC) para tu proceso de contratación.`,
-    type: "document_request",
-  })
-
-  revalidatePath("/dashboard/company/applications")
-
-  return { success: true, requestId: inserted.id, status: "pending" }
 }
 
 /**
@@ -80,213 +108,143 @@ export async function requestDocumentAccess(
 export async function respondDocumentAccessRequest(
   requestId: string,
   status: "approved" | "rejected"
-) {
-  const supabase = await createClient()
-
-  const { data: { user }, error: authError } = await supabase.auth.getUser()
-  if (authError || !user) {
-    throw new Error("No autorizado.")
-  }
-
-  const payload: any = {
+): Promise<RespondDocumentAccessActionResult> {
+  const parsed = respondDocumentAccessSchema.safeParse({
+    requestId,
     status,
-    updated_at: new Date().toISOString()
+  });
+
+  if (!parsed.success) {
+    const errorMsg = parsed.error.issues[0]?.message || "Datos de respuesta inválidos.";
+    return { success: false, error: errorMsg };
   }
 
-  if (status === "approved") {
-    payload.approved_at = new Date().toISOString()
-  } else {
-    payload.rejected_at = new Date().toISOString()
+  const supabase = await createClient();
+  const {
+    data: { user },
+    error: authError,
+  } = await supabase.auth.getUser();
+
+  if (authError || !user) {
+    return { success: false, error: "No autorizado." };
   }
 
-  const { error } = await supabase
-    .from("document_access_requests")
-    .update(payload)
-    .eq("id", requestId)
-    .eq("candidate_id", user.id)
+  try {
+    await CompanyDocumentAccessService.respondDocumentAccess(
+      supabase,
+      user.id,
+      parsed.data
+    );
 
-  if (error) {
-    console.error("Error responding to document access request:", error)
-    throw new Error("No se pudo actualizar la respuesta.")
+    revalidatePath("/dashboard/candidate/applications");
+    revalidatePath("/dashboard/company/applications");
+
+    return { success: true };
+  } catch (err) {
+    const errorMsg =
+      err instanceof Error ? err.message : "No se pudo actualizar la respuesta.";
+    return { success: false, error: errorMsg };
   }
-
-  revalidatePath("/dashboard/candidate/applications")
-  revalidatePath("/dashboard/company/applications")
-
-  return { success: true }
 }
 
 /**
  * Gets document access status for a specific application.
  */
 export async function getDocumentAccessStatus(applicationId: string) {
-  const supabase = await createClient()
-
-  const { data, error } = await supabase
-    .from("document_access_requests")
-    .select("*")
-    .eq("application_id", applicationId)
-    .order("created_at", { ascending: false })
-    .maybeSingle()
-
-  if (error) {
-    console.error("Error fetching document access status:", error)
-    return null
+  const parsed = getDocumentAccessStatusSchema.safeParse({ applicationId });
+  if (!parsed.success) {
+    return null;
   }
 
-  return data
+  const supabase = await createClient();
+  return await CompanyDocumentAccessService.getDocumentAccessStatus(
+    supabase,
+    parsed.data.applicationId
+  );
 }
 
 /**
  * Retrieves authorized candidate documents with signed preview URLs if access was approved.
  */
-export async function getAuthorizedCandidateDocuments(applicationId: string, candidateId: string) {
-  const supabase = await createClient()
+export async function getAuthorizedCandidateDocuments(
+  applicationId: string,
+  candidateId: string
+): Promise<AuthorizedCandidateDocumentsResponse> {
+  const parsed = getAuthorizedDocumentsSchema.safeParse({
+    applicationId,
+    candidateId,
+  });
 
-  const { data: { user }, error: authError } = await supabase.auth.getUser()
+  if (!parsed.success) {
+    return { authorized: false, documents: [] };
+  }
+
+  const supabase = await createClient();
+  const {
+    data: { user },
+    error: authError,
+  } = await supabase.auth.getUser();
+
   if (authError || !user) {
-    throw new Error("No autorizado.")
+    return { authorized: false, documents: [] };
   }
 
-  // 1. Verify access approval in document_access_requests
-  const { data: accessReq } = await supabase
-    .from("document_access_requests")
-    .select("status")
-    .eq("application_id", applicationId)
-    .eq("company_id", user.id)
-    .eq("status", "approved")
-    .maybeSingle()
-
-  if (!accessReq) {
-    return {
-      authorized: false,
-      documents: []
-    }
-  }
-
-  // 2. Fetch candidate documents from profile_documents
-  const { data: docs } = await supabase
-    .from("profile_documents")
-    .select("id, doc_type, file_url, file_name, status, created_at")
-    .eq("owner_id", candidateId)
-
-  const docList = docs || []
-
-  // 3. Generate signed URLs (15 minutes validity)
-  const documentsWithSignedUrls = await Promise.all(
-    docList.map(async (doc) => {
-      let signedUrl = doc.file_url
-
-      // If file_url is a path within storage bucket, create signed url
-      if (doc.file_url && !doc.file_url.startsWith("http")) {
-        const { data: signedData } = await supabase.storage
-          .from("profile_documents")
-          .createSignedUrl(doc.file_url, 900)
-        
-        if (signedData?.signedUrl) {
-          signedUrl = signedData.signedUrl
-        }
-      }
-
-      return {
-        id: doc.id,
-        doc_type: doc.doc_type,
-        file_name: doc.file_name,
-        file_url: signedUrl,
-        status: doc.status,
-        created_at: doc.created_at
-      }
-    })
-  )
-
-  return {
-    authorized: true,
-    documents: documentsWithSignedUrls
-  }
+  return await CompanyDocumentAccessService.getAuthorizedCandidateDocuments(
+    supabase,
+    user.id,
+    parsed.data
+  );
 }
 
 /**
  * Retrieves the candidate's uploaded CV file (if available) with a signed URL for company evaluation.
  */
-export async function getCandidateCvDocument(applicationId: string, candidateId: string) {
-  try {
-    const supabase = await createClient()
+export async function getCandidateCvDocument(
+  applicationId: string,
+  candidateId: string
+): Promise<CandidateCvResponse> {
+  const parsed = getCandidateCvDocumentSchema.safeParse({
+    applicationId,
+    candidateId,
+  });
 
-    const { data: { user }, error: authError } = await supabase.auth.getUser()
-    if (authError || !user) {
-      throw new Error("No autorizado.")
-    }
-
-    // 1. Try fetching CV directly from profile_documents
-    const { data: directDoc } = await supabase
-      .from("profile_documents")
-      .select("id, doc_type, file_name, file_url, created_at")
-      .eq("owner_id", candidateId)
-      .eq("doc_type", "cv")
-      .order("created_at", { ascending: false })
-      .maybeSingle()
-
-    let cvDoc = directDoc
-
-    // 2. If direct query returned null (RLS protection), attempt with admin client if authorized company
-    if (!cvDoc) {
-      try {
-        const { createAdminClient } = await import("@/lib/supabase/admin")
-        const admin = createAdminClient()
-        const { data: adminDoc } = await admin
-          .from("profile_documents")
-          .select("id, doc_type, file_name, file_url, created_at")
-          .eq("owner_id", candidateId)
-          .eq("doc_type", "cv")
-          .order("created_at", { ascending: false })
-          .maybeSingle()
-
-        if (adminDoc) {
-          cvDoc = adminDoc
-        }
-      } catch {
-        // Fallback gracefully in test/dev environments
-      }
-    }
-
-    if (!cvDoc || !cvDoc.file_url) {
-      return {
-        hasUploadedCv: false,
-        cvUrl: null,
-        fileName: null,
-        uploadedAt: null,
-      }
-    }
-
-    let signedUrl = cvDoc.file_url
-    if (!cvDoc.file_url.startsWith("http")) {
-      try {
-        const { data: signedData } = await supabase.storage
-          .from("profile_documents")
-          .createSignedUrl(cvDoc.file_url, 3600) // 1 hour validity
-
-        if (signedData?.signedUrl) {
-          signedUrl = signedData.signedUrl
-        }
-      } catch {
-        // Storage signed url error fallback
-      }
-    }
-
-    return {
-      hasUploadedCv: true,
-      cvUrl: signedUrl,
-      fileName: cvDoc.file_name || "Curriculum_Vitae.pdf",
-      uploadedAt: cvDoc.created_at || null,
-    }
-  } catch (error) {
-    console.error("Error retrieving candidate CV document:", error)
+  if (!parsed.success) {
     return {
       hasUploadedCv: false,
       cvUrl: null,
       fileName: null,
       uploadedAt: null,
+    };
+  }
+
+  try {
+    const supabase = await createClient();
+    const {
+      data: { user },
+      error: authError,
+    } = await supabase.auth.getUser();
+
+    if (authError || !user) {
+      return {
+        hasUploadedCv: false,
+        cvUrl: null,
+        fileName: null,
+        uploadedAt: null,
+      };
     }
+
+    return await CompanyDocumentAccessService.getCandidateCvDocument(
+      supabase,
+      user.id,
+      parsed.data
+    );
+  } catch (error) {
+    console.error("Error retrieving candidate CV document:", error);
+    return {
+      hasUploadedCv: false,
+      cvUrl: null,
+      fileName: null,
+      uploadedAt: null,
+    };
   }
 }
-

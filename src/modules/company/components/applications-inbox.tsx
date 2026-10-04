@@ -441,6 +441,9 @@ export function ApplicationsInbox() {
         selectedApplicant.id,
         selectedApplicant.candidateId
       );
+      if (!res.success) {
+        throw new Error(res.error);
+      }
       setDocAccessState({ status: res.status, id: res.requestId });
       toast.success("Solicitud de documentos enviada", {
         description:
