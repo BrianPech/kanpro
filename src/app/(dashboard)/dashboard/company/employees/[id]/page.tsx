@@ -1,7 +1,8 @@
 import * as React from "react";
+import { createClient } from "@/lib/supabase/server";
 import { getEmployeeDossierById } from "@/modules/company/services/company-dossier";
 import { EmployeeDossierView } from "@/modules/company/components/dossier/employee-dossier-view";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 
 export const metadata = {
   title: "Expediente Digital 360 | K'anPro",
@@ -14,7 +15,16 @@ export default async function EmployeeDossierPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const dossier = await getEmployeeDossierById(id);
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    redirect("/login");
+  }
+
+  const dossier = await getEmployeeDossierById(supabase, id, user.id);
 
   if (!dossier) {
     notFound();

@@ -1,4 +1,5 @@
 import * as React from "react";
+import { createClient } from "@/lib/supabase/server";
 import { getCompanyVacationRequests } from "@/modules/company/services/company-dossier";
 import { CompanyLeavesView } from "@/modules/company/components/leaves/company-leaves-view";
 
@@ -10,7 +11,12 @@ export const metadata = {
 };
 
 export default async function CompanyLeavesPage() {
-  const data = await getCompanyVacationRequests();
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  const data = await getCompanyVacationRequests(supabase, user?.id || "");
 
   return (
     <CompanyLeavesView

@@ -2,228 +2,210 @@
 
 import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
-import { ContractTemplateType } from "../types/contracts";
-import { Database } from "@/types/supabase";
+import {
+  createContractSchema,
+  renewContractSchema,
+  signContractSchema,
+  deleteContractSchema,
+  type CreateContractInput,
+  type RenewContractInput,
+  type SignContractInput,
+  type DeleteContractInput,
+} from "../schemas/contracts.schema";
+import { CompanyContractService } from "../services/company-service";
 
-export interface CreateContractInput {
-  employeeId?: string;
-  candidateId?: string;
-  applicationId?: string;
-  folio?: string;
-  jobTitle: string;
-  department: string;
-  contractType: string;
-  templateType: ContractTemplateType;
-  startDate: string;
-  endDate?: string | null;
-  salary: number;
-  paymentFrequency: string;
-  companySigned?: boolean;
-  companySignatureUrl?: string | null;
-  employeeSigned?: boolean;
-  employeeSignatureUrl?: string | null;
-  status?: "vigente" | "proximo_a_vencer" | "imminent" | "en_firma";
-  notes?: string;
+export type {
+  CreateContractInput,
+  RenewContractInput,
+  SignContractInput,
+  DeleteContractInput,
+};
+
+export interface ActionResponse<T> {
+  success: boolean;
+  data?: T;
+  error?: string;
 }
 
-export interface RenewContractInput {
-  contractId: string;
-  templateType: ContractTemplateType;
-  contractType: string;
-  endDate: string | null;
-}
-
-export interface SignContractInput {
-  contractId: string;
-  signerRole: "representante_legal" | "trabajador";
-  signatureUrl: string;
-  isNowFullySigned: boolean;
-}
+export type CreateContractActionResult =
+  | {
+      success: true;
+      data: { contractId: string; folio: string };
+      contractId: string;
+      folio: string;
+      error?: undefined;
+    }
+  | {
+      success: false;
+      error: string;
+      data?: undefined;
+      contractId?: undefined;
+      folio?: undefined;
+    };
 
 /**
- * Creates a formal employment contract in public.company_contracts
+ * Registra un contrato formal en public.company_contracts
  */
-export async function createContractAction(input: CreateContractInput) {
-  const supabase = await createClient();
+export async function createContractAction(
+  rawInput: CreateContractInput
+): Promise<CreateContractActionResult> {
+  const parsed = createContractSchema.safeParse(rawInput);
+  if (!parsed.success) {
+    const errorMsg =
+      parsed.error.issues[0]?.message || "Datos de contrato inválidos.";
+    return { success: false, error: errorMsg };
+  }
 
+  const supabase = await createClient();
   const {
     data: { user },
     error: authError,
   } = await supabase.auth.getUser();
 
   if (authError || !user) {
-    throw new Error("No autorizado. Inicie sesión para continuar.");
+    return { success: false, error: "No autorizado. Inicie sesión para continuar." };
   }
 
-  const randomFolio =
-    input.folio || `KAN-CTR-2026-${Math.floor(100 + Math.random() * 900)}`;
-
-  const isUuid = (val?: string) =>
-    val &&
-    /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(
-      val
+  try {
+    const result = await CompanyContractService.createContract(
+      supabase,
+      user.id,
+      parsed.data
     );
 
-  const initialStatus =
-    input.status ||
-    (input.companySigned && input.employeeSigned ? "vigente" : "en_firma");
+    revalidatePath("/dashboard/company/contracts");
+    revalidatePath("/dashboard/company");
 
-  const { data: inserted, error } = await supabase
-    .from("company_contracts")
-    .insert({
-      company_id: user.id,
-      employee_id: isUuid(input.employeeId) ? input.employeeId : null,
-      candidate_id: isUuid(input.candidateId) ? input.candidateId : null,
-      application_id: isUuid(input.applicationId) ? input.applicationId : null,
-      folio: randomFolio,
-      job_title: input.jobTitle.trim(),
-      department: input.department.trim(),
-      contract_type: input.contractType,
-      template_type: input.templateType,
-      start_date: input.startDate,
-      end_date:
-        input.templateType === "indeterminado" || !input.endDate
-          ? null
-          : input.endDate,
-      salary: input.salary,
-      payment_frequency: input.paymentFrequency || "quincenal",
-      company_signed: Boolean(input.companySigned),
-      company_signature_url: input.companySignatureUrl || null,
-      employee_signed: Boolean(input.employeeSigned),
-      employee_signature_url: input.employeeSignatureUrl || null,
-      status: initialStatus,
-      notes: input.notes || null,
-    })
-    .select("id, folio")
-    .single();
-
-  if (error) {
-    console.error("Error creating company contract:", error);
-    throw new Error("No se pudo registrar el contrato en la base de datos.");
+    return {
+      success: true,
+      data: result,
+      contractId: result.contractId,
+      folio: result.folio,
+    };
+  } catch (err: unknown) {
+    const message =
+      err instanceof Error
+        ? err.message
+        : "No se pudo registrar el contrato en la base de datos.";
+    return { success: false, error: message };
   }
-
-  revalidatePath("/dashboard/company/contracts");
-  revalidatePath("/dashboard/company");
-
-  return { success: true, contractId: inserted.id, folio: inserted.folio };
 }
 
 /**
- * Renews an existing contract or converts it to permanent (tiempo indeterminado).
+ * Renueva un contrato existente o lo convierte a tiempo indeterminado.
  */
-export async function renewContractAction(input: RenewContractInput) {
-  const supabase = await createClient();
+export async function renewContractAction(
+  rawInput: RenewContractInput
+): Promise<ActionResponse<void>> {
+  const parsed = renewContractSchema.safeParse(rawInput);
+  if (!parsed.success) {
+    const errorMsg =
+      parsed.error.issues[0]?.message || "Datos de renovación inválidos.";
+    return { success: false, error: errorMsg };
+  }
 
+  const supabase = await createClient();
   const {
     data: { user },
     error: authError,
   } = await supabase.auth.getUser();
 
   if (authError || !user) {
-    throw new Error("No autorizado. Inicie sesión para continuar.");
+    return { success: false, error: "No autorizado. Inicie sesión para continuar." };
   }
 
-  const isIndeterminado = input.templateType === "indeterminado";
+  try {
+    await CompanyContractService.renewContract(supabase, user.id, parsed.data);
 
-  const { error } = await supabase
-    .from("company_contracts")
-    .update({
-      template_type: input.templateType,
-      contract_type: input.contractType,
-      end_date: isIndeterminado ? null : input.endDate,
-      status: "vigente",
-      updated_at: new Date().toISOString(),
-    })
-    .eq("id", input.contractId)
-    .eq("company_id", user.id);
+    revalidatePath("/dashboard/company/contracts");
+    revalidatePath("/dashboard/company");
 
-  if (error) {
-    console.error("Error renewing contract:", error);
-    throw new Error("No se pudo renovar el contrato en la base de datos.");
+    return { success: true };
+  } catch (err: unknown) {
+    const message =
+      err instanceof Error
+        ? err.message
+        : "No se pudo renovar el contrato en la base de datos.";
+    return { success: false, error: message };
   }
-
-  revalidatePath("/dashboard/company/contracts");
-  revalidatePath("/dashboard/company");
-
-  return { success: true };
 }
 
 /**
- * Registers digital signature on a contract.
+ * Registra la firma digital de la empresa o trabajador en el contrato.
  */
-export async function signContractAction(input: SignContractInput) {
-  const supabase = await createClient();
+export async function signContractAction(
+  rawInput: SignContractInput
+): Promise<ActionResponse<void>> {
+  const parsed = signContractSchema.safeParse(rawInput);
+  if (!parsed.success) {
+    const errorMsg =
+      parsed.error.issues[0]?.message || "Datos de firma digital inválidos.";
+    return { success: false, error: errorMsg };
+  }
 
+  const supabase = await createClient();
   const {
     data: { user },
     error: authError,
   } = await supabase.auth.getUser();
 
   if (authError || !user) {
-    throw new Error("No autorizado. Inicie sesión para continuar.");
+    return { success: false, error: "No autorizado. Inicie sesión para continuar." };
   }
 
-  const updates: Database["public"]["Tables"]["company_contracts"]["Update"] = {
-    updated_at: new Date().toISOString(),
-  };
+  try {
+    await CompanyContractService.signContract(supabase, user.id, parsed.data);
 
-  if (input.signerRole === "representante_legal") {
-    updates.company_signed = true;
-    updates.company_signature_url = input.signatureUrl;
-  } else {
-    updates.employee_signed = true;
-    updates.employee_signature_url = input.signatureUrl;
+    revalidatePath("/dashboard/company/contracts");
+    revalidatePath("/dashboard/company");
+
+    return { success: true };
+  } catch (err: unknown) {
+    const message =
+      err instanceof Error
+        ? err.message
+        : "No se pudo registrar la firma digital en el contrato.";
+    return { success: false, error: message };
   }
-
-  if (input.isNowFullySigned) {
-    updates.status = "vigente";
-  }
-
-  const { error } = await supabase
-    .from("company_contracts")
-    .update(updates)
-    .eq("id", input.contractId)
-    .eq("company_id", user.id);
-
-  if (error) {
-    console.error("Error signing contract:", error);
-    throw new Error("No se pudo registrar la firma digital en el contrato.");
-  }
-
-  revalidatePath("/dashboard/company/contracts");
-  revalidatePath("/dashboard/company");
-
-  return { success: true };
 }
 
 /**
- * Deletes or archives a contract.
+ * Elimina un contrato laboral perteneciente a la empresa.
  */
-export async function deleteContractAction(contractId: string) {
-  const supabase = await createClient();
+export async function deleteContractAction(
+  contractId: string
+): Promise<ActionResponse<void>> {
+  const parsed = deleteContractSchema.safeParse({ contractId });
+  if (!parsed.success) {
+    const errorMsg =
+      parsed.error.issues[0]?.message || "Identificador de contrato inválido.";
+    return { success: false, error: errorMsg };
+  }
 
+  const supabase = await createClient();
   const {
     data: { user },
     error: authError,
   } = await supabase.auth.getUser();
 
   if (authError || !user) {
-    throw new Error("No autorizado. Inicie sesión para continuar.");
+    return { success: false, error: "No autorizado. Inicie sesión para continuar." };
   }
 
-  const { error } = await supabase
-    .from("company_contracts")
-    .delete()
-    .eq("id", contractId)
-    .eq("company_id", user.id);
+  try {
+    await CompanyContractService.deleteContract(
+      supabase,
+      user.id,
+      parsed.data.contractId
+    );
 
-  if (error) {
-    console.error("Error deleting contract:", error);
-    throw new Error("No se pudo eliminar el contrato.");
+    revalidatePath("/dashboard/company/contracts");
+    revalidatePath("/dashboard/company");
+
+    return { success: true };
+  } catch (err: unknown) {
+    const message =
+      err instanceof Error ? err.message : "No se pudo eliminar el contrato.";
+    return { success: false, error: message };
   }
-
-  revalidatePath("/dashboard/company/contracts");
-  revalidatePath("/dashboard/company");
-
-  return { success: true };
 }

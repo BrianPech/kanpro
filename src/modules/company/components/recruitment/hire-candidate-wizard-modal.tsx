@@ -110,6 +110,10 @@ export function HireCandidateWizardModal({
         signatureData: companySignatureData || undefined,
       });
 
+      if (!result.success || !result.employeeId || !result.folio) {
+        throw new Error(result.error || "No se pudo procesar la contratación.");
+      }
+
       setStep(3);
 
       onHiringCompleted({

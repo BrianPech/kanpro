@@ -375,6 +375,10 @@ export function ContractsView({
         status: newContract.employeeSignature ? "vigente" : "en_firma",
       });
 
+      if (!result.success || !result.contractId || !result.folio) {
+        throw new Error(result.error || "No se pudo registrar el contrato en la base de datos.");
+      }
+
       const newRecord: ContractRecord = {
         id: result.contractId,
         folio: result.folio,

@@ -65,3 +65,17 @@ export interface BulkImportPreviewItem extends BulkEmployeeImportRow {
   isValid: boolean;
   errors: string[];
 }
+
+export const invitationTokenSchema = z.object({
+  rawToken: z.string().min(10, "El token de invitación es inválido."),
+});
+
+export type InvitationTokenInput = z.infer<typeof invitationTokenSchema>;
+
+export const acceptEmployeeInvitationSchema = z.object({
+  rawToken: z.string().min(10, "El token de invitación es inválido."),
+  userId: z.string().uuid("El ID de usuario debe ser un UUID válido."),
+  email: z.string().email("El correo electrónico es inválido."),
+});
+
+export type AcceptEmployeeInvitationInput = z.infer<typeof acceptEmployeeInvitationSchema>;

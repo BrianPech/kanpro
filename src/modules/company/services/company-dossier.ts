@@ -1,4 +1,5 @@
-import { createClient } from "@/lib/supabase/server";
+import type { SupabaseClient } from "@supabase/supabase-js";
+import type { Database } from "@/types/supabase";
 import {
   EmployeeDossier,
   VacationRequest,
@@ -13,20 +14,17 @@ import { calculateLFTVacationDays } from "../utils/vacation-calculator";
  * Returns null if the employee does not exist in the company roster.
  */
 export async function getEmployeeDossierById(
-  employeeId: string
+  supabase: SupabaseClient<Database>,
+  employeeId: string,
+  companyId: string
 ): Promise<EmployeeDossier | null> {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  if (!user) return null;
+  if (!companyId) return null;
 
   let companyName = "Mi Empresa";
   const { data: profile } = await supabase
     .from("company_profiles")
     .select("company_name, legal_name")
-    .eq("id", user.id)
+    .eq("id", companyId)
     .maybeSingle();
 
   if (profile?.legal_name || profile?.company_name) {
@@ -42,7 +40,7 @@ export async function getEmployeeDossierById(
   let empQuery = supabase
     .from("company_employees")
     .select("*")
-    .eq("company_id", user.id);
+    .eq("company_id", companyId);
 
   if (isUuid) {
     empQuery = empQuery.or(`id.eq.${employeeId},employee_id.eq.${employeeId}`);
@@ -100,7 +98,7 @@ export async function getEmployeeDossierById(
   let evalQuery = supabase
     .from("company_evaluations")
     .select("*")
-    .eq("company_id", user.id);
+    .eq("company_id", companyId);
 
   if (isUuid) {
     evalQuery = evalQuery.or(
@@ -170,7 +168,7 @@ export async function getEmployeeDossierById(
     .select(
       "id, folio, contract_type, template_type, start_date, company_signature_url, employee_signature_url, status"
     )
-    .eq("company_id", user.id);
+    .eq("company_id", companyId);
 
   if (targetCandId) {
     contractQuery = contractQuery.or(
@@ -364,7 +362,10 @@ export interface CompanyEmployeeRosterItem {
   hireDate?: string | null;
 }
 
-export async function getCompanyVacationRequests(): Promise<{
+export async function getCompanyVacationRequests(
+  supabase: SupabaseClient<Database>,
+  companyId: string
+): Promise<{
   companyName: string;
   requests: VacationRequest[];
   employees: CompanyEmployeeRosterItem[];
@@ -375,13 +376,8 @@ export async function getCompanyVacationRequests(): Promise<{
     averageVacationBalance: number;
   };
 }> {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
   let companyName = "Mi Empresa";
-  if (!user) {
+  if (!companyId) {
     return {
       companyName,
       requests: [],
@@ -398,7 +394,7 @@ export async function getCompanyVacationRequests(): Promise<{
   const { data: profile } = await supabase
     .from("company_profiles")
     .select("company_name, legal_name")
-    .eq("id", user.id)
+    .eq("id", companyId)
     .maybeSingle();
 
   if (profile?.legal_name || profile?.company_name) {
@@ -430,7 +426,7 @@ export async function getCompanyVacationRequests(): Promise<{
         avatar_url
       )
     `)
-    .eq("company_id", user.id)
+    .eq("company_id", companyId)
     .order("created_at", { ascending: false });
 
   if (leavesErr) {
@@ -536,7 +532,7 @@ export async function getCompanyVacationRequests(): Promise<{
   const { data: employees } = await supabase
     .from("company_employees")
     .select("id, full_name, department, hire_date")
-    .eq("company_id", user.id)
+    .eq("company_id", companyId)
     .eq("status", "active")
     .order("full_name", { ascending: true });
 
