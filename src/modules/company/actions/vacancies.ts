@@ -1,83 +1,298 @@
-"use server"
+"use server";
 
-import { createClient } from "@/lib/supabase/server"
-import { revalidatePath } from "next/cache"
+import { createClient } from "@/lib/supabase/server";
+import { revalidatePath } from "next/cache";
+import {
+  cloneVacancySchema,
+  createExpressVacancySchema,
+  toggleVacancyStatusSchema,
+  deleteVacancySchema,
+  vacancyWizardSchema,
+  type CloneVacancyInput,
+  type CreateExpressVacancyInput,
+  type ToggleVacancyStatusInput,
+  type DeleteVacancyInput,
+  type VacancyWizardValues,
+} from "../schemas/vacancies.schema";
+import {
+  CompanyVacanciesService,
+  type VacancyRow,
+} from "../services/company-vacancies";
+
+export type {
+  CloneVacancyInput,
+  CreateExpressVacancyInput,
+  ToggleVacancyStatusInput,
+  DeleteVacancyInput,
+  VacancyWizardValues,
+};
+
+export interface ActionResponse<T> {
+  success: boolean;
+  data?: T;
+  error?: string;
+}
+
+export type CloneVacancyActionResult =
+  | {
+      success: true;
+      data: { newVacancyId: string; title: string };
+      newVacancyId: string;
+      title: string;
+      error?: undefined;
+    }
+  | {
+      success: false;
+      error: string;
+      data?: undefined;
+      newVacancyId?: undefined;
+      title?: undefined;
+    };
+
+export type CreateVacancyActionResult =
+  | {
+      success: true;
+      data: VacancyRow;
+      vacancy: VacancyRow;
+      error?: undefined;
+    }
+  | {
+      success: false;
+      error: string;
+      data?: undefined;
+      vacancy?: undefined;
+    };
 
 /**
- * Revalidates the cache for the vacancies dashboard page.
+ * Revalida la caché de la página de gestión de vacantes y rutas públicas asociadas.
  */
-export async function revalidateVacancies() {
-  revalidatePath("/dashboard/company/vacancies")
-  revalidatePath("/dashboard/candidate/discovery")
-  revalidatePath("/")
+export async function revalidateVacancies(): Promise<void> {
+  revalidatePath("/dashboard/company/vacancies");
+  revalidatePath("/dashboard/candidate/discovery");
+  revalidatePath("/dashboard/company");
+  revalidatePath("/");
 }
 
 /**
- * Clones/duplicates an existing vacancy for the company.
+ * Clona una vacante existente para la empresa en estado Borrador.
  */
-export async function cloneVacancyAction(vacancyId: string) {
-  const supabase = await createClient()
+export async function cloneVacancyAction(
+  rawInput: CloneVacancyInput | string
+): Promise<CloneVacancyActionResult> {
+  const inputObj =
+    typeof rawInput === "string" ? { vacancyId: rawInput } : rawInput;
 
-  const { data: { user }, error: authError } = await supabase.auth.getUser()
+  const parsed = cloneVacancySchema.safeParse(inputObj);
+  if (!parsed.success) {
+    const errorMsg =
+      parsed.error.issues[0]?.message || "Identificador de vacante inválido.";
+    return { success: false, error: errorMsg };
+  }
+
+  const supabase = await createClient();
+  const {
+    data: { user },
+    error: authError,
+  } = await supabase.auth.getUser();
+
   if (authError || !user) {
-    throw new Error("No autorizado. Inicia sesión para continuar.")
+    return { success: false, error: "No autorizado. Inicia sesión para continuar." };
   }
 
-  // 1. Fetch source vacancy
-  const { data: source, error: fetchError } = await supabase
-    .from("vacancies")
-    .select("*")
-    .eq("id", vacancyId)
-    .eq("company_id", user.id)
-    .single()
+  try {
+    const result = await CompanyVacanciesService.cloneVacancy(
+      supabase,
+      user.id,
+      parsed.data.vacancyId
+    );
 
-  if (fetchError || !source) {
-    throw new Error("No se encontró la vacante origen para duplicar.")
+    await revalidateVacancies();
+
+    return {
+      success: true,
+      data: result,
+      newVacancyId: result.newVacancyId,
+      title: result.title,
+    };
+  } catch (err: unknown) {
+    const message =
+      err instanceof Error ? err.message : "No se pudo duplicar la vacante.";
+    return { success: false, error: message };
+  }
+}
+
+/**
+ * Crea una vacante completa desde el asistente (wizard).
+ */
+export async function createVacancyAction(
+  rawInput: VacancyWizardValues
+): Promise<CreateVacancyActionResult> {
+  const parsed = vacancyWizardSchema.safeParse(rawInput);
+  if (!parsed.success) {
+    const errorMsg =
+      parsed.error.issues[0]?.message || "Datos de vacante inválidos.";
+    return { success: false, error: errorMsg };
   }
 
-  // 2. Prepare cloned vacancy payload
-  const clonedData: any = {
-    title: `${source.title} (Copia)`,
-    description: source.description,
-    requirements: source.requirements,
-    category: source.category,
-    employment_type: source.employment_type,
-    shift_schedule: source.shift_schedule || "Matutino (Mañana)",
-    positions_available: source.positions_available || 1,
-    modality: source.modality || "Presencial",
-    salary_min: source.salary_min,
-    salary_max: source.salary_max,
-    currency: source.currency || "MXN",
-    payment_frequency: source.payment_frequency || "quincenal",
-    location: source.location,
-    zone: source.zone,
-    experience_required: source.experience_required || "Sin experiencia previa",
-    education_level: source.education_level || "Indistinto",
-    benefits: source.benefits || [],
-    skills: source.skills || [],
-    tags: source.tags || source.skills || [],
-    contact_phone: source.contact_phone || null,
-    contact_email: source.contact_email || null,
-    preferred_contact_method: source.preferred_contact_method || "whatsapp",
-    company_id: user.id,
-    recruiter_id: user.id,
-    is_active: false,
-    status: "Borrador",
+  const supabase = await createClient();
+  const {
+    data: { user },
+    error: authError,
+  } = await supabase.auth.getUser();
+
+  if (authError || !user) {
+    return { success: false, error: "No autorizado. Inicia sesión para continuar." };
   }
 
-  const { data: inserted, error: insertError } = await supabase
-    .from("vacancies")
-    .insert(clonedData)
-    .select("id, title")
-    .single()
+  try {
+    const vacancy = await CompanyVacanciesService.createVacancy(
+      supabase,
+      user.id,
+      parsed.data
+    );
 
-  if (insertError) {
-    console.error("Error cloning vacancy:", insertError)
-    throw new Error("No se pudo duplicar la vacante.")
+    await revalidateVacancies();
+
+    return {
+      success: true,
+      data: vacancy,
+      vacancy,
+    };
+  } catch (err: unknown) {
+    const message =
+      err instanceof Error ? err.message : "No se pudo publicar la vacante.";
+    return { success: false, error: message };
+  }
+}
+
+/**
+ * Crea una vacante exprés con valores por defecto.
+ */
+export async function createExpressVacancyAction(
+  rawInput: CreateExpressVacancyInput
+): Promise<CreateVacancyActionResult> {
+  const parsed = createExpressVacancySchema.safeParse(rawInput);
+  if (!parsed.success) {
+    const errorMsg =
+      parsed.error.issues[0]?.message || "Datos de vacante exprés inválidos.";
+    return { success: false, error: errorMsg };
   }
 
-  revalidatePath("/dashboard/company/vacancies")
-  revalidatePath("/dashboard/company")
+  const supabase = await createClient();
+  const {
+    data: { user },
+    error: authError,
+  } = await supabase.auth.getUser();
 
-  return { success: true, newVacancyId: inserted.id, title: inserted.title }
+  if (authError || !user) {
+    return { success: false, error: "No autorizado. Inicia sesión para continuar." };
+  }
+
+  try {
+    const vacancy = await CompanyVacanciesService.createExpressVacancy(
+      supabase,
+      user.id,
+      parsed.data
+    );
+
+    await revalidateVacancies();
+
+    return {
+      success: true,
+      data: vacancy,
+      vacancy,
+    };
+  } catch (err: unknown) {
+    const message =
+      err instanceof Error ? err.message : "No se pudo crear la vacante exprés.";
+    return { success: false, error: message };
+  }
+}
+
+/**
+ * Pausa o activa una vacante verificando límites de suscripción.
+ */
+export async function toggleVacancyStatusAction(
+  rawInput: ToggleVacancyStatusInput
+): Promise<CreateVacancyActionResult> {
+  const parsed = toggleVacancyStatusSchema.safeParse(rawInput);
+  if (!parsed.success) {
+    const errorMsg =
+      parsed.error.issues[0]?.message || "Datos de cambio de estado inválidos.";
+    return { success: false, error: errorMsg };
+  }
+
+  const supabase = await createClient();
+  const {
+    data: { user },
+    error: authError,
+  } = await supabase.auth.getUser();
+
+  if (authError || !user) {
+    return { success: false, error: "No autorizado. Inicia sesión para continuar." };
+  }
+
+  try {
+    const vacancy = await CompanyVacanciesService.toggleVacancyStatus(
+      supabase,
+      user.id,
+      parsed.data.vacancyId,
+      parsed.data.isActive
+    );
+
+    await revalidateVacancies();
+
+    return {
+      success: true,
+      data: vacancy,
+      vacancy,
+    };
+  } catch (err: unknown) {
+    const message =
+      err instanceof Error ? err.message : "No se pudo actualizar el estado de la vacante.";
+    return { success: false, error: message };
+  }
+}
+
+/**
+ * Elimina una vacante perteneciente a la empresa.
+ */
+export async function deleteVacancyAction(
+  rawInput: DeleteVacancyInput | string
+): Promise<ActionResponse<void>> {
+  const inputObj =
+    typeof rawInput === "string" ? { vacancyId: rawInput } : rawInput;
+
+  const parsed = deleteVacancySchema.safeParse(inputObj);
+  if (!parsed.success) {
+    const errorMsg =
+      parsed.error.issues[0]?.message || "Identificador de vacante inválido.";
+    return { success: false, error: errorMsg };
+  }
+
+  const supabase = await createClient();
+  const {
+    data: { user },
+    error: authError,
+  } = await supabase.auth.getUser();
+
+  if (authError || !user) {
+    return { success: false, error: "No autorizado. Inicia sesión para continuar." };
+  }
+
+  try {
+    await CompanyVacanciesService.deleteVacancy(
+      supabase,
+      user.id,
+      parsed.data.vacancyId
+    );
+
+    await revalidateVacancies();
+
+    return { success: true };
+  } catch (err: unknown) {
+    const message =
+      err instanceof Error ? err.message : "No se pudo eliminar la vacante.";
+    return { success: false, error: message };
+  }
 }

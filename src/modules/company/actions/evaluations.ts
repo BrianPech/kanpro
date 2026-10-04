@@ -2,232 +2,238 @@
 
 import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
+import {
+  createEvaluationSchema,
+  deleteEvaluationSchema,
+  createNom035SurveySchema,
+  deleteNom035SurveySchema,
+  type CreateEvaluationInput,
+  type DeleteEvaluationInput,
+  type CreateNom035SurveyInput,
+  type DeleteNom035SurveyInput,
+} from "../schemas/evaluations.schema";
+import { CompanyEvaluationsService } from "../services/company-evaluations";
+import type { Nom035RiskLevel } from "../types/evaluations";
 
-export interface CreateEvaluationInput {
-  employeeId?: string | null;
-  employeeName: string;
-  jobTitle?: string | null;
-  department?: string | null;
-  avatarUrl?: string | null;
-  period: string;
-  evaluatorName: string;
-  evaluatorRole?: string | null;
-  evaluationDate?: string;
-  punctualityScore: number;
-  attendanceScore: number;
-  productivityScore: number;
-  teamworkScore: number;
-  customerServiceScore: number;
-  goalsScore: number;
-  strengths?: string[];
-  growthAreas?: string[];
-  developmentPlan?: string;
-  goalsAchieved?: string;
-  comments?: string;
-  status?: "completada" | "borrador";
+export type {
+  CreateEvaluationInput,
+  DeleteEvaluationInput,
+  CreateNom035SurveyInput,
+  DeleteNom035SurveyInput,
+};
+
+export interface ActionResponse<T> {
+  success: boolean;
+  data?: T;
+  error?: string;
 }
 
-export async function createEvaluationAction(input: CreateEvaluationInput) {
+export type CreateEvaluationActionResult =
+  | {
+      success: true;
+      data: { evaluationId: string; averageScore: number };
+      evaluationId: string;
+      averageScore: number;
+      error?: undefined;
+    }
+  | {
+      success: false;
+      error: string;
+      data?: undefined;
+      evaluationId?: undefined;
+      averageScore?: undefined;
+    };
+
+export type CreateNom035SurveyActionResult =
+  | {
+      success: true;
+      data: { surveyId: string; totalScore: number; riskLevel: Nom035RiskLevel };
+      surveyId: string;
+      totalScore: number;
+      riskLevel: Nom035RiskLevel;
+      error?: undefined;
+    }
+  | {
+      success: false;
+      error: string;
+      data?: undefined;
+      surveyId?: undefined;
+      totalScore?: undefined;
+      riskLevel?: undefined;
+    };
+
+/**
+ * Registra una evaluación de desempeño 360 para un colaborador.
+ */
+export async function createEvaluationAction(
+  rawInput: CreateEvaluationInput
+): Promise<CreateEvaluationActionResult> {
+  const parsed = createEvaluationSchema.safeParse(rawInput);
+  if (!parsed.success) {
+    const errorMsg =
+      parsed.error.issues[0]?.message || "Datos de evaluación de desempeño inválidos.";
+    return { success: false, error: errorMsg };
+  }
+
   const supabase = await createClient();
   const {
     data: { user },
+    error: authError,
   } = await supabase.auth.getUser();
 
-  if (!user) {
+  if (authError || !user) {
     return { success: false, error: "No autorizado. Inicie sesión como empresa." };
   }
 
-  if (!input.employeeName || !input.employeeName.trim()) {
-    return { success: false, error: "El nombre del colaborador es requerido." };
+  try {
+    const result = await CompanyEvaluationsService.createEvaluation(
+      supabase,
+      user.id,
+      parsed.data
+    );
+
+    revalidatePath("/dashboard/company/evaluations");
+    revalidatePath("/dashboard/company/employees");
+    revalidatePath("/dashboard/company");
+
+    return {
+      success: true,
+      data: result,
+      evaluationId: result.evaluationId,
+      averageScore: result.averageScore,
+    };
+  } catch (err: unknown) {
+    const message =
+      err instanceof Error
+        ? err.message
+        : "Error al registrar la evaluación en la base de datos.";
+    return { success: false, error: message };
   }
-
-  // Calculate precise average score
-  const scores = [
-    input.punctualityScore,
-    input.attendanceScore,
-    input.productivityScore,
-    input.teamworkScore,
-    input.customerServiceScore,
-    input.goalsScore,
-  ];
-
-  const sum = scores.reduce(
-    (acc, score) => acc + Math.max(1, Math.min(5, Number(score) || 5)),
-    0
-  );
-  const averageScore = Math.round((sum / scores.length) * 10) / 10;
-
-  const evaluationDate =
-    input.evaluationDate || new Date().toISOString().split("T")[0];
-
-  const { data, error } = await supabase
-    .from("company_evaluations")
-    .insert({
-      company_id: user.id,
-      employee_id: input.employeeId || null,
-      evaluator_id: user.id,
-      employee_name: input.employeeName.trim(),
-      job_title: input.jobTitle?.trim() || null,
-      department: input.department?.trim() || null,
-      avatar_url: input.avatarUrl || null,
-      period: input.period.trim() || "Evaluación de Desempeño 360",
-      evaluation_date: evaluationDate,
-      evaluator_name: input.evaluatorName.trim() || "Evaluador Directo",
-      evaluator_role: input.evaluatorRole?.trim() || "Dirección / RRHH",
-      punctuality_score: Math.max(1, Math.min(5, Number(input.punctualityScore) || 5)),
-      attendance_score: Math.max(1, Math.min(5, Number(input.attendanceScore) || 5)),
-      productivity_score: Math.max(1, Math.min(5, Number(input.productivityScore) || 5)),
-      teamwork_score: Math.max(1, Math.min(5, Number(input.teamworkScore) || 5)),
-      customer_service_score: Math.max(
-        1,
-        Math.min(5, Number(input.customerServiceScore) || 5)
-      ),
-      goals_score: Math.max(1, Math.min(5, Number(input.goalsScore) || 5)),
-      average_score: averageScore,
-      strengths: (input.strengths || []) as any,
-      growth_areas: (input.growthAreas || []) as any,
-      development_plan: input.developmentPlan?.trim() || null,
-      goals_achieved: input.goalsAchieved?.trim() || null,
-      comments: input.comments?.trim() || null,
-      status: input.status || "completada",
-    })
-    .select("id")
-    .single();
-
-  if (error) {
-    console.error("Error creating company evaluation:", error);
-    return { success: false, error: error.message };
-  }
-
-  revalidatePath("/dashboard/company/evaluations");
-  revalidatePath("/dashboard/company/employees");
-  revalidatePath("/dashboard/company");
-
-  return { success: true, evaluationId: data.id, averageScore };
-}
-
-export async function deleteEvaluationAction(evaluationId: string) {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  if (!user) {
-    return { success: false, error: "No autorizado." };
-  }
-
-  const { error } = await supabase
-    .from("company_evaluations")
-    .delete()
-    .eq("id", evaluationId)
-    .eq("company_id", user.id);
-
-  if (error) {
-    console.error("Error deleting evaluation:", error);
-    return { success: false, error: error.message };
-  }
-
-  revalidatePath("/dashboard/company/evaluations");
-  return { success: true };
-}
-
-export interface CreateNom035SurveyInput {
-  employeeId?: string | null;
-  employeeName: string;
-  jobTitle?: string | null;
-  department?: string | null;
-  guideType?: "guia_i" | "guia_ii" | "guia_iii";
-  surveyDate?: string;
-  environmentScore: number;
-  activityFactorsScore: number;
-  timeOrganizationScore: number;
-  leadershipRelationsScore: number;
-  organizationalClimateScore: number;
-  actionPlan?: string;
-  status?: "borrador" | "completada";
 }
 
 /**
- * Registra una evaluación de clima laboral y factores psicosociales (NOM-035-STPS-2018)
+ * Elimina una evaluación de desempeño registrada.
  */
-export async function createNom035SurveyAction(input: CreateNom035SurveyInput) {
+export async function deleteEvaluationAction(
+  evaluationId: string
+): Promise<ActionResponse<void>> {
+  const parsed = deleteEvaluationSchema.safeParse({ evaluationId });
+  if (!parsed.success) {
+    const errorMsg =
+      parsed.error.issues[0]?.message || "Identificador de evaluación inválido.";
+    return { success: false, error: errorMsg };
+  }
+
   const supabase = await createClient();
   const {
     data: { user },
+    error: authError,
   } = await supabase.auth.getUser();
 
-  if (!user) {
+  if (authError || !user) {
     return { success: false, error: "No autorizado." };
   }
 
-  const totalScore =
-    Number(input.environmentScore || 0) +
-    Number(input.activityFactorsScore || 0) +
-    Number(input.timeOrganizationScore || 0) +
-    Number(input.leadershipRelationsScore || 0) +
-    Number(input.organizationalClimateScore || 0);
+  try {
+    await CompanyEvaluationsService.deleteEvaluation(
+      supabase,
+      user.id,
+      parsed.data.evaluationId
+    );
 
-  let riskLevel: "nulo" | "bajo" | "medio" | "alto" | "muy_alto" = "bajo";
-  if (totalScore < 20) riskLevel = "nulo";
-  else if (totalScore < 45) riskLevel = "bajo";
-  else if (totalScore < 70) riskLevel = "medio";
-  else if (totalScore < 90) riskLevel = "alto";
-  else riskLevel = "muy_alto";
-
-  const { data, error } = await supabase
-    .from("company_nom035_surveys")
-    .insert({
-      company_id: user.id,
-      employee_id: input.employeeId || null,
-      employee_name: input.employeeName.trim(),
-      job_title: input.jobTitle?.trim() || null,
-      department: input.department?.trim() || null,
-      guide_type: input.guideType || "guia_ii",
-      survey_date: input.surveyDate || new Date().toISOString().split("T")[0],
-      environment_score: input.environmentScore,
-      activity_factors_score: input.activityFactorsScore,
-      time_organization_score: input.timeOrganizationScore,
-      leadership_relations_score: input.leadershipRelationsScore,
-      organizational_climate_score: input.organizationalClimateScore,
-      total_score: totalScore,
-      risk_level: riskLevel,
-      action_plan: input.actionPlan?.trim() || null,
-      status: input.status || "completada",
-    })
-    .select("id")
-    .single();
-
-  if (error) {
-    console.error("Error creating NOM-035 survey:", error);
-    return { success: false, error: error.message };
+    revalidatePath("/dashboard/company/evaluations");
+    return { success: true };
+  } catch (err: unknown) {
+    const message =
+      err instanceof Error ? err.message : "Error al eliminar la evaluación.";
+    return { success: false, error: message };
   }
-
-  revalidatePath("/dashboard/company/evaluations");
-  revalidatePath("/dashboard/company");
-
-  return { success: true, surveyId: data.id, totalScore, riskLevel };
 }
 
-export async function deleteNom035SurveyAction(surveyId: string) {
+/**
+ * Registra una evaluación de clima laboral y factores psicosociales (NOM-035-STPS-2018).
+ */
+export async function createNom035SurveyAction(
+  rawInput: CreateNom035SurveyInput
+): Promise<CreateNom035SurveyActionResult> {
+  const parsed = createNom035SurveySchema.safeParse(rawInput);
+  if (!parsed.success) {
+    const errorMsg =
+      parsed.error.issues[0]?.message || "Datos de encuesta NOM-035 inválidos.";
+    return { success: false, error: errorMsg };
+  }
+
   const supabase = await createClient();
   const {
     data: { user },
+    error: authError,
   } = await supabase.auth.getUser();
 
-  if (!user) {
+  if (authError || !user) {
     return { success: false, error: "No autorizado." };
   }
 
-  const { error } = await supabase
-    .from("company_nom035_surveys")
-    .delete()
-    .eq("id", surveyId)
-    .eq("company_id", user.id);
+  try {
+    const result = await CompanyEvaluationsService.createNom035Survey(
+      supabase,
+      user.id,
+      parsed.data
+    );
 
-  if (error) {
-    return { success: false, error: error.message };
+    revalidatePath("/dashboard/company/evaluations");
+    revalidatePath("/dashboard/company");
+
+    return {
+      success: true,
+      data: result,
+      surveyId: result.surveyId,
+      totalScore: result.totalScore,
+      riskLevel: result.riskLevel,
+    };
+  } catch (err: unknown) {
+    const message =
+      err instanceof Error
+        ? err.message
+        : "Error al registrar la encuesta NOM-035.";
+    return { success: false, error: message };
+  }
+}
+
+/**
+ * Elimina una encuesta NOM-035 registrada.
+ */
+export async function deleteNom035SurveyAction(
+  surveyId: string
+): Promise<ActionResponse<void>> {
+  const parsed = deleteNom035SurveySchema.safeParse({ surveyId });
+  if (!parsed.success) {
+    const errorMsg =
+      parsed.error.issues[0]?.message || "Identificador de encuesta NOM-035 inválido.";
+    return { success: false, error: errorMsg };
   }
 
-  revalidatePath("/dashboard/company/evaluations");
-  return { success: true };
+  const supabase = await createClient();
+  const {
+    data: { user },
+    error: authError,
+  } = await supabase.auth.getUser();
+
+  if (authError || !user) {
+    return { success: false, error: "No autorizado." };
+  }
+
+  try {
+    await CompanyEvaluationsService.deleteNom035Survey(
+      supabase,
+      user.id,
+      parsed.data.surveyId
+    );
+
+    revalidatePath("/dashboard/company/evaluations");
+    return { success: true };
+  } catch (err: unknown) {
+    const message =
+      err instanceof Error ? err.message : "Error al eliminar la encuesta NOM-035.";
+    return { success: false, error: message };
+  }
 }
