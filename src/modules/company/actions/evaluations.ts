@@ -15,20 +15,13 @@ import {
 import { CompanyEvaluationsService } from "../services/company-evaluations";
 import type { Nom035RiskLevel } from "../types/evaluations";
 
-export type {
-  CreateEvaluationInput,
-  DeleteEvaluationInput,
-  CreateNom035SurveyInput,
-  DeleteNom035SurveyInput,
-};
-
-export interface ActionResponse<T> {
+interface ActionResponse<T> {
   success: boolean;
   data?: T;
   error?: string;
 }
 
-export type CreateEvaluationActionResult =
+type CreateEvaluationActionResult =
   | {
       success: true;
       data: { evaluationId: string; averageScore: number };
@@ -44,7 +37,7 @@ export type CreateEvaluationActionResult =
       averageScore?: undefined;
     };
 
-export type CreateNom035SurveyActionResult =
+type CreateNom035SurveyActionResult =
   | {
       success: true;
       data: { surveyId: string; totalScore: number; riskLevel: Nom035RiskLevel };

@@ -24,15 +24,13 @@ import {
   type EmployeeInvitationRow,
 } from "../services/company-service";
 
-export type { CompanyEmployeeFormValues, HireCandidateInput };
-
-export interface ActionResponse<T> {
+interface ActionResponse<T> {
   success: boolean;
   data?: T;
   error?: string;
 }
 
-export type CreateCompanyEmployeeActionResult =
+type CreateCompanyEmployeeActionResult =
   | {
       success: true;
       data: CompanyEmployeeRow;
@@ -46,7 +44,7 @@ export type CreateCompanyEmployeeActionResult =
       employee?: undefined;
     };
 
-export type CreateInvitationActionResult =
+type CreateInvitationActionResult =
   | {
       success: true;
       data: {
@@ -68,7 +66,7 @@ export type CreateInvitationActionResult =
       rawToken?: undefined;
     };
 
-export type ResendInvitationActionResult =
+type ResendInvitationActionResult =
   | {
       success: true;
       data: { rawToken: string };
@@ -82,7 +80,7 @@ export type ResendInvitationActionResult =
       rawToken?: undefined;
     };
 
-export type HireCandidateActionResult =
+type HireCandidateActionResult =
   | {
       success: true;
       data: { employeeRecordId: string; folio: string };
@@ -98,7 +96,7 @@ export type HireCandidateActionResult =
       folio?: undefined;
     };
 
-export interface AcceptInvitationActionResult extends ActionResponse<void> {
+interface AcceptInvitationActionResult extends ActionResponse<void> {
   message?: string;
 }
 

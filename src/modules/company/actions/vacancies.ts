@@ -19,21 +19,13 @@ import {
   type VacancyRow,
 } from "../services/company-vacancies";
 
-export type {
-  CloneVacancyInput,
-  CreateExpressVacancyInput,
-  ToggleVacancyStatusInput,
-  DeleteVacancyInput,
-  VacancyWizardValues,
-};
-
-export interface ActionResponse<T> {
+interface ActionResponse<T> {
   success: boolean;
   data?: T;
   error?: string;
 }
 
-export type CloneVacancyActionResult =
+type CloneVacancyActionResult =
   | {
       success: true;
       data: { newVacancyId: string; title: string };
@@ -49,7 +41,7 @@ export type CloneVacancyActionResult =
       title?: undefined;
     };
 
-export type CreateVacancyActionResult =
+type CreateVacancyActionResult =
   | {
       success: true;
       data: VacancyRow;

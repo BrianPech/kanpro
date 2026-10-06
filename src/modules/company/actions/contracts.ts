@@ -14,20 +14,13 @@ import {
 } from "../schemas/contracts.schema";
 import { CompanyContractService } from "../services/company-service";
 
-export type {
-  CreateContractInput,
-  RenewContractInput,
-  SignContractInput,
-  DeleteContractInput,
-};
-
-export interface ActionResponse<T> {
+interface ActionResponse<T> {
   success: boolean;
   data?: T;
   error?: string;
 }
 
-export type CreateContractActionResult =
+type CreateContractActionResult =
   | {
       success: true;
       data: { contractId: string; folio: string };

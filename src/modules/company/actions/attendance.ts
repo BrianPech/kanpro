@@ -20,40 +20,32 @@ import {
 } from "../services/company-attendance";
 import type { EmployeeAttendanceHistory } from "../types/attendance";
 
-export type {
-  MobileCheckInInput,
-  ManualAttendanceInput,
-  AuthorizeOvertimeInput,
-  ReviewJustificationInput,
-  GetAttendanceHistoryInput,
-};
-
-export interface ActionResponse<T> {
+interface ActionResponse<T> {
   success: boolean;
   data?: T;
   error?: string;
 }
 
-export interface MobileCheckInActionResult extends ActionResponse<AttendanceRow> {
+interface MobileCheckInActionResult extends ActionResponse<AttendanceRow> {
   record?: AttendanceRow;
   timeStr?: string;
   isLate?: boolean;
   delayMinutes?: number;
 }
 
-export interface ManualAttendanceActionResult extends ActionResponse<AttendanceRow> {
+interface ManualAttendanceActionResult extends ActionResponse<AttendanceRow> {
   record?: AttendanceRow;
 }
 
-export interface OvertimeActionResult extends ActionResponse<AttendanceRow> {
+interface OvertimeActionResult extends ActionResponse<AttendanceRow> {
   record?: AttendanceRow;
 }
 
-export interface JustificationActionResult extends ActionResponse<AttendanceRow> {
+interface JustificationActionResult extends ActionResponse<AttendanceRow> {
   record?: AttendanceRow;
 }
 
-export interface AttendanceHistoryActionResult extends ActionResponse<EmployeeAttendanceHistory> {
+interface AttendanceHistoryActionResult extends ActionResponse<EmployeeAttendanceHistory> {
   history?: EmployeeAttendanceHistory;
 }
 

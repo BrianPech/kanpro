@@ -17,14 +17,7 @@ import {
   type CandidateCvResponse,
 } from "../services/company-document-access";
 
-export type {
-  RequestDocumentAccessInput,
-  RespondDocumentAccessInput,
-  AuthorizedCandidateDocumentsResponse,
-  CandidateCvResponse,
-};
-
-export type RequestDocumentAccessActionResult =
+type RequestDocumentAccessActionResult =
   | {
       success: true;
       data: { requestId?: string; status: "pending" | "approved" | "rejected"; message?: string };
@@ -42,7 +35,7 @@ export type RequestDocumentAccessActionResult =
       message?: undefined;
     };
 
-export type RespondDocumentAccessActionResult =
+type RespondDocumentAccessActionResult =
   | { success: true; error?: undefined }
   | { success: false; error: string };
 

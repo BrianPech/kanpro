@@ -16,31 +16,25 @@ import {
 } from "../services/company-incidents";
 import type { LaborIncident } from "../types/incidents";
 
-export type {
-  CreateIncidentInput,
-  UpdateIncidentStatusInput,
-  DeleteIncidentInput,
-};
-
-export interface ActionResponse<T> {
+interface ActionResponse<T> {
   success: boolean;
   data?: T;
   error?: string;
 }
 
-export interface CreateIncidentActionResult extends ActionResponse<LaborIncident> {
+interface CreateIncidentActionResult extends ActionResponse<LaborIncident> {
   incident?: LaborIncident;
 }
 
-export interface UpdateIncidentActionResult extends ActionResponse<IncidentRow> {
+interface UpdateIncidentActionResult extends ActionResponse<IncidentRow> {
   record?: IncidentRow;
 }
 
-export interface DeleteIncidentActionResult extends ActionResponse<{ id: string }> {
+interface DeleteIncidentActionResult extends ActionResponse<{ id: string }> {
   id?: string;
 }
 
-export interface GetCompanyIncidentsActionResult extends ActionResponse<LaborIncident[]> {
+interface GetCompanyIncidentsActionResult extends ActionResponse<LaborIncident[]> {
   incidents: LaborIncident[];
 }
 

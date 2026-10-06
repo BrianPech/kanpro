@@ -17,32 +17,25 @@ import {
   type PayrollRow,
 } from "../services/company-payroll";
 
-export type {
-  AdjustBonusesInput,
-  DispersePayrollInput,
-  UpdateEmployeeBankDetailsInput,
-  ClosePayrollPeriodInput,
-};
-
-export interface ActionResponse<T> {
+interface ActionResponse<T> {
   success: boolean;
   data?: T;
   error?: string;
 }
 
-export interface AdjustBonusesActionResult extends ActionResponse<{ payrollId: string }> {
+interface AdjustBonusesActionResult extends ActionResponse<{ payrollId: string }> {
   payrollId?: string;
 }
 
-export interface DispersePayrollActionResult extends ActionResponse<{ payrollId: string }> {
+interface DispersePayrollActionResult extends ActionResponse<{ payrollId: string }> {
   payrollId?: string;
 }
 
-export interface UpdateBankDetailsActionResult extends ActionResponse<{ employeeId: string }> {
+interface UpdateBankDetailsActionResult extends ActionResponse<{ employeeId: string }> {
   employeeId?: string;
 }
 
-export interface ClosePayrollPeriodActionResult extends ActionResponse<PayrollRow> {
+interface ClosePayrollPeriodActionResult extends ActionResponse<PayrollRow> {
   payroll?: PayrollRow;
 }
 

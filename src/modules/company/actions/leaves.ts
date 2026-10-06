@@ -13,22 +13,17 @@ import {
   type CompanyLeaveRow,
 } from "../services/company-leaves";
 
-export type {
-  RespondToLeaveRequestInput,
-  CreateCompanyLeaveInput,
-};
-
-export interface ActionResponse<T> {
+interface ActionResponse<T> {
   success: boolean;
   data?: T;
   error?: string;
 }
 
-export interface RespondToLeaveActionResult extends ActionResponse<CompanyLeaveRow> {
+interface RespondToLeaveActionResult extends ActionResponse<CompanyLeaveRow> {
   message?: string;
 }
 
-export interface CreateCompanyLeaveActionResult extends ActionResponse<{ leaveId: string; message: string }> {
+interface CreateCompanyLeaveActionResult extends ActionResponse<{ leaveId: string; message: string }> {
   message?: string;
   leaveId?: string;
 }

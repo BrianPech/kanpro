@@ -19,16 +19,7 @@ import {
   type CompanyInvoiceRecord,
 } from "../services/company-settings";
 
-export type {
-  ToggleGlobalRecruitmentInput,
-  UpdateContactChannelInput,
-  UpdateSubscriptionPlanInput,
-  UpdateCompanyBranchesInput,
-  BranchGeofenceInput,
-  CompanyInvoiceRecord,
-};
-
-export interface SettingsActionResult<T = void> {
+interface SettingsActionResult<T = void> {
   success: boolean;
   data?: T;
   error?: string;
