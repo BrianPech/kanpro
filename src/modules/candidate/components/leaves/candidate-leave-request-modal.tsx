@@ -35,7 +35,7 @@ import {
 } from "lucide-react";
 import { calculateWorkingDays } from "@/modules/company/utils/vacation-calculator";
 import { submitCandidateLeaveRequestAction } from "../../actions/leaves";
-import { LeaveRequestType } from "../../services/candidate-leaves";
+import type { LeaveRequestType } from "../../schemas/leaves.schema";
 
 interface CandidateLeaveRequestModalProps {
   isOpen: boolean;
@@ -98,6 +98,10 @@ export function CandidateLeaveRequestModal({
         endDate,
         reason,
       });
+
+      if (!res.success) {
+        throw new Error(res.error || "Error al enviar la solicitud.");
+      }
 
       toast.success("¡Solicitud enviada con éxito!", {
         description: `Se notificó a Recursos Humanos de ${companyName}.`,

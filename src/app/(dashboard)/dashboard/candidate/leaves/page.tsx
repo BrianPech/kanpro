@@ -21,7 +21,7 @@ export default async function CandidateLeavesPage() {
     redirect("/auth/login");
   }
 
-  const initialData = await getCandidateLeavesData();
+  const initialData = await getCandidateLeavesData(supabase, user.id);
 
   return <CandidateLeavesView initialData={initialData} />;
 }

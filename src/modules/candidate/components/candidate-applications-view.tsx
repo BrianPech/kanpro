@@ -157,6 +157,9 @@ export function CandidateApplicationsView({ initialData }: CandidateApplications
         applicationId,
         response: "confirm",
       });
+      if (!res.success) {
+        throw new Error(res.error || "Error al confirmar la entrevista");
+      }
       toast.success("¡Asistencia confirmada!", {
         description: res?.message || "La empresa ha sido notificada de tu confirmación.",
       });

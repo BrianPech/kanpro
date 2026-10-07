@@ -58,13 +58,17 @@ export function RescheduleInterviewModal({
 
     setIsSubmitting(true);
     try {
-      await respondToInterviewAction({
+      const res = await respondToInterviewAction({
         applicationId,
         response: "reschedule",
         candidateNotes: reason.trim(),
         proposedDate: proposedDate || undefined,
         proposedTime: proposedTime || undefined,
       });
+
+      if (!res.success) {
+        throw new Error(res.error || "No se pudo registrar la solicitud.");
+      }
 
       toast.success("Solicitud de reagendamiento enviada", {
         description: `Se ha notificado a ${companyName} sobre tu propuesta de nuevo horario.`,

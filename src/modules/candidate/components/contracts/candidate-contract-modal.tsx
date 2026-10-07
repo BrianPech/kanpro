@@ -113,6 +113,10 @@ export function CandidateContractModal({
         signatureData: signature.signatureDataUrl,
       });
 
+      if (!result.success) {
+        throw new Error(result.error || "Error al registrar la firma digital del contrato.");
+      }
+
       setLocalEmployeeSigned(true);
       setLocalSignatureUrl(signature.signatureDataUrl);
 

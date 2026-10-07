@@ -1,4 +1,6 @@
-import { createClient } from "@/lib/supabase/server";
+import type { SupabaseClient } from "@supabase/supabase-js";
+import type { Database } from "@/types/supabase";
+import type { SignCandidateContractInput } from "../schemas/contracts.schema";
 
 export interface CandidateContractItem {
   id: string;
@@ -28,126 +30,301 @@ export interface CandidateContractItem {
   vacancyTitle?: string | null;
 }
 
-/**
- * Retrieves all employment contracts associated with the authenticated candidate/employee.
- */
-export async function getCandidateContracts(): Promise<{
+export interface CandidateContractsResult {
   contracts: CandidateContractItem[];
   pendingSignatureCount: number;
-}> {
-  const supabase = await createClient();
+}
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+export interface SignContractResult {
+  success: boolean;
+  folio: string;
+  contractId: string;
+  message?: string;
+}
 
-  if (!user) {
-    return {
-      contracts: [],
-      pendingSignatureCount: 0,
-    };
-  }
+interface RawCompanyContract {
+  id: string;
+  folio: string;
+  company_id: string;
+  candidate_id: string;
+  employee_id: string | null;
+  application_id: string | null;
+  job_title: string;
+  department: string;
+  contract_type: string;
+  template_type: string;
+  start_date: string;
+  end_date: string | null;
+  salary: number | string;
+  payment_frequency: string | null;
+  company_signed: boolean | null;
+  company_signature_url: string | null;
+  employee_signed: boolean | null;
+  employee_signature_url: string | null;
+  status: string | null;
+  created_at: string;
+  company:
+    | {
+        id: string;
+        company_name: string;
+        legal_name: string | null;
+        rfc: string;
+        fiscal_address: string;
+        legal_rep_name: string | null;
+        logo_url: string | null;
+      }
+    | Array<{
+        id: string;
+        company_name: string;
+        legal_name: string | null;
+        rfc: string;
+        fiscal_address: string;
+        legal_rep_name: string | null;
+        logo_url: string | null;
+      }>
+    | null;
+  application:
+    | {
+        id: string;
+        status: string;
+        vacancies:
+          | { id: string; title: string }
+          | Array<{ id: string; title: string }>
+          | null;
+      }
+    | Array<{
+        id: string;
+        status: string;
+        vacancies:
+          | { id: string; title: string }
+          | Array<{ id: string; title: string }>
+          | null;
+      }>
+    | null;
+}
 
-  // 1. Fetch contracts directly linked by candidate_id
-  const { data: dbContracts, error } = await supabase
-    .from("company_contracts")
-    .select(`
-      id,
-      folio,
-      company_id,
-      candidate_id,
-      employee_id,
-      application_id,
-      job_title,
-      department,
-      contract_type,
-      template_type,
-      start_date,
-      end_date,
-      salary,
-      payment_frequency,
-      company_signed,
-      company_signature_url,
-      employee_signed,
-      employee_signature_url,
-      status,
-      created_at,
-      company:company_profiles (
+export class CandidateContractsService {
+  /**
+   * Obtiene todos los contratos laborales asociados al candidato/colaborador.
+   */
+  static async getCandidateContracts(
+    supabase: SupabaseClient<Database>,
+    userId: string
+  ): Promise<CandidateContractsResult> {
+    if (!userId) {
+      return { contracts: [], pendingSignatureCount: 0 };
+    }
+
+    const { data: dbContracts, error } = await supabase
+      .from("company_contracts")
+      .select(`
         id,
-        company_name,
-        legal_name,
-        rfc,
-        fiscal_address,
-        legal_rep_name,
-        logo_url
-      ),
-      application:applications (
-        id,
+        folio,
+        company_id,
+        candidate_id,
+        employee_id,
+        application_id,
+        job_title,
+        department,
+        contract_type,
+        template_type,
+        start_date,
+        end_date,
+        salary,
+        payment_frequency,
+        company_signed,
+        company_signature_url,
+        employee_signed,
+        employee_signature_url,
         status,
-        vacancies (
+        created_at,
+        company:company_profiles (
           id,
-          title
+          company_name,
+          legal_name,
+          rfc,
+          fiscal_address,
+          legal_rep_name,
+          logo_url
+        ),
+        application:applications (
+          id,
+          status,
+          vacancies (
+            id,
+            title
+          )
         )
-      )
-    `)
-    .or(`candidate_id.eq.${user.id}`)
-    .order("created_at", { ascending: false });
+      `)
+      .eq("candidate_id", userId)
+      .order("created_at", { ascending: false });
 
-  if (error) {
-    console.error("Error fetching candidate contracts:", error);
+    if (error) {
+      console.error("Error fetching candidate contracts:", error);
+      return { contracts: [], pendingSignatureCount: 0 };
+    }
+
+    const rawList = (dbContracts || []) as unknown as RawCompanyContract[];
+
+    const contracts: CandidateContractItem[] = rawList.map((c) => {
+      const comp = Array.isArray(c.company) ? c.company[0] : c.company;
+      const app = Array.isArray(c.application) ? c.application[0] : c.application;
+      const vac = app?.vacancies
+        ? Array.isArray(app.vacancies)
+          ? app.vacancies[0]
+          : app.vacancies
+        : null;
+
+      return {
+        id: c.id,
+        folio: c.folio,
+        companyId: c.company_id,
+        companyName: comp?.company_name || comp?.legal_name || "Empresa Contratante",
+        companyLegalName: comp?.legal_name || null,
+        companyRfc: comp?.rfc || null,
+        companyAddress: comp?.fiscal_address || null,
+        companyLegalRep: comp?.legal_rep_name || null,
+        companyLogo: comp?.logo_url || null,
+        jobTitle: c.job_title,
+        department: c.department,
+        contractType: c.contract_type,
+        templateType: c.template_type,
+        startDate: c.start_date,
+        endDate: c.end_date || null,
+        salary: Number(c.salary) || 0,
+        paymentFrequency: c.payment_frequency || "quincenal",
+        companySigned: Boolean(c.company_signed),
+        companySignatureUrl: c.company_signature_url || null,
+        employeeSigned: Boolean(c.employee_signed),
+        employeeSignatureUrl: c.employee_signature_url || null,
+        status: c.status || "vigente",
+        createdAt: c.created_at,
+        applicationId: c.application_id || null,
+        vacancyTitle: vac?.title || null,
+      };
+    });
+
+    const pendingSignatureCount = contracts.filter(
+      (c) => !c.employeeSigned && c.status !== "cancelado"
+    ).length;
+
     return {
-      contracts: [],
-      pendingSignatureCount: 0,
+      contracts,
+      pendingSignatureCount,
     };
   }
 
-  const rawList = dbContracts || [];
+  /**
+   * Registra la firma digital del contrato laboral por parte del trabajador/candidato.
+   */
+  static async signContract(
+    supabase: SupabaseClient<Database>,
+    userId: string,
+    input: SignCandidateContractInput
+  ): Promise<SignContractResult> {
+    // 1. Obtener y validar propiedad del contrato
+    const { data: contract, error: contractErr } = await supabase
+      .from("company_contracts")
+      .select(`
+        id,
+        folio,
+        company_id,
+        candidate_id,
+        employee_id,
+        job_title,
+        company_signed,
+        employee_signed,
+        status
+      `)
+      .eq("id", input.contractId)
+      .single();
 
-  const contracts: CandidateContractItem[] = rawList.map((c: any) => {
-    const comp = Array.isArray(c.company) ? c.company[0] : c.company;
-    const app = Array.isArray(c.application) ? c.application[0] : c.application;
-    const vac = app?.vacancies
-      ? Array.isArray(app.vacancies)
-        ? app.vacancies[0]
-        : app.vacancies
-      : null;
+    if (contractErr || !contract) {
+      throw new Error("No se encontró el contrato laboral especificado.");
+    }
+
+    let isAuthorized = contract.candidate_id === userId;
+    if (!isAuthorized && contract.employee_id) {
+      const { data: empRecord } = await supabase
+        .from("company_employees")
+        .select("id")
+        .eq("id", contract.employee_id)
+        .eq("employee_id", userId)
+        .maybeSingle();
+
+      if (empRecord) {
+        isAuthorized = true;
+      }
+    }
+
+    if (!isAuthorized) {
+      throw new Error("No tienes permisos para firmar este contrato.");
+    }
+
+    if (contract.employee_signed) {
+      return {
+        success: true,
+        message: "El contrato ya se encontraba firmado por el trabajador.",
+        folio: contract.folio,
+        contractId: contract.id,
+      };
+    }
+
+    const now = new Date().toISOString();
+
+    // 2. Actualizar contrato con la firma del empleado
+    const { error: updateErr } = await supabase
+      .from("company_contracts")
+      .update({
+        employee_signed: true,
+        employee_signature_url: input.signatureData,
+        status: "vigente",
+        updated_at: now,
+      })
+      .eq("id", input.contractId);
+
+    if (updateErr) {
+      console.error("Error signing candidate contract:", updateErr);
+      throw new Error(
+        updateErr.message || "No se pudo registrar la firma digital del contrato."
+      );
+    }
+
+    // 3. Obtener nombre del colaborador para notificar a la empresa
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("full_name")
+      .eq("id", userId)
+      .maybeSingle();
+
+    const candidateName = profile?.full_name || "El colaborador";
+
+    // 4. Enviar notificación in-app a la empresa empleadora
+    try {
+      await supabase.from("notifications").insert({
+        user_id: contract.company_id,
+        title: "¡Contrato firmado por el colaborador!",
+        description: `${candidateName} ha firmado electrónicamente su contrato laboral (Folio: ${contract.folio}) para el puesto de "${contract.job_title}". El contrato está ahora formalizado al 100%.`,
+        type: "contract_signed",
+      });
+    } catch (notifErr) {
+      console.error("Error creating company notification:", notifErr);
+    }
 
     return {
-      id: c.id,
-      folio: c.folio,
-      companyId: c.company_id,
-      companyName:
-        comp?.company_name || comp?.legal_name || "Empresa Contratante",
-      companyLegalName: comp?.legal_name || null,
-      companyRfc: comp?.rfc || null,
-      companyAddress: comp?.fiscal_address || null,
-      companyLegalRep: comp?.legal_rep_name || null,
-      companyLogo: comp?.logo_url || null,
-      jobTitle: c.job_title,
-      department: c.department,
-      contractType: c.contract_type,
-      templateType: c.template_type,
-      startDate: c.start_date,
-      endDate: c.end_date || null,
-      salary: Number(c.salary) || 0,
-      paymentFrequency: c.payment_frequency || "quincenal",
-      companySigned: Boolean(c.company_signed),
-      companySignatureUrl: c.company_signature_url || null,
-      employeeSigned: Boolean(c.employee_signed),
-      employeeSignatureUrl: c.employee_signature_url || null,
-      status: c.status || "vigente",
-      createdAt: c.created_at,
-      applicationId: c.application_id || null,
-      vacancyTitle: vac?.title || null,
+      success: true,
+      folio: contract.folio,
+      contractId: contract.id,
     };
-  });
+  }
+}
 
-  const pendingSignatureCount = contracts.filter(
-    (c) => !c.employeeSigned && c.status !== "cancelado"
-  ).length;
-
-  return {
-    contracts,
-    pendingSignatureCount,
-  };
+/**
+ * Función desacoplada retrocompatible
+ */
+export async function getCandidateContracts(
+  supabase: SupabaseClient<Database>,
+  userId: string
+): Promise<CandidateContractsResult> {
+  return CandidateContractsService.getCandidateContracts(supabase, userId);
 }

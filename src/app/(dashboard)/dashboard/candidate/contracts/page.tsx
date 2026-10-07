@@ -18,7 +18,7 @@ export default async function CandidateContractsPage() {
 
   const [contractsResult, { data: baseProfile }, { data: privateProfile }] =
     await Promise.all([
-      getCandidateContracts(),
+      getCandidateContracts(supabase, user.id),
       supabase
         .from("profiles")
         .select("full_name")
