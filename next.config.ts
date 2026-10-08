@@ -5,6 +5,22 @@ const nextConfig: NextConfig = {
   pageExtensions: ["js", "jsx", "md", "mdx", "ts", "tsx"],
   reactCompiler: true,
   allowedDevOrigins: ["127.0.0.1", "localhost"],
+  onDemandEntries: {
+    maxInactiveAge: 20 * 1000,
+    pagesBufferLength: 3,
+  },
+  experimental: {
+    preloadEntriesOnStart: false,
+    turbopackFileSystemCacheForDev: false,
+    optimizePackageImports: [
+      "lucide-react",
+      "@base-ui/react",
+      "@shadcn/react",
+      "date-fns",
+      "recharts",
+    ],
+    webpackMemoryOptimizations: true,
+  },
   images: {
     remotePatterns: [
       {
