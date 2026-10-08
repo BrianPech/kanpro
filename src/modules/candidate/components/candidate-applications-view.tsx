@@ -1,38 +1,39 @@
 "use client";
 
 import * as React from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { 
   Briefcase, 
   RotateCw, 
-  ChevronRight, 
   X, 
   WifiOff, 
   CheckCircle2, 
   Clock, 
   MessageCircle, 
   ExternalLink, 
-  History,
-  FileText,
-  FileCheck2,
-  PenTool,
-  Video,
-  MapPin,
-  Calendar,
-  AlertCircle,
-  Sparkles,
-  Check,
-  Circle,
-  LayoutGrid,
-  List,
-  ArrowUp,
-  ArrowDown,
-  ArrowUpDown,
-  CalendarCheck,
-  CalendarClock,
-  CalendarPlus,
-  Copy,
-  Loader2,
+  FileText, 
+  FileCheck2, 
+  PenTool, 
+  Video, 
+  MapPin, 
+  Calendar, 
+  Sparkles, 
+  Check, 
+  Circle, 
+  LayoutGrid, 
+  List, 
+  ArrowUp, 
+  ArrowDown, 
+  ArrowUpDown, 
+  CalendarCheck, 
+  CalendarClock, 
+  CalendarPlus, 
+  Copy, 
+  Loader2, 
+  Search, 
+  ArrowUpRight, 
+  CheckCheck,
 } from "lucide-react";
 import { toast } from "sonner";
 import {
@@ -45,7 +46,14 @@ import {
   type SortingState,
 } from "@tanstack/react-table";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
+import { Skeleton } from "@/components/ui/skeleton";
+import {
+  Avatar,
+  AvatarImage,
+  AvatarFallback,
+} from "@/components/ui/avatar";
 import {
   Table,
   TableBody,
@@ -55,7 +63,11 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { cn } from "@/lib/utils";
-import { CandidateDashboardData, CandidateApplication, CandidateContractSummary } from "../services/candidate-dashboard";
+import { 
+  type CandidateDashboardData, 
+  type CandidateApplication, 
+  type CandidateContractSummary 
+} from "../services/candidate-dashboard";
 import {
   Dialog,
   DialogContent,
@@ -114,14 +126,70 @@ function buildGoogleCalendarUrl(app: CandidateApplication): string | null {
   return `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${title}&dates=${formatGCal(startDate)}/${formatGCal(endDate)}&details=${details}&location=${location}`;
 }
 
+function ApplicationStatusBadge({ 
+  status, 
+  statusLabel 
+}: { 
+  status: string; 
+  statusLabel: string; 
+}) {
+  if (status === "Contratado") {
+    return (
+      <Badge 
+        variant="outline" 
+        className="gap-1 text-[11px] font-semibold bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border-emerald-500/25 rounded-md px-2.5 py-0.5 select-none"
+      >
+        <CheckCheck className="size-3 text-emerald-600 dark:text-emerald-400" />
+        <span>{statusLabel}</span>
+      </Badge>
+    );
+  }
+
+  if (status === "Preseleccionado" || status === "En revisión" || status === "Entrevista") {
+    return (
+      <Badge 
+        variant="outline" 
+        className="gap-1 text-[11px] font-semibold bg-amber-500/10 text-amber-700 dark:text-amber-300 border-amber-500/25 rounded-md px-2.5 py-0.5 select-none"
+      >
+        <Clock className="size-3 text-amber-600 dark:text-amber-400" />
+        <span>{statusLabel}</span>
+      </Badge>
+    );
+  }
+
+  if (status === "Descartado") {
+    return (
+      <Badge 
+        variant="outline" 
+        className="gap-1 text-[11px] font-semibold bg-rose-500/10 text-rose-700 dark:text-rose-300 border-rose-500/25 rounded-md px-2.5 py-0.5 select-none"
+      >
+        <X className="size-3 text-rose-600 dark:text-rose-400" />
+        <span>{statusLabel}</span>
+      </Badge>
+    );
+  }
+
+  return (
+    <Badge 
+      variant="secondary" 
+      className="gap-1 text-[11px] font-medium py-0.5 px-2.5 bg-muted/60 text-muted-foreground border-border/60 rounded-md select-none"
+    >
+      <Clock className="size-3 text-muted-foreground" />
+      <span>{statusLabel}</span>
+    </Badge>
+  );
+}
+
 export function CandidateApplicationsView({ initialData }: CandidateApplicationsViewProps) {
   const router = useRouter();
+  const searchInputId = React.useId();
   const { profile, applications } = initialData;
 
   // View mode switcher: "cards" | "table"
   const [viewMode, setViewMode] = React.useState<"cards" | "table">("cards");
 
-  // Selected filter tab index: 0: Todas, 1: En revisión, 2: Entrevistas / Selección, 3: Finalizadas
+  // Search and filter tab state
+  const [searchQuery, setSearchQuery] = React.useState<string>("");
   const [selectedFilterIndex, setSelectedFilterIndex] = React.useState<number>(0);
   const [isLoading, setIsLoading] = React.useState<boolean>(false);
   const [hasError, setHasError] = React.useState<boolean>(false);
@@ -161,11 +229,12 @@ export function CandidateApplicationsView({ initialData }: CandidateApplications
         throw new Error(res.error || "Error al confirmar la entrevista");
       }
       toast.success("¡Asistencia confirmada!", {
-        description: res?.message || "La empresa ha sido notificada de tu confirmación.",
+        description: res.message || "La empresa ha sido notificada de tu confirmación.",
       });
       router.refresh();
-    } catch (err: any) {
-      toast.error(err?.message || "Error al confirmar la entrevista");
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : "Error al confirmar la entrevista";
+      toast.error(message);
     } finally {
       setConfirmingAppId(null);
     }
@@ -192,566 +261,686 @@ export function CandidateApplicationsView({ initialData }: CandidateApplications
     setIsSheetOpen(true);
   };
 
-  // Filter applications logic based on Flutter enum statuses
+  // Filter application counts
+  const inReviewCount = React.useMemo(
+    () => applications.filter((a) => a.status === "Pendiente" || a.status === "En revisión").length,
+    [applications]
+  );
+
+  const inSelectionCount = React.useMemo(
+    () => applications.filter((a) => a.status === "Preseleccionado" || a.status === "Entrevista" || a.status === "Contratado").length,
+    [applications]
+  );
+
+  const discardedCount = React.useMemo(
+    () => applications.filter((a) => a.status === "Descartado").length,
+    [applications]
+  );
+
+  const filterTabs = [
+    { id: 0, label: "Todas", count: applications.length },
+    { id: 1, label: "En revisión", count: inReviewCount },
+    { id: 2, label: "Entrevistas / Selección", count: inSelectionCount },
+    { id: 3, label: "Finalizadas", count: discardedCount },
+  ];
+
+  // Combined search & status filtering
   const filteredApplications = React.useMemo(() => {
+    let list = [...applications];
+
+    // Status category filter
     if (selectedFilterIndex === 1) {
-      // En revisión (Pendiente or En revisión)
-      return applications.filter(
-        (a) => a.status === "Pendiente" || a.status === "En revisión"
-      );
+      list = list.filter((a) => a.status === "Pendiente" || a.status === "En revisión");
     } else if (selectedFilterIndex === 2) {
-      // Entrevistas / Selección (Preseleccionado, Entrevista, or Contratado)
-      return applications.filter(
-        (a) => a.status === "Preseleccionado" || a.status === "Entrevista" || a.status === "Contratado"
-      );
+      list = list.filter((a) => a.status === "Preseleccionado" || a.status === "Entrevista" || a.status === "Contratado");
     } else if (selectedFilterIndex === 3) {
-      // Finalizadas (Descartado)
-      return applications.filter((a) => a.status === "Descartado");
+      list = list.filter((a) => a.status === "Descartado");
     }
-    return applications;
-  }, [applications, selectedFilterIndex]);
+
+    // Text search query filter
+    if (searchQuery.trim()) {
+      const q = searchQuery.toLowerCase().trim();
+      list = list.filter(
+        (a) =>
+          a.position.toLowerCase().includes(q) ||
+          a.company.toLowerCase().includes(q) ||
+          a.location.toLowerCase().includes(q)
+      );
+    }
+
+    return list;
+  }, [applications, selectedFilterIndex, searchQuery]);
 
   return (
-    <div className="flex-grow min-h-full bg-transparent dark:bg-zinc-950 px-6 sm:px-10 lg:px-14 pt-5 pb-28 md:pb-8 space-y-6 max-w-5xl mx-auto w-full animate-in fade-in duration-300">
+    <div className="w-full space-y-6 animate-in fade-in duration-300 pb-16 font-sans">
       
-      {/* 1. Header (Mis Postulaciones & Actions) */}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-        <h1 className="text-[26px] sm:text-[32px] font-[800] text-[#1f2732] dark:text-fiord-50 tracking-[-0.6px]">
-          Mis Postulaciones
-        </h1>
-        
-        <div className="flex items-center gap-3">
-          {/* View Mode Switcher */}
-          <div className="inline-flex p-1 rounded-[16px] bg-white dark:bg-zinc-900 border border-[#ebeef3] dark:border-zinc-800 shadow-2xs">
-            <button
-              onClick={() => setViewMode("cards")}
-              className={`px-3 py-1.5 rounded-[12px] text-xs font-extrabold flex items-center gap-1.5 transition-all cursor-pointer ${
-                viewMode === "cards"
-                  ? "bg-[#1f2732] dark:bg-zinc-100 text-white dark:text-zinc-900 shadow-xs"
-                  : "text-[#5c7c9b] hover:text-[#1f2732] dark:hover:text-zinc-200"
-              }`}
-            >
-              <LayoutGrid className="size-3.5" />
-              <span>Tarjetas</span>
-            </button>
-            <button
-              onClick={() => setViewMode("table")}
-              className={`px-3 py-1.5 rounded-[12px] text-xs font-extrabold flex items-center gap-1.5 transition-all cursor-pointer ${
-                viewMode === "table"
-                  ? "bg-[#1f2732] dark:bg-zinc-100 text-white dark:text-zinc-900 shadow-xs"
-                  : "text-[#5c7c9b] hover:text-[#1f2732] dark:hover:text-zinc-200"
-              }`}
-            >
-              <List className="size-3.5" />
-              <span>Tabla</span>
-            </button>
+      {/* ── 0. SEARCH & CATEGORIES HEADER (Coherent with Candidate Dashboard) ── */}
+      <div className="space-y-3">
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
+          {/* Search Input */}
+          <div className="relative flex-1">
+            <label htmlFor={searchInputId} className="sr-only">
+              Buscar en mis postulaciones por puesto, empresa o ubicación
+            </label>
+            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 size-4 text-muted-foreground pointer-events-none" />
+            <Input
+              id={searchInputId}
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Buscar por puesto, empresa o ubicación..."
+              className="h-11 rounded-2xl bg-card border-border/70 pl-10 pr-10 text-xs sm:text-sm placeholder:text-muted-foreground shadow-2xs focus-visible:ring-primary/20"
+            />
+            {searchQuery && (
+              <button
+                type="button"
+                onClick={() => setSearchQuery("")}
+                aria-label="Limpiar búsqueda"
+                className="absolute right-3.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground p-1 rounded-md cursor-pointer transition-colors"
+              >
+                <X className="size-3.5" />
+              </button>
+            )}
           </div>
 
-          <button
-            onClick={handleRefresh}
-            aria-label="Actualizar postulaciones"
-            className="w-10 h-10 rounded-full bg-white dark:bg-zinc-900 border border-[#ebeef3] dark:border-zinc-800 flex items-center justify-center text-[#344558] dark:text-zinc-200 hover:bg-[#f5f7fa] dark:hover:bg-zinc-800 transition-all cursor-pointer active:scale-95 shadow-2xs"
-          >
-            <RotateCw className="w-5 h-5 stroke-[2]" />
-          </button>
+          {/* Explore Catalog CTA */}
+          <Link href="/dashboard/candidate/discovery" className="shrink-0">
+            <Button className="h-11 px-5 rounded-2xl text-xs sm:text-sm font-semibold gap-2 shadow-xs cursor-pointer w-full sm:w-auto">
+              <Sparkles className="size-4" />
+              Explorar nuevas vacantes
+            </Button>
+          </Link>
         </div>
-      </div>
 
-      {/* 2. Filter Chips Bar */}
-      <div className="py-1 overflow-x-auto hide-scrollbar">
-        <div className="flex items-center gap-2.5 min-w-max">
-          {[
-            `Todas (${applications.length})`,
-            "En revisión",
-            "Entrevistas / Selección",
-            "Finalizadas",
-          ].map((label, idx) => {
-            const isSelected = selectedFilterIndex === idx;
+        {/* Status Pills (identical to Dashboard Category Chips) */}
+        <div className="flex items-center gap-1.5 overflow-x-auto pb-1 hide-scrollbar pt-1" role="tablist" aria-label="Filtrar por estatus de postulación">
+          {filterTabs.map((tab) => {
+            const isSelected = selectedFilterIndex === tab.id;
             return (
-              <button
-                key={label}
-                onClick={() => setSelectedFilterIndex(idx)}
-                className={`px-4 py-2.5 rounded-[22px] text-[14px] tracking-[-0.2px] transition-all cursor-pointer active:scale-95 ${
+              <Badge
+                key={tab.id}
+                variant={isSelected ? "default" : "outline"}
+                onClick={() => setSelectedFilterIndex(tab.id)}
+                className={cn(
+                  "px-3.5 py-1.5 rounded-xl text-xs font-medium cursor-pointer transition-all shadow-2xs select-none",
                   isSelected
-                    ? "bg-[#1f2732] dark:bg-zinc-100 text-white dark:text-zinc-900 font-extrabold border border-transparent shadow-xs"
-                    : "bg-[#f5f7fa] dark:bg-zinc-900 text-[#344558] dark:text-zinc-300 font-bold border border-[#ebeef3] dark:border-zinc-800 hover:bg-[#ebeef3] dark:hover:bg-zinc-800"
-                }`}
+                    ? "bg-primary text-primary-foreground shadow-xs"
+                    : "bg-card hover:bg-muted/60 text-muted-foreground hover:text-foreground border-border/70"
+                )}
               >
-                {label}
-              </button>
+                {tab.label} ({tab.count})
+              </Badge>
             );
           })}
         </div>
       </div>
 
-      {/* 3. Main View Area (Cards or Tabular Table View) */}
-      <div className="pt-2 space-y-5">
+      {/* ── 1. SECTION HEADING & VIEW CONTROLS (Coherent with Dashboard / Empleos Cerca de Ti) ── */}
+      <section className="space-y-4 pt-1" aria-labelledby="applications-heading">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div>
+            <div className="flex items-center gap-2">
+              <div className="size-8 rounded-xl bg-primary/10 text-primary border border-primary/20 flex items-center justify-center shadow-2xs">
+                <FileText className="size-4" />
+              </div>
+              <h2 id="applications-heading" className="text-base sm:text-lg font-bold tracking-tight text-foreground">
+                Mis Postulaciones
+              </h2>
+              <Badge variant="secondary" className="px-2.5 py-0.5 rounded-full text-xs font-semibold">
+                {filteredApplications.length}
+              </Badge>
+            </div>
+            <p className="text-xs text-muted-foreground mt-0.5">
+              Monitorea en tiempo real el avance de tus procesos de selección, entrevistas y contratos.
+            </p>
+          </div>
+
+          {/* Controls: View Mode & Refresh */}
+          <div className="flex items-center gap-2 self-start sm:self-auto">
+            <div className="flex items-center gap-1 bg-card border border-border/70 p-1 rounded-2xl shadow-2xs" role="group" aria-label="Modo de visualización">
+              <Button
+                variant={viewMode === "cards" ? "default" : "ghost"}
+                size="sm"
+                onClick={() => setViewMode("cards")}
+                className={cn(
+                  "h-7 text-xs rounded-xl px-2.5 font-medium gap-1 cursor-pointer transition-all",
+                  viewMode === "cards" ? "shadow-2xs font-semibold" : "text-muted-foreground hover:text-foreground"
+                )}
+              >
+                <LayoutGrid className="size-3" />
+                <span>Tarjetas</span>
+              </Button>
+              <Button
+                variant={viewMode === "table" ? "default" : "ghost"}
+                size="sm"
+                onClick={() => setViewMode("table")}
+                className={cn(
+                  "h-7 text-xs rounded-xl px-2.5 font-medium gap-1 cursor-pointer transition-all",
+                  viewMode === "table" ? "shadow-2xs font-semibold" : "text-muted-foreground hover:text-foreground"
+                )}
+              >
+                <List className="size-3" />
+                <span>Tabla</span>
+              </Button>
+            </div>
+
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleRefresh}
+              disabled={isLoading}
+              className="h-9 px-3 rounded-xl border-border/70 text-xs font-semibold gap-1.5 cursor-pointer shadow-2xs"
+              aria-label="Actualizar postulaciones"
+            >
+              <RotateCw className={cn("size-3.5", isLoading && "animate-spin")} />
+              <span className="hidden sm:inline">Actualizar</span>
+            </Button>
+          </div>
+        </div>
+
+        {/* ── 2. FEED CONTENT AREA (CARDS OR TABLE) ── */}
         {isLoading ? (
           /* Skeleton Loader */
-          <div className="space-y-5">
+          <div className="space-y-3">
             {[1, 2, 3].map((i) => (
               <div
                 key={i}
-                className="p-6 bg-[#f5f7fa] dark:bg-zinc-900 border border-[#ebeef3] dark:border-zinc-800 rounded-[22px] space-y-5 animate-pulse"
+                className="bg-card border border-border/70 rounded-3xl p-5 space-y-4 shadow-2xs"
               >
-                <div className="flex items-center gap-4">
-                  <div className="w-14 h-14 rounded-[14px] bg-[#ebeef3] dark:bg-zinc-800 shrink-0" />
+                <div className="flex items-start gap-4">
+                  <Skeleton className="size-12 rounded-2xl shrink-0" />
                   <div className="flex-1 space-y-2">
-                    <div className="h-5 bg-[#ebeef3] dark:bg-zinc-800 rounded w-1/2" />
-                    <div className="h-4 bg-[#ebeef3] dark:bg-zinc-800 rounded w-1/3" />
+                    <Skeleton className="h-4 w-1/4 rounded-md" />
+                    <Skeleton className="h-5 w-1/2 rounded-md" />
+                    <Skeleton className="h-3.5 w-1/3 rounded-md" />
                   </div>
+                  <Skeleton className="h-6 w-24 rounded-md" />
                 </div>
-                <div className="w-full h-3 bg-[#ebeef3] dark:bg-zinc-800 rounded-full" />
+                <Skeleton className="h-2 w-full rounded-full" />
               </div>
             ))}
           </div>
         ) : hasError ? (
           /* Error State */
-          <div className="py-16 px-6 flex flex-col items-center justify-center text-center space-y-4">
-            <WifiOff className="w-12 h-12 text-rose-500" />
-            <h3 className="text-[18px] font-bold text-[#1f2732] dark:text-zinc-100">
+          <div className="rounded-3xl bg-card border border-destructive/30 p-8 sm:p-12 flex flex-col items-center justify-center text-center shadow-xs">
+            <div className="size-14 rounded-2xl bg-destructive/10 text-destructive flex items-center justify-center mb-4 border border-destructive/20 shadow-2xs">
+              <WifiOff className="size-7" />
+            </div>
+            <h3 className="text-lg font-bold text-foreground mb-1">
               Error al consultar postulaciones
             </h3>
-            <p className="text-[15px] text-[#5c7c9b] dark:text-zinc-400 max-w-xs leading-relaxed">
-              No pudimos conectar con Supabase para sincronizar tus postulaciones.
+            <p className="text-sm text-muted-foreground max-w-md leading-relaxed mb-6">
+              No pudimos conectar con el servidor para sincronizar tus postulaciones en este momento.
             </p>
             <Button
               onClick={handleRefresh}
-              className="mt-2 bg-[#1f2732] hover:bg-[#2f3c4b] text-white rounded-[14px] text-sm font-bold px-6 py-3 flex items-center gap-2"
+              className="h-9 px-4 rounded-xl text-xs font-semibold shadow-xs cursor-pointer gap-2"
             >
-              <RotateCw className="w-5 h-5" />
-              Reintentar
+              <RotateCw className="size-3.5" />
+              <span>Reintentar</span>
             </Button>
           </div>
         ) : filteredApplications.length === 0 ? (
-          /* Empty State */
-          <div className="py-16 px-6 flex flex-col items-center justify-center text-center space-y-4">
-            <div className="w-22 h-22 rounded-full bg-[#f5f7fa] dark:bg-zinc-900 flex items-center justify-center text-[#7d99b3] shrink-0">
-              <History className="w-10 h-10 stroke-[1.75]" />
+          /* Empty State matching Dashboard & Discovery */
+          <div className="rounded-3xl bg-card border border-border/70 p-8 sm:p-12 flex flex-col items-center justify-center text-center shadow-xs">
+            <div className="size-14 rounded-2xl bg-muted text-foreground flex items-center justify-center mb-4 border border-border/70 shadow-2xs">
+              <Briefcase className="size-7 text-muted-foreground" />
             </div>
-
-            <h3 className="text-[20px] font-bold text-[#1f2732] dark:text-zinc-100 max-w-xs leading-snug">
-              {selectedFilterIndex === 0
-                ? "Aún no te has postulado"
-                : "Sin postulaciones en esta categoría"}
+            <h3 className="text-lg font-bold text-foreground mb-1">
+              {searchQuery || selectedFilterIndex !== 0
+                ? "No se encontraron postulaciones con estos filtros"
+                : "Aún no te has postulado a ninguna vacante"}
             </h3>
-            <p className="text-[15px] text-[#5c7c9b] dark:text-zinc-400 max-w-sm leading-[1.5] text-center">
-              Encuentra ofertas laborales de tu interés en la sección principal o buscador y postúlate con un solo tap.
+            <p className="text-sm text-muted-foreground max-w-md leading-relaxed mb-6">
+              {searchQuery || selectedFilterIndex !== 0
+                ? "Intenta buscar con otros términos o limpia los filtros activos para ver todo tu historial."
+                : "Encuentra ofertas laborales acordes a tu perfil en la sección de exploración y postúlate con un solo clic."}
             </p>
 
-            <Button
-              onClick={() => router.push("/dashboard/candidate/discovery")}
-              className="mt-3 bg-[#1f2732] dark:bg-zinc-100 text-white dark:text-zinc-900 hover:bg-[#2f3c4b] dark:hover:bg-zinc-200 rounded-[16px] text-sm font-bold px-7 py-3.5 transition-all cursor-pointer active:scale-95"
-            >
-              Explorar vacantes
-            </Button>
+            <div className="flex flex-wrap items-center justify-center gap-3">
+              {(searchQuery || selectedFilterIndex !== 0) && (
+                <Button 
+                  variant="outline"
+                  onClick={() => {
+                    setSearchQuery("");
+                    setSelectedFilterIndex(0);
+                  }}
+                  className="h-9 px-4 rounded-xl border-border/70 text-xs font-semibold cursor-pointer shadow-2xs"
+                >
+                  Limpiar filtros
+                </Button>
+              )}
+              <Link href="/dashboard/candidate/discovery">
+                <Button 
+                  className="h-9 px-4 rounded-xl text-xs font-semibold shadow-xs cursor-pointer gap-1.5"
+                >
+                  <Sparkles className="size-3.5" />
+                  Explorar vacantes
+                </Button>
+              </Link>
+            </div>
           </div>
         ) : viewMode === "table" ? (
-          /* TABULAR VIEW POWERED BY TANSTACK TABLE */
+          /* TanStack Table View */
           <CandidateApplicationsTable
             data={filteredApplications}
             onOpenDetail={handleOpenDetail}
             onOpenContract={handleOpenContract}
           />
         ) : (
-          /* CARDS VIEW */
-          <div className="space-y-5">
-            {filteredApplications.map((app) => (
-              <div
-                key={app.id}
-                onClick={() => handleOpenDetail(app)}
-                className="p-5 sm:p-6 bg-white dark:bg-zinc-900 border border-[#ebeef3] dark:border-zinc-800 rounded-[22px] space-y-5 shadow-[0_4px_16px_rgba(31,39,50,0.05)] hover:border-[#d2dbe5] dark:hover:border-zinc-700 transition-all cursor-pointer"
-              >
-                {/* Top Row: Company Icon, Title & Status Chip */}
-                <div className="flex items-start justify-between gap-4">
-                  <div className="flex items-start gap-4 min-w-0">
-                    <div className="w-14 h-14 rounded-[16px] bg-[#f5f7fa] dark:bg-zinc-800 text-[#344558] dark:text-zinc-300 flex items-center justify-center shrink-0 font-bold text-sm border border-[#ebeef3] dark:border-zinc-800">
-                      {app.logoUrl ? (
-                        <img src={app.logoUrl} alt={app.company} className="w-full h-full object-cover rounded-[16px]" />
-                      ) : (
-                        <Briefcase className="w-7 h-7 text-[#344558] dark:text-zinc-300" />
-                      )}
+          /* Cards View matching Candidate Dashboard */
+          <div className="space-y-3">
+            {filteredApplications.map((app) => {
+              const companyInitials = app.company ? app.company.substring(0, 2).toUpperCase() : "EM";
+
+              return (
+                <div
+                  key={app.id}
+                  onClick={() => handleOpenDetail(app)}
+                  className="bg-card border border-border/70 hover:border-border hover:bg-muted/30 rounded-3xl p-5 flex flex-col justify-between gap-4 shadow-2xs transition-colors duration-150 cursor-pointer relative overflow-hidden group"
+                >
+                  {/* Top Row: Company Avatar + Position + Status Badge */}
+                  <div className="flex items-start justify-between gap-4">
+                    <div className="flex items-start gap-4 min-w-0 flex-1">
+                      {/* Avatar */}
+                      <Avatar className="size-12 rounded-2xl ring-1 ring-border/60 shrink-0 shadow-2xs">
+                        {app.logoUrl ? (
+                          <AvatarImage src={app.logoUrl} alt={app.company} className="object-cover" />
+                        ) : null}
+                        <AvatarFallback className="rounded-2xl font-bold text-xs bg-muted text-foreground">
+                          {companyInitials}
+                        </AvatarFallback>
+                      </Avatar>
+
+                      {/* Info Header */}
+                      <div className="min-w-0 flex-1 space-y-1">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className="text-xs font-medium text-muted-foreground truncate flex items-center gap-1">
+                            {app.company}
+                            <CheckCircle2 className="size-3 text-emerald-600 dark:text-emerald-400 shrink-0" />
+                          </span>
+                        </div>
+
+                        <h3 className="text-base sm:text-lg font-bold text-foreground tracking-tight truncate group-hover:text-primary transition-colors">
+                          {app.position}
+                        </h3>
+
+                        {/* Metadata Pills */}
+                        <div className="flex items-center gap-2 text-xs text-muted-foreground flex-wrap pt-0.5">
+                          <Badge variant="secondary" className="gap-1 text-[11px] font-medium py-0.5 px-2 bg-muted/60 text-muted-foreground border-border/60">
+                            <MapPin className="size-3 shrink-0" />
+                            <span>{app.location}</span>
+                          </Badge>
+                          <Badge variant="secondary" className="gap-1 text-[11px] font-medium py-0.5 px-2 bg-muted/60 text-muted-foreground border-border/60">
+                            <Calendar className="size-3 shrink-0" />
+                            <span>Postulado {app.appliedDate}</span>
+                          </Badge>
+                        </div>
+                      </div>
                     </div>
-                    <div className="min-w-0">
-                      <h3 className="text-[17px] sm:text-[19px] font-bold text-[#1f2732] dark:text-zinc-100 tracking-[-0.3px] truncate">
-                        {app.position}
-                      </h3>
-                      <p className="text-[14px] text-[#5c7c9b] dark:text-zinc-400 font-semibold truncate mt-1">
-                        {app.company} • {app.location}
-                      </p>
+
+                    {/* Status Badge Pill */}
+                    <div className="shrink-0 self-start">
+                      <ApplicationStatusBadge status={app.status} statusLabel={app.statusLabel} />
                     </div>
                   </div>
 
-                  {/* Status Badge Pill */}
-                  <div className={`px-3 py-1.5 rounded-[14px] flex items-center gap-1.5 shrink-0 ${
-                    app.status === "Contratado"
-                      ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
-                      : app.status === "Preseleccionado" || app.status === "En revisión" || app.status === "Entrevista"
-                      ? "bg-amber-500/10 text-amber-600 dark:text-amber-400"
-                      : app.status === "Descartado"
-                      ? "bg-rose-500/10 text-rose-600 dark:text-rose-400"
-                      : "bg-[#f5f7fa] text-[#5c7c9b] dark:bg-zinc-800 dark:text-zinc-400"
-                  }`}>
-                    {app.status === "Contratado" ? (
-                      <CheckCircle2 className="w-4 h-4" />
-                    ) : app.status === "Descartado" ? (
-                      <X className="w-4 h-4" />
-                    ) : (
-                      <Clock className="w-4 h-4" />
-                    )}
-                    <span className="text-[12px] sm:text-[13px] font-extrabold">
-                      {app.statusLabel}
-                    </span>
-                  </div>
-                </div>
+                  {/* Stepper Progress Bar */}
+                  <ApplicationStepper status={app.status} progress={app.progress} />
 
-                {/* Stepper Visualizer */}
-                <ApplicationStepper status={app.status} progress={app.progress} />
-
-                {/* Scheduled Interview Interactive Section */}
-                {app.interviewDetails && (
-                  <div 
-                    onClick={(e) => e.stopPropagation()} 
-                    className="p-4 sm:p-5 rounded-2xl bg-indigo-50/70 dark:bg-indigo-950/30 border border-indigo-200/80 dark:border-indigo-800/50 space-y-3.5"
-                  >
-                    {/* Interview Header Row */}
-                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
-                      <div className="flex items-center gap-2.5">
-                        <div className="size-9 rounded-xl bg-indigo-500/15 dark:bg-indigo-400/15 flex items-center justify-center shrink-0 text-indigo-600 dark:text-indigo-400">
-                          {app.interviewDetails.modality === "virtual" ? (
-                            <Video className="size-4.5" />
-                          ) : (
-                            <MapPin className="size-4.5" />
-                          )}
+                  {/* Scheduled Interview Interactive Section */}
+                  {app.interviewDetails && (
+                    <div 
+                      onClick={(e) => e.stopPropagation()} 
+                      className="p-4 sm:p-5 rounded-2xl bg-primary/5 dark:bg-primary/10 border border-primary/20 space-y-3.5"
+                    >
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
+                        <div className="flex items-center gap-2.5">
+                          <div className="size-9 rounded-xl bg-primary/10 flex items-center justify-center shrink-0 text-primary">
+                            {app.interviewDetails.modality === "virtual" ? (
+                              <Video className="size-4.5" />
+                            ) : (
+                              <MapPin className="size-4.5" />
+                            )}
+                          </div>
+                          <div>
+                            <div className="flex items-center gap-2">
+                              <span className="font-extrabold text-sm text-foreground">
+                                Entrevista {app.interviewDetails.modality === "virtual" ? "Virtual" : "Presencial"}
+                              </span>
+                            </div>
+                            <div className="flex items-center gap-1.5 text-xs text-muted-foreground font-medium">
+                              <Calendar className="size-3.5" />
+                              <span>
+                                {app.interviewDetails.date}
+                                {app.interviewDetails.time ? ` a las ${app.interviewDetails.time} hrs` : ""}
+                              </span>
+                            </div>
+                          </div>
                         </div>
-                        <div>
-                          <div className="flex items-center gap-2">
-                            <span className="font-extrabold text-sm text-indigo-950 dark:text-indigo-100">
-                              Entrevista {app.interviewDetails.modality === "virtual" ? "Virtual" : "Presencial"}
-                            </span>
-                          </div>
-                          <div className="flex items-center gap-1.5 text-xs text-indigo-700/90 dark:text-indigo-300/90 font-medium">
-                            <Calendar className="size-3.5" />
-                            <span>
-                              {app.interviewDetails.date}
-                              {app.interviewDetails.time ? ` a las ${app.interviewDetails.time} hrs` : ""}
-                            </span>
-                          </div>
+
+                        {/* Status Badge */}
+                        <div className="flex items-center self-start sm:self-auto">
+                          {app.interviewDetails.status === "confirmed" ? (
+                            <Badge className="bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border-emerald-500/30 font-bold text-xs gap-1.5 px-2.5 py-1">
+                              <CalendarCheck className="size-3.5 text-emerald-600 dark:text-emerald-400" />
+                              <span>Asistencia Confirmada</span>
+                            </Badge>
+                          ) : app.interviewDetails.status === "reschedule_requested" ? (
+                            <Badge className="bg-amber-500/15 text-amber-700 dark:text-amber-300 border-amber-500/30 font-bold text-xs gap-1.5 px-2.5 py-1">
+                              <CalendarClock className="size-3.5 text-amber-600 dark:text-amber-400" />
+                              <span>Reagendamiento Solicitado</span>
+                            </Badge>
+                          ) : app.interviewDetails.status === "cancelled" ? (
+                            <Badge className="bg-rose-500/15 text-rose-700 dark:text-rose-300 border-rose-500/30 font-bold text-xs gap-1 px-2.5 py-1">
+                              <X className="size-3.5" />
+                              <span>Cancelada</span>
+                            </Badge>
+                          ) : app.interviewDetails.status === "completed" ? (
+                            <Badge className="bg-muted text-muted-foreground border-border font-bold text-xs gap-1 px-2.5 py-1">
+                              <Check className="size-3.5" />
+                              <span>Concluida</span>
+                            </Badge>
+                          ) : (
+                            <Badge className="bg-blue-500/15 text-blue-700 dark:text-blue-300 border-blue-500/30 font-bold text-xs gap-1.5 px-2.5 py-1">
+                              <Clock className="size-3.5 text-blue-600 dark:text-blue-400" />
+                              <span>Confirmación Pendiente</span>
+                            </Badge>
+                          )}
                         </div>
                       </div>
 
-                      {/* Status Badge */}
-                      <div className="flex items-center self-start sm:self-auto">
-                        {app.interviewDetails.status === "confirmed" ? (
-                          <Badge className="bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border-emerald-500/30 font-bold text-xs gap-1.5 px-2.5 py-1">
-                            <CalendarCheck className="size-3.5 text-emerald-600 dark:text-emerald-400" />
-                            <span>Asistencia Confirmada</span>
-                          </Badge>
-                        ) : app.interviewDetails.status === "reschedule_requested" ? (
-                          <Badge className="bg-amber-500/15 text-amber-700 dark:text-amber-300 border-amber-500/30 font-bold text-xs gap-1.5 px-2.5 py-1">
-                            <CalendarClock className="size-3.5 text-amber-600 dark:text-amber-400" />
-                            <span>Reagendamiento Solicitado</span>
-                          </Badge>
-                        ) : app.interviewDetails.status === "cancelled" ? (
-                          <Badge className="bg-rose-500/15 text-rose-700 dark:text-rose-300 border-rose-500/30 font-bold text-xs gap-1 px-2.5 py-1">
-                            <X className="size-3.5" />
-                            <span>Cancelada</span>
-                          </Badge>
-                        ) : app.interviewDetails.status === "completed" ? (
-                          <Badge className="bg-zinc-500/15 text-zinc-700 dark:text-zinc-300 border-zinc-500/30 font-bold text-xs gap-1 px-2.5 py-1">
-                            <Check className="size-3.5" />
-                            <span>Concluida</span>
-                          </Badge>
-                        ) : (
-                          <Badge className="bg-blue-500/15 text-blue-700 dark:text-blue-300 border-blue-500/30 font-bold text-xs gap-1.5 px-2.5 py-1">
-                            <Clock className="size-3.5 text-blue-600 dark:text-blue-400" />
-                            <span>Confirmación Pendiente</span>
-                          </Badge>
-                        )}
-                      </div>
-                    </div>
+                      {/* Location or Video Link */}
+                      {app.interviewDetails.locationOrLink && (
+                        <div className="bg-background/90 dark:bg-card/90 rounded-xl p-3 border border-border/80 flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs">
+                          <div className="flex items-center gap-2 min-w-0 flex-1">
+                            {app.interviewDetails.modality === "virtual" ? (
+                              <Video className="size-4 text-primary shrink-0" />
+                            ) : (
+                              <MapPin className="size-4 text-primary shrink-0" />
+                            )}
+                            <div className="min-w-0 flex-1">
+                              <span className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider block">
+                                {app.interviewDetails.modality === "virtual" ? "Enlace de Reunión" : "Ubicación / Sede"}
+                              </span>
+                              {app.interviewDetails.modality === "virtual" && app.interviewDetails.locationOrLink.startsWith("http") ? (
+                                <a
+                                  href={app.interviewDetails.locationOrLink}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="font-medium text-primary hover:underline truncate block"
+                                >
+                                  {app.interviewDetails.locationOrLink}
+                                </a>
+                              ) : (
+                                <span className="font-semibold text-foreground truncate block">
+                                  {app.interviewDetails.locationOrLink}
+                                </span>
+                              )}
+                            </div>
+                          </div>
 
-                    {/* Modality Details & Link / Address */}
-                    {app.interviewDetails.locationOrLink && (
-                      <div className="bg-white/80 dark:bg-zinc-900/80 rounded-xl p-3 border border-indigo-100 dark:border-indigo-900/50 flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs">
-                        <div className="flex items-center gap-2 min-w-0 flex-1">
-                          {app.interviewDetails.modality === "virtual" ? (
-                            <Video className="size-4 text-indigo-600 dark:text-indigo-400 shrink-0" />
-                          ) : (
-                            <MapPin className="size-4 text-indigo-600 dark:text-indigo-400 shrink-0" />
-                          )}
-                          <div className="min-w-0 flex-1">
-                            <span className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider block">
-                              {app.interviewDetails.modality === "virtual" ? "Enlace de Reunión" : "Ubicación / Sede"}
-                            </span>
-                            {app.interviewDetails.modality === "virtual" && app.interviewDetails.locationOrLink.startsWith("http") ? (
+                          <div className="flex items-center gap-1.5 shrink-0 self-end sm:self-auto">
+                            {app.interviewDetails.modality === "virtual" && app.interviewDetails.locationOrLink.startsWith("http") && (
                               <a
                                 href={app.interviewDetails.locationOrLink}
                                 target="_blank"
                                 rel="noopener noreferrer"
-                                className="font-medium text-indigo-600 dark:text-indigo-400 hover:underline truncate block"
+                                className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-primary hover:bg-primary/90 text-primary-foreground font-bold text-xs transition-colors shadow-2xs"
                               >
-                                {app.interviewDetails.locationOrLink}
+                                <span>Unirse</span>
+                                <ExternalLink className="size-3" />
                               </a>
-                            ) : (
-                              <span className="font-semibold text-foreground truncate block">
-                                {app.interviewDetails.locationOrLink}
-                              </span>
                             )}
+                            <Button
+                              type="button"
+                              variant="secondary"
+                              size="sm"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleCopyLink(app.interviewDetails!.locationOrLink, app.id);
+                              }}
+                              className="h-7 text-xs rounded-lg px-2.5"
+                            >
+                              {copiedAppId === app.id ? (
+                                <>
+                                  <Check className="size-3 text-emerald-600" />
+                                  <span className="text-emerald-700 dark:text-emerald-300">Copiado</span>
+                                </>
+                              ) : (
+                                <>
+                                  <Copy className="size-3" />
+                                  <span>Copiar</span>
+                                </>
+                              )}
+                            </Button>
                           </div>
                         </div>
+                      )}
 
-                        {/* Copy button or Open link */}
-                        <div className="flex items-center gap-1.5 shrink-0 self-end sm:self-auto">
-                          {app.interviewDetails.modality === "virtual" && app.interviewDetails.locationOrLink.startsWith("http") && (
-                            <a
-                              href={app.interviewDetails.locationOrLink}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs transition-colors shadow-2xs"
-                            >
-                              <span>Unirse</span>
-                              <ExternalLink className="size-3" />
-                            </a>
-                          )}
-                          <button
-                            type="button"
+                      {/* Recruiter Notes */}
+                      {app.interviewDetails.notes && (
+                        <div className="text-xs bg-muted/60 p-2.5 rounded-xl border border-border/60 text-muted-foreground">
+                          <span className="font-bold text-foreground mr-1">Indicaciones:</span>
+                          <span className="italic">&ldquo;{app.interviewDetails.notes}&rdquo;</span>
+                        </div>
+                      )}
+
+                      {/* Reschedule banner */}
+                      {app.interviewDetails.status === "reschedule_requested" && (
+                        <div className="text-xs bg-amber-500/10 border border-amber-500/20 rounded-xl p-3 text-amber-900 dark:text-amber-200 space-y-1">
+                          <div className="flex items-center gap-1.5 font-bold text-amber-800 dark:text-amber-300">
+                            <CalendarClock className="size-3.5" />
+                            <span>Solicitud de reagendamiento enviada</span>
+                          </div>
+                          <p className="text-[11px] leading-relaxed text-amber-800/90 dark:text-amber-300/90">
+                            Propuesta: <span className="font-semibold">{app.interviewDetails.proposedDate || "Fecha a coordinar"} {app.interviewDetails.proposedTime ? `a las ${app.interviewDetails.proposedTime} hrs` : ""}</span>.
+                            {app.interviewDetails.candidateResponseNotes && ` Motivo: "${app.interviewDetails.candidateResponseNotes}".`}
+                          </p>
+                        </div>
+                      )}
+
+                      {/* Actions */}
+                      <div className="flex flex-wrap items-center gap-2 pt-1 border-t border-primary/20">
+                        {app.interviewDetails.status !== "confirmed" && app.interviewDetails.status !== "cancelled" && app.interviewDetails.status !== "completed" && (
+                          <Button
+                            size="sm"
                             onClick={(e) => {
                               e.stopPropagation();
-                              handleCopyLink(app.interviewDetails!.locationOrLink, app.id);
+                              handleConfirmInterview(app.id);
                             }}
-                            className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-indigo-100 hover:bg-indigo-200 dark:bg-indigo-900/40 dark:hover:bg-indigo-900/60 text-indigo-800 dark:text-indigo-200 font-semibold text-xs transition-colors cursor-pointer"
+                            disabled={confirmingAppId === app.id}
+                            className="h-8 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs gap-1.5 shadow-2xs cursor-pointer"
                           >
-                            {copiedAppId === app.id ? (
+                            {confirmingAppId === app.id ? (
                               <>
-                                <Check className="size-3 text-emerald-600" />
-                                <span className="text-emerald-700 dark:text-emerald-300">Copiado</span>
+                                <Loader2 className="size-3 animate-spin" />
+                                <span>Confirmando...</span>
                               </>
                             ) : (
                               <>
-                                <Copy className="size-3" />
-                                <span>Copiar</span>
+                                <CalendarCheck className="size-3.5" />
+                                <span>Confirmar Asistencia</span>
                               </>
                             )}
-                          </button>
+                          </Button>
+                        )}
+
+                        {app.interviewDetails.status !== "cancelled" && app.interviewDetails.status !== "completed" && (
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleOpenReschedule(app);
+                            }}
+                            className="h-8 rounded-xl border-amber-500/30 bg-amber-500/10 text-amber-700 dark:text-amber-300 hover:bg-amber-500/20 font-bold text-xs gap-1.5 cursor-pointer"
+                          >
+                            <CalendarClock className="size-3.5 text-amber-600 dark:text-amber-400" />
+                            <span>{app.interviewDetails.status === "reschedule_requested" ? "Cambiar Propuesta" : "Solicitar Reagendar"}</span>
+                          </Button>
+                        )}
+
+                        {(() => {
+                          const gcalUrl = buildGoogleCalendarUrl(app);
+                          if (!gcalUrl) return null;
+                          return (
+                            <a
+                              href={gcalUrl}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              onClick={(e) => e.stopPropagation()}
+                              className="inline-flex items-center gap-1.5 h-8 px-3 rounded-xl border border-border bg-background hover:bg-muted text-foreground font-bold text-xs transition-colors shadow-2xs ml-auto"
+                            >
+                              <CalendarPlus className="size-3.5 text-primary" />
+                              <span>Google Calendar</span>
+                            </a>
+                          );
+                        })()}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Contract Hired Banner */}
+                  {(app.status === "Contratado" || app.contract) && (
+                    <div className="p-4 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+                      <div className="flex items-center gap-3 min-w-0">
+                        <div className="size-9 rounded-xl bg-emerald-500/20 flex items-center justify-center shrink-0 text-emerald-600 dark:text-emerald-400">
+                          <FileCheck2 className="size-5" />
+                        </div>
+                        <div className="min-w-0">
+                          <div className="flex items-center gap-2">
+                            <p className="font-extrabold text-xs text-emerald-950 dark:text-emerald-100">
+                              ¡Contratación Exitosa!
+                            </p>
+                            {app.contract && (
+                              <Badge variant="outline" className="text-[10px] font-mono px-1.5 py-0 border-emerald-500/30 text-emerald-700 dark:text-emerald-300">
+                                {app.contract.folio}
+                              </Badge>
+                            )}
+                          </div>
+                          <p className="text-[11px] text-muted-foreground font-medium mt-0.5">
+                            {app.contract
+                              ? app.contract.employeeSigned
+                                ? "Contrato laboral formalizado y vigente conforme a la LFT."
+                                : "Contrato formal generado. Requiere tu firma digital para entrar en vigor."
+                              : "Tu proceso concluyó positivamente. Contrato formal en emisión."}
+                          </p>
                         </div>
                       </div>
-                    )}
 
-                    {/* Recruiter Notes */}
-                    {app.interviewDetails.notes && (
-                      <div className="text-xs bg-indigo-50/50 dark:bg-indigo-950/20 p-2.5 rounded-lg border border-indigo-100/60 dark:border-indigo-900/40 text-indigo-900/80 dark:text-indigo-200/80">
-                        <span className="font-bold text-indigo-950 dark:text-indigo-100 mr-1">Indicaciones del reclutador:</span>
-                        <span className="italic">&ldquo;{app.interviewDetails.notes}&rdquo;</span>
-                      </div>
-                    )}
-
-                    {/* If reschedule requested, show status summary */}
-                    {app.interviewDetails.status === "reschedule_requested" && (
-                      <div className="text-xs bg-amber-500/10 border border-amber-500/20 rounded-xl p-3 text-amber-900 dark:text-amber-200 space-y-1">
-                        <div className="flex items-center gap-1.5 font-bold text-amber-800 dark:text-amber-300">
-                          <CalendarClock className="size-3.5" />
-                          <span>Solicitud de reagendamiento enviada</span>
-                        </div>
-                        <p className="text-[11px] leading-relaxed text-amber-800/90 dark:text-amber-300/90">
-                          Propuesta: <span className="font-semibold">{app.interviewDetails.proposedDate || "Fecha a coordinar"} {app.interviewDetails.proposedTime ? `a las ${app.interviewDetails.proposedTime} hrs` : ""}</span>.
-                          {app.interviewDetails.candidateResponseNotes && ` Motivo: "${app.interviewDetails.candidateResponseNotes}".`}
-                        </p>
-                        <p className="text-[11px] text-amber-700/80 dark:text-amber-400/80 italic">
-                          El reclutador evaluará tu solicitud y actualizará la cita.
-                        </p>
-                      </div>
-                    )}
-
-                    {/* Action Buttons Row */}
-                    <div className="flex flex-wrap items-center gap-2 pt-1 border-t border-indigo-200/60 dark:border-indigo-800/40">
-                      {/* Confirm Button */}
-                      {app.interviewDetails.status !== "confirmed" && app.interviewDetails.status !== "cancelled" && app.interviewDetails.status !== "completed" && (
+                      {app.contract && (
                         <Button
                           size="sm"
                           onClick={(e) => {
                             e.stopPropagation();
-                            handleConfirmInterview(app.id);
+                            handleOpenContract(app.contract!);
                           }}
-                          disabled={confirmingAppId === app.id}
-                          className="h-8 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs gap-1.5 shadow-2xs cursor-pointer"
+                          className={cn(
+                            "w-full sm:w-auto h-8 rounded-xl text-xs font-bold gap-1.5 shrink-0 cursor-pointer shadow-xs",
+                            !app.contract.employeeSigned
+                              ? "bg-amber-600 hover:bg-amber-700 text-white"
+                              : "bg-emerald-600 hover:bg-emerald-700 text-white"
+                          )}
                         >
-                          {confirmingAppId === app.id ? (
+                          {!app.contract.employeeSigned ? (
                             <>
-                              <Loader2 className="size-3 animate-spin" />
-                              <span>Confirmando...</span>
+                              <PenTool className="size-3" />
+                              <span>Firmar Contrato</span>
                             </>
                           ) : (
                             <>
-                              <CalendarCheck className="size-3.5" />
-                              <span>Confirmar Asistencia</span>
+                              <FileText className="size-3" />
+                              <span>Ver Contrato</span>
                             </>
                           )}
                         </Button>
                       )}
-
-                      {/* Reschedule Request Button */}
-                      {app.interviewDetails.status !== "cancelled" && app.interviewDetails.status !== "completed" && (
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleOpenReschedule(app);
-                          }}
-                          className="h-8 rounded-xl border-amber-300 dark:border-amber-800/60 bg-amber-50/50 dark:bg-amber-950/20 text-amber-900 dark:text-amber-200 hover:bg-amber-100 dark:hover:bg-amber-900/40 font-bold text-xs gap-1.5 cursor-pointer"
-                        >
-                          <CalendarClock className="size-3.5 text-amber-600 dark:text-amber-400" />
-                          <span>{app.interviewDetails.status === "reschedule_requested" ? "Cambiar Propuesta" : "Solicitar Reagendar"}</span>
-                        </Button>
-                      )}
-
-                      {/* Google Calendar Link */}
-                      {(() => {
-                        const gcalUrl = buildGoogleCalendarUrl(app);
-                        if (!gcalUrl) return null;
-                        return (
-                          <a
-                            href={gcalUrl}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            onClick={(e) => e.stopPropagation()}
-                            className="inline-flex items-center gap-1.5 h-8 px-3 rounded-xl border border-indigo-200 dark:border-indigo-800 bg-white dark:bg-zinc-900 hover:bg-indigo-50 dark:hover:bg-zinc-800 text-indigo-700 dark:text-indigo-300 font-bold text-xs transition-colors shadow-2xs ml-auto"
-                          >
-                            <CalendarPlus className="size-3.5" />
-                            <span>Google Calendar</span>
-                          </a>
-                        );
-                      })()}
                     </div>
-                  </div>
-                )}
+                  )}
 
-                {/* Hired & Contract Formalization Card */}
-                {(app.status === "Contratado" || app.contract) && (
-                  <div className="p-4 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
-                    <div className="flex items-center gap-3 min-w-0">
-                      <div className="size-9 rounded-xl bg-emerald-500/20 flex items-center justify-center shrink-0 text-emerald-600 dark:text-emerald-400">
-                        <FileCheck2 className="size-5" />
-                      </div>
-                      <div className="min-w-0">
-                        <div className="flex items-center gap-2">
-                          <p className="font-extrabold text-xs text-emerald-950 dark:text-emerald-100">
-                            ¡Contratación Exitosa!
-                          </p>
-                          {app.contract && (
-                            <Badge variant="outline" className="text-[10px] font-mono px-1.5 py-0 border-emerald-500/30 text-emerald-700 dark:text-emerald-300">
-                              {app.contract.folio}
-                            </Badge>
-                          )}
-                        </div>
-                        <p className="text-[11px] text-muted-foreground font-medium mt-0.5">
-                          {app.contract
-                            ? app.contract.employeeSigned
-                              ? "Contrato laboral formalizado y vigente conforme a la LFT."
-                              : "Contrato formal generado. Requiere tu firma digital para entrar en vigor."
-                            : "Tu proceso de selección concluyó positivamente. Contrato formal en emisión."}
-                        </p>
-                      </div>
+                  {/* Footer Row: Salary & CTA (Matching Dashboard) */}
+                  <div className="pt-3 border-t border-border/60 flex items-center justify-between gap-2">
+                    <div>
+                      <span className="text-[10px] text-muted-foreground font-semibold uppercase tracking-wider block">
+                        Sueldo especificado
+                      </span>
+                      <span className="text-sm font-bold font-mono text-emerald-600 dark:text-emerald-400">
+                        {formatSalary(app.salary_min, app.salary_max)}
+                      </span>
                     </div>
 
-                    {app.contract && (
+                    <div className="flex items-center gap-2">
                       <Button
                         size="sm"
+                        variant="outline"
                         onClick={(e) => {
                           e.stopPropagation();
-                          handleOpenContract(app.contract!);
+                          handleOpenDetail(app);
                         }}
-                        className={cn(
-                          "w-full sm:w-auto h-8 rounded-xl text-xs font-bold gap-1.5 shrink-0 cursor-pointer shadow-xs",
-                          !app.contract.employeeSigned
-                            ? "bg-amber-600 hover:bg-amber-700 text-white"
-                            : "bg-emerald-600 hover:bg-emerald-700 text-white"
-                        )}
+                        className="h-8 px-3 rounded-xl text-xs font-semibold border-border/70 gap-1 cursor-pointer shadow-2xs hover:bg-muted"
                       >
-                        {!app.contract.employeeSigned ? (
-                          <>
-                            <PenTool className="size-3" />
-                            <span>Firmar Contrato</span>
-                          </>
-                        ) : (
-                          <>
-                            <FileText className="size-3" />
-                            <span>Ver Contrato</span>
-                          </>
-                        )}
+                        Ver detalles
+                        <ArrowUpRight className="size-3.5" />
                       </Button>
-                    )}
-                  </div>
-                )}
-
-                {/* Footer Row: Date & Chevron */}
-                <div className="flex items-center justify-between pt-2 border-t border-[#ebeef3]/60 dark:border-zinc-800/80">
-                  <span className="text-[13px] font-semibold text-[#7d99b3] dark:text-zinc-400">
-                    Postulado {app.appliedDate}
-                  </span>
-                  <div className="flex items-center gap-1 text-[13px] sm:text-[14px] font-bold text-[#344558] dark:text-zinc-200">
-                    <span>Ver detalles</span>
-                    <ChevronRight className="w-4.5 h-4.5 text-[#344558] dark:text-zinc-200" />
+                    </div>
                   </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         )}
-      </div>
+      </section>
 
-      {/* 4. Application Details Sheet Modal */}
+      {/* ── 3. APPLICATION DETAILS MODAL (Coherent with Discovery Detail Sheet) ── */}
       <Dialog open={isSheetOpen} onOpenChange={setIsSheetOpen}>
         {selectedApp && (
-          <DialogContent className="sm:max-w-[480px] rounded-t-[32px] sm:rounded-3xl bg-white dark:bg-zinc-900 border border-[#ebeef3] dark:border-zinc-800 p-6 sm:p-8 max-h-[90vh] overflow-y-auto">
-            <DialogHeader className="flex flex-row items-center justify-between pb-3 border-b border-[#ebeef3] dark:border-zinc-800">
-              <DialogTitle className="text-base sm:text-lg font-bold text-[#1f2732] dark:text-zinc-50">
+          <DialogContent className="sm:max-w-lg rounded-3xl bg-card border-border/70 p-6 sm:p-7 shadow-lg max-h-[90vh] overflow-y-auto">
+            <DialogHeader className="flex flex-row items-center justify-between pb-3 border-b border-border/70">
+              <DialogTitle className="text-base sm:text-lg font-bold text-foreground">
                 Detalles de la Postulación
               </DialogTitle>
-              <div className={`px-3.5 py-1.5 rounded-[16px] flex items-center gap-1.5 text-xs sm:text-sm font-bold ${
-                selectedApp.status === "Contratado"
-                  ? "bg-emerald-500/10 text-emerald-600"
-                  : selectedApp.status === "Preseleccionado" || selectedApp.status === "En revisión"
-                  ? "bg-amber-500/10 text-amber-600"
-                  : selectedApp.status === "Descartado"
-                  ? "bg-rose-500/10 text-rose-600"
-                  : "bg-[#f5f7fa] text-[#5c7c9b]"
-              }`}>
-                {selectedApp.status === "Contratado" ? (
-                  <CheckCircle2 className="w-4 h-4" />
-                ) : selectedApp.status === "Descartado" ? (
-                  <X className="w-4 h-4" />
-                ) : (
-                  <Clock className="w-4 h-4" />
-                )}
-                <span>{selectedApp.statusLabel}</span>
-              </div>
+              <ApplicationStatusBadge 
+                status={selectedApp.status} 
+                statusLabel={selectedApp.statusLabel} 
+              />
             </DialogHeader>
 
             <div className="py-4 space-y-5">
-              <div>
-                <h3 className="text-[22px] font-[800] text-[#1f2732] dark:text-zinc-50 leading-tight">
-                  {selectedApp.position}
-                </h3>
-                <p className="text-[15px] font-semibold text-[#5c7c9b] dark:text-zinc-400 mt-1">
-                  {selectedApp.company} • {selectedApp.location}
-                </p>
-                <p className="text-[16px] font-[800] text-[#344558] dark:text-zinc-200 mt-2">
-                  {formatSalary(selectedApp.salary_min, selectedApp.salary_max)}
-                </p>
+              {/* Header inside modal */}
+              <div className="flex items-start gap-3.5">
+                <Avatar className="size-12 rounded-2xl ring-1 ring-border/60 shrink-0 shadow-2xs">
+                  {selectedApp.logoUrl ? (
+                    <AvatarImage src={selectedApp.logoUrl} alt={selectedApp.company} className="object-cover" />
+                  ) : null}
+                  <AvatarFallback className="rounded-2xl font-bold text-xs bg-muted text-foreground">
+                    {selectedApp.company ? selectedApp.company.substring(0, 2).toUpperCase() : "EM"}
+                  </AvatarFallback>
+                </Avatar>
+
+                <div className="min-w-0 flex-1 space-y-1">
+                  <h3 className="text-lg font-bold text-foreground tracking-tight leading-snug">
+                    {selectedApp.position}
+                  </h3>
+                  <p className="text-xs font-medium text-muted-foreground flex items-center gap-1">
+                    {selectedApp.company} • {selectedApp.location}
+                  </p>
+                  <p className="text-sm font-bold font-mono text-emerald-600 dark:text-emerald-400 pt-0.5">
+                    {formatSalary(selectedApp.salary_min, selectedApp.salary_max)}
+                  </p>
+                </div>
               </div>
 
               {/* Timeline Section */}
-              <div className="pt-3 space-y-4">
-                <h4 className="text-[16px] sm:text-[17px] font-bold text-[#1f2732] dark:text-zinc-100">
+              <div className="pt-2 space-y-4">
+                <h4 className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
                   Línea de Tiempo del Proceso
                 </h4>
 
-                <div className="space-y-5 pl-1">
+                <div className="space-y-4 pl-1">
                   <TimelineStep
                     title="Postulación enviada"
-                    subtitle="Tu información fue registrada en el sistema."
+                    subtitle="Tu información fue registrada en la plataforma."
                     dateString={selectedApp.appliedDate}
                     isCompleted={true}
                     isCurrent={selectedApp.status === "Pendiente"}
@@ -797,9 +986,9 @@ export function CandidateApplicationsView({ initialData }: CandidateApplications
 
               {/* Scheduled Interview Details Card in Modal */}
               {selectedApp.interviewDetails && (
-                <div className="p-4 sm:p-5 rounded-2xl bg-indigo-50/70 dark:bg-indigo-950/30 border border-indigo-200/80 dark:border-indigo-800/50 space-y-3.5">
+                <div className="p-4 sm:p-5 rounded-2xl bg-primary/5 dark:bg-primary/10 border border-primary/20 space-y-3.5">
                   <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-                    <div className="flex items-center gap-2 text-indigo-700 dark:text-indigo-400 font-bold text-sm">
+                    <div className="flex items-center gap-2 text-primary font-bold text-sm">
                       {selectedApp.interviewDetails.modality === "virtual" ? (
                         <Video className="size-4" />
                       ) : (
@@ -808,7 +997,6 @@ export function CandidateApplicationsView({ initialData }: CandidateApplications
                       <span>Cita de Entrevista</span>
                     </div>
 
-                    {/* Status Badge in Modal */}
                     <div>
                       {selectedApp.interviewDetails.status === "confirmed" ? (
                         <Badge className="bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border-emerald-500/30 font-bold text-[11px] gap-1 px-2 py-0.5">
@@ -825,7 +1013,7 @@ export function CandidateApplicationsView({ initialData }: CandidateApplications
                           <span>Cancelada</span>
                         </Badge>
                       ) : selectedApp.interviewDetails.status === "completed" ? (
-                        <Badge className="bg-zinc-500/15 text-zinc-700 dark:text-zinc-300 border-zinc-500/30 font-bold text-[11px] px-2 py-0.5">
+                        <Badge className="bg-muted text-muted-foreground border-border font-bold text-[11px] px-2 py-0.5">
                           <span>Concluida</span>
                         </Badge>
                       ) : (
@@ -852,17 +1040,17 @@ export function CandidateApplicationsView({ initialData }: CandidateApplications
                     </div>
 
                     {selectedApp.interviewDetails.locationOrLink && (
-                      <div className="pt-2 border-t border-indigo-200/60 dark:border-indigo-800/40 space-y-1.5">
+                      <div className="pt-2 border-t border-primary/20 space-y-1.5">
                         <span className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider block">
                           {selectedApp.interviewDetails.modality === "virtual" ? "Enlace de Videollamada:" : "Ubicación / Sede:"}
                         </span>
-                        <div className="flex items-center justify-between gap-2 p-2 rounded-xl bg-white/80 dark:bg-zinc-900/80 border border-indigo-100 dark:border-indigo-900/40">
+                        <div className="flex items-center justify-between gap-2 p-2 rounded-xl bg-background/90 dark:bg-card/90 border border-border/80">
                           {selectedApp.interviewDetails.modality === "virtual" && selectedApp.interviewDetails.locationOrLink.startsWith("http") ? (
                             <a
                               href={selectedApp.interviewDetails.locationOrLink}
                               target="_blank"
                               rel="noopener noreferrer"
-                              className="font-mono text-indigo-600 dark:text-indigo-400 hover:underline truncate text-xs flex-1"
+                              className="font-mono text-primary hover:underline truncate text-xs flex-1"
                             >
                               {selectedApp.interviewDetails.locationOrLink}
                             </a>
@@ -878,16 +1066,18 @@ export function CandidateApplicationsView({ initialData }: CandidateApplications
                                 href={selectedApp.interviewDetails.locationOrLink}
                                 target="_blank"
                                 rel="noopener noreferrer"
-                                className="px-2 py-1 rounded-md bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-[11px] flex items-center gap-1 shadow-2xs"
+                                className="px-2 py-1 rounded-md bg-primary hover:bg-primary/90 text-primary-foreground font-bold text-[11px] flex items-center gap-1 shadow-2xs"
                               >
                                 <span>Unirse</span>
                                 <ExternalLink className="size-2.5" />
                               </a>
                             )}
-                            <button
+                            <Button
                               type="button"
+                              variant="secondary"
+                              size="sm"
                               onClick={() => handleCopyLink(selectedApp.interviewDetails!.locationOrLink, selectedApp.id)}
-                              className="px-2 py-1 rounded-md bg-indigo-100 hover:bg-indigo-200 dark:bg-indigo-900/40 dark:hover:bg-indigo-900/60 text-indigo-800 dark:text-indigo-200 font-semibold text-[11px] flex items-center gap-1 cursor-pointer"
+                              className="h-6 px-2 text-[11px]"
                             >
                               {copiedAppId === selectedApp.id ? (
                                 <>
@@ -900,35 +1090,14 @@ export function CandidateApplicationsView({ initialData }: CandidateApplications
                                   <span>Copiar</span>
                                 </>
                               )}
-                            </button>
+                            </Button>
                           </div>
                         </div>
                       </div>
                     )}
 
-                    {selectedApp.interviewDetails.notes && (
-                      <div className="pt-2 border-t border-indigo-200/60 dark:border-indigo-800/40 text-[11px] text-indigo-900/80 dark:text-indigo-200/80 bg-indigo-50/50 dark:bg-indigo-950/20 p-2 rounded-lg">
-                        <span className="font-bold text-indigo-950 dark:text-indigo-100 mr-1">Indicaciones:</span>
-                        <span className="italic">&ldquo;{selectedApp.interviewDetails.notes}&rdquo;</span>
-                      </div>
-                    )}
-
-                    {/* Reschedule request note if active */}
-                    {selectedApp.interviewDetails.status === "reschedule_requested" && (
-                      <div className="text-[11px] bg-amber-500/10 border border-amber-500/20 rounded-xl p-2.5 text-amber-900 dark:text-amber-200 space-y-0.5">
-                        <div className="flex items-center gap-1 font-bold text-amber-800 dark:text-amber-300">
-                          <CalendarClock className="size-3" />
-                          <span>Solicitud de reagendamiento en revisión</span>
-                        </div>
-                        <p>
-                          Propuesta: <span className="font-semibold">{selectedApp.interviewDetails.proposedDate || "Fecha a coordinar"} {selectedApp.interviewDetails.proposedTime ? `a las ${selectedApp.interviewDetails.proposedTime} hrs` : ""}</span>.
-                          {selectedApp.interviewDetails.candidateResponseNotes && ` Motivo: "${selectedApp.interviewDetails.candidateResponseNotes}".`}
-                        </p>
-                      </div>
-                    )}
-
-                    {/* Action buttons in Modal */}
-                    <div className="pt-3 border-t border-indigo-200/60 dark:border-indigo-800/40 flex flex-wrap items-center gap-2">
+                    {/* Action buttons */}
+                    <div className="pt-3 border-t border-primary/20 flex flex-wrap items-center gap-2">
                       {selectedApp.interviewDetails.status !== "confirmed" && selectedApp.interviewDetails.status !== "cancelled" && selectedApp.interviewDetails.status !== "completed" && (
                         <Button
                           size="sm"
@@ -958,7 +1127,7 @@ export function CandidateApplicationsView({ initialData }: CandidateApplications
                             setIsSheetOpen(false);
                             handleOpenReschedule(selectedApp);
                           }}
-                          className="h-8 rounded-xl border-amber-300 dark:border-amber-800/60 bg-amber-50/50 dark:bg-amber-950/20 text-amber-900 dark:text-amber-200 hover:bg-amber-100 dark:hover:bg-amber-900/40 font-bold text-xs gap-1.5 cursor-pointer flex-1"
+                          className="h-8 rounded-xl border-amber-500/30 bg-amber-500/10 text-amber-700 dark:text-amber-300 hover:bg-amber-500/20 font-bold text-xs gap-1.5 cursor-pointer flex-1"
                         >
                           <CalendarClock className="size-3.5 text-amber-600 dark:text-amber-400" />
                           <span>{selectedApp.interviewDetails.status === "reschedule_requested" ? "Cambiar Propuesta" : "Solicitar Reagendar"}</span>
@@ -973,9 +1142,9 @@ export function CandidateApplicationsView({ initialData }: CandidateApplications
                             href={gcalUrl}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="inline-flex items-center justify-center gap-1.5 h-8 px-3 rounded-xl border border-indigo-200 dark:border-indigo-800 bg-white dark:bg-zinc-900 hover:bg-indigo-50 dark:hover:bg-zinc-800 text-indigo-700 dark:text-indigo-300 font-bold text-xs transition-colors shadow-2xs w-full"
+                            className="inline-flex items-center justify-center gap-1.5 h-8 px-3 rounded-xl border border-border bg-background hover:bg-muted text-foreground font-bold text-xs transition-colors shadow-2xs w-full"
                           >
-                            <CalendarPlus className="size-3.5" />
+                            <CalendarPlus className="size-3.5 text-primary" />
                             <span>Añadir a Google Calendar</span>
                           </a>
                         );
@@ -987,7 +1156,7 @@ export function CandidateApplicationsView({ initialData }: CandidateApplications
 
               {/* Formal Employment Contract Section in Modal */}
               {(selectedApp.status === "Contratado" || selectedApp.contract) && (
-                <div className="p-5 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 space-y-3.5">
+                <div className="p-4 sm:p-5 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 space-y-3.5">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2 text-emerald-700 dark:text-emerald-400 font-bold text-sm">
                       <FileCheck2 className="size-4.5" />
@@ -1029,7 +1198,7 @@ export function CandidateApplicationsView({ initialData }: CandidateApplications
                           handleOpenContract(selectedApp.contract!);
                         }}
                         className={cn(
-                          "w-full mt-1.5 h-11 rounded-xl text-xs font-bold gap-2 cursor-pointer shadow-xs",
+                          "w-full mt-1.5 h-10 rounded-xl text-xs font-bold gap-2 cursor-pointer shadow-xs",
                           !selectedApp.contract.employeeSigned
                             ? "bg-amber-600 hover:bg-amber-700 text-white"
                             : "bg-emerald-600 hover:bg-emerald-700 text-white"
@@ -1058,9 +1227,9 @@ export function CandidateApplicationsView({ initialData }: CandidateApplications
 
               {/* Direct WhatsApp Call to Action */}
               {selectedApp.companyPhone && (selectedApp.status === "Preseleccionado" || selectedApp.status === "En revisión") && (
-                <div className="p-5 bg-emerald-500/10 border border-emerald-500/20 rounded-[18px] space-y-3">
-                  <div className="flex items-center gap-2 text-emerald-600 dark:text-emerald-400 font-bold text-sm">
-                    <MessageCircle className="w-5 h-5" />
+                <div className="p-4 bg-emerald-500/10 border border-emerald-500/20 rounded-2xl space-y-3">
+                  <div className="flex items-center gap-2 text-emerald-700 dark:text-emerald-300 font-bold text-sm">
+                    <MessageCircle className="size-4.5" />
                     <span>Contacto directo por WhatsApp</span>
                   </div>
                   <a
@@ -1069,16 +1238,16 @@ export function CandidateApplicationsView({ initialData }: CandidateApplications
                     rel="noopener noreferrer"
                     className="block w-full"
                   >
-                    <Button className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-sm h-12 rounded-[14px] flex items-center justify-center gap-2 border-none cursor-pointer">
-                      Escribir a la empresa
-                      <ExternalLink className="w-4 h-4" />
+                    <Button className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs h-10 rounded-xl flex items-center justify-center gap-2 border-none cursor-pointer">
+                      <span>Escribir a la empresa</span>
+                      <ExternalLink className="size-3.5" />
                     </Button>
                   </a>
                 </div>
               )}
             </div>
 
-            <div className="pt-3">
+            <div className="pt-2">
               <Button
                 variant="outline"
                 onClick={() => {
@@ -1090,7 +1259,7 @@ export function CandidateApplicationsView({ initialData }: CandidateApplications
                   }
                 }}
                 aria-label="Ver ficha de la vacante"
-                className="w-full h-12 rounded-[16px] border-[#ebeef3] dark:border-zinc-700 text-[#1f2732] dark:text-zinc-200 font-bold text-sm cursor-pointer hover:bg-[#f5f7fa] dark:hover:bg-zinc-800"
+                className="w-full h-11 rounded-xl border-border/70 text-foreground font-semibold text-xs cursor-pointer hover:bg-muted"
               >
                 Ver Ficha de la Vacante
               </Button>
@@ -1132,7 +1301,7 @@ export function CandidateApplicationsView({ initialData }: CandidateApplications
   );
 }
 
-/** TanStack Table for Candidate Applications Tabular View */
+/** TanStack Table for Candidate Applications Tabular View (matching Dashboard aesthetics) */
 function CandidateApplicationsTable({
   data,
   onOpenDetail,
@@ -1153,21 +1322,26 @@ function CandidateApplicationsTable({
         header: "Vacante / Empresa",
         cell: ({ row }) => {
           const app = row.original;
+          const companyInitials = app.company ? app.company.substring(0, 2).toUpperCase() : "EM";
+
           return (
             <div className="flex items-center gap-3 py-1">
-              <div className="size-9 rounded-xl bg-[#f5f7fa] dark:bg-zinc-800 flex items-center justify-center shrink-0 font-bold text-xs border border-[#ebeef3] dark:border-zinc-800">
+              <Avatar className="size-10 rounded-xl ring-1 ring-border/60 shrink-0 shadow-2xs">
                 {app.logoUrl ? (
-                  <img src={app.logoUrl} alt={app.company} className="size-full object-cover rounded-xl" />
-                ) : (
-                  <Briefcase className="size-4 text-[#344558] dark:text-zinc-300" />
-                )}
-              </div>
+                  <AvatarImage src={app.logoUrl} alt={app.company} className="object-cover" />
+                ) : null}
+                <AvatarFallback className="rounded-xl font-bold text-xs bg-muted text-foreground">
+                  {companyInitials}
+                </AvatarFallback>
+              </Avatar>
               <div className="flex flex-col min-w-0">
-                <span className="font-extrabold text-sm text-[#1f2732] dark:text-zinc-100 truncate">
+                <span className="font-bold text-sm text-foreground truncate">
                   {app.position}
                 </span>
-                <span className="text-xs text-[#5c7c9b] dark:text-zinc-400 font-semibold truncate">
-                  {app.company} • {app.location}
+                <span className="text-xs text-muted-foreground font-medium truncate flex items-center gap-1">
+                  {app.company}
+                  <CheckCircle2 className="size-3 text-emerald-600 dark:text-emerald-400 shrink-0" />
+                  <span>• {app.location}</span>
                 </span>
               </div>
             </div>
@@ -1179,21 +1353,21 @@ function CandidateApplicationsTable({
         header: ({ column }) => (
           <button
             type="button"
-            className="flex items-center gap-1.5 font-extrabold text-xs uppercase tracking-wider text-[#1f2732] dark:text-zinc-200 hover:text-black dark:hover:text-white transition-colors cursor-pointer select-none"
+            className="flex items-center gap-1.5 font-bold text-xs uppercase tracking-wider text-muted-foreground hover:text-foreground transition-colors cursor-pointer select-none"
             onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
           >
             <span>Fecha</span>
             {column.getIsSorted() === "asc" ? (
-              <ArrowUp className="size-3.5 text-[#1f2732] dark:text-zinc-100" />
+              <ArrowUp className="size-3.5 text-foreground" />
             ) : column.getIsSorted() === "desc" ? (
-              <ArrowDown className="size-3.5 text-[#1f2732] dark:text-zinc-100" />
+              <ArrowDown className="size-3.5 text-foreground" />
             ) : (
-              <ArrowUpDown className="size-3.5 text-[#5c7c9b]/60" />
+              <ArrowUpDown className="size-3.5 text-muted-foreground/60" />
             )}
           </button>
         ),
         cell: ({ row }) => (
-          <span className="text-xs font-semibold text-[#5c7c9b] dark:text-zinc-300">
+          <span className="text-xs font-medium text-muted-foreground">
             {row.original.appliedDate}
           </span>
         ),
@@ -1204,21 +1378,21 @@ function CandidateApplicationsTable({
         header: ({ column }) => (
           <button
             type="button"
-            className="flex items-center gap-1.5 font-extrabold text-xs uppercase tracking-wider text-[#1f2732] dark:text-zinc-200 hover:text-black dark:hover:text-white transition-colors cursor-pointer select-none"
+            className="flex items-center gap-1.5 font-bold text-xs uppercase tracking-wider text-muted-foreground hover:text-foreground transition-colors cursor-pointer select-none"
             onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
           >
-            <span>Rango Salarial</span>
+            <span>Sueldo Mensual</span>
             {column.getIsSorted() === "asc" ? (
-              <ArrowUp className="size-3.5 text-[#1f2732] dark:text-zinc-100" />
+              <ArrowUp className="size-3.5 text-foreground" />
             ) : column.getIsSorted() === "desc" ? (
-              <ArrowDown className="size-3.5 text-[#1f2732] dark:text-zinc-100" />
+              <ArrowDown className="size-3.5 text-foreground" />
             ) : (
-              <ArrowUpDown className="size-3.5 text-[#5c7c9b]/60" />
+              <ArrowUpDown className="size-3.5 text-muted-foreground/60" />
             )}
           </button>
         ),
         cell: ({ row }) => (
-          <span className="text-xs font-bold text-[#1f2732] dark:text-zinc-100">
+          <span className="text-xs font-mono font-bold text-emerald-600 dark:text-emerald-400">
             {formatSalary(row.original.salary_min, row.original.salary_max)}
           </span>
         ),
@@ -1228,16 +1402,16 @@ function CandidateApplicationsTable({
         header: ({ column }) => (
           <button
             type="button"
-            className="flex items-center gap-1.5 font-extrabold text-xs uppercase tracking-wider text-[#1f2732] dark:text-zinc-200 hover:text-black dark:hover:text-white transition-colors cursor-pointer select-none"
+            className="flex items-center gap-1.5 font-bold text-xs uppercase tracking-wider text-muted-foreground hover:text-foreground transition-colors cursor-pointer select-none"
             onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
           >
             <span>Estado</span>
             {column.getIsSorted() === "asc" ? (
-              <ArrowUp className="size-3.5 text-[#1f2732] dark:text-zinc-100" />
+              <ArrowUp className="size-3.5 text-foreground" />
             ) : column.getIsSorted() === "desc" ? (
-              <ArrowDown className="size-3.5 text-[#1f2732] dark:text-zinc-100" />
+              <ArrowDown className="size-3.5 text-foreground" />
             ) : (
-              <ArrowUpDown className="size-3.5 text-[#5c7c9b]/60" />
+              <ArrowUpDown className="size-3.5 text-muted-foreground/60" />
             )}
           </button>
         ),
@@ -1245,27 +1419,7 @@ function CandidateApplicationsTable({
           const app = row.original;
           return (
             <div className="flex flex-col gap-1 items-start">
-              <Badge
-                variant="outline"
-                className={`text-[11px] font-extrabold px-3 py-1 rounded-full flex items-center gap-1.5 w-fit border ${
-                  app.status === "Contratado"
-                    ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/30"
-                    : app.status === "Preseleccionado" || app.status === "En revisión" || app.status === "Entrevista"
-                    ? "bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/30"
-                    : app.status === "Descartado"
-                    ? "bg-rose-500/10 text-rose-600 dark:text-rose-400 border-rose-500/30"
-                    : "bg-[#f5f7fa] text-[#5c7c9b] dark:bg-zinc-800 dark:text-zinc-400 border-[#ebeef3] dark:border-zinc-800"
-                }`}
-              >
-                {app.status === "Contratado" ? (
-                  <CheckCircle2 className="size-3.5" />
-                ) : app.status === "Descartado" ? (
-                  <X className="size-3.5" />
-                ) : (
-                  <Clock className="size-3.5" />
-                )}
-                <span>{app.statusLabel}</span>
-              </Badge>
+              <ApplicationStatusBadge status={app.status} statusLabel={app.statusLabel} />
 
               {app.interviewDetails && (
                 <span
@@ -1275,7 +1429,7 @@ function CandidateApplicationsTable({
                       ? "bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border-emerald-500/20"
                       : app.interviewDetails.status === "reschedule_requested"
                       ? "bg-amber-500/10 text-amber-700 dark:text-amber-300 border-amber-500/20"
-                      : "bg-indigo-500/10 text-indigo-700 dark:text-indigo-300 border-indigo-500/20"
+                      : "bg-primary/10 text-primary border-primary/20"
                   )}
                 >
                   <Calendar className="size-2.5" />
@@ -1329,10 +1483,10 @@ function CandidateApplicationsTable({
                 size="sm"
                 variant="ghost"
                 onClick={() => onOpenDetail(app)}
-                className="h-8 px-2.5 text-xs font-extrabold text-[#344558] dark:text-zinc-200 hover:bg-[#f5f7fa] dark:hover:bg-zinc-800 rounded-xl cursor-pointer"
+                className="h-8 px-2.5 text-xs font-semibold text-muted-foreground hover:text-foreground rounded-xl cursor-pointer"
               >
                 <span>Detalles</span>
-                <ChevronRight className="size-3.5 ml-1" />
+                <ArrowUpRight className="size-3.5 ml-1" />
               </Button>
             </div>
           );
@@ -1360,13 +1514,13 @@ function CandidateApplicationsTable({
   });
 
   return (
-    <div className="border border-[#ebeef3] dark:border-zinc-800 rounded-[22px] bg-white dark:bg-zinc-900 overflow-hidden shadow-xs">
+    <div className="border border-border/70 rounded-3xl bg-card overflow-hidden shadow-2xs">
       <Table className="w-full">
-        <TableHeader className="bg-[#f5f7fa]/80 dark:bg-zinc-900/60 border-b border-[#ebeef3] dark:border-zinc-800">
+        <TableHeader className="bg-muted/40 border-b border-border/70">
           {table.getHeaderGroups().map((headerGroup) => (
             <TableRow key={headerGroup.id} className="hover:bg-transparent border-none">
               {headerGroup.headers.map((header) => (
-                <TableHead key={header.id} className="py-4 px-4 text-xs font-extrabold text-[#1f2732] dark:text-zinc-200">
+                <TableHead key={header.id} className="py-3 px-4 text-xs font-bold text-foreground">
                   {header.isPlaceholder
                     ? null
                     : flexRender(header.column.columnDef.header, header.getContext())}
@@ -1380,10 +1534,10 @@ function CandidateApplicationsTable({
             table.getRowModel().rows.map((row) => (
               <TableRow
                 key={row.id}
-                className="border-b border-[#ebeef3]/60 dark:border-zinc-800/50 hover:bg-[#f5f7fa]/60 dark:hover:bg-zinc-800/40 transition-colors"
+                className="border-b border-border/50 hover:bg-muted/30 transition-colors"
               >
                 {row.getVisibleCells().map((cell) => (
-                  <TableCell key={cell.id} className="px-4 py-3.5">
+                  <TableCell key={cell.id} className="px-4 py-3">
                     {flexRender(cell.column.columnDef.cell, cell.getContext())}
                   </TableCell>
                 ))}
@@ -1391,8 +1545,8 @@ function CandidateApplicationsTable({
             ))
           ) : (
             <TableRow>
-              <TableCell colSpan={columns.length} className="h-28 text-center text-xs font-semibold text-[#5c7c9b]">
-                No hay postulaciones registradas en esta vista.
+              <TableCell colSpan={columns.length} className="h-28 text-center text-xs font-medium text-muted-foreground">
+                No hay postulaciones registradas con estos criterios.
               </TableCell>
             </TableRow>
           )}
@@ -1402,7 +1556,7 @@ function CandidateApplicationsTable({
   );
 }
 
-/** 4-Step Stepper Component matching Flutter _ApplicationStepper */
+/** 4-Step Stepper Component matching Shadcn tokens */
 function ApplicationStepper({ status, progress }: { status: string; progress: number }) {
   const isRejected = status === "Descartado";
   let stepIndex = 0;
@@ -1415,23 +1569,23 @@ function ApplicationStepper({ status, progress }: { status: string; progress: nu
       <div className="flex items-center gap-2">
         {[0, 1, 2, 3].map((idx) => {
           const isCompleted = idx <= stepIndex;
-          let bgColor = "bg-[#ebeef3] dark:bg-zinc-800";
+          let bgColor = "bg-muted";
 
           if (isRejected) {
-            bgColor = idx === 0 ? "bg-blue-600" : "bg-rose-500";
+            bgColor = idx === 0 ? "bg-primary" : "bg-destructive";
           } else if (isCompleted) {
-            bgColor = "bg-[#1f2732] dark:bg-zinc-100";
+            bgColor = "bg-primary";
           }
 
           return (
             <div
               key={idx}
-              className={`h-[8px] flex-1 rounded-[4px] transition-colors ${bgColor}`}
+              className={cn("h-1.5 flex-1 rounded-full transition-colors", bgColor)}
             />
           );
         })}
       </div>
-      <div className="flex items-center justify-between text-[11px] sm:text-[12px] font-extrabold text-[#5c7c9b] dark:text-zinc-400">
+      <div className="flex items-center justify-between text-[11px] font-medium text-muted-foreground">
         <span>Postulado</span>
         <span>En Revisión</span>
         <span>Entrevista</span>
@@ -1441,7 +1595,7 @@ function ApplicationStepper({ status, progress }: { status: string; progress: nu
   );
 }
 
-/** Timeline Step Component matching Flutter _buildTimelineStep */
+/** Timeline Step Component */
 function TimelineStep({
   title,
   subtitle,
@@ -1461,25 +1615,27 @@ function TimelineStep({
     <div className="flex items-start gap-4">
       <div className="flex flex-col items-center">
         <div
-          className={`w-7 h-7 rounded-full flex items-center justify-center border-2 transition-all ${
+          className={cn(
+            "size-7 rounded-full flex items-center justify-center border-2 transition-all",
             isCompleted
-              ? "bg-[#1f2732] dark:bg-zinc-100 border-[#1f2732] dark:border-zinc-100 text-white dark:text-zinc-900"
+              ? "bg-primary border-primary text-primary-foreground"
               : isCurrent
-              ? "bg-[#f5f7fa] dark:bg-zinc-800 border-[#1f2732] dark:border-zinc-300 text-[#7d99b3]"
-              : "bg-[#f5f7fa] dark:bg-zinc-900 border-[#d2dbe5] dark:border-zinc-800 text-[#7d99b3]"
-          }`}
+              ? "bg-card border-primary text-primary"
+              : "bg-muted border-border text-muted-foreground"
+          )}
         >
           {isCompleted ? (
-            <Check className="w-4 h-4 stroke-[3]" />
+            <Check className="size-3.5 stroke-[3]" />
           ) : (
-            <Circle className="w-2.5 h-2.5 fill-current" />
+            <Circle className="size-2 fill-current" />
           )}
         </div>
         {!isLast && (
           <div
-            className={`w-[2.5px] h-[40px] ${
-              isCompleted ? "bg-[#1f2732] dark:bg-zinc-700" : "bg-[#ebeef3] dark:bg-zinc-800"
-            }`}
+            className={cn(
+              "w-0.5 h-10 transition-colors",
+              isCompleted ? "bg-primary" : "bg-muted"
+            )}
           />
         )}
       </div>
@@ -1487,17 +1643,18 @@ function TimelineStep({
       <div className="flex-1 min-w-0 pb-4">
         <div className="flex items-center justify-between gap-2">
           <h5
-            className={`text-[15px] sm:text-[16px] font-bold leading-tight ${
-              isCompleted ? "text-[#1f2732] dark:text-zinc-100" : "text-[#7d99b3]"
-            }`}
+            className={cn(
+              "text-sm font-bold leading-tight",
+              isCompleted ? "text-foreground" : isCurrent ? "text-foreground" : "text-muted-foreground"
+            )}
           >
             {title}
           </h5>
-          <span className="text-[12px] font-semibold text-[#7d99b3]">
+          <span className="text-xs font-medium text-muted-foreground">
             {dateString}
           </span>
         </div>
-        <p className="text-[13px] sm:text-[14px] text-[#5c7c9b] dark:text-zinc-400 mt-1 leading-relaxed">
+        <p className="text-xs text-muted-foreground mt-1 leading-relaxed">
           {subtitle}
         </p>
       </div>
