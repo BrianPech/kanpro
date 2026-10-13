@@ -117,11 +117,11 @@ export interface CompanyDiagnosticContractsSummary {
 export interface CompanyDiagnosticPayrollItem {
   id: string;
   periodName: string;
-  periodType: "semanal" | "quincenal" | "mensual";
+  periodType: "semanal" | "quincenal" | "mensual" | string;
   startDate: string;
   endDate: string;
   payoutDate: string;
-  status: "borrador" | "calculada" | "pagada";
+  status: "borrador" | "calculada" | "pagada" | string;
   employeesCount: number;
   totalGross: number;
   totalNet: number;
@@ -460,18 +460,29 @@ export async function getCompanyFullDiagnostic(
   const totalGrossDispersed = payrollList.reduce((acc, p) => acc + (p.total_gross || 0), 0);
   const totalNetDispersed = payrollList.reduce((acc, p) => acc + (p.total_net || 0), 0);
 
-  const recentPayrolls: CompanyDiagnosticPayrollItem[] = payrollList.slice(0, 10).map((p) => ({
-    id: p.id,
-    periodName: p.period_name,
-    periodType: p.period_type,
-    startDate: p.start_date,
-    endDate: p.end_date,
-    payoutDate: p.payout_date,
-    status: p.status,
-    employeesCount: p.employees_count,
-    totalGross: p.total_gross,
-    totalNet: p.total_net,
-  }));
+  const recentPayrolls: CompanyDiagnosticPayrollItem[] = payrollList.slice(0, 10).map((p) => {
+    const periodType =
+      p.period_type === "semanal" || p.period_type === "mensual"
+        ? p.period_type
+        : "quincenal";
+    const status =
+      p.status === "borrador" || p.status === "pagada"
+        ? p.status
+        : (p.status || "calculada");
+
+    return {
+      id: p.id,
+      periodName: p.period_name,
+      periodType,
+      startDate: p.start_date,
+      endDate: p.end_date,
+      payoutDate: p.payout_date,
+      status,
+      employeesCount: p.employees_count,
+      totalGross: p.total_gross,
+      totalNet: p.total_net,
+    };
+  });
 
   // 9. Support tickets
   const ticketList = rawTickets || [];
