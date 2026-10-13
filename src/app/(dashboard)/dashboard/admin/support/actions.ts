@@ -38,6 +38,19 @@ async function requireAdminAuth() {
   return { supabase, user };
 }
 
+type TicketProfileRelation = {
+  id: string;
+  full_name: string;
+  email: string;
+  role: Database["public"]["Enums"]["user_role"];
+  avatar_url: string | null;
+  whatsapp_number: string;
+};
+
+type SupportTicketWithProfile = SupportTicketRow & {
+  profiles?: TicketProfileRelation | TicketProfileRelation[] | null;
+};
+
 /**
  * Consulta la lista de todos los tickets de soporte desde Supabase.
  * Si la tabla se encuentra vacía, auto-siembra tickets iniciales en PostgreSQL de forma nativa.
@@ -47,34 +60,45 @@ export async function getSupportTickets(): Promise<SupportTicketItem[]> {
 
   const { data: tickets, error } = await supabase
     .from("support_tickets")
-    .select("*")
+    .select("*, profiles!support_tickets_user_id_fkey ( id, full_name, email, role, avatar_url, whatsapp_number )")
     .order("created_at", { ascending: false });
 
   if (error || !tickets || tickets.length === 0) {
     return [];
   }
 
-  return formatTicketList(supabase, tickets);
+  return formatTicketList(supabase, tickets as SupportTicketWithProfile[]);
 }
 
 // Función auxiliar para unir información de perfil y conteo de mensajes
 async function formatTicketList(
   supabase: Awaited<ReturnType<typeof createClient>>,
-  tickets: SupportTicketRow[]
+  tickets: SupportTicketWithProfile[]
 ): Promise<SupportTicketItem[]> {
-  const userIds = Array.from(new Set(tickets.map((t) => t.user_id).filter(Boolean))) as string[];
   const ticketIds = tickets.map((t) => t.id);
 
-  // Consulta paralela optimizada en Supabase
+  // Perfiles faltantes por consultar solo si no vienen ya embebidos
+  const missingUserIds = Array.from(
+    new Set(
+      tickets
+        .filter((t) => t.user_id && !t.profiles)
+        .map((t) => t.user_id as string)
+    )
+  );
+
+  // Consulta paralela optimizada en Supabase con filtro estricto por ticketIds
   const [{ data: userProfiles }, { data: messageCounts }] = await Promise.all([
-    userIds.length > 0
+    missingUserIds.length > 0
       ? supabase
           .from("profiles")
           .select("id, full_name, email, role, avatar_url, whatsapp_number")
-          .in("id", userIds)
+          .in("id", missingUserIds)
       : Promise.resolve({ data: [] }),
     ticketIds.length > 0
-      ? supabase.from("support_ticket_messages").select("ticket_id")
+      ? supabase
+          .from("support_ticket_messages")
+          .select("ticket_id")
+          .in("ticket_id", ticketIds)
       : Promise.resolve({ data: [] }),
   ]);
 
@@ -87,7 +111,8 @@ async function formatTicketList(
   });
 
   return tickets.map((t) => {
-    const p = t.user_id ? profileMap.get(t.user_id) : null;
+    const embedded = Array.isArray(t.profiles) ? t.profiles[0] : t.profiles;
+    const p = embedded || (t.user_id ? profileMap.get(t.user_id) : null);
 
     return {
       id: t.id,
@@ -126,18 +151,18 @@ async function formatTicketList(
 export async function getSupportTicketById(id: string): Promise<SupportTicketItem | null> {
   const { supabase } = await requireAdminAuth();
 
-  // 1. Buscar por UUID de ticket
+  // 1. Buscar por UUID de ticket con perfil embebido
   let { data: ticket } = await supabase
     .from("support_tickets")
-    .select("*")
+    .select("*, profiles!support_tickets_user_id_fkey ( id, full_name, email, role, avatar_url, whatsapp_number )")
     .eq("id", id)
     .maybeSingle();
 
-  // 2. Si no encuentra por UUID, buscar por correlativo ticket_number
+  // 2. Si no encuentra por UUID, buscar por correlativo ticket_number con perfil embebido
   if (!ticket) {
     const { data: ticketByNum } = await supabase
       .from("support_tickets")
-      .select("*")
+      .select("*, profiles!support_tickets_user_id_fkey ( id, full_name, email, role, avatar_url, whatsapp_number )")
       .eq("ticket_number", id)
       .maybeSingle();
     ticket = ticketByNum;
@@ -147,8 +172,9 @@ export async function getSupportTicketById(id: string): Promise<SupportTicketIte
     return null;
   }
 
-  let userProfile = null;
-  if (ticket.user_id) {
+  const embedded = Array.isArray(ticket.profiles) ? ticket.profiles[0] : ticket.profiles;
+  let userProfile = embedded || null;
+  if (!userProfile && ticket.user_id) {
     const { data: p } = await supabase
       .from("profiles")
       .select("id, full_name, email, role, avatar_url, whatsapp_number")

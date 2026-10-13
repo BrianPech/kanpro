@@ -202,7 +202,8 @@ export async function getCompanyDashboardData(): Promise<CompanyDashboardData> {
         .from("company_incidents")
         .select("*")
         .eq("company_id", user.id)
-        .order("incident_date", { ascending: false }),
+        .order("incident_date", { ascending: false })
+        .limit(50),
     ]);
 
     if (companyRes.data) {
@@ -248,139 +249,138 @@ export async function getCompanyDashboardData(): Promise<CompanyDashboardData> {
     // Process Vacancies
     const allVacancies = vacanciesRes.data || [];
     const activeVacancies = allVacancies.filter(
-      (v: any) => v.is_active !== false && v.status !== "Pausada" && v.status !== "Cerrada"
+      (v) => v.is_active !== false && v.status !== "Pausada" && v.status !== "Cerrada"
     );
     kpis.openVacanciesCount = activeVacancies.length;
 
-    const vacIds = allVacancies.map((v: any) => v.id);
-
-    // Process Applications if there are vacancies
-    if (vacIds.length > 0) {
-      const [allAppsRes, appsWithVacancyRes] = await Promise.all([
-        supabase
-          .from("applications")
-          .select("id, status, vacancy_id")
-          .in("vacancy_id", vacIds),
-        supabase
-          .from("applications")
-          .select(`
+    // Process Applications with relational join on vacancies!inner
+    const [allAppsRes, appsWithVacancyRes] = await Promise.all([
+      supabase
+        .from("applications")
+        .select("id, status, vacancy_id, vacancies!inner(company_id)")
+        .eq("vacancies.company_id", user.id),
+      supabase
+        .from("applications")
+        .select(`
+          id,
+          applied_at,
+          status,
+          candidate_id,
+          vacancy_id,
+          vacancies!inner (
             id,
-            applied_at,
-            status,
-            candidate_id,
-            vacancy_id,
-            vacancies (
+            title,
+            company_id
+          ),
+          candidate:candidate_profiles (
+            id,
+            headline,
+            skills,
+            profiles (
               id,
-              title
-            ),
-            candidate:candidate_profiles (
-              id,
-              headline,
-              skills,
-              profiles (
-                id,
-                full_name,
-                avatar_url
-              )
+              full_name,
+              avatar_url
             )
-          `)
-          .in("vacancy_id", vacIds)
-          .order("applied_at", { ascending: false })
-          .limit(8),
-      ]);
+          )
+        `)
+        .eq("vacancies.company_id", user.id)
+        .order("applied_at", { ascending: false })
+        .limit(8),
+    ]);
 
-      const allApps = allAppsRes.data || [];
-      applicationsSummary.total = allApps.length;
-      applicationsSummary.pending = allApps.filter(
-        (a: any) => a.status === "Pendiente" || a.status === "Nuevo"
-      ).length;
-      applicationsSummary.inReview = allApps.filter(
-        (a: any) => a.status === "En revisión" || a.status === "En evaluacion"
-      ).length;
-      applicationsSummary.shortlisted = allApps.filter(
-        (a: any) => a.status === "Preseleccionado" || a.status === "Entrevista"
-      ).length;
-      applicationsSummary.hired = allApps.filter(
-        (a: any) => a.status === "Contratado" || a.status === "Aceptado"
-      ).length;
-      applicationsSummary.rejected = allApps.filter(
-        (a: any) => a.status === "Rechazado" || a.status === "Descartado"
-      ).length;
+    const allApps = allAppsRes.data || [];
+    applicationsSummary.total = allApps.length;
+    applicationsSummary.pending = allApps.filter(
+      (a) => a.status === "Pendiente" || a.status === "Nuevo"
+    ).length;
+    applicationsSummary.inReview = allApps.filter(
+      (a) => a.status === "En revisión" || a.status === "En evaluacion"
+    ).length;
+    applicationsSummary.shortlisted = allApps.filter(
+      (a) => a.status === "Preseleccionado" || a.status === "Entrevista"
+    ).length;
+    applicationsSummary.hired = allApps.filter(
+      (a) => a.status === "Contratado" || a.status === "Aceptado"
+    ).length;
+    applicationsSummary.rejected = allApps.filter(
+      (a) => a.status === "Rechazado" || a.status === "Descartado"
+    ).length;
 
-      kpis.totalApplicationsReceived = allApps.length;
-      kpis.pendingReviewApplications =
-        applicationsSummary.pending + applicationsSummary.inReview;
+    kpis.totalApplicationsReceived = allApps.length;
+    kpis.pendingReviewApplications =
+      applicationsSummary.pending + applicationsSummary.inReview;
 
-      const recentApps = appsWithVacancyRes.data || [];
-      recentCandidates = recentApps.map((app: any) => {
-        const candidateProfile = Array.isArray(app.candidate)
-          ? app.candidate[0]
-          : app.candidate;
-        const baseProfile = candidateProfile?.profiles
-          ? Array.isArray(candidateProfile.profiles)
-            ? candidateProfile.profiles[0]
-            : candidateProfile.profiles
-          : {};
+    const recentApps = appsWithVacancyRes.data || [];
+    recentCandidates = recentApps.map((app) => {
+      const candidateProfile = Array.isArray(app.candidate)
+        ? app.candidate[0]
+        : app.candidate;
+      const baseProfile = candidateProfile?.profiles
+        ? Array.isArray(candidateProfile.profiles)
+          ? candidateProfile.profiles[0]
+          : candidateProfile.profiles
+        : null;
 
-        let skillsList: string[] = [];
-        if (Array.isArray(candidateProfile?.skills)) {
-          skillsList = candidateProfile.skills;
-        } else if (typeof candidateProfile?.skills === "string") {
-          try {
-            skillsList = JSON.parse(candidateProfile.skills);
-          } catch {
-            skillsList = [candidateProfile.skills];
-          }
+      let skillsList: string[] = [];
+      if (Array.isArray(candidateProfile?.skills)) {
+        skillsList = candidateProfile.skills as string[];
+      } else if (typeof candidateProfile?.skills === "string") {
+        try {
+          skillsList = JSON.parse(candidateProfile.skills);
+        } catch {
+          skillsList = [candidateProfile.skills];
         }
+      }
 
-        return {
-          id: app.id,
-          candidateId: candidateProfile?.id || app.candidate_id,
-          candidateName: baseProfile?.full_name || "Candidato K'anPro",
-          candidateHeadline:
-            candidateProfile?.headline || "Profesional en búsqueda activa",
-          candidateAvatar: baseProfile?.avatar_url || null,
-          vacancyId: app.vacancy_id,
-          vacancyTitle: app.vacancies?.title || "Vacante Abierta",
-          status: app.status || "Pendiente",
-          appliedAt: app.applied_at || app.created_at || new Date().toISOString(),
-          skills: skillsList.slice(0, 3),
-        };
-      });
+      const vac = Array.isArray(app.vacancies) ? app.vacancies[0] : app.vacancies;
 
-      recentActivities = recentCandidates.slice(0, 5).map((cand) => ({
-        id: cand.id,
-        candidateName: cand.candidateName,
-        candidateHeadline: cand.candidateHeadline,
-        candidateAvatar: cand.candidateAvatar,
-        vacancyTitle: cand.vacancyTitle,
-        createdAt: cand.appliedAt,
-      }));
+      return {
+        id: app.id,
+        candidateId: candidateProfile?.id || app.candidate_id,
+        candidateName: baseProfile?.full_name || "Candidato K'anPro",
+        candidateHeadline:
+          candidateProfile?.headline || "Profesional en búsqueda activa",
+        candidateAvatar: baseProfile?.avatar_url || null,
+        vacancyId: app.vacancy_id,
+        vacancyTitle: vac?.title || "Vacante Abierta",
+        status: app.status || "Pendiente",
+        appliedAt: app.applied_at || new Date().toISOString(),
+        skills: skillsList.slice(0, 3),
+      };
+    });
 
-      // Build open vacancies top list with candidate counts
-      openVacanciesList = activeVacancies.slice(0, 4).map((vac: any) => {
-        const vacApps = allApps.filter((a: any) => a.vacancy_id === vac.id);
-        const salaryRange =
-          vac.salary_min && vac.salary_max
-            ? `$${vac.salary_min.toLocaleString()} - $${vac.salary_max.toLocaleString()}`
-            : vac.salary_min
-            ? `Desde $${vac.salary_min.toLocaleString()}`
-            : "Sueldo competitivo";
+    recentActivities = recentCandidates.slice(0, 5).map((cand) => ({
+      id: cand.id,
+      candidateName: cand.candidateName,
+      candidateHeadline: cand.candidateHeadline,
+      candidateAvatar: cand.candidateAvatar,
+      vacancyTitle: cand.vacancyTitle,
+      createdAt: cand.appliedAt,
+    }));
 
-        return {
-          id: vac.id,
-          title: vac.title,
-          category: vac.category || "General",
-          location: vac.zone || vac.location || "Presencial",
-          salaryRange,
-          applicationsCount: vacApps.length,
-          newApplicationsCount: vacApps.filter(
-            (a: any) => a.status === "Pendiente" || a.status === "En revisión" || a.status === "Nuevo"
-          ).length,
-          createdAt: vac.created_at,
-        };
-      });
-    }
+    // Build open vacancies top list with candidate counts
+    openVacanciesList = activeVacancies.slice(0, 4).map((vac) => {
+      const vacApps = allApps.filter((a) => a.vacancy_id === vac.id);
+      const salaryRange =
+        vac.salary_min && vac.salary_max
+          ? `$${vac.salary_min.toLocaleString()} - $${vac.salary_max.toLocaleString()}`
+          : vac.salary_min
+          ? `Desde $${vac.salary_min.toLocaleString()}`
+          : "Sueldo competitivo";
+
+      return {
+        id: vac.id,
+        title: vac.title,
+        category: vac.category || "General",
+        location: vac.zone || vac.location || "Presencial",
+        salaryRange,
+        applicationsCount: vacApps.length,
+        newApplicationsCount: vacApps.filter(
+          (a) => a.status === "Pendiente" || a.status === "En revisión" || a.status === "Nuevo"
+        ).length,
+        createdAt: vac.created_at,
+      };
+    });
 
 
     // Process Employees

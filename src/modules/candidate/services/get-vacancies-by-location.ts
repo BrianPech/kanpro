@@ -34,7 +34,28 @@ export async function getVacanciesByLocation(
 
   let query = supabase
     .from("vacancies")
-    .select("id, title, location, modality, salary_min, salary_max, employment_type, category, seniority, skills, created_at, description, benefits, status, company_id")
+    .select(`
+      id,
+      title,
+      location,
+      modality,
+      salary_min,
+      salary_max,
+      employment_type,
+      category,
+      seniority,
+      skills,
+      created_at,
+      description,
+      benefits,
+      status,
+      company_id,
+      company:company_profiles (
+        id,
+        company_name,
+        logo_url
+      )
+    `)
     .or("status.eq.Activa,status.eq.activa,status.eq.published,is_active.eq.true");
 
   if (searchQuery) {
@@ -73,34 +94,36 @@ export async function getVacanciesByLocation(
     return [];
   }
 
-  // 2. Fetch company details for vacancies
-  const companyIds = Array.from(
-    new Set(vacancies.map((v: any) => v.company_id).filter(Boolean))
-  );
-
-  const companies: Record<string, { name: string; logo: string | null }> = {};
-  
-  if (companyIds.length > 0) {
-    const { data: companyProfiles } = await supabase
-      .from("company_directory")
-      .select("id, company_name, logo_url")
-      .in("id", companyIds);
-
-    if (companyProfiles) {
-      companyProfiles.forEach((comp: any) => {
-        companies[comp.id] = {
-          name: comp.company_name || "Empresa",
-          logo: comp.logo_url || null,
-        };
-      });
-    }
+  interface EmbeddedCompanyInfo {
+    id: string;
+    company_name: string | null;
+    logo_url: string | null;
   }
 
-  // 3. Format result to conform with Job interface
-  return vacancies.map((vac: any) => {
-    const companyInfo = companies[vac.company_id];
-    const companyName = companyInfo?.name || "Empresa";
-    const logoUrl = companyInfo?.logo || null;
+  interface DBVacancyItem {
+    id: string;
+    title: string;
+    location: string | null;
+    modality: string | null;
+    salary_min: number | null;
+    salary_max: number | null;
+    employment_type: string | null;
+    category: string | null;
+    seniority: string | null;
+    skills: string[] | null;
+    created_at: string;
+    description: string;
+    benefits: string[] | null;
+    status: string | null;
+    company_id: string;
+    company?: EmbeddedCompanyInfo | EmbeddedCompanyInfo[] | null;
+  }
+
+  // 2. Format result to conform with Job interface using embedded company info
+  return (vacancies as unknown as DBVacancyItem[]).map((vac) => {
+    const comp = Array.isArray(vac.company) ? vac.company[0] : vac.company;
+    const companyName = comp?.company_name || "Empresa";
+    const logoUrl = comp?.logo_url || null;
     const companyInitials = companyName.substring(0, 2).toUpperCase();
 
     let formattedSalary = "";

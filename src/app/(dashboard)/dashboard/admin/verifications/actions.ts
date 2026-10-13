@@ -14,28 +14,68 @@ export interface ProfileDocumentItem {
   createdAt: string;
 }
 
+type ProfileDocumentRow = Database["public"]["Tables"]["profile_documents"]["Row"];
+
+async function batchToAdminDocumentItems(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  docs: ProfileDocumentRow[]
+): Promise<ProfileDocumentItem[]> {
+  if (!docs || docs.length === 0) {
+    return [];
+  }
+
+  const nonHttpPaths = docs
+    .map((d) => d.file_url)
+    .filter((url): url is string => Boolean(url) && !url.startsWith("http://") && !url.startsWith("https://"));
+
+  const uniquePaths = Array.from(new Set(nonHttpPaths));
+  const signedUrlsMap = new Map<string, string>();
+
+  if (uniquePaths.length > 0) {
+    const { data, error } = await supabase.storage
+      .from("profile_documents")
+      .createSignedUrls(uniquePaths, 600);
+
+    if (!error && data) {
+      for (let i = 0; i < data.length; i++) {
+        const item = data[i];
+        if (item?.signedUrl) {
+          if (item.path) {
+            signedUrlsMap.set(item.path, item.signedUrl);
+          }
+          if (uniquePaths[i]) {
+            signedUrlsMap.set(uniquePaths[i], item.signedUrl);
+          }
+        }
+      }
+    }
+  }
+
+  return docs.map((doc) => {
+    const path = doc.file_url;
+    const isHttp = Boolean(path && (path.startsWith("http://") || path.startsWith("https://")));
+    const signedUrl = isHttp ? (path || "") : (path ? signedUrlsMap.get(path) || "" : "");
+
+    return {
+      id: doc.id,
+      docType: doc.doc_type,
+      fileName: doc.file_name,
+      fileUrl: signedUrl,
+      fileSizeBytes: doc.file_size_bytes || undefined,
+      status: doc.status || "pending",
+      createdAt: doc.created_at
+        ? new Date(doc.created_at).toLocaleDateString("es-ES", { day: "numeric", month: "short", year: "numeric" })
+        : "Reciente",
+    };
+  });
+}
+
 async function toAdminDocumentItem(
   supabase: Awaited<ReturnType<typeof createClient>>,
-  doc: Database["public"]["Tables"]["profile_documents"]["Row"]
+  doc: ProfileDocumentRow
 ): Promise<ProfileDocumentItem> {
-  const path = doc.file_url;
-  const { data } = path?.startsWith("http")
-    ? { data: null }
-    : await supabase.storage.from("profile_documents").createSignedUrl(path, 60 * 10);
-
-  return {
-    id: doc.id,
-    docType: doc.doc_type,
-    fileName: doc.file_name,
-    // Old records can retain an external URL temporarily; new records only
-    // contain a private object path and are exposed through this signed URL.
-    fileUrl: data?.signedUrl || (path?.startsWith("http") ? path : ""),
-    fileSizeBytes: doc.file_size_bytes || undefined,
-    status: doc.status || "pending",
-    createdAt: doc.created_at
-      ? new Date(doc.created_at).toLocaleDateString("es-ES", { day: "numeric", month: "short", year: "numeric" })
-      : "Reciente",
-  };
+  const items = await batchToAdminDocumentItems(supabase, [doc]);
+  return items[0];
 }
 
 export interface PendingCompanyItem {
@@ -142,7 +182,7 @@ export async function getCompanyVerifications(): Promise<PendingCompanyItem[]> {
 
   const { data: companies, error } = await supabase
     .from("company_profiles")
-    .select("*")
+    .select("*, profiles ( id, email, whatsapp_number, is_verified )")
     .order("created_at", { ascending: false });
 
   if (error || !companies || companies.length === 0) {
@@ -151,15 +191,7 @@ export async function getCompanyVerifications(): Promise<PendingCompanyItem[]> {
 
   const companyIds = companies.map((c) => c.id);
 
-  // 1. Fetch Profiles
-  const { data: profiles } = await supabase
-    .from("profiles")
-    .select("id, email, whatsapp_number, is_verified")
-    .in("id", companyIds);
-
-  const profileMap = new Map((profiles || []).map((p) => [p.id, p]));
-
-  // 2. Fetch Profile Documents directly from profile_documents table in Supabase PostgreSQL
+  // Consulta por lote de Profile Documents
   const { data: dbDocs } = await supabase
     .from("profile_documents")
     .select("*")
@@ -167,15 +199,23 @@ export async function getCompanyVerifications(): Promise<PendingCompanyItem[]> {
 
   const companyDocsMap = new Map<string, ProfileDocumentItem[]>();
   if (dbDocs && dbDocs.length > 0) {
-    for (const doc of dbDocs) {
+    const signedDocs = await batchToAdminDocumentItems(supabase, dbDocs);
+    for (let i = 0; i < dbDocs.length; i++) {
+      const doc = dbDocs[i];
+      const signedDoc = signedDocs[i];
       const existing = companyDocsMap.get(doc.owner_id) || [];
-      existing.push(await toAdminDocumentItem(supabase, doc));
+      existing.push(signedDoc);
       companyDocsMap.set(doc.owner_id, existing);
     }
   }
 
   return companies.map((c) => {
-    const p = profileMap.get(c.id);
+    const p = (Array.isArray(c.profiles) ? c.profiles[0] : c.profiles) as {
+      id: string;
+      email: string;
+      whatsapp_number: string;
+      is_verified: boolean;
+    } | null | undefined;
     const uploadedDocs = companyDocsMap.get(c.id) || [];
 
     // Helper map for legacy slots
@@ -227,33 +267,34 @@ export async function getCompanyVerifications(): Promise<PendingCompanyItem[]> {
 export async function getCompanyVerificationById(companyId: string): Promise<PendingCompanyItem | null> {
   const { supabase } = await requireAdminAuth();
 
-  const { data: company, error } = await supabase
-    .from("company_profiles")
-    .select("*")
-    .eq("id", companyId)
-    .maybeSingle();
+  const [companyRes, dbDocsRes] = await Promise.all([
+    supabase
+      .from("company_profiles")
+      .select("*, profiles ( id, email, whatsapp_number, is_verified )")
+      .eq("id", companyId)
+      .maybeSingle(),
+    supabase
+      .from("profile_documents")
+      .select("*")
+      .eq("owner_id", companyId),
+  ]);
 
-  if (error || !company) {
+  const company = companyRes.data;
+  if (companyRes.error || !company) {
     return null;
   }
 
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("id, email, whatsapp_number, is_verified")
-    .eq("id", companyId)
-    .maybeSingle();
+  const p = (Array.isArray(company.profiles) ? company.profiles[0] : company.profiles) as {
+    id: string;
+    email: string;
+    whatsapp_number: string;
+    is_verified: boolean;
+  } | null | undefined;
 
-  const { data: dbDocs } = await supabase
-    .from("profile_documents")
-    .select("*")
-    .eq("owner_id", companyId);
-
-  const uploadedDocs: ProfileDocumentItem[] = [];
-  if (dbDocs && dbDocs.length > 0) {
-    for (const doc of dbDocs) {
-      uploadedDocs.push(await toAdminDocumentItem(supabase, doc));
-    }
-  }
+  const dbDocs = dbDocsRes.data || [];
+  const uploadedDocs = dbDocs.length > 0
+    ? await batchToAdminDocumentItems(supabase, dbDocs)
+    : [];
 
   const docMap = new Map(uploadedDocs.map((d) => [d.docType, d.fileUrl]));
 
@@ -273,9 +314,9 @@ export async function getCompanyVerificationById(companyId: string): Promise<Pen
     repseRegistry: company.repse_registry || undefined,
     legalRepName: company.legal_rep_name || undefined,
     verificationStatus: (company.verification_status as PendingCompanyItem["verificationStatus"]) || "pending",
-    isVerified: profile?.is_verified || false,
-    contactEmail: company.corporate_email || profile?.email || "Sin correo",
-    contactPhone: company.contact_phone || profile?.whatsapp_number || "Sin teléfono",
+    isVerified: p?.is_verified || false,
+    contactEmail: company.corporate_email || p?.email || "Sin correo",
+    contactPhone: company.contact_phone || p?.whatsapp_number || "Sin teléfono",
     dbUploadedDocuments: uploadedDocs,
     documents: {
       rfcConstanciaUrl: docMap.get("constancia_situacion_fiscal"),
@@ -302,39 +343,41 @@ export async function getCompanyVerificationById(companyId: string): Promise<Pen
 export async function getCandidateVerificationById(candidateId: string): Promise<PendingCandidateItem | null> {
   const { supabase } = await requireAdminAuth();
 
-  const { data: candidate, error } = await supabase
-    .from("candidate_profiles")
-    .select("*")
-    .eq("id", candidateId)
-    .maybeSingle();
+  const [candidateRes, privateProfileRes, dbDocsRes] = await Promise.all([
+    supabase
+      .from("candidate_profiles")
+      .select("*, profiles ( id, full_name, email, whatsapp_number, is_verified )")
+      .eq("id", candidateId)
+      .maybeSingle(),
+    supabase
+      .from("candidate_private_profiles")
+      .select("id, curp, rfc, cedula_profesional")
+      .eq("id", candidateId)
+      .maybeSingle(),
+    supabase
+      .from("profile_documents")
+      .select("*")
+      .eq("owner_id", candidateId),
+  ]);
 
-  if (error || !candidate) {
+  const candidate = candidateRes.data;
+  if (candidateRes.error || !candidate) {
     return null;
   }
 
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("id, full_name, email, whatsapp_number, is_verified")
-    .eq("id", candidateId)
-    .maybeSingle();
+  const profile = (Array.isArray(candidate.profiles) ? candidate.profiles[0] : candidate.profiles) as {
+    id: string;
+    full_name: string;
+    email: string;
+    whatsapp_number: string;
+    is_verified: boolean;
+  } | null | undefined;
 
-  const { data: privateProfile } = await supabase
-    .from("candidate_private_profiles")
-    .select("id, curp, rfc, cedula_profesional")
-    .eq("id", candidateId)
-    .maybeSingle();
-
-  const { data: dbDocs } = await supabase
-    .from("profile_documents")
-    .select("*")
-    .eq("owner_id", candidateId);
-
-  const uploadedDocs: ProfileDocumentItem[] = [];
-  if (dbDocs && dbDocs.length > 0) {
-    for (const doc of dbDocs) {
-      uploadedDocs.push(await toAdminDocumentItem(supabase, doc));
-    }
-  }
+  const privateProfile = privateProfileRes.data;
+  const dbDocs = dbDocsRes.data || [];
+  const uploadedDocs = dbDocs.length > 0
+    ? await batchToAdminDocumentItems(supabase, dbDocs)
+    : [];
 
   const docMap = new Map(uploadedDocs.map((d) => [d.docType, d.fileUrl]));
 
@@ -381,7 +424,7 @@ export async function getCandidateVerifications(): Promise<PendingCandidateItem[
 
   const { data: candidateProfiles, error } = await supabase
     .from("candidate_profiles")
-    .select("*")
+    .select("*, profiles ( id, full_name, email, whatsapp_number, is_verified )")
     .order("created_at", { ascending: false });
 
   if (error || !candidateProfiles || candidateProfiles.length === 0) {
@@ -390,37 +433,39 @@ export async function getCandidateVerifications(): Promise<PendingCandidateItem[
 
   const candidateIds = candidateProfiles.map((c) => c.id);
 
-  const { data: privateProfiles } = await supabase
-    .from("candidate_private_profiles")
-    .select("id, curp, rfc, cedula_profesional")
-    .in("id", candidateIds);
+  const [{ data: privateProfiles }, { data: dbDocs }] = await Promise.all([
+    supabase
+      .from("candidate_private_profiles")
+      .select("id, curp, rfc, cedula_profesional")
+      .in("id", candidateIds),
+    supabase
+      .from("profile_documents")
+      .select("*")
+      .in("owner_id", candidateIds),
+  ]);
+
   const privateProfileMap = new Map((privateProfiles || []).map((profile) => [profile.id, profile]));
-
-  // 1. Fetch Profiles
-  const { data: profiles } = await supabase
-    .from("profiles")
-    .select("id, full_name, email, whatsapp_number, is_verified")
-    .in("id", candidateIds);
-
-  const profileMap = new Map((profiles || []).map((p) => [p.id, p]));
-
-  // 2. Fetch Profile Documents directly from profile_documents table in Supabase PostgreSQL
-  const { data: dbDocs } = await supabase
-    .from("profile_documents")
-    .select("*")
-    .in("owner_id", candidateIds);
 
   const candidateDocsMap = new Map<string, ProfileDocumentItem[]>();
   if (dbDocs && dbDocs.length > 0) {
-    for (const doc of dbDocs) {
+    const signedDocs = await batchToAdminDocumentItems(supabase, dbDocs);
+    for (let i = 0; i < dbDocs.length; i++) {
+      const doc = dbDocs[i];
+      const signedDoc = signedDocs[i];
       const existing = candidateDocsMap.get(doc.owner_id) || [];
-      existing.push(await toAdminDocumentItem(supabase, doc));
+      existing.push(signedDoc);
       candidateDocsMap.set(doc.owner_id, existing);
     }
   }
 
   return candidateProfiles.map((c) => {
-    const p = profileMap.get(c.id);
+    const p = (Array.isArray(c.profiles) ? c.profiles[0] : c.profiles) as {
+      id: string;
+      full_name: string;
+      email: string;
+      whatsapp_number: string;
+      is_verified: boolean;
+    } | null | undefined;
     const privateProfile = privateProfileMap.get(c.id);
     const uploadedDocs = candidateDocsMap.get(c.id) || [];
     const docMap = new Map(uploadedDocs.map((d) => [d.docType, d.fileUrl]));

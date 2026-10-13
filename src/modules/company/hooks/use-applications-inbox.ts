@@ -254,7 +254,7 @@ export function useApplicationsInbox() {
     }
   }, [applicants, selectedId]);
 
-  // Supabase Realtime subscription for live incoming applications
+  // Supabase Realtime subscription for live incoming notifications
   React.useEffect(() => {
     if (!userId) return;
 
@@ -265,24 +265,14 @@ export function useApplicationsInbox() {
         {
           event: "INSERT",
           schema: "public",
-          table: "applications",
+          table: "notifications",
+          filter: `user_id=eq.${userId}`,
         },
-        () => {
+        (payload: { new?: { title?: string; description?: string; type?: string } }) => {
           queryClient.invalidateQueries({ queryKey: ["company-applications"] });
-          toast.info("¡Nueva postulación recibida en tiempo real!", {
-            description: "Un candidato acaba de postularse a una de tus vacantes.",
+          toast.info(payload.new?.title || "¡Nueva postulación recibida en tiempo real!", {
+            description: payload.new?.description || "Un candidato acaba de postularse a una de tus vacantes.",
           });
-        }
-      )
-      .on(
-        "postgres_changes",
-        {
-          event: "UPDATE",
-          schema: "public",
-          table: "applications",
-        },
-        () => {
-          queryClient.invalidateQueries({ queryKey: ["company-applications"] });
         }
       )
       .subscribe();

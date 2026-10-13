@@ -1131,18 +1131,6 @@ export const companyService = {
   async getApplications(companyId: string, injectedSupabase?: SupabaseClient<Database>) {
     const supabase = injectedSupabase || (await import("@/lib/supabase/client")).createClient();
 
-    const { data: userVacs, error: vacError } = await supabase
-      .from("vacancies")
-      .select("id")
-      .or(`company_id.eq.${companyId},recruiter_id.eq.${companyId}`);
-
-    if (vacError) {
-      console.error("[companyService] Error fetching vacancies for applications:", vacError);
-    }
-
-    const vacIds = (userVacs || []).map((v) => v.id).filter(Boolean);
-    if (vacIds.length === 0) return [];
-
     const { data, error } = await supabase
       .from("applications")
       .select(`
@@ -1157,7 +1145,7 @@ export const companyService = {
         applied_at,
         updated_at,
         vacancy_id,
-        vacancies (
+        vacancies!inner (
           id,
           title,
           company_id
@@ -1179,27 +1167,33 @@ export const companyService = {
           )
         )
       `)
-      .in("vacancy_id", vacIds)
+      .eq("vacancies.company_id", companyId)
       .order("applied_at", { ascending: false });
 
     if (error) throw error;
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    return (data || []).map((app: any) => {
-      const candidateObj = app.candidate || app.candidate_profiles;
+    return (data || []).map((app) => {
+      const candidateObj = app.candidate;
       const candidateProfile = Array.isArray(candidateObj) ? candidateObj[0] : candidateObj;
       const baseProfile = candidateProfile?.profiles
         ? (Array.isArray(candidateProfile.profiles) ? candidateProfile.profiles[0] : candidateProfile.profiles)
-        : {};
+        : null;
 
       const vacObj = app.vacancies;
       const vacancy = Array.isArray(vacObj) ? vacObj[0] : vacObj;
 
-      const interviewData = app.interview_details ? {
-        ...app.interview_details,
-        status: app.interview_status || app.interview_details.status || "pending",
-        scheduledInterviewAt: app.scheduled_interview_at || null,
-      } : null;
+      const rawInterview =
+        typeof app.interview_details === "object" && app.interview_details !== null
+          ? (app.interview_details as Record<string, unknown>)
+          : null;
+
+      const interviewData = rawInterview
+        ? {
+            ...rawInterview,
+            status: app.interview_status || (rawInterview.status as string) || "pending",
+            scheduledInterviewAt: app.scheduled_interview_at || null,
+          }
+        : null;
 
       return {
         ...app,
@@ -1207,18 +1201,18 @@ export const companyService = {
         rating: app.rating ?? 5,
         interview_details: interviewData,
         scheduled_interview_at: app.scheduled_interview_at || null,
-        interview_status: app.interview_status || (interviewData?.status) || null,
+        interview_status: app.interview_status || (rawInterview?.status as string) || null,
         hired_at: app.hired_at || null,
         vacancies: vacancy || { id: app.vacancy_id, title: "Vacante", company_id: companyId },
         candidate: {
-          id: candidateProfile?.id || app.candidate_id || "",
-          full_name: baseProfile.full_name || "Profesional K'anPro",
-          location: baseProfile.location || "Local",
-          avatar_url: baseProfile.avatar_url || "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=120&h=120&fit=crop",
-          email: baseProfile.email || "",
+          id: candidateProfile?.id || "",
+          full_name: baseProfile?.full_name || "Profesional K'anPro",
+          location: baseProfile?.location || "Local",
+          avatar_url: baseProfile?.avatar_url || "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=120&h=120&fit=crop",
+          email: baseProfile?.email || "",
           headline: candidateProfile?.headline || "Candidato",
           bio: candidateProfile?.bio || "Sin biografía disponible.",
-          phone: baseProfile.whatsapp_number || "",
+          phone: baseProfile?.whatsapp_number || "",
           skills: candidateProfile?.skills || [],
           experience: candidateProfile?.experience || [],
           education: candidateProfile?.education || [],

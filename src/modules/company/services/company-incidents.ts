@@ -155,30 +155,27 @@ export class CompanyIncidentsService {
       return [];
     }
 
-    const [incidentsRes, employeesRes] = await Promise.all([
-      this.supabase
-        .from("company_incidents")
-        .select("*")
-        .eq("company_id", companyId)
-        .order("incident_date", { ascending: false })
-        .order("created_at", { ascending: false }),
-      this.supabase
-        .from("company_employees")
-        .select("id, avatar_url")
-        .eq("company_id", companyId),
-    ]);
+    const { data, error } = await this.supabase
+      .from("company_incidents")
+      .select(`
+        *,
+        company_employees (
+          avatar_url
+        )
+      `)
+      .eq("company_id", companyId)
+      .order("incident_date", { ascending: false })
+      .order("created_at", { ascending: false });
 
-    if (incidentsRes.error) {
-      throw new Error(incidentsRes.error.message);
+    if (error) {
+      throw new Error(error.message);
     }
 
-    const avatarMap = new Map<string, string | null>();
-    (employeesRes.data || []).forEach((e) => {
-      if (e.id && e.avatar_url) avatarMap.set(e.id, e.avatar_url);
-    });
-
-    return (incidentsRes.data || []).map((row) => {
-      const avatarUrl = row.employee_id ? avatarMap.get(row.employee_id) || null : null;
+    return (data || []).map((row) => {
+      const emp = Array.isArray(row.company_employees)
+        ? row.company_employees[0]
+        : row.company_employees;
+      const avatarUrl = emp?.avatar_url || null;
       const defaultCategoryLabel =
         CATEGORY_DEFAULT_LABELS[row.category as IncidentCategory] || "Incidencia Laboral";
       return this.mapIncidentRow(row, avatarUrl, row.category_label || defaultCategoryLabel);

@@ -4,6 +4,7 @@ import { SearchVacancy } from "../components/job-search-view";
 export interface SearchFilters {
   query?: string;
   activeFilters?: string[];
+  limit?: number;
 }
 
 /**
@@ -53,16 +54,44 @@ export function matchFuzzy(text: string, search: string): boolean {
   });
 }
 
+interface EmbeddedCompanyProfile {
+  id: string;
+  company_name: string | null;
+  logo_url: string | null;
+  contact_phone: string | null;
+}
+
+interface RawSearchVacancy {
+  id: string;
+  title: string;
+  description: string;
+  location: string | null;
+  modality: string | null;
+  employment_type: string | null;
+  salary_min: number | null;
+  salary_max: number | null;
+  is_promoted: boolean | null;
+  is_featured?: boolean | null;
+  category: string | null;
+  company_id: string;
+  created_at: string;
+  zone: string | null;
+  skills: string[] | null;
+  benefits: string[] | null;
+  requirements: string | null;
+  company?: EmbeddedCompanyProfile | EmbeddedCompanyProfile[] | null;
+}
+
 export const jobSearchService = {
   /**
-   * Performs an optimized, tolerant search on active vacancies.
+   * Performs an optimized, tolerant search on active vacancies with database-level
+   * filtering, pagination/limit, and embedded company profiles.
    */
   async searchVacancies(filters: SearchFilters): Promise<SearchVacancy[]> {
     const supabase = createClient();
-    const { query, activeFilters = [] } = filters;
+    const { query, activeFilters = [], limit = 50 } = filters;
 
-    // 1. Fetch all active vacancies from Supabase
-    const { data: rawVacancies, error } = await supabase
+    let dbQuery = supabase
       .from("vacancies")
       .select(`
         id,
@@ -81,11 +110,28 @@ export const jobSearchService = {
         zone,
         skills,
         benefits,
-        requirements
+        requirements,
+        company:company_profiles (
+          id,
+          company_name,
+          logo_url,
+          contact_phone
+        )
       `)
-      .or("status.eq.Activa,status.eq.activa,status.eq.published,is_active.eq.true")
+      .or("status.eq.Activa,status.eq.activa,status.eq.published,is_active.eq.true");
+
+    const trimmedQuery = query?.trim();
+    if (trimmedQuery) {
+      const term = trimmedQuery.replace(/[%_,]/g, "");
+      dbQuery = dbQuery.or(`title.ilike.%${term}%,description.ilike.%${term}%`);
+    }
+
+    dbQuery = dbQuery
       .order("is_promoted", { ascending: false })
-      .order("created_at", { ascending: false });
+      .order("created_at", { ascending: false })
+      .limit(limit);
+
+    const { data: rawVacancies, error } = await dbQuery;
 
     if (error) {
       console.error("[jobSearchService] Error fetching vacancies from DB:", error.message || error);
@@ -96,36 +142,11 @@ export const jobSearchService = {
       return [];
     }
 
-    // 2. Fetch company profiles in batch
-    const companyIds = Array.from(
-      new Set(rawVacancies.map((v) => v.company_id).filter(Boolean))
-    ) as string[];
-
-    const companies: Record<string, { company_name: string; logo_url: string | null; contact_phone: string | null }> = {};
-
-    if (companyIds.length > 0) {
-      const { data: companyProfiles } = await supabase
-        .from("company_profiles")
-        .select("id, company_name, logo_url, contact_phone")
-        .in("id", companyIds);
-
-      if (companyProfiles) {
-        companyProfiles.forEach((comp) => {
-          companies[comp.id] = {
-            company_name: comp.company_name || "Empresa",
-            logo_url: comp.logo_url || null,
-            contact_phone: comp.contact_phone || null,
-          };
-        });
-      }
-    }
-
-    // 3. Format vacancies
-    const formattedVacancies: SearchVacancy[] = rawVacancies.map((vac) => {
-      const compInfo = companies[vac.company_id];
-      const compName = compInfo?.company_name || "Empresa";
-      const compLogo = compInfo?.logo_url || null;
-      const compPhone = compInfo?.contact_phone || null;
+    const formattedVacancies: SearchVacancy[] = (rawVacancies as unknown as RawSearchVacancy[]).map((vac) => {
+      const comp = Array.isArray(vac.company) ? vac.company[0] : vac.company;
+      const compName = comp?.company_name || "Empresa";
+      const compLogo = comp?.logo_url || null;
+      const compPhone = comp?.contact_phone || null;
 
       let formattedSalary = "";
       const min = Number(vac.salary_min);
@@ -149,7 +170,7 @@ export const jobSearchService = {
         location: vac.location || vac.modality || "Remoto",
         employmentType: vac.employment_type || vac.modality || "Tiempo Completo",
         formattedSalary,
-        isFeatured: !!(vac.is_promoted || vac.is_featured),
+        isFeatured: Boolean(vac.is_promoted || vac.is_featured),
         category: vac.category || "General",
         description: vac.description || "",
         skills: vac.skills || [],
@@ -161,7 +182,11 @@ export const jobSearchService = {
       };
     });
 
-    // 4. Apply tolerant filtering logic (query + every active filter chip)
+    if (activeFilters.length === 0) {
+      return formattedVacancies;
+    }
+
+    // Apply active filter chips to the fetched result set
     return formattedVacancies.filter((vac) => {
       const searchableContent = [
         vac.title,
@@ -174,14 +199,6 @@ export const jobSearchService = {
         ...(Array.isArray(vac.skills) ? vac.skills : [])
       ].join(" ");
 
-      // Check text search query
-      if (query && query.trim()) {
-        if (!matchFuzzy(searchableContent, query.trim())) {
-          return false;
-        }
-      }
-
-      // Check every active filter chip
       for (const filterChip of activeFilters) {
         if (filterChip && filterChip.trim()) {
           if (!matchFuzzy(searchableContent, filterChip.trim())) {
@@ -195,7 +212,7 @@ export const jobSearchService = {
   },
 
   /**
-   * Fetches a single vacancy by its ID with full details.
+   * Fetches a single vacancy by its ID with full details using embedded company profile.
    */
   async getVacancyById(id: string): Promise<SearchVacancy | null> {
     const supabase = createClient();
@@ -218,7 +235,13 @@ export const jobSearchService = {
         zone,
         skills,
         benefits,
-        requirements
+        requirements,
+        company:company_profiles (
+          id,
+          company_name,
+          logo_url,
+          contact_phone
+        )
       `)
       .eq("id", id)
       .maybeSingle();
@@ -227,27 +250,15 @@ export const jobSearchService = {
       return null;
     }
 
-    let compName = "Empresa";
-    let compLogo: string | null = null;
-    let compPhone: string | null = null;
-
-    if (vac.company_id) {
-      const { data: comp } = await supabase
-        .from("company_profiles")
-        .select("company_name, logo_url, contact_phone")
-        .eq("id", vac.company_id)
-        .maybeSingle();
-
-      if (comp) {
-        compName = comp.company_name || "Empresa";
-        compLogo = comp.logo_url || null;
-        compPhone = comp.contact_phone || null;
-      }
-    }
+    const rawVac = vac as unknown as RawSearchVacancy;
+    const comp = Array.isArray(rawVac.company) ? rawVac.company[0] : rawVac.company;
+    const compName = comp?.company_name || "Empresa";
+    const compLogo = comp?.logo_url || null;
+    const compPhone = comp?.contact_phone || null;
 
     let formattedSalary = "";
-    const min = Number(vac.salary_min);
-    const max = Number(vac.salary_max);
+    const min = Number(rawVac.salary_min);
+    const max = Number(rawVac.salary_max);
     if (min && max) {
       formattedSalary = `$${min.toLocaleString()} - $${max.toLocaleString()} MXN`;
     } else if (min) {
@@ -259,23 +270,23 @@ export const jobSearchService = {
     }
 
     return {
-      id: vac.id,
-      title: vac.title || "",
+      id: rawVac.id,
+      title: rawVac.title || "",
       companyName: compName,
       companyLogo: compLogo,
       companyPhone: compPhone,
-      location: vac.location || vac.modality || "Remoto",
-      employmentType: vac.employment_type || vac.modality || "Tiempo Completo",
+      location: rawVac.location || rawVac.modality || "Remoto",
+      employmentType: rawVac.employment_type || rawVac.modality || "Tiempo Completo",
       formattedSalary,
-      isFeatured: !!(vac.is_promoted || vac.is_featured),
-      category: vac.category || "General",
-      description: vac.description || "",
-      skills: vac.skills || [],
-      benefits: vac.benefits || [],
-      requirements: vac.requirements || null,
-      zone: vac.zone || "",
-      modality: vac.modality || "",
-      createdAt: vac.created_at,
+      isFeatured: Boolean(rawVac.is_promoted || rawVac.is_featured),
+      category: rawVac.category || "General",
+      description: rawVac.description || "",
+      skills: rawVac.skills || [],
+      benefits: rawVac.benefits || [],
+      requirements: rawVac.requirements || null,
+      zone: rawVac.zone || "",
+      modality: rawVac.modality || "",
+      createdAt: rawVac.created_at,
     };
   }
 };

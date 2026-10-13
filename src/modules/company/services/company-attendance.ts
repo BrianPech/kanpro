@@ -118,30 +118,7 @@ export class CompanyAttendanceService {
     const now = new Date();
     const { workDate, timeStr, isLate, delayMinutes } = calculateDelayMinutes(scheduledCheckIn, now);
 
-    const { data: existingRecord } = await this.supabase
-      .from("company_attendance")
-      .select("*")
-      .eq("company_id", employee.company_id)
-      .eq("employee_id", employee.id)
-      .eq("work_date", workDate)
-      .maybeSingle();
-
-    if (existingRecord) {
-      const updatePayload = this.buildMobileUpdatePayload(input, timeStr, isLate, delayMinutes);
-      const { data, error } = await this.supabase
-        .from("company_attendance")
-        .update(updatePayload)
-        .eq("id", existingRecord.id)
-        .select()
-        .single();
-
-      if (error || !data) {
-        throw new Error(error?.message || "Error al actualizar registro de asistencia.");
-      }
-      return { record: data, timeStr, isLate, delayMinutes };
-    }
-
-    const insertPayload = this.buildMobileInsertPayload(
+    const upsertPayload = this.buildMobileUpsertPayload(
       employee.company_id,
       employee.id,
       workDate,
@@ -150,11 +127,13 @@ export class CompanyAttendanceService {
       input,
       timeStr,
       isLate,
-      delayMinutes
+      delayMinutes,
+      now
     );
+
     const { data, error } = await this.supabase
       .from("company_attendance")
-      .insert(insertPayload)
+      .upsert(upsertPayload, { onConflict: "company_id,employee_id,work_date" })
       .select()
       .single();
 
@@ -435,41 +414,7 @@ export class CompanyAttendanceService {
     };
   }
 
-  private buildMobileUpdatePayload(
-    input: MobileCheckInInput,
-    timeStr: string,
-    isLate: boolean,
-    delayMinutes: number
-  ): AttendanceUpdate {
-    const updatePayload: AttendanceUpdate = {
-      updated_at: new Date().toISOString(),
-    };
-
-    if (input.actionType === "check_in") {
-      updatePayload.check_in_time = timeStr;
-      updatePayload.check_in_method = input.method;
-      updatePayload.delay_minutes = delayMinutes;
-      updatePayload.status = isLate ? "retardo" : "presente";
-      if (input.coordinates) {
-        updatePayload.check_in_lat = input.coordinates.lat;
-        updatePayload.check_in_lng = input.coordinates.lng;
-        updatePayload.check_in_accuracy = input.coordinates.accuracy ?? null;
-      }
-      if (input.distanceMeters != null) {
-        updatePayload.check_in_distance_meters = input.distanceMeters;
-      }
-    } else if (input.actionType === "check_out") {
-      updatePayload.check_out_time = timeStr;
-    } else if (input.actionType === "break_start") {
-      updatePayload.break_start_time = timeStr;
-    } else if (input.actionType === "break_end") {
-      updatePayload.break_end_time = timeStr;
-    }
-
-    return updatePayload;
-  }
-
-  private buildMobileInsertPayload(
+  private buildMobileUpsertPayload(
     companyId: string,
     employeeId: string,
     workDate: string,
@@ -478,26 +423,40 @@ export class CompanyAttendanceService {
     input: MobileCheckInInput,
     timeStr: string,
     isLate: boolean,
-    delayMinutes: number
+    delayMinutes: number,
+    now: Date
   ): AttendanceInsert {
-    return {
+    const payload: AttendanceInsert = {
       company_id: companyId,
       employee_id: employeeId,
       work_date: workDate,
       scheduled_check_in: scheduledCheckIn,
       scheduled_check_out: scheduledCheckOut,
-      check_in_method: input.method,
-      check_in_time: input.actionType === "check_in" ? timeStr : null,
-      check_out_time: input.actionType === "check_out" ? timeStr : null,
-      break_start_time: input.actionType === "break_start" ? timeStr : null,
-      break_end_time: input.actionType === "break_end" ? timeStr : null,
-      delay_minutes: input.actionType === "check_in" && isLate ? delayMinutes : 0,
-      status: input.actionType === "check_in" && isLate ? "retardo" : "presente",
-      check_in_lat: input.coordinates?.lat ?? null,
-      check_in_lng: input.coordinates?.lng ?? null,
-      check_in_accuracy: input.coordinates?.accuracy ?? null,
-      check_in_distance_meters: input.distanceMeters ?? null,
+      updated_at: now.toISOString(),
     };
+
+    if (input.actionType === "check_in") {
+      payload.check_in_time = timeStr;
+      payload.check_in_method = input.method;
+      payload.delay_minutes = isLate ? delayMinutes : 0;
+      payload.status = isLate ? "retardo" : "presente";
+      if (input.coordinates) {
+        payload.check_in_lat = input.coordinates.lat;
+        payload.check_in_lng = input.coordinates.lng;
+        payload.check_in_accuracy = input.coordinates.accuracy ?? null;
+      }
+      if (input.distanceMeters != null) {
+        payload.check_in_distance_meters = input.distanceMeters;
+      }
+    } else if (input.actionType === "check_out") {
+      payload.check_out_time = timeStr;
+    } else if (input.actionType === "break_start") {
+      payload.break_start_time = timeStr;
+    } else if (input.actionType === "break_end") {
+      payload.break_end_time = timeStr;
+    }
+
+    return payload;
   }
 
   private mapExistingToAttendanceRecord(

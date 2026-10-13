@@ -62,34 +62,53 @@ export function normalizeDateToISO(dateStr: string | null | undefined): string |
   return trimmed;
 }
 
+interface EmbeddedCandidateProfile {
+  headline: string | null;
+  bio: string | null;
+  skills: string[] | null;
+  experience: Json | null;
+  education: Json | null;
+  certifications: Json | null;
+  languages: Json | null;
+  portfolio_links: Json | null;
+  preferred_zone: string | null;
+}
+
+interface EmbeddedPrivateProfile {
+  curp: string | null;
+  birth_date: string | null;
+  rfc: string | null;
+  cedula_profesional: string | null;
+}
+
+interface ProfileWithEmbeds {
+  id: string;
+  full_name: string | null;
+  email: string | null;
+  whatsapp_number: string | null;
+  avatar_url: string | null;
+  location: string | null;
+  candidate_profiles: EmbeddedCandidateProfile | EmbeddedCandidateProfile[] | null;
+  candidate_private_profiles: EmbeddedPrivateProfile | EmbeddedPrivateProfile[] | null;
+}
+
 export const candidateProfileService = {
   /**
    * Safely fetches full candidate profile data directly from `profiles`, `candidate_profiles`,
-   * and `candidate_private_profiles` (with Auth metadata fallback for immediate display).
+   * and `candidate_private_profiles` in a single query using PostgREST Resource Embedding
+   * (with Auth metadata fallback for immediate display).
    */
   async getProfile(userId: string): Promise<CandidateProfileData | null> {
     const supabase = createClient();
 
     try {
       const [
-        { data: profile, error: profileError },
-        { data: candProfile, error: candError },
-        { data: privateProfile, error: privateError },
+        { data: profileDataRaw, error: profileError },
         { data: authUserData }
       ] = await Promise.all([
         supabase
           .from("profiles")
-          .select("id, full_name, email, whatsapp_number, avatar_url, location")
-          .eq("id", userId)
-          .maybeSingle(),
-        supabase
-          .from("candidate_profiles")
-          .select("id, headline, bio, skills, experience, education, certifications, languages, portfolio_links, preferred_zone")
-          .eq("id", userId)
-          .maybeSingle(),
-        supabase
-          .from("candidate_private_profiles")
-          .select("curp, birth_date, rfc, cedula_profesional")
+          .select("id, full_name, email, whatsapp_number, avatar_url, location, candidate_profiles ( headline, bio, skills, experience, education, certifications, languages, portfolio_links, preferred_zone ), candidate_private_profiles ( curp, birth_date, rfc, cedula_profesional )")
           .eq("id", userId)
           .maybeSingle(),
         supabase.auth.getUser()
@@ -99,30 +118,64 @@ export const candidateProfileService = {
         console.error("[candidateProfileService] Error fetching base profile:", profileError.message || profileError);
       }
 
-      if (candError) {
-        console.warn("[candidateProfileService] Warning fetching candidate_profiles:", candError.message || candError);
-      }
-
-      if (privateError) {
-        console.warn("[candidateProfileService] Warning fetching candidate_private_profiles:", privateError.message || privateError);
-      }
+      const profile = profileDataRaw as unknown as ProfileWithEmbeds | null;
 
       if (!profile) {
-        return null;
+        // Fallback to Auth metadata if profiles record is empty
+        const authUser = authUserData?.user;
+        if (!authUser || authUser.id !== userId) {
+          return null;
+        }
+
+        const rawAuthBirthDate = (authUser.user_metadata?.birth_date as string | undefined) || null;
+        return {
+          id: authUser.id,
+          full_name: (authUser.user_metadata?.full_name as string | undefined) || null,
+          email: authUser.email || null,
+          whatsapp_number: (authUser.user_metadata?.whatsapp_number as string | undefined) || null,
+          avatar_url: (authUser.user_metadata?.avatar_url as string | undefined) || null,
+          location: null,
+          headline: null,
+          experience_summary: null,
+          skills: [],
+          experience: [],
+          education: [],
+          certifications: [],
+          languages: [],
+          portfolio_links: [],
+          cv_url: null,
+          is_validated: true,
+          is_approved: true,
+          show_phone: true,
+          curp: null,
+          birth_date: normalizeDateToISO(rawAuthBirthDate),
+          rfc: null,
+          cedula_profesional: null,
+        };
       }
+
+      const candProfileRaw = profile.candidate_profiles;
+      const candProfile: EmbeddedCandidateProfile | null = Array.isArray(candProfileRaw)
+        ? candProfileRaw[0] ?? null
+        : candProfileRaw ?? null;
+
+      const privateProfileRaw = profile.candidate_private_profiles;
+      const privateProfile: EmbeddedPrivateProfile | null = Array.isArray(privateProfileRaw)
+        ? privateProfileRaw[0] ?? null
+        : privateProfileRaw ?? null;
 
       const rawBirthDate =
         privateProfile?.birth_date ||
-        (authUserData?.user?.user_metadata?.birth_date as string) ||
+        (authUserData?.user?.user_metadata?.birth_date as string | undefined) ||
         null;
 
       const normalizedBirthDate = normalizeDateToISO(rawBirthDate);
 
       return {
         id: profile.id,
-        full_name: profile.full_name || authUserData?.user?.user_metadata?.full_name || null,
+        full_name: profile.full_name || (authUserData?.user?.user_metadata?.full_name as string | undefined) || null,
         email: profile.email || authUserData?.user?.email || null,
-        whatsapp_number: profile.whatsapp_number || authUserData?.user?.user_metadata?.whatsapp_number || null,
+        whatsapp_number: profile.whatsapp_number || (authUserData?.user?.user_metadata?.whatsapp_number as string | undefined) || null,
         avatar_url: profile.avatar_url || null,
         location: profile.location || (candProfile?.preferred_zone ? `Mérida - ${candProfile.preferred_zone}` : null),
         headline: candProfile?.headline || null,
@@ -142,8 +195,9 @@ export const candidateProfileService = {
         rfc: privateProfile?.rfc || null,
         cedula_profesional: privateProfile?.cedula_profesional || null,
       };
-    } catch (err: any) {
-      console.error("[candidateProfileService] Unexpected error in getProfile:", err?.message || err);
+    } catch (err: unknown) {
+      const errorMsg = err instanceof Error ? err.message : String(err);
+      console.error("[candidateProfileService] Unexpected error in getProfile:", errorMsg);
       return null;
     }
   },
@@ -165,7 +219,7 @@ export const candidateProfileService = {
       }
 
       return count || 0;
-    } catch (err) {
+    } catch {
       return 0;
     }
   },
@@ -179,14 +233,14 @@ export const candidateProfileService = {
       avatar_url?: string | null;
       curp?: string | null;
       birth_date?: string | null;
-      certifications?: any[] | null;
-      languages?: any[] | null;
+      certifications?: Json | null;
+      languages?: Json | null;
     }
   ) {
     const supabase = createClient();
 
     // 1. Update base profiles table
-    const basePayload: Record<string, any> = {
+    const basePayload: Record<string, unknown> = {
       updated_at: new Date().toISOString(),
     };
     if (data.full_name !== undefined) basePayload.full_name = data.full_name;
@@ -196,7 +250,7 @@ export const candidateProfileService = {
 
     const { error: baseError } = await supabase
       .from("profiles")
-      .update(basePayload as any)
+      .update(basePayload)
       .eq("id", userId);
 
     if (baseError) {
@@ -205,7 +259,7 @@ export const candidateProfileService = {
     }
 
     // 2. Upsert candidate details in candidate_profiles table
-    const candidatePayload: Record<string, any> = {
+    const candidatePayload: Record<string, unknown> = {
       id: userId,
       updated_at: new Date().toISOString(),
     };
@@ -221,7 +275,7 @@ export const candidateProfileService = {
 
     const { data: updatedCandidate, error: candidateError } = await supabase
       .from("candidate_profiles")
-      .upsert(candidatePayload)
+      .upsert(candidatePayload as never)
       .select()
       .maybeSingle();
 
@@ -232,7 +286,7 @@ export const candidateProfileService = {
 
     // 3. Upsert private details in candidate_private_profiles if provided
     if (data.curp !== undefined || data.birth_date !== undefined) {
-      const privatePayload: Record<string, any> = {
+      const privatePayload: Record<string, unknown> = {
         id: userId,
         updated_at: new Date().toISOString(),
       };
@@ -241,7 +295,7 @@ export const candidateProfileService = {
 
       const { error: privateError } = await supabase
         .from("candidate_private_profiles")
-        .upsert(privatePayload);
+        .upsert(privatePayload as never);
 
       if (privateError) {
         console.error("[candidateProfileService] Error updating candidate_private_profiles:", privateError.message || privateError);
@@ -249,7 +303,7 @@ export const candidateProfileService = {
     }
 
     return {
-      ...updatedCandidate,
+      ...(updatedCandidate as Record<string, unknown>),
       full_name: data.full_name,
       location: data.location,
       avatar_url: data.avatar_url,

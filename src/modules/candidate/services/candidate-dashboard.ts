@@ -131,24 +131,72 @@ export async function getCandidateDashboardData(): Promise<CandidateDashboardDat
     }
   }
 
-  // 2. Fetch candidate profile and private info
-  const [{ data: baseProfile }, { data: candProfile }, { data: privateProfile }] = await Promise.all([
-    supabase
-      .from("profiles")
-      .select("id, full_name, email, whatsapp_number, avatar_url, location")
-      .eq("id", user.id)
-      .maybeSingle(),
-    supabase
-      .from("candidate_profiles")
-      .select("id, headline, bio, skills, experience, portfolio_links, preferred_zone")
-      .eq("id", user.id)
-      .maybeSingle(),
-    supabase
-      .from("candidate_private_profiles")
-      .select("rfc, curp, birth_date")
-      .eq("id", user.id)
-      .maybeSingle(),
-  ]);
+  // 2. Fetch candidate profile and private info via PostgREST Resource Embedding
+  const { data: rawProfileData } = await supabase
+    .from("profiles")
+    .select(`
+      id,
+      full_name,
+      email,
+      whatsapp_number,
+      avatar_url,
+      location,
+      candidate_profiles (
+        headline,
+        bio,
+        skills,
+        experience,
+        portfolio_links,
+        preferred_zone
+      ),
+      candidate_private_profiles (
+        rfc,
+        curp,
+        birth_date
+      )
+    `)
+    .eq("id", user.id)
+    .maybeSingle();
+
+  interface EmbeddedCandProfile {
+    headline: string | null;
+    bio: string | null;
+    skills: string[] | null;
+    experience: unknown;
+    portfolio_links: unknown;
+    preferred_zone: string | null;
+  }
+
+  interface EmbeddedPrivProfile {
+    rfc: string | null;
+    curp: string | null;
+    birth_date: string | null;
+  }
+
+  interface BaseProfileWithEmbeds {
+    id: string;
+    full_name: string | null;
+    email: string | null;
+    whatsapp_number: string | null;
+    avatar_url: string | null;
+    location: string | null;
+    candidate_profiles: EmbeddedCandProfile | EmbeddedCandProfile[] | null;
+    candidate_private_profiles: EmbeddedPrivProfile | EmbeddedPrivProfile[] | null;
+  }
+
+  const baseProfile = rawProfileData as unknown as BaseProfileWithEmbeds | null;
+
+  const candProfile: EmbeddedCandProfile | null = baseProfile?.candidate_profiles
+    ? (Array.isArray(baseProfile.candidate_profiles)
+        ? (baseProfile.candidate_profiles[0] ?? null)
+        : baseProfile.candidate_profiles)
+    : null;
+
+  const privateProfile: EmbeddedPrivProfile | null = baseProfile?.candidate_private_profiles
+    ? (Array.isArray(baseProfile.candidate_private_profiles)
+        ? (baseProfile.candidate_private_profiles[0] ?? null)
+        : baseProfile.candidate_private_profiles)
+    : null;
 
   const profileData = baseProfile ? {
     id: baseProfile.id,
@@ -200,7 +248,13 @@ export async function getCandidateDashboardData(): Promise<CandidateDashboardDat
           salary_min,
           salary_max,
           created_at,
-          company_id
+          company_id,
+          company:company_profiles (
+            id,
+            company_name,
+            logo_url,
+            contact_phone
+          )
         )
       `)
       .eq("candidate_id", user.id)
@@ -241,35 +295,90 @@ export async function getCandidateDashboardData(): Promise<CandidateDashboardDat
       .order("created_at", { ascending: false }),
   ]);
 
+  interface EmbeddedCompanyProfile {
+    id: string;
+    company_name: string | null;
+    logo_url: string | null;
+    contact_phone: string | null;
+  }
+
   interface DBApplication {
-    id: string
-    status: string
-    applied_at: string | null
-    created_at?: string | null
-    interview_details?: any
-    scheduled_interview_at?: string | null
-    interview_status?: string | null
-    hired_at?: string | null
+    id: string;
+    status: string;
+    applied_at: string | null;
+    created_at?: string | null;
+    vacancy_id?: string;
+    interview_details?: {
+      date?: string;
+      time?: string;
+      modality?: "presencial" | "virtual";
+      locationOrLink?: string;
+      notes?: string;
+      scheduledAt?: string | null;
+      status?: "pending" | "confirmed" | "rescheduled" | "reschedule_requested" | "cancelled" | "completed" | null;
+      candidateResponseNotes?: string | null;
+      proposedDate?: string | null;
+      proposedTime?: string | null;
+    } | null;
+    scheduled_interview_at?: string | null;
+    interview_status?: string | null;
+    hired_at?: string | null;
     vacancy: {
-      id: string
-      title: string
-      location: string | null
-      modality: string
-      skills: string[] | null
-      salary_min: number | null
-      salary_max: number | null
-      created_at: string
-      company_id: string
-    } | null
+      id: string;
+      title: string;
+      location: string | null;
+      modality: string;
+      skills: string[] | null;
+      salary_min: number | null;
+      salary_max: number | null;
+      created_at: string;
+      company_id: string;
+      company?: EmbeddedCompanyProfile | EmbeddedCompanyProfile[] | null;
+    } | null;
   }
 
   const typedApplications = (dbApplications as unknown as DBApplication[]) || []
+
+  interface DBContractCompany {
+    id: string;
+    company_name: string | null;
+    legal_name: string | null;
+    rfc: string | null;
+    fiscal_address: string | null;
+    legal_rep_name: string | null;
+  }
+
+  interface DBContract {
+    id: string;
+    folio: string;
+    company_id: string;
+    candidate_id: string;
+    employee_id: string | null;
+    application_id: string | null;
+    job_title: string;
+    department: string;
+    contract_type: string;
+    template_type: string;
+    start_date: string;
+    end_date: string | null;
+    salary: number;
+    payment_frequency: string;
+    company_signed: boolean;
+    company_signature_url: string | null;
+    employee_signed: boolean;
+    employee_signature_url: string | null;
+    status: string;
+    created_at: string;
+    company: DBContractCompany | DBContractCompany[] | null;
+  }
 
   // 4. Map contracts by application_id and company_id
   const contractsByAppId: Record<string, CandidateContractSummary> = {};
   const contractsByCompanyId: Record<string, CandidateContractSummary> = {};
 
-  (dbContracts || []).forEach((c: any) => {
+  const typedContracts = (dbContracts as unknown as DBContract[]) || [];
+
+  typedContracts.forEach((c) => {
     const comp = Array.isArray(c.company) ? c.company[0] : c.company;
     const summary: CandidateContractSummary = {
       id: c.id,
@@ -301,11 +410,31 @@ export async function getCandidateDashboardData(): Promise<CandidateDashboardDat
     }
   });
 
-  const pendingContractsCount = (dbContracts || []).filter(
-    (c: any) => !c.employee_signed && c.status !== "cancelado"
+  const pendingContractsCount = typedContracts.filter(
+    (c) => !c.employee_signed && c.status !== "cancelado"
   ).length;
 
-  // 5. Fetch ALL active vacancies (flexible status & is_active checks)
+  interface RawVacancyWithCompany {
+    id: string;
+    title: string;
+    location: string | null;
+    modality: string;
+    employment_type: string | null;
+    salary_min: number | null;
+    salary_max: number | null;
+    is_promoted: boolean | null;
+    is_featured?: boolean | null;
+    category: string | null;
+    company_id: string;
+    created_at: string;
+    status: string | null;
+    is_active: boolean | null;
+    zone: string | null;
+    skills: string[] | null;
+    company?: EmbeddedCompanyProfile | EmbeddedCompanyProfile[] | null;
+  }
+
+  // 5. Fetch ALL active vacancies with embedded company profile directly
   const { data: rawVacancies, error: vacErr } = await supabase
     .from("vacancies")
     .select(`
@@ -322,7 +451,14 @@ export async function getCandidateDashboardData(): Promise<CandidateDashboardDat
       created_at,
       status,
       is_active,
-      zone
+      zone,
+      skills,
+      company:company_profiles (
+        id,
+        company_name,
+        logo_url,
+        contact_phone
+      )
     `)
     .or("is_active.eq.true,status.eq.Activa,status.eq.activa,status.eq.published,status.eq.Publicada")
     .order("created_at", { ascending: false });
@@ -331,42 +467,16 @@ export async function getCandidateDashboardData(): Promise<CandidateDashboardDat
     console.error("[getCandidateDashboardData] Error fetching vacancies:", vacErr.message || vacErr);
   }
 
-  const allActiveVacancies = rawVacancies || [];
+  const allActiveVacancies: RawVacancyWithCompany[] = (rawVacancies as unknown as RawVacancyWithCompany[]) || [];
 
-  // 6. Gather company IDs to fetch company profiles in batch
-  const companyIds = Array.from(
-    new Set([
-      ...typedApplications.map((app) => app.vacancy?.company_id).filter(Boolean),
-      ...allActiveVacancies.map((vac: any) => vac.company_id).filter(Boolean),
-    ])
-  ) as string[];
-
-  const companies: Record<string, { company_name: string; logo_url: string | null; phone: string | null }> = {};
-
-  if (companyIds.length > 0) {
-    const { data: companyProfiles } = await supabase
-      .from("company_profiles")
-      .select("id, company_name, logo_url, contact_phone")
-      .in("id", companyIds);
-
-    if (companyProfiles) {
-      companyProfiles.forEach((comp: any) => {
-        companies[comp.id] = {
-          company_name: comp.company_name || "Empresa",
-          logo_url: comp.logo_url || null,
-          phone: comp.contact_phone || null
-        };
-      });
-    }
-  }
-
-  // 7. Format applications
+  // 6. Format applications directly using embedded company profile from vacancy
   const formattedApplications: CandidateApplication[] = typedApplications.map((app) => {
-    const vacancy = app.vacancy
-    const companyInfo = vacancy ? companies[vacancy.company_id] : null
-    const companyName = companyInfo?.company_name || "Empresa"
-    const logoUrl = companyInfo?.logo_url || null
-    const companyInitials = companyName.substring(0, 2).toUpperCase()
+    const vacancy = app.vacancy;
+    const comp = Array.isArray(vacancy?.company) ? vacancy?.company[0] : vacancy?.company;
+    const companyName = comp?.company_name || "Empresa";
+    const logoUrl = comp?.logo_url || null;
+    const companyPhone = comp?.contact_phone || null;
+    const companyInitials = companyName.substring(0, 2).toUpperCase();
 
     const matchedContract = 
       contractsByAppId[app.id] || 
@@ -430,7 +540,7 @@ export async function getCandidateDashboardData(): Promise<CandidateDashboardDat
         locationOrLink: rawDetails?.locationOrLink || (rawDetails?.modality === "presencial" ? "Oficinas de la empresa" : "Google Meet"),
         notes: rawDetails?.notes || "",
         scheduledAt: rawDetails?.scheduledAt || app.scheduled_interview_at || null,
-        status: (interviewStatus as any) || "pending",
+        status: interviewStatus ?? "pending",
         candidateResponseNotes: rawDetails?.candidateResponseNotes || null,
         proposedDate: rawDetails?.proposedDate || null,
         proposedTime: rawDetails?.proposedTime || null,
@@ -450,7 +560,7 @@ export async function getCandidateDashboardData(): Promise<CandidateDashboardDat
 
     return {
       id: app.id,
-      vacancy_id: vacancy?.id || (app as any).vacancy_id || "",
+      vacancy_id: vacancy?.id || app.vacancy_id || "",
       position: vacancy?.title || "Posición",
       location: vacancy?.location || vacancy?.modality || "Remoto",
       company: companyName,
@@ -464,7 +574,7 @@ export async function getCandidateDashboardData(): Promise<CandidateDashboardDat
       created_at: appDateStr || new Date().toISOString(),
       salary_min: vacancy?.salary_min ?? null,
       salary_max: vacancy?.salary_max ?? null,
-      companyPhone: companyInfo?.phone || null,
+      companyPhone,
       interviewDetails,
       contract: matchedContract,
     }
@@ -486,10 +596,10 @@ export async function getCandidateDashboardData(): Promise<CandidateDashboardDat
     (GEO_CONFIG[candidateCity]?.coords ?? null);
 
   // Helper formatter for vacancy items
-  const formatVacancyItem = (vac: any): VacancyItem => {
-    const compInfo = companies[vac.company_id]
-    const compName = compInfo?.company_name || "Empresa"
-    const compLogo = compInfo?.logo_url || null
+  const formatVacancyItem = (vac: RawVacancyWithCompany): VacancyItem => {
+    const comp = Array.isArray(vac.company) ? vac.company[0] : vac.company;
+    const compName = comp?.company_name || "Empresa";
+    const compLogo = comp?.logo_url || null;
 
     let formattedSalary = ""
     const min = Number(vac.salary_min)
@@ -559,11 +669,11 @@ export async function getCandidateDashboardData(): Promise<CandidateDashboardDat
 
 
   // Featured vacancies (promoted or top vacancies)
-  const promotedList = allActiveVacancies.filter((v: any) => v.is_promoted || v.is_featured);
+  const promotedList = allActiveVacancies.filter((v: RawVacancyWithCompany) => v.is_promoted || v.is_featured);
   const featuredDb = promotedList.length > 0 ? promotedList : allActiveVacancies.slice(0, 4);
 
   // Nearby vacancies: sorted accurately using Haversine distance and city match
-  const sortedNearbyDb = [...allActiveVacancies].sort((a: any, b: any) => {
+  const sortedNearbyDb = [...allActiveVacancies].sort((a: RawVacancyWithCompany, b: RawVacancyWithCompany) => {
     // 1. If candidate has known GPS / Zone coordinates, calculate true Haversine distance
     if (candidateCoords) {
       const cityA = cleanCityName(a.location || "");

@@ -9,7 +9,10 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { TrendingUpIcon, UsersIcon, ShieldCheckIcon, Building2Icon, UserCheckIcon } from "lucide-react";
+import type { Database } from "@/types/supabase";
+import { TrendingUpIcon, ShieldCheckIcon, Building2Icon, UserCheckIcon } from "lucide-react";
+
+type UserRole = Database["public"]["Enums"]["user_role"];
 
 export default async function AdminUsersPage() {
   const supabase = await createClient();
@@ -21,21 +24,24 @@ export default async function AdminUsersPage() {
     .order("created_at", { ascending: false });
 
   // Map real DB profiles exclusively
-  const realUsers: UserItem[] = (dbProfiles || []).map((p) => ({
-    id: p.id,
-    name: p.full_name || "Usuario K’anPro",
-    email: p.email || "Sin correo",
-    role: (p.role as "admin" | "candidate" | "company") || "candidate",
-    status: "Activo",
-    avatar: p.avatar_url || "",
-    createdAt: p.created_at
-      ? new Date(p.created_at).toLocaleDateString("es-ES", {
-          day: "numeric",
-          month: "short",
-          year: "numeric",
-        })
-      : "Reciente",
-  }));
+  const realUsers: UserItem[] = (dbProfiles || []).map((p) => {
+    const role: UserRole = p.role;
+    return {
+      id: p.id,
+      name: p.full_name || "Usuario K’anPro",
+      email: p.email || "Sin correo",
+      role,
+      status: "Activo",
+      avatar: p.avatar_url || "",
+      createdAt: p.created_at
+        ? new Date(p.created_at).toLocaleDateString("es-ES", {
+            day: "numeric",
+            month: "short",
+            year: "numeric",
+          })
+        : "Reciente",
+    };
+  });
 
   const totalUsers = realUsers.length;
   const totalCandidates = realUsers.filter((u) => u.role === "candidate").length;
