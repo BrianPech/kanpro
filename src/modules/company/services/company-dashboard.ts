@@ -166,7 +166,7 @@ export async function getCompanyDashboardData(): Promise<CompanyDashboardData> {
               id,
               full_name,
               avatar_url,
-              phone
+              whatsapp_number
             )
           )
         `)

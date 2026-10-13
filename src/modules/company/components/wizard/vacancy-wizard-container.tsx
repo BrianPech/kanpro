@@ -164,7 +164,7 @@ export function VacancyWizardContainer({
             .maybeSingle(),
           supabase
             .from("profiles")
-            .select("location, full_name, phone")
+            .select("location, full_name, whatsapp_number")
             .eq("id", userId)
             .maybeSingle(),
         ]);
