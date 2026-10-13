@@ -46,6 +46,7 @@ export type Database = {
           sub_role: string
           updated_at: string
         }
+        ComputedFields: never
         Insert: {
           created_at?: string
           department?: string | null
@@ -98,6 +99,7 @@ export type Database = {
           updated_at: string
           vacancy_id: string
         }
+        ComputedFields: never
         Insert: {
           applied_at?: string
           candidate_id: string
@@ -141,6 +143,176 @@ export type Database = {
           },
         ]
       }
+      candidate_certifications: {
+        Row: {
+          candidate_id: string
+          created_at: string
+          credential_url: string | null
+          id: string
+          issue_date: string | null
+          issuer: string
+          name: string
+          updated_at: string
+        }
+        ComputedFields: never
+        Insert: {
+          candidate_id: string
+          created_at?: string
+          credential_url?: string | null
+          id?: string
+          issue_date?: string | null
+          issuer: string
+          name: string
+          updated_at?: string
+        }
+        Update: {
+          candidate_id?: string
+          created_at?: string
+          credential_url?: string | null
+          id?: string
+          issue_date?: string | null
+          issuer?: string
+          name?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "candidate_certifications_candidate_id_fkey"
+            columns: ["candidate_id"]
+            referencedRelation: "candidate_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      candidate_educations: {
+        Row: {
+          candidate_id: string
+          created_at: string
+          degree: string
+          end_date: string | null
+          field_of_study: string | null
+          id: string
+          institution: string
+          is_current: boolean
+          start_date: string | null
+          updated_at: string
+        }
+        ComputedFields: never
+        Insert: {
+          candidate_id: string
+          created_at?: string
+          degree: string
+          end_date?: string | null
+          field_of_study?: string | null
+          id?: string
+          institution: string
+          is_current?: boolean
+          start_date?: string | null
+          updated_at?: string
+        }
+        Update: {
+          candidate_id?: string
+          created_at?: string
+          degree?: string
+          end_date?: string | null
+          field_of_study?: string | null
+          id?: string
+          institution?: string
+          is_current?: boolean
+          start_date?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "candidate_educations_candidate_id_fkey"
+            columns: ["candidate_id"]
+            referencedRelation: "candidate_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      candidate_experiences: {
+        Row: {
+          achievements: string | null
+          candidate_id: string
+          company_name: string
+          created_at: string
+          description: string | null
+          end_date: string | null
+          id: string
+          is_current: boolean
+          position: string
+          start_date: string
+          updated_at: string
+        }
+        ComputedFields: never
+        Insert: {
+          achievements?: string | null
+          candidate_id: string
+          company_name: string
+          created_at?: string
+          description?: string | null
+          end_date?: string | null
+          id?: string
+          is_current?: boolean
+          position: string
+          start_date: string
+          updated_at?: string
+        }
+        Update: {
+          achievements?: string | null
+          candidate_id?: string
+          company_name?: string
+          created_at?: string
+          description?: string | null
+          end_date?: string | null
+          id?: string
+          is_current?: boolean
+          position?: string
+          start_date?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "candidate_experiences_candidate_id_fkey"
+            columns: ["candidate_id"]
+            referencedRelation: "candidate_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      candidate_languages: {
+        Row: {
+          candidate_id: string
+          created_at: string
+          id: string
+          language: string
+          level: string
+        }
+        ComputedFields: never
+        Insert: {
+          candidate_id: string
+          created_at?: string
+          id?: string
+          language: string
+          level?: string
+        }
+        Update: {
+          candidate_id?: string
+          created_at?: string
+          id?: string
+          language?: string
+          level?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "candidate_languages_candidate_id_fkey"
+            columns: ["candidate_id"]
+            referencedRelation: "candidate_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       candidate_private_profiles: {
         Row: {
           birth_date: string | null
@@ -151,6 +323,7 @@ export type Database = {
           rfc: string | null
           updated_at: string
         }
+        ComputedFields: never
         Insert: {
           birth_date?: string | null
           cedula_profesional?: string | null
@@ -187,12 +360,9 @@ export type Database = {
       candidate_profiles: {
         Row: {
           bio: string | null
-          birth_date: string | null
           candidate_type: Database["public"]["Enums"]["candidate_type"]
-          cedula_profesional: string | null
           certifications: Json | null
           created_at: string
-          curp: string | null
           education: Json | null
           experience: Json | null
           headline: string | null
@@ -201,7 +371,6 @@ export type Database = {
           languages: Json | null
           portfolio_links: Json | null
           preferred_zone: string | null
-          rfc: string | null
           skills: string[] | null
           social_links: Json | null
           specialization_area: string | null
@@ -209,14 +378,12 @@ export type Database = {
           updated_at: string
           years_experience: number | null
         }
+        ComputedFields: never
         Insert: {
           bio?: string | null
-          birth_date?: string | null
           candidate_type?: Database["public"]["Enums"]["candidate_type"]
-          cedula_profesional?: string | null
           certifications?: Json | null
           created_at?: string
-          curp?: string | null
           education?: Json | null
           experience?: Json | null
           headline?: string | null
@@ -225,7 +392,6 @@ export type Database = {
           languages?: Json | null
           portfolio_links?: Json | null
           preferred_zone?: string | null
-          rfc?: string | null
           skills?: string[] | null
           social_links?: Json | null
           specialization_area?: string | null
@@ -235,12 +401,9 @@ export type Database = {
         }
         Update: {
           bio?: string | null
-          birth_date?: string | null
           candidate_type?: Database["public"]["Enums"]["candidate_type"]
-          cedula_profesional?: string | null
           certifications?: Json | null
           created_at?: string
-          curp?: string | null
           education?: Json | null
           experience?: Json | null
           headline?: string | null
@@ -249,7 +412,6 @@ export type Database = {
           languages?: Json | null
           portfolio_links?: Json | null
           preferred_zone?: string | null
-          rfc?: string | null
           skills?: string[] | null
           social_links?: Json | null
           specialization_area?: string | null
@@ -307,6 +469,7 @@ export type Database = {
           updated_at: string
           work_date: string
         }
+        ComputedFields: never
         Insert: {
           break_end_time?: string | null
           break_start_time?: string | null
@@ -379,6 +542,12 @@ export type Database = {
           {
             foreignKeyName: "company_attendance_company_id_fkey"
             columns: ["company_id"]
+            referencedRelation: "company_directory"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "company_attendance_company_id_fkey"
+            columns: ["company_id"]
             referencedRelation: "company_profiles"
             referencedColumns: ["id"]
           },
@@ -386,6 +555,59 @@ export type Database = {
             foreignKeyName: "company_attendance_employee_id_fkey"
             columns: ["employee_id"]
             referencedRelation: "company_employees"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      company_branches: {
+        Row: {
+          address: string
+          company_id: string
+          created_at: string
+          id: string
+          is_headquarters: boolean
+          lat: number | null
+          lng: number | null
+          name: string
+          phone: string | null
+          updated_at: string
+        }
+        ComputedFields: never
+        Insert: {
+          address: string
+          company_id: string
+          created_at?: string
+          id?: string
+          is_headquarters?: boolean
+          lat?: number | null
+          lng?: number | null
+          name: string
+          phone?: string | null
+          updated_at?: string
+        }
+        Update: {
+          address?: string
+          company_id?: string
+          created_at?: string
+          id?: string
+          is_headquarters?: boolean
+          lat?: number | null
+          lng?: number | null
+          name?: string
+          phone?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "company_branches_company_id_fkey"
+            columns: ["company_id"]
+            referencedRelation: "company_directory"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "company_branches_company_id_fkey"
+            columns: ["company_id"]
+            referencedRelation: "company_profiles"
             referencedColumns: ["id"]
           },
         ]
@@ -415,6 +637,7 @@ export type Database = {
           template_type: string
           updated_at: string
         }
+        ComputedFields: never
         Insert: {
           application_id?: string | null
           candidate_id?: string | null
@@ -496,79 +719,6 @@ export type Database = {
           },
         ]
       }
-      company_leaves: {
-        Row: {
-          candidate_id: string | null
-          company_id: string
-          created_at: string
-          employee_id: string | null
-          end_date: string
-          id: string
-          reason: string | null
-          rejection_reason: string | null
-          request_type: string
-          reviewed_at: string | null
-          reviewed_by: string | null
-          start_date: string
-          status: string
-          total_working_days: number
-          updated_at: string
-        }
-        Insert: {
-          candidate_id?: string | null
-          company_id: string
-          created_at?: string
-          employee_id?: string | null
-          end_date: string
-          id?: string
-          reason?: string | null
-          rejection_reason?: string | null
-          request_type: string
-          reviewed_at?: string | null
-          reviewed_by?: string | null
-          start_date: string
-          status?: string
-          total_working_days: number
-          updated_at?: string
-        }
-        Update: {
-          candidate_id?: string | null
-          company_id?: string
-          created_at?: string
-          employee_id?: string | null
-          end_date?: string
-          id?: string
-          reason?: string | null
-          rejection_reason?: string | null
-          request_type?: string
-          reviewed_at?: string | null
-          reviewed_by?: string | null
-          start_date?: string
-          status?: string
-          total_working_days?: number
-          updated_at?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "company_leaves_candidate_id_fkey"
-            columns: ["candidate_id"]
-            referencedRelation: "users"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "company_leaves_company_id_fkey"
-            columns: ["company_id"]
-            referencedRelation: "company_profiles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "company_leaves_employee_id_fkey"
-            columns: ["employee_id"]
-            referencedRelation: "company_employees"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       company_employees: {
         Row: {
           avatar_url: string | null
@@ -598,6 +748,7 @@ export type Database = {
           updated_at: string
           work_schedule: string | null
         }
+        ComputedFields: never
         Insert: {
           avatar_url?: string | null
           bank_name?: string | null
@@ -705,6 +856,7 @@ export type Database = {
           teamwork_score: number
           updated_at: string
         }
+        ComputedFields: never
         Insert: {
           attendance_score?: number
           avatar_url?: string | null
@@ -807,6 +959,7 @@ export type Database = {
           title: string
           updated_at: string
         }
+        ComputedFields: never
         Insert: {
           category: string
           category_label?: string | null
@@ -855,11 +1008,138 @@ export type Database = {
           {
             foreignKeyName: "company_incidents_company_id_fkey"
             columns: ["company_id"]
+            referencedRelation: "company_directory"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "company_incidents_company_id_fkey"
+            columns: ["company_id"]
             referencedRelation: "company_profiles"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "company_incidents_employee_id_fkey"
+            columns: ["employee_id"]
+            referencedRelation: "company_employees"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      company_invoices: {
+        Row: {
+          amount: number
+          company_id: string
+          created_at: string
+          currency: string
+          id: string
+          payment_method: string | null
+          plan_name: string
+          status: string
+        }
+        ComputedFields: never
+        Insert: {
+          amount?: number
+          company_id: string
+          created_at?: string
+          currency?: string
+          id?: string
+          payment_method?: string | null
+          plan_name: string
+          status?: string
+        }
+        Update: {
+          amount?: number
+          company_id?: string
+          created_at?: string
+          currency?: string
+          id?: string
+          payment_method?: string | null
+          plan_name?: string
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "company_invoices_company_id_fkey"
+            columns: ["company_id"]
+            referencedRelation: "company_directory"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "company_invoices_company_id_fkey"
+            columns: ["company_id"]
+            referencedRelation: "company_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      company_leaves: {
+        Row: {
+          candidate_id: string | null
+          company_id: string
+          created_at: string
+          employee_id: string | null
+          end_date: string
+          id: string
+          reason: string | null
+          rejection_reason: string | null
+          request_type: string
+          reviewed_at: string | null
+          reviewed_by: string | null
+          start_date: string
+          status: string
+          total_working_days: number
+          updated_at: string
+        }
+        ComputedFields: never
+        Insert: {
+          candidate_id?: string | null
+          company_id: string
+          created_at?: string
+          employee_id?: string | null
+          end_date: string
+          id?: string
+          reason?: string | null
+          rejection_reason?: string | null
+          request_type: string
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          start_date: string
+          status?: string
+          total_working_days: number
+          updated_at?: string
+        }
+        Update: {
+          candidate_id?: string | null
+          company_id?: string
+          created_at?: string
+          employee_id?: string | null
+          end_date?: string
+          id?: string
+          reason?: string | null
+          rejection_reason?: string | null
+          request_type?: string
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          start_date?: string
+          status?: string
+          total_working_days?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "company_leaves_company_id_fkey"
+            columns: ["company_id"]
+            referencedRelation: "company_directory"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "company_leaves_company_id_fkey"
+            columns: ["company_id"]
+            referencedRelation: "company_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "company_leaves_employee_id_fkey"
             columns: ["employee_id"]
             referencedRelation: "company_employees"
             referencedColumns: ["id"]
@@ -876,18 +1156,19 @@ export type Database = {
           employee_id: string | null
           employee_name: string
           environment_score: number
-          guide_type: "guia_i" | "guia_ii" | "guia_iii"
+          guide_type: string
           id: string
           job_title: string | null
           leadership_relations_score: number
           organizational_climate_score: number
-          risk_level: "nulo" | "bajo" | "medio" | "alto" | "muy_alto"
-          status: "borrador" | "completada"
+          risk_level: string
+          status: string
           survey_date: string
           time_organization_score: number
           total_score: number
           updated_at: string
         }
+        ComputedFields: never
         Insert: {
           action_plan?: string | null
           activity_factors_score?: number
@@ -897,13 +1178,13 @@ export type Database = {
           employee_id?: string | null
           employee_name: string
           environment_score?: number
-          guide_type?: "guia_i" | "guia_ii" | "guia_iii"
+          guide_type?: string
           id?: string
           job_title?: string | null
           leadership_relations_score?: number
           organizational_climate_score?: number
-          risk_level?: "nulo" | "bajo" | "medio" | "alto" | "muy_alto"
-          status?: "borrador" | "completada"
+          risk_level?: string
+          status?: string
           survey_date?: string
           time_organization_score?: number
           total_score?: number
@@ -918,19 +1199,25 @@ export type Database = {
           employee_id?: string | null
           employee_name?: string
           environment_score?: number
-          guide_type?: "guia_i" | "guia_ii" | "guia_iii"
+          guide_type?: string
           id?: string
           job_title?: string | null
           leadership_relations_score?: number
           organizational_climate_score?: number
-          risk_level?: "nulo" | "bajo" | "medio" | "alto" | "muy_alto"
-          status?: "borrador" | "completada"
+          risk_level?: string
+          status?: string
           survey_date?: string
           time_organization_score?: number
           total_score?: number
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "company_nom035_surveys_company_id_fkey"
+            columns: ["company_id"]
+            referencedRelation: "company_directory"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "company_nom035_surveys_company_id_fkey"
             columns: ["company_id"]
@@ -941,76 +1228,6 @@ export type Database = {
             foreignKeyName: "company_nom035_surveys_employee_id_fkey"
             columns: ["employee_id"]
             referencedRelation: "company_employees"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      company_payrolls: {
-        Row: {
-          company_id: string
-          created_at: string
-          dispersed_at: string | null
-          employees_count: number
-          end_date: string
-          id: string
-          notes: string | null
-          payout_date: string
-          period_name: string
-          period_type: "semanal" | "quincenal" | "mensual"
-          start_date: string
-          status: "borrador" | "calculada" | "pagada"
-          total_bonuses: number
-          total_deductions: number
-          total_gross: number
-          total_net: number
-          total_overtime: number
-          updated_at: string
-        }
-        Insert: {
-          company_id: string
-          created_at?: string
-          dispersed_at?: string | null
-          employees_count?: number
-          end_date: string
-          id?: string
-          notes?: string | null
-          payout_date: string
-          period_name: string
-          period_type?: "semanal" | "quincenal" | "mensual"
-          start_date: string
-          status?: "borrador" | "calculada" | "pagada"
-          total_bonuses?: number
-          total_deductions?: number
-          total_gross?: number
-          total_net?: number
-          total_overtime?: number
-          updated_at?: string
-        }
-        Update: {
-          company_id?: string
-          created_at?: string
-          dispersed_at?: string | null
-          employees_count?: number
-          end_date?: string
-          id?: string
-          notes?: string | null
-          payout_date?: string
-          period_name?: string
-          period_type?: "semanal" | "quincenal" | "mensual"
-          start_date?: string
-          status?: "borrador" | "calculada" | "pagada"
-          total_bonuses?: number
-          total_deductions?: number
-          total_gross?: number
-          total_net?: number
-          total_overtime?: number
-          updated_at?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "company_payrolls_company_id_fkey"
-            columns: ["company_id"]
-            referencedRelation: "company_profiles"
             referencedColumns: ["id"]
           },
         ]
@@ -1046,6 +1263,7 @@ export type Database = {
           unjustified_absences: number
           updated_at: string
         }
+        ComputedFields: never
         Insert: {
           absence_deductions?: number
           attendance_bonus?: number
@@ -1110,6 +1328,12 @@ export type Database = {
           {
             foreignKeyName: "company_payroll_items_company_id_fkey"
             columns: ["company_id"]
+            referencedRelation: "company_directory"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "company_payroll_items_company_id_fkey"
+            columns: ["company_id"]
             referencedRelation: "company_profiles"
             referencedColumns: ["id"]
           },
@@ -1127,46 +1351,77 @@ export type Database = {
           },
         ]
       }
-      company_invoices: {
+      company_payrolls: {
         Row: {
-          amount: number
           company_id: string
           created_at: string
-          currency: string
+          dispersed_at: string | null
+          employees_count: number
+          end_date: string
           id: string
-          payment_method: string | null
-          plan_name: string
+          notes: string | null
+          payout_date: string
+          period_name: string
+          period_type: string
+          start_date: string
           status: string
+          total_bonuses: number
+          total_deductions: number
+          total_gross: number
+          total_net: number
+          total_overtime: number
+          updated_at: string
         }
+        ComputedFields: never
         Insert: {
-          amount?: number
           company_id: string
           created_at?: string
-          currency?: string
+          dispersed_at?: string | null
+          employees_count?: number
+          end_date: string
           id?: string
-          payment_method?: string | null
-          plan_name: string
+          notes?: string | null
+          payout_date: string
+          period_name: string
+          period_type?: string
+          start_date: string
           status?: string
+          total_bonuses?: number
+          total_deductions?: number
+          total_gross?: number
+          total_net?: number
+          total_overtime?: number
+          updated_at?: string
         }
         Update: {
-          amount?: number
           company_id?: string
           created_at?: string
-          currency?: string
+          dispersed_at?: string | null
+          employees_count?: number
+          end_date?: string
           id?: string
-          payment_method?: string | null
-          plan_name?: string
+          notes?: string | null
+          payout_date?: string
+          period_name?: string
+          period_type?: string
+          start_date?: string
           status?: string
+          total_bonuses?: number
+          total_deductions?: number
+          total_gross?: number
+          total_net?: number
+          total_overtime?: number
+          updated_at?: string
         }
         Relationships: [
           {
-            foreignKeyName: "company_invoices_company_id_fkey"
+            foreignKeyName: "company_payrolls_company_id_fkey"
             columns: ["company_id"]
             referencedRelation: "company_directory"
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "company_invoices_company_id_fkey"
+            foreignKeyName: "company_payrolls_company_id_fkey"
             columns: ["company_id"]
             referencedRelation: "company_profiles"
             referencedColumns: ["id"]
@@ -1209,6 +1464,7 @@ export type Database = {
             | null
           website_url: string | null
         }
+        ComputedFields: never
         Insert: {
           address_details?: string | null
           banner_url?: string | null
@@ -1305,6 +1561,7 @@ export type Database = {
           updated_at: string
           vacancy_id: string | null
         }
+        ComputedFields: never
         Insert: {
           candidate_id: string
           created_at?: string
@@ -1370,6 +1627,7 @@ export type Database = {
           requested_documents: string[]
           status: string
         }
+        ComputedFields: never
         Insert: {
           application_id: string
           approved_at?: string | null
@@ -1444,6 +1702,7 @@ export type Database = {
           token_hash: string
           updated_at: string
         }
+        ComputedFields: never
         Insert: {
           accepted_at?: string | null
           company_id: string
@@ -1513,6 +1772,31 @@ export type Database = {
           },
         ]
       }
+      job_categories: {
+        Row: {
+          created_at: string
+          id: string
+          is_active: boolean
+          name: string
+          slug: string
+        }
+        ComputedFields: never
+        Insert: {
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          name: string
+          slug: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          name?: string
+          slug?: string
+        }
+        Relationships: []
+      }
       notifications: {
         Row: {
           created_at: string
@@ -1524,6 +1808,7 @@ export type Database = {
           type: string
           user_id: string
         }
+        ComputedFields: never
         Insert: {
           created_at?: string
           description: string
@@ -1578,6 +1863,7 @@ export type Database = {
           status: Database["public"]["Enums"]["verification_status"]
           updated_at: string
         }
+        ComputedFields: never
         Insert: {
           created_at?: string
           doc_type: Database["public"]["Enums"]["document_type"]
@@ -1631,6 +1917,7 @@ export type Database = {
           updated_at: string
           whatsapp_number: string
         }
+        ComputedFields: never
         Insert: {
           avatar_url?: string | null
           created_at?: string
@@ -1666,6 +1953,7 @@ export type Database = {
           id: string
           vacancy_id: string
         }
+        ComputedFields: never
         Insert: {
           candidate_id: string
           created_at?: string
@@ -1693,6 +1981,25 @@ export type Database = {
           },
         ]
       }
+      skills_catalog: {
+        Row: {
+          created_at: string
+          id: string
+          name: string
+        }
+        ComputedFields: never
+        Insert: {
+          created_at?: string
+          id?: string
+          name: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          name?: string
+        }
+        Relationships: []
+      }
       support_ticket_messages: {
         Row: {
           created_at: string
@@ -1702,6 +2009,7 @@ export type Database = {
           sender_id: string
           ticket_id: string
         }
+        ComputedFields: never
         Insert: {
           created_at?: string
           id?: string
@@ -1754,6 +2062,7 @@ export type Database = {
           updated_at: string
           user_id: string | null
         }
+        ComputedFields: never
         Insert: {
           assigned_to?: string | null
           category?: string
@@ -1813,6 +2122,7 @@ export type Database = {
         Row: {
           benefits: string[] | null
           category: string
+          category_id: string | null
           company_id: string
           contact_email: string | null
           contact_phone: string | null
@@ -1844,10 +2154,13 @@ export type Database = {
           title: string
           updated_at: string
           zone: string
+          zone_id: string | null
         }
+        ComputedFields: never
         Insert: {
           benefits?: string[] | null
           category: string
+          category_id?: string | null
           company_id: string
           contact_email?: string | null
           contact_phone?: string | null
@@ -1879,10 +2192,12 @@ export type Database = {
           title: string
           updated_at?: string
           zone: string
+          zone_id?: string | null
         }
         Update: {
           benefits?: string[] | null
           category?: string
+          category_id?: string | null
           company_id?: string
           contact_email?: string | null
           contact_phone?: string | null
@@ -1914,8 +2229,15 @@ export type Database = {
           title?: string
           updated_at?: string
           zone?: string
+          zone_id?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "vacancies_category_id_fkey"
+            columns: ["category_id"]
+            referencedRelation: "job_categories"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "vacancies_company_id_fkey"
             columns: ["company_id"]
@@ -1940,6 +2262,12 @@ export type Database = {
             referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "vacancies_zone_id_fkey"
+            columns: ["zone_id"]
+            referencedRelation: "work_zones"
+            referencedColumns: ["id"]
+          },
         ]
       }
       vacancy_reports: {
@@ -1954,6 +2282,7 @@ export type Database = {
           updated_at: string
           vacancy_id: string | null
         }
+        ComputedFields: never
         Insert: {
           action_taken?: string | null
           created_at?: string
@@ -2029,6 +2358,31 @@ export type Database = {
           },
         ]
       }
+      work_zones: {
+        Row: {
+          city: string
+          created_at: string
+          id: string
+          name: string
+          state: string
+        }
+        ComputedFields: never
+        Insert: {
+          city?: string
+          created_at?: string
+          id?: string
+          name: string
+          state?: string
+        }
+        Update: {
+          city?: string
+          created_at?: string
+          id?: string
+          name?: string
+          state?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       candidate_directory: {
@@ -2049,6 +2403,7 @@ export type Database = {
           trade_description: string | null
           years_experience: number | null
         }
+        ComputedFields: never
         Relationships: []
       }
       company_directory: {
@@ -2066,6 +2421,7 @@ export type Database = {
             | null
           website_url: string | null
         }
+        ComputedFields: never
         Insert: {
           banner_url?: string | null
           company_name?: string | null
@@ -2164,12 +2520,12 @@ export type Tables<
   DefaultSchemaTableNameOrOptions extends
     | keyof (DefaultSchema["Tables"] & DefaultSchema["Views"])
     | { schema: keyof DatabaseWithoutInternals },
-  TableName extends DefaultSchemaTableNameOrOptions extends {
+  TableName extends (DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
         DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])
-    : never = never,
+    : never) = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -2193,11 +2549,11 @@ export type TablesInsert<
   DefaultSchemaTableNameOrOptions extends
     | keyof DefaultSchema["Tables"]
     | { schema: keyof DatabaseWithoutInternals },
-  TableName extends DefaultSchemaTableNameOrOptions extends {
+  TableName extends (DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
-    : never = never,
+    : never) = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -2218,11 +2574,11 @@ export type TablesUpdate<
   DefaultSchemaTableNameOrOptions extends
     | keyof DefaultSchema["Tables"]
     | { schema: keyof DatabaseWithoutInternals },
-  TableName extends DefaultSchemaTableNameOrOptions extends {
+  TableName extends (DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
-    : never = never,
+    : never) = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -2243,11 +2599,11 @@ export type Enums<
   DefaultSchemaEnumNameOrOptions extends
     | keyof DefaultSchema["Enums"]
     | { schema: keyof DatabaseWithoutInternals },
-  EnumName extends DefaultSchemaEnumNameOrOptions extends {
+  EnumName extends (DefaultSchemaEnumNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"]
-    : never = never,
+    : never) = never,
 > = DefaultSchemaEnumNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -2260,11 +2616,11 @@ export type CompositeTypes<
   PublicCompositeTypeNameOrOptions extends
     | keyof DefaultSchema["CompositeTypes"]
     | { schema: keyof DatabaseWithoutInternals },
-  CompositeTypeName extends PublicCompositeTypeNameOrOptions extends {
+  CompositeTypeName extends (PublicCompositeTypeNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"]
-    : never = never,
+    : never) = never,
 > = PublicCompositeTypeNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
