@@ -2118,6 +2118,31 @@ export type Database = {
           },
         ]
       }
+      system_settings: {
+        Row: {
+          description: string | null
+          key: string
+          updated_at: string | null
+          updated_by: string | null
+          value: NonNullable<Json>
+        }
+        ComputedFields: never
+        Insert: {
+          description?: string | null
+          key: string
+          updated_at?: string | null
+          updated_by?: string | null
+          value?: NonNullable<Json>
+        }
+        Update: {
+          description?: string | null
+          key?: string
+          updated_at?: string | null
+          updated_by?: string | null
+          value?: NonNullable<Json>
+        }
+        Relationships: []
+      }
       vacancies: {
         Row: {
           benefits: string[] | null
@@ -2322,38 +2347,6 @@ export type Database = {
             foreignKeyName: "vacancy_reports_vacancy_id_fkey"
             columns: ["vacancy_id"]
             referencedRelation: "vacancies"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      system_settings: {
-        Row: {
-          description: string | null
-          key: string
-          updated_at: string
-          updated_by: string | null
-          value: Json
-        }
-        Insert: {
-          description?: string | null
-          key: string
-          updated_at?: string
-          updated_by?: string | null
-          value?: Json
-        }
-        Update: {
-          description?: string | null
-          key?: string
-          updated_at?: string
-          updated_by?: string | null
-          value?: Json
-        }
-        Relationships: [
-          {
-            foreignKeyName: "system_settings_updated_by_fkey"
-            columns: ["updated_by"]
-            isOneToOne: false
-            referencedRelation: "users"
             referencedColumns: ["id"]
           },
         ]
