@@ -72,13 +72,24 @@ export const authService = {
 
     if (authError) throw authError;
 
+    // Check if user already exists (Supabase returns empty identities when email is already registered)
+    if (authData.user && Array.isArray(authData.user.identities) && authData.user.identities.length === 0) {
+      throw new Error("Ya existe una cuenta registrada con este correo electrónico. Por favor inicia sesión.");
+    }
+
     // Auto sign-in to establish authenticated session if session is not returned immediately
     if (authData.user && !authData.session) {
       try {
-        await supabase.auth.signInWithPassword({
+        const { data: signInData } = await supabase.auth.signInWithPassword({
           email: validatedData.email,
           password: validatedData.password,
         });
+        if (signInData?.session) {
+          authData.session = signInData.session;
+          if (signInData.user) {
+            authData.user = signInData.user;
+          }
+        }
       } catch (err) {
         console.warn("Auto sign-in after company registration skipped:", err);
       }
@@ -120,13 +131,24 @@ export const authService = {
 
     if (authError) throw authError;
 
+    // Check if user already exists (Supabase returns empty identities when email is already registered)
+    if (authData.user && Array.isArray(authData.user.identities) && authData.user.identities.length === 0) {
+      throw new Error("Ya existe una cuenta registrada con este correo electrónico. Por favor inicia sesión.");
+    }
+
     // Auto sign-in to establish authenticated session if session is not returned immediately
     if (authData.user && !authData.session) {
       try {
-        await supabase.auth.signInWithPassword({
+        const { data: signInData } = await supabase.auth.signInWithPassword({
           email: validatedData.email,
           password: validatedData.password,
         });
+        if (signInData?.session) {
+          authData.session = signInData.session;
+          if (signInData.user) {
+            authData.user = signInData.user;
+          }
+        }
       } catch (err) {
         console.warn("Auto sign-in after candidate registration skipped:", err);
       }

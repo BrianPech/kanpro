@@ -8,6 +8,7 @@ import { authService } from "../services/auth-service";
 
 export function useCompanyRegisterForm() {
   const [showPassword, setShowPassword] = useState(false);
+  const [isSocialSubmitting, setIsSocialSubmitting] = useState(false);
   const router = useRouter();
 
   const form = useForm<CompanyRegisterValues>({
@@ -16,7 +17,8 @@ export function useCompanyRegisterForm() {
       full_name: "",
       email: "",
       password: "",
-    }
+    },
+    mode: "onTouched",
   });
 
   const onSubmit: SubmitHandler<CompanyRegisterValues> = async (data) => {
@@ -32,17 +34,35 @@ export function useCompanyRegisterForm() {
       }
       
       toast.success("Cuenta creada", {
-        description: "Bienvenido a K'anPro. Serás redirigido al dashboard."
+        description: "Bienvenido a K'anPro. Serás redirigido al panel empresarial.",
       });
       
       router.push("/dashboard/company");
       router.refresh();
     } catch (error: unknown) {
       console.error("Error capturado en onSubmit de empresa:", error);
-      const errorMessage = error instanceof Error ? error.message : "No se pudo crear la cuenta.";
+      let errorMessage = "No se pudo crear la cuenta de empresa.";
+      if (error instanceof Error) {
+        errorMessage = error.message;
+      } else if (typeof error === "string") {
+        errorMessage = error;
+      }
       toast.error("Error al registrar", {
-        description: errorMessage
+        description: errorMessage,
       });
+    }
+  };
+
+  const handleOAuthRegister = async (provider: "google") => {
+    try {
+      setIsSocialSubmitting(true);
+      await authService.signInWithOAuth(provider, "company");
+    } catch (err: unknown) {
+      console.error("Error en registro con Google:", err);
+      const msg = err instanceof Error ? err.message : "No se pudo conectar con Google";
+      toast.error("Error al registrarse con Google", { description: msg });
+    } finally {
+      setIsSocialSubmitting(false);
     }
   };
 
@@ -51,13 +71,22 @@ export function useCompanyRegisterForm() {
     handleSubmit: (onValid: SubmitHandler<CompanyRegisterValues>) =>
       form.handleSubmit(onValid, (errors) => {
         console.error("Errores de validación de Zod:", errors);
-        toast.error("Por favor rellena todos los campos requeridos con datos válidos.");
+        const firstErrorKey = Object.keys(errors)[0] as keyof typeof errors | undefined;
+        const firstErrorMsg = firstErrorKey ? errors[firstErrorKey]?.message : undefined;
+        toast.error("Por favor completa los campos requeridos", {
+          description: typeof firstErrorMsg === "string" ? firstErrorMsg : "Revisa los campos marcados en rojo.",
+        });
       }),
     errors: form.formState.errors,
     isSubmitting: form.formState.isSubmitting,
+    isSocialSubmitting,
     showPassword,
     setShowPassword,
     onSubmit,
+    handleOAuthRegister,
     trigger: form.trigger,
+    setValue: form.setValue,
+    watch: form.watch,
+    formState: form.formState,
   };
 }

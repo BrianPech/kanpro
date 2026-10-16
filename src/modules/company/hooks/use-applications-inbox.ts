@@ -57,6 +57,7 @@ export interface Applicant {
   candidateId: string;
   internalRating?: number;
   internalNotes?: string;
+  isEarlyAccess?: boolean;
 }
 
 interface ApplicationsQueryData {
@@ -227,6 +228,7 @@ export function useApplicationsInbox() {
             vacancyTitle: vacTitle,
             vacancyId: vacId,
             candidateId: profile.id || app.candidate_id || "",
+            isEarlyAccess: profile.is_early_access ?? true,
             portfolio: Array.isArray(profile.portfolio_links)
               ? profile.portfolio_links.map((link: any, idx: number) => ({
                   title: typeof link === "string" ? `Enlace ${idx + 1}` : link?.title || `Proyecto ${idx + 1}`,

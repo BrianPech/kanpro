@@ -1910,6 +1910,7 @@ export type Database = {
           email: string
           full_name: string
           id: string
+          is_early_access: boolean
           is_verified: boolean
           location: string | null
           role: Database["public"]["Enums"]["user_role"]
@@ -1924,6 +1925,7 @@ export type Database = {
           email: string
           full_name: string
           id: string
+          is_early_access?: boolean
           is_verified?: boolean
           location?: string | null
           role?: Database["public"]["Enums"]["user_role"]
@@ -1937,6 +1939,7 @@ export type Database = {
           email?: string
           full_name?: string
           id?: string
+          is_early_access?: boolean
           is_verified?: boolean
           location?: string | null
           role?: Database["public"]["Enums"]["user_role"]
@@ -2388,6 +2391,7 @@ export type Database = {
           full_name: string | null
           headline: string | null
           id: string | null
+          is_early_access: boolean | null
           is_verified: boolean | null
           location: string | null
           preferred_zone: string | null
@@ -2407,6 +2411,7 @@ export type Database = {
           description: string | null
           id: string | null
           industry: string | null
+          is_early_access: boolean | null
           logo_url: string | null
           social_links: Json | null
           verification_status:

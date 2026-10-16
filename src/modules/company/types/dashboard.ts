@@ -129,6 +129,7 @@ export interface SubscriptionSummary {
   featuredVacanciesAllowance: number;
   featuredVacanciesUsed: number;
   verificationStatus: string | null;
+  isEarlyAccess?: boolean;
 }
 
 export interface ApplicationsSummary {
@@ -151,10 +152,12 @@ export interface RecentCandidateItem {
   status: string;
   appliedAt: string;
   skills?: string[];
+  isEarlyAccess?: boolean;
 }
 
 export interface CompanyDashboardData {
   companyName: string;
+  isEarlyAccess?: boolean;
   kpis: WorkforceKPIs;
   alerts: OperationalAlert[];
   expiringContracts: ContractExpirationItem[];

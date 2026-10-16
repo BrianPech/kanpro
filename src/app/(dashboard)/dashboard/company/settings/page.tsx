@@ -38,12 +38,12 @@ export default async function CompanySettingsPage() {
   const hasActiveVacancies = vacancies && vacancies.some((v: { is_active: boolean }) => v.is_active);
   const initialPauseState = hasVacancies ? !hasActiveVacancies : false;
 
-  const p = profile as any;
+  const p = profile;
   const defaultProfile = {
     id: user.id,
     company_name: p?.company_name || "Mi Empresa",
-    credits_available: p?.credits_available ?? 3,
-    contact_channel: p?.contact_channel || "whatsapp",
+    credits_available: p?.credits_available ?? 0,
+    contact_channel: (p as { contact_channel?: string } | null)?.contact_channel || "whatsapp",
     logo_url: p?.logo_url || null,
     description: p?.description || null,
     phone: p?.contact_phone || null,
@@ -56,6 +56,12 @@ export default async function CompanySettingsPage() {
     subscription_period_end: p?.subscription_period_end || null,
     featured_vacancies_allowance: p?.featured_vacancies_allowance ?? 0,
     featured_vacancies_used: p?.featured_vacancies_used ?? 0,
+    rfc: p?.rfc || null,
+    legal_name: p?.legal_name || null,
+    entity_type: p?.entity_type || null,
+    fiscal_address: p?.fiscal_address || null,
+    corporate_email: p?.corporate_email || user.email || null,
+    verification_status: p?.verification_status || null,
   };
 
   return (

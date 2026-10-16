@@ -108,12 +108,12 @@ export function DashboardView({
       {/* 1. Header Principal */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-border/80">
         <div className="space-y-1">
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-wrap">
             <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground bg-muted px-2 py-0.5 rounded-md">
               Portal Empresa
             </span>
-            <Badge variant="outline" className="text-[10px] border-amber-500/30 text-amber-600 dark:text-amber-400 bg-amber-500/10 font-semibold">
-              Canary HR Early Access
+            <Badge variant="outline" className="text-[10px] border-amber-500/30 text-amber-700 dark:text-amber-300 bg-amber-500/10 font-bold gap-1 px-2.5 py-0.5 rounded-full shadow-2xs">
+              ✨ Empresa Pionera • Acceso Anticipado
             </Badge>
           </div>
           <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold tracking-tight text-foreground truncate">
@@ -443,9 +443,16 @@ export function DashboardView({
                             </AvatarFallback>
                           </Avatar>
                           <div className="space-y-0.5 min-w-0">
-                            <p className="text-xs font-bold text-foreground truncate">
-                              {cand.candidateName}
-                            </p>
+                            <div className="flex items-center gap-1.5 flex-wrap">
+                              <p className="text-xs font-bold text-foreground truncate">
+                                {cand.candidateName}
+                              </p>
+                              {cand.isEarlyAccess && (
+                                <Badge variant="outline" className="text-[9px] font-bold bg-amber-500/10 text-amber-700 dark:text-amber-300 border-amber-500/30 px-1 py-0 h-4 shrink-0">
+                                  Pionero
+                                </Badge>
+                              )}
+                            </div>
                             <p className="text-[11px] text-muted-foreground truncate">
                               {cand.vacancyTitle}
                             </p>
@@ -762,9 +769,16 @@ export function DashboardView({
                             </AvatarFallback>
                           </Avatar>
                           <div className="space-y-0.5 min-w-0">
-                            <p className="text-sm font-bold text-foreground truncate">
-                              {cand.candidateName}
-                            </p>
+                            <div className="flex items-center gap-1.5 flex-wrap">
+                              <p className="text-sm font-bold text-foreground truncate">
+                                {cand.candidateName}
+                              </p>
+                              {cand.isEarlyAccess && (
+                                <Badge variant="outline" className="text-[9px] font-bold bg-amber-500/10 text-amber-700 dark:text-amber-300 border-amber-500/30 px-1.5 py-0 h-4.5 shrink-0">
+                                  Pionero
+                                </Badge>
+                              )}
+                            </div>
                             <p className="text-xs text-muted-foreground truncate">
                               {cand.vacancyTitle}
                             </p>

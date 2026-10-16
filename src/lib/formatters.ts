@@ -96,6 +96,16 @@ export function normalizePhone(phoneStr: string | null | undefined): string {
   const cleaned = phoneStr.replace(/[^0-9+]/g, "");
   if (!cleaned) return "";
 
+  // If already starts with +521 and 10 national digits (total 14 chars: +521XXXXXXXXXX)
+  if (cleaned.startsWith("+521") && cleaned.length === 14) {
+    return `+52${cleaned.substring(4)}`;
+  }
+
+  // If 13 digits starting with 521 (e.g. 5219991234567)
+  if (cleaned.length === 13 && cleaned.startsWith("521")) {
+    return `+52${cleaned.substring(3)}`;
+  }
+
   if (cleaned.startsWith("+")) {
     return cleaned;
   }
@@ -110,7 +120,8 @@ export function normalizePhone(phoneStr: string | null | undefined): string {
     return `+${cleaned}`;
   }
 
-  return cleaned.startsWith("+") ? cleaned : `+${cleaned}`;
+  // For partial inputs (e.g. 1-9 digits), preserve raw digits without prepending bogus '+'
+  return cleaned;
 }
 
 /**

@@ -13,6 +13,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { SubscriptionSummary } from "../../types/dashboard";
 import { CompanySettingsModal } from "../company-settings-dialog";
+import { SUBSCRIPTION_PLANS } from "@/config/subscriptions";
 import { cn } from "@/lib/utils";
 
 interface SubscriptionStatusCardProps {
@@ -20,16 +21,17 @@ interface SubscriptionStatusCardProps {
 }
 
 export function SubscriptionStatusCard({ subscription }: SubscriptionStatusCardProps) {
+  const fallbackPlan = SUBSCRIPTION_PLANS.basic;
   const plan = subscription || {
-    planName: "Plan Fundador Pro",
-    planKey: "pro",
+    planName: fallbackPlan.name,
+    planKey: fallbackPlan.id,
     status: "active",
     periodEnd: null,
-    daysRemaining: 30,
-    creditsAvailable: 10,
-    featuredVacanciesAllowance: 3,
-    featuredVacanciesUsed: 1,
-    verificationStatus: "approved",
+    daysRemaining: null,
+    creditsAvailable: fallbackPlan.creditsAllowance,
+    featuredVacanciesAllowance: fallbackPlan.featuredVacanciesAllowance,
+    featuredVacanciesUsed: 0,
+    verificationStatus: null,
   };
 
   const isActive = plan.status === "active" || plan.status === "trialing" || plan.status === "ACTIVO";
@@ -55,24 +57,20 @@ export function SubscriptionStatusCard({ subscription }: SubscriptionStatusCardP
             <Sparkles className="size-4.5" />
           </div>
           <div>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 flex-wrap">
               <h3 className="text-sm font-extrabold text-foreground tracking-tight">
                 Estado de Suscripción
               </h3>
               <Badge
                 variant="outline"
-                className={cn(
-                  "text-[10px] font-extrabold px-2 py-0.2 rounded-full border-none",
-                  isActive
-                    ? "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400"
-                    : "bg-amber-500/15 text-amber-600 dark:text-amber-400"
-                )}
+                className="text-[10px] font-extrabold px-2 py-0.5 rounded-full border-none bg-amber-500/15 text-amber-700 dark:text-amber-300 gap-1"
               >
-                {isActive ? "Activo" : "Por Renovar"}
+                <Sparkles className="size-3 text-amber-500" />
+                Acceso Anticipado • Periodo de Pruebas
               </Badge>
             </div>
             <p className="text-[11px] text-muted-foreground font-semibold">
-              {plan.planName}
+              {plan.planName} • Fase Beta Gratuita
             </p>
           </div>
         </div>
@@ -135,11 +133,7 @@ export function SubscriptionStatusCard({ subscription }: SubscriptionStatusCardP
       <div className="pt-2 border-t border-border/40 flex items-center justify-between gap-2 relative z-10 flex-wrap">
         <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground font-medium">
           <Clock className="size-3 text-muted-foreground" />
-          <span>
-            {plan.daysRemaining !== null
-              ? `Vigencia: ${plan.daysRemaining} días restantes`
-              : "Renovación mensual automática"}
-          </span>
+          <span>Periodo de pruebas gratuito activo sin cargos</span>
         </div>
 
         <CompanySettingsModal

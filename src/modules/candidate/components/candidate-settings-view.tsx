@@ -54,6 +54,7 @@ export function CandidateSettingsView() {
   const [avatarUrl, setAvatarUrl] = React.useState<string | null>(null);
   const [savedCount, setSavedCount] = React.useState<number>(0);
   const [isLoadingProfile, setIsLoadingProfile] = React.useState<boolean>(true);
+  const [isEarlyAccess, setIsEarlyAccess] = React.useState<boolean>(true);
 
   // Support modal state
   const [isSupportOpen, setIsSupportOpen] = React.useState<boolean>(false);
@@ -92,6 +93,9 @@ export function CandidateSettingsView() {
             if (profile.whatsapp_number) setCandidatePhone(profile.whatsapp_number);
             if (profile.experience_summary) setCandidateBio(profile.experience_summary);
             if (profile.skills) setCandidateSkills(profile.skills);
+            if (profile.is_early_access !== undefined && profile.is_early_access !== null) {
+              setIsEarlyAccess(profile.is_early_access);
+            }
             if (profile.avatar_url) {
               setHasAvatar(true);
               setAvatarUrl(profile.avatar_url);
@@ -192,13 +196,19 @@ export function CandidateSettingsView() {
               </AvatarFallback>
             </Avatar>
             <div className="min-w-0 space-y-0.5">
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 flex-wrap">
                 <h2 className="text-base sm:text-lg font-bold text-foreground truncate">
                   {candidateName}
                 </h2>
                 <Badge variant="secondary" className="hidden sm:inline-flex text-[10px] font-medium px-1.5 py-0">
                   Candidato
                 </Badge>
+                {isEarlyAccess && (
+                  <Badge variant="outline" className="text-[10px] font-bold bg-amber-500/10 text-amber-700 dark:text-amber-300 border-amber-500/30 gap-1 px-2 py-0.5">
+                    <Sparkles className="size-3 text-amber-500" />
+                    Pionero • Acceso Anticipado
+                  </Badge>
+                )}
               </div>
               <p className="text-xs sm:text-sm text-muted-foreground truncate">
                 {candidateEmail}

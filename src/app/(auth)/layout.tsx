@@ -1,9 +1,11 @@
 "use client";
 
 import React from "react";
+import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { AuthHeader } from "@/modules/auth/components/auth-header";
-import { cn } from "@/lib/utils";
+import { AuthHeroPanel } from "@/modules/auth/components/auth-hero-panel";
+import { ModeToggle } from "@/components/shared/mode-toggle";
+import { ArrowLeft, Kanban } from "lucide-react";
 
 export default function AuthLayout({
   children,
@@ -12,66 +14,126 @@ export default function AuthLayout({
 }) {
   const pathname = usePathname();
 
-  let viewName = "Iniciar Sesión";
-  let backHref: string | undefined = "/";
-  let isWide = false;
-
-  if (pathname?.startsWith("/register")) {
-    viewName = "Registrarse";
-    if (pathname === "/register") {
-      backHref = "/login";
-      isWide = true;
-    } else {
-      backHref = "/register";
-    }
-  } else if (pathname?.startsWith("/forgot-password")) {
-    viewName = "Recuperar Contraseña";
-    backHref = "/login";
-  } else if (pathname?.startsWith("/reset-password")) {
-    viewName = "Restablecer Contraseña";
-    backHref = "/login";
-  } else if (pathname?.startsWith("/verify-email")) {
-    viewName = "Verificar Correo";
-    backHref = "/login";
-  } else if (pathname?.startsWith("/phone-login")) {
-    viewName = "Iniciar Sesión";
-    backHref = "/login";
-  } else if (pathname?.startsWith("/invite")) {
-    viewName = "Invitación de Empleo";
-    backHref = "/login";
-    isWide = true;
-  }
-
-  if (pathname === "/login") {
-    return <>{children}</>;
-  }
+  // Compute top-right contextual navigation link
+  const isRegister = pathname?.startsWith("/register");
+  const isLogin = pathname === "/login";
+  const isPasswordRecovery =
+    pathname?.startsWith("/forgot-password") ||
+    pathname?.startsWith("/reset-password");
 
   return (
-    <main className="min-h-screen w-full bg-white sm:bg-[#f8fafc] dark:bg-zinc-950 flex flex-col items-center justify-start font-sans selection:bg-[#5c7c9b]/20">
-      {/* 1. Header curvo con patrón geométrico, título y botón de regreso funcional */}
-      <AuthHeader
-        title={viewName}
-        backHref={backHref}
-      />
+    <div className="min-h-screen w-full bg-[#f4f2ee] dark:bg-zinc-950 flex items-center justify-center p-0 sm:p-4 lg:p-6 font-sans selection:bg-primary/20">
+      {/* ── Master Floating Rounded Card Shell ── */}
+      <div className="w-full max-w-[1140px] xl:max-w-[1200px] min-h-screen sm:min-h-[680px] lg:h-[calc(100vh-3rem)] max-h-[920px] bg-card rounded-none sm:rounded-[32px] border-0 sm:border sm:border-border/80 dark:sm:border-white/10 shadow-none sm:shadow-[0_24px_60px_-12px_rgba(0,0,0,0.08)] dark:sm:shadow-[0_24px_60px_-12px_rgba(0,0,0,0.5)] overflow-hidden grid grid-cols-1 lg:grid-cols-12 relative">
+        
+        {/* ── Left Column: Reference-Inspired Ambient Branded Hero Panel (5 cols) ── */}
+        <AuthHeroPanel />
 
-      {/* 2. Contenedor de tarjeta compartida para las rutas de autenticación */}
-      <div
-        className={cn(
-          "w-full px-7 sm:px-0 sm:-mt-14 z-20 relative pb-16",
-          isWide
-            ? "max-w-[560px] sm:max-w-[620px]"
-            : "max-w-[480px] sm:max-w-[500px]"
-        )}
-      >
-        <div
-          className={cn(
-            "w-full bg-white dark:bg-zinc-900 sm:rounded-[28px] sm:shadow-[0_16px_40px_rgba(31,39,50,0.08)] sm:dark:shadow-[0_16px_40px_rgba(0,0,0,0.4)] sm:border sm:border-[#d2dbe5]/50 sm:dark:border-zinc-800/80 sm:p-10 flex flex-col items-center",
-            isWide && "p-6 sm:p-10 gap-6"
-          )}
-        >
-          {children}
-        </div>
+        {/* ── Right Column: Interactive Form & Context Canvas (7 cols) ── */}
+        <main className="col-span-1 lg:col-span-7 xl:col-span-7 flex flex-col justify-between p-5 sm:p-8 lg:p-10 xl:p-12 overflow-y-auto bg-card text-foreground">
+          
+          {/* Top Bar: Brand Logo, Contextual Action Link & Theme Toggle */}
+          <header className="flex items-center justify-between w-full pb-4 sm:pb-6 select-none shrink-0 border-b border-border/40 sm:border-transparent">
+            {/* Logo / Back Link */}
+            <Link
+              href="/"
+              className="inline-flex items-center gap-2.5 group cursor-pointer"
+            >
+              <div className="size-8 rounded-xl bg-primary text-primary-foreground flex items-center justify-center shadow-xs group-hover:scale-105 transition-transform">
+                <Kanban className="size-4" />
+              </div>
+              <span className="font-extrabold text-base tracking-tight text-foreground">
+                K&apos;anPro
+              </span>
+            </Link>
+
+            {/* Top Right Contextual Switch Link & Theme Toggle */}
+            <div className="flex items-center gap-3">
+              <div className="text-xs sm:text-sm font-medium text-muted-foreground flex items-center gap-1.5">
+                {isRegister && (
+                  <>
+                    <span className="hidden sm:inline">¿Ya tienes cuenta?</span>
+                    <Link
+                      href="/login"
+                      className="font-bold text-foreground hover:text-primary transition-colors underline-offset-4 hover:underline"
+                    >
+                      Iniciar Sesión
+                    </Link>
+                  </>
+                )}
+
+                {isLogin && (
+                  <>
+                    <span className="hidden sm:inline">¿No tienes cuenta?</span>
+                    <Link
+                      href="/register"
+                      className="font-bold text-foreground hover:text-primary transition-colors underline-offset-4 hover:underline"
+                    >
+                      Registrarse
+                    </Link>
+                  </>
+                )}
+
+                {isPasswordRecovery && (
+                  <Link
+                    href="/login"
+                    className="inline-flex items-center gap-1 font-bold text-foreground hover:text-primary transition-colors underline-offset-4 hover:underline"
+                  >
+                    <ArrowLeft className="size-3.5" />
+                    <span>Volver a Iniciar Sesión</span>
+                  </Link>
+                )}
+
+                {!isRegister && !isLogin && !isPasswordRecovery && (
+                  <Link
+                    href="/login"
+                    className="font-bold text-foreground hover:text-primary transition-colors underline-offset-4 hover:underline"
+                  >
+                    Iniciar Sesión
+                  </Link>
+                )}
+              </div>
+
+              {/* Mode Toggle for switching between Light and Dark mode */}
+              <div className="pl-2 border-l border-border/60">
+                <ModeToggle className="size-8 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted" />
+              </div>
+            </div>
+          </header>
+
+          {/* Center Content Canvas: Wraps Forms & Views */}
+          <div className="my-auto py-4 sm:py-6 w-full max-w-[440px] mx-auto flex flex-col items-center">
+            {children}
+          </div>
+
+          {/* Bottom Bar: Copyright & Helpful Legal Links */}
+          <footer className="flex flex-col sm:flex-row items-center justify-between gap-2.5 pt-4 sm:pt-6 text-xs text-muted-foreground select-none shrink-0 border-t border-border/40">
+            <span>© 2026 K&apos;anPro. México.</span>
+            <div className="flex items-center gap-4">
+              <Link
+                href="/privacy"
+                className="hover:text-foreground transition-colors"
+              >
+                Aviso de Privacidad
+              </Link>
+              <span>•</span>
+              <Link
+                href="/terms"
+                className="hover:text-foreground transition-colors"
+              >
+                Términos
+              </Link>
+              <span>•</span>
+              <Link
+                href="/contact"
+                className="hover:text-foreground transition-colors"
+              >
+                Soporte
+              </Link>
+            </div>
+          </footer>
+        </main>
       </div>
-    </main>
+    </div>
   );
 }

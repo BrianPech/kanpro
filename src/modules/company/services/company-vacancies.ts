@@ -4,6 +4,7 @@ import type {
   VacancyWizardValues,
   CreateExpressVacancyInput,
 } from "../schemas/vacancies.schema";
+import { getSubscriptionPlan } from "@/config/subscriptions";
 
 export type VacancyRow = Database["public"]["Tables"]["vacancies"]["Row"];
 export type VacancyInsert = Database["public"]["Tables"]["vacancies"]["Insert"];
@@ -24,9 +25,8 @@ export class CompanyVacanciesService {
       .maybeSingle();
 
     const plan = profile?.subscription_plan || "basic";
-    let maxAllowed = 3;
-    if (plan === "pro") maxAllowed = 15;
-    if (plan === "enterprise") maxAllowed = Infinity;
+    const planConfig = getSubscriptionPlan(plan);
+    const maxAllowed = planConfig.maxActiveVacancies;
 
     if (maxAllowed !== Infinity) {
       const { count: activeCount } = await supabase

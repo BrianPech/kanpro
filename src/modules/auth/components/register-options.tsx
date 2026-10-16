@@ -3,7 +3,8 @@
 import * as React from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ArrowRight } from "lucide-react";
+import { ArrowRight, UserCheck, Building2, Check, Sparkles } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
 export function RegisterOptions() {
@@ -15,101 +16,123 @@ export function RegisterOptions() {
   };
 
   return (
-    <>
-      <header className="flex flex-col gap-1.5 items-center text-center">
-        <h1 className="text-[28px] font-extrabold text-[#2f3c4b] dark:text-zinc-50 tracking-[-1px]">
-          Selecciona tu perfil
+    <div className="w-full flex flex-col items-center gap-6">
+      {/* ── Header ── */}
+      <header className="flex flex-col gap-1.5 items-center text-center w-full">
+        <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-primary/10 text-primary text-xs font-bold tracking-wide select-none">
+          <Sparkles className="size-3.5" />
+          <span>Únete a K&apos;anPro</span>
+        </div>
+        <h1 className="text-2xl sm:text-3xl font-extrabold text-foreground tracking-tight">
+          Selecciona tu Perfil
         </h1>
-        <p className="text-[14px] text-[#5c7c9b] dark:text-zinc-400 font-medium max-w-sm leading-relaxed">
-          Elige si te registras como candidato en búsqueda de empleo o como empresa.
+        <p className="text-xs sm:text-sm text-muted-foreground max-w-sm leading-relaxed">
+          Elige si te registras como candidato en búsqueda de empleo o como empresa empleadora.
         </p>
       </header>
 
-      {/* Roles Selector */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 w-full">
-        {/* Card Candidato */}
+      {/* ── Roles Selector ── */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5 w-full">
+        {/* Card: Candidato */}
         <button
           type="button"
           onClick={() => setSelectedRole("candidate")}
           className={cn(
-            "flex flex-col items-center gap-4 bg-[#f5f7fa] dark:bg-zinc-900 border-2 rounded-[20px] p-6 shadow-[0_4px_10px_rgba(0,0,0,0.03)] transition-all cursor-pointer select-none text-center",
+            "relative flex flex-col items-center text-center p-5 rounded-2xl border-2 transition-all cursor-pointer select-none gap-3 group",
             selectedRole === "candidate"
-              ? "border-[#1f2732] bg-white dark:bg-zinc-800/80 shadow-md"
-              : "border-transparent hover:border-[#aabccf]/40 opacity-80 hover:opacity-100"
+              ? "border-primary bg-primary/5 dark:bg-primary/10 shadow-sm"
+              : "border-border/80 bg-card hover:border-border hover:bg-muted/40"
           )}
         >
-          <div className="w-24 h-24 flex items-center justify-center rounded-full bg-[#1f2732]/5 p-3">
-            <svg className="w-full h-full text-[#1f2732]" viewBox="0 0 200 200" fill="none">
-              <circle cx="100" cy="100" r="80" fill="currentColor" fillOpacity="0.05" />
-              <path d="M85 140C85 125 90 115 100 115C110 115 115 125 115 140H85Z" fill="currentColor" fillOpacity="0.8" />
-              <circle cx="100" cy="102" r="14" fill="currentColor" fillOpacity="0.8" />
-            </svg>
+          {selectedRole === "candidate" && (
+            <div className="absolute top-3 right-3 size-5 rounded-full bg-primary text-primary-foreground flex items-center justify-center shadow-xs">
+              <Check className="size-3 stroke-[3]" />
+            </div>
+          )}
+
+          <div
+            className={cn(
+              "size-14 rounded-2xl flex items-center justify-center transition-colors shadow-2xs",
+              selectedRole === "candidate"
+                ? "bg-primary text-primary-foreground"
+                : "bg-muted text-muted-foreground group-hover:text-foreground"
+            )}
+          >
+            <UserCheck className="size-7" />
           </div>
 
-          <div className="text-center space-y-1">
-            <h3 className="text-[18px] font-bold text-[#1f2732] dark:text-zinc-100">
+          <div className="space-y-1">
+            <h3 className="text-base font-bold text-foreground">
               Candidato
             </h3>
-            <p className="text-[12px] text-[#5c7c9b] dark:text-zinc-400 font-medium leading-relaxed">
-              Postula a vacantes y destaca tu perfil profesional.
+            <p className="text-xs text-muted-foreground leading-relaxed">
+              Postúlate a vacantes y destaca tu perfil profesional.
             </p>
           </div>
         </button>
 
-        {/* Card Empresa */}
+        {/* Card: Empresa */}
         <button
           type="button"
           onClick={() => setSelectedRole("company")}
           className={cn(
-            "flex flex-col items-center gap-4 bg-[#f5f7fa] dark:bg-zinc-900 border-2 rounded-[20px] p-6 shadow-[0_4px_10px_rgba(0,0,0,0.03)] transition-all cursor-pointer select-none text-center",
+            "relative flex flex-col items-center text-center p-5 rounded-2xl border-2 transition-all cursor-pointer select-none gap-3 group",
             selectedRole === "company"
-              ? "border-[#1f2732] bg-white dark:bg-zinc-800/80 shadow-md"
-              : "border-transparent hover:border-[#aabccf]/40 opacity-80 hover:opacity-100"
+              ? "border-primary bg-primary/5 dark:bg-primary/10 shadow-sm"
+              : "border-border/80 bg-card hover:border-border hover:bg-muted/40"
           )}
         >
-          <div className="w-24 h-24 flex items-center justify-center rounded-full bg-[#1f2732]/5 p-3">
-            <svg className="w-full h-full text-[#1f2732]" viewBox="0 0 200 200" fill="none">
-              <circle cx="100" cy="100" r="80" fill="currentColor" fillOpacity="0.05" />
-              <rect x="65" y="60" width="70" height="80" rx="4" fill="currentColor" fillOpacity="0.7" />
-              <rect x="75" y="75" width="12" height="12" rx="2" fill="white" />
-              <rect x="113" y="75" width="12" height="12" rx="2" fill="white" />
-              <rect x="75" y="95" width="12" height="12" rx="2" fill="white" />
-              <rect x="113" y="95" width="12" height="12" rx="2" fill="white" />
-            </svg>
+          {selectedRole === "company" && (
+            <div className="absolute top-3 right-3 size-5 rounded-full bg-primary text-primary-foreground flex items-center justify-center shadow-xs">
+              <Check className="size-3 stroke-[3]" />
+            </div>
+          )}
+
+          <div
+            className={cn(
+              "size-14 rounded-2xl flex items-center justify-center transition-colors shadow-2xs",
+              selectedRole === "company"
+                ? "bg-primary text-primary-foreground"
+                : "bg-muted text-muted-foreground group-hover:text-foreground"
+            )}
+          >
+            <Building2 className="size-7" />
           </div>
 
-          <div className="text-center space-y-1">
-            <h3 className="text-[18px] font-bold text-[#1f2732] dark:text-zinc-100">
+          <div className="space-y-1">
+            <h3 className="text-base font-bold text-foreground">
               Empresa
             </h3>
-            <p className="text-[12px] text-[#5c7c9b] dark:text-zinc-400 font-medium leading-relaxed">
+            <p className="text-xs text-muted-foreground leading-relaxed">
               Publica ofertas laborales y contrata el mejor talento.
             </p>
           </div>
         </button>
       </div>
 
-      {/* Action Button: Siguiente */}
-      <button
+      {/* ── Action Button: Continuar ── */}
+      <Button
         onClick={handleNext}
-        className="w-full h-[56px] rounded-[16px] bg-[#1f2732] hover:bg-[#2f3c4b] text-white font-bold text-[16px] tracking-[-0.2px] shadow-md shadow-[#1f2732]/10 transition-all duration-200 flex items-center justify-center gap-2 cursor-pointer active:scale-[0.99] mt-2"
+        className="w-full h-12 rounded-xl bg-primary hover:bg-primary/90 text-primary-foreground font-bold text-sm sm:text-base shadow-xs transition-all duration-200 flex items-center justify-center gap-2 cursor-pointer active:scale-[0.99]"
       >
-        <span>Siguiente</span>
-        <ArrowRight className="size-5" />
-      </button>
+        <span>
+          Continuar como {selectedRole === "candidate" ? "Candidato" : "Empresa"}
+        </span>
+        <ArrowRight className="size-4" />
+      </Button>
 
-      {/* Navigation Links */}
-      <div className="flex flex-col items-center gap-2 text-center mt-2 pt-4 border-t border-[#d2dbe5]/40 dark:border-zinc-800 w-full">
-        <p className="text-[14px] text-[#5c7c9b] dark:text-zinc-400 font-medium">
+      {/* ── Navigation Links ── */}
+      <div className="text-center pt-2 border-t border-border/80 w-full">
+        <p className="text-xs sm:text-sm text-muted-foreground font-medium">
           ¿Ya tienes una cuenta?{" "}
           <Link
             href="/login"
-            className="text-[#1f2732] dark:text-zinc-100 font-bold hover:underline"
+            className="text-foreground font-bold hover:text-primary underline ml-1 transition-colors"
           >
             Inicia Sesión
           </Link>
         </p>
       </div>
-    </>
+    </div>
   );
 }

@@ -20,6 +20,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { CompanySettingsModal } from "./company-settings-dialog";
+import { type BillingRecord } from "./billing-subscriptions-table";
 
 interface Invoice {
   id: string;
@@ -49,6 +50,12 @@ interface CompanyProfile {
   subscription_period_end?: string | null;
   featured_vacancies_allowance?: number;
   featured_vacancies_used?: number;
+  rfc?: string | null;
+  legal_name?: string | null;
+  entity_type?: string | null;
+  fiscal_address?: string | null;
+  corporate_email?: string | null;
+  verification_status?: string | null;
 }
 
 interface SettingsUser {
@@ -87,7 +94,7 @@ const CONFIG_MODULES = [
   },
   {
     title: "Suscripción y Facturación",
-    description: "Beneficios del Plan Fundador, comprobantes fiscales CFDI 4.0 e historial de pagos.",
+    description: "Planes corporativos, asignación de vacantes destacadas, comprobantes fiscales CFDI 4.0 e historial de pagos.",
     icon: CreditCard,
     badge: "Finanzas",
     badgeColor: "bg-purple-500/10 text-purple-600 dark:text-purple-400 border-purple-500/20",
@@ -114,6 +121,19 @@ export function CompanySettingsView({
   initialPauseState: _initialPauseState = false,
   initialInvoices: _initialInvoices = [],
 }: CompanySettingsViewProps) {
+  const formattedInvoices: BillingRecord[] = React.useMemo(() => {
+    return (_initialInvoices || []).map((inv) => ({
+      id: inv.id,
+      plan_name: inv.plan_name || "Suscripción K'anPro",
+      type: "Suscripción" as const,
+      amount: inv.amount || 0,
+      currency: inv.currency || "MXN",
+      status: inv.status || "PAGADO",
+      payment_method: inv.payment_method || null,
+      created_at: inv.created_at,
+    }));
+  }, [_initialInvoices]);
+
   return (
     <div className="space-y-8 max-w-6xl mx-auto pb-16 font-sans animate-in fade-in duration-300">
       
@@ -158,6 +178,8 @@ export function CompanySettingsView({
           
           {/* CompanySettingsModal Component */}
           <CompanySettingsModal
+            initialProfile={initialProfile}
+            initialInvoices={formattedInvoices}
             trigger={
               <Button
                 size="lg"

@@ -96,6 +96,7 @@ export interface CandidateDashboardData {
     completionScore: number
     rfc?: string | null
     curp?: string | null
+    is_early_access?: boolean
   } | null
   applications: CandidateApplication[]
   stats: {
@@ -141,6 +142,7 @@ export async function getCandidateDashboardData(): Promise<CandidateDashboardDat
       whatsapp_number,
       avatar_url,
       location,
+      is_early_access,
       candidate_profiles (
         headline,
         bio,
@@ -180,6 +182,7 @@ export async function getCandidateDashboardData(): Promise<CandidateDashboardDat
     whatsapp_number: string | null;
     avatar_url: string | null;
     location: string | null;
+    is_early_access?: boolean | null;
     candidate_profiles: EmbeddedCandProfile | EmbeddedCandProfile[] | null;
     candidate_private_profiles: EmbeddedPrivProfile | EmbeddedPrivProfile[] | null;
   }
@@ -212,6 +215,7 @@ export async function getCandidateDashboardData(): Promise<CandidateDashboardDat
     cv_url: null,
     rfc: privateProfile?.rfc || null,
     curp: privateProfile?.curp || null,
+    is_early_access: baseProfile.is_early_access ?? true,
   } : null;
 
   let completionScore = 0
@@ -540,7 +544,7 @@ export async function getCandidateDashboardData(): Promise<CandidateDashboardDat
         locationOrLink: rawDetails?.locationOrLink || (rawDetails?.modality === "presencial" ? "Oficinas de la empresa" : "Google Meet"),
         notes: rawDetails?.notes || "",
         scheduledAt: rawDetails?.scheduledAt || app.scheduled_interview_at || null,
-        status: interviewStatus ?? "pending",
+        status: (interviewStatus as CandidateInterviewDetails["status"]) ?? "pending",
         candidateResponseNotes: rawDetails?.candidateResponseNotes || null,
         proposedDate: rawDetails?.proposedDate || null,
         proposedTime: rawDetails?.proposedTime || null,

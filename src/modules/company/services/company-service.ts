@@ -1163,7 +1163,8 @@ export const companyService = {
             location,
             avatar_url,
             email,
-            whatsapp_number
+            whatsapp_number,
+            is_early_access
           )
         )
       `)
@@ -1216,6 +1217,7 @@ export const companyService = {
           skills: candidateProfile?.skills || [],
           experience: candidateProfile?.experience || [],
           education: candidateProfile?.education || [],
+          is_early_access: baseProfile?.is_early_access ?? true,
         },
       };
     });

@@ -307,6 +307,17 @@ export function CandidateDashboardView({
 
       {/* ── 0. MINIMALIST SEARCH & EXPLORATION HEADER ── */}
       <div className="space-y-3">
+        {candidateProfile?.is_early_access && (
+          <div className="flex items-center gap-2">
+            <Badge
+              variant="outline"
+              className="text-[11px] font-bold bg-amber-500/10 text-amber-700 dark:text-amber-300 border-amber-500/30 gap-1.5 px-2.5 py-0.5 rounded-full shadow-2xs"
+            >
+              <Sparkles className="size-3 text-amber-500" />
+              <span>Candidato Pionero • Acceso Anticipado</span>
+            </Badge>
+          </div>
+        )}
         <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
           {/* Minimalist Search Input */}
           <div className="relative flex-1">

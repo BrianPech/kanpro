@@ -566,13 +566,20 @@ export function ApplicationsInbox() {
                 </AvatarFallback>
               </Avatar>
               <div className="min-w-0">
-                <button
-                  type="button"
-                  onClick={() => handleOpenDetail(app)}
-                  className="text-xs sm:text-sm font-bold text-foreground group-hover:text-primary hover:text-primary transition-colors truncate block text-left cursor-pointer"
-                >
-                  {app.name}
-                </button>
+                <div className="flex items-center gap-1.5 flex-wrap">
+                  <button
+                    type="button"
+                    onClick={() => handleOpenDetail(app)}
+                    className="text-xs sm:text-sm font-bold text-foreground group-hover:text-primary hover:text-primary transition-colors truncate block text-left cursor-pointer"
+                  >
+                    {app.name}
+                  </button>
+                  {app.isEarlyAccess && (
+                    <Badge variant="outline" className="text-[9px] font-bold bg-amber-500/10 text-amber-700 dark:text-amber-300 border-amber-500/30 px-1 py-0 h-4 shrink-0">
+                      Pionero
+                    </Badge>
+                  )}
+                </div>
                 <p className="text-[11px] text-muted-foreground font-medium truncate">
                   {app.headline || "Candidato"}
                 </p>
@@ -1650,9 +1657,20 @@ export function ApplicationsInbox() {
 
                       {/* Name & Headline */}
                       <div className="space-y-1 text-left">
-                        <DialogTitle className="text-2xl sm:text-3xl font-extrabold text-foreground tracking-tight">
-                          {selectedApplicant.name}
-                        </DialogTitle>
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <DialogTitle className="text-2xl sm:text-3xl font-extrabold text-foreground tracking-tight">
+                            {selectedApplicant.name}
+                          </DialogTitle>
+                          {selectedApplicant.isEarlyAccess && (
+                            <Badge
+                              variant="outline"
+                              className="text-xs font-bold bg-amber-500/10 text-amber-700 dark:text-amber-300 border-amber-500/30 gap-1 px-2.5 py-0.5 rounded-full shadow-2xs"
+                            >
+                              <Sparkles className="size-3 text-amber-500" />
+                              Pionero • Acceso Anticipado
+                            </Badge>
+                          )}
+                        </div>
                         <DialogDescription className="text-sm sm:text-base text-muted-foreground font-medium">
                           {selectedApplicant.headline || selectedApplicant.vacancyTitle || "Candidato Profesional"}
                         </DialogDescription>

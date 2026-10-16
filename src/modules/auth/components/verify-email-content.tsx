@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { Mail, Loader2, RefreshCw, CheckCircle2, ArrowRight } from "lucide-react";
 import { toast } from "sonner";
+import { Button } from "@/components/ui/button";
 import { authService } from "../services/auth-service";
 
 export function VerifyEmailContent() {
@@ -57,58 +58,60 @@ export function VerifyEmailContent() {
   }, [email, cooldown, isResending]);
 
   return (
-    <div className="w-full flex flex-col items-center gap-6 text-center">
+    <div className="w-full flex flex-col items-center gap-5 text-center">
       {/* Icon Badge */}
       <div className="relative">
-        <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-full bg-[#1f2732]/5 dark:bg-zinc-800 flex items-center justify-center shadow-inner transition-transform hover:scale-105 duration-300">
-          <Mail className="size-10 sm:size-12 text-[#1f2732] dark:text-zinc-100" />
+        <div className="size-20 rounded-2xl bg-primary/10 border border-primary/20 flex items-center justify-center shadow-inner">
+          <Mail className="size-10 text-primary" />
         </div>
-        <div className="absolute -bottom-1 -right-1 bg-emerald-500 text-white p-1.5 rounded-full ring-4 ring-white dark:ring-zinc-900 shadow-sm">
+        <div className="absolute -bottom-1 -right-1 bg-emerald-500 text-white p-1 rounded-full ring-4 ring-card shadow-sm">
           <CheckCircle2 className="size-4" />
         </div>
       </div>
 
       {/* Heading */}
-      <header className="flex flex-col gap-2 items-center">
-        <h1 className="text-[26px] sm:text-[30px] font-extrabold text-[#2f3c4b] dark:text-zinc-50 tracking-[-1px]">
+      <header className="flex flex-col gap-1.5 items-center">
+        <h1 className="text-2xl sm:text-3xl font-extrabold text-foreground tracking-tight">
           Revisa tu bandeja de entrada
         </h1>
-        <p className="text-[14px] text-[#5c7c9b] dark:text-zinc-400 font-medium leading-relaxed max-w-sm">
+        <p className="text-xs sm:text-sm text-muted-foreground font-medium leading-relaxed max-w-sm">
           Hemos enviado un enlace de confirmación para activar tu cuenta en K&apos;anPro.
         </p>
       </header>
 
       {/* Email Chip */}
       {email ? (
-        <div className="inline-flex items-center gap-2 bg-[#f5f7fa] dark:bg-zinc-800/80 border border-[#d2dbe5]/60 dark:border-zinc-700/60 px-4 py-2 rounded-full my-1 max-w-full">
-          <Mail className="size-4 text-[#5c7c9b] dark:text-zinc-400 shrink-0" />
-          <span className="text-[14px] font-bold text-[#1f2732] dark:text-zinc-100 truncate">
+        <div className="inline-flex items-center gap-2 bg-muted/60 border border-border px-4 py-2 rounded-full my-0.5 max-w-full">
+          <Mail className="size-4 text-muted-foreground shrink-0" />
+          <span className="text-xs sm:text-sm font-bold text-foreground truncate">
             {email}
           </span>
         </div>
       ) : null}
 
       {/* Instructions */}
-      <p className="text-[13px] text-[#5c7c9b]/90 dark:text-zinc-400 font-normal leading-relaxed max-w-md bg-amber-500/5 dark:bg-amber-500/10 border border-amber-500/20 rounded-[16px] p-4">
-        Haz clic en el botón de confirmación dentro del correo recibido. Si no lo encuentras en unos minutos, revisa tu carpeta de <span className="font-semibold text-[#1f2732] dark:text-zinc-200">spam</span> o correo no deseado.
-      </p>
+      <div className="text-xs text-muted-foreground leading-relaxed max-w-md bg-amber-500/10 border border-amber-500/20 text-foreground/90 rounded-xl p-3.5 text-left">
+        <p>
+          Haz clic en el enlace dentro del correo para confirmar tu cuenta. Si no lo ves en unos minutos, revisa tu carpeta de <span className="font-bold">spam</span> o promociones.
+        </p>
+      </div>
 
       {/* Resend Action */}
-      <div className="w-full flex flex-col gap-3 pt-2">
-        <button
+      <div className="w-full flex flex-col gap-3 pt-1">
+        <Button
           type="button"
           onClick={handleResend}
           disabled={isResending || cooldown > 0 || !email}
-          className="w-full h-[52px] rounded-[16px] bg-[#1f2732] hover:bg-[#2f3c4b] text-white font-bold text-[15px] tracking-[-0.2px] shadow-md shadow-[#1f2732]/10 transition-all duration-200 flex items-center justify-center gap-2 cursor-pointer active:scale-[0.99] disabled:opacity-50 disabled:pointer-events-none"
+          className="w-full h-12 rounded-xl bg-primary hover:bg-primary/90 text-primary-foreground font-bold text-sm sm:text-base shadow-xs transition-all duration-200 flex items-center justify-center gap-2 cursor-pointer active:scale-[0.99] disabled:opacity-50"
         >
           {isResending ? (
             <>
-              <Loader2 className="size-4 animate-spin text-white/80" />
+              <Loader2 className="size-4 animate-spin text-primary-foreground/80" />
               <span>Enviando correo...</span>
             </>
           ) : cooldown > 0 ? (
             <>
-              <RefreshCw className="size-4 text-white/60 animate-spin" />
+              <RefreshCw className="size-4 animate-spin" />
               <span>Reenviar correo ({cooldown}s)</span>
             </>
           ) : (
@@ -117,19 +120,19 @@ export function VerifyEmailContent() {
               <span>Reenviar correo de verificación</span>
             </>
           )}
-        </button>
+        </Button>
       </div>
 
       {/* Navigation to Login */}
-      <div className="pt-4 border-t border-[#d2dbe5]/40 dark:border-zinc-800 w-full flex items-center justify-center">
-        <p className="text-[14px] text-[#5c7c9b] dark:text-zinc-400 font-medium">
+      <div className="pt-3 border-t border-border/80 w-full flex items-center justify-center">
+        <p className="text-xs sm:text-sm text-muted-foreground font-medium">
           ¿Ya confirmaste tu correo?{" "}
           <Link
             href="/login"
-            className="inline-flex items-center gap-1 text-[#1f2732] dark:text-zinc-100 font-bold hover:underline"
+            className="inline-flex items-center gap-1 text-foreground font-bold hover:text-primary transition-colors underline ml-1"
           >
             <span>Iniciar Sesión</span>
-            <ArrowRight className="size-4" />
+            <ArrowRight className="size-3.5" />
           </Link>
         </p>
       </div>

@@ -11,6 +11,7 @@ import {
   ApplicationsSummary,
   RecentCandidateItem,
 } from "../types/dashboard";
+import { getSubscriptionPlan, SUBSCRIPTION_PLANS } from "@/config/subscriptions";
 
 export async function getCompanyDashboardData(): Promise<CompanyDashboardData> {
   const supabase = await createClient();
@@ -19,6 +20,7 @@ export async function getCompanyDashboardData(): Promise<CompanyDashboardData> {
   } = await supabase.auth.getUser();
 
   let companyName = "Mi Empresa";
+  let isCompanyEarlyAccess = true;
 
   // Default empty/baseline KPIs
   const kpis: WorkforceKPIs = {
@@ -98,15 +100,15 @@ export async function getCompanyDashboardData(): Promise<CompanyDashboardData> {
   }));
 
   let subscriptionSummary: SubscriptionSummary = {
-    planName: "Plan Fundador Pro",
-    planKey: "pro",
+    planName: SUBSCRIPTION_PLANS.basic.name,
+    planKey: "basic",
     status: "active",
     periodEnd: null,
     daysRemaining: null,
-    creditsAvailable: 10,
-    featuredVacanciesAllowance: 3,
+    creditsAvailable: SUBSCRIPTION_PLANS.basic.creditsAllowance,
+    featuredVacanciesAllowance: SUBSCRIPTION_PLANS.basic.featuredVacanciesAllowance,
     featuredVacanciesUsed: 0,
-    verificationStatus: "approved",
+    verificationStatus: null,
   };
 
   const applicationsSummary: ApplicationsSummary = {
@@ -135,7 +137,10 @@ export async function getCompanyDashboardData(): Promise<CompanyDashboardData> {
           credits_available,
           featured_vacancies_allowance,
           featured_vacancies_used,
-          verification_status
+          verification_status,
+          profiles (
+            is_early_access
+          )
         `)
         .eq("id", user.id)
         .maybeSingle(),
@@ -211,17 +216,17 @@ export async function getCompanyDashboardData(): Promise<CompanyDashboardData> {
         companyName = companyRes.data.company_name;
       }
 
-      const rawPlan = companyRes.data.subscription_plan || "pro";
-      const planNamesMap: Record<string, string> = {
-        basic: "Plan Básico",
-        starter: "Plan Inicial",
-        pro: "Plan Fundador Pro",
-        founder: "Plan Fundador",
-        enterprise: "Plan Empresarial",
-      };
-      const formattedPlanName =
-        planNamesMap[rawPlan.toLowerCase()] ||
-        (rawPlan.charAt(0).toUpperCase() + rawPlan.slice(1));
+      const companyProfilesObj = companyRes.data.profiles;
+      const baseCompanyProfile = Array.isArray(companyProfilesObj)
+        ? companyProfilesObj[0]
+        : companyProfilesObj;
+      if (baseCompanyProfile && typeof (baseCompanyProfile as { is_early_access?: boolean }).is_early_access === "boolean") {
+        isCompanyEarlyAccess = (baseCompanyProfile as { is_early_access?: boolean }).is_early_access ?? true;
+      }
+
+      const rawPlan = companyRes.data.subscription_plan || "basic";
+      const planConfig = getSubscriptionPlan(rawPlan);
+      const formattedPlanName = planConfig.name;
 
       let subDaysRemaining: number | null = null;
       if (companyRes.data.subscription_period_end) {
@@ -238,11 +243,14 @@ export async function getCompanyDashboardData(): Promise<CompanyDashboardData> {
         status: companyRes.data.subscription_status || "active",
         periodEnd: companyRes.data.subscription_period_end || null,
         daysRemaining: subDaysRemaining,
-        creditsAvailable: companyRes.data.credits_available ?? 10,
+        creditsAvailable:
+          companyRes.data.credits_available ?? planConfig.creditsAllowance,
         featuredVacanciesAllowance:
-          companyRes.data.featured_vacancies_allowance ?? 3,
+          companyRes.data.featured_vacancies_allowance ??
+          planConfig.featuredVacanciesAllowance,
         featuredVacanciesUsed: companyRes.data.featured_vacancies_used ?? 0,
         verificationStatus: companyRes.data.verification_status || null,
+        isEarlyAccess: isCompanyEarlyAccess,
       };
     }
 
@@ -279,7 +287,8 @@ export async function getCompanyDashboardData(): Promise<CompanyDashboardData> {
             profiles (
               id,
               full_name,
-              avatar_url
+              avatar_url,
+              is_early_access
             )
           )
         `)
@@ -346,6 +355,7 @@ export async function getCompanyDashboardData(): Promise<CompanyDashboardData> {
         status: app.status || "Pendiente",
         appliedAt: app.applied_at || new Date().toISOString(),
         skills: skillsList.slice(0, 3),
+        isEarlyAccess: baseProfile?.is_early_access ?? true,
       };
     });
 
@@ -643,6 +653,7 @@ export async function getCompanyDashboardData(): Promise<CompanyDashboardData> {
 
   return {
     companyName,
+    isEarlyAccess: isCompanyEarlyAccess,
     kpis,
     alerts,
     expiringContracts,

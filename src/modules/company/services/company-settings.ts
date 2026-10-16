@@ -3,6 +3,7 @@ import type { Database, Json } from "@/types/supabase";
 import type {
   BranchGeofenceInput,
 } from "../schemas/settings.schema";
+import { getSubscriptionPlan } from "@/config/subscriptions";
 
 export interface CompanyInvoiceRecord {
   id: string;
@@ -74,19 +75,10 @@ export class CompanySettingsService {
     companyId: string,
     plan: "basic" | "pro" | "enterprise"
   ): Promise<UpdateSubscriptionPlanResult> {
-    let featuredAllowance = 0;
-    let planPrice = 0;
-    let planName = "Plan Básico";
-
-    if (plan === "pro") {
-      featuredAllowance = 3;
-      planPrice = 1499.0;
-      planName = "Plan PRO Mensual";
-    } else if (plan === "enterprise") {
-      featuredAllowance = 10;
-      planPrice = 3999.0;
-      planName = "Plan Corporativo Mensual";
-    }
+    const planConfig = getSubscriptionPlan(plan);
+    const featuredAllowance = planConfig.featuredVacanciesAllowance;
+    const planPrice = planConfig.price;
+    const planName = planConfig.name;
 
     const periodEnd = new Date();
     periodEnd.setDate(periodEnd.getDate() + 30);

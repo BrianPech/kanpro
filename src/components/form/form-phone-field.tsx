@@ -29,43 +29,62 @@ export function FormPhoneField({
   helperText = "10 dígitos con lada de tu ciudad",
   disabled = false,
 }: FormPhoneFieldProps) {
-  // Compute visual formatted display
-  const displayValue = React.useMemo(() => {
+  // Extract national 10 digits (stripping any leading +52 or 52 country code)
+  const nationalDigits = React.useMemo(() => {
     if (!value) return "";
-    return formatPhoneDisplay(value);
+    const clean = value.replace(/[^0-9]/g, "");
+    if (clean.startsWith("52") && clean.length >= 12) {
+      return clean.slice(2, 12);
+    }
+    return clean.slice(0, 10);
   }, [value]);
+
+  // Compute visual formatted national display: (999) 123-4567
+  const displayValue = React.useMemo(() => {
+    if (!nationalDigits) return "";
+    if (nationalDigits.length <= 3) return nationalDigits;
+    if (nationalDigits.length <= 6) {
+      return `(${nationalDigits.slice(0, 3)}) ${nationalDigits.slice(3)}`;
+    }
+    return `(${nationalDigits.slice(0, 3)}) ${nationalDigits.slice(3, 6)}-${nationalDigits.slice(6, 10)}`;
+  }, [nationalDigits]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const raw = e.target.value;
-    const normalized = normalizePhone(raw);
-    onChange(normalized);
+    const digits = raw.replace(/[^0-9]/g, "").slice(0, 10);
+    // When 10 digits are reached, notify parent with normalized E.164 +52XXXXXXXXXX format
+    if (digits.length === 10) {
+      onChange(`+52${digits}`);
+    } else {
+      onChange(digits);
+    }
   };
 
   return (
     <div className={`flex flex-col gap-1 w-full ${className}`}>
       <div
-        className={`bg-[#f8fafc] dark:bg-zinc-900/90 rounded-[16px] px-4.5 py-3 border transition-all duration-200 shadow-2xs ${
+        className={`bg-muted/40 hover:bg-muted/60 dark:bg-zinc-900/60 rounded-xl px-4 py-2.5 border transition-all duration-200 shadow-2xs ${
           error
-            ? "border-rose-400 dark:border-rose-800 bg-rose-50/20 dark:bg-rose-950/10"
-            : "border-[#ebeef3] dark:border-zinc-800/80 focus-within:border-primary/50 focus-within:bg-white dark:focus-within:bg-zinc-900 focus-within:ring-2 focus-within:ring-primary/10"
+            ? "border-destructive/80 bg-destructive/5 dark:bg-destructive/10 ring-2 ring-destructive/10"
+            : "border-border/80 focus-within:border-primary/60 focus-within:bg-card focus-within:ring-2 focus-within:ring-primary/15"
         } ${disabled ? "opacity-60 pointer-events-none" : ""}`}
       >
         <div className="flex items-center justify-between">
           <label
             htmlFor={id}
-            className="block text-[12px] font-bold text-[#3e546d] dark:text-zinc-300 tracking-[-0.1px] select-none"
+            className="block text-xs font-bold text-foreground/90 tracking-tight select-none"
           >
-            {label} {required && <span className="text-rose-500">*</span>}
+            {label} {required && <span className="text-destructive">*</span>}
           </label>
           {required && (
-            <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-md bg-rose-500/10 text-rose-600 dark:text-rose-400">
+            <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-md bg-primary/10 text-primary">
               Requerido
             </span>
           )}
         </div>
 
         <div className="relative flex items-center mt-1">
-          <div className="flex items-center gap-1.5 mr-2.5 shrink-0 text-[#5c7c9b] dark:text-zinc-400 font-bold text-sm select-none border-r border-[#ebeef3] dark:border-zinc-800 pr-2.5">
+          <div className="flex items-center gap-1.5 mr-2.5 shrink-0 text-muted-foreground font-bold text-xs sm:text-sm select-none border-r border-border pr-2.5">
             <span className="text-base">🇲🇽</span>
             <span>+52</span>
           </div>
@@ -74,23 +93,23 @@ export function FormPhoneField({
             type="tel"
             disabled={disabled}
             placeholder={placeholder}
-            maxLength={18}
+            maxLength={16}
             value={displayValue}
             onChange={handleChange}
-            className="w-full bg-transparent border-none outline-none p-0 text-[15px] sm:text-[16px] font-semibold text-[#1f2732] dark:text-zinc-100 placeholder:text-[#aabccf] dark:placeholder:text-zinc-600 focus:ring-0 focus:outline-none"
+            className="w-full bg-transparent border-none outline-none p-0 text-sm sm:text-base font-semibold text-foreground placeholder:text-muted-foreground focus:ring-0 focus:outline-none"
           />
-          <Phone className="w-4 h-4 ml-2 text-[#5c7c9b] dark:text-zinc-400 shrink-0" />
+          <Phone className="w-4 h-4 ml-2 text-muted-foreground shrink-0" />
         </div>
       </div>
 
       {helperText && !error && (
-        <span className="text-[11px] text-[#5c7c9b] dark:text-zinc-400 font-medium px-1">
+        <span className="text-xs text-muted-foreground font-medium px-1">
           {helperText}
         </span>
       )}
 
       {error && (
-        <span className="text-[12px] font-semibold text-rose-500 px-1 animate-in fade-in duration-200">
+        <span className="text-xs font-semibold text-destructive px-1 animate-in fade-in duration-200">
           {error}
         </span>
       )}

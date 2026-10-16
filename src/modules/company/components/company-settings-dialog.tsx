@@ -74,6 +74,11 @@ import {
   updateSubscriptionPlan,
   getCompanyInvoices,
 } from "@/modules/company/actions/settings";
+import {
+  SUBSCRIPTION_PLANS,
+  getSubscriptionPlan,
+  type SubscriptionPlanId,
+} from "@/config/subscriptions";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 
@@ -82,6 +87,24 @@ export interface CompanySettingsModalProps {
   onOpenChange?: (open: boolean) => void;
   trigger?: React.ReactElement;
   children?: React.ReactNode;
+  initialProfile?: {
+    id?: string;
+    company_name?: string;
+    contact_phone?: string | null;
+    corporate_email?: string | null;
+    rfc?: string | null;
+    legal_name?: string | null;
+    entity_type?: string | null;
+    fiscal_address?: string | null;
+    verification_status?: string | null;
+    subscription_plan?: string;
+    subscription_status?: string;
+    subscription_period_end?: string | null;
+    featured_vacancies_allowance?: number;
+    featured_vacancies_used?: number;
+    credits_available?: number;
+  };
+  initialInvoices?: BillingRecord[];
 }
 
 const SETTINGS_SECTIONS = [
@@ -115,6 +138,8 @@ export function CompanySettingsModal({
   open,
   onOpenChange,
   trigger,
+  initialProfile,
+  initialInvoices,
 }: CompanySettingsModalProps) {
   const { theme, setTheme } = useTheme();
   const [mounted, setMounted] = React.useState(false);
@@ -128,23 +153,54 @@ export function CompanySettingsModal({
     email: string;
     phone: string;
   }>({
-    id: "",
-    name: "Empresa K'anPro",
-    email: "empresa@kanpro.com",
-    phone: "No registrado",
+    id: initialProfile?.id || "",
+    name: initialProfile?.company_name || "",
+    email: initialProfile?.corporate_email || "",
+    phone: initialProfile?.contact_phone || "",
   });
   const [copiedId, setCopiedId] = React.useState(false);
   const [isChangingPassword, setIsChangingPassword] = React.useState(false);
   const [isSettingUp2FA, setIsSettingUp2FA] = React.useState(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = React.useState(false);
 
+  // Fiscal CFDI 4.0 States
+  const [fiscalProfile, setFiscalProfile] = React.useState<{
+    rfc: string;
+    legalName: string;
+    entityType: string;
+    fiscalAddress: string;
+    corporateEmail: string;
+    verificationStatus: string | null;
+  }>({
+    rfc: initialProfile?.rfc || "",
+    legalName: initialProfile?.legal_name || initialProfile?.company_name || "",
+    entityType: initialProfile?.entity_type || "",
+    fiscalAddress: initialProfile?.fiscal_address || "",
+    corporateEmail: initialProfile?.corporate_email || "",
+    verificationStatus: initialProfile?.verification_status || null,
+  });
+
   // Subscription & Billing States
-  const [subscriptionPlan, setSubscriptionPlan] = React.useState<
-    "basic" | "pro" | "enterprise"
-  >("basic");
-  const [featuredAllowance, setFeaturedAllowance] = React.useState(0);
-  const [featuredUsed, setFeaturedUsed] = React.useState(0);
-  const [invoices, setInvoices] = React.useState<BillingRecord[]>([]);
+  const initialPlan =
+    (initialProfile?.subscription_plan as SubscriptionPlanId) || "basic";
+  const [subscriptionPlan, setSubscriptionPlan] =
+    React.useState<SubscriptionPlanId>(initialPlan);
+  const [subscriptionStatus, setSubscriptionStatus] = React.useState<string>(
+    initialProfile?.subscription_status || "active"
+  );
+  const [subscriptionPeriodEnd, setSubscriptionPeriodEnd] = React.useState<
+    string | null
+  >(initialProfile?.subscription_period_end || null);
+  const [featuredAllowance, setFeaturedAllowance] = React.useState(
+    initialProfile?.featured_vacancies_allowance ??
+      getSubscriptionPlan(initialPlan).featuredVacanciesAllowance
+  );
+  const [featuredUsed, setFeaturedUsed] = React.useState(
+    initialProfile?.featured_vacancies_used ?? 0
+  );
+  const [invoices, setInvoices] = React.useState<BillingRecord[]>(
+    initialInvoices || []
+  );
   const [isChangingPlan, setIsChangingPlan] = React.useState(false);
   const [isUpdatingPlan, setIsUpdatingPlan] = React.useState(false);
 
@@ -211,7 +267,11 @@ export function CompanySettingsModal({
               profileRes.data?.full_name ||
               (user.user_metadata?.full_name as string) ||
               "Mi Empresa",
-            email: user.email || profileRes.data?.email || "empresa@kanpro.com",
+            email:
+              comp?.corporate_email ||
+              user.email ||
+              profileRes.data?.email ||
+              "",
             phone:
               comp?.contact_phone ||
               user.phone ||
@@ -219,10 +279,25 @@ export function CompanySettingsModal({
           });
 
           if (comp) {
-            const plan = (comp.subscription_plan as "basic" | "pro" | "enterprise") || "basic";
+            const plan = (comp.subscription_plan as SubscriptionPlanId) || "basic";
             setSubscriptionPlan(plan);
-            setFeaturedAllowance(comp.featured_vacancies_allowance ?? 0);
+            const planCfg = getSubscriptionPlan(plan);
+            setFeaturedAllowance(
+              comp.featured_vacancies_allowance ??
+                planCfg.featuredVacanciesAllowance
+            );
             setFeaturedUsed(comp.featured_vacancies_used ?? 0);
+            setSubscriptionStatus(comp.subscription_status || "active");
+            setSubscriptionPeriodEnd(comp.subscription_period_end || null);
+
+            setFiscalProfile({
+              rfc: comp.rfc || "",
+              legalName: comp.legal_name || comp.company_name || "",
+              entityType: comp.entity_type || "",
+              fiscalAddress: comp.fiscal_address || "",
+              corporateEmail: comp.corporate_email || user.email || "",
+              verificationStatus: comp.verification_status || null,
+            });
           }
 
           if (invoicesRes.data && invoicesRes.data.length > 0) {
@@ -261,24 +336,19 @@ export function CompanySettingsModal({
     });
   };
 
-  const handleSelectPlan = async (newPlan: "basic" | "pro" | "enterprise") => {
+  const handleSelectPlan = async (newPlan: SubscriptionPlanId) => {
     if (!accountInfo.id) return;
     setIsUpdatingPlan(true);
     try {
       await updateSubscriptionPlan(accountInfo.id, newPlan);
       setSubscriptionPlan(newPlan);
-      if (newPlan === "pro") setFeaturedAllowance(3);
-      else if (newPlan === "enterprise") setFeaturedAllowance(10);
-      else setFeaturedAllowance(0);
+      const planCfg = getSubscriptionPlan(newPlan);
+      setFeaturedAllowance(planCfg.featuredVacanciesAllowance);
+      setSubscriptionStatus("active");
 
       setIsChangingPlan(false);
-      const planTitles = {
-        basic: "Plan Básico / Fundador",
-        pro: "Plan PRO Mensual",
-        enterprise: "Plan Corporativo",
-      };
       toast.success("Plan actualizado con éxito", {
-        description: `Tu cuenta ahora disfruta de los beneficios del ${planTitles[newPlan]}.`,
+        description: `Tu cuenta ahora disfruta de los beneficios del ${planCfg.name}.`,
       });
 
       // Refresh invoices
@@ -287,7 +357,7 @@ export function CompanySettingsModal({
         setInvoices(
           freshInvoices.map((inv: any) => ({
             id: inv.id,
-            plan_name: inv.plan_name || "Plan K'anPro",
+            plan_name: inv.plan_name || planCfg.name,
             type: "Factura Fiscal",
             amount: Number(inv.amount) || 0,
             currency: inv.currency || "MXN",
@@ -297,9 +367,10 @@ export function CompanySettingsModal({
           }))
         );
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : "Intenta nuevamente.";
       toast.error("Error al actualizar plan", {
-        description: err?.message || "Intenta nuevamente.",
+        description: msg,
       });
     } finally {
       setIsUpdatingPlan(false);
@@ -897,6 +968,26 @@ export function CompanySettingsModal({
                         </p>
                       </div>
 
+                      {/* Periodo de pruebas / Acceso anticipado Banner */}
+                      <div className="p-4 rounded-2xl bg-amber-500/10 border border-amber-500/30 flex items-start gap-3.5 shadow-2xs">
+                        <div className="size-9 rounded-xl bg-amber-500/20 text-amber-700 dark:text-amber-300 flex items-center justify-center shrink-0 mt-0.5">
+                          <Sparkles className="size-4.5 text-amber-600 dark:text-amber-400" />
+                        </div>
+                        <div className="space-y-1">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <h4 className="text-xs sm:text-sm font-bold text-amber-950 dark:text-amber-100">
+                              Periodo de Pruebas • Acceso Anticipado
+                            </h4>
+                            <Badge className="bg-amber-500/20 text-amber-700 dark:text-amber-300 border-none text-[10px] font-bold px-2 py-0.5 rounded-full">
+                              100% Gratuito
+                            </Badge>
+                          </div>
+                          <p className="text-xs text-amber-900/80 dark:text-amber-200/80 leading-relaxed font-medium">
+                            Tu empresa está participando en el acceso anticipado de K&apos;anPro. Todas las funcionalidades premium —incluyendo publicación de vacantes, cupos de vacantes destacadas, contratos conforme a la LFT y seguimiento de postulantes— se encuentran activas y bonificadas sin cargos de facturación durante esta fase.
+                          </p>
+                        </div>
+                      </div>
+
                       {/* 1. PLAN ACTUAL & VACANTES DESTACADAS */}
                       <div className="space-y-2.5">
                         <div className="space-y-0.5">
@@ -917,22 +1008,33 @@ export function CompanySettingsModal({
                               <div>
                                 <div className="flex items-center gap-2">
                                   <h4 className="text-xs font-bold text-foreground">
-                                    {subscriptionPlan === "enterprise"
-                                      ? "Plan Corporativo"
-                                      : subscriptionPlan === "pro"
-                                      ? "Plan PRO Mensual"
-                                      : "Plan Fundador / Básico"}
+                                    {getSubscriptionPlan(subscriptionPlan).name}
                                   </h4>
-                                  <Badge className="bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-none text-[10px] font-bold h-4.5 px-1.5 rounded-full">
-                                    Activo
+                                  <Badge
+                                    className={cn(
+                                      "border-none text-[10px] font-bold h-4.5 px-1.5 rounded-full",
+                                      subscriptionStatus === "active"
+                                        ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
+                                        : "bg-amber-500/10 text-amber-600 dark:text-amber-400"
+                                    )}
+                                  >
+                                    {subscriptionStatus === "active" ? "Activo" : "Por Regularizar"}
                                   </Badge>
                                 </div>
                                 <p className="text-[10px] text-muted-foreground font-medium mt-0.5">
-                                  {subscriptionPlan === "enterprise"
-                                    ? "$3,999 MXN / mes • Facturación automática"
-                                    : subscriptionPlan === "pro"
-                                    ? "$1,499 MXN / mes • Facturación automática"
-                                    : "Gratuito durante etapa de lanzamiento"}
+                                  {getSubscriptionPlan(subscriptionPlan).price > 0
+                                    ? `${getSubscriptionPlan(subscriptionPlan).priceFormatted} • Facturación periódica activa`
+                                    : "Plan sin costo mensual"}
+                                  {subscriptionPeriodEnd && (
+                                    <>
+                                      {" • Vigencia: "}
+                                      {new Date(subscriptionPeriodEnd).toLocaleDateString("es-MX", {
+                                        day: "numeric",
+                                        month: "short",
+                                        year: "numeric",
+                                      })}
+                                    </>
+                                  )}
                                 </p>
                               </div>
                             </div>
@@ -964,61 +1066,34 @@ export function CompanySettingsModal({
                                 Selecciona el nivel de servicio:
                               </p>
                               <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
-                                
-                                {/* Básico */}
-                                <div
-                                  onClick={() => !isUpdatingPlan && handleSelectPlan("basic")}
-                                  className={cn(
-                                    "p-3 rounded-xl border cursor-pointer transition-all space-y-1.5",
-                                    subscriptionPlan === "basic"
-                                      ? "border-primary bg-primary/5 ring-1 ring-primary/30"
-                                      : "border-border/40 hover:border-border hover:bg-muted/30"
-                                  )}
-                                >
-                                  <div className="flex items-center justify-between">
-                                    <span className="text-xs font-bold text-foreground">Básico</span>
-                                    {subscriptionPlan === "basic" && <Check className="size-3 text-primary" />}
-                                  </div>
-                                  <p className="text-[10px] text-muted-foreground font-semibold">Gratis</p>
-                                  <p className="text-[9px] text-muted-foreground leading-tight">Sin vacantes destacadas.</p>
-                                </div>
-
-                                {/* PRO */}
-                                <div
-                                  onClick={() => !isUpdatingPlan && handleSelectPlan("pro")}
-                                  className={cn(
-                                    "p-3 rounded-xl border cursor-pointer transition-all space-y-1.5",
-                                    subscriptionPlan === "pro"
-                                      ? "border-primary bg-primary/5 ring-1 ring-primary/30"
-                                      : "border-border/40 hover:border-border hover:bg-muted/30"
-                                  )}
-                                >
-                                  <div className="flex items-center justify-between">
-                                    <span className="text-xs font-bold text-foreground">PRO</span>
-                                    {subscriptionPlan === "pro" && <Check className="size-3 text-primary" />}
-                                  </div>
-                                  <p className="text-[10px] text-primary font-bold">$1,499 MXN/m</p>
-                                  <p className="text-[9px] text-muted-foreground leading-tight">3 vacantes destacadas.</p>
-                                </div>
-
-                                {/* Enterprise */}
-                                <div
-                                  onClick={() => !isUpdatingPlan && handleSelectPlan("enterprise")}
-                                  className={cn(
-                                    "p-3 rounded-xl border cursor-pointer transition-all space-y-1.5",
-                                    subscriptionPlan === "enterprise"
-                                      ? "border-primary bg-primary/5 ring-1 ring-primary/30"
-                                      : "border-border/40 hover:border-border hover:bg-muted/30"
-                                  )}
-                                >
-                                  <div className="flex items-center justify-between">
-                                    <span className="text-xs font-bold text-foreground">Corporativo</span>
-                                    {subscriptionPlan === "enterprise" && <Check className="size-3 text-primary" />}
-                                  </div>
-                                  <p className="text-[10px] text-purple-600 dark:text-purple-400 font-bold">$3,999 MXN/m</p>
-                                  <p className="text-[9px] text-muted-foreground leading-tight">10 vacantes destacadas.</p>
-                                </div>
-
+                                {Object.values(SUBSCRIPTION_PLANS).map((p) => {
+                                  const isSelected = subscriptionPlan === p.id;
+                                  return (
+                                    <div
+                                      key={p.id}
+                                      onClick={() => !isUpdatingPlan && handleSelectPlan(p.id)}
+                                      className={cn(
+                                        "p-3 rounded-xl border cursor-pointer transition-all space-y-1.5",
+                                        isSelected
+                                          ? "border-primary bg-primary/5 ring-1 ring-primary/30"
+                                          : "border-border/40 hover:border-border hover:bg-muted/30"
+                                      )}
+                                    >
+                                      <div className="flex items-center justify-between">
+                                        <span className="text-xs font-bold text-foreground">
+                                          {p.badgeName}
+                                        </span>
+                                        {isSelected && <Check className="size-3 text-primary" />}
+                                      </div>
+                                      <p className="text-[10px] text-primary font-bold">
+                                        {p.priceFormatted}
+                                      </p>
+                                      <p className="text-[9px] text-muted-foreground leading-tight">
+                                        {p.featuredVacanciesLabel}
+                                      </p>
+                                    </div>
+                                  );
+                                })}
                               </div>
                               {isUpdatingPlan && (
                                 <div className="flex items-center justify-center gap-2 text-xs text-muted-foreground py-1">
@@ -1050,19 +1125,53 @@ export function CompanySettingsModal({
                               </div>
                               <div className="space-y-0.5">
                                 <span className="text-xs font-bold text-foreground block">
-                                  Régimen Fiscal & Uso de CFDI
+                                  {fiscalProfile.legalName || "Razón Social Registrada"}
                                 </span>
                                 <span className="text-[10px] text-muted-foreground font-medium block">
-                                  601 General de Ley • G03 Gastos en general
+                                  {fiscalProfile.rfc
+                                    ? `RFC: ${fiscalProfile.rfc} • ${
+                                        fiscalProfile.entityType === "persona_moral" || fiscalProfile.rfc.length === 12
+                                          ? "601 General de Ley Personas Morales"
+                                          : "612 Personas Físicas con Actividades Empresariales"
+                                      } • G03 Gastos en general`
+                                    : "RFC no registrado en el perfil corporativo"}
                                 </span>
                               </div>
                             </div>
-                            <Badge variant="outline" className="text-[10px] font-bold h-5 px-2 rounded-md border-border/30">
-                              SAT Verificado
-                            </Badge>
+                            {fiscalProfile.verificationStatus === "approved" ? (
+                              <Badge
+                                variant="outline"
+                                className="text-[10px] font-bold h-5 px-2 rounded-md bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20"
+                              >
+                                SAT Verificado
+                              </Badge>
+                            ) : fiscalProfile.verificationStatus === "pending" ? (
+                              <Badge
+                                variant="outline"
+                                className="text-[10px] font-bold h-5 px-2 rounded-md bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20"
+                              >
+                                En Validación SAT
+                              </Badge>
+                            ) : fiscalProfile.verificationStatus === "rejected" ? (
+                              <Badge
+                                variant="outline"
+                                className="text-[10px] font-bold h-5 px-2 rounded-md bg-rose-500/10 text-rose-600 dark:text-rose-400 border-rose-500/20"
+                              >
+                                Doc. Rechazada
+                              </Badge>
+                            ) : (
+                              <Badge
+                                variant="outline"
+                                className="text-[10px] font-bold h-5 px-2 rounded-md border-border/30 text-muted-foreground"
+                              >
+                                Sin Verificar
+                              </Badge>
+                            )}
                           </div>
                           <p className="text-[10px] text-muted-foreground leading-relaxed">
-                            Tus facturas en formato XML y PDF se generan automáticamente tras cada ciclo y se envían a tu correo corporativo.
+                            {fiscalProfile.corporateEmail
+                              ? `Tus facturas en formato XML y PDF se generan automáticamente tras cada ciclo y se envían a ${fiscalProfile.corporateEmail}.`
+                              : "Configura tu correo corporativo y RFC en el expediente fiscal para recibir automáticamente tus comprobantes timbrados."}
                           </p>
                         </div>
                       </div>

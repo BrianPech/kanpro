@@ -3,15 +3,20 @@ import { useForm, type SubmitHandler } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { candidateRegisterSchema, type CandidateRegisterValues } from "../schemas/register.schema";
+import {
+  candidateRegisterSchema,
+  type CandidateRegisterValues,
+  type CandidateRegisterInput,
+} from "../schemas/register.schema";
 import { authService } from "../services/auth-service";
 
 export function useCandidateRegisterForm() {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [isSocialSubmitting, setIsSocialSubmitting] = useState(false);
   const router = useRouter();
 
-  const form = useForm<CandidateRegisterValues>({
+  const form = useForm<CandidateRegisterInput, unknown, CandidateRegisterValues>({
     resolver: zodResolver(candidateRegisterSchema),
     defaultValues: {
       fullName: "",
@@ -19,7 +24,8 @@ export function useCandidateRegisterForm() {
       whatsappNumber: "",
       email: "",
       password: "",
-    }
+    },
+    mode: "onTouched",
   });
 
   const onSubmit: SubmitHandler<CandidateRegisterValues> = async (data) => {
@@ -35,7 +41,7 @@ export function useCandidateRegisterForm() {
       }
 
       toast.success("Cuenta creada", {
-        description: "Bienvenido a K'anPro. Serás redirigido al dashboard de Candidato."
+        description: "Bienvenido a K'anPro. Serás redirigido al panel de Candidato.",
       });
       
       router.push("/dashboard/candidate");
@@ -58,8 +64,21 @@ export function useCandidateRegisterForm() {
       }
 
       toast.error("Error al registrar", {
-        description: errorMessage
+        description: errorMessage,
       });
+    }
+  };
+
+  const handleOAuthRegister = async (provider: "google") => {
+    try {
+      setIsSocialSubmitting(true);
+      await authService.signInWithOAuth(provider, "candidate");
+    } catch (err: unknown) {
+      console.error("Error en registro con Google:", err);
+      const msg = err instanceof Error ? err.message : "No se pudo conectar con Google";
+      toast.error("Error al registrarse con Google", { description: msg });
+    } finally {
+      setIsSocialSubmitting(false);
     }
   };
 
@@ -68,17 +87,24 @@ export function useCandidateRegisterForm() {
     handleSubmit: (onValid: SubmitHandler<CandidateRegisterValues>) =>
       form.handleSubmit(onValid, (errors) => {
         console.error("Errores de validación de Zod:", errors);
-        toast.error("Por favor rellena todos los campos requeridos con datos válidos.");
+        const firstErrorKey = Object.keys(errors)[0] as keyof typeof errors | undefined;
+        const firstErrorMsg = firstErrorKey ? errors[firstErrorKey]?.message : undefined;
+        toast.error("Por favor completa los campos requeridos", {
+          description: typeof firstErrorMsg === "string" ? firstErrorMsg : "Revisa los campos marcados en rojo.",
+        });
       }),
     errors: form.formState.errors,
     isSubmitting: form.formState.isSubmitting,
+    isSocialSubmitting,
     showPassword,
     setShowPassword,
     showConfirmPassword,
     setShowConfirmPassword,
     onSubmit,
+    handleOAuthRegister,
     trigger: form.trigger,
     setValue: form.setValue,
     watch: form.watch,
+    formState: form.formState,
   };
 }

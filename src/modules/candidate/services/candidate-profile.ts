@@ -1,6 +1,6 @@
 import { createClient } from "@/lib/supabase/client";
 import { type CandidateProfileFormValues } from "../schemas/candidate.schema";
-import { type Json } from "@/types/supabase";
+import { type Json, type Database } from "@/types/supabase";
 
 export interface CandidateProfileData {
   id: string;
@@ -25,6 +25,7 @@ export interface CandidateProfileData {
   birth_date: string | null;
   rfc?: string | null;
   cedula_profesional?: string | null;
+  is_early_access?: boolean;
 }
 
 /**
@@ -88,6 +89,7 @@ interface ProfileWithEmbeds {
   whatsapp_number: string | null;
   avatar_url: string | null;
   location: string | null;
+  is_early_access?: boolean | null;
   candidate_profiles: EmbeddedCandidateProfile | EmbeddedCandidateProfile[] | null;
   candidate_private_profiles: EmbeddedPrivateProfile | EmbeddedPrivateProfile[] | null;
 }
@@ -108,7 +110,7 @@ export const candidateProfileService = {
       ] = await Promise.all([
         supabase
           .from("profiles")
-          .select("id, full_name, email, whatsapp_number, avatar_url, location, candidate_profiles ( headline, bio, skills, experience, education, certifications, languages, portfolio_links, preferred_zone ), candidate_private_profiles ( curp, birth_date, rfc, cedula_profesional )")
+          .select("id, full_name, email, whatsapp_number, avatar_url, location, is_early_access, candidate_profiles ( headline, bio, skills, experience, education, certifications, languages, portfolio_links, preferred_zone ), candidate_private_profiles ( curp, birth_date, rfc, cedula_profesional )")
           .eq("id", userId)
           .maybeSingle(),
         supabase.auth.getUser()
@@ -151,6 +153,7 @@ export const candidateProfileService = {
           birth_date: normalizeDateToISO(rawAuthBirthDate),
           rfc: null,
           cedula_profesional: null,
+          is_early_access: true,
         };
       }
 
@@ -194,6 +197,7 @@ export const candidateProfileService = {
         birth_date: normalizedBirthDate,
         rfc: privateProfile?.rfc || null,
         cedula_profesional: privateProfile?.cedula_profesional || null,
+        is_early_access: profile.is_early_access ?? true,
       };
     } catch (err: unknown) {
       const errorMsg = err instanceof Error ? err.message : String(err);
@@ -240,7 +244,7 @@ export const candidateProfileService = {
     const supabase = createClient();
 
     // 1. Update base profiles table
-    const basePayload: Record<string, unknown> = {
+    const basePayload: Database["public"]["Tables"]["profiles"]["Update"] = {
       updated_at: new Date().toISOString(),
     };
     if (data.full_name !== undefined) basePayload.full_name = data.full_name;
