@@ -352,7 +352,7 @@ export class CompanyPayrollService {
           total_bonuses: input.totalBonuses,
           total_deductions: input.totalDeductions,
           total_net: input.totalNet,
-          employees_count: input.employees.length,
+          employees_count: input.employees?.length ?? 1,
           updated_at: nowIso,
         })
         .eq("id", payrollId)

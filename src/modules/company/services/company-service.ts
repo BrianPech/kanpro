@@ -1267,15 +1267,28 @@ export const companyService = {
       }
     }
 
+    // Ensure interview_status complies with PostgreSQL CHECK constraint:
+    // CHECK (interview_status IN ('pending', 'confirmed', 'rescheduled', 'cancelled', 'completed'))
+    const validStatuses = new Set(["pending", "confirmed", "rescheduled", "cancelled", "completed"]);
+    let normalizedStatus = "pending";
+    if (interviewDetails?.status) {
+      const raw = String(interviewDetails.status).toLowerCase().trim();
+      if (validStatuses.has(raw)) {
+        normalizedStatus = raw;
+      } else if (raw === "scheduled") {
+        normalizedStatus = "confirmed";
+      }
+    }
+
     const { error } = await supabase
       .from("applications")
       .update({
         interview_details: {
           ...interviewDetails,
-          status: interviewDetails?.status || "pending",
+          status: normalizedStatus,
         },
         scheduled_interview_at: scheduledDateTime,
-        interview_status: interviewDetails?.status || "pending",
+        interview_status: normalizedStatus,
         status: "Entrevista",
         updated_at: new Date().toISOString(),
       })
