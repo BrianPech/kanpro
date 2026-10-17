@@ -121,3 +121,33 @@ export const hireCandidateSchema = z.object({
 });
 
 export type HireCandidateInput = z.infer<typeof hireCandidateSchema>;
+
+export const registerDirectEmployeeSchema = z
+  .object({
+    full_name: z
+      .string()
+      .trim()
+      .min(3, "El nombre completo debe tener al menos 3 caracteres.")
+      .max(120, "El nombre no puede exceder 120 caracteres."),
+    email: z
+      .string()
+      .trim()
+      .email("Ingresa un correo electrónico válido.")
+      .toLowerCase(),
+    password: z
+      .string()
+      .min(8, "La contraseña debe tener al menos 8 caracteres."),
+    confirm_password: z
+      .string()
+      .min(1, "Debes confirmar la contraseña."),
+    force_password_change: z
+      .boolean()
+      .default(true),
+  })
+  .refine((data) => data.password === data.confirm_password, {
+    message: "Las contraseñas no coinciden.",
+    path: ["confirm_password"],
+  });
+
+export type RegisterDirectEmployeeValues = z.infer<typeof registerDirectEmployeeSchema>;
+

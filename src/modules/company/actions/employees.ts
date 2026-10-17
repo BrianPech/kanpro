@@ -1,6 +1,7 @@
 "use server";
 
 import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { revalidatePath } from "next/cache";
 import {
   getInvitationByToken,
@@ -12,8 +13,10 @@ import {
   reactivateEmployeeSchema,
   updateEmployeeStartDateSchema,
   hireCandidateSchema,
+  registerDirectEmployeeSchema,
   type CompanyEmployeeFormValues,
   type HireCandidateInput,
+  type RegisterDirectEmployeeValues,
 } from "../schemas/employee.schema";
 import {
   createEmployeeInvitationSchema,
@@ -662,3 +665,47 @@ export async function hireCandidateAction(
     return { success: false, error: message };
   }
 }
+
+/**
+ * Registra directamente un colaborador creando sus credenciales de acceso de forma administrativa.
+ */
+export async function registerDirectEmployeeAction(
+  data: RegisterDirectEmployeeValues
+): Promise<ActionResponse<{ employee: CompanyEmployeeRow; userId: string }>> {
+  const parsed = registerDirectEmployeeSchema.safeParse(data);
+  if (!parsed.success) {
+    const errorMsg = parsed.error.issues[0]?.message || "Datos de registro inválidos.";
+    return { success: false, error: errorMsg };
+  }
+
+  const supabase = await createClient();
+  const {
+    data: { user },
+    error: authError,
+  } = await supabase.auth.getUser();
+
+  if (authError || !user) {
+    return { success: false, error: "No autorizado. Inicie sesión para continuar." };
+  }
+
+  try {
+    const adminClient = createAdminClient();
+    const result = await CompanyEmployeeService.registerDirectEmployee(
+      adminClient,
+      user.id,
+      parsed.data
+    );
+
+    revalidatePath("/dashboard/company/employees");
+    revalidatePath("/dashboard/company");
+
+    return {
+      success: true,
+      data: result,
+    };
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : "Error al registrar colaborador.";
+    return { success: false, error: message };
+  }
+}
+

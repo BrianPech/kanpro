@@ -6,6 +6,7 @@ import type {
   CompanyEmployeeFormValues,
   TerminateEmployeeInput,
   HireCandidateInput,
+  RegisterDirectEmployeeValues,
 } from "../schemas/employee.schema";
 import type {
   CreateEmployeeInvitationValues,
@@ -866,6 +867,94 @@ export class CompanyEmployeeService {
     });
 
     return { success: true };
+  }
+
+  /**
+   * Registra un colaborador de forma directa creando su cuenta de usuario y credenciales.
+   * Regla de negocio (Opción A): Si el correo ya existe en la plataforma, se rechaza
+   * indicando utilizar la pestaña 'Invitar Empleado'.
+   * Sin asignar puesto por defecto (job_title: "").
+   */
+  public static async registerDirectEmployee(
+    adminClient: SupabaseClient<Database>,
+    companyId: string,
+    input: RegisterDirectEmployeeValues
+  ): Promise<{
+    employee: CompanyEmployeeRow;
+    userId: string;
+  }> {
+    const cleanEmail = input.email.toLowerCase().trim();
+    const cleanFullName = input.full_name.trim();
+
+    // 1. Validar si el correo ya existe en profiles (Opción A)
+    const { data: existingProfile } = await adminClient
+      .from("profiles")
+      .select("id, email, full_name")
+      .ilike("email", cleanEmail)
+      .maybeSingle();
+
+    if (existingProfile) {
+      throw new Error(
+        "El correo ya está registrado en K'anPro; utiliza la pestaña Invitar Empleado para vincularlo a tu plantilla."
+      );
+    }
+
+    // 2. Crear usuario en Supabase Auth mediante admin API
+    const { data: authData, error: authCreateError } = await adminClient.auth.admin.createUser({
+      email: cleanEmail,
+      password: input.password,
+      email_confirm: true,
+      user_metadata: {
+        full_name: cleanFullName,
+        role: "candidate",
+        force_password_change: input.force_password_change,
+      },
+    });
+
+    if (authCreateError || !authData.user) {
+      const errMsg = authCreateError?.message || "";
+      if (
+        errMsg.toLowerCase().includes("already") ||
+        errMsg.toLowerCase().includes("exists") ||
+        errMsg.toLowerCase().includes("registered")
+      ) {
+        throw new Error(
+          "El correo ya está registrado en K'anPro; utiliza la pestaña Invitar Empleado para vincularlo a tu plantilla."
+        );
+      }
+      throw new Error(errMsg || "No se pudo crear el usuario en el sistema de autenticación.");
+    }
+
+    const newUserId = authData.user.id;
+
+    // 3. Crear registro en company_employees (sin puesto por defecto)
+    const employeePayload: CompanyEmployeeInsert = {
+      company_id: companyId,
+      employee_id: newUserId,
+      full_name: cleanFullName,
+      email: cleanEmail,
+      job_title: "", // No se asigna puesto por defecto según requerimiento
+      department: null,
+      status: "active",
+      hire_date: new Date().toISOString().split("T")[0],
+    };
+
+    const { data: insertedEmployee, error: empError } = await adminClient
+      .from("company_employees")
+      .insert(employeePayload)
+      .select()
+      .single();
+
+    if (empError || !insertedEmployee) {
+      // Rollback: borrar usuario creado si falla la vinculación del colaborador
+      await adminClient.auth.admin.deleteUser(newUserId);
+      throw new Error(empError?.message || "No se pudo registrar el colaborador en la plantilla.");
+    }
+
+    return {
+      employee: insertedEmployee,
+      userId: newUserId,
+    };
   }
 }
 

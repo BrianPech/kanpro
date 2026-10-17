@@ -1,9 +1,13 @@
-import { describe, test, expect } from "vitest";
+import { describe, test, expect, vi } from "vitest";
 import crypto from "crypto";
+import type { SupabaseClient } from "@supabase/supabase-js";
+import type { Database } from "@/types/supabase";
 import {
   createEmployeeInvitationSchema,
   bulkEmployeeImportRowSchema,
 } from "@/modules/company/schemas/employee-invitation.schema";
+import { registerDirectEmployeeSchema } from "@/modules/company/schemas/employee.schema";
+import { CompanyEmployeeService } from "@/modules/company/services/company-service";
 import { parseEmployeeCsvText } from "@/modules/company/utils/employee-csv-parser";
 
 describe("Fase 6: Empresa - Empleados, Importación Masiva e Invitaciones (Núcleo Prioritario ⭐)", () => {
@@ -403,4 +407,298 @@ David Chan,david@empresa.com,Electricista
       expect(mockNotifications[0].type).toBe("employee_joined");
     });
   });
+
+  describe("6. Registro Directo de Empleados por la Empresa (registerDirectEmployee)", () => {
+    describe("6.1 Validación del Schema (registerDirectEmployeeSchema)", () => {
+      test("Acepta datos válidos para registro directo con force_password_change por defecto en true", () => {
+        const input = {
+          full_name: "Gonzalo Alcocer",
+          email: "gonzalo@hotelcaribe.com",
+          password: "PasswordSegura123!",
+          confirm_password: "PasswordSegura123!",
+        };
+
+        const result = registerDirectEmployeeSchema.safeParse(input);
+        expect(result.success).toBe(true);
+        if (result.success) {
+          expect(result.data.full_name).toBe("Gonzalo Alcocer");
+          expect(result.data.email).toBe("gonzalo@hotelcaribe.com");
+          expect(result.data.force_password_change).toBe(true);
+        }
+      });
+
+      test("Normaliza email a minúsculas y elimina espacios circundantes", () => {
+        const input = {
+          full_name: "  Andrea Castro  ",
+          email: "  ANDREA.CASTRO@HOTELCARIBE.COM  ",
+          password: "Password123456",
+          confirm_password: "Password123456",
+          force_password_change: false,
+        };
+
+        const result = registerDirectEmployeeSchema.safeParse(input);
+        expect(result.success).toBe(true);
+        if (result.success) {
+          expect(result.data.email).toBe("andrea.castro@hotelcaribe.com");
+          expect(result.data.full_name).toBe("Andrea Castro");
+          expect(result.data.force_password_change).toBe(false);
+        }
+      });
+
+      test("Rechaza si las contraseñas no coinciden", () => {
+        const input = {
+          full_name: "Manuel Ortega",
+          email: "manuel@hotelcaribe.com",
+          password: "Password123",
+          confirm_password: "DifferentPassword123",
+        };
+
+        const result = registerDirectEmployeeSchema.safeParse(input);
+        expect(result.success).toBe(false);
+        if (!result.success) {
+          const errors = result.error.flatten().fieldErrors;
+          expect(errors.confirm_password).toContain("Las contraseñas no coinciden.");
+        }
+      });
+
+      test("Rechaza si la contraseña tiene menos de 8 caracteres", () => {
+        const input = {
+          full_name: "Manuel Ortega",
+          email: "manuel@hotelcaribe.com",
+          password: "short",
+          confirm_password: "short",
+        };
+
+        const result = registerDirectEmployeeSchema.safeParse(input);
+        expect(result.success).toBe(false);
+        if (!result.success) {
+          const errors = result.error.flatten().fieldErrors;
+          expect(errors.password).toBeDefined();
+        }
+      });
+
+      test("Rechaza nombre menor a 3 caracteres o email inválido", () => {
+        const input = {
+          full_name: "Jo",
+          email: "not-an-email",
+          password: "Password123",
+          confirm_password: "Password123",
+        };
+
+        const result = registerDirectEmployeeSchema.safeParse(input);
+        expect(result.success).toBe(false);
+        if (!result.success) {
+          const errors = result.error.flatten().fieldErrors;
+          expect(errors.full_name).toBeDefined();
+          expect(errors.email).toBeDefined();
+        }
+      });
+    });
+
+    describe("6.2 Lógica de Negocio y Reglas en CompanyEmployeeService.registerDirectEmployee", () => {
+      test("Opción A: Rechaza si el correo ya existe en public.profiles y sugiere usar la pestaña Invitar", async () => {
+        const mockAdmin = {
+          from: vi.fn((table: string) => {
+            if (table === "profiles") {
+              return {
+                select: vi.fn(() => ({
+                  ilike: vi.fn(() => ({
+                    maybeSingle: vi.fn().mockResolvedValue({
+                      data: { id: "user-existing-123", email: "existente@empresa.com", full_name: "Juan Existente" },
+                      error: null,
+                    }),
+                  })),
+                })),
+              };
+            }
+            return {};
+          }),
+          auth: {
+            admin: {
+              createUser: vi.fn(),
+              deleteUser: vi.fn(),
+            },
+          },
+        } as unknown as SupabaseClient<Database>;
+
+        await expect(
+          CompanyEmployeeService.registerDirectEmployee(mockAdmin, "company-1", {
+            full_name: "Juan Existente",
+            email: "existente@empresa.com",
+            password: "Password123!",
+            confirm_password: "Password123!",
+            force_password_change: true,
+          })
+        ).rejects.toThrow(
+          "El correo ya está registrado en K'anPro; utiliza la pestaña Invitar Empleado para vincularlo a tu plantilla."
+        );
+
+        // Verifica que no se intentó crear el usuario en Auth
+        expect(mockAdmin.auth.admin.createUser).not.toHaveBeenCalled();
+      });
+
+      test("Crea el usuario en Auth y lo registra en company_employees sin puesto por defecto", async () => {
+        const mockCreatedUserId = "new-user-uuid-456";
+        const mockInsertedRow = {
+          id: "emp-row-999",
+          company_id: "company-1",
+          employee_id: mockCreatedUserId,
+          full_name: "Elena Gómez",
+          email: "elena@hotelcaribe.com",
+          job_title: "",
+          department: null,
+          status: "active",
+          hire_date: "2026-10-17",
+        };
+
+        const mockInsert = vi.fn(() => ({
+          select: vi.fn(() => ({
+            single: vi.fn().mockResolvedValue({
+              data: mockInsertedRow,
+              error: null,
+            }),
+          })),
+        }));
+
+        const mockAdmin = {
+          from: vi.fn((table: string) => {
+            if (table === "profiles") {
+              return {
+                select: vi.fn(() => ({
+                  ilike: vi.fn(() => ({
+                    maybeSingle: vi.fn().mockResolvedValue({
+                      data: null,
+                      error: null,
+                    }),
+                  })),
+                })),
+              };
+            }
+            if (table === "company_employees") {
+              return {
+                insert: mockInsert,
+              };
+            }
+            return {};
+          }),
+          auth: {
+            admin: {
+              createUser: vi.fn().mockResolvedValue({
+                data: {
+                  user: {
+                    id: mockCreatedUserId,
+                    email: "elena@hotelcaribe.com",
+                    user_metadata: {
+                      full_name: "Elena Gómez",
+                      role: "candidate",
+                      force_password_change: true,
+                    },
+                  },
+                },
+                error: null,
+              }),
+              deleteUser: vi.fn(),
+            },
+          },
+        } as unknown as SupabaseClient<Database>;
+
+        const result = await CompanyEmployeeService.registerDirectEmployee(mockAdmin, "company-1", {
+          full_name: "Elena Gómez",
+          email: "elena@hotelcaribe.com",
+          password: "SecurePassword123!",
+          confirm_password: "SecurePassword123!",
+          force_password_change: true,
+        });
+
+        expect(result.userId).toBe(mockCreatedUserId);
+        expect(result.employee.job_title).toBe(""); // Sin puesto por defecto
+        expect(result.employee.status).toBe("active");
+
+        // Validar argumentos de creación en Auth
+        expect(mockAdmin.auth.admin.createUser).toHaveBeenCalledWith({
+          email: "elena@hotelcaribe.com",
+          password: "SecurePassword123!",
+          email_confirm: true,
+          user_metadata: {
+            full_name: "Elena Gómez",
+            role: "candidate",
+            force_password_change: true,
+          },
+        });
+
+        // Validar inserción en company_employees
+        expect(mockInsert).toHaveBeenCalledWith(
+          expect.objectContaining({
+            company_id: "company-1",
+            employee_id: mockCreatedUserId,
+            full_name: "Elena Gómez",
+            email: "elena@hotelcaribe.com",
+            job_title: "",
+            status: "active",
+          })
+        );
+      });
+
+      test("Ejecuta rollback (deleteUser) si la vinculación en company_employees falla", async () => {
+        const mockCreatedUserId = "temp-user-to-rollback";
+
+        const mockAdmin = {
+          from: vi.fn((table: string) => {
+            if (table === "profiles") {
+              return {
+                select: vi.fn(() => ({
+                  ilike: vi.fn(() => ({
+                    maybeSingle: vi.fn().mockResolvedValue({
+                      data: null,
+                      error: null,
+                    }),
+                  })),
+                })),
+              };
+            }
+            if (table === "company_employees") {
+              return {
+                insert: vi.fn(() => ({
+                  select: vi.fn(() => ({
+                    single: vi.fn().mockResolvedValue({
+                      data: null,
+                      error: new Error("Foreign key violation or DB error"),
+                    }),
+                  })),
+                })),
+              };
+            }
+            return {};
+          }),
+          auth: {
+            admin: {
+              createUser: vi.fn().mockResolvedValue({
+                data: {
+                  user: {
+                    id: mockCreatedUserId,
+                  },
+                },
+                error: null,
+              }),
+              deleteUser: vi.fn().mockResolvedValue({ data: {}, error: null }),
+            },
+          },
+        } as unknown as SupabaseClient<Database>;
+
+        await expect(
+          CompanyEmployeeService.registerDirectEmployee(mockAdmin, "company-1", {
+            full_name: "Carlos Fallido",
+            email: "carlos.fallido@empresa.com",
+            password: "Password123!",
+            confirm_password: "Password123!",
+            force_password_change: true,
+          })
+        ).rejects.toThrow("Foreign key violation or DB error");
+
+        // Rollback ejecutado
+        expect(mockAdmin.auth.admin.deleteUser).toHaveBeenCalledWith(mockCreatedUserId);
+      });
+    });
+  });
 });
+

@@ -222,9 +222,9 @@ export function CompanyEmployeesView({
         full_name: newEmp.full_name,
         phone: newEmp.phone || "",
         avatar_url: newEmp.avatar_url || null,
-        location: newEmp.department || "Operaciones",
-        vacancy_title: newEmp.job_title || "Puesto General",
-        vacancy_category: newEmp.department || "General",
+        location: newEmp.department || "Mérida, Yucatán",
+        vacancy_title: newEmp.job_title?.trim() ? newEmp.job_title : "Sin puesto asignado",
+        vacancy_category: newEmp.department?.trim() ? newEmp.department : "Sin área",
         hired_date: newEmp.hire_date || new Date().toISOString(),
         notes: newEmp.notes || "",
         status: "Contratado",
@@ -631,13 +631,13 @@ export function CompanyEmployeesView({
           return (
             <div className="space-y-1 py-1">
               <p className="text-xs font-bold text-foreground line-clamp-1">
-                {emp.vacancy_title}
+                {emp.vacancy_title?.trim() ? emp.vacancy_title : "Sin puesto asignado"}
               </p>
               <Badge
                 variant="outline"
                 className="text-[10px] font-semibold px-2 py-0 rounded-md border-border/30 bg-muted/30"
               >
-                {emp.vacancy_category || "General"}
+                {emp.vacancy_category?.trim() ? emp.vacancy_category : "Sin área"}
               </Badge>
             </div>
           );
