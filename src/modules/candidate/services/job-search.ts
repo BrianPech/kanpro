@@ -122,8 +122,10 @@ export const jobSearchService = {
 
     const trimmedQuery = query?.trim();
     if (trimmedQuery) {
-      const term = trimmedQuery.replace(/[%_,]/g, "");
-      dbQuery = dbQuery.or(`title.ilike.%${term}%,description.ilike.%${term}%`);
+      const term = trimmedQuery.replace(/[%_,()]/g, " ").trim();
+      if (term) {
+        dbQuery = dbQuery.or(`title.ilike.%${term}%,description.ilike.%${term}%`);
+      }
     }
 
     dbQuery = dbQuery

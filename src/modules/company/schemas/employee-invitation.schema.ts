@@ -57,8 +57,12 @@ export const bulkEmployeeImportRowSchema = z.object({
   department: z.string().optional().default("Operaciones"),
   phone: z.string().optional().nullable(),
 });
+export const bulkEmployeeImportSchema = z
+  .array(bulkEmployeeImportRowSchema)
+  .min(1, "Debe proporcionar al menos un registro para importar.");
 
 export type BulkEmployeeImportRow = z.infer<typeof bulkEmployeeImportRowSchema>;
+export type BulkEmployeeImportInput = z.infer<typeof bulkEmployeeImportSchema>;
 
 export interface BulkImportPreviewItem extends BulkEmployeeImportRow {
   rowIndex: number;

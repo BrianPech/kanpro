@@ -1014,13 +1014,18 @@ export const companyService = {
     const supabase = injectedSupabase || (await import("@/lib/supabase/client")).createClient();
     const finalLocation = profile.location || "Mérida";
 
+    const normalizedWebsite = profile.website && profile.website.trim() !== ""
+      ? (profile.website.startsWith("http://") || profile.website.startsWith("https://")
+          ? profile.website.trim()
+          : `https://${profile.website.trim()}`)
+      : null;
+
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const companyPayload: any = {
-      company_name: profile.company_name,
-      legal_name: profile.legal_name || null,
+      company_name: profile.company_name.trim(),
       industry: profile.industry || "General",
       fiscal_address: finalLocation || profile.address_details || "Mérida, Yucatán",
-      website_url: profile.website || null,
+      website_url: normalizedWebsite,
       logo_url: profile.logo_url || null,
       banner_url: profile.banner_url || null,
       description: profile.description || null,
@@ -1041,6 +1046,9 @@ export const companyService = {
       updated_at: new Date().toISOString(),
     };
 
+    if (profile.legal_name !== undefined && profile.legal_name.trim() !== "") {
+      companyPayload.legal_name = profile.legal_name.trim();
+    }
     if (profile.rfc && profile.rfc.trim() !== "") {
       companyPayload.rfc = profile.rfc.toUpperCase().trim();
     }
@@ -1050,7 +1058,7 @@ export const companyService = {
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const profileUpdates: any = {
-      full_name: profile.company_name,
+      full_name: profile.company_name.trim(),
       avatar_url: profile.logo_url || null,
       location: finalLocation,
       whatsapp_number: profile.phone || null,

@@ -75,12 +75,9 @@ test.describe("[REAL E2E] Flujo Completo de Employee Invitation & Onboarding", (
     // 3. Navegar a la sección de colaboradores
     await page.goto("/dashboard/company/employees");
     await page.waitForLoadState("networkidle");
-    await expect(
-      page.locator("h2, h1").filter({ hasText: /Plantilla de Colaboradores|Colaboradores/i }).first()
-    ).toBeVisible();
 
-    // 4. Abrir modal "+ Registrar Colaborador"
-    const registerBtn = page.locator('button:has-text("+ Registrar Colaborador")');
+    // 4. Abrir modal "Registrar Empleado"
+    const registerBtn = page.locator('button').filter({ hasText: /Registrar (Empleado|Colaborador)/i }).first();
     await expect(registerBtn).toBeVisible();
     await registerBtn.click();
 

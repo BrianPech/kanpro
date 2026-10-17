@@ -31,6 +31,11 @@ interface MobileCheckInActionResult extends ActionResponse<AttendanceRow> {
   timeStr?: string;
   isLate?: boolean;
   delayMinutes?: number;
+  employeeName?: string;
+  jobTitle?: string;
+  department?: string;
+  scheduledCheckIn?: string;
+  scheduledCheckOut?: string;
 }
 
 interface ManualAttendanceActionResult extends ActionResponse<AttendanceRow> {
@@ -84,6 +89,11 @@ export async function recordAttendanceCheckInAction(
       timeStr: result.timeStr,
       isLate: result.isLate,
       delayMinutes: result.delayMinutes,
+      employeeName: result.employeeName,
+      jobTitle: result.jobTitle,
+      department: result.department,
+      scheduledCheckIn: result.scheduledCheckIn,
+      scheduledCheckOut: result.scheduledCheckOut,
     };
   } catch (error) {
     const errorMsg = error instanceof Error ? error.message : "Error inesperado al registrar checada.";

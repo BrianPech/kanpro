@@ -23,6 +23,7 @@ import {
   Phone,
   MapPin,
   Briefcase,
+  Edit3,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -93,7 +94,7 @@ export function CompanyVerificationView({
   initialData,
 }: CompanyVerificationViewProps) {
   const [fiscalRegime, setFiscalRegime] = React.useState<"persona_moral" | "persona_fisica">(
-    (initialData as any).fiscal_regime || (initialData as any).entity_type || "persona_moral"
+    initialData.fiscal_regime || initialData.entity_type || "persona_moral"
   );
   const [legalName, setLegalName] = React.useState(initialData.legal_name || "");
   const [companyName, setCompanyName] = React.useState(initialData.company_name || "");
@@ -187,10 +188,11 @@ export function CompanyVerificationView({
       toast.success("Documento cargado correctamente", {
         description: `Se registró ${uploadedDoc.file_name} en tu expediente digital.`,
       });
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error("Error uploading doc:", err);
+      const msg = err instanceof Error ? err.message : "Inténtalo de nuevo o verifica tu archivo.";
       toast.error("Error al subir el documento", {
-        description: err.message || "Inténtalo de nuevo o verifica tu archivo.",
+        description: msg,
       });
     } finally {
       setUploadingDocType(null);
@@ -222,9 +224,10 @@ export function CompanyVerificationView({
       toast.info("Documento eliminado", {
         description: "El archivo se ha removido de tu expediente digital.",
       });
-    } catch (err: any) {
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : "No se pudo remover el archivo.";
       toast.error("Error al eliminar documento", {
-        description: err.message || "No se pudo remover el archivo.",
+        description: msg,
       });
     }
   };
@@ -245,12 +248,32 @@ export function CompanyVerificationView({
         url: signedUrl,
         fileName: doc.file_name,
       });
-    } catch (err: any) {
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : "Inténtalo de nuevo más tarde.";
       toast.error("Error al cargar vista previa", {
-        description: err.message || "Inténtalo de nuevo más tarde.",
+        description: msg,
       });
     } finally {
       setIsLoadingPreview(false);
+    }
+  };
+
+  // Unlock dossier for editing if user wishes to update before audit completes
+  const handleUnlockForEdit = async () => {
+    setIsSaving(true);
+    try {
+      await companyVerificationService.unlockForEditing(userId);
+      setVerificationStatus("unsubmitted");
+      toast.info("Expediente habilitado para edición", {
+        description: "Ahora puedes actualizar o corregir tus datos fiscales y documentos antes de volver a enviarlo a revisión.",
+      });
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : "No se pudo cambiar el estado del expediente.";
+      toast.error("Error al desbloquear expediente", {
+        description: msg,
+      });
+    } finally {
+      setIsSaving(false);
     }
   };
 
@@ -279,9 +302,10 @@ export function CompanyVerificationView({
       toast.success("Avance guardado en borrador", {
         description: "Puedes continuar completando tu expediente en cualquier momento.",
       });
-    } catch (err: any) {
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : "Ocurrió un error al actualizar los datos.";
       toast.error("Error al guardar borrador", {
-        description: err.message || "Ocurrió un error al actualizar los datos.",
+        description: msg,
       });
     } finally {
       setIsSaving(false);
@@ -326,9 +350,10 @@ export function CompanyVerificationView({
         description:
           "El equipo legal de K'anPro revisará tus documentos corporativos. Te notificaremos una vez validados.",
       });
-    } catch (err: any) {
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : "No se pudo procesar la verificación.";
       toast.error("Error al enviar solicitud", {
-        description: err.message || "No se pudo procesar la verificación.",
+        description: msg,
       });
     } finally {
       setIsSubmitting(false);
@@ -367,9 +392,21 @@ export function CompanyVerificationView({
               Expediente Digital en Auditoría
             </AlertTitle>
             <AlertDescription className="text-xs text-amber-700 dark:text-amber-300/90 leading-relaxed">
-              El equipo legal está revisando tus 13 documentos corporativos. Te notificaremos por correo una vez concluida la validación.
+              El equipo legal está revisando tus documentos corporativos. Si necesitas realizar ajustes o correcciones, puedes habilitar la edición de tu expediente.
             </AlertDescription>
           </div>
+          <AlertAction className="static sm:absolute sm:top-4 sm:right-4 mt-3 sm:mt-0">
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={handleUnlockForEdit}
+              disabled={isSaving || isSubmitting}
+              className="h-9 px-3.5 rounded-xl text-xs font-bold border-amber-500/40 text-amber-900 dark:text-amber-200 hover:bg-amber-500/20 cursor-pointer flex items-center gap-1.5"
+            >
+              <Edit3 className="size-3.5" />
+              <span>Editar Expediente</span>
+            </Button>
+          </AlertAction>
         </Alert>
       )}
 

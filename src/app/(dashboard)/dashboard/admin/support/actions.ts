@@ -418,7 +418,10 @@ export async function searchUserForSupport(query: string) {
 
   if (!query || query.trim().length < 2) return [];
 
-  const cleanQuery = query.trim().toLowerCase();
+  const sanitized = query.replace(/[(),]/g, " ").trim();
+  if (sanitized.length < 2) return [];
+
+  const cleanQuery = sanitized.toLowerCase();
 
   const { data: profiles, error } = await supabase
     .from("profiles")

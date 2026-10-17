@@ -2,6 +2,8 @@
 
 import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
+import { z } from "zod";
+import type { Json } from "@/types/supabase";
 
 export async function requireAdminAuth() {
   const supabase = await createClient();
@@ -72,10 +74,20 @@ export async function getSystemSettings(): Promise<SystemSettingsMap> {
   return result;
 }
 
-export async function saveSystemSettings(settings: Record<string, any>) {
+export const systemSettingsSchema = z.record(
+  z.string().min(1, "La clave de configuración no puede estar vacía").max(100),
+  z.unknown()
+);
+
+export async function saveSystemSettings(settings: Record<string, unknown>) {
   const { supabase, user } = await requireAdminAuth();
 
-  const entries = Object.entries(settings);
+  const parsed = systemSettingsSchema.safeParse(settings);
+  if (!parsed.success) {
+    throw new Error(parsed.error.issues[0]?.message || "Configuración del sistema inválida.");
+  }
+
+  const entries = Object.entries(parsed.data);
   const now = new Date().toISOString();
 
   for (const [key, value] of entries) {
@@ -84,7 +96,7 @@ export async function saveSystemSettings(settings: Record<string, any>) {
       .upsert(
         {
           key,
-          value,
+          value: value as NonNullable<Json>,
           updated_at: now,
           updated_by: user.id,
         },
@@ -92,7 +104,8 @@ export async function saveSystemSettings(settings: Record<string, any>) {
       );
 
     if (error) {
-      throw new Error(`Error al guardar configuración [${key}]: ${error.message}`);
+      console.error(`[AdminSettings] Error saving setting [${key}]:`, error);
+      throw new Error(`Error al guardar configuración [${key}]. Operación no completada.`);
     }
   }
 

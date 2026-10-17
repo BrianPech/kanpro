@@ -107,6 +107,19 @@ export const companyVerificationService = {
       .eq("id", userId);
   },
 
+  async unlockForEditing(userId: string) {
+    const supabase = createClient();
+    const { error } = await supabase
+      .from("company_profiles")
+      .update({
+        verification_status: null,
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", userId);
+
+    if (error) throw error;
+  },
+
   async uploadDocument(
     userId: string,
     docType: CompanyDocType,

@@ -43,7 +43,7 @@ export async function getCompanyVerificationServerData(): Promise<{
   };
 
   if (docsData) {
-    docsData.forEach((doc: any) => {
+    docsData.forEach((doc) => {
       if (
         [
           "acta_constitutiva",
@@ -54,11 +54,11 @@ export async function getCompanyVerificationServerData(): Promise<{
       ) {
         docsMap[doc.doc_type as CompanyDocType] = {
           id: doc.id,
-          doc_type: doc.doc_type,
+          doc_type: doc.doc_type as CompanyDocType,
           file_url: doc.file_url,
           file_name: doc.file_name,
-          file_size_bytes: doc.file_size_bytes,
-          status: doc.status || "pending",
+          file_size_bytes: doc.file_size_bytes ?? undefined,
+          status: (doc.status as "pending" | "approved" | "rejected") || "pending",
           rejection_reason: doc.rejection_reason,
           created_at: doc.created_at,
         };
@@ -66,23 +66,34 @@ export async function getCompanyVerificationServerData(): Promise<{
     });
   }
 
-  const rawStatus = (companyProfile as any)?.verification_status;
-  const normalizedStatus = rawStatus ? rawStatus : "unsubmitted";
+  const rawStatus = companyProfile?.verification_status;
+  const hasUploadedDocs = Boolean(docsData && docsData.length > 0);
+  let normalizedStatus: "pending" | "approved" | "rejected" | "unsubmitted" = "unsubmitted";
+
+  if (rawStatus === "approved") {
+    normalizedStatus = "approved";
+  } else if (rawStatus === "rejected") {
+    normalizedStatus = "rejected";
+  } else if (rawStatus === "pending" && hasUploadedDocs) {
+    normalizedStatus = "pending";
+  } else {
+    normalizedStatus = "unsubmitted";
+  }
 
   const verificationData: CompanyVerificationData = {
     legal_name: companyProfile?.legal_name || "",
     company_name: companyProfile?.company_name || baseProfile?.full_name || "",
     rfc: companyProfile?.rfc || "",
-    fiscal_address: companyProfile?.fiscal_address || (baseProfile as any)?.location || "",
+    fiscal_address: companyProfile?.fiscal_address || baseProfile?.location || "",
     industry: companyProfile?.industry || "",
     legal_rep_name: companyProfile?.legal_rep_name || "",
     corporate_email: companyProfile?.corporate_email || baseProfile?.email || "",
     contact_phone: companyProfile?.contact_phone || baseProfile?.whatsapp_number || "",
-    fiscal_regime: (companyProfile?.entity_type as any) || "persona_moral",
-    entity_type: (companyProfile?.entity_type as any) || "persona_moral",
+    fiscal_regime: (companyProfile?.entity_type as "persona_moral" | "persona_fisica") || "persona_moral",
+    entity_type: (companyProfile?.entity_type as "persona_moral" | "persona_fisica") || "persona_moral",
     terms_accepted: !!baseProfile?.terms_accepted_at,
     terms_accepted_at: baseProfile?.terms_accepted_at || null,
-    verification_status: normalizedStatus as any,
+    verification_status: normalizedStatus,
     documents: docsMap,
   };
 

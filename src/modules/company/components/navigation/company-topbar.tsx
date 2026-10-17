@@ -4,7 +4,6 @@ import { usePathname } from "next/navigation";
 import Link from "next/link";
 import {
   Bell,
-  Plus,
   UserPlus,
 } from "lucide-react";
 import * as React from "react";
@@ -70,6 +69,7 @@ export function DashboardTopbar({
 
   const currentTitle = companyRouteNames[pathname] || (pathname.includes("/vacancies/") ? "Detalle de Vacante" : "Portal Empresa");
   const isRoot = pathname === "/dashboard/company";
+  const isEmployeesPage = pathname === "/dashboard/company/employees";
 
   return (
     <header className="flex h-16 shrink-0 items-center justify-between gap-2 border-b border-border/15 bg-background/90 backdrop-blur-md px-4 md:px-6 transition-all">
@@ -109,14 +109,18 @@ export function DashboardTopbar({
 
       {/* Right Area: Action, Notifications & Mobile User Avatar */}
       <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
-        {role === "company" && (
+        {role === "company" && isEmployeesPage && (
           <Button
             size="sm"
-            render={<Link href="/dashboard/company/employees?action=new" />}
-            className="hidden md:flex font-semibold px-3 h-8 rounded-lg items-center gap-1.5 shadow-xs text-xs bg-primary text-primary-foreground hover:bg-primary/90 cursor-pointer"
+            onClick={() => {
+              window.dispatchEvent(new CustomEvent("open-register-employee-modal"));
+            }}
+            className="font-semibold px-2.5 sm:px-3 h-8 rounded-lg flex items-center gap-1.5 shadow-xs text-xs bg-primary text-primary-foreground hover:bg-primary/90 cursor-pointer"
+            data-testid="register-employee-btn"
           >
             <UserPlus className="size-3.5 stroke-[2.5]" />
-            <span>Registrar Colaborador</span>
+            <span className="hidden sm:inline">Registrar Empleado</span>
+            <span className="sm:hidden">Registrar</span>
           </Button>
         )}
 

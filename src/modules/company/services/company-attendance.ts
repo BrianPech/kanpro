@@ -10,7 +10,7 @@ import {
   EmployeeAttendanceHistory,
   EmployeeAttendanceDay,
 } from "../types/attendance";
-import { DEFAULT_GEOFENCE } from "../utils/attendance-utils";
+import { DEFAULT_GEOFENCE, calculateDistanceInMeters } from "../utils/attendance-utils";
 import type {
   MobileCheckInInput,
   ManualAttendanceInput,
@@ -43,6 +43,11 @@ export interface MobileCheckInResult {
   timeStr: string;
   isLate: boolean;
   delayMinutes: number;
+  employeeName: string;
+  jobTitle: string;
+  department: string;
+  scheduledCheckIn: string;
+  scheduledCheckOut: string;
 }
 
 const MONTH_NAMES = [
@@ -114,6 +119,29 @@ export class CompanyAttendanceService {
       throw new Error("Colaborador no encontrado en la plantilla de la empresa.");
     }
 
+    // Doble Factor: Si el método es 'qr', validar token y geocerca GPS
+    if (input.method === "qr") {
+      if (!input.qrToken || !input.qrToken.trim()) {
+        throw new Error("Código QR no proporcionado o inválido.");
+      }
+      const dist =
+        input.distanceMeters ??
+        (input.coordinates
+          ? calculateDistanceInMeters(
+              input.coordinates.lat,
+              input.coordinates.lng,
+              DEFAULT_GEOFENCE.latitude,
+              DEFAULT_GEOFENCE.longitude
+            )
+          : undefined);
+
+      if (dist !== undefined && dist > DEFAULT_GEOFENCE.radiusMeters) {
+        throw new Error(
+          `Fuera de la zona de trabajo autorizada. Distancia: ${Math.round(dist)}m (máximo permitido: ${DEFAULT_GEOFENCE.radiusMeters}m).`
+        );
+      }
+    }
+
     const { scheduledCheckIn, scheduledCheckOut } = resolveWorkSchedule(employee.work_schedule);
     const now = new Date();
     const { workDate, timeStr, isLate, delayMinutes } = calculateDelayMinutes(scheduledCheckIn, now);
@@ -141,7 +169,17 @@ export class CompanyAttendanceService {
       throw new Error(error?.message || "Error al registrar checada de asistencia.");
     }
 
-    return { record: data, timeStr, isLate, delayMinutes };
+    return {
+      record: data,
+      timeStr,
+      isLate,
+      delayMinutes,
+      employeeName: employee.full_name || "Colaborador",
+      jobTitle: employee.job_title || "Colaborador",
+      department: employee.department || "Operaciones",
+      scheduledCheckIn,
+      scheduledCheckOut,
+    };
   }
 
   async createManualAttendance(

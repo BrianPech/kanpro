@@ -59,8 +59,11 @@ export async function getVacanciesByLocation(
     .or("status.eq.Activa,status.eq.activa,status.eq.published,is_active.eq.true");
 
   if (searchQuery) {
-    const term = `%${searchQuery}%`;
-    query = query.or(`title.ilike.${term},description.ilike.${term}`);
+    const sanitized = searchQuery.replace(/[(),]/g, " ").trim();
+    if (sanitized) {
+      const term = `%${sanitized}%`;
+      query = query.or(`title.ilike.${term},description.ilike.${term}`);
+    }
   }
 
   if (locationQuery) {

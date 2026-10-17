@@ -150,9 +150,49 @@ export async function getDocumentAccessStatus(applicationId: string) {
   }
 
   const supabase = await createClient();
+  const {
+    data: { user },
+    error: authError,
+  } = await supabase.auth.getUser();
+
+  if (authError || !user) {
+    return null;
+  }
+
+  // Validar que la postulación pertenezca a la empresa autenticada o al candidato en sesión
+  const { data: application, error: appError } = await supabase
+    .from("applications")
+    .select(`
+      id,
+      candidate_id,
+      vacancies (
+        company_id,
+        recruiter_id
+      )
+    `)
+    .eq("id", parsed.data.applicationId)
+    .maybeSingle();
+
+  if (appError || !application) {
+    return null;
+  }
+
+  const vacancy = Array.isArray(application.vacancies)
+    ? application.vacancies[0]
+    : application.vacancies;
+
+  const isCandidate = application.candidate_id === user.id;
+  const isCompany =
+    Boolean(vacancy && (vacancy.company_id === user.id || vacancy.recruiter_id === user.id));
+
+  if (!isCandidate && !isCompany) {
+    return null;
+  }
+
   return await CompanyDocumentAccessService.getDocumentAccessStatus(
     supabase,
-    parsed.data.applicationId
+    parsed.data.applicationId,
+    isCompany ? user.id : undefined
   );
 }
 

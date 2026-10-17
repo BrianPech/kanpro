@@ -14,6 +14,7 @@ import {
 } from "@/modules/company/services/company-attendance";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@/types/supabase";
+import { generateQrSvg } from "@/modules/company/utils/qrcode";
 
 describe("Fase 15: Módulo de Asistencia - Arquitectura Schema -> Handler -> Service", () => {
   describe("1. Validación de Esquemas Zod (attendance.schema.ts)", () => {
@@ -382,6 +383,101 @@ describe("Fase 15: Módulo de Asistencia - Arquitectura Schema -> Handler -> Ser
           method: "manual",
         })
       ).rejects.toThrow("Colaborador no encontrado en la plantilla de la empresa.");
+    });
+
+    test("recordMobileCheckIn: Doble Factor (QR + Geocerca GPS) registra checada y extrae nombre y horario del colaborador", async () => {
+      const { client, attendance } = createMockSupabase({
+        employees: [
+          {
+            id: "emp-qr-1",
+            company_id: "comp-A",
+            full_name: "Sofía Martínez",
+            job_title: "Ingeniera de Software",
+            department: "Tecnología",
+            work_schedule: "08:30 - 17:30",
+          },
+        ],
+      });
+
+      const service = new CompanyAttendanceService(client);
+      const res = await service.recordMobileCheckIn("comp-A", {
+        employeeId: "emp-qr-1",
+        actionType: "check_in",
+        method: "qr",
+        qrToken: "V9876-CENTRAL",
+        distanceMeters: 25, // Dentro del límite de 150m
+        coordinates: { lat: 20.6297, lng: -87.0738, accuracy: 4 },
+      });
+
+      // Valida inserción y campos del registro
+      expect(res.record).toBeDefined();
+      expect(res.record.employee_id).toBe("emp-qr-1");
+      expect(res.record.check_in_method).toBe("qr");
+      expect(attendance.length).toBe(1);
+
+      // Valida extracción del nombre del trabajador y horario programado
+      expect(res.employeeName).toBe("Sofía Martínez");
+      expect(res.jobTitle).toBe("Ingeniera de Software");
+      expect(res.department).toBe("Tecnología");
+      expect(res.scheduledCheckIn).toBe("08:30");
+      expect(res.scheduledCheckOut).toBe("17:30");
+      expect(res.timeStr).toMatch(/^\d{2}:\d{2}$/);
+    });
+
+    test("recordMobileCheckIn: Doble Factor rechaza checada si falta el token QR", async () => {
+      const { client } = createMockSupabase({
+        employees: [
+          {
+            id: "emp-qr-2",
+            company_id: "comp-A",
+            full_name: "Roberto Gómez",
+          },
+        ],
+      });
+
+      const service = new CompanyAttendanceService(client);
+      await expect(
+        service.recordMobileCheckIn("comp-A", {
+          employeeId: "emp-qr-2",
+          actionType: "check_in",
+          method: "qr",
+          qrToken: "", // Token vacío
+          distanceMeters: 10,
+        })
+      ).rejects.toThrow("Código QR no proporcionado o inválido.");
+    });
+
+    test("recordMobileCheckIn: Doble Factor rechaza checada si el colaborador está fuera de la geocerca (> 150m)", async () => {
+      const { client } = createMockSupabase({
+        employees: [
+          {
+            id: "emp-qr-3",
+            company_id: "comp-A",
+            full_name: "Andrés Guardado",
+          },
+        ],
+      });
+
+      const service = new CompanyAttendanceService(client);
+      await expect(
+        service.recordMobileCheckIn("comp-A", {
+          employeeId: "emp-qr-3",
+          actionType: "check_in",
+          method: "qr",
+          qrToken: "V1234",
+          distanceMeters: 350, // 350 metros > 150m de límite
+        })
+      ).rejects.toThrow(/Fuera de la zona de trabajo autorizada/);
+    });
+
+    test("generateQrSvg: Genera código QR vectorial SVG válido para el kiosco de la sucursal", async () => {
+      const payload = "KANPRO://CHECKIN?branch=OficinaCentral&token=V5678";
+      const svg = await generateQrSvg(payload, { width: 200, margin: 1 });
+
+      expect(svg).toBeDefined();
+      expect(svg).toContain("<svg");
+      expect(svg).toContain("</svg>");
+      expect(svg).toContain("viewBox");
     });
 
     test("createManualAttendance: Inserta asistencia manual respetando pertenencia de empresa", async () => {

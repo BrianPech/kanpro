@@ -272,6 +272,28 @@ describe("Fase 20: Flujos Finales - Acceso a Documentos y Configuración de Empr
             };
           }
 
+          if (table === "applications") {
+            return {
+              select: vi.fn(() => ({
+                eq: vi.fn((field1: string, val1: string) => ({
+                  eq: vi.fn((field2: string, val2: string) => ({
+                    maybeSingle: vi.fn(async () => ({
+                      data: {
+                        id: val1,
+                        candidate_id: val2,
+                        vacancies: {
+                          company_id: "comp-1",
+                          recruiter_id: "comp-1",
+                        },
+                      },
+                      error: null,
+                    })),
+                  })),
+                })),
+              })),
+            };
+          }
+
           if (table === "profile_documents") {
             return {
               select: vi.fn(() => ({

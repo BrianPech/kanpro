@@ -16,8 +16,6 @@ import {
   ShieldCheck,
   Navigation,
   FileText,
-  CreditCard,
-  Lock,
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -47,7 +45,7 @@ import { useCompanyProfileForm } from "../hooks/use-company-profile-form";
 import { toast } from "sonner";
 import { motion } from "framer-motion";
 import { cn } from "@/lib/utils";
-import { findNearestCityAndZone, cleanCityName, resolveLocationFromCoords } from "@/config/geo";
+import { cleanCityName, resolveLocationFromCoords } from "@/config/geo";
 
 const InstagramIcon = (props: React.SVGProps<SVGSVGElement>) => (
   <svg
@@ -186,10 +184,7 @@ const QUICK_CITIES = [
   "Progreso, Yucatán",
 ];
 
-const FISCAL_REGIME_LABELS: Record<string, string> = {
-  persona_moral: "Persona Moral (Sociedades / Empresas - RFC de 12 dígitos)",
-  persona_fisica: "Persona Física con Actividad Empresarial (RFC de 13 dígitos)",
-};
+
 
 const COMPANY_SIZE_LABELS: Record<string, string> = {
   "1-10": "1 - 10 colaboradores",
@@ -236,12 +231,7 @@ export function CompanyProfileForm({
   const description = watch("description") || "";
   const companyName = watch("company_name");
   const location = watch("location");
-  const fiscalRegime = watch("fiscal_regime") || "persona_moral";
 
-  const isFiscalLocked =
-    initialProfile?.verification_status === "pending" ||
-    initialProfile?.verification_status === "approved" ||
-    !!initialProfile?.is_verified;
 
   const [isLocating, setIsLocating] = React.useState(false);
   const [isUploadingLogo, setIsUploadingLogo] = React.useState(false);
@@ -354,10 +344,11 @@ export function CompanyProfileForm({
           description: "La imagen comercial de tu empresa ha sido guardada.",
         });
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error("Error uploading logo:", err);
+      const msg = err instanceof Error ? err.message : "No se pudo subir la imagen a la nube.";
       toast.error("Error al subir logotipo", {
-        description: err.message || "No se pudo subir la imagen a la nube.",
+        description: msg,
       });
     } finally {
       setIsUploadingLogo(false);
@@ -416,10 +407,11 @@ export function CompanyProfileForm({
           description: "La imagen de portada ha sido guardada.",
         });
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error("Error uploading banner:", err);
+      const msg = err instanceof Error ? err.message : "No se pudo subir la imagen a la nube.";
       toast.error("Error al subir portada", {
-        description: err.message || "No se pudo subir la imagen a la nube.",
+        description: msg,
       });
     } finally {
       setIsUploadingBanner(false);
@@ -441,7 +433,7 @@ export function CompanyProfileForm({
         {/* ========================================================================= */}
         {/* 1. SHADCN ALERT: VALIDACIÓN Y ESTADO DE CUENTA                            */}
         {/* ========================================================================= */}
-        {initialProfile?.is_validated ? (
+        {initialProfile?.is_validated || initialProfile?.is_verified || initialProfile?.verification_status === "approved" ? (
           <Alert className="rounded-2xl border-emerald-500/30 bg-emerald-500/10 text-emerald-800 dark:text-emerald-300 p-4 sm:p-5 shadow-2xs">
             <ShieldCheck className="size-5 text-emerald-600 dark:text-emerald-400" />
             <div className="space-y-0.5">
@@ -458,10 +450,10 @@ export function CompanyProfileForm({
             <ShieldCheck className="size-5 text-primary" />
             <div className="space-y-1">
               <AlertTitle className="text-sm font-bold text-foreground">
-                Verificación de Cuenta (Persona Moral)
+                Sello de Verificación Corporativa
               </AlertTitle>
               <AlertDescription className="text-xs text-muted-foreground leading-relaxed">
-                Completa la información legal y sube los documentos requeridos para obtener la insignia de confianza corporativa.
+                Valida tus datos fiscales oficiales (RFC, razón social y régimen) y expediente legal para obtener la insignia de confianza corporativa.
               </AlertDescription>
             </div>
             <AlertAction className="static sm:absolute sm:top-4 sm:right-4 mt-3 sm:mt-0">
@@ -470,7 +462,7 @@ export function CompanyProfileForm({
                 render={<Link href="/dashboard/company/verification" />}
                 className="h-9 px-4 rounded-xl text-xs font-bold bg-primary text-primary-foreground hover:bg-primary/90 shadow-xs cursor-pointer"
               >
-                Ir a Verificación
+                Ir a Verificación Legal
               </Button>
             </AlertAction>
           </Alert>
@@ -599,7 +591,7 @@ export function CompanyProfileForm({
                 </div>
                 <p className="text-xs text-muted-foreground font-medium leading-relaxed max-w-xl">
                   {location ? `${location} • ` : ""}
-                  Gestiona la información corporativa, ubicación, datos fiscales y canales de contacto de tu empresa.
+                  Gestiona la información comercial, presencia digital, canales de contacto y sede de tu empresa.
                 </p>
               </div>
             </div>
@@ -928,142 +920,7 @@ export function CompanyProfileForm({
               </div>
             </div>
 
-            {/* SECCIÓN 4: DATOS FISCALES Y FACTURACIÓN */}
-            <div className="space-y-5 pt-6">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                <div className="flex items-center gap-2.5">
-                  <div className="size-8 rounded-xl bg-amber-500/10 text-amber-600 dark:text-amber-400 flex items-center justify-center shrink-0">
-                    <CreditCard className="size-4" />
-                  </div>
-                  <div>
-                    <h3 className="text-sm font-extrabold text-foreground">
-                      Datos Fiscales & Régimen
-                    </h3>
-                    <p className="text-xs text-muted-foreground font-medium">
-                      Información legal y fiscal requerida por el SAT y facturación.
-                    </p>
-                  </div>
-                </div>
 
-                {isFiscalLocked && (
-                  <Badge
-                    variant="outline"
-                    className="bg-amber-500/10 text-amber-700 dark:text-amber-300 border-amber-500/20 text-[10px] font-bold px-2.5 py-1 rounded-md flex items-center gap-1.5 self-start sm:self-auto"
-                  >
-                    <Lock className="size-3" />
-                    <span>{initialProfile?.verification_status === "approved" || initialProfile?.is_verified ? "Datos Fiscales Verificados" : "Expediente en Auditoría"}</span>
-                  </Badge>
-                )}
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-5">
-                {/* Régimen Fiscal Select */}
-                <div className="space-y-1.5">
-                  <label className="text-xs font-bold text-foreground flex items-center gap-1">
-                    <span>Régimen Fiscal / Tipo de Persona</span>
-                    <span className="text-destructive">*</span>
-                  </label>
-                  <Select
-                    value={fiscalRegime}
-                    disabled={isFiscalLocked}
-                    onValueChange={(val) => {
-                      setValue("fiscal_regime", val as "persona_moral" | "persona_fisica", {
-                        shouldValidate: true,
-                      });
-                      const currentRfc = watch("rfc") || "";
-                      if (val === "persona_moral" && currentRfc.length > 12) {
-                        setValue("rfc", currentRfc.substring(0, 12), { shouldValidate: true });
-                      }
-                    }}
-                  >
-                    <SelectTrigger
-                      disabled={isFiscalLocked}
-                      className={cn(
-                        "h-11 w-full rounded-xl bg-input/40 border border-border/80 px-3.5 text-xs sm:text-sm font-semibold focus-visible:bg-background cursor-pointer",
-                        isFiscalLocked && "opacity-75 cursor-not-allowed bg-muted/40"
-                      )}
-                    >
-                      <SelectValue placeholder="Selecciona Régimen Fiscal">
-                        {(val: string | null) => (val && FISCAL_REGIME_LABELS[val]) || val || "Selecciona Régimen Fiscal"}
-                      </SelectValue>
-                    </SelectTrigger>
-                    <SelectContent className="rounded-xl border border-border/80 bg-popover text-xs font-semibold">
-                      <SelectItem value="persona_moral">
-                        Persona Moral (Sociedades / Empresas - RFC de 12 dígitos)
-                      </SelectItem>
-                      <SelectItem value="persona_fisica">
-                        Persona Física con Actividad Empresarial (RFC de 13 dígitos)
-                      </SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                {/* Razón Social / Denominación Legal */}
-                <div className="space-y-1.5">
-                  <label className="text-xs font-bold text-foreground flex items-center gap-1">
-                    <span>Razón Social / Denominación Legal</span>
-                  </label>
-                  <div className="relative">
-                    <Building2 className="absolute left-3.5 top-1/2 -translate-y-1/2 size-4 text-muted-foreground pointer-events-none" />
-                    <Input
-                      type="text"
-                      placeholder="Ej. Operadora Turística Maya S.A. de C.V."
-                      {...register("legal_name")}
-                      disabled={isFiscalLocked}
-                      className={cn(
-                        "h-11 rounded-xl bg-input/40 border border-border/80 pl-10 text-xs sm:text-sm font-semibold focus-visible:bg-background",
-                        isFiscalLocked && "opacity-75 cursor-not-allowed bg-muted/40"
-                      )}
-                    />
-                  </div>
-                </div>
-
-                {/* RFC Fiscal */}
-                <div className="space-y-1.5">
-                  <label className="text-xs font-bold text-foreground">
-                    RFC Fiscal ({fiscalRegime === "persona_fisica" ? "13 Caracteres" : "12 Caracteres"})
-                  </label>
-                  <Input
-                    type="text"
-                    maxLength={fiscalRegime === "persona_fisica" ? 13 : 12}
-                    placeholder={fiscalRegime === "persona_fisica" ? "ABCD120315XXX" : "ABC120315XXX"}
-                    value={watch("rfc") || ""}
-                    disabled={isFiscalLocked}
-                    onChange={(e) => {
-                      const upper = e.target.value.toUpperCase().replace(/[^A-Z0-9&Ñ]/g, "");
-                      setValue("rfc", upper, { shouldValidate: true });
-                    }}
-                    className={cn(
-                      "h-11 rounded-xl bg-input/40 border border-border/80 px-3.5 text-xs sm:text-sm font-mono font-bold focus-visible:bg-background tracking-wider uppercase",
-                      isFiscalLocked && "opacity-75 cursor-not-allowed bg-muted/40"
-                    )}
-                  />
-                  {errors.rfc ? (
-                    <p className="text-xs font-semibold text-destructive">
-                      {errors.rfc.message}
-                    </p>
-                  ) : (
-                    <p className="text-[11px] text-muted-foreground font-medium">
-                      {fiscalRegime === "persona_fisica"
-                        ? "RFC de 13 posiciones para persona física (4 letras + 6 números + 3 homoclave)."
-                        : "RFC de 12 posiciones para persona moral (3 letras + 6 números + 3 homoclave)."}
-                    </p>
-                  )}
-                </div>
-              </div>
-
-              {isFiscalLocked && (
-                <div className="p-3.5 bg-amber-500/10 border border-amber-500/20 rounded-xl flex items-center gap-2.5 text-xs font-semibold text-amber-800 dark:text-amber-300">
-                  <Lock className="size-4 text-amber-600 dark:text-amber-400 shrink-0" />
-                  <span>
-                    Los datos fiscales están protegidos porque tu expediente está {initialProfile?.verification_status === "approved" || initialProfile?.is_verified ? "verificado" : "enviado a revisión"}. Para actualizarlos, dirígete a{" "}
-                    <Link href="/dashboard/company/verification" className="underline font-bold hover:text-amber-900 dark:hover:text-amber-200">
-                      Verificación Legal
-                    </Link>.
-                  </span>
-                </div>
-              )}
-            </div>
 
           </CardContent>
 

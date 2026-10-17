@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   QrCode,
   Printer,
@@ -25,6 +25,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import { GeofenceConfig } from "../../types/attendance";
+import { generateQrSvg } from "../../utils/qrcode";
 
 interface BranchQrKioskModalProps {
   isOpen: boolean;
@@ -41,10 +42,17 @@ export function BranchQrKioskModal({
 }: BranchQrKioskModalProps) {
   const [tokenVersion, setTokenVersion] = useState(Date.now().toString().slice(-4));
   const [isCopied, setIsCopied] = useState(false);
+  const [qrSvg, setQrSvg] = useState<string>("");
 
   const qrCodeData = `KANPRO://CHECKIN?branch=${encodeURIComponent(
     branchConfig.branchName
-  )}&company=${encodeURIComponent(companyName)}&token=V${tokenVersion}`;
+  )}&company=${encodeURIComponent(companyName)}&token=V${tokenVersion}&lat=${branchConfig.latitude}&lng=${branchConfig.longitude}&radius=${branchConfig.radiusMeters}`;
+
+  useEffect(() => {
+    generateQrSvg(qrCodeData, { width: 180, margin: 1 })
+      .then((svg) => setQrSvg(svg))
+      .catch((err) => console.error("Error generating QR SVG:", err));
+  }, [qrCodeData]);
 
   const handlePrint = () => {
     toast.success("Enviando a impresión...", {
@@ -98,58 +106,20 @@ export function BranchQrKioskModal({
           </div>
 
           {/* QR Graphic Container */}
-          <div className="relative mx-auto size-44 p-3 bg-white rounded-xl border border-slate-200 flex items-center justify-center shadow-inner">
-            <svg
-              viewBox="0 0 100 100"
-              className="size-full text-slate-900"
-              fill="currentColor"
-            >
-              {/* Decorative stylised QR paths */}
-              <rect x="5" y="5" width="28" height="28" rx="4" />
-              <rect x="9" y="9" width="20" height="20" fill="white" rx="2" />
-              <rect x="13" y="13" width="12" height="12" rx="1" />
-
-              <rect x="67" y="5" width="28" height="28" rx="4" />
-              <rect x="71" y="9" width="20" height="20" fill="white" rx="2" />
-              <rect x="75" y="13" width="12" height="12" rx="1" />
-
-              <rect x="5" y="67" width="28" height="28" rx="4" />
-              <rect x="9" y="71" width="20" height="20" fill="white" rx="2" />
-              <rect x="13" y="75" width="12" height="12" rx="1" />
-
-              {/* Data matrix dots */}
-              <rect x="38" y="10" width="6" height="6" rx="1" />
-              <rect x="48" y="10" width="6" height="6" rx="1" />
-              <rect x="38" y="20" width="6" height="6" rx="1" />
-              <rect x="48" y="20" width="6" height="6" rx="1" />
-
-              <rect x="10" y="38" width="6" height="6" rx="1" />
-              <rect x="20" y="38" width="6" height="6" rx="1" />
-              <rect x="10" y="48" width="6" height="6" rx="1" />
-              <rect x="20" y="48" width="6" height="6" rx="1" />
-
-              <rect x="38" y="38" width="10" height="10" rx="2" />
-              <rect x="52" y="38" width="10" height="10" rx="2" />
-              <rect x="38" y="52" width="10" height="10" rx="2" />
-              <rect x="52" y="52" width="10" height="10" rx="2" />
-
-              <rect x="68" y="42" width="8" height="8" rx="1" />
-              <rect x="80" y="42" width="8" height="8" rx="1" />
-              <rect x="68" y="54" width="8" height="8" rx="1" />
-              <rect x="80" y="54" width="8" height="8" rx="1" />
-
-              <rect x="42" y="68" width="8" height="8" rx="1" />
-              <rect x="54" y="68" width="8" height="8" rx="1" />
-              <rect x="66" y="68" width="8" height="8" rx="1" />
-              <rect x="78" y="68" width="8" height="8" rx="1" />
-
-              <rect x="42" y="80" width="8" height="8" rx="1" />
-              <rect x="54" y="80" width="8" height="8" rx="1" />
-              <rect x="66" y="80" width="8" height="8" rx="1" />
-              <rect x="78" y="80" width="8" height="8" rx="1" />
-            </svg>
-            <div className="absolute size-8 rounded-lg bg-indigo-600 text-white flex items-center justify-center shadow-xs">
-              <ShieldCheck className="size-4" />
+          <div className="relative mx-auto size-48 p-2 bg-white rounded-xl border border-slate-200 flex items-center justify-center shadow-inner overflow-hidden">
+            {qrSvg ? (
+              <div
+                dangerouslySetInnerHTML={{ __html: qrSvg }}
+                className="size-full flex items-center justify-center [&>svg]:w-full [&>svg]:h-full"
+              />
+            ) : (
+              <div className="flex flex-col items-center justify-center text-muted-foreground text-xs font-semibold gap-2">
+                <QrCode className="size-8 animate-pulse text-indigo-500" />
+                <span>Generando QR...</span>
+              </div>
+            )}
+            <div className="absolute size-7 rounded-md bg-indigo-600 text-white flex items-center justify-center shadow-xs border border-white">
+              <ShieldCheck className="size-3.5" />
             </div>
           </div>
 

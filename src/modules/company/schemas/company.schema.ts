@@ -4,7 +4,24 @@ export const companyProfileSchema = z.object({
   company_name: z.string().min(2, "El nombre comercial debe tener al menos 2 caracteres"),
   legal_name: z.string().optional().or(z.literal("")),
   industry: z.string().min(1, "El sector industrial es requerido"),
-  website: z.string().url("Introduce una URL válida").optional().or(z.literal("")),
+  website: z
+    .string()
+    .trim()
+    .optional()
+    .or(z.literal(""))
+    .refine(
+      (val) => {
+        if (!val || val.trim() === "") return true;
+        try {
+          const urlToTest = val.startsWith("http://") || val.startsWith("https://") ? val : `https://${val}`;
+          const parsed = new URL(urlToTest);
+          return parsed.hostname.includes(".") && !parsed.hostname.endsWith(".");
+        } catch {
+          return false;
+        }
+      },
+      { message: "Introduce una URL válida" }
+    ),
   location: z.string().min(2, "La ubicación es requerida"),
   logo_url: z.string().optional(),
   description: z.string().max(300, "La bio comercial no puede exceder los 300 caracteres").optional(),
@@ -25,7 +42,7 @@ export const companyProfileSchema = z.object({
   benefit_growth: z.boolean().optional(),
   operation_hours: z.string().optional(),
 }).superRefine((data, ctx) => {
-  if (data.rfc && data.rfc.trim().length > 0) {
+  if (data.rfc && data.rfc.trim().length > 0 && data.fiscal_regime) {
     const cleaned = data.rfc.toUpperCase().trim();
     if (data.fiscal_regime === "persona_moral") {
       const pmRegex = /^[A-Z&Ñ]{3}\d{6}[A-Z0-9]{3}$/;
@@ -36,7 +53,7 @@ export const companyProfileSchema = z.object({
           path: ["rfc"],
         });
       }
-    } else {
+    } else if (data.fiscal_regime === "persona_fisica") {
       const pfRegex = /^[A-Z&Ñ]{4}\d{6}[A-Z0-9]{3}$/;
       if (cleaned.length !== 13 || !pfRegex.test(cleaned)) {
         ctx.addIssue({

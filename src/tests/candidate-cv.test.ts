@@ -15,17 +15,41 @@ vi.mock("@/lib/supabase/server", () => ({
     auth: {
       getUser: mockGetUser,
     },
-    from: vi.fn(() => ({
-      select: vi.fn(() => ({
-        eq: vi.fn(() => ({
+    from: vi.fn((table: string) => {
+      if (table === "applications") {
+        return {
+          select: vi.fn(() => ({
+            eq: vi.fn(() => ({
+              eq: vi.fn(() => ({
+                maybeSingle: vi.fn().mockResolvedValue({
+                  data: {
+                    id: "app-123",
+                    candidate_id: "candidate-456",
+                    vacancies: {
+                      company_id: "company-1",
+                      recruiter_id: "company-1",
+                    },
+                  },
+                  error: null,
+                }),
+              })),
+            })),
+          })),
+        };
+      }
+
+      return {
+        select: vi.fn(() => ({
           eq: vi.fn(() => ({
-            order: vi.fn(() => ({
-              maybeSingle: mockMaybeSingle,
+            eq: vi.fn(() => ({
+              order: vi.fn(() => ({
+                maybeSingle: mockMaybeSingle,
+              })),
             })),
           })),
         })),
-      })),
-    })),
+      };
+    }),
     storage: {
       from: vi.fn(() => ({
         createSignedUrl: mockCreateSignedUrl,

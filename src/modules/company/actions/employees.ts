@@ -1,8 +1,11 @@
 "use server";
 
 import { createClient } from "@/lib/supabase/server";
-import { createAdminClient } from "@/lib/supabase/admin";
 import { revalidatePath } from "next/cache";
+import {
+  getInvitationByToken,
+  acceptEmployeeInvitation,
+} from "@/modules/auth/services/employee-invitations";
 import {
   companyEmployeeSchema,
   terminateEmployeeSchema,
@@ -15,6 +18,7 @@ import {
 import {
   createEmployeeInvitationSchema,
   acceptEmployeeInvitationSchema,
+  bulkEmployeeImportSchema,
   type CreateEmployeeInvitationValues,
   type BulkEmployeeImportRow,
 } from "../schemas/employee-invitation.schema";
@@ -99,6 +103,31 @@ type HireCandidateActionResult =
 interface AcceptInvitationActionResult extends ActionResponse<void> {
   message?: string;
 }
+
+export type BulkImportActionResult =
+  | {
+      success: true;
+      data: {
+        imported: number;
+        failed: number;
+        errors: { email: string; error: string }[];
+        createdTokens: { email: string; full_name: string; rawToken: string }[];
+      };
+      imported: number;
+      failed: number;
+      errors: { email: string; error: string }[];
+      createdTokens: { email: string; full_name: string; rawToken: string }[];
+      error?: undefined;
+    }
+  | {
+      success: false;
+      error: string;
+      data?: undefined;
+      imported?: undefined;
+      failed?: undefined;
+      errors?: undefined;
+      createdTokens?: undefined;
+    };
 
 /**
  * Registra directamente un nuevo colaborador en la plantilla de la empresa autenticada.
@@ -398,7 +427,16 @@ export async function createEmployeeInvitationAction(
 /**
  * Importa por lotes colaboradores a partir de registros validados y genera invitaciones.
  */
-export async function bulkImportEmployeesAction(rows: BulkEmployeeImportRow[]) {
+export async function bulkImportEmployeesAction(
+  rows: BulkEmployeeImportRow[]
+): Promise<BulkImportActionResult> {
+  const parsed = bulkEmployeeImportSchema.safeParse(rows);
+  if (!parsed.success) {
+    const errorMsg =
+      parsed.error.issues[0]?.message || "Datos de importación masiva inválidos.";
+    return { success: false, error: errorMsg };
+  }
+
   const supabase = await createClient();
   const {
     data: { user },
@@ -406,19 +444,29 @@ export async function bulkImportEmployeesAction(rows: BulkEmployeeImportRow[]) {
   } = await supabase.auth.getUser();
 
   if (authError || !user) {
-    throw new Error("No autorizado. Inicie sesión para continuar.");
+    return { success: false, error: "No autorizado. Inicie sesión para continuar." };
   }
 
-  const results = await CompanyEmployeeService.bulkImportEmployees(
-    supabase,
-    user.id,
-    rows
-  );
+  try {
+    const results = await CompanyEmployeeService.bulkImportEmployees(
+      supabase,
+      user.id,
+      parsed.data
+    );
 
-  revalidatePath("/dashboard/company/employees");
-  revalidatePath("/dashboard/company");
+    revalidatePath("/dashboard/company/employees");
+    revalidatePath("/dashboard/company");
 
-  return results;
+    return {
+      success: true,
+      data: results,
+      ...results,
+    };
+  } catch (err: unknown) {
+    const message =
+      err instanceof Error ? err.message : "Error al procesar la importación masiva.";
+    return { success: false, error: message };
+  }
 }
 
 /**
@@ -520,29 +568,42 @@ export async function cancelEmployeeInvitationAction(
  * Consulta pública de una invitación por token para la pantalla de bienvenida / aceptación.
  */
 export async function getInvitationByTokenAction(rawToken: string) {
-  const adminClient = createAdminClient();
-  return CompanyEmployeeService.getInvitationByToken(adminClient, rawToken);
+  return getInvitationByToken(rawToken);
 }
 
 /**
  * Acepta una invitación y vincula la cuenta de un nuevo usuario a la empresa.
+ * Requiere sesión activa del usuario y vincula inmutablemente su sesión auth (user.id).
  */
 export async function acceptEmployeeInvitationAction(rawInput: {
   rawToken: string;
-  userId: string;
   email: string;
+  userId?: string;
 }): Promise<AcceptInvitationActionResult> {
-  const parsed = acceptEmployeeInvitationSchema.safeParse(rawInput);
+  const supabase = await createClient();
+  const {
+    data: { user },
+    error: authError,
+  } = await supabase.auth.getUser();
+
+  if (authError || !user) {
+    return { success: false, error: "Debes iniciar sesión para aceptar la invitación." };
+  }
+
+  const parsed = acceptEmployeeInvitationSchema.safeParse({
+    rawToken: rawInput.rawToken,
+    email: rawInput.email,
+    userId: user.id, // Forzar ID inmutable de la sesión autenticada en el servidor
+  });
+
   if (!parsed.success) {
     const errorMsg =
       parsed.error.issues[0]?.message || "Datos de aceptación de invitación inválidos.";
     return { success: false, error: errorMsg };
   }
 
-  const adminClient = createAdminClient();
-
   try {
-    const result = await CompanyEmployeeService.acceptEmployeeInvitation(adminClient, parsed.data);
+    const result = await acceptEmployeeInvitation(parsed.data);
     return { success: true, message: result.message };
   } catch (err: unknown) {
     const message =

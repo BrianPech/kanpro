@@ -248,37 +248,53 @@ export class CompanyDocumentAccessService {
     input: GetCandidateCvDocumentInput
   ): Promise<CandidateCvResponse> {
     try {
-      // 1. Consulta directa en profile_documents
-      const { data: directDoc } = await supabase
+      // 1. Validar explícitamente que exista una postulación activa en applications
+      // donde applications.id === input.applicationId, applications.candidate_id === input.candidateId
+      // y la vacante pertenezca a la empresa (vacancies.company_id === companyId o recruiter_id === companyId).
+      const { data: application, error: appError } = await supabase
+        .from("applications")
+        .select(`
+          id,
+          candidate_id,
+          vacancies (
+            company_id,
+            recruiter_id
+          )
+        `)
+        .eq("id", input.applicationId)
+        .eq("candidate_id", input.candidateId)
+        .maybeSingle();
+
+      if (appError || !application) {
+        return {
+          hasUploadedCv: false,
+          cvUrl: null,
+          fileName: null,
+          uploadedAt: null,
+        };
+      }
+
+      const vacancy = Array.isArray(application.vacancies)
+        ? application.vacancies[0]
+        : application.vacancies;
+
+      if (!vacancy || (vacancy.company_id !== companyId && vacancy.recruiter_id !== companyId)) {
+        return {
+          hasUploadedCv: false,
+          cvUrl: null,
+          fileName: null,
+          uploadedAt: null,
+        };
+      }
+
+      // 2. Consulta directa en profile_documents utilizando únicamente el cliente autenticado supabase
+      const { data: cvDoc } = await supabase
         .from("profile_documents")
         .select("id, doc_type, file_name, file_url, created_at")
         .eq("owner_id", input.candidateId)
         .eq("doc_type", "cv")
         .order("created_at", { ascending: false })
         .maybeSingle();
-
-      let cvDoc = directDoc;
-
-      // 2. Si RLS devuelve null, intentar con cliente administrativo en entornos con permisos
-      if (!cvDoc) {
-        try {
-          const { createAdminClient } = await import("@/lib/supabase/admin");
-          const admin = createAdminClient();
-          const { data: adminDoc } = await admin
-            .from("profile_documents")
-            .select("id, doc_type, file_name, file_url, created_at")
-            .eq("owner_id", input.candidateId)
-            .eq("doc_type", "cv")
-            .order("created_at", { ascending: false })
-            .maybeSingle();
-
-          if (adminDoc) {
-            cvDoc = adminDoc;
-          }
-        } catch {
-          // Fallback para entornos de pruebas sin admin client
-        }
-      }
 
       if (!cvDoc || !cvDoc.file_url) {
         return {

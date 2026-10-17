@@ -26,7 +26,47 @@ export function normalizeCity(loc?: string | null): string {
   return loc.trim();
 }
 
-export function useCompanyProfileForm(initialProfile: any, userId: string) {
+export interface CompanyProfileInitialData {
+  company_name?: string | null;
+  legal_name?: string | null;
+  industry?: string | null;
+  website_or_linkedin?: string | null;
+  website?: string | null;
+  location?: string | null;
+  fiscal_address?: string | null;
+  logo_url?: string | null;
+  avatar_url?: string | null;
+  description?: string | null;
+  phone?: string | null;
+  contact_phone?: string | null;
+  whatsapp_number?: string | null;
+  company_size?: string | null;
+  fiscal_regime?: "persona_moral" | "persona_fisica" | string | null;
+  entity_type?: string | null;
+  rfc?: string | null;
+  is_validated?: boolean | null;
+  is_verified?: boolean | null;
+  verification_status?: "pending" | "approved" | "rejected" | "unsubmitted" | string | null;
+  banner_url?: string | null;
+  instagram_url?: string | null;
+  facebook_url?: string | null;
+  address_details?: string | null;
+  operation_hours?: string | null;
+  has_transport?: boolean | null;
+  benefit_canteen?: boolean | null;
+  benefit_tips?: boolean | null;
+  benefit_imss?: boolean | null;
+  benefit_uniforms?: boolean | null;
+  benefit_growth?: boolean | null;
+  display_name?: string | null;
+  full_name?: string | null;
+  username?: string | null;
+}
+
+export function useCompanyProfileForm(
+  initialProfile: CompanyProfileInitialData | null | undefined,
+  userId: string
+) {
   const [isSaving, setIsSaving] = React.useState(false);
   const router = useRouter();
 
@@ -41,7 +81,6 @@ export function useCompanyProfileForm(initialProfile: any, userId: string) {
     resolver: zodResolver(companyProfileSchema),
     defaultValues: {
       company_name: resolvedName,
-      legal_name: initialProfile?.legal_name || "",
       industry: initialProfile?.industry || "",
       website: initialProfile?.website_or_linkedin || initialProfile?.website || "",
       location: normalizeCity(rawLocation),
@@ -49,9 +88,6 @@ export function useCompanyProfileForm(initialProfile: any, userId: string) {
       description: initialProfile?.description || "",
       phone: initialProfile?.phone || initialProfile?.contact_phone || initialProfile?.whatsapp_number || "",
       company_size: initialProfile?.company_size || "",
-      fiscal_regime: (initialProfile?.fiscal_regime === "persona_fisica" || initialProfile?.entity_type === "persona_fisica") ? "persona_fisica" : "persona_moral",
-      rfc: initialProfile?.rfc || "",
-      // New fields
       banner_url: initialProfile?.banner_url || "",
       instagram_url: initialProfile?.instagram_url || "",
       facebook_url: initialProfile?.facebook_url || "",
@@ -71,13 +107,13 @@ export function useCompanyProfileForm(initialProfile: any, userId: string) {
     try {
       await companyService.updateProfile(userId, values);
       toast.success("¡Perfil actualizado con éxito!", {
-        description: "La información de tu empresa ha sido guardada en la base de datos."
+        description: "La información comercial de tu empresa ha sido guardada en la base de datos."
       });
       form.reset(values);
       router.refresh();
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Error updating company profile:", error);
-      const errMsg = error?.message || error?.details || "No se pudo guardar el perfil de la empresa.";
+      const errMsg = error instanceof Error ? error.message : "No se pudo guardar el perfil de la empresa.";
       toast.error("Error al guardar el perfil", {
         description: errMsg
       });
@@ -93,7 +129,17 @@ export function useCompanyProfileForm(initialProfile: any, userId: string) {
   return {
     form,
     isSaving,
-    onSubmit: form.handleSubmit(onSubmit),
+    onSubmit: form.handleSubmit(
+      (data) => onSubmit(data),
+      (errors) => {
+        console.warn("Validation errors in company profile form:", errors);
+        const firstKey = Object.keys(errors)[0] as keyof typeof errors | undefined;
+        const firstError = firstKey ? errors[firstKey] : undefined;
+        toast.error("Por favor completa los campos requeridos", {
+          description: (firstError?.message as string) || "Verifica la información ingresada en el formulario.",
+        });
+      }
+    ),
     handleReset,
   };
 }

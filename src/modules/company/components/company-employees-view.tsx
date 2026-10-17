@@ -180,12 +180,19 @@ export function CompanyEmployeesView({
   const [actionLoadingId, setActionLoadingId] = React.useState<string | null>(null);
 
   React.useEffect(() => {
+    const handleOpenModal = () => setIsNewEmployeeModalOpen(true);
+    window.addEventListener("open-register-employee-modal", handleOpenModal);
+
     if (typeof window !== "undefined") {
       const params = new URLSearchParams(window.location.search);
       if (params.get("action") === "new") {
         setIsNewEmployeeModalOpen(true);
       }
     }
+
+    return () => {
+      window.removeEventListener("open-register-employee-modal", handleOpenModal);
+    };
   }, []);
 
   const reloadInvitations = React.useCallback(async () => {
@@ -891,156 +898,50 @@ export function CompanyEmployeesView({
 
   return (
     <div className="space-y-6 w-full pb-16 font-sans">
-      {/* 1. Header & Metrics */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-2xl sm:text-3xl font-[800] text-foreground tracking-tight flex items-center gap-2.5">
-            <span>Plantilla de Colaboradores</span>
-            <Badge
-              variant="outline"
-              className="text-xs font-bold font-mono px-2 py-0.5 rounded-lg border-border/40"
-            >
-              {metrics.total}
-            </Badge>
-          </h1>
-          <p className="text-xs sm:text-sm text-muted-foreground font-medium mt-1">
-            Gestión operativa, estatus laboral y expedientes del personal contratado.
-          </p>
-        </div>
+      {/* Accessible semantic heading for screen readers */}
+      <h1 className="sr-only">Plantilla de Colaboradores</h1>
 
-        <div className="flex items-center gap-2">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={handleExportCSV}
-            className="h-9 font-semibold text-xs rounded-xl px-3.5 flex items-center gap-2 border-border/50 hover:bg-muted/40 cursor-pointer"
-          >
-            <Download className="size-4 text-emerald-600 dark:text-emerald-400" />
-            <span>Exportar CSV</span>
-          </Button>
-
-          <Button
-            size="sm"
-            onClick={() => setIsNewEmployeeModalOpen(true)}
-            className="h-9 font-bold text-xs rounded-xl px-4 flex items-center gap-2 bg-primary text-primary-foreground hover:bg-primary/90 shadow-xs cursor-pointer"
-          >
-            <UserPlus className="size-4" />
-            <span>+ Registrar Colaborador</span>
-          </Button>
-        </div>
-      </div>
-
-      {/* KPI Cards Grid */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4">
-        <Card className="bg-card border border-border/40 rounded-2xl p-4 flex flex-col justify-between">
-          <div className="flex items-center justify-between">
-            <span className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider">
-              Total Plantilla
-            </span>
-            <div className="size-8 rounded-lg bg-primary/10 text-primary flex items-center justify-center">
-              <Users className="size-4" />
-            </div>
-          </div>
-          <div className="mt-2">
-            <h3 className="text-2xl font-extrabold text-foreground font-mono">
-              {metrics.total}
-            </h3>
-            <p className="text-[10px] font-semibold text-muted-foreground mt-0.5">
-              Colaboradores registrados
-            </p>
-          </div>
-        </Card>
-
-        <Card className="bg-card border border-border/40 rounded-2xl p-4 flex flex-col justify-between">
-          <div className="flex items-center justify-between">
-            <span className="text-[11px] font-bold text-emerald-600 dark:text-emerald-400 uppercase tracking-wider">
-              Activos
-            </span>
-            <div className="size-8 rounded-lg bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center">
-              <UserCheck className="size-4" />
-            </div>
-          </div>
-          <div className="mt-2">
-            <h3 className="text-2xl font-extrabold text-foreground font-mono">
-              {metrics.active}
-            </h3>
-            <p className="text-[10px] font-semibold text-muted-foreground mt-0.5">
-              Laborando actualmente
-            </p>
-          </div>
-        </Card>
-
-        <Card className="bg-card border border-border/40 rounded-2xl p-4 flex flex-col justify-between">
-          <div className="flex items-center justify-between">
-            <span className="text-[11px] font-bold text-amber-600 dark:text-amber-400 uppercase tracking-wider">
-              Invitaciones
-            </span>
-            <div className="size-8 rounded-lg bg-amber-500/10 text-amber-600 dark:text-amber-400 flex items-center justify-center">
-              <Clock className="size-4" />
-            </div>
-          </div>
-          <div className="mt-2">
-            <h3 className="text-2xl font-extrabold text-foreground font-mono">
-              {metrics.pendingInvitations}
-            </h3>
-            <p className="text-[10px] font-semibold text-muted-foreground mt-0.5">
-              Pendientes de registro
-            </p>
-          </div>
-        </Card>
-
-        <Card className="bg-card border border-border/40 rounded-2xl p-4 flex flex-col justify-between">
-          <div className="flex items-center justify-between">
-            <span className="text-[11px] font-bold text-rose-600 dark:text-rose-400 uppercase tracking-wider">
-              Bajas
-            </span>
-            <div className="size-8 rounded-lg bg-rose-500/10 text-rose-600 dark:text-rose-400 flex items-center justify-center">
-              <UserX className="size-4" />
-            </div>
-          </div>
-          <div className="mt-2">
-            <h3 className="text-2xl font-extrabold text-foreground font-mono">
-              {metrics.terminated}
-            </h3>
-            <p className="text-[10px] font-semibold text-muted-foreground mt-0.5">
-              Historial de bajas
-            </p>
-          </div>
-        </Card>
-      </div>
-
-      {/* 2. Redesigned Master TanStack DataTable Card */}
+      {/* Master TanStack DataTable Card */}
       <Card className="bg-card border border-border/50 rounded-3xl overflow-hidden shadow-xs">
         
         {/* Toolbar & Filters Header */}
         <div className="p-4 sm:p-5 border-b border-border/40 space-y-3.5 bg-muted/10">
           
-          {/* Top Row: Search Input & Active Filters Summary */}
+          {/* Fila 1: Input de búsqueda alineado con los botones de Registrar Empleado y Exportar */}
           <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
             
-            {/* Search Input with Global Filter */}
-            <div className="relative flex-1 max-w-lg">
+            {/* Input de búsqueda con filtro global */}
+            <div className="relative flex-1">
               <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-muted-foreground size-4 pointer-events-none" />
               <Input
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder="Buscar por colaborador, puesto, ubicación o teléfono..."
-                className="h-10 pl-10 pr-9 bg-background border-border/50 rounded-xl text-xs sm:text-sm font-medium focus-visible:ring-1 focus-visible:ring-primary"
+                className="h-10 pl-10 pr-9 bg-background border-border/50 rounded-xl text-xs sm:text-sm font-medium focus-visible:ring-1 focus-visible:ring-primary w-full shadow-2xs"
               />
               {searchQuery && (
                 <button
+                  type="button"
                   onClick={() => setSearchQuery("")}
                   className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground cursor-pointer"
+                  aria-label="Limpiar búsqueda"
                 >
                   <X className="size-3.5" />
                 </button>
               )}
             </div>
 
-            {/* Quick Helper Label */}
-            <div className="hidden sm:flex items-center gap-1.5 text-xs text-muted-foreground font-medium">
-              <ArrowUpDown className="size-3.5 text-primary" />
-              <span>Haz clic en los encabezados para ordenar</span>
+            {/* Botón de acción: Exportar */}
+            <div className="flex items-center gap-2 shrink-0">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleExportCSV}
+                className="h-10 font-semibold text-xs rounded-xl px-3.5 flex items-center gap-2 border-border/50 hover:bg-muted/40 cursor-pointer bg-background shadow-2xs"
+              >
+                <Download className="size-4 text-emerald-600 dark:text-emerald-400" />
+                <span>Exportar</span>
+              </Button>
             </div>
           </div>
 
