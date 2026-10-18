@@ -105,7 +105,7 @@ export function WorkforceKPIGrid({ kpis }: WorkforceKPIGridProps) {
         </Card>
       </Link>
 
-      {/* KPI 3: Colaboradores Activos */}
+      {/* KPI 3: Empleados Activos */}
       <Link href="/dashboard/company/employees" className="group block focus:outline-none">
         <Card className="rounded-2xl border border-border/40 bg-card p-5 space-y-3 shadow-xs hover:border-emerald-500/40 hover:shadow-md transition-all duration-200 cursor-pointer relative overflow-hidden">
           <div className="flex items-center justify-between">
@@ -126,7 +126,7 @@ export function WorkforceKPIGrid({ kpis }: WorkforceKPIGridProps) {
               {kpis.activeEmployees}
             </div>
             <p className="text-xs font-bold text-muted-foreground mt-0.5">
-              Colaboradores Activos
+              Empleados Activos
             </p>
           </div>
 

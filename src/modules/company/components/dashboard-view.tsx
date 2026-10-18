@@ -120,7 +120,7 @@ export function DashboardView({
             {`Dashboard • ${companyName}`}
           </h1>
           <p className="text-xs sm:text-sm text-muted-foreground line-clamp-1 sm:line-clamp-none">
-            Gestión integral de colaboradores, asistencia, vacaciones y nómina.
+            Gestión integral de empleados, asistencia, vacaciones y nómina.
           </p>
         </div>
 
@@ -140,7 +140,7 @@ export function DashboardView({
             className="cursor-pointer text-xs font-bold gap-1.5 bg-primary text-primary-foreground h-9 shadow-xs"
           >
             <UserPlus className="size-3.5" />
-            <span>+ Registrar Colaborador</span>
+            <span>+ Registrar Empleado</span>
           </Button>
         </div>
       </div>
@@ -198,7 +198,7 @@ export function DashboardView({
                 {kpis.activeEmployees}
               </div>
               <p className="text-[11px] sm:text-xs text-muted-foreground mt-0.5 truncate flex items-center justify-between">
-                <span>{kpis.totalEmployees} colaboradores</span>
+                <span>{kpis.totalEmployees} empleados</span>
                 <ArrowUpRight className="size-3 text-muted-foreground group-hover:text-primary transition-colors" />
               </p>
             </div>
@@ -293,7 +293,7 @@ export function DashboardView({
             className="h-9 px-3.5 text-xs font-semibold rounded-xl shrink-0 gap-1.5 bg-primary text-primary-foreground shadow-xs cursor-pointer"
           >
             <UserPlus className="size-3.5" />
-            <span>+ Colaborador</span>
+            <span>+ Empleado</span>
           </Button>
           <Button
             variant="outline"
@@ -892,7 +892,7 @@ export function DashboardView({
                 className="h-11 justify-start px-3.5 text-xs font-semibold rounded-xl cursor-pointer"
               >
                 <UserPlus className="size-4 mr-2 text-primary" />
-                <span>Registrar Colaborador</span>
+                <span>Registrar Empleado</span>
               </Button>
               <Button
                 variant="outline"

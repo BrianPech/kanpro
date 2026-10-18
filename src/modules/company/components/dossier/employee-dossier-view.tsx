@@ -128,7 +128,7 @@ export function EmployeeDossierView({ dossier }: EmployeeDossierViewProps) {
         </div>
       </div>
 
-      {/* Hero Card del Colaborador */}
+      {/* Hero Card del Empleado */}
       <Card className="rounded-3xl border border-border/40 bg-gradient-to-br from-card via-background to-primary/5 p-6 sm:p-8 space-y-6 shadow-xs">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
           <div className="flex items-start sm:items-center gap-4 sm:gap-6">
@@ -145,7 +145,7 @@ export function EmployeeDossierView({ dossier }: EmployeeDossierViewProps) {
                   {dossier.fullName}
                 </h2>
                 <Badge className="bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border-none text-xs font-bold px-2.5 py-0.5 rounded-full">
-                  Colaborador Activo
+                  Empleado Activo
                 </Badge>
               </div>
 
@@ -391,7 +391,7 @@ export function EmployeeDossierView({ dossier }: EmployeeDossierViewProps) {
                 <FileText className="size-5 mx-auto text-muted-foreground/60 mb-2" />
                 <p className="font-semibold text-foreground">Sin documentos digitalizados</p>
                 <p className="text-[11px] text-muted-foreground mt-0.5">
-                  El colaborador aún no cuenta con archivos subidos a su expediente digital.
+                  El empleado aún no cuenta con archivos subidos a su expediente digital.
                 </p>
               </div>
             ) : (
@@ -444,7 +444,7 @@ export function EmployeeDossierView({ dossier }: EmployeeDossierViewProps) {
                 Línea de Tiempo de Puestos, Promociones y Salarios
               </h3>
               <p className="text-xs text-muted-foreground font-semibold">
-                Registro histórico del plan de carrera y ascensos del colaborador.
+                Registro histórico del plan de carrera y ascensos del empleado.
               </p>
             </div>
 
@@ -538,7 +538,7 @@ export function EmployeeDossierView({ dossier }: EmployeeDossierViewProps) {
                   <Calendar className="size-5 mx-auto text-muted-foreground/60 mb-2" />
                   <p className="font-semibold text-foreground">Sin solicitudes de vacaciones</p>
                   <p className="text-[11px] text-muted-foreground mt-0.5">
-                    No se han registrado solicitudes de vacaciones o permisos para este colaborador.
+                    No se han registrado solicitudes de vacaciones o permisos para este empleado.
                   </p>
                 </div>
               ) : (
@@ -639,7 +639,7 @@ export function EmployeeDossierView({ dossier }: EmployeeDossierViewProps) {
                   <Sparkles className="size-5 mx-auto text-muted-foreground/60 mb-2" />
                   <p className="font-semibold text-foreground">Sin evaluaciones registradas</p>
                   <p className="text-[11px] text-muted-foreground mt-0.5">
-                    Este colaborador aún no cuenta con evaluaciones de desempeño en el sistema.
+                    Este empleado aún no cuenta con evaluaciones de desempeño en el sistema.
                   </p>
                 </div>
               ) : (

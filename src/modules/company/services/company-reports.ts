@@ -220,7 +220,7 @@ export async function getCompanyReportsData(): Promise<CompanyReportsData> {
 
     return {
       ...c,
-      employeeName: emp?.full_name || "Colaborador",
+      employeeName: emp?.full_name || "Empleado",
       isIndeterminado,
       daysRemaining,
     };
@@ -260,7 +260,7 @@ export async function getCompanyReportsData(): Promise<CompanyReportsData> {
 
     insights.push({
       id: "qi-seniority",
-      question: "¿Cuál es el colaborador con mayor antigüedad en la empresa?",
+      question: "¿Cuál es el empleado con mayor antigüedad en la empresa?",
       category: "Talento & Retención",
       headline: `${mostSenior.full_name} lidera la antigüedad de la plantilla`,
       metric: mostSenior.lft.formattedSeniority,
@@ -268,21 +268,21 @@ export async function getCompanyReportsData(): Promise<CompanyReportsData> {
       badge: `${retentionRate}% Retención`,
       explanation: `Ingresó el ${mostSenior.hire_date || "inicio de operaciones"} desempeñándose como ${mostSenior.job_title} en ${mostSenior.department}. La tasa de retención global de la empresa es del ${retentionRate}%.`,
       linkHref: `/dashboard/company/employees`,
-      linkLabel: "Ver Plantilla de Colaboradores",
+      linkLabel: "Ver Plantilla de Empleados",
     });
   } else {
     insights.push({
       id: "qi-seniority-empty",
       question: "¿Cuál es el nivel de retención de personal?",
       category: "Talento & Retención",
-      headline: "Sin colaboradores activos registrados",
-      metric: "0 colab.",
+      headline: "Sin empleados activos registrados",
+      metric: "0 emp.",
       metricSubtitle: "Plantilla en formación",
       badge: "Inicial",
       explanation:
-        "Registra o invita a tus colaboradores para consultar métricas de antigüedad y rotación de personal.",
+        "Registra o invita a tus empleados para consultar métricas de antigüedad y rotación de personal.",
       linkHref: "/dashboard/company/employees?action=new",
-      linkLabel: "+ Registrar Colaborador",
+      linkLabel: "+ Registrar Empleado",
     });
   }
 
@@ -297,7 +297,7 @@ export async function getCompanyReportsData(): Promise<CompanyReportsData> {
     badge: `Art. 76 LFT`,
     explanation: `Calculado bajo la reforma de Vacaciones Dignas. El pasivo vacacional estimado equivale a $${totalEstimatedVacationLiability.toLocaleString("es-MX")} MXN (incluyendo el 25% de prima vacacional de ley).`,
     linkHref: `/dashboard/company/employees`,
-    linkLabel: "Ver Detalle por Colaborador",
+    linkLabel: "Ver Detalle por Empleado",
   });
 
   // Insight 3: Payroll & Department Breakdown
@@ -321,7 +321,7 @@ export async function getCompanyReportsData(): Promise<CompanyReportsData> {
       category: "Finanzas & Nómina",
       headline: `$${totalMonthlyPayroll.toLocaleString("es-MX")} MXN en dispersión mensual bruta`,
       metric: `$${totalMonthlyPayroll.toLocaleString("es-MX")}`,
-      metricSubtitle: `Promedio: $${averageSalary.toLocaleString("es-MX")} / colab`,
+      metricSubtitle: `Promedio: $${averageSalary.toLocaleString("es-MX")} / emp`,
       badge: `${activeCount} Sueldos Activos`,
       explanation: topDept
         ? `El departamento de ${topDept[0]} representa el mayor volumen con $${topDept[1].total.toLocaleString("es-MX")} MXN mensuales distribuidos en ${topDept[1].count} puesto(s).`
@@ -336,10 +336,10 @@ export async function getCompanyReportsData(): Promise<CompanyReportsData> {
       category: "Finanzas & Nómina",
       headline: "Sin salarios asignados en la plantilla",
       metric: "$0 MXN",
-      metricSubtitle: "0 colaboradores con sueldo base",
+      metricSubtitle: "0 empleados con sueldo base",
       badge: "Por Asignar",
       explanation:
-        "Define los salarios base mensuales en el expediente de cada colaborador para calcular el presupuesto.",
+        "Define los salarios base mensuales en el expediente de cada empleado para calcular el presupuesto.",
       linkHref: `/dashboard/company/employees`,
       linkLabel: "Configurar Sueldos",
     });
@@ -378,7 +378,7 @@ export async function getCompanyReportsData(): Promise<CompanyReportsData> {
       badgeColor: "text-emerald-600 bg-emerald-500/10",
       explanation:
         rawContracts.length > 0
-          ? "Todos los colaboradores cuentan con contratos vigentes sin vencimientos críticos en los próximos 30 días."
+          ? "Todos los empleados cuentan con contratos vigentes sin vencimientos críticos en los próximos 30 días."
           : "Puedes generar contratos laborales formales con firma electrónica desde el módulo de Contratos.",
       linkHref: `/dashboard/company/contracts`,
       linkLabel: "Ir a Contratos",
@@ -413,7 +413,7 @@ export async function getCompanyReportsData(): Promise<CompanyReportsData> {
       metricSubtitle: "0 evaluaciones",
       badge: "Pendiente",
       explanation:
-        "Aplica cuestionarios de 6 competencias para evaluar la productividad, puntualidad y trabajo en equipo de tus colaboradores.",
+        "Aplica cuestionarios de 6 competencias para evaluar la productividad, puntualidad y trabajo en equipo de tus empleados.",
       linkHref: `/dashboard/company/evaluations`,
       linkLabel: "Realizar Nueva Evaluación",
     });
@@ -449,7 +449,7 @@ export async function getCompanyReportsData(): Promise<CompanyReportsData> {
       data: rawEmployees.map((e: any, idx: number) => ({
         codigo: e.employee_code || `EMP-${String(idx + 1).padStart(3, "0")}`,
         nombre: e.full_name,
-        puesto: e.job_title || "Colaborador",
+        puesto: e.job_title || "Empleado",
         departamento: e.department || "Operaciones",
         estatus: e.status === "terminated" ? "Baja" : "Activo",
         fecha_ingreso: e.hire_date || e.created_at?.split("T")[0] || "No reg.",
@@ -474,7 +474,7 @@ export async function getCompanyReportsData(): Promise<CompanyReportsData> {
       recommendedFrequency: "Mensual / Cierre Contable",
       recordCount: processedEmployees.length,
       columns: [
-        { key: "nombre", label: "Colaborador" },
+        { key: "nombre", label: "Empleado" },
         { key: "puesto", label: "Puesto" },
         { key: "departamento", label: "Departamento" },
         { key: "fecha_ingreso", label: "Fecha de Ingreso", format: "date" },
@@ -494,7 +494,7 @@ export async function getCompanyReportsData(): Promise<CompanyReportsData> {
       ],
       data: processedEmployees.map((e: any) => ({
         nombre: e.full_name,
-        puesto: e.job_title || "Colaborador",
+        puesto: e.job_title || "Empleado",
         departamento: e.department || "Operaciones",
         fecha_ingreso: e.hire_date || e.created_at?.split("T")[0] || "No reg.",
         antiguedad: e.lft.formattedSeniority,
@@ -517,7 +517,7 @@ export async function getCompanyReportsData(): Promise<CompanyReportsData> {
       recordCount: processedContracts.length,
       columns: [
         { key: "folio", label: "Folio Oficial" },
-        { key: "colaborador", label: "Colaborador" },
+        { key: "colaborador", label: "Empleado" },
         { key: "puesto", label: "Puesto" },
         { key: "departamento", label: "Departamento" },
         { key: "tipo_contrato", label: "Tipo de Contrato" },
@@ -532,7 +532,7 @@ export async function getCompanyReportsData(): Promise<CompanyReportsData> {
       data: processedContracts.map((c: any) => ({
         folio: c.folio || `CTR-${c.id.slice(0, 6).toUpperCase()}`,
         colaborador: c.employeeName,
-        puesto: c.job_title || "Colaborador",
+        puesto: c.job_title || "Empleado",
         departamento: c.department || "Operaciones",
         tipo_contrato: c.contract_type || "Determinado",
         fecha_inicio: c.start_date || "No reg.",
@@ -552,11 +552,11 @@ export async function getCompanyReportsData(): Promise<CompanyReportsData> {
       category: "finanzas",
       categoryLabel: "Nómina & Costos",
       description:
-        "Estimación y desglose de nómina bruta por colaborador, sueldo diario integrado, montos quincenales y distribución departamental.",
+        "Estimación y desglose de nómina bruta por empleado, sueldo diario integrado, montos quincenales y distribución departamental.",
       recommendedFrequency: "Quincenal / Dispersión Bancaria",
       recordCount: activeEmployees.length,
       columns: [
-        { key: "colaborador", label: "Colaborador" },
+        { key: "colaborador", label: "Empleado" },
         { key: "departamento", label: "Departamento" },
         { key: "puesto", label: "Puesto" },
         { key: "frecuencia", label: "Frecuencia" },
@@ -577,7 +577,7 @@ export async function getCompanyReportsData(): Promise<CompanyReportsData> {
         return {
           colaborador: e.full_name,
           departamento: e.department || "Operaciones",
-          puesto: e.job_title || "Colaborador",
+          puesto: e.job_title || "Empleado",
           frecuencia: e.payment_frequency || "Quincenal",
           sueldo_mensual: monthly,
           sueldo_quincenal: Math.round(monthly / 2),
@@ -597,7 +597,7 @@ export async function getCompanyReportsData(): Promise<CompanyReportsData> {
       recommendedFrequency: "Trimestral / Semestral",
       recordCount: rawEvaluations.length,
       columns: [
-        { key: "colaborador", label: "Colaborador" },
+        { key: "colaborador", label: "Empleado" },
         { key: "puesto", label: "Puesto" },
         { key: "departamento", label: "Departamento" },
         { key: "periodo", label: "Periodo" },
@@ -614,7 +614,7 @@ export async function getCompanyReportsData(): Promise<CompanyReportsData> {
       ],
       data: rawEvaluations.map((ev: any) => ({
         colaborador: ev.employee_name,
-        puesto: ev.job_title || "Colaborador",
+        puesto: ev.job_title || "Empleado",
         departamento: ev.department || "Operaciones",
         periodo: ev.period,
         fecha: ev.evaluation_date,

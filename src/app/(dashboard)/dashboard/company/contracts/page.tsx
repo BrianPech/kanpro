@@ -121,7 +121,7 @@ export default async function CompanyContractsPage() {
           : {};
 
         const employeeName =
-          emp?.full_name || baseProfile?.full_name || "Colaborador";
+          emp?.full_name || baseProfile?.full_name || "Empleado";
         const avatarUrl =
           emp?.avatar_url || baseProfile?.avatar_url || null;
         const phone =
@@ -195,7 +195,7 @@ export default async function CompanyContractsPage() {
         return {
           id: emp.id,
           employeeId: emp.id,
-          employeeName: emp.full_name || "Colaborador",
+          employeeName: emp.full_name || "Empleado",
           avatarUrl: emp.avatar_url || null,
           phone: emp.phone || undefined,
           jobTitle: emp.job_title || "Puesto General",

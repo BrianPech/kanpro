@@ -514,17 +514,17 @@ export function ContractsView({
     setSelectedContractForRenew(null);
   };
 
-  const handleReactivateColaborador = async (term: TerminationRecord) => {
+  const handleReactivateEmpleado = async (term: TerminationRecord) => {
     try {
       await reactivateCompanyEmployeeAction(term.employeeId);
 
       setTerminations((prev) => prev.filter((t) => t.id !== term.id));
-      toast.success("Colaborador reactivado", {
+      toast.success("Empleado reactivado", {
         description: `${term.employeeName} ha sido reincorporado a la plantilla activa.`,
       });
     } catch (err) {
       console.error("Error reactivating employee:", err);
-      toast.error("No se pudo reactivar al colaborador.");
+      toast.error("No se pudo reactivar al empleado.");
     }
   };
 
@@ -563,7 +563,7 @@ export function ContractsView({
         prev.filter((c) => c.id !== selectedContractForTerminate.id)
       );
 
-      toast.success("Baja de colaborador registrada", {
+      toast.success("Baja de empleado registrada", {
         description: `${selectedContractForTerminate.employeeName} ha sido dado de baja en el sistema.`,
       });
 
@@ -637,7 +637,7 @@ export function ContractsView({
             className="flex items-center gap-1.5 font-extrabold text-[11px] uppercase tracking-wider text-muted-foreground hover:text-foreground transition-colors cursor-pointer select-none py-1 group"
             onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
           >
-            <span>Colaborador</span>
+            <span>Empleado</span>
             {column.getIsSorted() === "asc" ? (
               <ArrowUp className="size-3.5 text-primary" />
             ) : column.getIsSorted() === "desc" ? (
@@ -971,7 +971,7 @@ export function ContractsView({
             className="flex items-center gap-1.5 font-extrabold text-[11px] uppercase tracking-wider text-muted-foreground hover:text-foreground transition-colors cursor-pointer select-none py-1 group"
             onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
           >
-            <span>Colaborador</span>
+            <span>Empleado</span>
             {column.getIsSorted() === "asc" ? (
               <ArrowUp className="size-3.5 text-primary" />
             ) : column.getIsSorted() === "desc" ? (
@@ -1138,7 +1138,7 @@ export function ContractsView({
               <Button
                 variant="outline"
                 size="sm"
-                onClick={() => handleReactivateColaborador(item)}
+                onClick={() => handleReactivateEmpleado(item)}
                 className="h-8 px-2.5 rounded-lg text-xs font-bold text-emerald-600 dark:text-emerald-400 border-emerald-500/30 hover:bg-emerald-500/10 cursor-pointer flex items-center gap-1"
                 title="Reactivar e incorporar a plantilla activa"
               >
@@ -1328,7 +1328,7 @@ export function ContractsView({
                   <Input
                     value={contractSearch}
                     onChange={(e) => setContractSearch(e.target.value)}
-                    placeholder="Buscar por colaborador, puesto, departamento o folio..."
+                    placeholder="Buscar por empleado, puesto, departamento o folio..."
                     className="h-10 pl-10 pr-9 bg-background border-border/50 rounded-xl text-xs sm:text-sm font-medium focus-visible:ring-1 focus-visible:ring-primary"
                   />
                   {contractSearch && (
@@ -1608,7 +1608,7 @@ export function ContractsView({
                   <Input
                     value={terminationSearch}
                     onChange={(e) => setTerminationSearch(e.target.value)}
-                    placeholder="Buscar por colaborador, puesto o motivo de baja..."
+                    placeholder="Buscar por empleado, puesto o motivo de baja..."
                     className="h-10 pl-10 pr-9 bg-background border-border/50 rounded-xl text-xs sm:text-sm font-medium focus-visible:ring-1 focus-visible:ring-primary"
                   />
                   {terminationSearch && (
@@ -1673,7 +1673,7 @@ export function ContractsView({
                     </EmptyMedia>
                     <EmptyTitle>Sin bajas registradas</EmptyTitle>
                     <EmptyDescription>
-                      No hay registros de desvinculación laboral en la empresa. Todos los colaboradores se encuentran en plantilla activa.
+                      No hay registros de desvinculación laboral en la empresa. Todos los empleados se encuentran en plantilla activa.
                     </EmptyDescription>
                   </EmptyHeader>
                 </Empty>
@@ -1910,7 +1910,7 @@ export function ContractsView({
         onReactivate={(emp) => {
           const term = terminations.find((t) => t.employeeId === emp.id);
           if (term) {
-            handleReactivateColaborador(term);
+            handleReactivateEmpleado(term);
           }
           setIsDossierOpen(false);
         }}
@@ -1932,7 +1932,7 @@ export function ContractsView({
             <DialogHeader className="space-y-1.5 text-left">
               <DialogTitle className="text-lg font-extrabold text-rose-600 dark:text-rose-400 flex items-center gap-2">
                 <AlertTriangle className="size-4 text-rose-600 dark:text-rose-400" />
-                <span>Registrar Baja de Colaborador</span>
+                <span>Registrar Baja de Empleado</span>
               </DialogTitle>
               <DialogDescription className="text-xs text-muted-foreground font-medium">
                 Registra la desvinculación laboral de{" "}

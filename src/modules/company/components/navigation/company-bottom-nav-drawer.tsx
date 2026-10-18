@@ -60,7 +60,7 @@ const CATEGORIES: NavCategory[] = [
     title: "Gestión de Personal & Expedientes",
     items: [
       {
-        title: "Plantilla de Colaboradores",
+        title: "Plantilla de Empleados",
         description: "Directorio de empleados, puestos, salarios y estatus",
         href: "/dashboard/company/employees",
         icon: UserCheck,
@@ -222,7 +222,7 @@ export function CompanyBottomNavDrawer({
 
         {/* Contenido deslizable con categorías */}
         <div className="flex-1 overflow-y-auto overscroll-contain px-4 py-3 space-y-4 pb-[calc(2.5rem+env(safe-area-inset-bottom,0px))]">
-          {/* Tarjeta de Acción Rápida Destacada: Registrar Colaborador */}
+          {/* Tarjeta de Acción Rápida Destacada: Registrar Empleado */}
           <Link
             href="/dashboard/company/employees?action=new"
             onClick={() => onOpenChange(false)}
@@ -235,7 +235,7 @@ export function CompanyBottomNavDrawer({
               <div className="text-left min-w-0">
                 <div className="flex items-center gap-2">
                   <span className="text-sm font-black tracking-tight block truncate">
-                    Registrar Nuevo Colaborador
+                    Registrar Nuevo Empleado
                   </span>
                   <span className="text-[10px] font-bold px-1.5 py-0.2 rounded-md bg-white/25 text-white">
                     Directo

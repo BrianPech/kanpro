@@ -80,7 +80,7 @@ export function VacationRequestModal({
 
     const empId = selectedEmployeeId || selectedEmp?.id;
     if (!empId) {
-      toast.error("Selecciona un colaborador de la plantilla.");
+      toast.error("Selecciona un empleado de la plantilla.");
       return;
     }
 
@@ -91,7 +91,7 @@ export function VacationRequestModal({
 
     if (exceedsBalance) {
       toast.error("Saldo insuficiente de vacaciones", {
-        description: `Estás solicitando ${workingDays} días pero el colaborador cuenta con ${availableDaysBalance} días disponibles.`,
+        description: `Estás solicitando ${workingDays} días pero el empleado cuenta con ${availableDaysBalance} días disponibles.`,
       });
       return;
     }
@@ -123,7 +123,7 @@ export function VacationRequestModal({
         const newReq: VacationRequest = {
           id: res.leaveId || `vreq-${Date.now()}`,
           employeeId: empId,
-          employeeName: selectedEmp?.fullName || "Colaborador",
+          employeeName: selectedEmp?.fullName || "Empleado",
           department: selectedEmp?.department || "Operaciones",
           requestType,
           typeLabel: typeLabels[requestType] || "Vacaciones",
@@ -167,14 +167,14 @@ export function VacationRequestModal({
           <div className="space-y-3">
             {/* Employee Selector */}
             <div className="space-y-1.5">
-              <Label className="text-xs font-bold text-foreground">Colaborador de la Plantilla</Label>
+              <Label className="text-xs font-bold text-foreground">Empleado de la Plantilla</Label>
               {employees.length > 0 ? (
                 <Select
                   value={selectedEmployeeId || employees[0]?.id}
                   onValueChange={(val) => val && setSelectedEmployeeId(val)}
                 >
                   <SelectTrigger className="h-10 rounded-xl bg-background border-border/80 text-xs font-medium">
-                    <SelectValue placeholder="Seleccionar colaborador" />
+                    <SelectValue placeholder="Seleccionar empleado" />
                   </SelectTrigger>
                   <SelectContent className="rounded-xl max-h-56">
                     {employees.map((emp) => (
@@ -186,7 +186,7 @@ export function VacationRequestModal({
                 </Select>
               ) : (
                 <Input
-                  value="No hay colaboradores registrados en la plantilla"
+                  value="No hay empleados registrados en la plantilla"
                   disabled
                   className="h-10 rounded-xl bg-muted text-xs font-medium"
                 />
@@ -260,7 +260,7 @@ export function VacationRequestModal({
 
               {requestType === "vacaciones" && (
                 <div className="flex items-center justify-between font-semibold pt-1 border-t border-border/40 text-[11px]">
-                  <span className="text-muted-foreground">Derecho LFT del colaborador:</span>
+                  <span className="text-muted-foreground">Derecho LFT del empleado:</span>
                   <span className={exceedsBalance ? "text-destructive font-bold" : "text-emerald-600 dark:text-emerald-400 font-bold"}>
                     {availableDaysBalance} días LFT
                   </span>

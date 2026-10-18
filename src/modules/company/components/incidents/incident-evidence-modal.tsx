@@ -79,7 +79,7 @@ export function IncidentEvidenceModal({
             {incident.title}
           </DialogTitle>
           <DialogDescription className="text-xs text-muted-foreground font-medium">
-            Colaborador: <strong>{incident.employeeName}</strong> • {incident.department}
+            Empleado: <strong>{incident.employeeName}</strong> • {incident.department}
           </DialogDescription>
         </DialogHeader>
 

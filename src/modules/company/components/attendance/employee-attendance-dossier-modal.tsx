@@ -80,7 +80,7 @@ export function EmployeeAttendanceDossierModal({
 
   const fallbackHistory: EmployeeAttendanceHistory = useMemo(() => {
     if (!employee) {
-      return getIndividualAttendanceHistory("emp-default", "Colaborador", selectedMonth, selectedYear);
+      return getIndividualAttendanceHistory("emp-default", "Empleado", selectedMonth, selectedYear);
     }
     return getIndividualAttendanceHistory(
       employee.employeeId,

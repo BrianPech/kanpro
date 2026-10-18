@@ -129,7 +129,7 @@ export function ContractsExpirationCard({
             Todos los contratos al día
           </p>
           <p className="text-xs text-muted-foreground max-w-sm mx-auto">
-            No tienes colaboradores con contratos próximos a vencer en los siguientes 30 días.
+            No tienes empleados con contratos próximos a vencer en los siguientes 30 días.
           </p>
         </div>
       ) : (

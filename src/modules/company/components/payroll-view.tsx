@@ -161,7 +161,7 @@ export function PayrollView({
 
   const handleDownloadLayout = (layoutType: BankLayoutType) => {
     if (employees.length === 0) {
-      toast.error("No hay colaboradores para generar el layout bancario.");
+      toast.error("No hay empleados para generar el layout bancario.");
       return;
     }
 
@@ -188,13 +188,13 @@ export function PayrollView({
 
   const handleDispersePayout = async () => {
     if (employees.length === 0) {
-      toast.error("No hay colaboradores para dispersar la nómina.");
+      toast.error("No hay empleados para dispersar la nómina.");
       return;
     }
 
     if (
       !confirm(
-        `¿Deseas confirmar la dispersión de la ${periodName} por un monto total neto de $${totalNetCalculated.toLocaleString()} MXN para ${employees.length} colaboradores?`
+        `¿Deseas confirmar la dispersión de la ${periodName} por un monto total neto de $${totalNetCalculated.toLocaleString()} MXN para ${employees.length} empleados?`
       )
     ) {
       return;
@@ -392,7 +392,7 @@ export function PayrollView({
             ${totalNetCalculated.toLocaleString()} MXN
           </div>
           <p className="text-[11px] text-muted-foreground font-medium">
-            Monto transferido a {employees.length} colaboradores
+            Monto transferido a {employees.length} empleados
           </p>
         </Card>
       </div>
@@ -403,7 +403,7 @@ export function PayrollView({
           <div className="relative flex-1 max-w-md">
             <Search className="size-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
             <Input
-              placeholder="Buscar colaborador, puesto o departamento..."
+              placeholder="Buscar empleado, puesto o departamento..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="pl-9 h-10 rounded-xl bg-background border-border/80 text-xs font-medium"
@@ -414,7 +414,7 @@ export function PayrollView({
             variant="outline"
             className="text-xs font-bold py-1.5 px-3 rounded-xl border-border/70 self-start sm:self-center"
           >
-            {`${filteredEmployees.length} colaboradores en pre-nómina`}
+            {`${filteredEmployees.length} empleados en pre-nómina`}
           </Badge>
         </div>
 
@@ -423,10 +423,10 @@ export function PayrollView({
             <Users className="size-8 text-muted-foreground mx-auto stroke-1" />
             <div className="space-y-1">
               <p className="text-sm font-bold text-foreground">
-                No hay colaboradores activos en la plantilla
+                No hay empleados activos en la plantilla
               </p>
               <p className="text-xs text-muted-foreground max-w-sm mx-auto">
-                Para calcular la nómina y dispersión bancaria, agrega colaboradores en el módulo de Plantilla o contrata candidatos desde reclutamiento.
+                Para calcular la nómina y dispersión bancaria, agrega empleados en el módulo de Plantilla o contrata candidatos desde reclutamiento.
               </p>
             </div>
             <Button
@@ -436,13 +436,13 @@ export function PayrollView({
               className="mt-2 rounded-xl text-xs font-bold"
             >
               <Plus className="size-3.5 mr-1" />
-              Ir a Plantilla de Colaboradores
+              Ir a Plantilla de Empleados
             </Button>
           </div>
         ) : filteredEmployees.length === 0 ? (
           <div className="p-8 text-center bg-muted/20 rounded-xl border border-dashed border-border/60">
             <p className="text-xs text-muted-foreground">
-              No se encontraron colaboradores que coincidan con la búsqueda.
+              No se encontraron empleados que coincidan con la búsqueda.
             </p>
           </div>
         ) : (

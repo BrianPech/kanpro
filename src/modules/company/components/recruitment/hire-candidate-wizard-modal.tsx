@@ -72,7 +72,7 @@ export function HireCandidateWizardModal({
   const [step, setStep] = useState<1 | 2 | 3>(1);
 
   // Step 1: Conditions
-  const [jobTitle, setJobTitle] = useState(candidate?.vacancyTitle || "Colaborador K'anPro");
+  const [jobTitle, setJobTitle] = useState(candidate?.vacancyTitle || "Empleado K'anPro");
   const [department, setDepartment] = useState("Operaciones");
   const [templateType, setTemplateType] = useState<ContractTemplateType>("indeterminado");
   const [startDate, setStartDate] = useState(new Date().toISOString().split("T")[0]);
@@ -129,7 +129,7 @@ export function HireCandidateWizardModal({
     } catch (err: any) {
       console.error("Error al contratar candidato:", err);
       toast.error("Error al procesar la contratación", {
-        description: err?.message || "Ocurrió un error al registrar al colaborador en la base de datos.",
+        description: err?.message || "Ocurrió un error al registrar al empleado en la base de datos.",
       });
     } finally {
       setIsProcessingHire(false);
@@ -344,7 +344,7 @@ export function HireCandidateWizardModal({
 
               <div className="space-y-1">
                 <h3 className="text-lg font-extrabold text-foreground">
-                  ¡Colaborador Dado de Alta Exitosamente!
+                  ¡Empleado Dado de Alta Exitosamente!
                 </h3>
                 <p className="text-xs text-muted-foreground font-medium">
                   {`${candidateName} ahora forma parte activa de tu empresa como ${jobTitle}.`}

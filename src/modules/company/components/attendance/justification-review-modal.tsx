@@ -59,7 +59,7 @@ export function JustificationReviewModal({
     workDate: record.workDate,
     reasonType: "medica",
     reasonLabel: "Incapacidad / Cita Médica IMSS",
-    comments: "El colaborador presentó comprobante médico por cuadro de salud.",
+    comments: "El empleado presentó comprobante médico por cuadro de salud.",
     evidenceUrl: "/assets/docs/comprobante_sample.pdf",
     status: "pendiente",
     submittedAt: "Hoy, 08:30 AM",
@@ -132,7 +132,7 @@ export function JustificationReviewModal({
                   Comprobante_Medico_IMSS.pdf
                 </span>
                 <span className="text-[10px] text-muted-foreground font-medium">
-                  Documento adjunto por el colaborador
+                  Documento adjunto por el empleado
                 </span>
               </div>
             </div>

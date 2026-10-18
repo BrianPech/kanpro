@@ -274,7 +274,7 @@ export function EmployeeDossierSheet({
         side="right"
         className="w-full sm:!max-w-[860px] md:!max-w-[940px] lg:!max-w-[1020px] p-0 overflow-hidden flex flex-col h-full bg-card border-l border-border/60 shadow-2xl font-sans"
       >
-        {/* 1. Header Fijo con Resumen del Colaborador */}
+        {/* 1. Header Fijo con Resumen del Empleado */}
         <div className="p-5 sm:p-6 border-b border-border/40 bg-muted/20 shrink-0">
           <div className="flex items-start justify-between gap-4">
             
@@ -672,7 +672,7 @@ export function EmployeeDossierSheet({
                       <FileText className="size-5 mx-auto text-muted-foreground/60 mb-2" />
                       <p className="font-semibold text-foreground">Sin documentos cargados</p>
                       <p className="text-[11px] text-muted-foreground mt-0.5">
-                        El colaborador aún no cuenta con documentos digitalizados en su expediente.
+                        El empleado aún no cuenta con documentos digitalizados en su expediente.
                       </p>
                     </div>
                   ) : (
@@ -817,7 +817,7 @@ export function EmployeeDossierSheet({
                     <Sparkles className="size-4 mx-auto text-muted-foreground/60 mb-1.5" />
                     <p className="font-semibold text-foreground">Sin evaluaciones registradas</p>
                     <p className="text-[11px] text-muted-foreground mt-0.5">
-                      Este colaborador aún no cuenta con evaluaciones 360 en el sistema.
+                      Este empleado aún no cuenta con evaluaciones 360 en el sistema.
                     </p>
                   </div>
                 ) : (

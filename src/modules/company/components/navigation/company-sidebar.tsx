@@ -80,7 +80,7 @@ export const companySections: PrimarySection[] = [
         title: "Dashboard General",
         url: "/dashboard/company",
         icon: LayoutDashboard,
-        description: "Resumen de colaboradores, alertas y actividades.",
+        description: "Resumen de empleados, alertas y actividades.",
       },
       {
         title: "Centro de Reportes",
@@ -95,18 +95,18 @@ export const companySections: PrimarySection[] = [
     label: "Gestión de Personal",
     shortLabel: "Personal",
     icon: Users,
-    description: "Administración de colaboradores, expedientes y contratos.",
+    description: "Administración de empleados, expedientes y contratos.",
     action: {
-      label: "+ Registrar Colaborador",
+      label: "+ Registrar Empleado",
       url: "/dashboard/company/employees?action=new",
       icon: UserPlus,
     },
     items: [
       {
-        title: "Plantilla de Colaboradores",
+        title: "Plantilla de Empleados",
         url: "/dashboard/company/employees",
         icon: UserCheck,
-        description: "Directorio completo de colaboradores activos e inactivos.",
+        description: "Directorio completo de empleados activos e inactivos.",
       },
       {
         title: "Contratos & Bajas",

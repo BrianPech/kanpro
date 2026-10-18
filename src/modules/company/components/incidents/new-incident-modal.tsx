@@ -90,7 +90,7 @@ export function NewIncidentModal({
     const emp = employees.find((e) => e.id === empId);
     if (emp) {
       setEmployeeName(emp.fullName);
-      setJobTitle(emp.jobTitle || "Colaborador");
+      setJobTitle(emp.jobTitle || "Empleado");
       setDepartment(emp.department || "Operaciones");
     }
   };
@@ -175,10 +175,10 @@ export function NewIncidentModal({
           </DialogHeader>
 
           <div className="space-y-3.5 pt-1">
-            {/* Selector de Colaborador */}
+            {/* Selector de Empleado */}
             <div className="space-y-1.5">
               <Label className="text-xs font-bold text-foreground">
-                Colaborador de la Plantilla *
+                Empleado de la Plantilla *
               </Label>
               {employees.length > 0 ? (
                 <Select
@@ -188,7 +188,7 @@ export function NewIncidentModal({
                   }}
                 >
                   <SelectTrigger className="h-10 rounded-xl bg-background border-border/80 text-xs font-medium">
-                    <SelectValue placeholder="Selecciona un colaborador..." />
+                    <SelectValue placeholder="Selecciona un empleado..." />
                   </SelectTrigger>
                   <SelectContent className="rounded-xl max-h-60">
                     {employees.map((emp) => (
@@ -200,14 +200,14 @@ export function NewIncidentModal({
                 </Select>
               ) : null}
 
-              {/* Si no hay colaboradores en lista o se desea capturar manualmente */}
+              {/* Si no hay empleados en lista o se desea capturar manualmente */}
               <Input
                 value={employeeName}
                 onChange={(e) => {
                   setEmployeeName(e.target.value);
                   setSelectedEmployeeId("");
                 }}
-                placeholder="O escribe el nombre completo del colaborador..."
+                placeholder="O escribe el nombre completo del empleado..."
                 className="h-10 rounded-xl bg-background border-border/80 text-xs font-medium mt-1.5"
                 required
               />

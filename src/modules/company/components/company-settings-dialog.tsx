@@ -1356,7 +1356,7 @@ export function CompanySettingsModal({
                                   Permisos y Solicitudes de Vacaciones
                                 </span>
                                 <span className="text-[10px] text-muted-foreground font-medium block leading-tight">
-                                  Aviso cuando un colaborador someta una solicitud para revisión.
+                                  Aviso cuando un empleado someta una solicitud para revisión.
                                 </span>
                               </div>
                             </div>

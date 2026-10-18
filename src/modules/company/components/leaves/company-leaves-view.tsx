@@ -100,11 +100,11 @@ export function CompanyLeavesView({
 
       if (decision === "aprobada") {
         toast.success("Solicitud aprobada con éxito", {
-          description: res.message || "Los días han sido descontados del saldo de vacaciones del colaborador.",
+          description: res.message || "Los días han sido descontados del saldo de vacaciones del empleado.",
         });
       } else {
         toast.error("Solicitud rechazada", {
-          description: res.message || "Se ha notificado al colaborador sobre la resolución.",
+          description: res.message || "Se ha notificado al empleado sobre la resolución.",
         });
       }
     } catch (err: any) {
@@ -216,7 +216,7 @@ export function CompanyLeavesView({
             {initialStats.employeesOnLeaveToday}
           </div>
           <p className="text-[11px] text-muted-foreground font-medium">
-            Colaboradores con ausencia justificada
+            Empleados con ausencia justificada
           </p>
         </Card>
 
@@ -229,7 +229,7 @@ export function CompanyLeavesView({
             {initialStats.averageVacationBalance} días
           </div>
           <p className="text-[11px] text-muted-foreground font-medium">
-            Disponibilidad por colaborador
+            Disponibilidad por empleado
           </p>
         </Card>
       </div>
@@ -240,7 +240,7 @@ export function CompanyLeavesView({
           <div className="relative flex-1 max-w-md">
             <Search className="size-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
             <Input
-              placeholder="Buscar por colaborador, departamento o tipo..."
+              placeholder="Buscar por empleado, departamento o tipo..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="pl-9 h-10 rounded-xl bg-background border-border/80 text-xs font-medium"

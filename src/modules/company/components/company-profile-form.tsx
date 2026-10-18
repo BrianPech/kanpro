@@ -187,11 +187,11 @@ const QUICK_CITIES = [
 
 
 const COMPANY_SIZE_LABELS: Record<string, string> = {
-  "1-10": "1 - 10 colaboradores",
-  "11-50": "11 - 50 colaboradores",
-  "51-200": "51 - 200 colaboradores",
-  "201-500": "201 - 500 colaboradores",
-  "500+": "Más de 500 colaboradores",
+  "1-10": "1 - 10 empleados",
+  "11-50": "11 - 50 empleados",
+  "51-200": "51 - 200 empleados",
+  "201-500": "201 - 500 empleados",
+  "500+": "Más de 500 empleados",
 };
 
 const INDUSTRY_LABELS: Record<string, string> = {
@@ -689,11 +689,11 @@ export function CompanyProfileForm({
                       </SelectValue>
                     </SelectTrigger>
                     <SelectContent className="rounded-xl border border-border/80 bg-popover text-xs font-semibold">
-                      <SelectItem value="1-10">1 - 10 colaboradores</SelectItem>
-                      <SelectItem value="11-50">11 - 50 colaboradores</SelectItem>
-                      <SelectItem value="51-200">51 - 200 colaboradores</SelectItem>
-                      <SelectItem value="201-500">201 - 500 colaboradores</SelectItem>
-                      <SelectItem value="500+">Más de 500 colaboradores</SelectItem>
+                      <SelectItem value="1-10">1 - 10 empleados</SelectItem>
+                      <SelectItem value="11-50">11 - 50 empleados</SelectItem>
+                      <SelectItem value="51-200">51 - 200 empleados</SelectItem>
+                      <SelectItem value="201-500">201 - 500 empleados</SelectItem>
+                      <SelectItem value="500+">Más de 500 empleados</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>

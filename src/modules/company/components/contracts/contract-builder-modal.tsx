@@ -196,14 +196,14 @@ export function ContractBuilderModal({
             {activeEmployees.length > 0 && (
               <div className="space-y-1.5">
                 <Label className="text-xs font-bold text-foreground">
-                  Seleccionar Colaborador Activo
+                  Seleccionar Empleado Activo
                 </Label>
                 <Select
                   value={selectedEmployeeId}
                   onValueChange={handleSelectEmployee}
                 >
                   <SelectTrigger className="h-10 rounded-xl bg-background border-border/80 text-xs font-medium">
-                    <SelectValue placeholder="Seleccionar colaborador o manual" />
+                    <SelectValue placeholder="Seleccionar empleado o manual" />
                   </SelectTrigger>
                   <SelectContent className="rounded-xl border-border/60 bg-popover">
                     <SelectItem value="manual" className="text-xs font-semibold">

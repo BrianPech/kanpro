@@ -35,7 +35,7 @@ const companyRouteNames: Record<string, string> = {
   "/dashboard/company/vacancies": "Mis Vacantes",
   "/dashboard/company/vacancies/new": "Publicar Oferta",
   "/dashboard/company/applications": "Postulantes",
-  "/dashboard/company/employees": "Colaboradores",
+  "/dashboard/company/employees": "Empleados",
   "/dashboard/company/profile": "Perfil Corporativo",
   "/dashboard/company/verification": "Verificación de Empresa",
   "/dashboard/company/settings": "Configuración",

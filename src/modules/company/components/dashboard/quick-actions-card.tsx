@@ -45,7 +45,7 @@ const QUICK_ACTIONS = [
     badgeColor: "bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20",
   },
   {
-    title: "Alta de Colaborador",
+    title: "Alta de Empleado",
     description: "Registrar nuevo empleado",
     href: "/dashboard/company/employees",
     icon: UserPlus,

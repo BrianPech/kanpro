@@ -85,7 +85,7 @@ export function CompanyBottomNav() {
                   <Link
                     href="/dashboard/company/employees"
                     aria-current={isEmployeesActive ? "page" : undefined}
-                    aria-label="Plantilla de colaboradores"
+                    aria-label="Plantilla de empleados"
                     className={cn(
                       "size-12 flex flex-col items-center justify-center rounded-2xl transition-all duration-150 active:scale-90 cursor-pointer gap-0.5",
                       isEmployeesActive

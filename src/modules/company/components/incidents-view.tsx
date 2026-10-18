@@ -138,7 +138,7 @@ export function IncidentsView({
     setIsExporting(true);
     try {
       const headers = [
-        "Colaborador",
+        "Empleado",
         "Puesto",
         "Departamento",
         "Categoría",
@@ -276,7 +276,7 @@ export function IncidentsView({
             {recognitionCount}
           </div>
           <p className="text-[11px] text-muted-foreground font-medium">
-            Méritos y felicitaciones al colaborador
+            Méritos y felicitaciones al empleado
           </p>
         </Card>
       </div>
@@ -287,7 +287,7 @@ export function IncidentsView({
           <div className="relative flex-1 max-w-md">
             <Search className="size-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
             <Input
-              placeholder="Buscar por colaborador, título o tipo de incidencia..."
+              placeholder="Buscar por empleado, título o tipo de incidencia..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="pl-9 h-10 rounded-xl bg-background border-border/80 text-xs font-medium"

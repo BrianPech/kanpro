@@ -3,7 +3,7 @@ import { redirect } from "next/navigation";
 import { CompanyEmployeesView } from "@/modules/company/components/company-employees-view";
 
 export const metadata = {
-  title: "Plantilla de Colaboradores | K'anPro",
+  title: "Plantilla de Empleados | K'anPro",
   description: "Gestión operativa, estatus laboral y expedientes del personal de la empresa.",
 };
 
@@ -101,12 +101,12 @@ export default async function CompanyEmployeesPage() {
     return {
       id: emp.id,
       candidate_id: emp.employee_id || emp.id,
-      full_name: emp.full_name || "Colaborador",
+      full_name: emp.full_name || "Empleado",
       phone: emp.phone || "",
       avatar_url: emp.avatar_url || null,
-      location: emp.department || "Operaciones",
-      vacancy_title: emp.job_title || "Puesto General",
-      vacancy_category: emp.department || "General",
+      location: emp.department || "",
+      vacancy_title: emp.job_title || "",
+      vacancy_category: emp.department || "",
       hired_date: emp.hire_date || emp.created_at || new Date().toISOString(),
       notes: emp.notes || (emp.termination_reason ? `Motivo de baja: ${emp.termination_reason}` : ""),
       status: (emp.status === "terminated" ? "Baja" : "Contratado") as "Contratado" | "Baja",

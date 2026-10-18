@@ -2232,7 +2232,7 @@ export function ApplicationsInbox() {
                             </Card>
                           </TabsContent>
 
-                          {/* TAB 4: Documentos LFT (Solo para colaboradores contratados) */}
+                          {/* TAB 4: Documentos LFT (Solo para empleados contratados) */}
                           {selectedApplicant.status === "Contratado" && (
                             <TabsContent value="documents" className="space-y-4 m-0 focus-visible:outline-none text-left w-full max-w-full min-w-0 overflow-hidden">
                               <Card className="bg-muted/15 border border-border/40 rounded-2xl p-5 space-y-4">
@@ -2240,9 +2240,9 @@ export function ApplicationsInbox() {
                                   <div className="size-10 rounded-xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0">
                                     <ShieldCheck className="size-5" />
                                   </div>
-                                  <div>
+                                   <div>
                                     <h4 className="text-sm font-bold text-foreground">
-                                      Bóveda de Documentos Oficiales LFT (Colaborador Contratado)
+                                      Bóveda de Documentos Oficiales LFT (Empleado Contratado)
                                     </h4>
                                     <p className="text-xs text-muted-foreground">
                                       INE, CURP, Constancia SAT, NSS y Comprobante de domicilio para alta laboral y nómina.
@@ -2254,7 +2254,7 @@ export function ApplicationsInbox() {
                                   <div className="space-y-3 pt-2">
                                     <Badge className="bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-none font-bold text-xs px-3 py-1 rounded-lg">
                                       <CheckCircle2 className="size-3.5 mr-1" />
-                                      Acceso Autorizado por el Colaborador
+                                      Acceso Autorizado por el Empleado
                                     </Badge>
 
                                     {isLoadingDocs ? (
@@ -2290,7 +2290,7 @@ export function ApplicationsInbox() {
                                       </div>
                                     ) : (
                                       <p className="text-xs text-muted-foreground">
-                                        El colaborador aún no ha subido archivos a su bóveda digital.
+                                        El empleado aún no ha subido archivos a su bóveda digital.
                                       </p>
                                     )}
                                   </div>
@@ -2301,7 +2301,7 @@ export function ApplicationsInbox() {
                                       Solicitud en Espera de Autorización
                                     </span>
                                     <p className="text-[11px] text-muted-foreground">
-                                      Se envió una notificación al colaborador para autorizar el expediente.
+                                      Se envió una notificación al empleado para autorizar el expediente.
                                     </p>
                                   </div>
                                 ) : (
@@ -2975,7 +2975,7 @@ export function ApplicationsInbox() {
           reloadData();
           toast.success("¡Candidato contratado con éxito!", {
             description:
-              "Se ha creado el expediente de colaborador y se integró a la plantilla activa.",
+              "Se ha creado el expediente de empleado y se integró a la plantilla activa.",
           });
         }}
       />

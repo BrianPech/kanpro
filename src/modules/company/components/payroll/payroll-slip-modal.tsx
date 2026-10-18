@@ -228,7 +228,7 @@ export function PayrollSlipModal({
           <div className="p-4 rounded-2xl bg-gradient-to-r from-emerald-500/15 via-background to-primary/10 border border-emerald-500/30 flex items-center justify-between">
             <div className="space-y-0.5">
               <span className="text-[11px] font-bold text-muted-foreground uppercase">
-                Neto a Dispersar al Colaborador
+                Neto a Dispersar al Empleado
               </span>
               <div className="text-2xl font-extrabold text-emerald-600 dark:text-emerald-400">
                 ${employee.netPayEstimated.toLocaleString()} MXN

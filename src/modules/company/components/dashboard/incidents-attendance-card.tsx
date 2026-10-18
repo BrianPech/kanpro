@@ -482,7 +482,7 @@ export function IncidentsAttendanceCard({
             <div className="space-y-3">
               <div className="space-y-1.5">
                 <Label htmlFor="inc-emp-name" className="text-xs font-bold text-foreground">
-                  Colaborador involucrado *
+                  Empleado involucrado *
                 </Label>
                 <Input
                   id="inc-emp-name"

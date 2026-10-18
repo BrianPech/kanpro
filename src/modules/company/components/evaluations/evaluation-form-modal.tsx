@@ -104,7 +104,7 @@ export function EvaluationFormModal({
     "Cumplimiento del 96% en el programa de trabajo preventivo."
   );
   const [comments, setComments] = useState(
-    "Colaborador con gran disposición al crecimiento interno y compromiso."
+    "Empleado con gran disposición al crecimiento interno y compromiso."
   );
 
   // Synchronize when initialEmployee or employees change
@@ -153,7 +153,7 @@ export function EvaluationFormModal({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!employeeName.trim()) {
-      toast.error("Por favor ingresa o selecciona el nombre del colaborador.");
+      toast.error("Por favor ingresa o selecciona el nombre del empleado.");
       return;
     }
 
@@ -301,7 +301,7 @@ export function EvaluationFormModal({
               Nueva Evaluación de Desempeño
             </DialogTitle>
             <DialogDescription className="text-xs text-muted-foreground font-medium">
-              Herramienta de retroalimentación orientada al crecimiento y desarrollo del colaborador.
+              Herramienta de retroalimentación orientada al crecimiento y desarrollo del empleado.
             </DialogDescription>
           </DialogHeader>
 
@@ -310,14 +310,14 @@ export function EvaluationFormModal({
             {employees.length > 0 && (
               <div className="space-y-1.5">
                 <Label className="text-xs font-bold text-foreground">
-                  Seleccionar de la Plantilla de Colaboradores
+                  Seleccionar de la Plantilla de Empleados
                 </Label>
                 <Select
                   value={selectedEmployeeId}
                   onValueChange={handleSelectEmployee}
                 >
                   <SelectTrigger className="h-10 rounded-xl bg-background border-border/80 text-xs font-medium">
-                    <SelectValue placeholder="Elige un colaborador..." />
+                    <SelectValue placeholder="Elige un empleado..." />
                   </SelectTrigger>
                   <SelectContent className="rounded-xl max-h-56">
                     {employees.map((emp) => (
@@ -330,7 +330,7 @@ export function EvaluationFormModal({
                     ))}
                     <SelectItem value="custom">
                       <span className="italic text-muted-foreground">
-                        + Ingresar otro colaborador manualmente
+                        + Ingresar otro empleado manualmente
                       </span>
                     </SelectItem>
                   </SelectContent>
@@ -338,10 +338,10 @@ export function EvaluationFormModal({
               </div>
             )}
 
-            {/* Colaborador & Puesto */}
+            {/* Empleado & Puesto */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div className="space-y-1.5">
-                <Label className="text-xs font-bold text-foreground">Nombre del Colaborador *</Label>
+                <Label className="text-xs font-bold text-foreground">Nombre del Empleado *</Label>
                 <Input
                   value={employeeName}
                   onChange={(e) => setEmployeeName(e.target.value)}

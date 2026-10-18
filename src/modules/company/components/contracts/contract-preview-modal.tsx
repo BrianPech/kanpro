@@ -262,7 +262,7 @@ export function ContractPreviewModal({
                     </div>
                   ) : (
                     <div className="py-3 space-y-2">
-                      <p className="text-[11px] text-muted-foreground">Firma pendiente del colaborador</p>
+                      <p className="text-[11px] text-muted-foreground">Firma pendiente del empleado</p>
                       <Button
                         size="sm"
                         variant="outline"

@@ -102,7 +102,7 @@ export function Nom035SurveyModal({
     e.preventDefault();
 
     if (!employeeId || !selectedEmployee) {
-      toast.error("Por favor selecciona un colaborador.");
+      toast.error("Por favor selecciona un empleado.");
       return;
     }
 
@@ -182,11 +182,11 @@ export function Nom035SurveyModal({
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label className="text-xs font-bold text-foreground">
-                Colaborador Evaluado *
+                Empleado Evaluado *
               </Label>
               <Select value={employeeId} onValueChange={(v) => setEmployeeId(v || "")}>
                 <SelectTrigger className="h-10 rounded-xl text-xs font-semibold">
-                  <SelectValue placeholder="Seleccionar colaborador" />
+                  <SelectValue placeholder="Seleccionar empleado" />
                 </SelectTrigger>
                 <SelectContent className="max-h-60 rounded-xl">
                   {employees.map((emp) => (

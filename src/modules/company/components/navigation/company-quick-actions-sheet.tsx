@@ -44,7 +44,7 @@ interface QuickAction {
 const QUICK_ACTIONS: QuickAction[] = [
   {
     id: "new-employee",
-    title: "Registrar Colaborador",
+    title: "Registrar Empleado",
     description: "Alta directa de personal con salario, puesto y datos fiscales",
     href: "/dashboard/company/employees?action=new",
     icon: UserPlus,
@@ -92,7 +92,7 @@ const QUICK_ACTIONS: QuickAction[] = [
   {
     id: "reports",
     title: "Centro de Reportes",
-    description: "Exportar listas de colaboradores y nómina a Excel o CSV",
+    description: "Exportar listas de empleados y nómina a Excel o CSV",
     href: "/dashboard/company/reports",
     icon: FileSpreadsheet,
     iconBg: "bg-teal-500/15 dark:bg-teal-500/20",

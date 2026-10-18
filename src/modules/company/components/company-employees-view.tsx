@@ -464,7 +464,7 @@ export function CompanyEmployeesView({
     link.setAttribute("href", encodedUri);
     link.setAttribute(
       "download",
-      `plantilla_colaboradores_${new Date().toISOString().split("T")[0]}.csv`
+      `plantilla_empleados_${new Date().toISOString().split("T")[0]}.csv`
     );
     document.body.appendChild(link);
     link.click();
@@ -523,7 +523,7 @@ export function CompanyEmployeesView({
             : e
         )
       );
-      toast.success("Baja de colaborador registrada");
+      toast.success("Baja de empleado registrada");
       setIsTerminateDialogOpen(false);
     } catch {
       toast.error("Error al registrar la baja");
@@ -538,9 +538,9 @@ export function CompanyEmployeesView({
       setEmployees((prev) =>
         prev.map((e) => (e.id === emp.id ? { ...e, status: "Contratado" } : e))
       );
-      toast.success("Colaborador reactivado en la plantilla");
+      toast.success("Empleado reactivado en la plantilla");
     } catch {
-      toast.error("Error al reactivar colaborador");
+      toast.error("Error al reactivar empleado");
     }
   };
 
@@ -562,7 +562,7 @@ export function CompanyEmployeesView({
             className="flex items-center gap-1.5 font-extrabold text-[11px] uppercase tracking-wider text-muted-foreground hover:text-foreground transition-colors cursor-pointer select-none py-1 group"
             onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
           >
-            <span>Colaborador</span>
+            <span>Empleado</span>
             {column.getIsSorted() === "asc" ? (
               <ArrowUp className="size-3.5 text-primary" />
             ) : column.getIsSorted() === "desc" ? (
@@ -836,7 +836,7 @@ export function CompanyEmployeesView({
                     className="cursor-pointer text-xs font-semibold rounded-lg hover:bg-muted py-2 px-2.5 gap-2"
                   >
                     <FileText className="size-3.5 text-muted-foreground" />
-                    <span>Notas del colaborador</span>
+                    <span>Notas del empleado</span>
                   </DropdownMenuItem>
 
                   <DropdownMenuSeparator className="my-1 border-border/40" />
@@ -855,7 +855,7 @@ export function CompanyEmployeesView({
                       className="cursor-pointer text-xs font-semibold text-emerald-600 dark:text-emerald-400 rounded-lg hover:bg-emerald-500/10 focus:bg-emerald-500/10 py-2 px-2.5 gap-2"
                     >
                       <RotateCcw className="size-3.5" />
-                      <span>Reactivar Colaborador</span>
+                      <span>Reactivar Empleado</span>
                     </DropdownMenuItem>
                   )}
                 </DropdownMenuContent>
@@ -899,7 +899,7 @@ export function CompanyEmployeesView({
   return (
     <div className="space-y-6 w-full pb-16 font-sans">
       {/* Accessible semantic heading for screen readers */}
-      <h1 className="sr-only">Plantilla de Colaboradores</h1>
+      <h1 className="sr-only">Plantilla de Empleados</h1>
 
       {/* Master TanStack DataTable Card */}
       <Card className="bg-card border border-border/50 rounded-3xl overflow-hidden shadow-xs">
@@ -916,7 +916,7 @@ export function CompanyEmployeesView({
               <Input
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Buscar por colaborador, puesto, ubicación o teléfono..."
+                placeholder="Buscar por empleado, puesto, ubicación o teléfono..."
                 className="h-10 pl-10 pr-9 bg-background border-border/50 rounded-xl text-xs sm:text-sm font-medium focus-visible:ring-1 focus-visible:ring-primary w-full shadow-2xs"
               />
               {searchQuery && (
@@ -1068,7 +1068,7 @@ export function CompanyEmployeesView({
                   <EmptyDescription>
                     {searchQuery
                       ? "Ninguna invitación coincide con tu búsqueda."
-                      : "Aún no has enviado invitaciones para nuevos colaboradores."}
+                      : "Aún no has enviado invitaciones para nuevos empleados."}
                   </EmptyDescription>
                 </EmptyHeader>
                 <EmptyContent>
@@ -1078,7 +1078,7 @@ export function CompanyEmployeesView({
                     className="rounded-xl font-bold text-xs h-9 px-4 cursor-pointer gap-1.5 bg-primary text-primary-foreground"
                   >
                     <UserPlus className="size-4" />
-                    <span>+ Invitar Colaborador</span>
+                    <span>+ Invitar Empleado</span>
                   </Button>
                 </EmptyContent>
               </Empty>
@@ -1088,7 +1088,7 @@ export function CompanyEmployeesView({
                   <TableHeader>
                     <TableRow className="bg-muted/40 hover:bg-muted/40 border-b border-border/40">
                       <TableHead className="py-3 px-4 text-[11px] font-bold text-muted-foreground uppercase">
-                        Colaborador Invitado
+                        Empleado Invitado
                       </TableHead>
                       <TableHead className="py-3 px-4 text-[11px] font-bold text-muted-foreground uppercase">
                         Puesto / Cargo
@@ -1251,13 +1251,13 @@ export function CompanyEmployeesView({
                 </EmptyMedia>
                 <EmptyTitle>
                   {isFiltered
-                    ? "No se encontraron colaboradores"
-                    : "Plantilla de colaboradores vacía"}
+                    ? "No se encontraron empleados"
+                    : "Plantilla de empleados vacía"}
                 </EmptyTitle>
                 <EmptyDescription>
                   {isFiltered
-                    ? "No hay colaboradores que coincidan con la búsqueda o los filtros aplicados. Intenta ajustar tu consulta."
-                    : "Aún no tienes colaboradores registrados en tu plantilla. Puedes contratar candidatos desde tus postulaciones."}
+                    ? "No hay empleados que coincidan con la búsqueda o los filtros aplicados. Intenta ajustar tu consulta."
+                    : "Aún no tienes empleados registrados en tu plantilla. Puedes contratar candidatos desde tus postulaciones."}
                 </EmptyDescription>
               </EmptyHeader>
               <EmptyContent>
@@ -1357,7 +1357,7 @@ export function CompanyEmployeesView({
                               render={
                                 <button
                                   className="size-9 rounded-xl text-muted-foreground hover:text-foreground hover:bg-muted p-1 cursor-pointer transition-colors flex items-center justify-center active:scale-90"
-                                  aria-label="Opciones del colaborador"
+                                  aria-label="Opciones del empleado"
                                 />
                               }
                             >
@@ -1404,7 +1404,7 @@ export function CompanyEmployeesView({
                                 className="cursor-pointer text-xs font-semibold rounded-xl hover:bg-muted py-2.5 px-3 gap-2.5"
                               >
                                 <FileText className="size-4 text-muted-foreground" />
-                                <span>Notas del colaborador</span>
+                                <span>Notas del empleado</span>
                               </DropdownMenuItem>
 
                               <DropdownMenuSeparator className="my-1 border-border/40" />
@@ -1415,7 +1415,7 @@ export function CompanyEmployeesView({
                                   className="cursor-pointer text-xs font-semibold text-emerald-600 dark:text-emerald-400 rounded-xl hover:bg-emerald-500/10 focus:bg-emerald-500/10 py-2.5 px-3 gap-2.5"
                                 >
                                   <RotateCcw className="size-4" />
-                                  <span>Reactivar Colaborador</span>
+                                  <span>Reactivar Empleado</span>
                                 </DropdownMenuItem>
                               ) : (
                                 <DropdownMenuItem
@@ -1532,7 +1532,7 @@ export function CompanyEmployeesView({
               <div className="p-3.5 px-4 sm:px-6 border-t border-border/30 bg-muted/10 flex items-center justify-between text-xs text-muted-foreground font-medium">
                 <span>
                   Mostrando <strong>{tableRows.length}</strong> de{" "}
-                  <strong>{employees.length}</strong> colaboradores
+                  <strong>{employees.length}</strong> empleados
                 </span>
                 <span className="text-[11px] text-muted-foreground/80">
                   Actualizado en tiempo real
@@ -1615,7 +1615,7 @@ export function CompanyEmployeesView({
           <DialogHeader>
             <DialogTitle className="text-base font-bold text-rose-600 dark:text-rose-400 flex items-center gap-2">
               <AlertTriangle className="size-4" />
-              <span>Registrar Baja de Colaborador</span>
+              <span>Registrar Baja de Empleado</span>
             </DialogTitle>
             <DialogDescription className="text-xs text-muted-foreground">
               Registra el motivo de la baja de{" "}
@@ -1727,7 +1727,7 @@ export function CompanyEmployeesView({
           <DialogHeader>
             <DialogTitle className="text-base font-bold text-foreground flex items-center gap-2">
               <FileText className="size-4 text-primary" />
-              <span>Notas de Colaborador</span>
+              <span>Notas de Empleado</span>
             </DialogTitle>
             <DialogDescription className="text-xs text-muted-foreground">
               Historial y notas internas para{" "}
@@ -1802,7 +1802,7 @@ export function CompanyEmployeesView({
             </DialogTitle>
             <DialogDescription className="text-xs text-muted-foreground">
               Se ha generado un nuevo enlace con vigencia de 7 días para{" "}
-              <strong>{resendResult?.name}</strong>. Comparte este enlace con tu colaborador para que complete su registro.
+              <strong>{resendResult?.name}</strong>. Comparte este enlace con tu empleado para que complete su registro.
             </DialogDescription>
           </DialogHeader>
 
@@ -1876,7 +1876,7 @@ export function CompanyEmployeesView({
         </DialogContent>
       </Dialog>
 
-      {/* Modal de Registro Directo de Colaborador */}
+      {/* Modal de Registro Directo de Empleado */}
       <RegisterEmployeeModal
         isOpen={isNewEmployeeModalOpen}
         onOpenChange={setIsNewEmployeeModalOpen}

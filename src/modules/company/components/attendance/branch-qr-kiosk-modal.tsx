@@ -86,7 +86,7 @@ export function BranchQrKioskModal({
             Kiosco QR de Establecimiento
           </DialogTitle>
           <DialogDescription className="text-xs text-muted-foreground font-medium">
-            Imprime o proyecta este código en la recepción para que los colaboradores registren su asistencia.
+            Imprime o proyecta este código en la recepción para que los empleados registren su asistencia.
           </DialogDescription>
         </DialogHeader>
 

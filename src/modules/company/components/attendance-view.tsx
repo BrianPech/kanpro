@@ -302,12 +302,12 @@ export function AttendanceView({
   const handleAddManualCheckIn = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedEmployeeId) {
-      toast.error("Por favor selecciona un colaborador de la plantilla.");
+      toast.error("Por favor selecciona un empleado de la plantilla.");
       return;
     }
 
     const selectedEmp = employees.find((emp) => emp.id === selectedEmployeeId);
-    const empName = selectedEmp?.name || manualName || "Colaborador";
+    const empName = selectedEmp?.name || manualName || "Empleado";
 
     setIsSubmittingManual(true);
 
@@ -331,7 +331,7 @@ export function AttendanceView({
           employeeId: raw.employee_id,
           employeeName: empName,
           avatarUrl: selectedEmp?.avatarUrl || null,
-          jobTitle: selectedEmp?.jobTitle || "Colaborador",
+          jobTitle: selectedEmp?.jobTitle || "Empleado",
           department: selectedEmp?.department || "Operaciones",
           workDate,
           scheduledCheckIn: raw.scheduled_check_in,
@@ -372,7 +372,7 @@ export function AttendanceView({
     setIsExporting(true);
     try {
       const headers = [
-        "Colaborador",
+        "Empleado",
         "Puesto",
         "Departamento",
         "Fecha",
@@ -570,7 +570,7 @@ export function AttendanceView({
             className="flex items-center gap-1.5 font-extrabold text-[11px] uppercase tracking-wider text-muted-foreground hover:text-foreground transition-colors cursor-pointer select-none py-1 group"
             onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
           >
-            <span>Colaborador</span>
+            <span>Empleado</span>
             {column.getIsSorted() === "asc" ? (
               <ArrowUp className="size-3.5 text-primary" />
             ) : column.getIsSorted() === "desc" ? (
@@ -941,7 +941,7 @@ export function AttendanceView({
                 variant="outline"
                 className="text-xs font-bold font-mono px-2 py-0.5 rounded-lg border-border/40"
               >
-                {records.length} Colaboradores
+                {records.length} Empleados
               </Badge>
             </h1>
           </div>
@@ -1101,7 +1101,7 @@ export function AttendanceView({
               <Input
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Buscar por colaborador, puesto, departamento o método..."
+                placeholder="Buscar por empleado, puesto, departamento o método..."
                 className="h-10 pl-10 pr-9 bg-background border-border/50 rounded-xl text-xs sm:text-sm font-medium focus-visible:ring-1 focus-visible:ring-primary"
               />
               {searchQuery && (
@@ -1307,7 +1307,7 @@ export function AttendanceView({
                 <EmptyDescription>
                   {isFiltered
                     ? "No hay marcas de checador que coincidan con la búsqueda o filtros aplicados. Intenta restablecer los filtros."
-                    : "Los colaboradores comenzarán a registrar sus entradas por GPS o QR durante el turno activo."}
+                    : "Los empleados comenzarán a registrar sus entradas por GPS o QR durante el turno activo."}
                 </EmptyDescription>
               </EmptyHeader>
               <EmptyContent>
@@ -1384,7 +1384,7 @@ export function AttendanceView({
               <div className="p-3.5 px-4 sm:px-6 border-t border-border/30 bg-muted/10 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-muted-foreground font-medium">
                 <span>
                   Mostrando <strong>{tableRows.length}</strong> de{" "}
-                  <strong>{filteredRecords.length}</strong> colaboradores
+                  <strong>{filteredRecords.length}</strong> empleados
                 </span>
 
                 {/* Pagination Controls */}
@@ -1472,14 +1472,14 @@ export function AttendanceView({
                 <span>Registrar Entrada Manual RH</span>
               </DialogTitle>
               <DialogDescription className="text-xs text-muted-foreground">
-                Añade o ajusta la marca de checador para un colaborador del turno.
+                Añade o ajusta la marca de checador para un empleado del turno.
               </DialogDescription>
             </DialogHeader>
 
             <div className="space-y-3.5 pt-1">
               <div className="space-y-1.5">
                 <Label className="text-xs font-bold text-foreground">
-                  Colaborador de la Plantilla *
+                  Empleado de la Plantilla *
                 </Label>
                 {employees.length > 0 ? (
                   <Select
@@ -1493,7 +1493,7 @@ export function AttendanceView({
                     }}
                   >
                     <SelectTrigger className="h-10 rounded-xl bg-background border-border/80 text-xs font-medium">
-                      <SelectValue placeholder="Selecciona un colaborador..." />
+                      <SelectValue placeholder="Selecciona un empleado..." />
                     </SelectTrigger>
                     <SelectContent className="rounded-xl max-h-56">
                       {employees.map((emp) => (
@@ -1506,7 +1506,7 @@ export function AttendanceView({
                 ) : (
                   <Input
                     id="att-manual-name"
-                    placeholder="Nombre del colaborador"
+                    placeholder="Nombre del empleado"
                     value={manualName}
                     onChange={(e) => setManualName(e.target.value)}
                     className="h-10 rounded-xl bg-background border-border/80 text-xs font-medium"

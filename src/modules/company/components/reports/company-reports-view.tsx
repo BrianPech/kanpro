@@ -235,7 +235,7 @@ export function CompanyReportsView({ initialData }: CompanyReportsViewProps) {
               {kpis.activeEmployees}
             </div>
             <p className="text-[11px] text-muted-foreground mt-1 flex items-center justify-between">
-              <span>{kpis.totalEmployees} colaboradores en total</span>
+              <span>{kpis.totalEmployees} empleados en total</span>
               <span className="font-bold text-emerald-600 dark:text-emerald-400">
                 {kpis.retentionRate}% retención
               </span>

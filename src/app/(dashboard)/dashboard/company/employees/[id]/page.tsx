@@ -6,7 +6,7 @@ import { notFound, redirect } from "next/navigation";
 
 export const metadata = {
   title: "Expediente Digital 360 | K'anPro",
-  description: "Expediente laboral, documentos, historial salarial y vacaciones del colaborador.",
+  description: "Expediente laboral, documentos, historial salarial y vacaciones del empleado.",
 };
 
 export default async function EmployeeDossierPage({

@@ -263,7 +263,7 @@ export function EvaluationsView({
     ]);
 
     const headers = [
-      "Colaborador",
+      "Empleado",
       "Puesto",
       "Departamento",
       "Periodo",
@@ -419,7 +419,7 @@ export function EvaluationsView({
 
     const exportRows = nomSurveys.map((s) => [
       `"${s.employeeName.replace(/"/g, '""')}"`,
-      `"${(s.jobTitle || "Colaborador").replace(/"/g, '""')}"`,
+      `"${(s.jobTitle || "Empleado").replace(/"/g, '""')}"`,
       `"${(s.department || "Operaciones").replace(/"/g, '""')}"`,
       `"${s.guideType === "guia_i" ? "Guía I (Trauma)" : s.guideType === "guia_iii" ? "Guía III (Entorno)" : "Guía II (Riesgo)"}"`,
       `"${s.surveyDate}"`,
@@ -434,7 +434,7 @@ export function EvaluationsView({
     ]);
 
     const headers = [
-      "Colaborador",
+      "Empleado",
       "Puesto",
       "Área",
       "Guía STPS",
@@ -533,7 +533,7 @@ export function EvaluationsView({
             className="flex items-center gap-1.5 font-extrabold text-[11px] uppercase tracking-wider text-muted-foreground hover:text-foreground transition-colors cursor-pointer select-none py-1 group"
             onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
           >
-            <span>Colaborador</span>
+            <span>Empleado</span>
             {column.getIsSorted() === "asc" ? (
               <ArrowUp className="size-3.5 text-primary" />
             ) : column.getIsSorted() === "desc" ? (
@@ -777,7 +777,7 @@ export function EvaluationsView({
                     className="cursor-pointer text-xs font-semibold py-2 px-2.5 gap-2 text-foreground hover:bg-muted"
                   >
                     <FileText className="size-3.5 text-muted-foreground" />
-                    <span>Ver Expediente del Colaborador</span>
+                    <span>Ver Expediente del Empleado</span>
                   </DropdownMenuItem>
 
                   <DropdownMenuSeparator className="my-1 border-border/40" />
@@ -999,7 +999,7 @@ export function EvaluationsView({
                   <Input
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
-                    placeholder="Buscar por colaborador, puesto, área o evaluador..."
+                    placeholder="Buscar por empleado, puesto, área o evaluador..."
                     className="h-10 pl-10 pr-9 bg-background border-border/50 rounded-xl text-xs sm:text-sm font-medium focus-visible:ring-1 focus-visible:ring-primary"
                   />
                   {searchQuery && (
@@ -1142,7 +1142,7 @@ export function EvaluationsView({
                     </EmptyTitle>
                     <EmptyDescription>
                       {evaluations.length === 0
-                        ? "Aún no has registrado ninguna evaluación de desempeño 360 para tus colaboradores en este ciclo."
+                        ? "Aún no has registrado ninguna evaluación de desempeño 360 para tus empleados en este ciclo."
                         : "No hay registros de evaluación que coincidan con los filtros aplicados."}
                     </EmptyDescription>
                   </EmptyHeader>
@@ -1484,7 +1484,7 @@ export function EvaluationsView({
                   {currentNomMetrics.averageTotalScore} pts
                 </h4>
                 <p className="text-[11px] text-muted-foreground mt-0.5">
-                  Promedio de {currentNomMetrics.totalSurveys} colaboradores evaluados
+                  Promedio de {currentNomMetrics.totalSurveys} empleados evaluados
                 </p>
               </div>
 
@@ -1592,7 +1592,7 @@ export function EvaluationsView({
                   <Input
                     value={nomSearchQuery}
                     onChange={(e) => setNomSearchQuery(e.target.value)}
-                    placeholder="Buscar por colaborador, puesto o departamento..."
+                    placeholder="Buscar por empleado, puesto o departamento..."
                     className="h-10 pl-10 pr-9 bg-background border-border/50 rounded-xl text-xs sm:text-sm font-medium focus-visible:ring-1 focus-visible:ring-primary"
                   />
                   {nomSearchQuery && (
@@ -1697,7 +1697,7 @@ export function EvaluationsView({
                   </EmptyTitle>
                   <EmptyDescription>
                     {nomSurveys.length === 0
-                      ? "Aplica la primera cédula de evaluación de factores psicosociales NOM-035-STPS-2018 a tus colaboradores."
+                      ? "Aplica la primera cédula de evaluación de factores psicosociales NOM-035-STPS-2018 a tus empleados."
                       : "Prueba seleccionando otro nivel de riesgo o limpiando la búsqueda."}
                   </EmptyDescription>
                 </EmptyHeader>
@@ -1718,7 +1718,7 @@ export function EvaluationsView({
                   <TableHeader className="bg-muted/30 border-b border-border/40">
                     <TableRow className="hover:bg-transparent">
                       <TableHead className="py-3 px-4 sm:px-6 font-extrabold text-[11px] uppercase tracking-wider text-muted-foreground">
-                        Colaborador
+                        Empleado
                       </TableHead>
                       <TableHead className="py-3 px-4 sm:px-6 font-extrabold text-[11px] uppercase tracking-wider text-muted-foreground">
                         Guía STPS & Fecha
@@ -1746,7 +1746,7 @@ export function EvaluationsView({
                               {survey.employeeName}
                             </span>
                             <span className="text-[11px] text-muted-foreground">
-                              {survey.jobTitle || "Colaborador"} • {survey.department || "Operaciones"}
+                              {survey.jobTitle || "Empleado"} • {survey.department || "Operaciones"}
                             </span>
                           </div>
                         </TableCell>

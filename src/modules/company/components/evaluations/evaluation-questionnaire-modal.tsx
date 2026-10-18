@@ -87,7 +87,7 @@ export function EvaluationQuestionnaireModal({
         {
           name: "employee_id",
           required: true,
-          prompt: "¿A qué colaborador vas a evaluar?",
+          prompt: "¿A qué empleado vas a evaluar?",
           description:
             "Selecciona al miembro activo de tu equipo que recibirá la evaluación de desempeño 360.",
           choices: employeeChoices,
@@ -331,7 +331,7 @@ export function EvaluationQuestionnaireModal({
           multiple: true,
           prompt: "Fortalezas Destacadas",
           description:
-            "Selecciona una o más cualidades sobresalientes del colaborador (o escribe una propia).",
+            "Selecciona una o más cualidades sobresalientes del empleado (o escribe una propia).",
           choices: [
             {
               value: "Liderazgo y proactividad para resolver problemas",
@@ -370,7 +370,7 @@ export function EvaluationQuestionnaireModal({
           multiple: true,
           prompt: "Áreas de Oportunidad y Crecimiento",
           description:
-            "Elige aspectos en los que el colaborador puede fortalecerse constructivamente.",
+            "Elige aspectos en los que el empleado puede fortalecerse constructivamente.",
           choices: [
             {
               value: "Optimizar tiempos en reportes administrativos y bitácoras",
@@ -508,7 +508,7 @@ export function EvaluationQuestionnaireModal({
       selectedEmp?.name ||
       initialEmployee?.name ||
       (employeeChoices.find((c) => c.value === employeeId)?.label as string) ||
-      "Colaborador";
+      "Empleado";
     const jobTitle = selectedEmp?.jobTitle || initialEmployee?.jobTitle || "Puesto General";
     const department = selectedEmp?.department || initialEmployee?.department || "Operaciones";
     const avatarUrl = selectedEmp?.avatarUrl || initialEmployee?.avatarUrl || null;
@@ -601,10 +601,10 @@ export function EvaluationQuestionnaireModal({
             <Users className="size-7" />
           </div>
           <DialogTitle className="text-lg font-extrabold text-foreground tracking-tight">
-            Sin Colaboradores Activos
+            Sin Empleados Activos
           </DialogTitle>
           <DialogDescription className="text-xs text-muted-foreground mt-1 max-w-sm mx-auto">
-            Para realizar una evaluación 360, primero debes registrar o vincular colaboradores en tu plantilla activa desde el módulo de Personal o Contrataciones.
+            Para realizar una evaluación 360, primero debes registrar o vincular empleados en tu plantilla activa desde el módulo de Personal o Contrataciones.
           </DialogDescription>
           <div className="pt-4 flex justify-center">
             <Button

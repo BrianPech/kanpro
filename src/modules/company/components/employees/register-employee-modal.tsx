@@ -147,7 +147,7 @@ export function RegisterEmployeeModal({
           setAlertState({
             isOpen: true,
             type: "user_exists",
-            title: "Colaborador ya registrado en K'anPro",
+            title: "Empleado ya registrado en K'anPro",
             description: errorText,
             conflictEmail: email.trim(),
           });
@@ -162,8 +162,8 @@ export function RegisterEmployeeModal({
         return;
       }
 
-      toast.success("¡Colaborador registrado exitosamente!", {
-        description: `${fullName.trim()} se ha incorporado a tu plantilla de colaboradores.`,
+      toast.success("¡Empleado registrado exitosamente!", {
+        description: `${fullName.trim()} se ha incorporado a tu plantilla de empleados.`,
       });
 
       if (onEmployeeCreated && res.data?.employee) {
@@ -202,10 +202,10 @@ export function RegisterEmployeeModal({
             </div>
             <div>
               <DialogTitle className="text-xl font-bold tracking-tight">
-                Alta de Colaboradores
+                Alta de Empleados
               </DialogTitle>
               <DialogDescription className="text-xs text-muted-foreground">
-                Invita a nuevos colaboradores por correo electrónico o créalos directamente con sus credenciales de acceso.
+                Invita a nuevos empleados por correo electrónico o créalos directamente con sus credenciales de acceso.
               </DialogDescription>
             </div>
           </div>

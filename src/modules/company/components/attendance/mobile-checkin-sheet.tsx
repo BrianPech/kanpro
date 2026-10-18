@@ -298,7 +298,7 @@ export function MobileCheckInSheet({
   // Execution Handler: Doble Factor (QR + Geocerca GPS)
   const handleExecuteAction = async (actionType: MobileCheckInPayload["actionType"]) => {
     if (!selectedEmployeeId) {
-      toast.error("Por favor selecciona un colaborador de la plantilla.");
+      toast.error("Por favor selecciona un empleado de la plantilla.");
       return;
     }
 
@@ -341,9 +341,9 @@ export function MobileCheckInSheet({
       const newRecord: AttendanceRecord = {
         id: raw.id,
         employeeId: raw.employee_id,
-        employeeName: res.employeeName || activeEmployee?.name || "Colaborador",
+        employeeName: res.employeeName || activeEmployee?.name || "Empleado",
         avatarUrl: activeEmployee?.avatarUrl || null,
-        jobTitle: res.jobTitle || activeEmployee?.jobTitle || "Colaborador",
+        jobTitle: res.jobTitle || activeEmployee?.jobTitle || "Empleado",
         department: res.department || activeEmployee?.department || "Operaciones",
         workDate: raw.work_date,
         scheduledCheckIn: raw.scheduled_check_in,
@@ -362,8 +362,8 @@ export function MobileCheckInSheet({
 
       // Open Success Confirmation Voucher
       setVoucherData({
-        employeeName: res.employeeName || activeEmployee?.name || "Colaborador",
-        jobTitle: res.jobTitle || activeEmployee?.jobTitle || "Colaborador",
+        employeeName: res.employeeName || activeEmployee?.name || "Empleado",
+        jobTitle: res.jobTitle || activeEmployee?.jobTitle || "Empleado",
         department: res.department || activeEmployee?.department || "Operaciones",
         scheduledCheckIn: res.scheduledCheckIn || raw.scheduled_check_in || "08:00",
         scheduledCheckOut: res.scheduledCheckOut || raw.scheduled_check_out || "17:00",
@@ -422,7 +422,7 @@ export function MobileCheckInSheet({
           <div className="space-y-2">
             <div className="space-y-1">
               <Label className="text-xs font-bold text-foreground">
-                Colaborador en Turno *
+                Empleado en Turno *
               </Label>
               {employees.length > 0 ? (
                 <Select
@@ -432,7 +432,7 @@ export function MobileCheckInSheet({
                   }}
                 >
                   <SelectTrigger className="h-10 rounded-xl bg-background border-border/80 text-xs font-medium">
-                    <SelectValue placeholder="Selecciona un colaborador..." />
+                    <SelectValue placeholder="Selecciona un empleado..." />
                   </SelectTrigger>
                   <SelectContent className="rounded-xl max-h-56">
                     {employees.map((emp) => (
@@ -444,7 +444,7 @@ export function MobileCheckInSheet({
                 </Select>
               ) : (
                 <div className="p-3 rounded-xl bg-muted/50 border border-border/60 text-xs text-muted-foreground text-center">
-                  No hay colaboradores registrados en la plantilla.
+                  No hay empleados registrados en la plantilla.
                 </div>
               )}
             </div>
@@ -730,7 +730,7 @@ export function MobileCheckInSheet({
               <div className="flex items-center justify-between border-b border-border/50 pb-3">
                 <div>
                   <span className="text-[10px] uppercase font-bold text-muted-foreground block">
-                    Colaborador
+                    Empleado
                   </span>
                   <h4 className="text-base font-extrabold text-foreground">
                     {voucherData.employeeName}

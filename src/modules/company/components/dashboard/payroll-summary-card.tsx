@@ -146,7 +146,7 @@ export function PayrollSummaryCard({ payroll }: PayrollSummaryCardProps) {
         <div className="space-y-1.5 pt-1">
           <div className="flex items-center justify-between text-[11px] font-bold">
             <span className="text-muted-foreground">
-              {payroll.employeesCount} Colaboradores en nómina
+              {payroll.employeesCount} Empleados en nómina
             </span>
             <span className={payroll.daysToPay <= 3 ? "text-amber-600 dark:text-amber-400" : "text-emerald-600 dark:text-emerald-400"}>
               {payroll.daysToPay === 0
