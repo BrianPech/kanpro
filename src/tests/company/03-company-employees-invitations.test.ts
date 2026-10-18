@@ -6,7 +6,10 @@ import {
   createEmployeeInvitationSchema,
   bulkEmployeeImportRowSchema,
 } from "@/modules/company/schemas/employee-invitation.schema";
-import { registerDirectEmployeeSchema } from "@/modules/company/schemas/employee.schema";
+import {
+  registerDirectEmployeeSchema,
+  assignEmployeeDepartmentSchema,
+} from "@/modules/company/schemas/employee.schema";
 import { CompanyEmployeeService } from "@/modules/company/services/company-service";
 import { parseEmployeeCsvText } from "@/modules/company/utils/employee-csv-parser";
 
@@ -700,5 +703,70 @@ David Chan,david@empresa.com,Electricista
       });
     });
   });
+
+  describe("7. Asignación de Área a Colaborador", () => {
+    test("Valida correctamente el esquema de asignación de área con departamento válido", () => {
+      const res = assignEmployeeDepartmentSchema.safeParse({
+        employeeId: "emp-123",
+        department: "Cocina y Alimentos",
+      });
+      expect(res.success).toBe(true);
+      if (res.success) {
+        expect(res.data.department).toBe("Cocina y Alimentos");
+      }
+    });
+
+    test("Permite desasignar o limpiar el área (null o vacío)", () => {
+      const resNull = assignEmployeeDepartmentSchema.safeParse({
+        employeeId: "emp-123",
+        department: null,
+      });
+      expect(resNull.success).toBe(true);
+
+      const resEmpty = assignEmployeeDepartmentSchema.safeParse({
+        employeeId: "emp-123",
+      });
+      expect(resEmpty.success).toBe(true);
+    });
+
+    test("Rechaza asignación si falta el employeeId", () => {
+      const res = assignEmployeeDepartmentSchema.safeParse({
+        employeeId: "",
+        department: "Ventas",
+      });
+      expect(res.success).toBe(false);
+    });
+
+    test("Actualiza el departamento del empleado en company_employees correctamente", async () => {
+      const mockMaybeSingle = vi.fn().mockResolvedValue({
+        data: { id: "emp-123" },
+        error: null,
+      });
+
+      const mockSupabase = {
+        from: vi.fn(() => ({
+          update: vi.fn().mockReturnValue({
+            eq: vi.fn().mockReturnValue({
+              eq: vi.fn().mockReturnValue({
+                select: vi.fn().mockReturnValue({
+                  maybeSingle: mockMaybeSingle,
+                }),
+              }),
+            }),
+          }),
+        })),
+      } as unknown as SupabaseClient<Database>;
+
+      await CompanyEmployeeService.assignEmployeeDepartment(
+        mockSupabase,
+        "comp-1",
+        "emp-123",
+        "Operaciones"
+      );
+
+      expect(mockSupabase.from).toHaveBeenCalledWith("company_employees");
+    });
+  });
 });
+
 

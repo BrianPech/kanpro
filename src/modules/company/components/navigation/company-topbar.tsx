@@ -5,6 +5,7 @@ import Link from "next/link";
 import {
   Bell,
   UserPlus,
+  Plus,
 } from "lucide-react";
 import * as React from "react";
 
@@ -37,6 +38,7 @@ const companyRouteNames: Record<string, string> = {
   "/dashboard/company/applications": "Postulantes",
   "/dashboard/company/employees": "Empleados",
   "/dashboard/company/profile": "Perfil Corporativo",
+  "/dashboard/company/areas": "Áreas & Departamentos",
   "/dashboard/company/verification": "Verificación de Empresa",
   "/dashboard/company/settings": "Configuración",
   "/dashboard/company/radar": "Radar de Talento",
@@ -70,6 +72,7 @@ export function DashboardTopbar({
   const currentTitle = companyRouteNames[pathname] || (pathname.includes("/vacancies/") ? "Detalle de Vacante" : "Portal Empresa");
   const isRoot = pathname === "/dashboard/company";
   const isEmployeesPage = pathname === "/dashboard/company/employees";
+  const isAreasPage = pathname === "/dashboard/company/areas";
 
   return (
     <header className="flex h-16 shrink-0 items-center justify-between gap-2 border-b border-border/15 bg-background/90 backdrop-blur-md px-4 md:px-6 transition-all">
@@ -121,6 +124,21 @@ export function DashboardTopbar({
             <UserPlus className="size-3.5 stroke-[2.5]" />
             <span className="hidden sm:inline">Registrar Empleado</span>
             <span className="sm:hidden">Registrar</span>
+          </Button>
+        )}
+
+        {role === "company" && isAreasPage && (
+          <Button
+            size="sm"
+            onClick={() => {
+              window.dispatchEvent(new CustomEvent("open-create-area-modal"));
+            }}
+            className="font-semibold px-2.5 sm:px-3 h-8 rounded-lg flex items-center gap-1.5 shadow-xs text-xs bg-primary text-primary-foreground hover:bg-primary/90 cursor-pointer"
+            data-testid="create-area-btn"
+          >
+            <Plus className="size-3.5 stroke-[2.5]" />
+            <span className="hidden sm:inline">Nueva Área</span>
+            <span className="sm:hidden">Área</span>
           </Button>
         )}
 

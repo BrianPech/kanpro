@@ -187,10 +187,10 @@ export function NewIncidentModal({
                     if (val) handleSelectEmployee(val);
                   }}
                 >
-                  <SelectTrigger className="h-10 rounded-xl bg-background border-border/80 text-xs font-medium">
+                  <SelectTrigger className="w-full h-10 rounded-xl bg-background border-border/80 text-xs font-medium">
                     <SelectValue placeholder="Selecciona un empleado..." />
                   </SelectTrigger>
-                  <SelectContent className="rounded-xl max-h-60">
+                  <SelectContent alignItemWithTrigger={false} side="bottom" sideOffset={4} className="w-(--anchor-width) min-w-[280px] rounded-xl max-h-60">
                     {employees.map((emp) => (
                       <SelectItem key={emp.id} value={emp.id} className="text-xs">
                         {emp.fullName} {emp.jobTitle ? `— ${emp.jobTitle}` : ""}
@@ -253,10 +253,10 @@ export function NewIncidentModal({
                   value={severity}
                   onValueChange={(val) => val && setSeverity(val as IncidentSeverity)}
                 >
-                  <SelectTrigger className="h-10 rounded-xl bg-background border-border/80 text-xs font-medium">
+                  <SelectTrigger className="w-full h-10 rounded-xl bg-background border-border/80 text-xs font-medium">
                     <SelectValue />
                   </SelectTrigger>
-                  <SelectContent className="rounded-xl">
+                  <SelectContent alignItemWithTrigger={false} side="bottom" sideOffset={4} className="w-(--anchor-width) min-w-[240px] rounded-xl">
                     <SelectItem value="baja">Baja (Informativo / Leve)</SelectItem>
                     <SelectItem value="media">Media (Aviso / Descuento)</SelectItem>
                     <SelectItem value="alta">Alta (Acta / Sanción)</SelectItem>
@@ -273,10 +273,10 @@ export function NewIncidentModal({
                 value={category}
                 onValueChange={(val) => val && setCategory(val as IncidentCategory)}
               >
-                <SelectTrigger className="h-10 rounded-xl bg-background border-border/80 text-xs font-medium">
+                <SelectTrigger className="w-full h-10 rounded-xl bg-background border-border/80 text-xs font-medium">
                   <SelectValue />
                 </SelectTrigger>
-                <SelectContent className="rounded-xl max-h-60">
+                <SelectContent alignItemWithTrigger={false} side="bottom" sideOffset={4} className="w-(--anchor-width) min-w-[260px] rounded-xl max-h-60">
                   <SelectItem value="falta_injustificada">Falta Injustificada</SelectItem>
                   <SelectItem value="retardo">Retardo de Turno</SelectItem>
                   <SelectItem value="accidente">Accidente de Trabajo (ST-7)</SelectItem>

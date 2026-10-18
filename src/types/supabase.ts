@@ -719,6 +719,56 @@ export type Database = {
           },
         ]
       }
+      company_departments: {
+        Row: {
+          color: string | null
+          company_id: string
+          created_at: string
+          description: string | null
+          id: string
+          is_active: boolean
+          manager_name: string | null
+          name: string
+          updated_at: string
+        }
+        ComputedFields: never
+        Insert: {
+          color?: string | null
+          company_id: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          manager_name?: string | null
+          name: string
+          updated_at?: string
+        }
+        Update: {
+          color?: string | null
+          company_id?: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          manager_name?: string | null
+          name?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "company_departments_company_id_fkey"
+            columns: ["company_id"]
+            referencedRelation: "company_directory"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "company_departments_company_id_fkey"
+            columns: ["company_id"]
+            referencedRelation: "company_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       company_employees: {
         Row: {
           avatar_url: string | null
@@ -2420,34 +2470,6 @@ export type Database = {
           website_url: string | null
         }
         ComputedFields: never
-        Insert: {
-          banner_url?: string | null
-          company_name?: string | null
-          company_size?: string | null
-          description?: string | null
-          id?: string | null
-          industry?: string | null
-          logo_url?: string | null
-          social_links?: Json | null
-          verification_status?:
-            | Database["public"]["Enums"]["verification_status"]
-            | null
-          website_url?: string | null
-        }
-        Update: {
-          banner_url?: string | null
-          company_name?: string | null
-          company_size?: string | null
-          description?: string | null
-          id?: string | null
-          industry?: string | null
-          logo_url?: string | null
-          social_links?: Json | null
-          verification_status?:
-            | Database["public"]["Enums"]["verification_status"]
-            | null
-          website_url?: string | null
-        }
         Relationships: [
           {
             foreignKeyName: "company_profiles_id_fkey"

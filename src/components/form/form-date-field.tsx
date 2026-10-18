@@ -1,8 +1,8 @@
 "use client";
 
-import React, { useState, useEffect, useRef } from "react";
-import { Calendar } from "lucide-react";
-import { normalizeDateToISO } from "@/lib/formatters";
+import React from "react";
+import { DatePicker } from "@/components/ui/date-picker";
+import { cn } from "@/lib/utils";
 
 export interface FormDateFieldProps {
   id?: string;
@@ -15,11 +15,16 @@ export interface FormDateFieldProps {
   min?: string;
   max?: string;
   helperText?: string;
+  placeholder?: string;
+  startYear?: number;
+  endYear?: number;
+  defaultMonth?: Date;
+  displayFormat?: string;
 }
 
 export function FormDateField({
   id = "birthDate",
-  label = "Fecha de Nacimiento",
+  label = "Fecha de nacimiento",
   value = "",
   onChange,
   error,
@@ -27,106 +32,62 @@ export function FormDateField({
   className = "",
   min = "1940-01-01",
   max,
-  helperText = "Escribe tu fecha (DD/MM/AAAA) o elígela en el calendario",
+  helperText,
+  placeholder = "Selecciona tu fecha de nacimiento",
+  startYear = 1940,
+  endYear,
+  defaultMonth,
+  displayFormat = "d 'de' MMMM, yyyy",
 }: FormDateFieldProps) {
-  // Convert ISO (YYYY-MM-DD) or other format to Display (DD/MM/AAAA)
-  const toDisplayFormat = (val?: string | null): string => {
-    if (!val) return "";
-    const clean = val.trim();
-    if (/^\d{2}\/\d{2}\/\d{4}$/.test(clean)) return clean;
-    const isoMatch = clean.match(/^(\d{4})-(\d{2})-(\d{2})$/);
-    if (isoMatch) {
-      return `${isoMatch[3]}/${isoMatch[2]}/${isoMatch[1]}`;
-    }
-    return clean;
-  };
-
-  const [displayValue, setDisplayValue] = useState<string>(() => toDisplayFormat(value));
-  const pickerRef = useRef<HTMLInputElement>(null);
-  const textInputRef = useRef<HTMLInputElement>(null);
-
-  // Synchronize with external value changes
-  useEffect(() => {
-    setDisplayValue(toDisplayFormat(value));
-  }, [value]);
-
   // Default max date: 15 years ago (LFT legal minimum working age)
-  const resolvedMax = React.useMemo(() => {
-    if (max) return max;
+  const resolvedMaxDate = React.useMemo(() => {
+    if (max) {
+      const parts = max.split("-").map(Number);
+      if (parts.length === 3 && !isNaN(parts[0]) && !isNaN(parts[1]) && !isNaN(parts[2])) {
+        return new Date(parts[0], parts[1] - 1, parts[2]);
+      }
+      return new Date(max);
+    }
     const d = new Date();
     d.setFullYear(d.getFullYear() - 15);
-    return d.toISOString().split("T")[0];
+    return d;
   }, [max]);
 
-  const handleTextChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const raw = e.target.value;
-    // Strip non-digits
-    const digits = raw.replace(/\D/g, "").slice(0, 8);
-
-    let formatted = digits;
-    if (digits.length >= 5) {
-      formatted = `${digits.slice(0, 2)}/${digits.slice(2, 4)}/${digits.slice(4, 8)}`;
-    } else if (digits.length >= 3) {
-      formatted = `${digits.slice(0, 2)}/${digits.slice(2, 4)}`;
-    }
-
-    setDisplayValue(formatted);
-
-    if (digits.length === 8) {
-      const day = digits.slice(0, 2);
-      const month = digits.slice(2, 4);
-      const year = digits.slice(4, 8);
-      const iso = `${year}-${month}-${day}`;
-      onChange(iso);
-    } else if (digits.length === 0) {
-      onChange("");
-    }
-  };
-
-  const handleBlur = () => {
-    if (displayValue) {
-      const iso = normalizeDateToISO(displayValue);
-      if (iso) {
-        onChange(iso);
-      } else {
-        onChange(displayValue);
+  const resolvedMinDate = React.useMemo(() => {
+    if (min) {
+      const parts = min.split("-").map(Number);
+      if (parts.length === 3 && !isNaN(parts[0]) && !isNaN(parts[1]) && !isNaN(parts[2])) {
+        return new Date(parts[0], parts[1] - 1, parts[2]);
       }
+      return new Date(min);
     }
-  };
+    return new Date(1940, 0, 1);
+  }, [min]);
 
-  const handleOpenPicker = () => {
-    if (pickerRef.current) {
-      try {
-        if ("showPicker" in pickerRef.current && typeof pickerRef.current.showPicker === "function") {
-          pickerRef.current.showPicker();
-        } else {
-          pickerRef.current.focus();
-        }
-      } catch {
-        pickerRef.current.focus();
-      }
-    }
-  };
+  const resolvedEndYear = React.useMemo(() => {
+    if (endYear !== undefined) return endYear;
+    return resolvedMaxDate.getFullYear();
+  }, [endYear, resolvedMaxDate]);
 
-  const handlePickerChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const iso = e.target.value; // YYYY-MM-DD
-    if (iso) {
-      setDisplayValue(toDisplayFormat(iso));
-      onChange(iso);
-    }
-  };
+  const resolvedDefaultMonth = React.useMemo(() => {
+    if (defaultMonth) return defaultMonth;
+    // Default calendar view to ~20 years ago so candidates land on a logical age month
+    const d = new Date();
+    d.setFullYear(d.getFullYear() - 20);
+    return d;
+  }, [defaultMonth]);
 
   return (
-    <div className={`flex flex-col gap-1 w-full ${className}`}>
+    <div className={cn("flex flex-col gap-1 w-full", className)}>
       <div
-        onClick={() => textInputRef.current?.focus()}
-        className={`bg-muted/40 hover:bg-muted/60 dark:bg-zinc-900/60 rounded-xl px-4 py-2.5 border transition-all duration-200 shadow-2xs cursor-text ${
+        className={cn(
+          "bg-muted/40 hover:bg-muted/60 dark:bg-zinc-900/60 rounded-xl px-4 py-2 border transition-all duration-200 shadow-2xs",
           error
             ? "border-destructive/80 bg-destructive/5 dark:bg-destructive/10 ring-2 ring-destructive/10"
             : "border-border/80 focus-within:border-primary/60 focus-within:bg-card focus-within:ring-2 focus-within:ring-primary/15"
-        }`}
+        )}
       >
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between mb-0.5">
           <label
             htmlFor={id}
             className="block text-xs font-bold text-foreground/90 tracking-tight select-none cursor-pointer"
@@ -140,48 +101,21 @@ export function FormDateField({
           )}
         </div>
 
-        <div className="relative flex items-center mt-1">
-          <Calendar className="w-4 h-4 mr-2.5 text-muted-foreground shrink-0 pointer-events-none" />
-          <input
-            ref={textInputRef}
-            id={id}
-            type="text"
-            inputMode="numeric"
-            placeholder="DD/MM/AAAA"
-            value={displayValue}
-            onChange={handleTextChange}
-            onBlur={handleBlur}
-            maxLength={10}
-            className="w-full bg-transparent border-none outline-none p-0 text-sm sm:text-base font-semibold text-foreground placeholder:text-muted-foreground focus:ring-0 focus:outline-none"
-          />
-
-          {/* Clickable Calendar Picker Button with Native Popover */}
-          <button
-            type="button"
-            onClick={(e) => {
-              e.stopPropagation();
-              handleOpenPicker();
-            }}
-            title="Abrir calendario"
-            className="p-1 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted transition-colors cursor-pointer shrink-0 ml-1"
-            aria-label="Abrir calendario"
-          >
-            <Calendar className="size-4" />
-          </button>
-
-          {/* Hidden Native Date Input for Browser Popover */}
-          <input
-            ref={pickerRef}
-            type="date"
-            min={min}
-            max={resolvedMax}
-            value={normalizeDateToISO(value) || ""}
-            onChange={handlePickerChange}
-            tabIndex={-1}
-            aria-hidden="true"
-            className="sr-only"
-          />
-        </div>
+        <DatePicker
+          id={id}
+          value={value}
+          onChange={(isoStr) => onChange(isoStr)}
+          placeholder={placeholder}
+          captionLayout="dropdown"
+          startYear={startYear}
+          endYear={resolvedEndYear}
+          minDate={resolvedMinDate}
+          maxDate={resolvedMaxDate}
+          defaultMonth={resolvedDefaultMonth}
+          variant="ghost"
+          displayFormat={displayFormat}
+          className="w-full h-8 px-0 text-sm font-semibold text-foreground cursor-pointer"
+        />
       </div>
 
       {helperText && !error && (

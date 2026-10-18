@@ -22,6 +22,7 @@ import {
   EMPLOYMENT_TYPES,
   SHIFT_SCHEDULES,
 } from "../../schemas/vacancy-wizard.schema";
+import { getCompanyDepartmentsAction } from "../../actions/areas";
 
 interface Step1BasicProps {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -29,6 +30,18 @@ interface Step1BasicProps {
 }
 
 export function Step1Basic({ form }: Step1BasicProps) {
+  const [companyAreas, setCompanyAreas] = React.useState<
+    { id: string; name: string }[]
+  >([]);
+
+  React.useEffect(() => {
+    getCompanyDepartmentsAction().then((res) => {
+      if (res.success && res.data) {
+        setCompanyAreas(res.data);
+      }
+    });
+  }, []);
+
   return (
     <div className="space-y-5 sm:space-y-6">
       {/* Encabezado del Paso */}
@@ -80,9 +93,19 @@ export function Step1Basic({ form }: Step1BasicProps) {
           {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
           {(field: any) => (
             <Field data-invalid={Boolean(field.state.meta.errors?.length)} className="space-y-2">
-              <FieldLabel className="text-sm font-semibold text-foreground">
-                Categoría Laboral <span className="text-rose-500">*</span>
-              </FieldLabel>
+              <div className="flex items-center justify-between">
+                <FieldLabel className="text-sm font-semibold text-foreground">
+                  Área / Categoría <span className="text-rose-500">*</span>
+                </FieldLabel>
+                <a
+                  href="/dashboard/company/areas"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-[11px] font-semibold text-primary hover:underline"
+                >
+                  + Gestionar áreas
+                </a>
+              </div>
               <Select
                 value={field.state.value || "Alimentos y Bebidas"}
                 onValueChange={(val) => field.handleChange(val)}
@@ -91,6 +114,26 @@ export function Step1Basic({ form }: Step1BasicProps) {
                   <SelectValue placeholder="Selecciona una categoría" />
                 </SelectTrigger>
                 <SelectContent className="rounded-2xl border border-border/60 bg-popover shadow-xl max-h-72">
+                  {companyAreas.length > 0 && (
+                    <>
+                      <div className="px-2.5 py-1.5 text-[10px] font-extrabold uppercase tracking-wider text-primary">
+                        Áreas de tu Empresa
+                      </div>
+                      {companyAreas.map((area) => (
+                        <SelectItem
+                          key={`area-${area.id}`}
+                          value={area.name}
+                          className="text-xs font-semibold rounded-xl cursor-pointer py-2 text-primary font-bold"
+                        >
+                          ✦ {area.name}
+                        </SelectItem>
+                      ))}
+                      <div className="my-1 border-t border-border/40" />
+                      <div className="px-2.5 py-1.5 text-[10px] font-extrabold uppercase tracking-wider text-muted-foreground">
+                        Categorías Generales
+                      </div>
+                    </>
+                  )}
                   {VACANCY_CATEGORIES.map((cat) => (
                     <SelectItem
                       key={cat}

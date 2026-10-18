@@ -173,10 +173,10 @@ export function VacationRequestModal({
                   value={selectedEmployeeId || employees[0]?.id}
                   onValueChange={(val) => val && setSelectedEmployeeId(val)}
                 >
-                  <SelectTrigger className="h-10 rounded-xl bg-background border-border/80 text-xs font-medium">
+                  <SelectTrigger className="w-full h-10 rounded-xl bg-background border-border/80 text-xs font-medium">
                     <SelectValue placeholder="Seleccionar empleado" />
                   </SelectTrigger>
-                  <SelectContent className="rounded-xl max-h-56">
+                  <SelectContent alignItemWithTrigger={false} side="bottom" sideOffset={4} className="w-(--anchor-width) min-w-[280px] rounded-xl max-h-56">
                     {employees.map((emp) => (
                       <SelectItem key={emp.id} value={emp.id} className="text-xs font-medium py-1.5">
                         {emp.fullName} {emp.department ? `(${emp.department})` : ""}
@@ -199,10 +199,10 @@ export function VacationRequestModal({
                 value={requestType}
                 onValueChange={(val) => val && setRequestType(val as VacationRequestType)}
               >
-                <SelectTrigger className="h-10 rounded-xl bg-background border-border/80 text-xs font-medium">
+                <SelectTrigger className="w-full h-10 rounded-xl bg-background border-border/80 text-xs font-medium">
                   <SelectValue />
                 </SelectTrigger>
-                <SelectContent className="rounded-xl">
+                <SelectContent alignItemWithTrigger={false} side="bottom" sideOffset={4} className="w-(--anchor-width) min-w-[260px] rounded-xl">
                   <SelectItem value="vacaciones">Vacaciones Ordinarias (LFT Art. 76)</SelectItem>
                   <SelectItem value="permiso_con_goce">Permiso con Goce de Sueldo</SelectItem>
                   <SelectItem value="permiso_sin_goce">Permiso sin Goce de Sueldo</SelectItem>

@@ -38,6 +38,7 @@ import {
   Share2,
   Trash2,
   MailCheck,
+  Layers,
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -94,7 +95,9 @@ import {
   getCompanyInvitationsAction,
   resendEmployeeInvitationAction,
   cancelEmployeeInvitationAction,
+  assignEmployeeDepartmentAction,
 } from "@/modules/company/actions/employees";
+import { getCompanyDepartmentsAction } from "@/modules/company/actions/areas";
 import { EmployeeDossierSheet } from "@/modules/company/components/dossier/employee-dossier-sheet";
 import { RegisterEmployeeModal } from "@/modules/company/components/employees/register-employee-modal";
 
@@ -138,18 +141,28 @@ export interface Employee {
   email?: string | null;
 }
 
+export interface CompanyDepartmentItem {
+  id: string;
+  name: string;
+  color?: string | null;
+}
+
 interface CompanyEmployeesViewProps {
   userId: string;
   initialEmployees: Employee[];
   initialInvitations?: EmployeeInvitationItem[];
+  companyDepartments?: CompanyDepartmentItem[];
 }
 
 export function CompanyEmployeesView({
   initialEmployees,
   initialInvitations = [],
+  companyDepartments = [],
 }: CompanyEmployeesViewProps) {
   const [employees, setEmployees] = React.useState<Employee[]>(initialEmployees);
   const [invitations, setInvitations] = React.useState<EmployeeInvitationItem[]>(initialInvitations);
+  const [departmentsList, setDepartmentsList] =
+    React.useState<CompanyDepartmentItem[]>(companyDepartments);
   const [searchQuery, setSearchQuery] = React.useState("");
   const [categoryFilter, setCategoryFilter] = React.useState<string>("all");
   const [statusFilter, setStatusFilter] = React.useState<"all" | "Contratado" | "Baja" | "invitaciones">("all");
@@ -165,6 +178,20 @@ export function CompanyEmployeesView({
   React.useEffect(() => {
     setInvitations(initialInvitations);
   }, [initialInvitations]);
+
+  React.useEffect(() => {
+    setDepartmentsList(companyDepartments);
+  }, [companyDepartments]);
+
+  React.useEffect(() => {
+    if (departmentsList.length === 0) {
+      getCompanyDepartmentsAction().then((res) => {
+        if (res.success && res.data) {
+          setDepartmentsList(res.data);
+        }
+      });
+    }
+  }, [departmentsList.length]);
 
   // Dossier Sheet state
   const [dossierEmployee, setDossierEmployee] = React.useState<Employee | null>(null);
@@ -187,6 +214,10 @@ export function CompanyEmployeesView({
       const params = new URLSearchParams(window.location.search);
       if (params.get("action") === "new") {
         setIsNewEmployeeModalOpen(true);
+      }
+      const catParam = params.get("category") || params.get("area");
+      if (catParam) {
+        setCategoryFilter(catParam);
       }
     }
 
@@ -314,6 +345,12 @@ export function CompanyEmployeesView({
   const [employeeNotes, setEmployeeNotes] = React.useState("");
   const [isSavingNotes, setIsSavingNotes] = React.useState(false);
 
+  // Area dialog
+  const [isAreaDialogOpen, setIsAreaDialogOpen] = React.useState(false);
+  const [areaDialogEmployee, setAreaDialogEmployee] = React.useState<Employee | null>(null);
+  const [selectedArea, setSelectedArea] = React.useState<string>("none");
+  const [isSavingArea, setIsSavingArea] = React.useState(false);
+
   // Metrics
   const metrics = React.useMemo(() => {
     const total = employees.length;
@@ -336,11 +373,16 @@ export function CompanyEmployeesView({
 
   const categories = React.useMemo(() => {
     const set = new Set<string>();
-    employees.forEach((e) => {
-      if (e.vacancy_category) set.add(e.vacancy_category);
+    departmentsList.forEach((d) => {
+      if (d.name) set.add(d.name);
     });
-    return Array.from(set);
-  }, [employees]);
+    employees.forEach((e) => {
+      if (e.vacancy_category && e.vacancy_category !== "Sin área") {
+        set.add(e.vacancy_category);
+      }
+    });
+    return Array.from(set).sort((a, b) => a.localeCompare(b));
+  }, [departmentsList, employees]);
 
   const filteredData = React.useMemo(() => {
     return employees.filter((emp) => {
@@ -550,6 +592,66 @@ export function CompanyEmployeesView({
     setIsNotesDialogOpen(true);
   };
 
+  const handleOpenAreaDialog = (emp: Employee) => {
+    setSelectedEmp(emp);
+    setAreaDialogEmployee(emp);
+    const curr = emp.department?.trim() || emp.vacancy_category?.trim();
+    setSelectedArea(curr && curr !== "Sin área" ? curr : "none");
+    setIsAreaDialogOpen(true);
+  };
+
+  const handleSaveArea = async () => {
+    if (!areaDialogEmployee) return;
+    setIsSavingArea(true);
+    const targetDept = selectedArea === "none" ? null : selectedArea.trim();
+    try {
+      const res = await assignEmployeeDepartmentAction({
+        employeeId: areaDialogEmployee.id,
+        department: targetDept,
+      });
+
+      if (!res.success) {
+        toast.error("Error al asignar área", { description: res.error });
+        return;
+      }
+
+      setEmployees((prev) =>
+        prev.map((e) =>
+          e.id === areaDialogEmployee.id
+            ? {
+                ...e,
+                department: targetDept,
+                vacancy_category: targetDept || "Sin área",
+              }
+            : e
+        )
+      );
+
+      if (dossierEmployee && dossierEmployee.id === areaDialogEmployee.id) {
+        setDossierEmployee((prev) =>
+          prev
+            ? {
+                ...prev,
+                department: targetDept,
+                vacancy_category: targetDept || "Sin área",
+              }
+            : null
+        );
+      }
+
+      toast.success("Área actualizada", {
+        description: targetDept
+          ? `${areaDialogEmployee.full_name} fue asignado al área "${targetDept}".`
+          : `Se removió el área asignada a ${areaDialogEmployee.full_name}.`,
+      });
+      setIsAreaDialogOpen(false);
+    } catch {
+      toast.error("Error inesperado al asignar área.");
+    } finally {
+      setIsSavingArea(false);
+    }
+  };
+
   // TanStack Table Column Definitions
   const columns = React.useMemo<ColumnDef<Employee>[]>(
     () => [
@@ -628,17 +730,41 @@ export function CompanyEmployeesView({
         ),
         cell: ({ row }) => {
           const emp = row.original;
+          const currentArea = emp.department?.trim() || emp.vacancy_category?.trim();
+          const hasArea = Boolean(currentArea && currentArea !== "Sin área");
+          const deptMatch = departmentsList.find(
+            (d) => d.name.toLowerCase() === currentArea?.toLowerCase()
+          );
+
           return (
             <div className="space-y-1 py-1">
               <p className="text-xs font-bold text-foreground line-clamp-1">
                 {emp.vacancy_title?.trim() ? emp.vacancy_title : "Sin puesto asignado"}
               </p>
-              <Badge
-                variant="outline"
-                className="text-[10px] font-semibold px-2 py-0 rounded-md border-border/30 bg-muted/30"
+              <button
+                type="button"
+                onClick={() => handleOpenAreaDialog(emp)}
+                className="group/badge inline-flex items-center gap-1.5 cursor-pointer text-left"
+                title="Haga clic para cambiar o asignar área"
               >
-                {emp.vacancy_category?.trim() ? emp.vacancy_category : "Sin área"}
-              </Badge>
+                <Badge
+                  variant="outline"
+                  className={cn(
+                    "text-[10px] font-semibold px-2 py-0.5 rounded-md border-border/40 transition-colors group-hover/badge:border-primary/60 group-hover/badge:bg-primary/5",
+                    hasArea
+                      ? "bg-muted/40 text-foreground"
+                      : "bg-muted/20 text-muted-foreground border-dashed"
+                  )}
+                >
+                  {deptMatch?.color && (
+                    <span
+                      className="size-2 rounded-full shrink-0 mr-1"
+                      style={{ backgroundColor: deptMatch.color }}
+                    />
+                  )}
+                  <span>{hasArea ? currentArea : "Asignar área +"}</span>
+                </Badge>
+              </button>
             </div>
           );
         },
@@ -822,6 +948,14 @@ export function CompanyEmployeesView({
                       <span>Mensaje WhatsApp</span>
                     </DropdownMenuItem>
                   )}
+
+                  <DropdownMenuItem
+                    onSelect={() => handleOpenAreaDialog(emp)}
+                    className="cursor-pointer text-xs font-semibold rounded-lg hover:bg-muted py-2 px-2.5 gap-2"
+                  >
+                    <Layers className="size-3.5 text-muted-foreground" />
+                    <span>Asignar / Cambiar Área</span>
+                  </DropdownMenuItem>
 
                   <DropdownMenuItem
                     onSelect={() => handleOpenDateDialog(emp)}
@@ -1322,9 +1456,17 @@ export function CompanyEmployeesView({
                               {emp.vacancy_title}
                             </p>
                             <div className="flex items-center gap-1.5 mt-0.5">
-                              <span className="text-[10px] font-semibold px-1.5 py-0.2 rounded-md bg-muted text-muted-foreground border border-border/40 truncate max-w-[130px]">
-                                {emp.vacancy_category || "General"}
-                              </span>
+                              <button
+                                type="button"
+                                onClick={() => handleOpenAreaDialog(emp)}
+                                className="cursor-pointer group/mobile-area"
+                                title="Cambiar o asignar área"
+                              >
+                                <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-md bg-muted text-muted-foreground border border-border/40 truncate max-w-[130px] group-hover/mobile-area:border-primary/60 group-hover/mobile-area:text-foreground inline-flex items-center gap-1 transition-colors">
+                                  <Layers className="size-2.5 text-primary" />
+                                  <span>{emp.vacancy_category || "Sin área"}</span>
+                                </span>
+                              </button>
                               {emp.location && (
                                 <span className="text-[10px] text-muted-foreground/70 truncate">
                                   • {emp.location}
@@ -1390,6 +1532,14 @@ export function CompanyEmployeesView({
                                   <span>Mensaje WhatsApp</span>
                                 </DropdownMenuItem>
                               )}
+
+                              <DropdownMenuItem
+                                onSelect={() => handleOpenAreaDialog(emp)}
+                                className="cursor-pointer text-xs font-semibold rounded-xl hover:bg-muted py-2.5 px-3 gap-2.5"
+                              >
+                                <Layers className="size-4 text-muted-foreground" />
+                                <span>Asignar / Cambiar Área</span>
+                              </DropdownMenuItem>
 
                               <DropdownMenuItem
                                 onSelect={() => handleOpenDateDialog(emp)}
@@ -1551,7 +1701,148 @@ export function CompanyEmployeesView({
         onOpenDateDialog={handleOpenDateDialog}
         onOpenTerminateDialog={handleOpenTerminateDialog}
         onReactivate={handleReactivate}
+        onOpenAreaDialog={handleOpenAreaDialog}
       />
+
+      {/* Dialog: Asignar Área o Departamento */}
+      <Dialog open={isAreaDialogOpen} onOpenChange={setIsAreaDialogOpen}>
+        <DialogContent className="rounded-3xl border-border/60 bg-card max-w-md p-6">
+          <DialogHeader className="space-y-1.5 pb-2 border-b border-border/40">
+            <div className="flex items-center gap-2.5">
+              <div className="size-9 rounded-xl bg-primary/10 text-primary flex items-center justify-center shrink-0">
+                <Layers className="size-4.5" />
+              </div>
+              <div>
+                <DialogTitle className="text-base sm:text-lg font-bold text-foreground">
+                  Asignar Área o Departamento
+                </DialogTitle>
+                <DialogDescription className="text-xs text-muted-foreground">
+                  Clasifica al colaborador en la estructura organizacional de tu empresa.
+                </DialogDescription>
+              </div>
+            </div>
+          </DialogHeader>
+
+          {areaDialogEmployee && (
+            <div className="py-2 space-y-4">
+              {/* Employee Summary Card */}
+              <div className="flex items-center gap-3 p-3 rounded-2xl bg-muted/40 border border-border/40">
+                <Avatar className="size-10 rounded-xl border border-border/50 shrink-0">
+                  <AvatarImage
+                    src={areaDialogEmployee.avatar_url || undefined}
+                    alt={areaDialogEmployee.full_name}
+                  />
+                  <AvatarFallback className="text-xs font-bold bg-primary/10 text-primary">
+                    {getInitials(areaDialogEmployee.full_name)}
+                  </AvatarFallback>
+                </Avatar>
+                <div className="min-w-0">
+                  <p className="text-xs font-bold text-foreground truncate">
+                    {areaDialogEmployee.full_name}
+                  </p>
+                  <p className="text-[11px] text-muted-foreground truncate font-medium">
+                    {areaDialogEmployee.vacancy_title || "Sin puesto asignado"}
+                  </p>
+                </div>
+              </div>
+
+              {/* Area selector */}
+              <div className="space-y-1.5">
+                <div className="flex items-center justify-between">
+                  <Label htmlFor="area_select" className="text-xs font-semibold">
+                    Área Operativa
+                  </Label>
+                  <Link
+                    href="/dashboard/company/areas"
+                    target="_blank"
+                    className="text-[11px] font-semibold text-primary hover:underline"
+                  >
+                    + Gestionar áreas
+                  </Link>
+                </div>
+
+                <Select
+                  value={selectedArea}
+                  onValueChange={(val) => setSelectedArea(val || "none")}
+                  disabled={isSavingArea}
+                >
+                  <SelectTrigger
+                    id="area_select"
+                    className="w-full h-11 px-3.5 rounded-xl bg-background border border-border/80 text-xs sm:text-sm font-semibold cursor-pointer shadow-2xs hover:border-foreground/30 focus-visible:ring-2 focus-visible:ring-primary/20 transition-all"
+                  >
+                    <SelectValue placeholder="Selecciona el área para este empleado..." />
+                  </SelectTrigger>
+                  <SelectContent
+                    alignItemWithTrigger={false}
+                    side="bottom"
+                    sideOffset={6}
+                    className="w-(--anchor-width) min-w-[320px] sm:min-w-[420px] rounded-2xl p-2 border border-border/70 shadow-2xl bg-popover/98 backdrop-blur-md max-h-72"
+                  >
+                    <SelectItem
+                      value="none"
+                      className="py-2.5 px-3.5 rounded-xl text-xs sm:text-sm font-medium cursor-pointer my-0.5 focus:bg-accent transition-colors"
+                    >
+                      <span className="text-muted-foreground italic">Sin área asignada</span>
+                    </SelectItem>
+                    {departmentsList.map((dept) => (
+                      <SelectItem
+                        key={dept.id}
+                        value={dept.name}
+                        className="py-2.5 px-3.5 rounded-xl text-xs sm:text-sm font-semibold cursor-pointer my-0.5 focus:bg-accent transition-colors"
+                      >
+                        <div className="flex items-center gap-2.5">
+                          <span
+                            className="size-3 rounded-full shrink-0 shadow-2xs ring-1 ring-border/20"
+                            style={{ backgroundColor: dept.color || "#6366f1" }}
+                          />
+                          <span className="text-foreground">{dept.name}</span>
+                        </div>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {departmentsList.length === 0 && (
+                <div className="p-3 rounded-xl bg-primary/5 border border-dashed border-primary/30 text-xs text-muted-foreground flex items-center justify-between gap-2">
+                  <span>Aún no tienes áreas registradas en tu catálogo.</span>
+                  <Link
+                    href="/dashboard/company/areas"
+                    className="text-xs font-bold text-primary hover:underline shrink-0"
+                  >
+                    Crear áreas
+                  </Link>
+                </div>
+              )}
+            </div>
+          )}
+
+          <DialogFooter className="gap-2 sm:gap-0 pt-2 border-t border-border/40">
+            <Button
+              type="button"
+              variant="outline"
+              disabled={isSavingArea}
+              onClick={() => setIsAreaDialogOpen(false)}
+              className="rounded-xl text-xs font-semibold cursor-pointer"
+            >
+              Cancelar
+            </Button>
+            <Button
+              type="button"
+              disabled={isSavingArea}
+              onClick={handleSaveArea}
+              className="rounded-xl text-xs font-bold bg-primary text-primary-foreground hover:bg-primary/90 cursor-pointer shadow-xs"
+            >
+              {isSavingArea ? (
+                <Loader2 className="size-3.5 animate-spin mr-1.5" />
+              ) : (
+                <Layers className="size-3.5 mr-1.5" />
+              )}
+              <span>Guardar Área</span>
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Dialog: Change Start Date */}
       <Dialog open={isDateDialogOpen} onOpenChange={setIsDateDialogOpen}>
@@ -1634,45 +1925,50 @@ export function CompanyEmployeesView({
                   setTerminationReason(val || "Renuncia voluntaria")
                 }
               >
-                <SelectTrigger className="h-11 rounded-xl bg-muted/40 border-border/60 text-xs font-semibold">
+                <SelectTrigger className="w-full h-11 px-3.5 rounded-xl bg-background border border-border/80 text-xs sm:text-sm font-semibold cursor-pointer shadow-2xs hover:border-foreground/30 focus-visible:ring-2 focus-visible:ring-primary/20 transition-all">
                   <SelectValue placeholder="Selecciona un motivo">
                     {terminationReason}
                   </SelectValue>
                 </SelectTrigger>
-                <SelectContent className="rounded-xl border-border/60 bg-popover shadow-lg">
+                <SelectContent
+                  alignItemWithTrigger={false}
+                  side="bottom"
+                  sideOffset={6}
+                  className="w-(--anchor-width) min-w-[280px] rounded-2xl border border-border/70 bg-popover/98 backdrop-blur-md shadow-2xl p-2"
+                >
                   <SelectItem
                     value="Renuncia voluntaria"
-                    className="text-xs font-semibold rounded-lg"
+                    className="py-2.5 px-3.5 rounded-xl text-xs sm:text-sm font-semibold cursor-pointer my-0.5"
                   >
                     Renuncia voluntaria
                   </SelectItem>
                   <SelectItem
                     value="Fin de contrato / Proyecto"
-                    className="text-xs font-semibold rounded-lg"
+                    className="py-2.5 px-3.5 rounded-xl text-xs sm:text-sm font-semibold cursor-pointer my-0.5"
                   >
                     Fin de contrato / Proyecto
                   </SelectItem>
                   <SelectItem
                     value="Despido justificado"
-                    className="text-xs font-semibold rounded-lg"
+                    className="py-2.5 px-3.5 rounded-xl text-xs sm:text-sm font-semibold cursor-pointer my-0.5"
                   >
                     Despido justificado
                   </SelectItem>
                   <SelectItem
                     value="Abandono de empleo"
-                    className="text-xs font-semibold rounded-lg"
+                    className="py-2.5 px-3.5 rounded-xl text-xs sm:text-sm font-semibold cursor-pointer my-0.5"
                   >
                     Abandono de empleo
                   </SelectItem>
                   <SelectItem
                     value="Mutuo acuerdo"
-                    className="text-xs font-semibold rounded-lg"
+                    className="py-2.5 px-3.5 rounded-xl text-xs sm:text-sm font-semibold cursor-pointer my-0.5"
                   >
                     Mutuo acuerdo
                   </SelectItem>
                   <SelectItem
                     value="Otro"
-                    className="text-xs font-semibold rounded-lg"
+                    className="py-2.5 px-3.5 rounded-xl text-xs sm:text-sm font-semibold cursor-pointer my-0.5"
                   >
                     Otro
                   </SelectItem>

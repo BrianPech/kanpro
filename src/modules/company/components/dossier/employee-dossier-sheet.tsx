@@ -95,6 +95,7 @@ interface EmployeeDossierSheetProps {
   onOpenDateDialog?: (employee: SimpleEmployee) => void;
   onOpenTerminateDialog?: (employee: SimpleEmployee) => void;
   onReactivate?: (employee: SimpleEmployee) => void;
+  onOpenAreaDialog?: (employee: SimpleEmployee) => void;
 }
 
 export function EmployeeDossierSheet({
@@ -104,6 +105,7 @@ export function EmployeeDossierSheet({
   onOpenDateDialog,
   onOpenTerminateDialog,
   onReactivate,
+  onOpenAreaDialog,
 }: EmployeeDossierSheetProps) {
   const [activeTab, setActiveTab] = React.useState("general");
   const [isUploadDocOpen, setIsUploadDocOpen] = React.useState(false);
@@ -319,12 +321,29 @@ export function EmployeeDossierSheet({
                     {dossier.jobTitle}
                   </span>
                   <span>•</span>
-                  <Badge
-                    variant="outline"
-                    className="text-[10px] font-semibold px-2 py-0 rounded-md border-border/30 bg-muted/40"
-                  >
-                    {dossier.department}
-                  </Badge>
+                  {onOpenAreaDialog && employee ? (
+                    <button
+                      type="button"
+                      onClick={() => onOpenAreaDialog(employee)}
+                      className="cursor-pointer group/badge"
+                      title="Haz clic para asignar o cambiar área"
+                    >
+                      <Badge
+                        variant="outline"
+                        className="text-[10px] font-semibold px-2 py-0.5 rounded-md border-border/30 bg-muted/40 group-hover/badge:border-primary/50 group-hover/badge:bg-primary/5 transition-colors flex items-center gap-1"
+                      >
+                        <Layers className="size-2.5 text-primary" />
+                        <span>{dossier.department}</span>
+                      </Badge>
+                    </button>
+                  ) : (
+                    <Badge
+                      variant="outline"
+                      className="text-[10px] font-semibold px-2 py-0 rounded-md border-border/30 bg-muted/40"
+                    >
+                      {dossier.department}
+                    </Badge>
+                  )}
                   <span>•</span>
                   <span className="flex items-center gap-1">
                     <MapPin className="size-3 text-primary" />

@@ -46,6 +46,8 @@ import {
 import { createClient } from "@/lib/supabase/client";
 import type { CandidateDashboardData, VacancyItem } from "@/modules/candidate/services/candidate-dashboard";
 import { cn } from "@/lib/utils";
+import { ActiveEmployeePortalView } from "./employee/active-employee-portal-view";
+import { ForcePasswordChangeAlert } from "./password/force-password-change-alert";
 
 export interface CandidateDashboardViewProps {
   initialData: CandidateDashboardData;
@@ -72,7 +74,7 @@ const QUICK_ZONES = [
   "Remoto",
 ];
 
-export function CandidateDashboardView({
+function CandidateJobSeekerDashboardView({
   initialData,
 }: CandidateDashboardViewProps) {
   const router = useRouter();
@@ -274,7 +276,11 @@ export function CandidateDashboardView({
 
   return (
     <div className="w-full space-y-6 animate-in fade-in duration-300 pb-16 font-sans">
-      
+      {/* ── FORCE PASSWORD CHANGE SECURITY ALERT (DIRECT EMPLOYEE CREATION) ── */}
+      <ForcePasswordChangeAlert
+        forcePasswordChange={Boolean(initialData?.forcePasswordChange)}
+      />
+
       {/* ── PENDING CONTRACT SIGNATURE URGENT ALERT BANNER ── */}
       {(initialData?.pendingContractsCount ?? 0) > 0 && (
         <div className="p-4 sm:p-5 rounded-3xl bg-amber-500/10 border-2 border-amber-500/30 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 animate-in slide-in-from-top-2 duration-300 shadow-2xs">
@@ -774,6 +780,21 @@ export function CandidateDashboardView({
 
     </div>
   );
+}
+
+export function CandidateDashboardView({
+  initialData,
+}: CandidateDashboardViewProps) {
+  if (initialData?.activeEmployment) {
+    return (
+      <ActiveEmployeePortalView
+        employment={initialData.activeEmployment}
+        initialData={initialData}
+      />
+    );
+  }
+
+  return <CandidateJobSeekerDashboardView initialData={initialData} />;
 }
 
 

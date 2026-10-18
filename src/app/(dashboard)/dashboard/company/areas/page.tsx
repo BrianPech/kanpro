@@ -1,0 +1,34 @@
+import { createClient } from "@/lib/supabase/server";
+import { redirect } from "next/navigation";
+import { CompanyAreasView } from "@/modules/company/components/areas/company-areas-view";
+import { CompanyAreasService } from "@/modules/company/services/company-areas";
+
+export const metadata = {
+  title: "Áreas & Departamentos | K'anPro",
+  description:
+    "Gestor de estructura organizacional, departamentos y áreas operativas de la empresa.",
+};
+
+export default async function CompanyAreasPage() {
+  const supabase = await createClient();
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    redirect("/login");
+  }
+
+  let initialDepartments: Awaited<ReturnType<typeof CompanyAreasService.getCompanyDepartments>> = [];
+  try {
+    initialDepartments = await CompanyAreasService.getCompanyDepartments(
+      supabase,
+      user.id
+    );
+  } catch (err) {
+    console.error("[CompanyAreasPage] Error loading initial departments:", err);
+  }
+
+  return <CompanyAreasView initialDepartments={initialDepartments} />;
+}

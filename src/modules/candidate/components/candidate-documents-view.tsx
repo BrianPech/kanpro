@@ -28,7 +28,6 @@ import {
   Phone,
   Calendar,
   AlertCircle,
-  ArrowLeft
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -382,21 +381,21 @@ export function CandidateDocumentsView() {
           portfolio_links: portfolioUrl ? [portfolioUrl] : [],
         });
       }
-      toast.success("Expediente digital guardado", {
+      toast.success("Documentos guardados", {
         description: "Toda tu información personal, documentos, ubicación y méritos están sincronizados."
       });
     } catch (err) {
       console.error("Error saving candidate documents progress:", err);
-      toast.error("Error al guardar los cambios en el expediente");
+      toast.error("Error al guardar los cambios");
     } finally {
       setIsSaving(false);
     }
   };
 
   const getDossierLevel = (score: number) => {
-    if (score >= 85) return { label: "Expediente Certificado", color: "emerald", badge: "Prioridad Máxima" };
-    if (score >= 50) return { label: "Expediente en Progreso", color: "amber", badge: "Verificación Parcial" };
-    return { label: "Expediente Básico", color: "zinc", badge: "Requisitos Pendientes" };
+    if (score >= 85) return { label: "Documentación Completa", color: "emerald", badge: "Prioridad Máxima" };
+    if (score >= 50) return { label: "Documentación en Progreso", color: "amber", badge: "Verificación Parcial" };
+    return { label: "Documentación Básica", color: "zinc", badge: "Requisitos Pendientes" };
   };
 
   const levelInfo = getDossierLevel(totalScore);
@@ -412,34 +411,6 @@ export function CandidateDocumentsView() {
         className="hidden"
         onChange={handleFileSelected}
       />
-
-      {/* Top Header Row: Back button, Title & Percentage Badge */}
-      <div className="flex items-center gap-3 pb-3 border-b border-border/60">
-        <Button
-          type="button"
-          variant="outline"
-          size="icon"
-          onClick={() => router.push("/dashboard/candidate/profile")}
-          aria-label="Regresar a mi perfil"
-          className="size-9 rounded-xl border-border/70 hover:bg-muted/50 text-muted-foreground hover:text-foreground shrink-0 cursor-pointer shadow-2xs"
-        >
-          <ArrowLeft className="size-4" />
-        </Button>
-
-        <div className="space-y-0.5 min-w-0">
-          <div className="flex items-center gap-2.5 flex-wrap">
-            <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-foreground truncate">
-              Expediente Digital
-            </h1>
-            <Badge variant="secondary" className="text-xs font-semibold px-2.5 py-0.5">
-              {totalScore}% Completitud
-            </Badge>
-          </div>
-          <p className="text-xs sm:text-sm text-muted-foreground truncate">
-            Centraliza tus datos oficiales, documentos de identidad, constancias y méritos profesionales.
-          </p>
-        </div>
-      </div>
 
       {/* ========================================================================================================= */}
       {/* SECCIÓN 1: DATOS OFICIALES Y UBICACIÓN */}
@@ -999,7 +970,7 @@ export function CandidateDocumentsView() {
       <div className="pt-4 border-t border-border/60 flex flex-col sm:flex-row items-center justify-between gap-3">
         <div className="flex items-center gap-2 text-xs text-muted-foreground">
           <Info className="size-4 text-primary shrink-0" />
-          <span>Recuerda guardar los cambios para sincronizar tu expediente con los reclutadores.</span>
+          <span>Recuerda guardar los cambios para sincronizar tus documentos oficiales.</span>
         </div>
 
         <Button
@@ -1008,7 +979,7 @@ export function CandidateDocumentsView() {
           className="w-full sm:w-auto h-10 px-6 rounded-xl font-semibold text-xs sm:text-sm gap-2 cursor-pointer shadow-xs"
         >
           {isSaving ? <Loader2 className="size-4 animate-spin" /> : <Save className="size-4" />}
-          Guardar Expediente
+          Guardar Documentos
         </Button>
       </div>
 

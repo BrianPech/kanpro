@@ -38,6 +38,7 @@ import {
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { ContractTemplateType, EmploymentContract } from "../../types/contracts";
+import { getCompanyDepartmentsAction } from "../../actions/areas";
 import { DigitalSignatureModal } from "../contracts/digital-signature-modal";
 import { hireCandidateAction } from "../../actions/employees";
 
@@ -78,6 +79,24 @@ export function HireCandidateWizardModal({
   const [startDate, setStartDate] = useState(new Date().toISOString().split("T")[0]);
   const [salary, setSalary] = useState("16500");
   const [paymentFrequency, setPaymentFrequency] = useState("quincenal");
+
+  // Departamentos reales de la empresa
+  const [availableDepartments, setAvailableDepartments] = useState<
+    { id: string; name: string }[]
+  >([]);
+
+  React.useEffect(() => {
+    if (isOpen) {
+      getCompanyDepartmentsAction().then((res) => {
+        if (res.success && res.data) {
+          setAvailableDepartments(res.data);
+          if (res.data.length > 0 && department === "Operaciones") {
+            setDepartment(res.data[0].name);
+          }
+        }
+      });
+    }
+  }, [isOpen]);
 
   // Step 2: Digital Sign
   const [isSignModalOpen, setIsSignModalOpen] = useState(false);
@@ -183,12 +202,32 @@ export function HireCandidateWizardModal({
 
               <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-1.5">
-                  <Label className="text-xs font-bold text-foreground">Departamento</Label>
+                  <div className="flex items-center justify-between">
+                    <Label htmlFor="hire_dept" className="text-xs font-bold text-foreground">
+                      Departamento / Área
+                    </Label>
+                    <a
+                      href="/dashboard/company/areas"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-[10px] font-semibold text-primary hover:underline"
+                    >
+                      + Gestionar
+                    </a>
+                  </div>
                   <Input
+                    id="hire_dept"
+                    list="hire-dept-datalist"
                     value={department}
                     onChange={(e) => setDepartment(e.target.value)}
+                    placeholder="Ej. Cocina, Ventas..."
                     className="h-10 rounded-xl bg-background border-border/80 text-xs font-medium"
                   />
+                  <datalist id="hire-dept-datalist">
+                    {availableDepartments.map((d) => (
+                      <option key={d.id} value={d.name} />
+                    ))}
+                  </datalist>
                 </div>
 
                 <div className="space-y-1.5">
@@ -197,10 +236,15 @@ export function HireCandidateWizardModal({
                     value={templateType}
                     onValueChange={(val) => val && setTemplateType(val as ContractTemplateType)}
                   >
-                    <SelectTrigger className="h-10 rounded-xl bg-background border-border/80 text-xs font-medium">
+                    <SelectTrigger className="w-full h-10 rounded-xl bg-background border border-border/80 text-xs font-medium">
                       <SelectValue />
                     </SelectTrigger>
-                    <SelectContent className="rounded-xl">
+                    <SelectContent
+                      alignItemWithTrigger={false}
+                      side="bottom"
+                      sideOffset={4}
+                      className="w-(--anchor-width) min-w-[240px] rounded-xl border border-border/70 bg-popover shadow-lg"
+                    >
                       <SelectItem value="indeterminado">Tiempo Indeterminado (Planta)</SelectItem>
                       <SelectItem value="periodo_prueba">Periodo de Prueba (30 días)</SelectItem>
                       <SelectItem value="determinado">Tiempo Determinado</SelectItem>

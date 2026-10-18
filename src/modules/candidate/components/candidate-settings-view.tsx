@@ -245,7 +245,7 @@ export function CandidateSettingsView() {
           />
           <SettingsSectionRow
             icon={<ShieldCheck className="size-5 text-foreground" />}
-            title="Expediente Digital"
+            title="Mis Documentos"
             trailingText="Verificación"
             onClick={() => router.push("/dashboard/candidate/documents")}
           />

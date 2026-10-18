@@ -14,9 +14,11 @@ import {
   updateEmployeeStartDateSchema,
   hireCandidateSchema,
   registerDirectEmployeeSchema,
+  assignEmployeeDepartmentSchema,
   type CompanyEmployeeFormValues,
   type HireCandidateInput,
   type RegisterDirectEmployeeValues,
+  type AssignEmployeeDepartmentValues,
 } from "../schemas/employee.schema";
 import {
   createEmployeeInvitationSchema,
@@ -356,6 +358,58 @@ export async function updateEmployeeStartDate(
       err instanceof Error
         ? err.message
         : "No se pudo actualizar la fecha de ingreso.";
+    return { success: false, error: message };
+  }
+}
+
+/**
+ * Asigna o actualiza el área o departamento de un colaborador.
+ */
+export async function assignEmployeeDepartmentAction(
+  rawInput: AssignEmployeeDepartmentValues
+): Promise<ActionResponse<{ employeeId: string; department: string | null }>> {
+  const parsed = assignEmployeeDepartmentSchema.safeParse(rawInput);
+  if (!parsed.success) {
+    const errorMsg =
+      parsed.error.issues[0]?.message || "Datos de asignación de área inválidos.";
+    return { success: false, error: errorMsg };
+  }
+
+  const supabase = await createClient();
+  const {
+    data: { user },
+    error: authError,
+  } = await supabase.auth.getUser();
+
+  if (authError || !user) {
+    return { success: false, error: "No autorizado. Inicia sesión para continuar." };
+  }
+
+  try {
+    const targetDepartment = parsed.data.department?.trim() || null;
+    await CompanyEmployeeService.assignEmployeeDepartment(
+      supabase,
+      user.id,
+      parsed.data.employeeId,
+      targetDepartment
+    );
+
+    revalidatePath("/dashboard/company/employees");
+    revalidatePath("/dashboard/company/areas");
+    revalidatePath("/dashboard/company");
+
+    return {
+      success: true,
+      data: {
+        employeeId: parsed.data.employeeId,
+        department: targetDepartment,
+      },
+    };
+  } catch (err: unknown) {
+    const message =
+      err instanceof Error
+        ? err.message
+        : "No se pudo asignar el área al colaborador.";
     return { success: false, error: message };
   }
 }

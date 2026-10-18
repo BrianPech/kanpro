@@ -201,11 +201,26 @@ export default async function CompanyEmployeesPage() {
     };
   });
 
+  // 6. Fetch company registered departments/areas
+  const { data: rawDepartments } = await supabase
+    .from("company_departments")
+    .select("id, name, color")
+    .eq("company_id", user.id)
+    .eq("is_active", true)
+    .order("name", { ascending: true });
+
+  const companyDepartments = (rawDepartments || []).map((d) => ({
+    id: d.id,
+    name: d.name,
+    color: d.color,
+  }));
+
   return (
     <CompanyEmployeesView
       userId={user.id}
       initialEmployees={combinedEmployees}
       initialInvitations={invitations}
+      companyDepartments={companyDepartments}
     />
   );
 }

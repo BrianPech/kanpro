@@ -78,7 +78,7 @@ export function CandidateRegisterForm() {
           prefixIcon={<User className="size-4" />}
         />
 
-        {/* Date of Birth Field (DD/MM/AAAA con selector de calendario integrado) */}
+        {/* Date of Birth Field con DatePicker interactivo y dropdowns de mes/año */}
         <FormDateField
           id="birthDate"
           label="Fecha de nacimiento"

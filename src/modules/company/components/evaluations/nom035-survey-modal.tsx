@@ -185,10 +185,10 @@ export function Nom035SurveyModal({
                 Empleado Evaluado *
               </Label>
               <Select value={employeeId} onValueChange={(v) => setEmployeeId(v || "")}>
-                <SelectTrigger className="h-10 rounded-xl text-xs font-semibold">
+                <SelectTrigger className="w-full h-10 rounded-xl text-xs font-semibold">
                   <SelectValue placeholder="Seleccionar empleado" />
                 </SelectTrigger>
-                <SelectContent className="max-h-60 rounded-xl">
+                <SelectContent alignItemWithTrigger={false} side="bottom" sideOffset={4} className="w-(--anchor-width) min-w-[280px] max-h-60 rounded-xl">
                   {employees.map((emp) => (
                     <SelectItem key={emp.id} value={emp.id} className="text-xs">
                       {emp.name} — {emp.jobTitle} ({emp.department})
@@ -206,10 +206,10 @@ export function Nom035SurveyModal({
                 value={guideType}
                 onValueChange={(v) => setGuideType(v as Nom035GuideType)}
               >
-                <SelectTrigger className="h-10 rounded-xl text-xs font-semibold">
+                <SelectTrigger className="w-full h-10 rounded-xl text-xs font-semibold">
                   <SelectValue placeholder="Seleccionar Guía" />
                 </SelectTrigger>
-                <SelectContent className="rounded-xl">
+                <SelectContent alignItemWithTrigger={false} side="bottom" sideOffset={4} className="w-(--anchor-width) min-w-[280px] rounded-xl">
                   <SelectItem value="guia_ii" className="text-xs">
                     Guía II: Factores de Riesgo Psicosocial (Hasta 50 trab.)
                   </SelectItem>

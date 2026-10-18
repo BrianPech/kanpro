@@ -310,5 +310,19 @@ describe("Módulo de Autenticación de Candidato - Registro y Validación", () =
         })
       ).rejects.toThrow("Database error saving user");
     });
+
+    test("Acepta fechas formateadas en ISO generadas por el DatePicker (YYYY-MM-DD)", () => {
+      const parsed = candidateRegisterSchema.safeParse({
+        fullName: "DatePicker User",
+        birthDate: "1995-10-25",
+        email: "datepicker@test.com",
+        password: "ValidPass1234!",
+      });
+
+      expect(parsed.success).toBe(true);
+      if (parsed.success) {
+        expect(parsed.data.birthDate).toBe("1995-10-25");
+      }
+    });
   });
 });

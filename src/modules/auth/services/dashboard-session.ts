@@ -41,6 +41,29 @@ export async function getDashboardSession() {
     } else if (role === "candidate") {
       plan = "Candidato"
       userName = rawFullName || "Candidato"
+
+      try {
+        const { data: empRecord } = await supabase
+          .from('company_employees')
+          .select('company:company_profiles(company_name, legal_name)')
+          .eq('employee_id', user.id)
+          .eq('status', 'active')
+          .order('created_at', { ascending: false })
+          .limit(1)
+          .maybeSingle();
+
+        if (empRecord) {
+          interface CompRecord {
+            company_name: string | null;
+            legal_name: string | null;
+          }
+          const comp = (Array.isArray(empRecord.company) ? empRecord.company[0] : empRecord.company) as CompRecord | null;
+          const compName = comp?.company_name || comp?.legal_name;
+          plan = compName ? `Empleado • ${compName}` : "Empleado Activo";
+        }
+      } catch {
+        // Ignorar si la tabla no está disponible o el cliente de pruebas tiene un mock parcial
+      }
     }
 
     if ((!userName || userName === "Invitado") && user.email) {
@@ -76,6 +99,25 @@ export async function getDashboardSession() {
           } else if (role === "candidate") {
             plan = "Candidato"
             userName = effectiveName || "Candidato"
+
+            const { data: empRecord } = await supabase
+              .from('company_employees')
+              .select('company:company_profiles(company_name, legal_name)')
+              .eq('employee_id', impersonationState.targetUserId)
+              .eq('status', 'active')
+              .order('created_at', { ascending: false })
+              .limit(1)
+              .maybeSingle();
+
+            if (empRecord) {
+              interface CompRecord {
+                company_name: string | null;
+                legal_name: string | null;
+              }
+              const comp = (Array.isArray(empRecord.company) ? empRecord.company[0] : empRecord.company) as CompRecord | null;
+              const compName = comp?.company_name || comp?.legal_name;
+              plan = compName ? `Empleado • ${compName}` : "Empleado Activo";
+            }
           }
 
           if ((!userName || userName === "Invitado") && effectiveEmail) {

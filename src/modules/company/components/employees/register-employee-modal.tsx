@@ -34,9 +34,17 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { registerDirectEmployeeAction } from "../../actions/employees";
+import { getCompanyDepartmentsAction } from "../../actions/areas";
 
 interface RegisterEmployeeModalProps {
   isOpen: boolean;
@@ -68,9 +76,25 @@ export function RegisterEmployeeModal({
   // Tab 2: Registrar Empleado
   const [fullName, setFullName] = React.useState("");
   const [email, setEmail] = React.useState("");
+  const [department, setDepartment] = React.useState("");
   const [password, setPassword] = React.useState("");
   const [confirmPassword, setConfirmPassword] = React.useState("");
   const [forcePasswordChange, setForcePasswordChange] = React.useState(true);
+
+  // Departments list from company
+  const [availableDepartments, setAvailableDepartments] = React.useState<
+    { id: string; name: string; color?: string | null }[]
+  >([]);
+
+  React.useEffect(() => {
+    if (isOpen) {
+      getCompanyDepartmentsAction().then((res) => {
+        if (res.success && res.data) {
+          setAvailableDepartments(res.data);
+        }
+      });
+    }
+  }, [isOpen]);
 
   // Password visibility toggles
   const [showPassword, setShowPassword] = React.useState(false);
@@ -134,6 +158,7 @@ export function RegisterEmployeeModal({
         password,
         confirm_password: confirmPassword,
         force_password_change: forcePasswordChange,
+        department: department && department !== "none" ? department.trim() : undefined,
       });
 
       if (!res.success) {
@@ -173,6 +198,7 @@ export function RegisterEmployeeModal({
       // Reset form
       setFullName("");
       setEmail("");
+      setDepartment("");
       setPassword("");
       setConfirmPassword("");
       setForcePasswordChange(true);
@@ -300,6 +326,63 @@ export function RegisterEmployeeModal({
                     disabled={isSubmitting}
                     className="h-10 rounded-xl bg-background border-border/60 text-xs sm:text-sm font-medium"
                   />
+                </div>
+
+                {/* Área o Departamento */}
+                <div className="space-y-1.5">
+                  <div className="flex items-center justify-between">
+                    <Label htmlFor="employee_dept" className="text-xs font-semibold">
+                      Área o Departamento <span className="text-muted-foreground font-normal">(Opcional)</span>
+                    </Label>
+                    <a
+                      href="/dashboard/company/areas"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-[11px] font-semibold text-primary hover:underline"
+                    >
+                      + Gestionar áreas
+                    </a>
+                  </div>
+                  <Select
+                    value={department}
+                    onValueChange={(val) => setDepartment(val ?? "")}
+                    disabled={isSubmitting}
+                  >
+                    <SelectTrigger
+                      id="employee_dept"
+                      className="w-full h-11 px-3.5 rounded-xl bg-background border border-border/80 text-xs sm:text-sm font-semibold cursor-pointer shadow-2xs hover:border-foreground/30 focus-visible:ring-2 focus-visible:ring-primary/20 transition-all"
+                    >
+                      <SelectValue placeholder="Selecciona el área para este colaborador..." />
+                    </SelectTrigger>
+                    <SelectContent
+                      alignItemWithTrigger={false}
+                      side="bottom"
+                      sideOffset={6}
+                      className="w-(--anchor-width) min-w-[320px] sm:min-w-[420px] rounded-2xl p-2 border border-border/70 shadow-2xl bg-popover/98 backdrop-blur-md max-h-72"
+                    >
+                      <SelectItem
+                        value="none"
+                        className="py-2.5 px-3.5 rounded-xl text-xs sm:text-sm font-medium cursor-pointer my-0.5 focus:bg-accent transition-colors"
+                      >
+                        <span className="text-muted-foreground italic">Sin área asignada</span>
+                      </SelectItem>
+                      {availableDepartments.map((d) => (
+                        <SelectItem
+                          key={d.id}
+                          value={d.name}
+                          className="py-2.5 px-3.5 rounded-xl text-xs sm:text-sm font-semibold cursor-pointer my-0.5 focus:bg-accent transition-colors"
+                        >
+                          <div className="flex items-center gap-2.5">
+                            <span
+                              className="size-3 rounded-full shrink-0 shadow-2xs ring-1 ring-border/20"
+                              style={{ backgroundColor: d.color || "#6366f1" }}
+                            />
+                            <span className="text-foreground">{d.name}</span>
+                          </div>
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
 
                 {/* Contraseñas en Grid */}

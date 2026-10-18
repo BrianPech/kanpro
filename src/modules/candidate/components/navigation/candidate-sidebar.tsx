@@ -30,12 +30,58 @@ import { usePathname } from "next/navigation";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
 
+interface CandidateSidebarProps extends React.ComponentProps<typeof Sidebar> {
+  isEmployee?: boolean;
+}
+
 export function CandidateSidebar({
+  isEmployee = false,
   ...props
-}: React.ComponentProps<typeof Sidebar>) {
+}: CandidateSidebarProps) {
   const pathname = usePathname();
 
-  const navigation = [
+  const employeeJobNav = [
+    {
+      title: "Mi Portal",
+      url: "/dashboard/candidate",
+      icon: LayoutDashboard,
+    },
+    {
+      title: "Mis Contratos",
+      url: "/dashboard/candidate/contracts",
+      icon: FileCheck2,
+    },
+    {
+      title: "Vacaciones & Permisos",
+      url: "/dashboard/candidate/leaves",
+      icon: Plane,
+    },
+    {
+      title: "Mis Documentos",
+      url: "/dashboard/candidate/documents",
+      icon: ShieldCheck,
+    },
+  ];
+
+  const employeeMarketNav = [
+    {
+      title: "Explorar Empleos",
+      url: "/dashboard/candidate/discovery",
+      icon: Compass,
+    },
+    {
+      title: "Mis Postulaciones",
+      url: "/dashboard/candidate/applications",
+      icon: FileText,
+    },
+    {
+      title: "Mi Perfil Profesional",
+      url: "/dashboard/candidate/profile",
+      icon: User,
+    },
+  ];
+
+  const candidatePrimaryNav = [
     {
       title: "Dashboard",
       url: "/dashboard/candidate",
@@ -52,6 +98,14 @@ export function CandidateSidebar({
       icon: FileText,
     },
     {
+      title: "Mi Perfil Profesional",
+      url: "/dashboard/candidate/profile",
+      icon: User,
+    },
+  ];
+
+  const candidateSecondaryNav = [
+    {
       title: "Mis Contratos",
       url: "/dashboard/candidate/contracts",
       icon: FileCheck2,
@@ -62,14 +116,9 @@ export function CandidateSidebar({
       icon: Plane,
     },
     {
-      title: "Expediente Digital",
+      title: "Mis Documentos",
       url: "/dashboard/candidate/documents",
       icon: ShieldCheck,
-    },
-    {
-      title: "Mi Perfil Profesional",
-      url: "/dashboard/candidate/profile",
-      icon: User,
     },
   ];
 
@@ -85,6 +134,14 @@ export function CandidateSidebar({
       icon: HelpCircle,
     },
   ];
+
+  const primaryGroup = isEmployee
+    ? { label: "Mi Empleo", items: employeeJobNav }
+    : { label: "Bolsa de Empleo", items: candidatePrimaryNav };
+
+  const additionalGroup = isEmployee
+    ? { label: "Bolsa & Carrera", items: employeeMarketNav }
+    : { label: "Trámites & Documentos", items: candidateSecondaryNav };
 
   return (
     <Sidebar variant="inset" {...props}>
@@ -104,7 +161,7 @@ export function CandidateSidebar({
                   K&apos;anPro
                 </span>
                 <span className="truncate text-xs text-muted-foreground font-medium">
-                  Portal Candidato
+                  {isEmployee ? "Portal del Empleado" : "Portal Candidato"}
                 </span>
               </div>
             </SidebarMenuButton>
@@ -115,11 +172,45 @@ export function CandidateSidebar({
       <SidebarContent className="px-2 py-2">
         <SidebarGroup>
           <SidebarGroupLabel className="text-xs font-semibold text-muted-foreground/70 px-2">
-            Plataforma
+            {primaryGroup.label}
           </SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu className="gap-1">
-              {navigation.map((item) => {
+              {primaryGroup.items.map((item) => {
+                const isActive =
+                  pathname === item.url ||
+                  (pathname.startsWith(item.url) &&
+                    !["/dashboard/candidate"].includes(item.url));
+
+                return (
+                  <SidebarMenuItem key={item.title}>
+                    <SidebarMenuButton
+                      render={<Link href={item.url} />}
+                      isActive={isActive}
+                      tooltip={item.title}
+                      className={cn(
+                        "h-9 rounded-lg px-2.5 gap-2.5 text-sm font-medium transition-all",
+                        isActive &&
+                          "bg-sidebar-accent text-sidebar-accent-foreground font-semibold",
+                      )}
+                    >
+                      <item.icon className="size-4 shrink-0" />
+                      <span>{item.title}</span>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                );
+              })}
+            </SidebarMenu>
+          </SidebarGroupContent>
+        </SidebarGroup>
+
+        <SidebarGroup>
+          <SidebarGroupLabel className="text-xs font-semibold text-muted-foreground/70 px-2">
+            {additionalGroup.label}
+          </SidebarGroupLabel>
+          <SidebarGroupContent>
+            <SidebarMenu className="gap-1">
+              {additionalGroup.items.map((item) => {
                 const isActive =
                   pathname === item.url ||
                   (pathname.startsWith(item.url) &&

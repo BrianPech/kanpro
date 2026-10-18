@@ -21,6 +21,7 @@ export interface DatePickerProps {
   placeholder?: string
   disabled?: boolean
   className?: string
+  variant?: "outline" | "ghost"
   minDate?: Date
   maxDate?: Date
   defaultMonth?: Date
@@ -29,6 +30,7 @@ export interface DatePickerProps {
   captionLayout?: "label" | "dropdown" | "dropdown-months" | "dropdown-years"
   disabledDates?: (date: Date) => boolean
   hidePastDates?: boolean
+  displayFormat?: string
 }
 
 export function DatePicker({
@@ -38,6 +40,7 @@ export function DatePicker({
   placeholder = "Selecciona una fecha",
   disabled = false,
   className,
+  variant = "outline",
   minDate,
   maxDate,
   defaultMonth,
@@ -46,6 +49,7 @@ export function DatePicker({
   captionLayout = "label",
   disabledDates,
   hidePastDates = false,
+  displayFormat,
 }: DatePickerProps) {
   const [open, setOpen] = React.useState(false)
 
@@ -55,6 +59,11 @@ export function DatePicker({
     if (value instanceof Date) return isValid(value) ? value : undefined
     if (typeof value === "string" && value.trim()) {
       const cleanStr = value.includes("T") ? value.split("T")[0] : value.trim()
+      const ddmmyyyyMatch = cleanStr.match(/^(\d{2})\/(\d{2})\/(\d{4})$/)
+      if (ddmmyyyyMatch) {
+        const d = new Date(Number(ddmmyyyyMatch[3]), Number(ddmmyyyyMatch[2]) - 1, Number(ddmmyyyyMatch[1]))
+        if (isValid(d)) return d
+      }
       const parts = cleanStr.split("-").map(Number)
       if (parts.length === 3 && !isNaN(parts[0]) && !isNaN(parts[1]) && !isNaN(parts[2])) {
         const localDate = new Date(parts[0], parts[1] - 1, parts[2])
@@ -89,7 +98,11 @@ export function DatePicker({
   const initialMonth =
     defaultMonth ||
     selectedDate ||
-    (minDate && minDate > new Date() ? minDate : new Date())
+    (maxDate && maxDate < new Date()
+      ? maxDate
+      : minDate && minDate > new Date()
+        ? minDate
+        : new Date())
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
@@ -99,11 +112,13 @@ export function DatePicker({
         render={
           <Button
             type="button"
-            variant="outline"
+            variant={variant}
             disabled={disabled}
             className={cn(
-              "w-full h-10 rounded-xl justify-between px-3 text-left font-normal bg-background border-border/70 text-xs sm:text-sm hover:bg-muted/40 transition-colors shadow-2xs",
-              !selectedDate && "text-muted-foreground",
+              variant === "outline"
+                ? "w-full h-10 rounded-xl justify-between px-3 text-left font-normal bg-background border-border/70 text-xs sm:text-sm hover:bg-muted/40 transition-colors shadow-2xs"
+                : "w-full h-8 rounded-lg justify-between px-0 text-left font-semibold text-sm hover:bg-transparent transition-colors shadow-none border-0",
+              !selectedDate && "text-muted-foreground font-normal",
               disabled && "cursor-not-allowed opacity-50 bg-muted/40",
               className
             )}
@@ -115,7 +130,7 @@ export function DatePicker({
           <span className="truncate">
             {selectedDate ? (
               <span className="capitalize text-foreground font-medium">
-                {format(selectedDate, "EEEE d 'de' MMMM, yyyy", { locale: es })}
+                {format(selectedDate, displayFormat || "EEEE d 'de' MMMM, yyyy", { locale: es })}
               </span>
             ) : (
               <span>{placeholder}</span>
@@ -146,6 +161,15 @@ export function DatePicker({
         {(() => {
           const now = new Date()
           const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate())
+          const calculatedStartMonth = hidePastDates
+            ? startOfToday
+            : startYear !== undefined
+              ? new Date(startYear, 0)
+              : minDate
+          const calculatedEndMonth = endYear !== undefined
+            ? new Date(endYear, 11)
+            : maxDate
+
           return (
             <Calendar
               mode="single"
@@ -153,12 +177,8 @@ export function DatePicker({
               onSelect={handleSelect}
               locale={es}
               captionLayout={captionLayout}
-              startMonth={
-                hidePastDates
-                  ? startOfToday
-                  : minDate || (startYear !== undefined ? new Date(startYear, 0) : undefined)
-              }
-              endMonth={maxDate || (endYear !== undefined ? new Date(endYear, 11) : undefined)}
+              startMonth={calculatedStartMonth}
+              endMonth={calculatedEndMonth}
               defaultMonth={initialMonth}
               hidden={hidePastDates ? (date: Date) => date < startOfToday : undefined}
               disabled={(date) => {

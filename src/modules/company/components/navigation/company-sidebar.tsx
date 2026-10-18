@@ -178,6 +178,12 @@ export const companySections: PrimarySection[] = [
         description: "Razón social, logo, sucursales y datos de contacto.",
       },
       {
+        title: "Áreas & Departamentos",
+        url: "/dashboard/company/areas",
+        icon: Layers,
+        description: "Estructura organizacional, departamentos y áreas operativas.",
+      },
+      {
         title: "Sello de Verificación",
         url: "/dashboard/company/verification",
         icon: ShieldCheck,

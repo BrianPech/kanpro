@@ -143,6 +143,12 @@ export const registerDirectEmployeeSchema = z
     force_password_change: z
       .boolean()
       .default(true),
+    department: z
+      .string()
+      .trim()
+      .max(80, "El departamento no puede exceder 80 caracteres.")
+      .optional()
+      .nullable(),
   })
   .refine((data) => data.password === data.confirm_password, {
     message: "Las contraseñas no coinciden.",
@@ -151,3 +157,16 @@ export const registerDirectEmployeeSchema = z
 
 export type RegisterDirectEmployeeValues = z.infer<typeof registerDirectEmployeeSchema>;
 
+export const assignEmployeeDepartmentSchema = z.object({
+  employeeId: z.string().min(1, "El identificador del empleado es requerido."),
+  department: z
+    .string()
+    .trim()
+    .max(80, "El área no puede exceder 80 caracteres.")
+    .nullable()
+    .optional(),
+});
+
+export type AssignEmployeeDepartmentValues = z.infer<
+  typeof assignEmployeeDepartmentSchema
+>;

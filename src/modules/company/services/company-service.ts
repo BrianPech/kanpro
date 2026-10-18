@@ -246,6 +246,59 @@ export class CompanyEmployeeService {
   }
 
   /**
+   * Asigna o actualiza el área/departamento de un colaborador.
+   */
+  public static async assignEmployeeDepartment(
+    supabase: SupabaseClient<Database>,
+    companyId: string,
+    employeeId: string,
+    department: string | null
+  ): Promise<void> {
+    const finalDept = department?.trim() || null;
+
+    // 1. Intentar actualizar por id directo en company_employees
+    const { data: updatedEmployee, error: updateError } = await supabase
+      .from("company_employees")
+      .update({
+        department: finalDept,
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", employeeId)
+      .eq("company_id", companyId)
+      .select("id")
+      .maybeSingle();
+
+    if (updateError) {
+      throw new Error("No se pudo actualizar el área del colaborador.");
+    }
+
+    if (updatedEmployee) return;
+
+    // 2. Intentar actualizar por employee_id si difiere
+    const { data: byEmpId } = await supabase
+      .from("company_employees")
+      .update({
+        department: finalDept,
+        updated_at: new Date().toISOString(),
+      })
+      .eq("employee_id", employeeId)
+      .eq("company_id", companyId)
+      .select("id")
+      .maybeSingle();
+
+    if (byEmpId) return;
+
+    // 3. Fallback para registros heredados desde applications
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    await (supabase.from as any)("applications")
+      .update({
+        notes: finalDept ? `Área asignada: ${finalDept}` : null,
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", employeeId);
+  }
+
+  /**
    * Contrata formalmente a un candidato desde su postulación.
    */
   public static async hireCandidate(
@@ -934,7 +987,7 @@ export class CompanyEmployeeService {
       full_name: cleanFullName,
       email: cleanEmail,
       job_title: "", // No se asigna puesto por defecto según requerimiento
-      department: null,
+      department: input.department?.trim() || null,
       status: "active",
       hire_date: new Date().toISOString().split("T")[0],
     };

@@ -33,6 +33,7 @@ import {
   Building2Icon,
   ShieldCheckIcon,
   ChevronRight,
+  Briefcase,
 } from "lucide-react";
 
 export interface NavUserData {
@@ -109,8 +110,30 @@ export function NavUser({
             }
           }
 
+          let plan = initialUser?.plan || "K'anPro Talento";
+          if (role === "candidate") {
+            const { data: emp } = await supabase
+              .from("company_employees")
+              .select("company:company_profiles(company_name)")
+              .eq("employee_id", authUser.id)
+              .eq("status", "active")
+              .order("created_at", { ascending: false })
+              .limit(1)
+              .maybeSingle();
+
+            if (emp) {
+              interface CompItem { company_name: string | null }
+              const comp = (Array.isArray(emp.company) ? emp.company[0] : emp.company) as CompItem | null;
+              if (comp?.company_name) {
+                plan = `Empleado • ${comp.company_name}`;
+              } else {
+                plan = "Empleado Activo";
+              }
+            }
+          }
+
           const email = authUser.email || profile?.email || "usuario@kanpro.com";
-          setUserData({ name, email, avatar, role, isVerified });
+          setUserData({ name, email, avatar, role, isVerified, plan });
         }
       } catch (err) {
         console.error("Error obteniendo datos del usuario en NavUser:", err);
@@ -252,6 +275,16 @@ export function NavUser({
                     </Badge>
                     <span className="text-purple-600 dark:text-purple-400 font-bold">
                       Acceso Total
+                    </span>
+                  </>
+                ) : userData.plan?.startsWith("Empleado") ? (
+                  <>
+                    <Badge variant="outline" className="text-[10px] font-bold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20 px-2 py-0.5 rounded-md gap-1">
+                      <Briefcase className="size-3" />
+                      <span>Empleado</span>
+                    </Badge>
+                    <span className="text-emerald-600 dark:text-emerald-400 font-semibold truncate max-w-[130px]" title={userData.plan}>
+                      {userData.plan.includes("•") ? userData.plan.split("•")[1].trim() : "Activo"}
                     </span>
                   </>
                 ) : (

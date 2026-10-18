@@ -1,6 +1,44 @@
 import { createClient } from "@/lib/supabase/server";
 import { parseLocation, cleanCityName } from "@/lib/formatters";
 import { getCoordsForZone, haversineDistanceKm, GEO_CONFIG } from "@/config/geo";
+import { calculateLFTVacationDays } from "@/modules/company/utils/vacation-calculator";
+
+export interface ActiveEmploymentData {
+  id: string;
+  companyId: string;
+  companyName: string;
+  companyLogoUrl: string | null;
+  companyRfc: string | null;
+  companyAddress: string | null;
+  companyPhone: string | null;
+  jobTitle: string;
+  department: string | null;
+  hireDate: string | null;
+  employeeCode: string | null;
+  workSchedule: string | null;
+  paymentFrequency: string | null;
+  baseSalaryMonthly: number | null;
+  seniorityFormatted: string;
+  vacationDaysTotal: number;
+  vacationDaysTaken: number;
+  vacationDaysAvailable: number;
+  contract: {
+    id: string;
+    folio: string;
+    status: string;
+    contractType: string;
+    isPendingSignature: boolean;
+  } | null;
+  todayAttendance: {
+    hasCheckedIn: boolean;
+    hasCheckedOut: boolean;
+    checkInTime: string | null;
+    checkOutTime: string | null;
+    status: string;
+    delayMinutes: number;
+  } | null;
+  forcePasswordChange?: boolean;
+}
 
 export interface CandidateContractSummary {
   id: string
@@ -108,6 +146,8 @@ export interface CandidateDashboardData {
   featuredVacancies: VacancyItem[]
   nearbyVacancies: VacancyItem[]
   pendingContractsCount: number
+  activeEmployment: ActiveEmploymentData | null
+  forcePasswordChange?: boolean
 }
 
 export async function getCandidateDashboardData(): Promise<CandidateDashboardData> {
@@ -129,6 +169,8 @@ export async function getCandidateDashboardData(): Promise<CandidateDashboardDat
       featuredVacancies: [],
       nearbyVacancies: [],
       pendingContractsCount: 0,
+      activeEmployment: null,
+      forcePasswordChange: false,
     }
   }
 
@@ -417,6 +459,201 @@ export async function getCandidateDashboardData(): Promise<CandidateDashboardDat
   const pendingContractsCount = typedContracts.filter(
     (c) => !c.employee_signed && c.status !== "cancelado"
   ).length;
+
+  // 4b. Check for active employment (Employee Self-Service Portal)
+  let activeEmployment: ActiveEmploymentData | null = null;
+
+  interface DBEmployeeCompany {
+    id: string;
+    company_name: string | null;
+    legal_name: string | null;
+    logo_url: string | null;
+    rfc: string | null;
+    fiscal_address: string | null;
+    contact_phone: string | null;
+  }
+
+  interface DBEmployeeWithCompany {
+    id: string;
+    company_id: string;
+    employee_id: string | null;
+    job_title: string;
+    department: string | null;
+    employee_code: string | null;
+    status: string;
+    hire_date: string | null;
+    work_schedule: string | null;
+    payment_frequency: string | null;
+    base_salary_monthly: number | null;
+    company?: DBEmployeeCompany | DBEmployeeCompany[] | null;
+  }
+
+  const { data: rawEmployees } = await supabase
+    .from("company_employees")
+    .select(`
+      id,
+      company_id,
+      employee_id,
+      job_title,
+      department,
+      employee_code,
+      status,
+      hire_date,
+      work_schedule,
+      payment_frequency,
+      base_salary_monthly,
+      company:company_profiles (
+        id,
+        company_name,
+        legal_name,
+        logo_url,
+        rfc,
+        fiscal_address,
+        contact_phone
+      )
+    `)
+    .eq("employee_id", user.id)
+    .eq("status", "active")
+    .order("created_at", { ascending: false })
+    .limit(1);
+
+  const activeEmployees = (rawEmployees as unknown as DBEmployeeWithCompany[]) || [];
+  let currentEmployee: DBEmployeeWithCompany | null = activeEmployees.length > 0 ? activeEmployees[0] : null;
+
+  // Fallback: If not found directly by employee_id, check if linked via an active contract with employee_id
+  if (!currentEmployee && typedContracts.length > 0) {
+    const activeContract = typedContracts.find(
+      (c) => c.status === "vigente" && c.employee_id
+    );
+    if (activeContract?.employee_id) {
+      const { data: empByContract } = await supabase
+        .from("company_employees")
+        .select(`
+          id,
+          company_id,
+          employee_id,
+          job_title,
+          department,
+          employee_code,
+          status,
+          hire_date,
+          work_schedule,
+          payment_frequency,
+          base_salary_monthly,
+          company:company_profiles (
+            id,
+            company_name,
+            legal_name,
+            logo_url,
+            rfc,
+            fiscal_address,
+            contact_phone
+          )
+        `)
+        .eq("id", activeContract.employee_id)
+        .maybeSingle();
+
+      const typedEmp = empByContract as unknown as DBEmployeeWithCompany | null;
+      if (typedEmp && typedEmp.status === "active") {
+        currentEmployee = typedEmp;
+      }
+    }
+  }
+
+  if (currentEmployee) {
+    const comp = Array.isArray(currentEmployee.company)
+      ? currentEmployee.company[0]
+      : currentEmployee.company;
+
+    const hireDate = currentEmployee.hire_date || new Date().toISOString().split("T")[0];
+    const lft = calculateLFTVacationDays(hireDate);
+
+    // Fetch approved vacation leaves and today's attendance in parallel
+    const todayStr = new Date().toISOString().split("T")[0];
+
+    const [{ data: vacationLeaves }, { data: todayAttendanceRow }] = await Promise.all([
+      supabase
+        .from("company_leaves")
+        .select("total_working_days")
+        .eq("employee_id", currentEmployee.id)
+        .eq("request_type", "vacaciones")
+        .eq("status", "aprobada"),
+      supabase
+        .from("company_attendance")
+        .select("check_in_time, check_out_time, status, delay_minutes")
+        .eq("employee_id", currentEmployee.id)
+        .eq("work_date", todayStr)
+        .maybeSingle(),
+    ]);
+
+    interface VacationLeaveRow {
+      total_working_days: number | null;
+    }
+    const typedVacationLeaves = (vacationLeaves as unknown as VacationLeaveRow[]) || [];
+    const vacationDaysTaken = typedVacationLeaves.reduce(
+      (sum, item) => sum + (item.total_working_days || 0),
+      0
+    );
+    const vacationDaysAvailable = Math.max(0, lft.currentYearEntitlement - vacationDaysTaken);
+
+    // Find active contract for this employee
+    const matchedContract = typedContracts.find(
+      (c) =>
+        c.employee_id === currentEmployee?.id ||
+        (c.company_id === currentEmployee?.company_id && c.status === "vigente")
+    );
+
+    interface AttendanceRow {
+      check_in_time: string | null;
+      check_out_time: string | null;
+      status: string;
+      delay_minutes: number | null;
+    }
+    const typedAttendance = todayAttendanceRow as unknown as AttendanceRow | null;
+
+    activeEmployment = {
+      id: currentEmployee.id,
+      companyId: currentEmployee.company_id,
+      companyName: comp?.company_name || comp?.legal_name || "Mi Empresa",
+      companyLogoUrl: comp?.logo_url || null,
+      companyRfc: comp?.rfc || null,
+      companyAddress: comp?.fiscal_address || null,
+      companyPhone: comp?.contact_phone || null,
+      jobTitle: currentEmployee.job_title || "Empleado",
+      department: currentEmployee.department || null,
+      hireDate: currentEmployee.hire_date || null,
+      employeeCode: currentEmployee.employee_code || null,
+      workSchedule: currentEmployee.work_schedule || null,
+      paymentFrequency: currentEmployee.payment_frequency || "quincenal",
+      baseSalaryMonthly: currentEmployee.base_salary_monthly
+        ? Number(currentEmployee.base_salary_monthly)
+        : matchedContract?.salary || null,
+      seniorityFormatted: lft.formattedSeniority,
+      vacationDaysTotal: lft.currentYearEntitlement,
+      vacationDaysTaken,
+      vacationDaysAvailable,
+      contract: matchedContract
+        ? {
+            id: matchedContract.id,
+            folio: matchedContract.folio,
+            status: matchedContract.status,
+            contractType: matchedContract.contract_type,
+            isPendingSignature: !matchedContract.employee_signed && matchedContract.status !== "cancelado",
+          }
+        : null,
+      todayAttendance: typedAttendance
+        ? {
+            hasCheckedIn: !!typedAttendance.check_in_time,
+            hasCheckedOut: !!typedAttendance.check_out_time,
+            checkInTime: typedAttendance.check_in_time,
+            checkOutTime: typedAttendance.check_out_time,
+            status: typedAttendance.status,
+            delayMinutes: typedAttendance.delay_minutes || 0,
+          }
+        : null,
+      forcePasswordChange: Boolean(user.user_metadata?.force_password_change),
+    };
+  }
 
   interface RawVacancyWithCompany {
     id: string;
@@ -749,6 +986,8 @@ export async function getCandidateDashboardData(): Promise<CandidateDashboardDat
     },
     featuredVacancies,
     nearbyVacancies,
-    pendingContractsCount
+    pendingContractsCount,
+    activeEmployment,
+    forcePasswordChange: Boolean(user.user_metadata?.force_password_change),
   }
 }

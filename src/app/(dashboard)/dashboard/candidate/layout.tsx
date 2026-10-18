@@ -12,6 +12,7 @@ export default async function CandidateDashboardLayout({
   children: React.ReactNode;
 }) {
   const { userName, userInitials, plan } = await getDashboardSession();
+  const isEmployee = plan.startsWith("Empleado");
 
   return (
     <SidebarProvider
@@ -23,7 +24,7 @@ export default async function CandidateDashboardLayout({
       }
       className="h-screen overflow-hidden flex bg-sidebar"
     >
-      <CandidateSidebar variant="inset" />
+      <CandidateSidebar variant="inset" isEmployee={isEmployee} />
       <SidebarInset className="flex flex-1 flex-col overflow-hidden bg-background">
         <CandidateTopbar
           userName={userName}
