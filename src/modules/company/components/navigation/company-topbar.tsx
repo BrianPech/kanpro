@@ -6,6 +6,7 @@ import {
   Bell,
   UserPlus,
   Plus,
+  FileSpreadsheet,
 } from "lucide-react";
 import * as React from "react";
 
@@ -88,7 +89,7 @@ export function DashboardTopbar({
             {isRoot ? (
               <BreadcrumbItem className="min-w-0">
                 <BreadcrumbPage className="font-bold text-sm sm:text-base text-foreground truncate">
-                  Portal Empresa
+                  Dashboard
                 </BreadcrumbPage>
               </BreadcrumbItem>
             ) : (
@@ -112,6 +113,29 @@ export function DashboardTopbar({
 
       {/* Right Area: Action, Notifications & Mobile User Avatar */}
       <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
+        {role === "company" && isRoot && (
+          <div className="flex items-center gap-1.5 sm:gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              render={<Link href="/dashboard/company/reports" />}
+              className="font-semibold px-2.5 sm:px-3 h-8 rounded-lg flex items-center gap-1.5 text-xs cursor-pointer border-border/80 hover:bg-muted/60"
+            >
+              <FileSpreadsheet className="size-3.5 stroke-[2]" />
+              <span className="hidden sm:inline">Reportes</span>
+            </Button>
+            <Button
+              size="sm"
+              render={<Link href="/dashboard/company/employees?action=new" />}
+              className="font-semibold px-2.5 sm:px-3 h-8 rounded-lg flex items-center gap-1.5 shadow-xs text-xs bg-primary text-primary-foreground hover:bg-primary/90 cursor-pointer"
+            >
+              <UserPlus className="size-3.5 stroke-[2.5]" />
+              <span className="hidden sm:inline">Registrar Empleado</span>
+              <span className="sm:hidden">Registrar</span>
+            </Button>
+          </div>
+        )}
+
         {role === "company" && isEmployeesPage && (
           <Button
             size="sm"

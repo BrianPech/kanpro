@@ -36,6 +36,7 @@ export async function getCompanyDashboardData(): Promise<CompanyDashboardData> {
     openVacanciesCount: 0,
     totalApplicationsReceived: 0,
     pendingReviewApplications: 0,
+    activeContractsCount: 0,
     expiringContractsCount: 0,
     imminentContractsCount: 0,
     pendingIncidentsCount: 0,
@@ -453,6 +454,7 @@ export async function getCompanyDashboardData(): Promise<CompanyDashboardData> {
 
     // Sort expiring contracts closest first
     expiringContracts.sort((a, b) => a.daysRemaining - b.daysRemaining);
+    kpis.activeContractsCount = rawContracts.length;
 
     // 4. Build Attendance and Department tallies for active employees
     const rawAttendance = attendanceRes?.data || [];

@@ -122,23 +122,19 @@ const CATEGORIES: NavCategory[] = [
     ],
   },
   {
-    title: "Atracción de Talento (Fase 2)",
+    title: "Atracción de Talento",
     items: [
       {
         title: "Bolsa de Vacantes",
         description: "Publicación de ofertas y perfiles de puesto",
         href: "/dashboard/company/vacancies",
         icon: Briefcase,
-        badge: "Próximamente",
-        badgeVariant: "muted",
       },
       {
         title: "Postulantes & Reclutamiento",
         description: "Candidatos, entrevistas y flujo de contratación",
         href: "/dashboard/company/applications",
         icon: Users,
-        badge: "Próximamente",
-        badgeVariant: "muted",
       },
     ],
   },

@@ -110,7 +110,8 @@ export interface WorkforceKPIs {
   totalApplicationsReceived: number;
   pendingReviewApplications: number;
 
-  // 5. Contratos por vencer
+  // 5. Contratos por vencer y activos
+  activeContractsCount?: number;
   expiringContractsCount: number; // En los próximos 30 días
   imminentContractsCount: number; // En los próximos 7 días
 

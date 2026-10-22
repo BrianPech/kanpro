@@ -89,7 +89,6 @@ import { cn } from "@/lib/utils";
 import Link from "next/link";
 import { toast } from "sonner";
 import {
-  updateEmployeeStartDate,
   terminateEmployee,
   reactivateEmployee,
   getCompanyInvitationsAction,
@@ -98,7 +97,7 @@ import {
   assignEmployeeDepartmentAction,
 } from "@/modules/company/actions/employees";
 import { getCompanyDepartmentsAction } from "@/modules/company/actions/areas";
-import { EmployeeDossierSheet } from "@/modules/company/components/dossier/employee-dossier-sheet";
+import { EmployeeDossierModal } from "@/modules/company/components/dossier/employee-dossier-modal";
 import { RegisterEmployeeModal } from "@/modules/company/components/employees/register-employee-modal";
 
 export interface EmployeeInvitationItem {
@@ -329,11 +328,6 @@ export function CompanyEmployeesView({
   // Dialog States
   const [selectedEmp, setSelectedEmp] = React.useState<Employee | null>(null);
 
-  // Date dialog
-  const [isDateDialogOpen, setIsDateDialogOpen] = React.useState(false);
-  const [startDateValue, setStartDateValue] = React.useState("");
-  const [isSavingDate, setIsSavingDate] = React.useState(false);
-
   // Termination dialog
   const [isTerminateDialogOpen, setIsTerminateDialogOpen] = React.useState(false);
   const [terminationReason, setTerminationReason] = React.useState("Renuncia voluntaria");
@@ -513,34 +507,6 @@ export function CompanyEmployeesView({
     document.body.removeChild(link);
 
     toast.success("Listado exportado a CSV exitosamente");
-  };
-
-  const handleOpenDateDialog = (emp: Employee) => {
-    setSelectedEmp(emp);
-    const initialDate = emp.hired_date
-      ? new Date(emp.hired_date).toISOString().split("T")[0]
-      : new Date().toISOString().split("T")[0];
-    setStartDateValue(initialDate);
-    setIsDateDialogOpen(true);
-  };
-
-  const handleSaveStartDate = async () => {
-    if (!selectedEmp || !startDateValue) return;
-    setIsSavingDate(true);
-    try {
-      await updateEmployeeStartDate(selectedEmp.id, startDateValue);
-      setEmployees((prev) =>
-        prev.map((e) =>
-          e.id === selectedEmp.id ? { ...e, hired_date: startDateValue } : e
-        )
-      );
-      toast.success("Fecha de inicio actualizada");
-      setIsDateDialogOpen(false);
-    } catch {
-      toast.error("Error al actualizar la fecha");
-    } finally {
-      setIsSavingDate(false);
-    }
   };
 
   const handleOpenTerminateDialog = (emp: Employee) => {
@@ -743,7 +709,10 @@ export function CompanyEmployeesView({
               </p>
               <button
                 type="button"
-                onClick={() => handleOpenAreaDialog(emp)}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleOpenAreaDialog(emp);
+                }}
                 className="group/badge inline-flex items-center gap-1.5 cursor-pointer text-left"
                 title="Haga clic para cambiar o asignar área"
               >
@@ -889,7 +858,10 @@ export function CompanyEmployeesView({
         cell: ({ row }) => {
           const emp = row.original;
           return (
-            <div className="flex items-center justify-end gap-1 py-1">
+            <div
+              className="flex items-center justify-end gap-1 py-1"
+              onClick={(e) => e.stopPropagation()}
+            >
               {emp.phone && emp.status === "Contratado" && (
                 <a
                   href={getWhatsAppLink(emp)}
@@ -955,14 +927,6 @@ export function CompanyEmployeesView({
                   >
                     <Layers className="size-3.5 text-muted-foreground" />
                     <span>Asignar / Cambiar Área</span>
-                  </DropdownMenuItem>
-
-                  <DropdownMenuItem
-                    onSelect={() => handleOpenDateDialog(emp)}
-                    className="cursor-pointer text-xs font-semibold rounded-lg hover:bg-muted py-2 px-2.5 gap-2"
-                  >
-                    <Calendar className="size-3.5 text-muted-foreground" />
-                    <span>Cambiar fecha inicio</span>
                   </DropdownMenuItem>
 
                   <DropdownMenuItem
@@ -1458,7 +1422,10 @@ export function CompanyEmployeesView({
                             <div className="flex items-center gap-1.5 mt-0.5">
                               <button
                                 type="button"
-                                onClick={() => handleOpenAreaDialog(emp)}
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleOpenAreaDialog(emp);
+                                }}
                                 className="cursor-pointer group/mobile-area"
                                 title="Cambiar o asignar área"
                               >
@@ -1539,14 +1506,6 @@ export function CompanyEmployeesView({
                               >
                                 <Layers className="size-4 text-muted-foreground" />
                                 <span>Asignar / Cambiar Área</span>
-                              </DropdownMenuItem>
-
-                              <DropdownMenuItem
-                                onSelect={() => handleOpenDateDialog(emp)}
-                                className="cursor-pointer text-xs font-semibold rounded-xl hover:bg-muted py-2.5 px-3 gap-2.5"
-                              >
-                                <Calendar className="size-4 text-muted-foreground" />
-                                <span>Cambiar fecha inicio</span>
                               </DropdownMenuItem>
 
                               <DropdownMenuItem
@@ -1659,8 +1618,9 @@ export function CompanyEmployeesView({
                     {tableRows.map((row) => (
                       <TableRow
                         key={row.id}
+                        onClick={() => handleOpenDossier(row.original)}
                         className={cn(
-                          "hover:bg-muted/25 transition-colors group",
+                          "hover:bg-muted/30 transition-colors group cursor-pointer",
                           row.original.status === "Baja" && "opacity-70 bg-muted/5"
                         )}
                       >
@@ -1693,12 +1653,11 @@ export function CompanyEmployeesView({
         </div>
       </Card>
 
-      {/* Expediente Digital 360 Sheet Slide-over Panel */}
-      <EmployeeDossierSheet
+      {/* Modal de Detalles del Empleado (Expediente Digital 360) */}
+      <EmployeeDossierModal
         employee={dossierEmployee}
         open={isDossierOpen}
         onOpenChange={setIsDossierOpen}
-        onOpenDateDialog={handleOpenDateDialog}
         onOpenTerminateDialog={handleOpenTerminateDialog}
         onReactivate={handleReactivate}
         onOpenAreaDialog={handleOpenAreaDialog}
@@ -1839,59 +1798,6 @@ export function CompanyEmployeesView({
                 <Layers className="size-3.5 mr-1.5" />
               )}
               <span>Guardar Área</span>
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      {/* Dialog: Change Start Date */}
-      <Dialog open={isDateDialogOpen} onOpenChange={setIsDateDialogOpen}>
-        <DialogContent className="rounded-2xl border-border/60 bg-card max-w-md">
-          <DialogHeader>
-            <DialogTitle className="text-base font-bold text-foreground flex items-center gap-2">
-              <Calendar className="size-4 text-primary" />
-              <span>Fecha de Inicio de Labores</span>
-            </DialogTitle>
-            <DialogDescription className="text-xs text-muted-foreground">
-              Actualiza la fecha en que {selectedEmp?.full_name} comenzó o comenzará a trabajar.
-            </DialogDescription>
-          </DialogHeader>
-
-          <div className="py-3 space-y-2">
-            <Label
-              htmlFor="start_date"
-              className="text-xs font-bold uppercase tracking-wider text-muted-foreground"
-            >
-              Fecha de Inicio
-            </Label>
-            <Input
-              id="start_date"
-              type="date"
-              value={startDateValue}
-              onChange={(e) => setStartDateValue(e.target.value)}
-              className="h-11 rounded-xl bg-muted/40 border-border/60 font-semibold"
-            />
-          </div>
-
-          <DialogFooter className="gap-2 sm:gap-0">
-            <Button
-              type="button"
-              variant="ghost"
-              onClick={() => setIsDateDialogOpen(false)}
-              className="rounded-xl text-xs font-semibold"
-            >
-              Cancelar
-            </Button>
-            <Button
-              type="button"
-              onClick={handleSaveStartDate}
-              disabled={isSavingDate}
-              className="rounded-xl text-xs font-bold bg-primary text-primary-foreground"
-            >
-              {isSavingDate ? (
-                <Loader2 className="size-3.5 animate-spin mr-1" />
-              ) : null}
-              <span>Guardar Fecha</span>
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -2051,14 +1957,10 @@ export function CompanyEmployeesView({
             </Button>
             <Button
               type="button"
-              onClick={async () => {
+              onClick={() => {
                 if (!selectedEmp) return;
                 setIsSavingNotes(true);
                 try {
-                  await updateEmployeeStartDate(
-                    selectedEmp.id,
-                    selectedEmp.hired_date
-                  );
                   setEmployees((prev) =>
                     prev.map((e) =>
                       e.id === selectedEmp.id

@@ -20,7 +20,6 @@ import {
   Star,
   FileSpreadsheet,
   UserPlus,
-  Search,
   Plus,
   Layers,
   ChevronRight,
@@ -40,7 +39,6 @@ import {
 } from "@/components/ui/sidebar";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { NavUser } from "@/components/shared/nav-user";
 import { cn } from "@/lib/utils";
@@ -207,14 +205,12 @@ export const companySections: PrimarySection[] = [
         title: "Mis Vacantes",
         url: "/dashboard/company/vacancies",
         icon: Briefcase,
-        badge: "Fase 2",
         description: "Convocatorias abiertas, borradores y archivo.",
       },
       {
         title: "Postulantes & Selección",
         url: "/dashboard/company/applications",
         icon: Users,
-        badge: "Fase 2",
         description: "Pipeline de candidatos y seguimiento de entrevistas.",
       },
     ],
@@ -227,8 +223,6 @@ export function CompanySidebar({
 }: React.ComponentProps<typeof Sidebar>) {
   const pathname = usePathname();
   const { isMobile, setOpenMobile, setOpen } = useSidebar();
-  const [searchQuery, setSearchQuery] = React.useState("");
-
   const isItemActive = React.useCallback(
     (url: string) => {
       if (url === "/dashboard/company") {
@@ -256,16 +250,6 @@ export function CompanySidebar({
 
   const activeSection =
     companySections.find((s) => s.id === activeSectionId) || companySections[0];
-
-  const filteredSubItems = React.useMemo(() => {
-    if (!searchQuery.trim()) return activeSection.items;
-    const query = searchQuery.toLowerCase();
-    return activeSection.items.filter(
-      (item) =>
-        item.title.toLowerCase().includes(query) ||
-        (item.description && item.description.toLowerCase().includes(query))
-    );
-  }, [activeSection, searchQuery]);
 
   return (
     <Sidebar
@@ -385,32 +369,20 @@ export function CompanySidebar({
         collapsible="none"
         className="w-auto flex-1 min-w-0 bg-sidebar flex flex-col justify-between"
       >
-        {/* Header Secundario: Título de Categoría y Buscador */}
-        <SidebarHeader className="gap-2.5 px-3.5 py-3 shrink-0 border-b-0">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2 min-w-0">
-              <div className="p-1.5 rounded-lg bg-primary/10 text-primary shrink-0">
-                <activeSection.icon className="size-4" />
-              </div>
-              <div className="min-w-0">
-                <h2 className="text-xs font-bold text-foreground truncate tracking-tight">
-                  {activeSection.label}
-                </h2>
-                <p className="text-[10px] text-muted-foreground truncate font-medium">
-                  {activeSection.shortLabel}
-                </p>
-              </div>
+        {/* Header Secundario: Título de Categoría */}
+        <SidebarHeader className="px-3.5 py-3.5 pb-2 shrink-0 border-b-0">
+          <div className="flex items-center gap-2.5 min-w-0">
+            <div className="p-1.5 rounded-lg bg-primary/10 text-primary shrink-0">
+              <activeSection.icon className="size-4" />
             </div>
-          </div>
-
-          <div className="relative w-full">
-            <Search className="size-3.5 absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground/70 pointer-events-none" />
-            <Input
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder={`Buscar en ${activeSection.shortLabel.toLowerCase()}...`}
-              className="h-7.5 pl-8 pr-2.5 text-xs bg-sidebar-accent/40 border-sidebar-border/60 rounded-lg placeholder:text-muted-foreground/60 focus-visible:ring-1 focus-visible:ring-primary"
-            />
+            <div className="min-w-0">
+              <h2 className="text-xs font-bold text-foreground truncate tracking-tight">
+                {activeSection.label}
+              </h2>
+              <p className="text-[10px] text-muted-foreground truncate font-medium">
+                {activeSection.shortLabel}
+              </p>
+            </div>
           </div>
         </SidebarHeader>
 
@@ -420,70 +392,64 @@ export function CompanySidebar({
             <SidebarGroup className="p-0">
               <SidebarGroupContent>
                 <SidebarMenu className="gap-1">
-                  {filteredSubItems.length > 0 ? (
-                    filteredSubItems.map((item) => {
-                      const isActive = isItemActive(item.url);
+                  {activeSection.items.map((item) => {
+                    const isActive = isItemActive(item.url);
 
-                      return (
-                        <SidebarMenuItem key={item.title}>
-                          <SidebarMenuButton
-                            render={<Link href={item.url} />}
-                            isActive={isActive}
-                            tooltip={item.title}
-                            onClick={() => {
-                              if (isMobile) setOpenMobile(false);
-                            }}
+                    return (
+                      <SidebarMenuItem key={item.title}>
+                        <SidebarMenuButton
+                          render={<Link href={item.url} />}
+                          isActive={isActive}
+                          tooltip={item.title}
+                          onClick={() => {
+                            if (isMobile) setOpenMobile(false);
+                          }}
+                          className={cn(
+                            "h-auto py-2 px-2.5 rounded-xl gap-2.5 items-start transition-all cursor-pointer",
+                            isActive
+                              ? "bg-sidebar-accent text-sidebar-accent-foreground font-bold shadow-xs ring-1 ring-border/40"
+                              : "text-muted-foreground hover:bg-sidebar-accent/50 hover:text-sidebar-foreground"
+                          )}
+                        >
+                          <div
                             className={cn(
-                              "h-auto py-2 px-2.5 rounded-xl gap-2.5 items-start transition-all cursor-pointer",
+                              "size-6 rounded-lg flex items-center justify-center shrink-0 mt-0.5 transition-colors",
                               isActive
-                                ? "bg-sidebar-accent text-sidebar-accent-foreground font-bold shadow-xs ring-1 ring-border/40"
-                                : "text-muted-foreground hover:bg-sidebar-accent/50 hover:text-sidebar-foreground"
+                                ? "bg-primary text-primary-foreground"
+                                : "bg-sidebar-accent/80 text-muted-foreground"
                             )}
                           >
-                            <div
-                              className={cn(
-                                "size-6 rounded-lg flex items-center justify-center shrink-0 mt-0.5 transition-colors",
-                                isActive
-                                  ? "bg-primary text-primary-foreground"
-                                  : "bg-sidebar-accent/80 text-muted-foreground"
-                              )}
-                            >
-                              <item.icon className="size-3.5" />
-                            </div>
+                            <item.icon className="size-3.5" />
+                          </div>
 
-                            <div className="flex-1 min-w-0 text-left">
-                              <div className="flex items-center justify-between gap-1">
-                                <span className="text-xs font-semibold truncate text-foreground">
-                                  {item.title}
-                                </span>
-                                {item.badge && (
-                                  <Badge
-                                    variant="outline"
-                                    className="text-[9px] font-extrabold uppercase px-1.5 py-0 rounded border-primary/20 bg-primary/5 text-primary tracking-wide shrink-0"
-                                  >
-                                    {item.badge}
-                                  </Badge>
-                                )}
-                              </div>
-                              {item.description && (
-                                <p className="text-[10px] text-muted-foreground/80 line-clamp-1 font-normal mt-0.5 leading-tight">
-                                  {item.description}
-                                </p>
+                          <div className="flex-1 min-w-0 text-left">
+                            <div className="flex items-center justify-between gap-1">
+                              <span className="text-xs font-semibold truncate text-foreground">
+                                {item.title}
+                              </span>
+                              {item.badge && (
+                                <Badge
+                                  variant="outline"
+                                  className="text-[9px] font-extrabold uppercase px-1.5 py-0 rounded border-primary/20 bg-primary/5 text-primary tracking-wide shrink-0"
+                                >
+                                  {item.badge}
+                                </Badge>
                               )}
                             </div>
-
-                            {isActive && (
-                              <ChevronRight className="size-3.5 text-primary ml-auto self-center shrink-0" />
+                            {item.description && (
+                              <p className="text-[10px] text-muted-foreground/80 line-clamp-1 font-normal mt-0.5 leading-tight">
+                                {item.description}
+                              </p>
                             )}
-                          </SidebarMenuButton>
-                        </SidebarMenuItem>
-                      );
-                    })
-                  ) : (
-                    <div className="py-6 px-3 text-center text-xs text-muted-foreground">
-                      No se encontraron opciones para &quot;{searchQuery}&quot;
-                    </div>
-                  )}
+                          </div>
+
+                          {isActive && (
+                            <ChevronRight className="size-3.5 text-primary ml-auto self-center shrink-0" />
+                          )}
+                        </SidebarMenuButton>
+                      </SidebarMenuItem>
+                    );
+                  })}
                 </SidebarMenu>
               </SidebarGroupContent>
             </SidebarGroup>
