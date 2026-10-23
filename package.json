@@ -5,6 +5,7 @@
   "scripts": {
     "clean": "rm -rf .next",
     "dev": "next dev",
+    "dev:host": "NEXT_PUBLIC_SUPABASE_URL=http://192.168.1.91:54321 next dev -H 0.0.0.0",
     "build": "next build",
     "start": "next start",
     "lint": "eslint",

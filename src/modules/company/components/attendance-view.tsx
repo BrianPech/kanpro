@@ -112,6 +112,7 @@ import { JustificationReviewModal } from "./attendance/justification-review-moda
 import { OvertimeApprovalModal } from "./attendance/overtime-approval-modal";
 
 interface AttendanceViewProps {
+  companyId?: string;
   initialRecords: AttendanceRecord[];
   initialStats: AttendanceOverviewStats;
   branchConfig: GeofenceConfig;
@@ -121,6 +122,7 @@ interface AttendanceViewProps {
 }
 
 export function AttendanceView({
+  companyId,
   initialRecords,
   initialStats,
   branchConfig,
@@ -494,7 +496,7 @@ export function AttendanceView({
             className="inline-flex items-center gap-1 text-[11px] font-bold text-indigo-600 dark:text-indigo-400 bg-indigo-500/10 border-indigo-500/25 px-2 py-0.5 rounded-md"
           >
             <QrCode className="size-3" />
-            <span>QR Kiosco</span>
+            <span>QR Sucursal</span>
           </Badge>
         );
       default:
@@ -972,7 +974,7 @@ export function AttendanceView({
             className="h-9 font-semibold text-xs rounded-xl px-3.5 flex items-center gap-2 border-border/50 hover:bg-muted/40 cursor-pointer"
           >
             <QrCode className="size-4 text-indigo-600 dark:text-indigo-400" />
-            <span>Kiosco QR</span>
+            <span>📄 Cartel QR de Sucursal (Imprimir / Proyectar)</span>
           </Button>
 
           <Button
@@ -1240,7 +1242,7 @@ export function AttendanceView({
                         : methodFilter === "gps"
                         ? "GPS Geocerca"
                         : methodFilter === "qr"
-                        ? "QR Kiosco"
+                        ? "QR Sucursal"
                         : "Manual RH"}
                     </SelectValue>
                   </SelectTrigger>
@@ -1261,7 +1263,7 @@ export function AttendanceView({
                       value="qr"
                       className="text-xs font-semibold rounded-lg cursor-pointer text-indigo-600"
                     >
-                      QR Kiosco
+                      QR Sucursal
                     </SelectItem>
                     <SelectItem
                       value="manual"
@@ -1437,6 +1439,7 @@ export function AttendanceView({
         onOpenChange={setIsQrKioskOpen}
         branchConfig={branchConfig}
         companyName={companyName}
+        companyId={companyId}
       />
 
       {/* Modal 3: Employee Attendance Dossier (Monthly Calendar) */}

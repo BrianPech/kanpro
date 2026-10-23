@@ -41,6 +41,15 @@ describe("Fase 15: Módulo de Asistencia - Arquitectura Schema -> Handler -> Ser
       };
       const resQr = mobileCheckInSchema.safeParse(qrPayload);
       expect(resQr.success).toBe(true);
+
+      const autoPayload = {
+        employeeId: "emp-789",
+        actionType: "auto" as const,
+        method: "qr" as const,
+        qrToken: "token-auto-123",
+      };
+      const resAuto = mobileCheckInSchema.safeParse(autoPayload);
+      expect(resAuto.success).toBe(true);
     });
 
     test("mobileCheckInSchema: Rechaza entrada con datos inválidos", () => {
@@ -468,6 +477,161 @@ describe("Fase 15: Módulo de Asistencia - Arquitectura Schema -> Handler -> Ser
           distanceMeters: 350, // 350 metros > 150m de límite
         })
       ).rejects.toThrow(/Fuera de la zona de trabajo autorizada/);
+    });
+
+    test("recordMobileCheckIn: actionType auto registra Entrada (check_in) cuando no existe registro hoy", async () => {
+      const { client, attendance } = createMockSupabase({
+        employees: [
+          {
+            id: "emp-auto-1",
+            company_id: "comp-A",
+            full_name: "Mariana Treviño",
+            work_schedule: "08:00 - 17:00",
+          },
+        ],
+      });
+
+      const service = new CompanyAttendanceService(client);
+      const res = await service.recordMobileCheckIn("comp-A", {
+        employeeId: "emp-auto-1",
+        actionType: "auto",
+        method: "qr",
+        qrToken: "V9999",
+        distanceMeters: 20,
+      });
+
+      expect(res.actionTaken).toBe("check_in");
+      expect(res.record.check_in_time).toBeDefined();
+      expect(res.record.check_out_time).toBeNull();
+      expect(attendance.length).toBe(1);
+    });
+
+    test("recordMobileCheckIn: actionType auto registra Salida (check_out) si ya existe Entrada hoy", async () => {
+      const todayStr = new Date().toISOString().split("T")[0];
+      const existingIn: AttendanceRow = {
+        id: "att-auto-existing",
+        company_id: "comp-A",
+        employee_id: "emp-auto-2",
+        work_date: todayStr,
+        scheduled_check_in: "08:00",
+        scheduled_check_out: "17:00",
+        check_in_time: "08:02",
+        check_out_time: null,
+        break_start_time: null,
+        break_end_time: null,
+        check_in_method: "qr",
+        check_in_lat: 20.62,
+        check_in_lng: -87.07,
+        check_in_accuracy: 5,
+        check_in_distance_meters: 15,
+        delay_minutes: 0,
+        status: "presente",
+        overtime_hours: 0,
+        overtime_status: null,
+        overtime_rate_type: null,
+        overtime_notes: null,
+        justification_reason_type: null,
+        justification_label: null,
+        justification_comments: null,
+        justification_evidence_url: null,
+        justification_status: null,
+        justification_submitted_at: null,
+        justification_reviewed_at: null,
+        justification_reviewed_by: null,
+        notes: null,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      };
+
+      const { client, attendance } = createMockSupabase({
+        employees: [
+          {
+            id: "emp-auto-2",
+            company_id: "comp-A",
+            full_name: "Carlos Hermosillo",
+            work_schedule: "08:00 - 17:00",
+          },
+        ],
+        attendance: [existingIn],
+      });
+
+      const service = new CompanyAttendanceService(client);
+      const res = await service.recordMobileCheckIn("comp-A", {
+        employeeId: "emp-auto-2",
+        actionType: "auto",
+        method: "qr",
+        qrToken: "V9999",
+        distanceMeters: 30,
+      });
+
+      expect(res.actionTaken).toBe("check_out");
+      expect(res.record.check_in_time).toBe("08:02");
+      expect(res.record.check_out_time).toBeDefined();
+      expect(res.record.check_out_time).not.toBeNull();
+      expect(attendance.length).toBe(1);
+    });
+
+    test("recordMobileCheckIn: actionType auto actualiza Salida (check_out) si ambos ya estaban registrados hoy", async () => {
+      const todayStr = new Date().toISOString().split("T")[0];
+      const completedTurn: AttendanceRow = {
+        id: "att-auto-completed",
+        company_id: "comp-A",
+        employee_id: "emp-auto-3",
+        work_date: todayStr,
+        scheduled_check_in: "08:00",
+        scheduled_check_out: "17:00",
+        check_in_time: "07:55",
+        check_out_time: "17:05",
+        break_start_time: null,
+        break_end_time: null,
+        check_in_method: "qr",
+        check_in_lat: 20.62,
+        check_in_lng: -87.07,
+        check_in_accuracy: 5,
+        check_in_distance_meters: 10,
+        delay_minutes: 0,
+        status: "presente",
+        overtime_hours: 0,
+        overtime_status: null,
+        overtime_rate_type: null,
+        overtime_notes: null,
+        justification_reason_type: null,
+        justification_label: null,
+        justification_comments: null,
+        justification_evidence_url: null,
+        justification_status: null,
+        justification_submitted_at: null,
+        justification_reviewed_at: null,
+        justification_reviewed_by: null,
+        notes: null,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      };
+
+      const { client } = createMockSupabase({
+        employees: [
+          {
+            id: "emp-auto-3",
+            company_id: "comp-A",
+            full_name: "Lucía Méndez",
+            work_schedule: "08:00 - 17:00",
+          },
+        ],
+        attendance: [completedTurn],
+      });
+
+      const service = new CompanyAttendanceService(client);
+      const res = await service.recordMobileCheckIn("comp-A", {
+        employeeId: "emp-auto-3",
+        actionType: "auto",
+        method: "qr",
+        qrToken: "V9999",
+        distanceMeters: 12,
+      });
+
+      expect(res.actionTaken).toBe("check_out");
+      expect(res.record.check_in_time).toBe("07:55");
+      expect(res.record.check_out_time).toBeDefined();
     });
 
     test("generateQrSvg: Genera código QR vectorial SVG válido para el kiosco de la sucursal", async () => {

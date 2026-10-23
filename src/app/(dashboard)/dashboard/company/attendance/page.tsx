@@ -27,6 +27,7 @@ export default async function CompanyAttendancePage({ searchParams }: CompanyAtt
 
   return (
     <AttendanceView
+      companyId={data.companyId || user?.id || ""}
       initialRecords={data.records}
       initialStats={data.stats}
       branchConfig={data.branchConfig}

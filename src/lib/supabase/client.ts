@@ -2,8 +2,28 @@ import { createBrowserClient } from '@supabase/ssr'
 import type { Database } from '@/types/supabase'
 
 export function createClient() {
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL
+  let url = process.env.NEXT_PUBLIC_SUPABASE_URL
   const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+
+  if (typeof window !== 'undefined' && url) {
+    try {
+      const parsedUrl = new URL(url)
+      // When developing locally and browsing from a mobile phone or another device on the LAN:
+      // If the configured Supabase URL points to loopback (127.0.0.1 or localhost)
+      // and the browser is browsing via a local LAN IP (e.g. 192.168.1.91),
+      // dynamically point to the host machine's IP so client-side API requests succeed.
+      if (
+        (parsedUrl.hostname === '127.0.0.1' || parsedUrl.hostname === 'localhost') &&
+        window.location.hostname !== 'localhost' &&
+        window.location.hostname !== '127.0.0.1'
+      ) {
+        parsedUrl.hostname = window.location.hostname
+        url = parsedUrl.origin
+      }
+    } catch {
+      // ignore
+    }
+  }
 
   if (!url || !anonKey) {
     const createMock = (): ReturnType<typeof createBrowserClient<Database>> => {

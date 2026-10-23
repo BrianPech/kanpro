@@ -50,6 +50,7 @@ import {
   MobileCheckInPayload,
   AttendanceRecord,
   EmployeeSelectOption,
+  AttendanceActionType,
 } from "../../types/attendance";
 import { calculateDistanceInMeters } from "../../utils/attendance-utils";
 import { recordAttendanceCheckInAction } from "../../actions/attendance";
@@ -71,7 +72,7 @@ interface AttendanceVoucherData {
   checkInTime: string;
   isLate: boolean;
   delayMinutes: number;
-  actionType: "check_in" | "check_out" | "break_start" | "break_end";
+  actionType: AttendanceActionType;
   method: string;
   distanceMeters: number;
 }
@@ -222,6 +223,9 @@ export function MobileCheckInSheet({
       if (rawText.startsWith("KANPRO://CHECKIN")) {
         const url = new URL(rawText.replace("KANPRO://CHECKIN", "https://checkin.kanpro"));
         token = url.searchParams.get("token") || token;
+      } else if (rawText.includes("/checkin")) {
+        const url = new URL(rawText, "https://checkin.kanpro");
+        token = url.searchParams.get("t") || url.searchParams.get("token") || token;
       } else if (rawText.startsWith("{")) {
         const parsed = JSON.parse(rawText);
         token = parsed.token || parsed.qrToken || token;
@@ -370,7 +374,7 @@ export function MobileCheckInSheet({
         checkInTime: res.timeStr || raw.check_in_time || "--:--",
         isLate: !!res.isLate,
         delayMinutes: res.delayMinutes || 0,
-        actionType,
+        actionType: res.actionTaken || actionType,
         method: activeTab,
         distanceMeters,
       });

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect } from "react";
 import Link from "next/link";
 import {
   Building2,
@@ -27,6 +27,8 @@ import {
   Bookmark,
   Share2,
   Check,
+  QrCode,
+  Camera,
 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -43,6 +45,7 @@ import type {
   VacancyItem,
 } from "@/modules/candidate/services/candidate-dashboard";
 import { ForcePasswordChangeAlert } from "../password/force-password-change-alert";
+import { QrAttendanceScannerModal } from "./qr-attendance-scanner-modal";
 
 export interface ActiveEmployeePortalViewProps {
   employment: ActiveEmploymentData;
@@ -56,6 +59,13 @@ export function ActiveEmployeePortalView({
   const [showJobMarket, setShowJobMarket] = useState(false);
   const [jobSearchQuery, setJobSearchQuery] = useState("");
   const [savedJobIds, setSavedJobIds] = useState<Set<string>>(new Set());
+  const [todayAttendance, setTodayAttendance] = useState(employment.todayAttendance);
+  const [isQrScannerOpen, setIsQrScannerOpen] = useState(false);
+
+  // Sync state if employment.todayAttendance changes
+  useEffect(() => {
+    setTodayAttendance(employment.todayAttendance);
+  }, [employment.todayAttendance]);
 
   // Company logo fallback initials
   const companyInitials = useMemo(() => {
@@ -246,6 +256,69 @@ export function ActiveEmployeePortalView({
         </div>
       </div>
 
+      {/* ── 2.5 BANNER PROMINENTE DE ASISTENCIA CON CÁMARA ── */}
+      <div className="bg-card border border-border/80 rounded-3xl p-5 sm:p-6 shadow-xs flex flex-col md:flex-row items-center justify-between gap-5 transition-all">
+        <div className="flex items-center gap-4 w-full md:w-auto">
+          <div className="size-13 rounded-2xl bg-primary/10 text-primary border border-primary/20 flex items-center justify-center shrink-0 shadow-2xs">
+            <Camera className="size-6 text-primary" />
+          </div>
+          <div className="space-y-1">
+            <div className="flex flex-wrap items-center gap-2">
+              <Badge
+                variant="outline"
+                className={cn(
+                  "text-[10px] px-2.5 py-0.5 font-bold uppercase tracking-wider",
+                  !todayAttendance?.hasCheckedIn
+                    ? "bg-amber-500/10 text-amber-700 dark:text-amber-400 border-amber-500/30"
+                    : !todayAttendance?.hasCheckedOut
+                    ? "bg-primary/10 text-primary border-primary/20"
+                    : "bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border-emerald-500/30"
+                )}
+              >
+                {!todayAttendance?.hasCheckedIn
+                  ? "Turno Pendiente"
+                  : !todayAttendance?.hasCheckedOut
+                  ? "Turno en Curso"
+                  : "Jornada Completada"}
+              </Badge>
+              <span className="text-xs text-muted-foreground font-medium">
+                Horario: {employment.workSchedule || "08:00 - 17:00"}
+              </span>
+            </div>
+            <h3 className="text-base sm:text-lg font-bold text-foreground tracking-tight">
+              {!todayAttendance?.hasCheckedIn
+                ? "Registra tu Asistencia de Hoy"
+                : !todayAttendance?.hasCheckedOut
+                ? `Entrada registrada a las ${todayAttendance.checkInTime} hrs`
+                : `Jornada finalizada (Salida: ${todayAttendance.checkOutTime} hrs)`}
+            </h3>
+            <p className="text-xs text-muted-foreground">
+              {!todayAttendance?.hasCheckedIn
+                ? "Escanea el código QR de tu sucursal con la cámara para marcar tu entrada laboral."
+                : !todayAttendance?.hasCheckedOut
+                ? "Al terminar tu jornada, vuelve a escanear el QR para registrar tu salida oficial."
+                : "Registro laboral completado para el día de hoy."}
+            </p>
+          </div>
+        </div>
+
+        <Button
+          type="button"
+          onClick={() => setIsQrScannerOpen(true)}
+          size="lg"
+          className="w-full md:w-auto h-12 px-6 rounded-2xl bg-primary hover:bg-primary/90 text-primary-foreground font-bold text-sm shadow-xs flex items-center justify-center gap-2.5 shrink-0 transition-transform active:scale-95"
+        >
+          <Camera className="size-5" />
+          <span>
+            {!todayAttendance?.hasCheckedIn
+              ? "Escanear QR con Cámara"
+              : !todayAttendance?.hasCheckedOut
+              ? "Escanear Salida con QR"
+              : "Volver a Escanear"}
+          </span>
+        </Button>
+      </div>
+
       {/* ── 3. FOUR KEY OPERATIONAL KPI CARDS ── */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {/* CARD 1: MI JORNADA HOY */}
@@ -260,11 +333,11 @@ export function ActiveEmployeePortalView({
               </div>
             </div>
 
-            {employment.todayAttendance?.hasCheckedIn ? (
+            {todayAttendance?.hasCheckedIn ? (
               <div className="space-y-1">
                 <div className="flex items-baseline gap-2">
                   <span className="text-2xl font-black text-foreground font-mono">
-                    {employment.todayAttendance.checkInTime}
+                    {todayAttendance.checkInTime}
                   </span>
                   <Badge
                     variant="outline"
@@ -274,16 +347,16 @@ export function ActiveEmployeePortalView({
                   </Badge>
                 </div>
                 <p className="text-xs text-muted-foreground">
-                  {employment.todayAttendance.hasCheckedOut
-                    ? `Salida: ${employment.todayAttendance.checkOutTime}`
+                  {todayAttendance.hasCheckedOut
+                    ? `Salida: ${todayAttendance.checkOutTime}`
                     : "Turno en curso"}
                 </p>
-                {employment.todayAttendance.delayMinutes > 0 && (
+                {todayAttendance.delayMinutes > 0 && (
                   <Badge
                     variant="secondary"
                     className="text-[10px] bg-amber-500/10 text-amber-700 dark:text-amber-300 font-semibold mt-1"
                   >
-                    +{employment.todayAttendance.delayMinutes} min retardo
+                    +{todayAttendance.delayMinutes} min retardo
                   </Badge>
                 )}
               </div>
@@ -303,9 +376,49 @@ export function ActiveEmployeePortalView({
                 </Badge>
               </div>
             )}
+
+            {/* Action button for QR branch check-in */}
+            <div className="pt-2">
+              {!todayAttendance?.hasCheckedIn ? (
+                <Button
+                  type="button"
+                  onClick={() => setIsQrScannerOpen(true)}
+                  className="w-full h-10 rounded-2xl bg-primary hover:bg-primary/90 text-primary-foreground font-bold text-xs shadow-xs flex items-center justify-center gap-2 group transition-all"
+                >
+                  <QrCode className="size-4 transition-transform group-hover:scale-110" />
+                  <span>Escanear QR de Sucursal</span>
+                </Button>
+              ) : !todayAttendance?.hasCheckedOut ? (
+                <Button
+                  type="button"
+                  onClick={() => setIsQrScannerOpen(true)}
+                  variant="outline"
+                  className="w-full h-10 rounded-2xl border-border bg-card hover:bg-muted text-foreground font-bold text-xs shadow-xs flex items-center justify-center gap-2 group transition-all"
+                >
+                  <QrCode className="size-4 transition-transform group-hover:scale-110 text-primary" />
+                  <span>Registrar Salida con QR</span>
+                </Button>
+              ) : (
+                <div className="flex items-center justify-between bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 rounded-xl px-3 py-2 text-xs font-semibold">
+                  <span className="flex items-center gap-1.5">
+                    <CheckCircle2 className="size-3.5" />
+                    Jornada completada
+                  </span>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setIsQrScannerOpen(true)}
+                    className="h-6 px-1.5 text-[11px] hover:bg-emerald-500/20 font-bold"
+                  >
+                    Volver a checar
+                  </Button>
+                </div>
+              )}
+            </div>
           </div>
 
-          <div className="pt-4 mt-3 border-t border-border/50 text-[11px] text-muted-foreground flex items-center justify-between">
+          <div className="pt-3 mt-3 border-t border-border/50 text-[11px] text-muted-foreground flex items-center justify-between">
             <span>Control de Asistencia LFT</span>
             <CheckCircle2 className="size-3.5 text-emerald-500" />
           </div>
@@ -652,6 +765,33 @@ export function ActiveEmployeePortalView({
           </div>
         )}
       </div>
+
+      {/* QR Attendance Scanner Modal */}
+      <QrAttendanceScannerModal
+        isOpen={isQrScannerOpen}
+        onOpenChange={setIsQrScannerOpen}
+        onCheckInSuccess={(data) => {
+          if (data.actionType === "check_in") {
+            setTodayAttendance({
+              hasCheckedIn: true,
+              hasCheckedOut: false,
+              checkInTime: data.timeStr,
+              checkOutTime: null,
+              status: data.isLate ? "retardo" : "presente",
+              delayMinutes: data.delayMinutes,
+            });
+          } else {
+            setTodayAttendance((prev) => ({
+              hasCheckedIn: true,
+              hasCheckedOut: true,
+              checkInTime: prev?.checkInTime ?? data.timeStr,
+              checkOutTime: data.timeStr,
+              status: prev?.status ?? "presente",
+              delayMinutes: prev?.delayMinutes ?? 0,
+            }));
+          }
+        }}
+      />
     </div>
   );
 }

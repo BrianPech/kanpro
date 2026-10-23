@@ -17,6 +17,7 @@ export const actionTypeEnum = z.enum([
   "check_out",
   "break_start",
   "break_end",
+  "auto",
 ]);
 
 export const overtimeRateTypeEnum = z.enum(["doble", "triple"]);

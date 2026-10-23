@@ -26,6 +26,7 @@ export {
 } from "../utils/attendance-utils";
 
 export interface CompanyAttendanceResponse {
+  companyId?: string;
   companyName: string;
   workDate: string;
   branchConfig: GeofenceConfig;
@@ -48,6 +49,8 @@ export interface MobileCheckInResult {
   department: string;
   scheduledCheckIn: string;
   scheduledCheckOut: string;
+  actionTaken?: "check_in" | "check_out" | "break_start" | "break_end";
+  actionType?: "check_in" | "check_out" | "break_start" | "break_end";
 }
 
 const MONTH_NAMES = [
@@ -146,6 +149,30 @@ export class CompanyAttendanceService {
     const now = new Date();
     const { workDate, timeStr, isLate, delayMinutes } = calculateDelayMinutes(scheduledCheckIn, now);
 
+    let effectiveActionType: "check_in" | "check_out" | "break_start" | "break_end" =
+      input.actionType === "auto" ? "check_in" : input.actionType;
+
+    let existingRecord: AttendanceRow | null = null;
+    const { data: existing } = await this.supabase
+      .from("company_attendance")
+      .select("*")
+      .eq("company_id", companyId)
+      .eq("employee_id", employee.id)
+      .eq("work_date", workDate)
+      .maybeSingle();
+
+    existingRecord = existing;
+
+    if (input.actionType === "auto") {
+      if (!existingRecord || !existingRecord.check_in_time) {
+        effectiveActionType = "check_in";
+      } else if (!existingRecord.check_out_time) {
+        effectiveActionType = "check_out";
+      } else {
+        effectiveActionType = "check_out";
+      }
+    }
+
     const upsertPayload = this.buildMobileUpsertPayload(
       employee.company_id,
       employee.id,
@@ -153,10 +180,12 @@ export class CompanyAttendanceService {
       scheduledCheckIn,
       scheduledCheckOut,
       input,
+      effectiveActionType,
       timeStr,
       isLate,
       delayMinutes,
-      now
+      now,
+      existingRecord
     );
 
     const { data, error } = await this.supabase
@@ -179,6 +208,8 @@ export class CompanyAttendanceService {
       department: employee.department || "Operaciones",
       scheduledCheckIn,
       scheduledCheckOut,
+      actionTaken: effectiveActionType,
+      actionType: effectiveActionType,
     };
   }
 
@@ -337,7 +368,7 @@ export class CompanyAttendanceService {
     const branchConfig: GeofenceConfig = { ...DEFAULT_GEOFENCE };
 
     if (!companyId) {
-      return this.buildEmptyAttendanceResponse(todayStr, branchConfig);
+      return this.buildEmptyAttendanceResponse(todayStr, branchConfig, companyId);
     }
 
     const [profileRes, employeesRes, attendanceRes, leavesRes] = await Promise.all([
@@ -443,6 +474,7 @@ export class CompanyAttendanceService {
     const stats = this.computeOverviewStats(records);
 
     return {
+      companyId,
       companyName,
       workDate: todayStr,
       branchConfig,
@@ -459,10 +491,12 @@ export class CompanyAttendanceService {
     scheduledCheckIn: string,
     scheduledCheckOut: string,
     input: MobileCheckInInput,
+    resolvedActionType: "check_in" | "check_out" | "break_start" | "break_end",
     timeStr: string,
     isLate: boolean,
     delayMinutes: number,
-    now: Date
+    now: Date,
+    existingRecord?: AttendanceRow | null
   ): AttendanceInsert {
     const payload: AttendanceInsert = {
       company_id: companyId,
@@ -473,8 +507,18 @@ export class CompanyAttendanceService {
       updated_at: now.toISOString(),
     };
 
-    if (input.actionType === "check_in") {
+    if (existingRecord) {
+      if (existingRecord.check_in_time) payload.check_in_time = existingRecord.check_in_time;
+      if (existingRecord.check_in_method) payload.check_in_method = existingRecord.check_in_method;
+      if (existingRecord.status) payload.status = existingRecord.status;
+      if (existingRecord.delay_minutes != null) payload.delay_minutes = existingRecord.delay_minutes;
+      if (existingRecord.check_in_lat != null) payload.check_in_lat = existingRecord.check_in_lat;
+      if (existingRecord.check_in_lng != null) payload.check_in_lng = existingRecord.check_in_lng;
+    }
+
+    if (resolvedActionType === "check_in") {
       payload.check_in_time = timeStr;
+      payload.check_out_time = null;
       payload.check_in_method = input.method;
       payload.delay_minutes = isLate ? delayMinutes : 0;
       payload.status = isLate ? "retardo" : "presente";
@@ -486,11 +530,11 @@ export class CompanyAttendanceService {
       if (input.distanceMeters != null) {
         payload.check_in_distance_meters = input.distanceMeters;
       }
-    } else if (input.actionType === "check_out") {
+    } else if (resolvedActionType === "check_out") {
       payload.check_out_time = timeStr;
-    } else if (input.actionType === "break_start") {
+    } else if (resolvedActionType === "break_start") {
       payload.break_start_time = timeStr;
-    } else if (input.actionType === "break_end") {
+    } else if (resolvedActionType === "break_end") {
       payload.break_end_time = timeStr;
     }
 
@@ -596,9 +640,11 @@ export class CompanyAttendanceService {
 
   private buildEmptyAttendanceResponse(
     todayStr: string,
-    branchConfig: GeofenceConfig
+    branchConfig: GeofenceConfig,
+    companyId?: string
   ): CompanyAttendanceResponse {
     return {
+      companyId: companyId || "",
       companyName: "Mi Empresa",
       workDate: todayStr,
       branchConfig,

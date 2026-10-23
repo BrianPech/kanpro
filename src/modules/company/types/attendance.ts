@@ -128,10 +128,17 @@ export interface EmployeeAttendanceHistory {
   days: EmployeeAttendanceDay[];
 }
 
+export type AttendanceActionType =
+  | "check_in"
+  | "check_out"
+  | "break_start"
+  | "break_end"
+  | "auto";
+
 export interface MobileCheckInPayload {
   employeeId: string;
   employeeName: string;
-  actionType: "check_in" | "check_out" | "break_start" | "break_end";
+  actionType: AttendanceActionType;
   method: CheckInMethod;
   coordinates?: {
     lat: number;

@@ -32,7 +32,16 @@ export function LoginForm() {
       </div>
 
       {/* ── Form: Email & Password Only ── */}
-      <form onSubmit={handleSubmit(onSubmit)} className="space-y-4 w-full" noValidate>
+      <form
+        method="post"
+        action="#"
+        onSubmit={(e) => {
+          e.preventDefault();
+          handleSubmit(onSubmit)(e);
+        }}
+        className="space-y-4 w-full"
+        noValidate
+      >
         {/* Email */}
         <div className="space-y-1.5">
           <Label htmlFor="email" className="text-xs font-bold text-foreground">

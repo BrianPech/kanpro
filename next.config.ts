@@ -4,7 +4,13 @@ import createMDX from "@next/mdx";
 const nextConfig: NextConfig = {
   pageExtensions: ["js", "jsx", "md", "mdx", "ts", "tsx"],
   reactCompiler: true,
-  allowedDevOrigins: ["127.0.0.1", "localhost"],
+  allowedDevOrigins: [
+    "127.0.0.1",
+    "localhost",
+    "192.168.1.91",
+    "192.168.1.91:3000",
+    "*.local",
+  ],
   onDemandEntries: {
     maxInactiveAge: 20 * 1000,
     pagesBufferLength: 3,

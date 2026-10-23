@@ -59,7 +59,12 @@ export function CompanyRegisterForm() {
 
       {/* ── 2. Main Registration Form (Email & Contraseña Únicamente) ── */}
       <form
-        onSubmit={handleSubmit(onSubmit)}
+        method="post"
+        action="#"
+        onSubmit={(e) => {
+          e.preventDefault();
+          handleSubmit(onSubmit)(e);
+        }}
         className="w-full flex flex-col items-center gap-3.5"
         noValidate
       >

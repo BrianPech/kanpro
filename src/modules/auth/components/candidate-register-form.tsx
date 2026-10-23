@@ -62,7 +62,12 @@ export function CandidateRegisterForm() {
 
       {/* ── 2. Formulario de Registro (Nombre, Fecha de Nacimiento, Email y Contraseña) ── */}
       <form
-        onSubmit={handleSubmit(onSubmit)}
+        method="post"
+        action="#"
+        onSubmit={(e) => {
+          e.preventDefault();
+          handleSubmit(onSubmit)(e);
+        }}
         className="w-full flex flex-col items-center gap-3.5"
         noValidate
       >
