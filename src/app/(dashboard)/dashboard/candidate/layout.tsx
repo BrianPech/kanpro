@@ -36,7 +36,7 @@ export default async function CandidateDashboardLayout({
             {children}
           </main>
         </ScrollArea>
-        <CandidateBottomNav />
+        <CandidateBottomNav isEmployee={isEmployee} />
       </SidebarInset>
     </SidebarProvider>
   );

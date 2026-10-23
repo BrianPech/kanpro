@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import Link from "next/link";
 import {
   Bell,
   Clock,
@@ -8,6 +9,7 @@ import {
   Briefcase,
   Sparkles,
   Check,
+  ArrowRight,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -81,15 +83,13 @@ export function NotificationBell({ userId }: NotificationBellProps) {
   };
 
   return (
-    <DropdownMenu>
-      <DropdownMenuTrigger
-        render={
-          <Button
-            variant="ghost"
-            size="icon"
-            className="relative h-8 w-8 rounded-lg text-muted-foreground hover:bg-muted transition-all duration-200 cursor-pointer"
-          />
-        }
+    <>
+      {/* Mobile Trigger: direct link to inbox */}
+      <Button
+        variant="ghost"
+        size="icon"
+        render={<Link href="/dashboard/candidate/inbox" />}
+        className="relative h-8 w-8 rounded-lg text-muted-foreground hover:bg-muted transition-all duration-200 cursor-pointer md:hidden"
       >
         <Bell className="size-4" />
         {unreadCount > 0 && (
@@ -97,8 +97,29 @@ export function NotificationBell({ userId }: NotificationBellProps) {
             {unreadCount}
           </span>
         )}
-        <span className="sr-only">Abrir notificaciones</span>
-      </DropdownMenuTrigger>
+        <span className="sr-only">Ir a notificaciones</span>
+      </Button>
+
+      {/* Desktop Trigger & Popover Dropdown */}
+      <div className="hidden md:block">
+        <DropdownMenu>
+          <DropdownMenuTrigger
+            render={
+              <Button
+                variant="ghost"
+                size="icon"
+                className="relative h-8 w-8 rounded-lg text-muted-foreground hover:bg-muted transition-all duration-200 cursor-pointer"
+              />
+            }
+          >
+            <Bell className="size-4" />
+            {unreadCount > 0 && (
+              <span className="absolute -right-0.5 -top-0.5 flex h-4 w-4 items-center justify-center rounded-full bg-primary text-[9px] font-bold text-primary-foreground ring-2 ring-background animate-in zoom-in-50 duration-200">
+                {unreadCount}
+              </span>
+            )}
+            <span className="sr-only">Abrir notificaciones</span>
+          </DropdownMenuTrigger>
       
       {/* Airy & Liquid Glass styling */}
       <DropdownMenuContent
@@ -217,22 +238,33 @@ export function NotificationBell({ userId }: NotificationBellProps) {
         </ScrollArea>
 
         {/* Footer Block */}
-        {unreadCount > 0 && (
-          <div className="border-t border-border/40 p-1.5 text-center bg-muted/10">
+        <div className="border-t border-border/40 p-2 flex items-center justify-between gap-2 bg-muted/10">
+          {unreadCount > 0 ? (
             <button
               onClick={(e) => {
                 e.preventDefault();
                 e.stopPropagation();
                 markAllAsRead();
               }}
-              className="w-full text-center rounded-lg px-3 py-1.5 text-xs font-bold text-primary hover:bg-primary/10 transition-colors cursor-pointer flex items-center justify-center gap-1.5"
+              className="rounded-lg px-2.5 py-1 text-xs font-bold text-primary hover:bg-primary/10 transition-colors cursor-pointer flex items-center gap-1.5"
             >
               <Check className="size-3.5" />
-              <span>Marcar todas como leídas</span>
+              <span>Marcar leídas</span>
             </button>
-          </div>
-        )}
+          ) : (
+            <div />
+          )}
+          <Link
+            href="/dashboard/candidate/inbox"
+            className="text-xs font-semibold text-muted-foreground hover:text-foreground transition-colors px-2.5 py-1 rounded-lg hover:bg-muted/50 flex items-center gap-1 ml-auto"
+          >
+            <span>Ver bandeja</span>
+            <ArrowRight className="size-3" />
+          </Link>
+        </div>
       </DropdownMenuContent>
     </DropdownMenu>
+  </div>
+</>
   );
 }
