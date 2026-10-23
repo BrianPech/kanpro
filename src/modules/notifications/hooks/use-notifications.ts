@@ -36,8 +36,17 @@ export function useNotifications(userId: string) {
     const unsubscribe = notificationService.subscribeToNotifications(
       userId,
       (newNotification) => {
-        // Prepend new notification to the active list
-        setNotifications((prev) => [newNotification, ...prev]);
+        // Prepend new notification to the active list avoiding duplicates
+        setNotifications((prev) => {
+          if (prev.some((n) => n.id === newNotification.id)) return prev;
+          return [newNotification, ...prev];
+        });
+      },
+      (updatedNotification) => {
+        // Update notification status (e.g. is_read) in real time
+        setNotifications((prev) =>
+          prev.map((n) => (n.id === updatedNotification.id ? updatedNotification : n))
+        );
       }
     );
 

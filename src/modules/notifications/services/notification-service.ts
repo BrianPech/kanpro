@@ -57,15 +57,18 @@ export const notificationService = {
     }
   },
 
-  // Listen to INSERT events in real-time filtered by user_id
+  // Listen to INSERT and UPDATE events in real-time filtered by user_id
   subscribeToNotifications(
     userId: string,
-    onNotification: (notification: Notification) => void
+    onNotification: (notification: Notification) => void,
+    onUpdate?: (notification: Notification) => void
   ) {
     const supabase = createClient();
+    const uniqueSuffix = `${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
+    const channelName = `notifications-${userId}-${uniqueSuffix}`;
 
     const channel = supabase
-      .channel(`public:notifications:user_id=eq.${userId}`)
+      .channel(channelName)
       .on(
         "postgres_changes",
         {
@@ -77,6 +80,20 @@ export const notificationService = {
         (payload: any) => {
           if (payload.new) {
             onNotification(payload.new as Notification);
+          }
+        }
+      )
+      .on(
+        "postgres_changes",
+        {
+          event: "UPDATE",
+          schema: "public",
+          table: "notifications",
+          filter: `user_id=eq.${userId}`,
+        },
+        (payload: any) => {
+          if (payload.new && onUpdate) {
+            onUpdate(payload.new as Notification);
           }
         }
       )

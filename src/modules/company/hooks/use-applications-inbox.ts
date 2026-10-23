@@ -260,8 +260,9 @@ export function useApplicationsInbox() {
   React.useEffect(() => {
     if (!userId) return;
 
+    const channelSuffix = `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
     const channel = supabase
-      .channel(`company-applications-live-${userId}`)
+      .channel(`company-applications-live-${userId}-${channelSuffix}`)
       .on(
         "postgres_changes",
         {
