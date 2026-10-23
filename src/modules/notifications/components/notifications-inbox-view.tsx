@@ -11,9 +11,6 @@ import {
   Inbox,
   Clock,
   ArrowRight,
-  Filter,
-  Check,
-  RefreshCw,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -103,118 +100,84 @@ export function NotificationsInboxView({ userId }: NotificationsInboxViewProps) 
   };
 
   return (
-    <div className="space-y-5 max-w-3xl mx-auto w-full pb-10">
-      {/* ── 1. Page Header ── */}
-      <div className="bg-card border border-border/80 rounded-3xl p-5 sm:p-6 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div className="flex items-center gap-3.5">
-          <div className="size-12 rounded-2xl bg-primary/10 text-primary border border-primary/20 flex items-center justify-center shrink-0 shadow-2xs">
-            <Inbox className="size-6 text-primary" />
-          </div>
-          <div className="space-y-0.5">
-            <div className="flex items-center gap-2">
-              <h1 className="text-xl sm:text-2xl font-black text-foreground tracking-tight">
-                Bandeja de Entrada
-              </h1>
-              {unreadCount > 0 && (
-                <Badge className="rounded-full bg-primary text-primary-foreground text-xs font-bold px-2 py-0.5">
-                  {unreadCount} sin leer
-                </Badge>
-              )}
-            </div>
-            <p className="text-xs text-muted-foreground">
-              Historial de alertas sobre tus vacantes, postulaciones y avisos oficiales.
-            </p>
-          </div>
-        </div>
-
-        <div className="flex items-center gap-2 shrink-0">
+    <div className="space-y-4 max-w-3xl mx-auto w-full pb-10">
+      {/* ── Filter Tabs & Quick Action ── */}
+      <div className="flex items-center justify-between gap-2 overflow-x-auto pb-1 scrollbar-none">
+        <div className="flex items-center gap-1.5 overflow-x-auto scrollbar-none">
           <Button
             type="button"
-            variant="outline"
+            variant="ghost"
             size="sm"
-            onClick={refresh}
-            title="Actualizar notificaciones"
-            className="h-9 px-3 rounded-xl border-border bg-card hover:bg-muted text-foreground text-xs font-semibold gap-1.5"
+            onClick={() => setFilter("all")}
+            className={cn(
+              "h-8 px-3 rounded-xl text-xs font-semibold cursor-pointer transition-all shrink-0",
+              filter === "all"
+                ? "bg-primary text-primary-foreground font-bold shadow-2xs hover:bg-primary/90"
+                : "bg-muted/60 text-muted-foreground hover:text-foreground hover:bg-muted"
+            )}
           >
-            <RefreshCw className="size-3.5" />
-            <span className="hidden sm:inline">Actualizar</span>
+            Todas ({notifications.length})
           </Button>
 
-          {unreadCount > 0 && (
-            <Button
-              type="button"
-              size="sm"
-              onClick={markAllAsRead}
-              className="h-9 px-3.5 rounded-xl bg-primary hover:bg-primary/90 text-primary-foreground font-bold text-xs gap-1.5 shadow-2xs"
-            >
-              <CheckCheck className="size-4" />
-              <span>Marcar leídas</span>
-            </Button>
-          )}
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            onClick={() => setFilter("unread")}
+            className={cn(
+              "h-8 px-3 rounded-xl text-xs font-semibold cursor-pointer transition-all shrink-0",
+              filter === "unread"
+                ? "bg-primary text-primary-foreground font-bold shadow-2xs hover:bg-primary/90"
+                : "bg-muted/60 text-muted-foreground hover:text-foreground hover:bg-muted"
+            )}
+          >
+            Sin leer {unreadCount > 0 && `(${unreadCount})`}
+          </Button>
+
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            onClick={() => setFilter("applications")}
+            className={cn(
+              "h-8 px-3 rounded-xl text-xs font-semibold cursor-pointer transition-all shrink-0",
+              filter === "applications"
+                ? "bg-primary text-primary-foreground font-bold shadow-2xs hover:bg-primary/90"
+                : "bg-muted/60 text-muted-foreground hover:text-foreground hover:bg-muted"
+            )}
+          >
+            Postulaciones
+          </Button>
+
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            onClick={() => setFilter("system")}
+            className={cn(
+              "h-8 px-3 rounded-xl text-xs font-semibold cursor-pointer transition-all shrink-0",
+              filter === "system"
+                ? "bg-primary text-primary-foreground font-bold shadow-2xs hover:bg-primary/90"
+                : "bg-muted/60 text-muted-foreground hover:text-foreground hover:bg-muted"
+            )}
+          >
+            Sistema
+          </Button>
         </div>
-      </div>
 
-      {/* ── 2. Filter Tabs ── */}
-      <div className="flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-none">
-        <Button
-          type="button"
-          variant="ghost"
-          size="sm"
-          onClick={() => setFilter("all")}
-          className={cn(
-            "h-8 px-3 rounded-xl text-xs font-semibold cursor-pointer transition-all shrink-0",
-            filter === "all"
-              ? "bg-primary text-primary-foreground font-bold shadow-2xs hover:bg-primary/90"
-              : "bg-muted/60 text-muted-foreground hover:text-foreground hover:bg-muted"
-          )}
-        >
-          Todas ({notifications.length})
-        </Button>
-
-        <Button
-          type="button"
-          variant="ghost"
-          size="sm"
-          onClick={() => setFilter("unread")}
-          className={cn(
-            "h-8 px-3 rounded-xl text-xs font-semibold cursor-pointer transition-all shrink-0",
-            filter === "unread"
-              ? "bg-primary text-primary-foreground font-bold shadow-2xs hover:bg-primary/90"
-              : "bg-muted/60 text-muted-foreground hover:text-foreground hover:bg-muted"
-          )}
-        >
-          Sin leer {unreadCount > 0 && `(${unreadCount})`}
-        </Button>
-
-        <Button
-          type="button"
-          variant="ghost"
-          size="sm"
-          onClick={() => setFilter("applications")}
-          className={cn(
-            "h-8 px-3 rounded-xl text-xs font-semibold cursor-pointer transition-all shrink-0",
-            filter === "applications"
-              ? "bg-primary text-primary-foreground font-bold shadow-2xs hover:bg-primary/90"
-              : "bg-muted/60 text-muted-foreground hover:text-foreground hover:bg-muted"
-          )}
-        >
-          Postulaciones
-        </Button>
-
-        <Button
-          type="button"
-          variant="ghost"
-          size="sm"
-          onClick={() => setFilter("system")}
-          className={cn(
-            "h-8 px-3 rounded-xl text-xs font-semibold cursor-pointer transition-all shrink-0",
-            filter === "system"
-              ? "bg-primary text-primary-foreground font-bold shadow-2xs hover:bg-primary/90"
-              : "bg-muted/60 text-muted-foreground hover:text-foreground hover:bg-muted"
-          )}
-        >
-          Sistema
-        </Button>
+        {unreadCount > 0 && (
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            onClick={markAllAsRead}
+            className="h-8 px-2.5 rounded-xl text-primary hover:bg-primary/10 text-xs font-bold gap-1 shrink-0 ml-auto cursor-pointer"
+          >
+            <CheckCheck className="size-3.5" />
+            <span className="hidden sm:inline">Marcar todas leídas</span>
+            <span className="sm:hidden">Marcar leídas</span>
+          </Button>
+        )}
       </div>
 
       {/* ── 3. Notifications Feed ── */}
