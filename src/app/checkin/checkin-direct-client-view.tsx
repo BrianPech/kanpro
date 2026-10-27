@@ -15,6 +15,7 @@ import {
   User,
   Sparkles,
   RefreshCw,
+  QrCode,
 } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -123,11 +124,11 @@ export function CheckInDirectClientView({
   };
 
   useEffect(() => {
-    if (user && employee && !hasTriggeredRef.current) {
+    if (user && employee && tokenParam && !hasTriggeredRef.current) {
       hasTriggeredRef.current = true;
       executeCheckIn();
     }
-  }, [user, employee]);
+  }, [user, employee, tokenParam]);
 
   const initials = employee?.full_name
     ? employee.full_name
@@ -243,6 +244,30 @@ export function CheckInDirectClientView({
               className="w-full h-10 rounded-2xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs"
             >
               <span>Ir a mi Portal de Candidato</span>
+              <ArrowRight className="size-3.5 ml-1.5" />
+            </Button>
+          </Card>
+        )}
+
+        {/* ── CASE 2B: AUTHENTICATED EMPLOYEE WITHOUT QR TOKEN ── */}
+        {user && employee && !tokenParam && (
+          <Card className="p-6 rounded-3xl bg-slate-900/90 border-slate-800 backdrop-blur-xl shadow-2xl space-y-4 text-center">
+            <div className="mx-auto size-12 rounded-2xl bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 flex items-center justify-center">
+              <QrCode className="size-6" />
+            </div>
+            <div className="space-y-1.5">
+              <h3 className="text-base font-extrabold text-white">
+                Escanea el código QR de tu sucursal
+              </h3>
+              <p className="text-xs text-slate-400 leading-relaxed max-w-xs mx-auto">
+                Para registrar tu entrada o salida, apunta la cámara de tu dispositivo al código QR exhibido en tu centro de trabajo.
+              </p>
+            </div>
+            <Button
+              render={<Link href="/dashboard/candidate" />}
+              className="w-full h-10 rounded-2xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs"
+            >
+              <span>Ir a mi Portal de Colaborador</span>
               <ArrowRight className="size-3.5 ml-1.5" />
             </Button>
           </Card>

@@ -13,7 +13,7 @@ export default async function CandidateContractsPage() {
   } = await supabase.auth.getUser();
 
   if (!user) {
-    redirect("/auth/login");
+    redirect("/login");
   }
 
   const [contractsResult, { data: baseProfile }, { data: privateProfile }] =

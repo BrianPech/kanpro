@@ -18,7 +18,7 @@ export default async function CandidateLeavesPage() {
   } = await supabase.auth.getUser();
 
   if (!user) {
-    redirect("/auth/login");
+    redirect("/login");
   }
 
   const initialData = await getCandidateLeavesData(supabase, user.id);

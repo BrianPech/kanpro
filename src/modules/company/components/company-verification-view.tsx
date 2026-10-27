@@ -1068,10 +1068,13 @@ function DocumentUploadCard({
           </div>
         ) : (
           /* Dropzone Click Box */
-          <div
-            onClick={() => !isUploading && !disabled && fileInputRef.current?.click()}
+          <button
+            type="button"
+            disabled={disabled || isUploading}
+            onClick={() => fileInputRef.current?.click()}
+            aria-label={`Subir documento ${title}`}
             className={cn(
-              "mt-3 p-4 bg-background rounded-xl border-2 border-dashed transition-all text-center flex flex-col items-center justify-center space-y-1.5",
+              "w-full mt-3 p-4 bg-background rounded-xl border-2 border-dashed transition-all text-center flex flex-col items-center justify-center space-y-1.5 focus-visible:ring-2 focus-visible:ring-primary focus-visible:outline-hidden",
               disabled
                 ? "border-border/40 bg-muted/10 opacity-60 cursor-not-allowed"
                 : isUploading
@@ -1100,6 +1103,8 @@ function DocumentUploadCard({
               <input
                 ref={fileInputRef}
                 type="file"
+                id={`file-input-${docType}`}
+                aria-label={`Archivo para ${title}`}
                 accept=".pdf,.png,.jpg,.jpeg"
                 onChange={(e) => {
                   const file = e.target.files?.[0];
@@ -1108,7 +1113,7 @@ function DocumentUploadCard({
                 className="hidden"
               />
             )}
-          </div>
+          </button>
         )}
       </div>
     </div>

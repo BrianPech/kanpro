@@ -369,7 +369,10 @@ export function Step2Compensation({
                     value={field.state.value || resolvedCompanyCity}
                     onValueChange={handleCitySelectChange}
                   >
-                    <SelectTrigger className="h-11 w-full rounded-2xl bg-input/50 border border-border/80 px-3.5 text-sm font-medium cursor-pointer shadow-2xs">
+                    <SelectTrigger
+                      aria-label="Ciudad o Municipio de la vacante"
+                      className="h-11 w-full rounded-2xl bg-input/50 border border-border/80 px-3.5 text-sm font-medium cursor-pointer shadow-2xs"
+                    >
                       <SelectValue placeholder="Selecciona Ciudad o Municipio" />
                     </SelectTrigger>
                     <SelectContent className="rounded-2xl border border-border/60 bg-popover shadow-xl max-h-72">
@@ -490,7 +493,10 @@ export function Step2Compensation({
                       value={activeVal}
                       onValueChange={handleZoneSelectChange}
                     >
-                      <SelectTrigger className="h-11 w-full rounded-2xl bg-input/50 border border-border/80 px-3.5 text-sm font-medium cursor-pointer shadow-2xs">
+                      <SelectTrigger
+                        aria-label="Zona o Colonia de la vacante"
+                        className="h-11 w-full rounded-2xl bg-input/50 border border-border/80 px-3.5 text-sm font-medium cursor-pointer shadow-2xs"
+                      >
                         <SelectValue placeholder="Selecciona la zona" />
                       </SelectTrigger>
                       <SelectContent className="rounded-2xl border border-border/60 bg-popover shadow-xl max-h-72">

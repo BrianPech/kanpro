@@ -81,6 +81,11 @@ describe("Checador QR en el Portal de Colaboradores (Candidate / Employee Attend
       const parsed = parseQrAttendancePayload("");
       expect(parsed.token).toBe("");
     });
+
+    test("Rechaza URL directa sin parámetros de token retornando token vacío", () => {
+      const parsed = parseQrAttendancePayload("http://localhost:3000/checkin");
+      expect(parsed.token).toBe("");
+    });
   });
 
   describe("2. Validación de Esquema Zod (employeeQrCheckInSchema)", () => {

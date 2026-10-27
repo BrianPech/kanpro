@@ -467,7 +467,7 @@ function CandidateJobSeekerDashboardView({
                               type="button"
                               onClick={(e) => handleShare(e, job)}
                               aria-label={`Compartir vacante ${job.title}`}
-                              className="text-muted-foreground hover:text-foreground p-1.5 rounded-lg hover:bg-muted transition-colors cursor-pointer"
+                              className="text-muted-foreground hover:text-foreground size-9 sm:size-8 flex items-center justify-center rounded-lg hover:bg-muted transition-colors cursor-pointer"
                             >
                               <Share2 className="size-3.5" />
                             </button>
@@ -475,7 +475,7 @@ function CandidateJobSeekerDashboardView({
                               type="button"
                               onClick={(e) => { e.stopPropagation(); toggleBookmark(job.id); }}
                               aria-label={isSaved ? `Remover ${job.title} de guardados` : `Guardar ${job.title}`}
-                              className="text-muted-foreground hover:text-amber-500 dark:hover:text-amber-400 p-1.5 rounded-lg hover:bg-muted transition-colors cursor-pointer"
+                              className="text-muted-foreground hover:text-amber-500 dark:hover:text-amber-400 size-9 sm:size-8 flex items-center justify-center rounded-lg hover:bg-muted transition-colors cursor-pointer"
                             >
                               <Bookmark className={cn("size-4 transition-transform active:scale-90", isSaved ? "fill-amber-500 text-amber-500 dark:fill-amber-400 dark:text-amber-400" : "")} />
                             </button>

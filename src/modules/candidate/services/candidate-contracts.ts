@@ -115,7 +115,13 @@ export class CandidateContractsService {
       return { contracts: [], pendingSignatureCount: 0 };
     }
 
-    const { data: dbContracts, error } = await supabase
+    const { data: employeeRow } = await supabase
+      .from("company_employees")
+      .select("id")
+      .eq("employee_id", userId)
+      .maybeSingle();
+
+    let query = supabase
       .from("company_contracts")
       .select(`
         id,
@@ -156,8 +162,13 @@ export class CandidateContractsService {
           )
         )
       `)
-      .eq("candidate_id", userId)
-      .order("created_at", { ascending: false });
+    if (employeeRow?.id) {
+      query = query.or(`candidate_id.eq.${userId},employee_id.eq.${employeeRow.id}`);
+    } else {
+      query = query.eq("candidate_id", userId);
+    }
+
+    const { data: dbContracts, error } = await query.order("created_at", { ascending: false });
 
     if (error) {
       console.error("Error fetching candidate contracts:", error);

@@ -149,6 +149,39 @@ export class CandidateLeavesService {
       }
     }
 
+    // 2b. Si no se encontró vía contrato, consultar directamente por employee_id (auth userId)
+    if (!employeeRecord) {
+      const { data: empDirect } = await supabase
+        .from("company_employees")
+        .select(`
+          id,
+          company_id,
+          job_title,
+          department,
+          hire_date,
+          company:company_profiles (
+            id,
+            company_name,
+            legal_name,
+            logo_url
+          )
+        `)
+        .eq("employee_id", userId)
+        .eq("status", "active")
+        .maybeSingle();
+
+      if (empDirect) {
+        employeeRecord = {
+          id: empDirect.id,
+          company_id: empDirect.company_id,
+          job_title: empDirect.job_title,
+          department: empDirect.department,
+          hire_date: empDirect.hire_date,
+          company: Array.isArray(empDirect.company) ? empDirect.company[0] : empDirect.company,
+        };
+      }
+    }
+
     if (!activeContract && !employeeRecord) {
       return {
         hasActiveEmployment: false,

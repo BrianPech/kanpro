@@ -54,7 +54,7 @@ export function parseQrAttendancePayload(rawInput: string): ParsedQrAttendance {
 
   if (urlObj && (urlObj.pathname.includes("checkin") || urlObj.searchParams.has("t") || urlObj.searchParams.has("token"))) {
     const sp = urlObj.searchParams;
-    const token = sp.get("t") || sp.get("token") || sp.get("tokenVersion") || trimmed;
+    const token = sp.get("t") || sp.get("token") || sp.get("tokenVersion") || "";
     const company = sp.get("c") || sp.get("company") || sp.get("companyId") || undefined;
     const branch = sp.get("b") || sp.get("branch") || sp.get("branchName") || undefined;
     const latStr = sp.get("lat");
@@ -72,7 +72,11 @@ export function parseQrAttendancePayload(rawInput: string): ParsedQrAttendance {
     };
   }
 
-  // 3. Fallback: treat as direct plain token
+  // 3. Fallback: treat as direct plain token (only if not a URL)
+  if (trimmed.startsWith("http://") || trimmed.startsWith("https://") || trimmed.startsWith("/")) {
+    return { token: "" };
+  }
+
   return {
     token: trimmed,
   };

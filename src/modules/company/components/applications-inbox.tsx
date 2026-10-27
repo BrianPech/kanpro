@@ -697,7 +697,8 @@ export function ApplicationsInbox() {
                   key={star}
                   type="button"
                   onClick={() => handleUpdateRating(app.id, star)}
-                  className="cursor-pointer hover:scale-110 transition-transform p-0.5"
+                  aria-label={`Calificar con ${star} de 5 estrellas a ${app.name}`}
+                  className="cursor-pointer hover:scale-110 focus-visible:ring-2 focus-visible:ring-amber-500 rounded-xs outline-hidden transition-all p-0.5"
                   title={`Calificar con ${star} estrellas`}
                 >
                   <Star
@@ -744,6 +745,7 @@ export function ApplicationsInbox() {
                 }
               >
                 <SelectTrigger
+                  aria-label={`Estado de ${app.name}: ${app.status}`}
                   className={cn(
                     "h-7 px-2.5 rounded-full text-[10px] font-extrabold border-none shadow-2xs cursor-pointer",
                     getStatusBadgeClass(app.status)
@@ -844,6 +846,7 @@ export function ApplicationsInbox() {
                     <Button
                       size="icon-sm"
                       variant="ghost"
+                      aria-label={`Más acciones para ${app.name}`}
                       className="size-8 rounded-lg text-muted-foreground hover:text-foreground cursor-pointer"
                     />
                   }
@@ -1029,7 +1032,10 @@ export function ApplicationsInbox() {
                 value={selectedVacancyId}
                 onValueChange={(val) => setSelectedVacancyId(val || "all")}
               >
-                <SelectTrigger className="h-9 w-full rounded-xl border-border/60 bg-background text-xs font-bold shadow-2xs">
+                <SelectTrigger
+                  aria-label="Filtrar por vacante"
+                  className="h-9 w-full rounded-xl border-border/60 bg-background text-xs font-bold shadow-2xs"
+                >
                   <SelectValue placeholder="Seleccionar vacante...">
                     {selectedVacancyId === "all"
                       ? `Todas las vacantes (${applicants.length})`
@@ -1337,7 +1343,10 @@ export function ApplicationsInbox() {
                   value={selectedVacancyId}
                   onValueChange={(val) => setSelectedVacancyId(val || "all")}
                 >
-                  <SelectTrigger className="h-9 w-full rounded-xl border-border/50 bg-background text-xs font-semibold">
+                  <SelectTrigger
+                    aria-label="Filtrar candidatos por vacante"
+                    className="h-9 w-full rounded-xl border-border/50 bg-background text-xs font-semibold"
+                  >
                     <SelectValue placeholder="Todas las vacantes">
                       {selectedVacancyId === "all"
                         ? `Todas las vacantes (${applicants.length})`
@@ -1370,7 +1379,10 @@ export function ApplicationsInbox() {
                   value={ratingFilter}
                   onValueChange={(val) => setRatingFilter(val || "all")}
                 >
-                  <SelectTrigger className="h-9 w-full rounded-xl border-border/50 bg-background text-xs font-semibold">
+                  <SelectTrigger
+                    aria-label="Filtrar por calificación de estrellas"
+                    className="h-9 w-full rounded-xl border-border/50 bg-background text-xs font-semibold"
+                  >
                     <SelectValue placeholder="Calificación">
                       {ratingFilter === "all"
                         ? "Todas las notas"

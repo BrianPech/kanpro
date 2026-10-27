@@ -279,7 +279,6 @@ export async function getCandidateDashboardData(): Promise<CandidateDashboardDat
         id,
         status,
         applied_at,
-        created_at,
         vacancy_id,
         interview_details,
         scheduled_interview_at,

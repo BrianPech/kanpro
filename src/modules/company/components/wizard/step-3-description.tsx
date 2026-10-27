@@ -131,7 +131,10 @@ export function Step3Description({ form }: Step3DescriptionProps) {
                 value={field.state.value || "Sin experiencia previa"}
                 onValueChange={(val) => field.handleChange(val)}
               >
-                <SelectTrigger className="h-11 w-full rounded-2xl bg-input/50 border border-border/80 px-3.5 text-sm font-medium cursor-pointer shadow-2xs">
+                <SelectTrigger
+                  aria-label="Experiencia laboral requerida"
+                  className="h-11 w-full rounded-2xl bg-input/50 border border-border/80 px-3.5 text-sm font-medium cursor-pointer shadow-2xs"
+                >
                   <SelectValue placeholder="Selecciona la experiencia" />
                 </SelectTrigger>
                 <SelectContent className="rounded-2xl border border-border/60 bg-popover shadow-xl">
@@ -168,7 +171,10 @@ export function Step3Description({ form }: Step3DescriptionProps) {
                 value={field.state.value || "Indistinto"}
                 onValueChange={(val) => field.handleChange(val)}
               >
-                <SelectTrigger className="h-11 w-full rounded-2xl bg-input/50 border border-border/80 px-3.5 text-sm font-medium cursor-pointer shadow-2xs">
+                <SelectTrigger
+                  aria-label="Nivel de estudios mínimo"
+                  className="h-11 w-full rounded-2xl bg-input/50 border border-border/80 px-3.5 text-sm font-medium cursor-pointer shadow-2xs"
+                >
                   <SelectValue placeholder="Selecciona el nivel de estudios" />
                 </SelectTrigger>
                 <SelectContent className="rounded-2xl border border-border/60 bg-popover shadow-xl">

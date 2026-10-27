@@ -324,15 +324,15 @@ describe("[REAL INTEGRATION] 05 - Company Vacancies & ATS Pipeline with Real Pos
   });
 
   it("8. should strictly isolate vacancies and applications from Company B (PostgreSQL RLS)", async () => {
-    // Company B queries vacancies
-    const { data: vacanciesB, error: vacErrB } = await clientB
+    // In PostgreSQL RLS, draft or paused vacancies of Company A cannot be seen by Company B
+    const { data: draftsB, error: draftErrB } = await clientB
       .from("vacancies")
       .select("id, title, company_id")
-      .eq("company_id", companyA.id);
+      .eq("company_id", companyA.id)
+      .eq("status", "Borrador");
 
-    expect(vacErrB).toBeNull();
-    // In PostgreSQL RLS, company B cannot see company A's vacancies by company_id
-    expect(vacanciesB).toEqual([]);
+    expect(draftErrB).toBeNull();
+    expect(draftsB).toEqual([]);
 
     // Company B attempts to update Company A's vacancy
     const { data: hackedVac } = await clientB

@@ -1027,10 +1027,23 @@ export class CompanyContractService {
       input.status ||
       (input.companySigned && input.employeeSigned ? "vigente" : "en_firma");
 
+    let resolvedCandidateId = input.candidateId || null;
+    if (!resolvedCandidateId && input.employeeId) {
+      const { data: empRecord } = await supabase
+        .from("company_employees")
+        .select("employee_id")
+        .eq("id", input.employeeId)
+        .maybeSingle();
+
+      if (empRecord?.employee_id) {
+        resolvedCandidateId = empRecord.employee_id;
+      }
+    }
+
     const payload: CompanyContractInsert = {
       company_id: companyId,
       employee_id: input.employeeId || null,
-      candidate_id: input.candidateId || null,
+      candidate_id: resolvedCandidateId,
       application_id: input.applicationId || null,
       folio,
       job_title: input.jobTitle.trim(),

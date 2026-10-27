@@ -331,7 +331,7 @@ export function JobSearchView({ initialVacancies = [], onBack }: JobSearchViewPr
         .insert({
           candidate_id: user.id,
           vacancy_id: job.id,
-          status: "pending"
+          status: "Pendiente"
         });
 
       if (error) {
