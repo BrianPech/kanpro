@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import {
-  Kanban,
+  KanproIsotype,
   Briefcase,
   Users,
   CreditCard,
@@ -48,7 +48,7 @@ export function Navbar() {
           className="group flex items-center gap-3 transition-opacity hover:opacity-90"
         >
           <div className="flex size-10 items-center justify-center rounded-xl bg-primary text-primary-foreground shadow-sm transition-transform duration-200 group-hover:scale-105">
-            <Kanban className="size-5" />
+            <KanproIsotype className="size-5.5" variant="white" />
           </div>
           <span className="font-sans text-xl font-bold tracking-tight text-foreground">
             K’anPro

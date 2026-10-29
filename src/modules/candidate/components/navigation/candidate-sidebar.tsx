@@ -4,7 +4,7 @@ import * as React from "react";
 import {
   User,
   LayoutDashboard,
-  Kanban,
+  KanproIsotype,
   Compass,
   FileText,
   FileCheck2,
@@ -154,7 +154,7 @@ export function CandidateSidebar({
               className="hover:bg-sidebar-accent"
             >
               <div className="flex aspect-square size-8 items-center justify-center rounded-lg bg-primary text-primary-foreground">
-                <Kanban className="size-4" />
+                <KanproIsotype className="size-4.5" variant="white" />
               </div>
               <div className="grid flex-1 text-left text-sm leading-tight">
                 <span className="truncate font-bold tracking-tight text-sidebar-foreground">

@@ -2,7 +2,7 @@
 
 import React from "react";
 import Link from "next/link";
-import { Kanban } from "@/components/ui/icons";
+import { KanproIsotype } from "@/components/ui/icons";
 import { CtaBanner } from "@/components/marketing/cta-banner";
 
 interface FooterProps {
@@ -36,7 +36,7 @@ export function Footer({ showCta = false }: FooterProps = {}) {
             <div className="md:col-span-5 lg:col-span-4 xl:col-span-4 space-y-4">
               <Link href="/" className="flex items-center gap-2.5 group w-fit">
                 <div className="size-8 rounded-xl bg-primary text-primary-foreground flex items-center justify-center font-bold shadow-xs transition-transform group-hover:scale-105">
-                  <Kanban className="size-4.5" />
+                  <KanproIsotype className="size-4.5" variant="white" />
                 </div>
                 <span className="font-bold text-lg tracking-tight text-foreground font-sans">
                   K’anPro

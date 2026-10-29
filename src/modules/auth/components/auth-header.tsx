@@ -2,7 +2,7 @@
 
 import React, { ReactNode } from "react";
 import Link from "next/link";
-import { ArrowLeft, Kanban } from "@/components/ui/icons";
+import { ArrowLeft, KanproIsotype } from "@/components/ui/icons";
 
 interface AuthHeaderProps {
   /**
@@ -87,7 +87,7 @@ export function AuthHeader({
         {showLogoCard && (
           <div className="w-[76px] h-[76px] sm:w-[88px] sm:h-[88px] bg-white dark:bg-zinc-900 rounded-[20px] sm:rounded-[26px] shadow-[0_12px_28px_rgba(0,0,0,0.18)] p-3 flex items-center justify-center transition-transform hover:scale-105 duration-300 border border-white/20 pointer-events-auto">
             <div className="w-full h-full bg-[#1f2732] rounded-[12px] sm:rounded-[18px] flex items-center justify-center text-white shadow-inner">
-              {logoIcon || <Kanban className="size-8 sm:size-10 text-white" />}
+              {logoIcon || <KanproIsotype className="size-8 sm:size-10" variant="white" />}
             </div>
           </div>
         )}

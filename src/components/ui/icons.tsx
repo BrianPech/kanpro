@@ -270,3 +270,41 @@ export const XCircle = createIcon(HugeIcons.XCircle, "XCircle");
 export const XCircleIcon = createIcon(HugeIcons.XCircle, "XCircleIcon");
 export const XIcon = createIcon(HugeIcons.XIcon, "XIcon");
 export const Zap = createIcon(HugeIcons.ZapIcon, "Zap");
+
+
+export interface KanproIsotypeProps extends React.SVGProps<SVGSVGElement> {
+  variant?: "white" | "color" | "monochrome";
+}
+
+export function KanproIsotype({
+  className,
+  variant = "white",
+  ...props
+}: KanproIsotypeProps) {
+  const isColor = variant === "color";
+  const isWhite = variant === "white";
+
+  return (
+    <svg
+      viewBox="0 0 58 64"
+      fill="none"
+      xmlns="http://www.w3.org/2000/svg"
+      className={className}
+      aria-hidden="true"
+      {...props}
+    >
+      <path
+        d="M0 5.7767C0 -1.2233 10 -2.2233 12 4.7767V58.7767C12 65.7767 0 64.7767 0 57.7767V5.7767Z"
+        fill={isColor ? "#F4F7F6" : isWhite ? "white" : "currentColor"}
+      />
+      <path
+        d="M18 28.7767C18 14.7767 28 1.7767 46 1.7767C56 1.7767 60 8.7767 56 16.7767C50 28.7767 32 29.7767 18 28.7767Z"
+        fill={isColor ? "#1447E6" : isWhite ? "white" : "currentColor"}
+      />
+      <path
+        d="M18 36.7767C30 36.7767 46 45.7767 56 57.7767C58 60.7767 56 63.7767 50 63.7767C36 63.7767 24 52.7767 18 36.7767Z"
+        fill={isColor ? "#F4F7F6" : isWhite ? "white" : "currentColor"}
+      />
+    </svg>
+  );
+}

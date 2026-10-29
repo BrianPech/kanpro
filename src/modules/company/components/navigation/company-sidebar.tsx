@@ -5,7 +5,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
   LayoutDashboard,
-  Kanban,
+  KanproIsotype,
   Building2,
   Briefcase,
   Users,
@@ -284,7 +284,7 @@ export function CompanySidebar({
                 }}
                 className="size-10 p-0 flex items-center justify-center rounded-xl bg-primary text-primary-foreground hover:bg-primary/90 shadow-xs cursor-pointer has-[>svg:first-child]:pl-0 has-[>svg:last-child]:pr-0"
               >
-                <Kanban className="size-5 shrink-0" />
+                <KanproIsotype className="size-5 shrink-0" variant="white" />
                 <span className="sr-only">K&apos;anPro Empresa</span>
               </SidebarMenuButton>
             </SidebarMenuItem>

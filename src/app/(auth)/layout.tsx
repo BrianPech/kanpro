@@ -5,7 +5,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { AuthHeroPanel } from "@/modules/auth/components/auth-hero-panel";
 import { ModeToggle } from "@/components/shared/mode-toggle";
-import { ArrowLeft, Kanban } from "@/components/ui/icons";
+import { ArrowLeft, KanproIsotype } from "@/components/ui/icons";
 
 export default function AuthLayout({
   children,
@@ -40,7 +40,7 @@ export default function AuthLayout({
               className="inline-flex items-center gap-2.5 group cursor-pointer"
             >
               <div className="size-8 rounded-xl bg-primary text-primary-foreground flex items-center justify-center shadow-xs group-hover:scale-105 transition-transform">
-                <Kanban className="size-4" />
+                <KanproIsotype className="size-4.5" variant="white" />
               </div>
               <span className="font-extrabold text-base tracking-tight text-foreground">
                 K&apos;anPro

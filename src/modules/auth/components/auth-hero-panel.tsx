@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { Sparkles, ShieldCheck, Clock, Kanban } from "@/components/ui/icons";
+import { Sparkles, ShieldCheck, Clock, KanproIsotype } from "@/components/ui/icons";
 import { cn } from "@/lib/utils";
 
 interface SlideData {
@@ -92,7 +92,7 @@ export function AuthHeroPanel() {
       <div className="relative z-10 flex items-center justify-between">
         <div className="flex items-center gap-2.5">
           <div className="size-8 rounded-xl bg-blue-500/15 border border-blue-400/25 flex items-center justify-center text-blue-400 backdrop-blur-md shadow-xs">
-            <Kanban className="size-4 text-blue-400" />
+            <KanproIsotype className="size-4 text-blue-400" variant="monochrome" />
           </div>
           <span className="font-extrabold text-base tracking-tight text-white/95">
             K&apos;anPro
@@ -118,7 +118,7 @@ export function AuthHeroPanel() {
 
             {/* K'anPro Brand Symbol */}
             <div className="relative flex items-center justify-center">
-              <Kanban className="size-11 text-blue-400 drop-shadow-[0_2px_14px_rgba(96,165,250,0.85)]" />
+              <KanproIsotype className="size-11 text-blue-400 drop-shadow-[0_2px_14px_rgba(96,165,250,0.85)]" variant="monochrome" />
             </div>
           </div>
         </div>

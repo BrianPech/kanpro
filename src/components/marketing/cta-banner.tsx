@@ -2,7 +2,7 @@
 
 import React from "react";
 import Link from "next/link";
-import { Kanban, ArrowRight } from "@/components/ui/icons";
+import { KanproIsotype, ArrowRight } from "@/components/ui/icons";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
@@ -39,7 +39,7 @@ export function CtaBanner({ className }: CtaBannerProps) {
 
         {/* Centered Brand Squircle Mark in Primary */}
         <div className="relative z-10 size-14 sm:size-16 rounded-2xl bg-primary text-primary-foreground flex items-center justify-center shadow-md mb-6 transition-transform hover:scale-105 duration-200">
-          <Kanban className="size-7 sm:size-8" />
+          <KanproIsotype className="size-7 sm:size-8" variant="white" />
         </div>
 
         {/* Clean High-Contrast Heading */}
