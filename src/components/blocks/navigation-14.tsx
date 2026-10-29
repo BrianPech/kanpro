@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
 import {
@@ -167,6 +167,7 @@ export function Navigation14({
   const [activeCategory, setActiveCategory] = useState<string | null>(null);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [activeMobileCategory, setActiveMobileCategory] = useState<string | null>("Empresas");
+  const headerRef = useRef<HTMLElement>(null);
 
   const categoryKeys = Object.keys(categories);
 
@@ -178,16 +179,27 @@ export function Navigation14({
         setMobileMenuOpen(false);
       }
     };
+    const handleClickOutside = (event: MouseEvent) => {
+      if (headerRef.current && !headerRef.current.contains(event.target as Node)) {
+        setActiveCategory(null);
+        setMobileMenuOpen(false);
+      }
+    };
     window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => {
+      window.removeEventListener("keydown", handleKeyDown);
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
   }, [activeCategory, mobileMenuOpen]);
 
   return (
     <header
+      ref={headerRef}
       className={`sticky top-0 z-50 w-full bg-background/90 backdrop-blur-md border-b border-border transition-colors ${className}`}
       onMouseLeave={() => setActiveCategory(null)}
     >
-      <div className="w-full">
+      <div className="relative w-full">
         {/* Barra Principal de Navegación */}
         <motion.nav
           initial={{ opacity: 0, y: -10 }}
@@ -294,16 +306,16 @@ export function Navigation14({
           </div>
         </motion.nav>
 
-        {/* Panel Mega Desplegable (Desktop) */}
+        {/* Panel Mega Desplegable (Desktop - Sobrepuesto flotante sin layout shift) */}
         <AnimatePresence>
           {activeCategory && categories[activeCategory] && (
             <motion.div
               id="nav14-panel"
-              initial={{ height: 0, opacity: 0 }}
-              animate={{ height: "auto", opacity: 1 }}
-              exit={{ height: 0, opacity: 0 }}
-              transition={{ duration: 0.35, ease: TRANSITION_EASE }}
-              className="hidden overflow-hidden border-t border-border bg-background/95 backdrop-blur-md md:block"
+              initial={{ opacity: 0, y: -6 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -6 }}
+              transition={{ duration: 0.22, ease: TRANSITION_EASE }}
+              className="absolute top-full left-0 right-0 w-full border-b border-border bg-background/98 backdrop-blur-xl shadow-2xl md:block hidden overflow-hidden z-50"
             >
               <AnimatePresence mode="wait" initial={false}>
                 <motion.div
@@ -311,42 +323,36 @@ export function Navigation14({
                   initial={{ opacity: 0, y: 6 }}
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, y: -4 }}
-                  transition={{ duration: 0.2, ease: TRANSITION_EASE }}
+                  transition={{ duration: 0.18, ease: TRANSITION_EASE }}
                   className="mx-auto grid w-full max-w-7xl gap-8 px-4 py-8 sm:px-6 lg:grid-cols-[1fr_340px] lg:px-8"
                 >
                   {/* Cuadrícula de 3 Ítems por Categoría */}
                   <div className="grid gap-2 sm:grid-cols-3">
                     {categories[activeCategory].items.map((item) => (
-                      <motion.a
+                      <Link
                         key={item.title}
                         href={item.href || "#"}
-                        initial="rest"
-                        animate="rest"
-                        whileHover="hover"
-                        className={`group flex h-full flex-col rounded-2xl p-4 transition-colors duration-200 hover:bg-muted/40 ${FOCUS_VISIBLE_STYLES}`}
+                        onClick={() => setActiveCategory(null)}
+                        className={`group flex h-full flex-col rounded-2xl p-4 transition-colors duration-200 hover:bg-muted/50 ${FOCUS_VISIBLE_STYLES}`}
                       >
                         <span className="flex size-9 items-center justify-center rounded-xl border border-border bg-card text-muted-foreground transition-colors duration-200 group-hover:border-primary/40 group-hover:text-primary">
                           <item.icon className="size-4.5" />
                         </span>
                         <span className="mt-4 flex items-center gap-1.5 text-sm font-semibold text-foreground">
                           {item.title}
-                          <motion.span
-                            variants={{ rest: { opacity: 0, x: -4 }, hover: { opacity: 1, x: 0 } }}
-                            transition={{ duration: 0.2, ease: TRANSITION_EASE }}
-                          >
-                            <ArrowRight className="size-3.5 text-primary" />
-                          </motion.span>
+                          <ArrowRight className="size-3.5 text-primary opacity-0 -translate-x-1 transition-all duration-200 group-hover:opacity-100 group-hover:translate-x-0" />
                         </span>
                         <span className="mt-1.5 block text-xs leading-relaxed text-muted-foreground">
                           {item.description}
                         </span>
-                      </motion.a>
+                      </Link>
                     ))}
                   </div>
 
                   {/* Tarjeta Destacada Lateral (Featured Card) */}
                   <Link
                     href={categories[activeCategory].featured.href || "#"}
+                    onClick={() => setActiveCategory(null)}
                     className={`group flex flex-col justify-between rounded-2xl bg-secondary/50 p-5 border border-border/80 transition-all duration-200 hover:bg-secondary/80 hover:border-primary/30 ${FOCUS_VISIBLE_STYLES}`}
                   >
                     <span className="inline-flex w-fit items-center rounded-full border border-primary/20 bg-primary/10 px-2.5 py-0.5 text-[11px] font-semibold uppercase tracking-[0.12em] text-primary">
@@ -371,16 +377,16 @@ export function Navigation14({
           )}
         </AnimatePresence>
 
-        {/* Menú Móvil Desplegable */}
+        {/* Menú Móvil Desplegable (Sobrepuesto en móvil) */}
         <AnimatePresence>
           {mobileMenuOpen && (
             <motion.div
               id="nav14-mobile"
-              initial={{ height: 0, opacity: 0 }}
-              animate={{ height: "auto", opacity: 1 }}
-              exit={{ height: 0, opacity: 0 }}
-              transition={{ duration: 0.35, ease: TRANSITION_EASE }}
-              className="overflow-hidden border-t border-border bg-background md:hidden"
+              initial={{ opacity: 0, y: -4 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -4 }}
+              transition={{ duration: 0.25, ease: TRANSITION_EASE }}
+              className="absolute top-full left-0 right-0 w-full border-b border-border bg-background/98 backdrop-blur-xl shadow-2xl md:hidden overflow-hidden max-h-[calc(100vh-5rem)] overflow-y-auto z-50"
             >
               <div className="mx-auto w-full max-w-7xl px-4 py-4 sm:px-6">
                 {categoryKeys.map((catKey) => {
