@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import { Navbar } from "@/components/marketing/navbar";
+import { Navigation14 } from "@/components/blocks/navigation-14";
 import { Hero1 } from "@/components/blocks/hero-1";
 import { FeaturesDarkBand } from "@/components/marketing/features-dark-band";
 import { ComparisonLightBand } from "@/components/marketing/comparison-light-band";
@@ -12,8 +12,8 @@ import { Footer } from "@/components/marketing/footer";
 export function LandingPage() {
   return (
     <div className="min-h-screen bg-white text-[var(--color-fiord-950)] flex flex-col justify-between selection:bg-[var(--color-fiord-950)] selection:text-white font-sans antialiased overflow-x-clip">
-      {/* 1. Sticky Nav */}
-      <Navbar />
+      {/* 1. Mega Panel Navigation 14 */}
+      <Navigation14 />
 
       {/* 2. Light Fiord Marketing Bands */}
       <main className="flex-1">
