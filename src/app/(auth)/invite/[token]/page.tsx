@@ -2,7 +2,7 @@ import React from "react";
 import Link from "next/link";
 import { getInvitationByTokenAction } from "@/modules/company/actions/employees";
 import { InviteAcceptForm } from "@/modules/auth/components/invite-accept-form";
-import { Clock, AlertCircle, CheckCircle2, XCircle, ArrowRight } from "lucide-react";
+import { Clock, AlertCircle, CheckCircle2, XCircle, ArrowRight } from "@/components/ui/icons";
 import { Button } from "@/components/ui/button";
 
 export const metadata = {

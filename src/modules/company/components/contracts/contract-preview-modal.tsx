@@ -13,7 +13,7 @@ import {
   Calendar,
   Lock,
   Sparkles,
-} from "lucide-react";
+} from "@/components/ui/icons";
 import {
   Dialog,
   DialogContent,
@@ -83,12 +83,12 @@ export function ContractPreviewModal({
           <DialogHeader className="space-y-2 text-left pb-3 border-b border-border/40">
             <div className="flex items-center justify-between gap-3">
               <div className="flex items-center gap-2">
-                <Badge className="bg-primary/10 text-primary border-none text-xs font-extrabold px-2.5 py-0.5 rounded-lg">
+                <Badge className="bg-primary/10 text-primary border-none text-xs font-extrabold px-2.5 py-0.5">
                   {contract.folio}
                 </Badge>
                 <Badge
                   className={cn(
-                    "text-xs font-bold px-2.5 py-0.5 rounded-lg border-none",
+                    "text-xs font-bold px-2.5 py-0.5 border-none",
                     contract.status === "vigente"
                       ? "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400"
                       : "bg-amber-500/15 text-amber-700 dark:text-amber-300"

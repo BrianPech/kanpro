@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { ChevronLeft, Edit2, Trash2, AlertTriangle } from "lucide-react";
+import { ChevronLeft, Edit2, Trash2, AlertTriangle } from "@/components/ui/icons";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useVacancyManager, type VacancyRow } from "@/modules/company/hooks/use-vacancy-manager";

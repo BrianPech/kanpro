@@ -225,6 +225,59 @@ describe("Fase 17: Módulo de Nómina - Patrón Schema -> Handler -> Service y M
       expect(csvLayout.content.startsWith("\uFEFF")).toBe(true);
       expect(csvLayout.content).toContain('"Ana López"');
     });
+
+    test("generateBankDispersalLayout: Excluye colaboradores sin cuenta CLABE válida e impide dispersión sin cuentas", () => {
+      const validEmployee: PayrollEmployeeItem = {
+        id: "p1",
+        employeeId: "e1",
+        employeeName: "Ana López",
+        jobTitle: "Cajera",
+        department: "Finanzas",
+        baseSalaryPeriod: 5000,
+        daysWorked: 15,
+        overtimeHours: 0,
+        overtimePay: 0,
+        punctualityBonus: 250,
+        attendanceBonus: 250,
+        performanceBonus: 0,
+        unjustifiedAbsences: 0,
+        absenceDeductions: 0,
+        lateArrivals: 0,
+        delayDeductions: 0,
+        imssDeduction: 120,
+        isrEstimated: 300,
+        totalPerceptions: 5500,
+        totalDeductions: 420,
+        netPayEstimated: 5080,
+        bankAccount: {
+          bankName: "BBVA México",
+          clabe: "012180001234567897",
+        },
+      };
+
+      const invalidEmployee: PayrollEmployeeItem = {
+        ...validEmployee,
+        id: "emp-no-bank",
+        employeeName: "Juan Sin Banco",
+        bankAccount: undefined,
+      };
+
+      // Si mezclamos uno válido y uno inválido, solo incluye el válido
+      const mixedResult = generateBankDispersalLayout(
+        [validEmployee, invalidEmployee],
+        "1ª Qna Octubre 2026",
+        "bbva"
+      );
+      expect(mixedResult.includedCount).toBe(1);
+      expect(mixedResult.skippedCount).toBe(1);
+      expect(mixedResult.content).toContain("ANA LÓPEZ");
+      expect(mixedResult.content).not.toContain("JUAN SIN BANCO");
+
+      // Si ningún colaborador tiene CLABE válida, lanza error estricto
+      expect(() =>
+        generateBankDispersalLayout([invalidEmployee], "1ª Qna Octubre 2026", "bbva")
+      ).toThrow("No hay colaboradores con cuenta CLABE interbancaria válida");
+    });
   });
 
   describe("3. CompanyPayrollService (Lógica de Negocio y Aislamiento Multi-tenant)", () => {
@@ -363,6 +416,7 @@ describe("Fase 17: Módulo de Nómina - Patrón Schema -> Handler -> Service y M
                       payout_date: payload.payout_date,
                       status: payload.status || "borrador",
                       dispersed_at: payload.dispersed_at || null,
+                      timbrada_at: payload.timbrada_at || null,
                       total_gross: payload.total_gross || 0,
                       total_overtime: payload.total_overtime || 0,
                       total_bonuses: payload.total_bonuses || 0,

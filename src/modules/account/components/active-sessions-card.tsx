@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
-import { Laptop, Smartphone, Loader2, LogOut, CheckCircle2 } from "lucide-react";
+import { Laptop, Smartphone, Loader2, LogOut, CheckCircle2 } from "@/components/ui/icons";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { toast } from "sonner";

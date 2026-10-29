@@ -1,8 +1,20 @@
 import { createServerClient } from '@supabase/ssr'
 import { cookies } from 'next/headers'
 import type { Database } from '@/types/supabase'
+import { createMockSupabaseClient } from './mock-client'
 
 export async function createClient() {
+  const cookieStore = await cookies()
+
+  // E2E mock mode for automated UI consistency / styling tests
+  if (
+    process.env.NODE_ENV !== 'production' &&
+    (cookieStore.get('e2e-mock-role')?.value === 'company' ||
+      process.env.E2E_MOCK_AUTH === 'true')
+  ) {
+    return createMockSupabaseClient() as unknown as ReturnType<typeof createServerClient<Database>>
+  }
+
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL
   const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
 
@@ -20,8 +32,6 @@ export async function createClient() {
     }
     return createMock()
   }
-
-  const cookieStore = await cookies()
 
   return createServerClient<Database>(
     url,

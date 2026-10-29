@@ -2,17 +2,12 @@
 
 import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
+import { headers } from "next/headers";
 import {
   signCandidateContractSchema,
   type SignCandidateContractInput,
 } from "../schemas/contracts.schema";
 import { CandidateContractsService } from "../services/candidate-contracts";
-
-interface ActionResponse<T> {
-  success: boolean;
-  data?: T;
-  error?: string;
-}
 
 type SignCandidateContractActionResult =
   | {
@@ -57,10 +52,17 @@ export async function signCandidateContractAction(
   }
 
   try {
+    const headersList = await headers();
+    const forwardedFor = headersList.get("x-forwarded-for");
+    const clientIp = forwardedFor
+      ? forwardedFor.split(",")[0].trim()
+      : (headersList.get("x-real-ip") || "127.0.0.1");
+
     const result = await CandidateContractsService.signContract(
       supabase,
       user.id,
-      parsed.data
+      parsed.data,
+      clientIp
     );
 
     revalidatePath("/dashboard/candidate/applications");

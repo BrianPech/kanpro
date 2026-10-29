@@ -16,7 +16,7 @@ import {
   ShieldCheck,
   Navigation,
   FileText,
-} from "lucide-react";
+} from "@/components/ui/icons";
 import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -46,6 +46,7 @@ import { toast } from "sonner";
 import { motion } from "framer-motion";
 import { cn } from "@/lib/utils";
 import { cleanCityName, resolveLocationFromCoords } from "@/config/geo";
+import { CompanyPageHeader } from "./shared/company-page-header";
 
 const InstagramIcon = (props: React.SVGProps<SVGSVGElement>) => (
   <svg
@@ -428,13 +429,25 @@ export function CompanyProfileForm({
       transition={{ duration: 0.25 }}
       className="space-y-6 w-full"
     >
+      <CompanyPageHeader
+        title="Perfil de Empresa"
+        description="Administra la identidad corporativa, redes sociales y contacto para tus vacantes públicas."
+        badge={
+          initialProfile?.is_validated || initialProfile?.is_verified || initialProfile?.verification_status === "approved" ? (
+            <Badge variant="outline" className="text-xs font-bold text-emerald-600 dark:text-emerald-400 border-emerald-500/20 bg-emerald-500/10">
+              Verificada
+            </Badge>
+          ) : undefined
+        }
+      />
+
       <form onSubmit={onSubmit} method="POST" className="space-y-6">
         
         {/* ========================================================================= */}
         {/* 1. SHADCN ALERT: VALIDACIÓN Y ESTADO DE CUENTA                            */}
         {/* ========================================================================= */}
         {initialProfile?.is_validated || initialProfile?.is_verified || initialProfile?.verification_status === "approved" ? (
-          <Alert className="rounded-2xl border-emerald-500/30 bg-emerald-500/10 text-emerald-800 dark:text-emerald-300 p-4 sm:p-5 shadow-2xs">
+          <Alert className="border-emerald-500/30 bg-emerald-500/10 text-emerald-800 dark:text-emerald-300 p-4 sm:p-5">
             <ShieldCheck className="size-5 text-emerald-600 dark:text-emerald-400" />
             <div className="space-y-0.5">
               <AlertTitle className="text-sm font-extrabold">
@@ -446,7 +459,7 @@ export function CompanyProfileForm({
             </div>
           </Alert>
         ) : (
-          <Alert className="rounded-2xl border border-border/80 bg-muted/40 p-4 sm:p-5 shadow-2xs">
+          <Alert className="border border-border/80 bg-muted/40 p-4 sm:p-5">
             <ShieldCheck className="size-5 text-primary" />
             <div className="space-y-1">
               <AlertTitle className="text-sm font-bold text-foreground">
@@ -460,7 +473,7 @@ export function CompanyProfileForm({
               <Button
                 size="sm"
                 render={<Link href="/dashboard/company/verification" />}
-                className="h-9 px-4 rounded-xl text-xs font-bold bg-primary text-primary-foreground hover:bg-primary/90 shadow-xs cursor-pointer"
+                className="font-bold cursor-pointer"
               >
                 Ir a Verificación Legal
               </Button>
@@ -471,7 +484,7 @@ export function CompanyProfileForm({
         {/* ========================================================================= */}
         {/* 2. CARD PRINCIPAL UNIFICADA (HEADER + CONTENT + FOOTER)                   */}
         {/* ========================================================================= */}
-        <Card className="rounded-2xl border border-border/80 bg-card shadow-xs overflow-hidden">
+        <Card className="overflow-hidden">
           
           {/* ---------------- CARD HEADER: PORTADA, LOGO Y NOMBRE DE EMPRESA -------- */}
           <CardHeader className="p-0 border-b border-border/60">
@@ -501,7 +514,7 @@ export function CompanyProfileForm({
                   type="button"
                   size="sm"
                   disabled={isSaving || isUploadingBanner}
-                  className="h-9 px-3.5 rounded-xl text-xs font-bold bg-background/90 text-foreground hover:bg-background border border-border/60 backdrop-blur-xs flex items-center gap-1.5 shadow-sm relative cursor-pointer"
+                  className="bg-background/90 text-foreground hover:bg-background border border-border/60 backdrop-blur-xs flex items-center gap-1.5 shadow-sm relative cursor-pointer font-bold"
                 >
                   {isUploadingBanner ? (
                     <>
@@ -629,7 +642,7 @@ export function CompanyProfileForm({
                       type="text"
                       placeholder="Ej. Grupo Hotelero Maya"
                       {...register("company_name")}
-                      className="h-11 rounded-xl bg-input/40 border border-border/80 pl-10 text-xs sm:text-sm font-semibold focus-visible:bg-background"
+                      className="pl-10 w-full"
                     />
                   </div>
                   {errors.company_name && (
@@ -649,12 +662,12 @@ export function CompanyProfileForm({
                     value={watch("industry") || ""}
                     onValueChange={(val) => setValue("industry", val || "", { shouldValidate: true })}
                   >
-                    <SelectTrigger className="h-11 w-full rounded-xl bg-input/40 border border-border/80 px-3.5 text-xs sm:text-sm font-semibold focus-visible:bg-background cursor-pointer">
+                    <SelectTrigger className="w-full">
                       <SelectValue placeholder="Selecciona un sector">
                         {(val: string | null) => (val && INDUSTRY_LABELS[val]) || val || "Selecciona un sector"}
                       </SelectValue>
                     </SelectTrigger>
-                    <SelectContent className="rounded-xl border border-border/80 bg-popover text-xs font-semibold">
+                    <SelectContent>
                       <SelectItem value="Restaurantes / Hotelería">Restaurantes / Hotelería / Turismo</SelectItem>
                       <SelectItem value="Comercial">Comercio & Ventas al por Menor</SelectItem>
                       <SelectItem value="Tecnología">Tecnología & Software</SelectItem>
@@ -683,12 +696,12 @@ export function CompanyProfileForm({
                     value={watch("company_size") || ""}
                     onValueChange={(val) => setValue("company_size", val || undefined)}
                   >
-                    <SelectTrigger className="h-11 w-full rounded-xl bg-input/40 border border-border/80 px-3.5 text-xs sm:text-sm font-semibold focus-visible:bg-background cursor-pointer">
+                    <SelectTrigger className="w-full">
                       <SelectValue placeholder="Selecciona el tamaño">
                         {(val: string | null) => (val && COMPANY_SIZE_LABELS[val]) || val || "Selecciona el tamaño"}
                       </SelectValue>
                     </SelectTrigger>
-                    <SelectContent className="rounded-xl border border-border/80 bg-popover text-xs font-semibold">
+                    <SelectContent>
                       <SelectItem value="1-10">1 - 10 empleados</SelectItem>
                       <SelectItem value="11-50">11 - 50 empleados</SelectItem>
                       <SelectItem value="51-200">51 - 200 empleados</SelectItem>
@@ -719,7 +732,7 @@ export function CompanyProfileForm({
                   maxLength={300}
                   placeholder="Describe brevemente la cultura laboral, historia y valores de tu empresa para atraer al mejor talento..."
                   {...register("description")}
-                  className="w-full min-h-[90px] rounded-xl bg-input/40 border border-border/80 p-3 text-xs sm:text-sm font-medium leading-relaxed focus-visible:bg-background resize-none"
+                  className="w-full min-h-[90px] resize-none"
                 />
                 {errors.description && (
                   <p className="text-xs font-semibold text-destructive">
@@ -757,7 +770,7 @@ export function CompanyProfileForm({
                       type="tel"
                       placeholder="999 123 4567"
                       {...register("phone")}
-                      className="h-11 rounded-xl bg-input/40 border border-border/80 pl-10 text-xs sm:text-sm font-semibold focus-visible:bg-background"
+                      className="pl-10 w-full"
                     />
                   </div>
                   {errors.phone && (
@@ -778,7 +791,7 @@ export function CompanyProfileForm({
                       type="url"
                       placeholder="https://empresa.com"
                       {...register("website")}
-                      className="h-11 rounded-xl bg-input/40 border border-border/80 pl-10 text-xs sm:text-sm font-semibold focus-visible:bg-background"
+                      className="pl-10 w-full"
                     />
                   </div>
                   {errors.website && (
@@ -799,7 +812,7 @@ export function CompanyProfileForm({
                       type="text"
                       placeholder="https://instagram.com/empresa"
                       {...register("instagram_url")}
-                      className="h-11 rounded-xl bg-input/40 border border-border/80 pl-10 text-xs sm:text-sm font-semibold focus-visible:bg-background"
+                      className="pl-10 w-full"
                     />
                   </div>
                 </div>
@@ -815,7 +828,7 @@ export function CompanyProfileForm({
                       type="text"
                       placeholder="https://facebook.com/empresa"
                       {...register("facebook_url")}
-                      className="h-11 rounded-xl bg-input/40 border border-border/80 pl-10 text-xs sm:text-sm font-semibold focus-visible:bg-background"
+                      className="pl-10 w-full"
                     />
                   </div>
                 </div>
@@ -846,7 +859,7 @@ export function CompanyProfileForm({
                   size="sm"
                   onClick={handleDetectLocation}
                   disabled={isLocating}
-                  className="h-9 px-3.5 rounded-xl border-border/80 text-xs font-bold text-primary hover:bg-primary/10 gap-2 shrink-0 cursor-pointer self-start sm:self-auto"
+                  className="gap-2 font-bold cursor-pointer self-start sm:self-auto"
                 >
                   {isLocating ? (
                     <Loader2 className="size-3.5 animate-spin" />
@@ -870,7 +883,7 @@ export function CompanyProfileForm({
                       type="text"
                       placeholder="Ej. Mérida, Yucatán"
                       {...register("location")}
-                      className="h-11 rounded-xl bg-input/40 border border-border/80 pl-10 text-xs sm:text-sm font-semibold focus-visible:bg-background"
+                      className="pl-10 w-full"
                     />
                   </div>
 
@@ -882,7 +895,7 @@ export function CompanyProfileForm({
                         type="button"
                         onClick={() => setValue("location", city, { shouldValidate: true, shouldDirty: true })}
                         className={cn(
-                          "px-2 py-0.5 rounded-lg text-[10px] font-bold transition-all border cursor-pointer",
+                          "px-2.5 py-1 rounded-full text-[10px] font-bold transition-all border cursor-pointer",
                           location === city
                             ? "bg-primary text-primary-foreground border-primary"
                             : "bg-muted/40 hover:bg-muted text-muted-foreground border-border/60"
@@ -909,7 +922,7 @@ export function CompanyProfileForm({
                     type="text"
                     placeholder="Ej. Calle 60 #345 x 43 y 45, Col. Centro"
                     {...register("address_details")}
-                    className="h-11 rounded-xl bg-input/40 border border-border/80 px-3.5 text-xs sm:text-sm font-semibold focus-visible:bg-background"
+                    className="w-full"
                   />
                   {errors.address_details && (
                     <p className="text-xs font-semibold text-destructive">
@@ -920,8 +933,6 @@ export function CompanyProfileForm({
               </div>
             </div>
 
-
-
           </CardContent>
 
           {/* ---------------- CARD FOOTER: ACTION BUTTONS ---------------- */}
@@ -929,13 +940,14 @@ export function CompanyProfileForm({
             <Button
               type="button"
               variant="outline"
+              size="sm"
               onClick={() => {
                 handleReset();
                 toast.info("Cambios descartados", {
                   description: "Se han restaurado los valores anteriores de tu perfil corporativo.",
                 });
               }}
-              className="h-10 px-4 rounded-xl text-xs font-bold border-border/80 hover:bg-muted cursor-pointer gap-1.5 shadow-none"
+              className="font-bold cursor-pointer gap-1.5 shadow-none"
             >
               <RefreshCw className="size-3.5" />
               <span>Descartar</span>
@@ -943,8 +955,9 @@ export function CompanyProfileForm({
 
             <Button
               type="submit"
+              size="sm"
               disabled={isSaving}
-              className="h-10 px-6 rounded-xl text-xs font-bold bg-primary text-primary-foreground hover:bg-primary/90 cursor-pointer gap-2 shadow-sm active:scale-95 transition-all"
+              className="font-bold cursor-pointer gap-2 shadow-sm transition-all"
             >
               {isSaving ? (
                 <Loader2 className="size-4 animate-spin" />

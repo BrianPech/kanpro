@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useRef } from "react";
 import {
   ShieldAlert,
   Sparkles,
@@ -14,7 +14,7 @@ import {
   HeartPulse,
   MessageSquareWarning,
   Loader2,
-} from "lucide-react";
+} from "@/components/ui/icons";
 import {
   Dialog,
   DialogContent,
@@ -70,6 +70,8 @@ export function NewIncidentModal({
   const [supervisor, setSupervisor] = useState("");
   const [hasEvidence, setHasEvidence] = useState(false);
   const [evidenceFileName, setEvidenceFileName] = useState("");
+  const [evidenceFile, setEvidenceFile] = useState<File | null>(null);
+  const evidenceInputRef = useRef<HTMLInputElement | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const categoryLabels: Record<IncidentCategory, string> = {
@@ -104,6 +106,15 @@ export function NewIncidentModal({
 
     setIsSubmitting(true);
     try {
+      let evidenceUrl: string | undefined = undefined;
+      if (evidenceFile) {
+        evidenceUrl = await new Promise<string>((resolve) => {
+          const reader = new FileReader();
+          reader.onload = () => resolve(reader.result as string);
+          reader.readAsDataURL(evidenceFile);
+        });
+      }
+
       const res = await createIncidentAction({
         employeeId: selectedEmployeeId || undefined,
         employeeName: employeeName.trim(),
@@ -116,8 +127,8 @@ export function NewIncidentModal({
         incidentDate,
         severity,
         responsibleSupervisor: supervisor.trim() || undefined,
-        evidenceUrl: hasEvidence ? "/assets/docs/evidencia_sample.pdf" : undefined,
-        evidenceFileName: hasEvidence ? evidenceFileName || "Evidencia_Incidencia.pdf" : undefined,
+        evidenceUrl,
+        evidenceFileName: hasEvidence ? evidenceFileName || evidenceFile?.name || "Evidencia.pdf" : undefined,
         evidenceType:
           category === "accidente" || category === "incapacidad"
             ? "receta_medica"
@@ -148,9 +159,10 @@ export function NewIncidentModal({
       setJobTitle("");
       setDepartment("");
       onOpenChange(false);
-    } catch (err: any) {
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : "No se pudo conectar con la base de datos.";
       toast.error("Error inesperado", {
-        description: err.message || "No se pudo conectar con la base de datos.",
+        description: message,
       });
     } finally {
       setIsSubmitting(false);
@@ -159,7 +171,7 @@ export function NewIncidentModal({
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[580px] rounded-3xl p-6 bg-card border-border/80 max-h-[90vh] overflow-y-auto">
+      <DialogContent className="sm:max-w-[580px] p-6 max-h-[90vh] overflow-y-auto">
         <form onSubmit={handleSubmit} className="space-y-4">
           <DialogHeader className="space-y-1.5 text-left pb-2 border-b border-border/40">
             <div className="flex items-center gap-2 text-primary font-bold text-xs uppercase tracking-wider">
@@ -187,10 +199,10 @@ export function NewIncidentModal({
                     if (val) handleSelectEmployee(val);
                   }}
                 >
-                  <SelectTrigger className="w-full h-10 rounded-xl bg-background border-border/80 text-xs font-medium">
+                  <SelectTrigger className="w-full">
                     <SelectValue placeholder="Selecciona un empleado..." />
                   </SelectTrigger>
-                  <SelectContent alignItemWithTrigger={false} side="bottom" sideOffset={4} className="w-(--anchor-width) min-w-[280px] rounded-xl max-h-60">
+                  <SelectContent alignItemWithTrigger={false} side="bottom" sideOffset={4} className="w-(--anchor-width) min-w-[280px] max-h-60">
                     {employees.map((emp) => (
                       <SelectItem key={emp.id} value={emp.id} className="text-xs">
                         {emp.fullName} {emp.jobTitle ? `— ${emp.jobTitle}` : ""}
@@ -208,7 +220,7 @@ export function NewIncidentModal({
                   setSelectedEmployeeId("");
                 }}
                 placeholder="O escribe el nombre completo del empleado..."
-                className="h-10 rounded-xl bg-background border-border/80 text-xs font-medium mt-1.5"
+                className="mt-1.5"
                 required
               />
             </div>
@@ -220,7 +232,6 @@ export function NewIncidentModal({
                   value={jobTitle}
                   onChange={(e) => setJobTitle(e.target.value)}
                   placeholder="Ej. Cocinero A, Auxiliar..."
-                  className="h-10 rounded-xl bg-background border-border/80 text-xs font-medium"
                 />
               </div>
 
@@ -230,7 +241,6 @@ export function NewIncidentModal({
                   value={department}
                   onChange={(e) => setDepartment(e.target.value)}
                   placeholder="Ej. Operaciones, Ventas..."
-                  className="h-10 rounded-xl bg-background border-border/80 text-xs font-medium"
                 />
               </div>
             </div>
@@ -242,7 +252,6 @@ export function NewIncidentModal({
                   type="date"
                   value={incidentDate}
                   onChange={(e) => setIncidentDate(e.target.value)}
-                  className="h-10 rounded-xl bg-background border-border/80 text-xs font-medium"
                   required
                 />
               </div>
@@ -253,10 +262,10 @@ export function NewIncidentModal({
                   value={severity}
                   onValueChange={(val) => val && setSeverity(val as IncidentSeverity)}
                 >
-                  <SelectTrigger className="w-full h-10 rounded-xl bg-background border-border/80 text-xs font-medium">
+                  <SelectTrigger className="w-full">
                     <SelectValue />
                   </SelectTrigger>
-                  <SelectContent alignItemWithTrigger={false} side="bottom" sideOffset={4} className="w-(--anchor-width) min-w-[240px] rounded-xl">
+                  <SelectContent alignItemWithTrigger={false} side="bottom" sideOffset={4} className="w-(--anchor-width) min-w-[240px]">
                     <SelectItem value="baja">Baja (Informativo / Leve)</SelectItem>
                     <SelectItem value="media">Media (Aviso / Descuento)</SelectItem>
                     <SelectItem value="alta">Alta (Acta / Sanción)</SelectItem>
@@ -273,10 +282,10 @@ export function NewIncidentModal({
                 value={category}
                 onValueChange={(val) => val && setCategory(val as IncidentCategory)}
               >
-                <SelectTrigger className="w-full h-10 rounded-xl bg-background border-border/80 text-xs font-medium">
+                <SelectTrigger className="w-full">
                   <SelectValue />
                 </SelectTrigger>
-                <SelectContent alignItemWithTrigger={false} side="bottom" sideOffset={4} className="w-(--anchor-width) min-w-[260px] rounded-xl max-h-60">
+                <SelectContent alignItemWithTrigger={false} side="bottom" sideOffset={4} className="w-(--anchor-width) min-w-[260px] max-h-60">
                   <SelectItem value="falta_injustificada">Falta Injustificada</SelectItem>
                   <SelectItem value="retardo">Retardo de Turno</SelectItem>
                   <SelectItem value="accidente">Accidente de Trabajo (ST-7)</SelectItem>
@@ -297,7 +306,6 @@ export function NewIncidentModal({
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
                 placeholder="Ej. Falta injustificada sin aviso en fin de semana"
-                className="h-10 rounded-xl bg-background border-border/80 text-xs font-medium"
                 required
               />
             </div>
@@ -310,7 +318,7 @@ export function NewIncidentModal({
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
                 placeholder="Describe cronológicamente lo sucedido, testimonios y observaciones..."
-                className="min-h-[80px] rounded-xl bg-background border-border/80 text-xs resize-none font-medium"
+                className="min-h-[80px] resize-none"
                 required
               />
             </div>
@@ -321,18 +329,30 @@ export function NewIncidentModal({
                 value={supervisor}
                 onChange={(e) => setSupervisor(e.target.value)}
                 placeholder="Ej. Ing. Carlos Salinas / Recursos Humanos"
-                className="h-10 rounded-xl bg-background border-border/80 text-xs font-medium"
               />
             </div>
 
             {/* Evidence Attachment */}
-            <div
-              onClick={() => {
-                setHasEvidence(true);
-                setEvidenceFileName("Evidencia_Comprobante_Firmado.pdf");
-                toast.success("Documento de evidencia adjuntado");
+            <input
+              ref={evidenceInputRef}
+              type="file"
+              accept=".pdf,image/png,image/jpeg,image/webp"
+              className="hidden"
+              onChange={(e) => {
+                const file = e.target.files?.[0];
+                if (file) {
+                  setEvidenceFile(file);
+                  setEvidenceFileName(file.name);
+                  setHasEvidence(true);
+                  toast.success("Documento de evidencia seleccionado", {
+                    description: file.name,
+                  });
+                }
               }}
-              className="p-3.5 rounded-xl border border-dashed border-border/70 bg-muted/20 text-center cursor-pointer hover:bg-muted/40 transition-colors flex items-center justify-center gap-2"
+            />
+            <div
+              onClick={() => evidenceInputRef.current?.click()}
+              className="p-3.5 rounded-2xl border border-dashed border-border/70 bg-muted/20 text-center cursor-pointer hover:bg-muted/40 transition-colors flex items-center justify-center gap-2"
             >
               <Paperclip className="size-4 text-primary" />
               <span className="text-xs font-bold text-foreground">
@@ -347,14 +367,16 @@ export function NewIncidentModal({
               variant="outline"
               onClick={() => onOpenChange(false)}
               disabled={isSubmitting}
-              className="rounded-xl text-xs font-bold h-10 px-4"
+              size="sm"
+              className="font-bold cursor-pointer"
             >
               Cancelar
             </Button>
             <Button
               type="submit"
               disabled={isSubmitting}
-              className="rounded-xl text-xs font-bold h-10 px-5 bg-primary text-primary-foreground hover:bg-primary/90 shadow-xs flex items-center gap-2"
+              size="sm"
+              className="font-bold flex items-center gap-2 cursor-pointer"
             >
               {isSubmitting ? (
                 <>

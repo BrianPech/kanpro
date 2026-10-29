@@ -25,7 +25,7 @@ import {
   FileCheck,
   Star,
   Layers,
-} from "lucide-react";
+} from "@/components/ui/icons";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -61,6 +61,7 @@ import type {
   ReportCategoryGroup,
 } from "../../types/reports";
 import { exportReportToCSV } from "../../utils/report-csv-exporter";
+import { CompanyPageHeader } from "../shared/company-page-header";
 
 interface CompanyReportsViewProps {
   initialData: CompanyReportsData;
@@ -148,80 +149,63 @@ export function CompanyReportsView({ initialData }: CompanyReportsViewProps) {
   const activeInsight = insights[activeInsightIndex] || insights[0];
 
   return (
-    <div className="p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto space-y-6 sm:space-y-8 animate-in fade-in duration-300 font-sans">
-      {/* 1. Header Principal */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-3 border-b border-border/60">
-        <div className="space-y-1.5">
-          <div className="flex items-center gap-2">
-            <Link
-              href="/dashboard/company"
-              className="text-xs font-bold text-muted-foreground hover:text-foreground flex items-center gap-1 transition-colors"
-            >
-              <ArrowLeft className="size-3.5" />
-              <span>Volver al Dashboard</span>
-            </Link>
-            <span className="text-muted-foreground/40">•</span>
-            <Badge
-              variant="outline"
-              className="text-[10px] font-bold px-2 py-0.5 border-emerald-500/30 text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 flex items-center gap-1"
-            >
-              <span className="size-1.5 rounded-full bg-emerald-500 animate-pulse" />
-              <span>Supabase Live Data</span>
-            </Badge>
-          </div>
+    <div className="w-full space-y-6 pb-12 animate-in fade-in duration-300">
+      <CompanyPageHeader
+        title="Centro de Reportes & Analítica Oficial"
+        description={`Genera y descarga en Excel/CSV los 6 reportes oficiales de plantilla, contratos, vacaciones LFT, nómina y evaluaciones de ${companyName}.`}
+        badge={
+          <Badge
+            variant="outline"
+            className="text-[10px] font-bold border-emerald-500/30 text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 flex items-center gap-1"
+          >
+            <span className="size-1.5 rounded-full bg-emerald-500 animate-pulse" />
+            <span>Supabase Live Data</span>
+          </Badge>
+        }
+        actions={
+          <div className="flex items-center gap-2.5 flex-wrap">
+            {departments.length > 0 && (
+              <Select
+                value={selectedDepartment}
+                onValueChange={(val) => val && setSelectedDepartment(val)}
+              >
+                <SelectTrigger className="w-44">
+                  <Filter className="size-3.5 mr-1.5 text-muted-foreground" />
+                  <SelectValue placeholder="Departamento" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todos los Deptos.</SelectItem>
+                  {departments.map((dept) => (
+                    <SelectItem key={dept} value={dept}>
+                      {dept}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            )}
 
-          <h1 className="text-2xl sm:text-3xl font-extrabold text-foreground tracking-tight flex items-center gap-2.5">
-            <FileSpreadsheet className="size-7 text-primary shrink-0" />
-            <span>Centro de Reportes & Analítica Oficial</span>
-          </h1>
-
-          <p className="text-xs sm:text-sm text-muted-foreground font-medium max-w-3xl">
-            {`Genera y descarga en Excel/CSV los 6 reportes oficiales de plantilla, contratos, vacaciones LFT, nómina y evaluaciones de ${companyName}.`}
-          </p>
-        </div>
-
-        <div className="flex items-center gap-2.5 flex-wrap">
-          {departments.length > 0 && (
             <Select
-              value={selectedDepartment}
-              onValueChange={(val) => val && setSelectedDepartment(val)}
+              value={selectedPeriod}
+              onValueChange={(val) => val && setSelectedPeriod(val)}
             >
-              <SelectTrigger className="h-9.5 w-44 rounded-xl bg-background border-border/80 text-xs font-semibold">
-                <Filter className="size-3.5 mr-1.5 text-muted-foreground" />
-                <SelectValue placeholder="Departamento" />
+              <SelectTrigger className="w-40">
+                <Calendar className="size-3.5 mr-1.5 text-muted-foreground" />
+                <SelectValue />
               </SelectTrigger>
-              <SelectContent className="rounded-xl">
-                <SelectItem value="all">Todos los Deptos.</SelectItem>
-                {departments.map((dept) => (
-                  <SelectItem key={dept} value={dept}>
-                    {dept}
-                  </SelectItem>
-                ))}
+              <SelectContent>
+                <SelectItem value="este_mes">Este Mes</SelectItem>
+                <SelectItem value="mes_anterior">Mes Anterior</SelectItem>
+                <SelectItem value="acumulado_2026">Acumulado Anual</SelectItem>
               </SelectContent>
             </Select>
-          )}
-
-          <Select
-            value={selectedPeriod}
-            onValueChange={(val) => val && setSelectedPeriod(val)}
-          >
-            <SelectTrigger className="h-9.5 w-40 rounded-xl bg-background border-border/80 text-xs font-semibold">
-              <Calendar className="size-3.5 mr-1.5 text-muted-foreground" />
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent className="rounded-xl">
-              <SelectItem value="este_mes">Este Mes</SelectItem>
-              <SelectItem value="mes_anterior">Mes Anterior</SelectItem>
-              <SelectItem value="acumulado_2026">Acumulado Anual</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-      </div>
+          </div>
+        }
+      />
 
       {/* 2. Tarjetas de Métricas Ejecutivas en Vivo (4 KPIs) */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
         {/* KPI 1: Plantilla Activa */}
-        <Card className="rounded-2xl border border-border/80 bg-card p-4 sm:p-5 flex flex-col justify-between shadow-xs hover:border-primary/40 transition-all">
+        <Card className="p-4 sm:p-5 flex flex-col justify-between hover:border-primary/40 transition-all">
           <div className="flex items-center justify-between gap-2">
             <span className="text-xs font-semibold text-muted-foreground">
               Plantilla Activa
@@ -244,7 +228,7 @@ export function CompanyReportsView({ initialData }: CompanyReportsViewProps) {
         </Card>
 
         {/* KPI 2: Masa Salarial */}
-        <Card className="rounded-2xl border border-border/80 bg-card p-4 sm:p-5 flex flex-col justify-between shadow-xs hover:border-primary/40 transition-all">
+        <Card className="p-4 sm:p-5 flex flex-col justify-between hover:border-primary/40 transition-all">
           <div className="flex items-center justify-between gap-2">
             <span className="text-xs font-semibold text-muted-foreground">
               Masa Salarial Mensual
@@ -264,7 +248,7 @@ export function CompanyReportsView({ initialData }: CompanyReportsViewProps) {
         </Card>
 
         {/* KPI 3: Pasivo Vacaciones LFT */}
-        <Card className="rounded-2xl border border-border/80 bg-card p-4 sm:p-5 flex flex-col justify-between shadow-xs hover:border-primary/40 transition-all">
+        <Card className="p-4 sm:p-5 flex flex-col justify-between hover:border-primary/40 transition-all">
           <div className="flex items-center justify-between gap-2">
             <span className="text-xs font-semibold text-muted-foreground">
               Pasivo Vacaciones LFT
@@ -287,7 +271,7 @@ export function CompanyReportsView({ initialData }: CompanyReportsViewProps) {
         </Card>
 
         {/* KPI 4: Contratos & Evaluaciones */}
-        <Card className="rounded-2xl border border-border/80 bg-card p-4 sm:p-5 flex flex-col justify-between shadow-xs hover:border-primary/40 transition-all">
+        <Card className="p-4 sm:p-5 flex flex-col justify-between hover:border-primary/40 transition-all">
           <div className="flex items-center justify-between gap-2">
             <span className="text-xs font-semibold text-muted-foreground">
               Contratos & Evaluación
@@ -318,7 +302,7 @@ export function CompanyReportsView({ initialData }: CompanyReportsViewProps) {
 
       {/* 3. Panel de Insights Inteligentes Basado en Datos Reales */}
       {insights && insights.length > 0 && activeInsight && (
-        <Card className="rounded-3xl border border-border/80 bg-gradient-to-br from-card via-card to-primary/5 p-5 sm:p-7 space-y-4 shadow-xs">
+        <Card className="p-5 sm:p-7 space-y-4">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-3 border-b border-border/50">
             <div className="flex items-center gap-2">
               <Sparkles className="size-4.5 text-primary" />
@@ -342,7 +326,7 @@ export function CompanyReportsView({ initialData }: CompanyReportsViewProps) {
                 type="button"
                 onClick={() => setActiveInsightIndex(idx)}
                 className={cn(
-                  "px-3 py-1.5 rounded-xl text-xs font-bold transition-all shrink-0 border cursor-pointer",
+                  "px-3 py-1.5 rounded-full text-xs font-bold transition-all shrink-0 border cursor-pointer",
                   activeInsightIndex === idx
                     ? "bg-primary text-primary-foreground border-primary shadow-xs"
                     : "bg-background/80 hover:bg-muted text-muted-foreground border-border/60"
@@ -354,7 +338,7 @@ export function CompanyReportsView({ initialData }: CompanyReportsViewProps) {
           </div>
 
           {/* Tarjeta de Respuesta del Insight Activo */}
-          <div className="p-4 sm:p-5 rounded-2xl bg-background border border-border/70 flex flex-col md:flex-row md:items-center justify-between gap-5 shadow-xs">
+          <div className="p-4 sm:p-5 rounded-3xl bg-background border border-border/70 flex flex-col md:flex-row md:items-center justify-between gap-5 shadow-xs">
             <div className="space-y-2 min-w-0">
               <div className="flex items-center gap-2">
                 <Badge
@@ -388,7 +372,7 @@ export function CompanyReportsView({ initialData }: CompanyReportsViewProps) {
                     size="sm"
                     variant="outline"
                     render={<Link href={activeInsight.linkHref} />}
-                    className="rounded-xl text-xs font-bold h-8 px-3 text-primary hover:bg-primary/10 border-border/80 cursor-pointer"
+                    className="gap-1 font-bold cursor-pointer"
                   >
                     <span>{activeInsight.linkLabel || "Ver más detalles"}</span>
                     <ChevronRight className="size-3.5 ml-1" />
@@ -397,7 +381,7 @@ export function CompanyReportsView({ initialData }: CompanyReportsViewProps) {
               )}
             </div>
 
-            <div className="p-4 rounded-2xl bg-muted/40 border border-border/60 text-center min-w-44 shrink-0 space-y-1">
+            <div className="p-4 rounded-3xl bg-muted/40 border border-border/60 text-center min-w-44 shrink-0 space-y-1">
               <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider block">
                 Métrica Clave
               </span>
@@ -430,7 +414,7 @@ export function CompanyReportsView({ initialData }: CompanyReportsViewProps) {
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="Buscar reporte o columnas..."
-              className="h-9.5 pl-8.5 rounded-xl bg-background border-border/80 text-xs font-medium"
+              className="pl-8.5 w-full"
             />
             {searchQuery && (
               <button
@@ -514,7 +498,7 @@ export function CompanyReportsView({ initialData }: CompanyReportsViewProps) {
             {filteredReports.map((report) => (
               <Card
                 key={report.id}
-                className="rounded-2xl border border-border/70 bg-card p-5 space-y-4 hover:border-primary/40 hover:shadow-xs transition-all flex flex-col justify-between"
+                className="p-5 space-y-4 hover:border-primary/40 hover:shadow-xs transition-all flex flex-col justify-between"
               >
                 <div className="space-y-3">
                   <div className="flex items-start justify-between gap-2">
@@ -559,7 +543,7 @@ export function CompanyReportsView({ initialData }: CompanyReportsViewProps) {
                       {report.columns.slice(0, 6).map((col) => (
                         <span
                           key={col.key}
-                          className="text-[10px] font-medium px-2 py-0.5 rounded-md bg-muted/60 text-foreground"
+                          className="text-[10px] font-medium px-2 py-0.5 rounded-full bg-muted/60 text-foreground"
                         >
                           {col.label}
                         </span>
@@ -578,7 +562,7 @@ export function CompanyReportsView({ initialData }: CompanyReportsViewProps) {
                     size="sm"
                     variant="outline"
                     onClick={() => setPreviewReport(report)}
-                    className="rounded-xl text-xs font-bold h-9 px-3 border-border/80 hover:bg-muted cursor-pointer flex items-center gap-1.5"
+                    className="font-bold cursor-pointer gap-1.5"
                   >
                     <Eye className="size-3.5 text-muted-foreground" />
                     <span>Vista Previa</span>
@@ -588,7 +572,7 @@ export function CompanyReportsView({ initialData }: CompanyReportsViewProps) {
                     size="sm"
                     onClick={() => handleDownload(report)}
                     disabled={isExporting === report.id}
-                    className="rounded-xl text-xs font-bold h-9 px-3.5 bg-primary text-primary-foreground hover:bg-primary/90 shadow-xs flex items-center gap-1.5 cursor-pointer"
+                    className="font-bold gap-1.5 cursor-pointer"
                   >
                     <Download className="size-3.5" />
                     <span>
@@ -602,7 +586,7 @@ export function CompanyReportsView({ initialData }: CompanyReportsViewProps) {
             ))}
           </div>
         ) : (
-          <div className="p-12 text-center border border-dashed border-border/80 rounded-3xl space-y-3">
+          <Card className="p-12 text-center border-dashed space-y-3">
             <FileSpreadsheet className="size-8 mx-auto text-muted-foreground/40" />
             <div className="space-y-1">
               <p className="text-sm font-bold text-foreground">
@@ -619,11 +603,11 @@ export function CompanyReportsView({ initialData }: CompanyReportsViewProps) {
                 setSearchQuery("");
                 setSelectedCategory("all");
               }}
-              className="rounded-xl text-xs font-bold"
+              className="font-bold cursor-pointer"
             >
               Restablecer Filtros
             </Button>
-          </div>
+          </Card>
         )}
       </div>
 
@@ -632,7 +616,7 @@ export function CompanyReportsView({ initialData }: CompanyReportsViewProps) {
         open={Boolean(previewReport)}
         onOpenChange={(open) => !open && setPreviewReport(null)}
       >
-        <DialogContent className="sm:max-w-4xl max-h-[85vh] flex flex-col rounded-3xl p-6 bg-card border-border">
+        <DialogContent className="sm:max-w-4xl max-h-[85vh] flex flex-col p-6">
           {previewReport && (
             <>
               <DialogHeader className="space-y-1 text-left pb-3 border-b border-border/50">
@@ -653,7 +637,7 @@ export function CompanyReportsView({ initialData }: CompanyReportsViewProps) {
               </DialogHeader>
 
               {/* Contenido tabular scrolleable */}
-              <div className="flex-1 overflow-auto rounded-xl border border-border/60 my-2 max-h-[50vh]">
+              <div className="flex-1 overflow-auto rounded-2xl border border-border/60 my-2 max-h-[50vh]">
                 {previewReport.data.length > 0 ? (
                   <Table className="text-xs">
                     <TableHeader className="bg-muted/50 sticky top-0">
@@ -719,7 +703,7 @@ export function CompanyReportsView({ initialData }: CompanyReportsViewProps) {
                   variant="outline"
                   size="sm"
                   onClick={() => setPreviewReport(null)}
-                  className="rounded-xl text-xs font-bold"
+                  className="font-bold cursor-pointer"
                 >
                   Cerrar
                 </Button>
@@ -730,7 +714,7 @@ export function CompanyReportsView({ initialData }: CompanyReportsViewProps) {
                     handleDownload(previewReport);
                     setPreviewReport(null);
                   }}
-                  className="rounded-xl text-xs font-bold bg-primary text-primary-foreground hover:bg-primary/90 flex items-center gap-1.5"
+                  className="font-bold flex items-center gap-1.5 cursor-pointer"
                 >
                   <Download className="size-3.5" />
                   <span>Descargar Reporte Completo (.CSV)</span>

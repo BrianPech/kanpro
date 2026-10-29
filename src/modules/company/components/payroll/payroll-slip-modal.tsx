@@ -10,7 +10,10 @@ import {
   Calendar,
   CheckCircle2,
   Sparkles,
-} from "lucide-react";
+  ShieldCheck,
+  FileCode,
+  ExternalLink,
+} from "@/components/ui/icons";
 import {
   Dialog,
   DialogContent,
@@ -42,28 +45,54 @@ export function PayrollSlipModal({
 }: PayrollSlipModalProps) {
   if (!employee) return null;
 
+  const isStamped = Boolean(employee.cfdi && employee.cfdi.status === "timbrado");
+
   const handlePrint = () => {
     window.print();
   };
 
-  const handleDownload = () => {
-    toast.success("Descargando Recibo de Nómina...", {
-      description: `Recibo para ${employee.employeeName} (${periodName}).`,
+  const handleDownloadXml = () => {
+    if (!employee.cfdi?.xml) {
+      toast.error("El XML no está disponible", {
+        description: "Esta nómina aún no ha sido timbrada ante el SAT.",
+      });
+      return;
+    }
+
+    const blob = new Blob([employee.cfdi.xml], { type: "application/xml;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `CFDI_Nomina_${employee.employeeName.replace(/\s+/g, "_")}_${employee.cfdi.uuid.slice(0, 8)}.xml`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+
+    toast.success("XML CFDI 4.0 Descargado", {
+      description: `Folio fiscal: ${employee.cfdi.uuid.slice(0, 8)}...`,
     });
   };
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[620px] rounded-3xl p-6 bg-card border-border/80 max-h-[90vh] overflow-y-auto">
+      <DialogContent className="sm:max-w-[640px] rounded-3xl p-6 bg-card border-border/80 max-h-[90vh] overflow-y-auto">
         <DialogHeader className="space-y-2 text-left pb-3 border-b border-border/40">
           <div className="flex items-center justify-between gap-3">
             <div className="flex items-center gap-2">
-              <Badge className="bg-primary/10 text-primary border-none text-xs font-bold px-2.5 py-0.5 rounded-lg">
-                Recibo de Pre-Nómina
+              <Badge className="bg-primary/10 text-primary border-none text-xs font-bold px-2.5 py-0.5">
+                Recibo de Nómina
               </Badge>
-              <Badge className="bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border-none text-xs font-bold px-2.5 py-0.5 rounded-lg">
-                Calculado
-              </Badge>
+              {isStamped ? (
+                <Badge className="bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border-none text-xs font-bold px-2.5 py-0.5 flex items-center gap-1">
+                  <ShieldCheck className="size-3" />
+                  <span>Timbrado SAT 4.0</span>
+                </Badge>
+              ) : (
+                <Badge className="bg-amber-500/15 text-amber-600 dark:text-amber-400 border-none text-xs font-bold px-2.5 py-0.5">
+                  Sin Timbrar
+                </Badge>
+              )}
             </div>
 
             <div className="flex items-center gap-2">
@@ -76,15 +105,17 @@ export function PayrollSlipModal({
                 <Printer className="size-3.5" />
                 <span>Imprimir</span>
               </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={handleDownload}
-                className="rounded-xl text-xs font-bold h-8 px-2.5 border-border/70 flex items-center gap-1"
-              >
-                <Download className="size-3.5" />
-                <span>PDF</span>
-              </Button>
+              {isStamped && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleDownloadXml}
+                  className="rounded-xl text-xs font-bold h-8 px-2.5 border-border/70 flex items-center gap-1"
+                >
+                  <FileCode className="size-3.5 text-primary" />
+                  <span>XML SAT</span>
+                </Button>
+              )}
             </div>
           </div>
 
@@ -118,6 +149,48 @@ export function PayrollSlipModal({
             )}
           </div>
 
+          {/* Timbre Fiscal SAT 4.0 if stamped */}
+          {isStamped && employee.cfdi && (
+            <div className="p-3.5 rounded-2xl bg-primary/5 border border-primary/20 space-y-2">
+              <div className="flex items-center justify-between gap-2">
+                <div className="flex items-center gap-1.5 font-bold text-primary text-[11px] uppercase tracking-wider">
+                  <ShieldCheck className="size-4" />
+                  <span>Timbre Fiscal Digital SAT (CFDI 4.0)</span>
+                </div>
+                {employee.cfdi.qrCode && (
+                  <a
+                    href={employee.cfdi.qrCode}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-[10px] font-bold text-primary hover:underline flex items-center gap-1"
+                  >
+                    <span>Verificar en SAT</span>
+                    <ExternalLink className="size-2.5" />
+                  </a>
+                )}
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-[10px] font-mono text-muted-foreground">
+                <div>
+                  <span className="font-bold text-foreground block">Folio Fiscal (UUID):</span>
+                  <span className="break-all select-all font-semibold text-primary">{employee.cfdi.uuid}</span>
+                </div>
+                <div>
+                  <span className="font-bold text-foreground block">Fecha de Certificación:</span>
+                  <span>{employee.cfdi.stampDate || "Inmediata"}</span>
+                </div>
+                <div>
+                  <span className="font-bold text-foreground block">RFC Proveedor PAC:</span>
+                  <span>{employee.cfdi.pacRfc || "SAT970701NN3"}</span>
+                </div>
+                <div>
+                  <span className="font-bold text-foreground block">Sello Digital SAT:</span>
+                  <span className="truncate block max-w-[240px]">{employee.cfdi.satSeal || "N/A"}</span>
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* Breakdown Grid: Percepciones vs Deducciones */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             {/* Percepciones */}
@@ -145,7 +218,7 @@ export function PayrollSlipModal({
 
                 {employee.punctualityBonus > 0 && (
                   <div className="flex justify-between">
-                    <span className="text-muted-foreground">Premio de Puntualidad:</span>
+                    <span className="text-muted-foreground">Bono de Puntualidad:</span>
                     <span className="font-bold text-foreground">
                       +${employee.punctualityBonus.toLocaleString()} MXN
                     </span>
@@ -154,7 +227,7 @@ export function PayrollSlipModal({
 
                 {employee.attendanceBonus > 0 && (
                   <div className="flex justify-between">
-                    <span className="text-muted-foreground">Premio de Asistencia:</span>
+                    <span className="text-muted-foreground">Bono de Asistencia:</span>
                     <span className="font-bold text-foreground">
                       +${employee.attendanceBonus.toLocaleString()} MXN
                     </span>
@@ -163,7 +236,7 @@ export function PayrollSlipModal({
 
                 {employee.performanceBonus > 0 && (
                   <div className="flex justify-between">
-                    <span className="text-muted-foreground">Bono de Desempeño:</span>
+                    <span className="text-muted-foreground">Bono de Rendimiento:</span>
                     <span className="font-bold text-foreground">
                       +${employee.performanceBonus.toLocaleString()} MXN
                     </span>
@@ -173,7 +246,7 @@ export function PayrollSlipModal({
 
               <div className="pt-2 border-t border-emerald-500/20 flex justify-between font-extrabold text-emerald-700 dark:text-emerald-400">
                 <span>Total Percepciones:</span>
-                <span>${employee.totalPerceptions.toLocaleString()} MXN</span>
+                <span>+${employee.totalPerceptions.toLocaleString()} MXN</span>
               </div>
             </div>
 

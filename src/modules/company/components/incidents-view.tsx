@@ -13,7 +13,7 @@ import {
   Paperclip,
   CheckCircle2,
   Trash2,
-} from "lucide-react";
+} from "@/components/ui/icons";
 import Link from "next/link";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -33,6 +33,8 @@ import { LaborIncident } from "../types/incidents";
 import { NewIncidentModal, EmployeeRosterOption } from "./incidents/new-incident-modal";
 import { IncidentEvidenceModal } from "./incidents/incident-evidence-modal";
 import { updateIncidentStatusAction, deleteIncidentAction } from "../actions/incidents";
+import { CompanyPageHeader } from "./shared/company-page-header";
+import { CompanyStatusBadge } from "./shared/company-status-badge";
 
 interface IncidentsViewProps {
   initialIncidents?: LaborIncident[];
@@ -192,59 +194,46 @@ export function IncidentsView({
   const criticalCount = incidents.filter((i) => i.severity === "alta" || i.severity === "critica").length;
 
   return (
-    <div className="p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto space-y-6 sm:space-y-8 animate-in fade-in duration-300">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-2 border-b border-border/40">
-        <div className="space-y-1">
+    <div className="w-full space-y-6 pb-12 animate-in fade-in duration-300">
+      <CompanyPageHeader
+        title="Incidencias & Reconocimientos"
+        description="Registro formal de faltas, retardos, accidentes ST-7, incapacidades IMSS y méritos destacados."
+        badge={
+          <Badge variant="outline" className="text-xs">
+            {incidents.length} Eventos
+          </Badge>
+        }
+        actions={
           <div className="flex items-center gap-2">
-            <Link
-              href="/dashboard/company"
-              className="text-xs font-bold text-muted-foreground hover:text-foreground flex items-center gap-1 transition-colors"
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleExport}
+              disabled={isExporting}
+              className="gap-1.5 font-bold cursor-pointer"
             >
-              <ArrowLeft className="size-3.5" />
-              <span>Volver al Dashboard</span>
-            </Link>
+              <FileSpreadsheet className="size-3.5" />
+              <span>{isExporting ? "Generando..." : "Descargar Bitácora"}</span>
+            </Button>
+
+            <Button
+              size="sm"
+              onClick={() => setIsNewModalOpen(true)}
+              className="gap-1.5 font-bold cursor-pointer"
+            >
+              <Plus className="size-4" />
+              <span>Registrar Incidencia</span>
+            </Button>
           </div>
-          <h1 className="text-2xl sm:text-3xl font-extrabold text-foreground tracking-tight flex items-center gap-2.5">
-            <ShieldAlert className="size-7 text-primary" />
-            <span>Incidencias Laborales & Reconocimientos</span>
-          </h1>
-          <p className="text-xs sm:text-sm text-muted-foreground font-semibold">
-            Registro formal de faltas, retardos, accidentes ST-7, incapacidades IMSS, quejas, permisos y méritos destacados.
-          </p>
-        </div>
-
-        <div className="flex items-center gap-2.5 flex-wrap">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={handleExport}
-            disabled={isExporting}
-            className="rounded-xl text-xs font-bold h-10 px-4 border-border/70 shadow-xs flex items-center gap-1.5"
-          >
-            <FileSpreadsheet className="size-3.5" />
-            <span>{isExporting ? "Generando..." : "Descargar Bitácora"}</span>
-          </Button>
-
-          <Button
-            size="sm"
-            onClick={() => setIsNewModalOpen(true)}
-            className="rounded-xl text-xs font-bold h-10 px-4 bg-primary text-primary-foreground hover:bg-primary/90 shadow-xs flex items-center gap-1.5"
-          >
-            <Plus className="size-4" />
-            <span>Registrar Incidencia</span>
-          </Button>
-        </div>
-      </div>
+        }
+      />
 
       {/* KPI Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <Card className="rounded-2xl border border-border/40 bg-card p-5 space-y-2 shadow-xs">
+        <Card className="p-5 space-y-2">
           <div className="flex items-center justify-between text-xs font-bold text-muted-foreground">
             <span>Incidencias por Resolver</span>
-            <Badge className="bg-amber-500 text-white border-none text-[10px]">
-              Pendientes
-            </Badge>
+            <CompanyStatusBadge status="pending" label="Pendientes" />
           </div>
           <div className="text-2xl sm:text-3xl font-extrabold text-foreground">
             {pendingCount}
@@ -254,7 +243,7 @@ export function IncidentsView({
           </p>
         </Card>
 
-        <Card className="rounded-2xl border border-border/40 bg-card p-5 space-y-2 shadow-xs">
+        <Card className="p-5 space-y-2">
           <div className="flex items-center justify-between text-xs font-bold text-muted-foreground">
             <span>Actas & Severidad Alta</span>
             <AlertTriangle className="size-4 text-destructive" />
@@ -267,7 +256,7 @@ export function IncidentsView({
           </p>
         </Card>
 
-        <Card className="rounded-2xl border border-border/40 bg-card p-5 space-y-2 shadow-xs">
+        <Card className="p-5 space-y-2">
           <div className="flex items-center justify-between text-xs font-bold text-muted-foreground">
             <span>Reconocimientos Otorgados</span>
             <Award className="size-4 text-amber-500" />
@@ -282,7 +271,7 @@ export function IncidentsView({
       </div>
 
       {/* Main List */}
-      <Card className="rounded-2xl border border-border/40 bg-card p-5 sm:p-6 space-y-5 shadow-xs">
+      <Card className="p-5 sm:p-6 space-y-5">
         <div className="flex flex-col lg:flex-row gap-3 items-stretch lg:items-center justify-between">
           <div className="relative flex-1 max-w-md">
             <Search className="size-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
@@ -290,7 +279,7 @@ export function IncidentsView({
               placeholder="Buscar por empleado, título o tipo de incidencia..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-9 h-10 rounded-xl bg-background border-border/80 text-xs font-medium"
+              className="pl-9 w-full"
             />
           </div>
 
@@ -299,10 +288,10 @@ export function IncidentsView({
               value={categoryFilter}
               onValueChange={(val) => val && setCategoryFilter(val)}
             >
-              <SelectTrigger className="h-10 w-44 rounded-xl bg-background border-border/80 text-xs font-medium">
+              <SelectTrigger className="w-48">
                 <SelectValue placeholder="Categoría" />
               </SelectTrigger>
-              <SelectContent className="rounded-xl">
+              <SelectContent>
                 <SelectItem value="all">Todas las categorías</SelectItem>
                 <SelectItem value="falta_injustificada">Falta Injustificada</SelectItem>
                 <SelectItem value="retardo">Retardo</SelectItem>
@@ -321,10 +310,10 @@ export function IncidentsView({
               value={statusFilter}
               onValueChange={(val) => val && setStatusFilter(val)}
             >
-              <SelectTrigger className="h-10 w-36 rounded-xl bg-background border-border/80 text-xs font-medium">
+              <SelectTrigger className="w-40">
                 <SelectValue placeholder="Estatus" />
               </SelectTrigger>
-              <SelectContent className="rounded-xl">
+              <SelectContent>
                 <SelectItem value="all">Todos los estatus</SelectItem>
                 <SelectItem value="pendiente">🟡 Pendientes</SelectItem>
                 <SelectItem value="aprobado">🟢 Aprobados</SelectItem>
@@ -336,7 +325,7 @@ export function IncidentsView({
         </div>
 
         {filteredIncidents.length === 0 ? (
-          <div className="p-12 text-center bg-muted/20 rounded-xl border border-dashed border-border/60 space-y-2">
+          <div className="p-12 text-center bg-muted/20 rounded-3xl border border-dashed border-border/60 space-y-2">
             <CheckCircle2 className="size-8 text-muted-foreground mx-auto stroke-1" />
             <p className="text-sm font-bold text-foreground">
               Sin incidencias registradas
@@ -348,7 +337,7 @@ export function IncidentsView({
               variant="outline"
               size="sm"
               onClick={() => setIsNewModalOpen(true)}
-              className="mt-2 rounded-xl text-xs font-bold"
+              className="mt-2 font-bold cursor-pointer"
             >
               <Plus className="size-3.5 mr-1" />
               Registrar Primera Incidencia
@@ -362,12 +351,12 @@ export function IncidentsView({
               return (
                 <div
                   key={inc.id}
-                  className="p-4 rounded-xl border border-border/50 bg-background hover:border-border transition-all flex flex-col md:flex-row md:items-center justify-between gap-4"
+                  className="p-4 rounded-3xl border border-border/60 bg-card hover:border-primary/40 transition-all flex flex-col md:flex-row md:items-center justify-between gap-4"
                 >
                   <div className="flex items-start gap-3.5 min-w-0">
-                    <Avatar className="size-11 rounded-xl shrink-0 border border-border/40">
+                    <Avatar className="size-11 rounded-2xl shrink-0 border border-border/40">
                       <AvatarImage src={inc.avatarUrl || ""} />
-                      <AvatarFallback className="rounded-xl text-xs font-bold bg-muted text-muted-foreground">
+                      <AvatarFallback className="rounded-2xl text-xs font-bold bg-muted text-muted-foreground">
                         {inc.employeeName.slice(0, 2).toUpperCase()}
                       </AvatarFallback>
                     </Avatar>
@@ -381,12 +370,8 @@ export function IncidentsView({
                           • {inc.jobTitle} ({inc.department})
                         </span>
                         <Badge
-                          className={cn(
-                            "text-[10px] font-bold px-2 py-0.5 rounded-full border-none",
-                            isRecognition
-                              ? "bg-amber-500/15 text-amber-700 dark:text-amber-300"
-                              : "bg-primary/10 text-primary"
-                          )}
+                          variant="secondary"
+                          className="text-[10px] font-bold"
                         >
                           {inc.categoryLabel}
                         </Badge>
@@ -414,30 +399,30 @@ export function IncidentsView({
                   </div>
 
                   <div className="flex items-center gap-2.5 self-end md:self-center shrink-0 flex-wrap">
-                    <Badge
-                      className={cn(
-                        "text-xs font-bold px-2.5 py-0.5 rounded-lg border-none",
+                    <CompanyStatusBadge
+                      status={
                         inc.status === "aprobado" || inc.status === "resuelto"
-                          ? "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400"
+                          ? "completed"
                           : inc.status === "pendiente"
-                          ? "bg-amber-500/15 text-amber-700 dark:text-amber-300"
-                          : "bg-destructive/15 text-destructive"
-                      )}
-                    >
-                      {inc.status === "aprobado"
-                        ? "Aprobado / Aplicado"
-                        : inc.status === "resuelto"
-                        ? "⭐ Resuelto"
-                        : inc.status === "pendiente"
-                        ? "🟡 Por Resolver"
-                        : "Rechazado"}
-                    </Badge>
+                          ? "pending"
+                          : "inactive"
+                      }
+                      label={
+                        inc.status === "aprobado"
+                          ? "Aprobado"
+                          : inc.status === "resuelto"
+                          ? "Resuelto"
+                          : inc.status === "pendiente"
+                          ? "Por Resolver"
+                          : "Rechazado"
+                      }
+                    />
 
                     <Button
                       size="sm"
                       variant="outline"
                       onClick={() => setSelectedIncident(inc)}
-                      className="h-8 px-2.5 rounded-lg text-xs font-bold border-border/70 flex items-center gap-1"
+                      className="gap-1 cursor-pointer"
                     >
                       <Eye className="size-3" />
                       <span>Ver Ficha / Evidencia</span>
@@ -447,7 +432,7 @@ export function IncidentsView({
                       size="icon"
                       variant="ghost"
                       onClick={() => handleDelete(inc.id)}
-                      className="h-8 w-8 rounded-lg text-muted-foreground hover:text-destructive hover:bg-destructive/10"
+                      className="size-8 text-muted-foreground hover:text-destructive hover:bg-destructive/10 cursor-pointer"
                       title="Eliminar incidencia"
                     >
                       <Trash2 className="size-3.5" />

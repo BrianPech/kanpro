@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { Check, Briefcase, MapPin, FileText, Send } from "lucide-react";
+import { Check, Briefcase, MapPin, FileText, Send } from "@/components/ui/icons";
 import { cn } from "@/lib/utils";
 
 export interface StepItem {

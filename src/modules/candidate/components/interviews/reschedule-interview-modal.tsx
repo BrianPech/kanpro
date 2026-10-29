@@ -14,7 +14,7 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
-import { CalendarClock, Loader2, Send } from "lucide-react";
+import { CalendarClock, Loader2, Send } from "@/components/ui/icons";
 import { respondToInterviewAction } from "@/modules/candidate/actions/interviews";
 
 interface RescheduleInterviewModalProps {

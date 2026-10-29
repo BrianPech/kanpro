@@ -23,7 +23,7 @@ import {
   GraduationCap,
   Flame,
   Briefcase,
-} from "lucide-react";
+} from "@/components/ui/icons";
 import {
   Drawer,
   DrawerClose,
@@ -145,7 +145,7 @@ export function VacancyPreviewDrawer({
                 {vacancy.category && (
                   <Badge
                     variant="secondary"
-                    className="text-[10px] font-bold px-2 py-0.5 rounded-lg border-border/40"
+                    className="text-[10px] font-bold px-2 py-0.5 border-border/40"
                   >
                     {vacancy.category}
                   </Badge>
@@ -154,7 +154,7 @@ export function VacancyPreviewDrawer({
                 {vacancy.modality && (
                   <Badge
                     variant="outline"
-                    className="text-[10px] font-semibold px-2 py-0.5 rounded-lg text-muted-foreground border-border/50"
+                    className="text-[10px] font-semibold px-2 py-0.5 text-muted-foreground border-border/50"
                   >
                     {vacancy.modality}
                   </Badge>
@@ -336,7 +336,7 @@ export function VacancyPreviewDrawer({
                   <Badge
                     key={idx}
                     variant="outline"
-                    className="rounded-lg bg-muted/40 text-foreground border-border/50 px-2.5 py-1 text-xs font-bold shadow-none"
+                    className="bg-muted/40 text-foreground border-border/50 px-2.5 py-1 text-xs font-bold shadow-none"
                   >
                     {skill}
                   </Badge>

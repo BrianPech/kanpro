@@ -2,7 +2,7 @@
 
 import React, { useState } from "react";
 import Link from "next/link";
-import { MapPin, ArrowRight, Search } from "lucide-react";
+import { MapPin, ArrowRight, Search } from "@/components/ui/icons";
 
 export function CatalogueBand() {
   const [selectedZone, setSelectedZone] = useState("todos");

@@ -5,7 +5,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { AuthHeroPanel } from "@/modules/auth/components/auth-hero-panel";
 import { ModeToggle } from "@/components/shared/mode-toggle";
-import { ArrowLeft, Kanban } from "lucide-react";
+import { ArrowLeft, Kanban } from "@/components/ui/icons";
 
 export default function AuthLayout({
   children,

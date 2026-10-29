@@ -9,7 +9,7 @@ import {
   ExternalLink,
   Sparkles,
   Layers,
-} from "lucide-react";
+} from "@/components/ui/icons";
 import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -156,7 +156,7 @@ export function Step4Publication({
                   value={field.state.value || ""}
                   onChange={(e) => field.handleChange(e.target.value)}
                   placeholder="999 123 4567"
-                  className="h-11 w-full pl-20 pr-3.5 rounded-2xl bg-input/50 border border-border/80 text-sm font-medium font-mono shadow-2xs"
+                  className="w-full pl-20 pr-3.5 font-mono text-sm"
                   maxLength={15}
                 />
               </div>
@@ -190,7 +190,7 @@ export function Step4Publication({
       </div>
 
       {/* 2. Banner de Vista Previa con Drawer de shadcn */}
-      <Card className="p-5 rounded-2xl bg-input/20 border border-border/80 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-2xs">
+      <Card className="p-5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div className="space-y-1">
           <div className="flex items-center gap-2">
             <Eye className="size-4 text-primary" />
@@ -207,7 +207,7 @@ export function Step4Publication({
           type="button"
           onClick={onOpenPreviewDrawer}
           variant="outline"
-          className="h-11 px-5 rounded-2xl font-bold text-xs gap-2 border-border/80 hover:bg-muted cursor-pointer shrink-0 shadow-2xs"
+          className="font-bold text-xs gap-2 cursor-pointer shrink-0"
         >
           <Eye className="size-4 text-primary" />
           <span>Ver en Drawer</span>

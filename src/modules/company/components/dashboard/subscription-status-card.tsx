@@ -7,14 +7,13 @@ import {
   ShieldCheck,
   Clock,
   SlidersHorizontal,
-} from "lucide-react";
+} from "@/components/ui/icons";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { SubscriptionSummary } from "../../types/dashboard";
 import { CompanySettingsModal } from "../company-settings-dialog";
 import { SUBSCRIPTION_PLANS } from "@/config/subscriptions";
-import { cn } from "@/lib/utils";
 
 interface SubscriptionStatusCardProps {
   subscription?: SubscriptionSummary;
@@ -34,7 +33,6 @@ export function SubscriptionStatusCard({ subscription }: SubscriptionStatusCardP
     verificationStatus: null,
   };
 
-  const isActive = plan.status === "active" || plan.status === "trialing" || plan.status === "ACTIVO";
   const vacanciesPercent = Math.min(
     100,
     Math.round(
@@ -45,31 +43,31 @@ export function SubscriptionStatusCard({ subscription }: SubscriptionStatusCardP
   );
 
   return (
-    <Card className="rounded-2xl border border-primary/20 bg-gradient-to-br from-primary/5 via-card to-card p-5 space-y-4 shadow-xs relative overflow-hidden">
+    <Card className="bg-gradient-to-br from-primary/5 via-card to-card p-5 sm:p-6 space-y-5 relative overflow-hidden">
       <div className="absolute top-0 right-0 p-6 pointer-events-none opacity-5 dark:opacity-10">
         <CreditCard className="size-32 -mr-8 -mt-8 text-primary" />
       </div>
 
       {/* Header */}
-      <div className="flex items-center justify-between gap-2 pb-2 border-b border-border/40 relative z-10">
-        <div className="flex items-center gap-2.5">
-          <div className="size-9 rounded-xl bg-primary/10 text-primary flex items-center justify-center shrink-0">
-            <Sparkles className="size-4.5" />
+      <div className="flex items-center justify-between gap-3 pb-3 border-b border-border relative z-10">
+        <div className="flex items-center gap-3">
+          <div className="size-10 rounded-2xl bg-primary/10 text-primary flex items-center justify-center shrink-0">
+            <Sparkles className="size-5" />
           </div>
           <div>
             <div className="flex items-center gap-2 flex-wrap">
-              <h3 className="text-sm font-extrabold text-foreground tracking-tight">
+              <h3 className="text-base font-bold text-foreground">
                 Estado de Suscripción
               </h3>
               <Badge
                 variant="outline"
-                className="text-[10px] font-extrabold px-2 py-0.5 rounded-full border-none bg-amber-500/15 text-amber-700 dark:text-amber-300 gap-1"
+                className="text-xs font-semibold px-2.5 py-0.5 rounded-3xl bg-amber-500/10 text-amber-700 dark:text-amber-300 border-amber-500/20 gap-1.5"
               >
                 <Sparkles className="size-3 text-amber-500" />
                 Acceso Anticipado • Periodo de Pruebas
               </Badge>
             </div>
-            <p className="text-[11px] text-muted-foreground font-semibold">
+            <p className="text-xs text-muted-foreground font-medium mt-0.5">
               {plan.planName} • Fase Beta Gratuita
             </p>
           </div>
@@ -78,44 +76,44 @@ export function SubscriptionStatusCard({ subscription }: SubscriptionStatusCardP
         {plan.verificationStatus === "approved" && (
           <Badge
             variant="outline"
-            className="bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20 text-[10px] font-bold px-2 py-0.5 rounded-full flex items-center gap-1 shrink-0"
+            className="bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20 text-xs font-semibold px-2.5 py-0.5 rounded-3xl flex items-center gap-1.5 shrink-0"
           >
-            <ShieldCheck className="size-3" />
+            <ShieldCheck className="size-3.5" />
             <span className="hidden sm:inline">Verificada SAT</span>
           </Badge>
         )}
       </div>
 
       {/* Quotas & Resource Metrics */}
-      <div className="grid grid-cols-2 gap-2.5 relative z-10">
+      <div className="grid grid-cols-2 gap-3 relative z-10">
         {/* Metric 1: Vacantes Destacadas */}
-        <div className="p-3 rounded-xl bg-background/80 border border-border/50 space-y-1.5">
-          <div className="flex items-center justify-between text-[11px] font-bold text-muted-foreground">
+        <div className="p-4 rounded-3xl bg-card border border-border space-y-2">
+          <div className="flex items-center justify-between text-xs font-semibold text-muted-foreground">
             <span>Destacadas K&apos;anPro</span>
-            <span className="text-foreground">
+            <span className="text-foreground font-bold">
               {plan.featuredVacanciesUsed}/{plan.featuredVacanciesAllowance}
             </span>
           </div>
-          <div className="w-full h-1.5 bg-muted rounded-full overflow-hidden">
+          <div className="w-full h-2 bg-muted rounded-full overflow-hidden">
             <div
               className="h-full bg-primary rounded-full transition-all duration-300"
               style={{ width: `${vacanciesPercent}%` }}
             />
           </div>
-          <p className="text-[10px] text-muted-foreground">
+          <p className="text-[11px] text-muted-foreground font-medium">
             {plan.featuredVacanciesAllowance - plan.featuredVacanciesUsed} vacantes disponibles
           </p>
         </div>
 
         {/* Metric 2: Créditos de Contacto Directo */}
-        <div className="p-3 rounded-xl bg-background/80 border border-border/50 space-y-1.5">
-          <div className="flex items-center justify-between text-[11px] font-bold text-muted-foreground">
+        <div className="p-4 rounded-3xl bg-card border border-border space-y-2">
+          <div className="flex items-center justify-between text-xs font-semibold text-muted-foreground">
             <span>Créditos Radar</span>
-            <span className="text-primary font-mono font-extrabold">
+            <span className="text-primary font-mono font-bold">
               {plan.creditsAvailable}
             </span>
           </div>
-          <div className="w-full h-1.5 bg-muted rounded-full overflow-hidden">
+          <div className="w-full h-2 bg-muted rounded-full overflow-hidden">
             <div
               className="h-full bg-amber-500 rounded-full transition-all duration-300"
               style={{
@@ -123,16 +121,16 @@ export function SubscriptionStatusCard({ subscription }: SubscriptionStatusCardP
               }}
             />
           </div>
-          <p className="text-[10px] text-muted-foreground">
-            Contacto inmediato
+          <p className="text-[11px] text-muted-foreground font-medium">
+            Contacto directo inmediato
           </p>
         </div>
       </div>
 
       {/* Footer Info & Modal CTA */}
-      <div className="pt-2 border-t border-border/40 flex items-center justify-between gap-2 relative z-10 flex-wrap">
-        <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground font-medium">
-          <Clock className="size-3 text-muted-foreground" />
+      <div className="pt-3 border-t border-border flex items-center justify-between gap-3 relative z-10 flex-wrap">
+        <div className="flex items-center gap-1.5 text-xs text-muted-foreground font-medium">
+          <Clock className="size-3.5 text-muted-foreground" />
           <span>Periodo de pruebas gratuito activo sin cargos</span>
         </div>
 
@@ -141,9 +139,8 @@ export function SubscriptionStatusCard({ subscription }: SubscriptionStatusCardP
             <Button
               variant="outline"
               size="sm"
-              className="rounded-xl text-[11px] font-bold h-7 px-2.5 border-border/60 bg-background/60 hover:bg-background flex items-center gap-1 text-primary cursor-pointer shadow-none"
             >
-              <SlidersHorizontal className="size-3" />
+              <SlidersHorizontal data-icon="inline-start" />
               <span>Gestionar Plan</span>
             </Button>
           }

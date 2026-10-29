@@ -24,12 +24,12 @@ Documento maestro de seguimiento técnico y funcional para las áreas del **Mód
 - Cuestionarios iniciales de la NOM-035 (Guía I, II y III) en modal.
 
 ### Tareas Pendientes (TO-DO)
-- [ ] **Flujo Multi-Evaluador 360°:**
-  - [ ] Implementar evaluación multidireccional: Autoevaluación, Evaluación de Pares (colegas), Evaluación de Subordinados y Evaluación de Jefatura.
-  - [ ] Generación de enlaces/tokens anónimos para feedback constructivo entre pares.
-- [ ] **Métricas y Visualización de Talento:**
-  - [ ] Gráfico interactivo tipo Radar (Spider Chart) comparando Competencias Requeridas vs. Evaluadas.
-  - [ ] Matriz de Talento 9-Box (Potencial vs. Desempeño) para planes de carrera y sucesión.
+- [x] **Flujo Multi-Evaluador 360°:**
+  - [x] Implementar evaluación multidireccional: Autoevaluación, Evaluación de Pares (colegas), Evaluación de Subordinados y Evaluación de Jefatura.
+  - [x] Triangulación de perspectivas en base de datos (`evaluator_relation`).
+- [x] **Métricas y Visualización de Talento:**
+  - [x] Matriz de Talento 9-Box (Potencial vs. Desempeño) para planes de carrera y sucesión (`NineBoxMatrixView`).
+  - [x] Cuadrantes calculados matemáticamente con recomendaciones estratégicas de RH.
 - [ ] **Planes de Acción y Seguimiento:**
   - [ ] Módulo de Compromisos y Planes de Desarrollo Individual (PDI) tras la evaluación.
   - [ ] Registro de reuniones de retroalimentación 1 a 1 entre líderes y colaboradores.
@@ -112,10 +112,11 @@ Documento maestro de seguimiento técnico y funcional para las áreas del **Mód
   - [ ] Cálculo anual de Aguinaldo, Finiquitos y Liquidaciones conforme a la LFT.
 - [ ] **Dispersión Bancaria Masiva:**
   - [ ] Generador de layouts de transferencia bancaria según formato oficial de bancos (BBVA Layout TXT, Citibanamex, Banorte, Santander).
-- [ ] **Timbrado CFDI de Nómina (SAT 4.0):**
-  - [ ] Integración con PAC (Proveedor Autorizado de Certificación) para emisión de XML y timbre fiscal.
-  - [ ] Generación de recibos de nómina en PDF con sello digital y código QR SAT.
-  - [ ] Envío automático del recibo timbrado al correo electrónico del trabajador y puesta a disposición en su portal de autoservicio.
+- [x] **Timbrado CFDI de Nómina (SAT 4.0):**
+  - [x] Integración con PAC (Proveedor Autorizado de Certificación) para emisión de XML y timbre fiscal (`PacStampingService`).
+  - [x] Generación de comprobante CFDI 4.0 con complemento de nómina 1.2 oficial (`sat-cfdi-payroll-generator.ts`).
+  - [x] Recibos de nómina con sello digital SAT, UUID fiscal v4 y verificación interactiva con QR oficial SAT.
+  - [x] Descarga directa de XML CFDI timbrado y visualización de estatus en portal de nómina.
 
 ---
 

@@ -64,9 +64,9 @@ import { ThemeProvider } from "@/components/providers/theme-provider";
 import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { WhatsAppSupportWidget } from "@/components/marketing/whatsapp-support-widget";
-import { Inter } from "next/font/google";
+import { Geist } from "next/font/google";
 
-const inter = Inter({ subsets: ["latin"], variable: "--font-sans" });
+const geist = Geist({subsets:['latin'],variable:'--font-sans'});
 
 export default function RootLayout({
   children,
@@ -83,7 +83,7 @@ export default function RootLayout({
         geistSans.variable,
         geistMono.variable,
         "font-sans",
-        inter.variable,
+        geist.variable,
       )}
     >
       <body className="min-h-full flex flex-col" suppressHydrationWarning>

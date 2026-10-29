@@ -33,7 +33,7 @@ import {
   MessageCircle,
   ExternalLink,
   ChevronRight
-} from "lucide-react";
+} from "@/components/ui/icons";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -68,6 +68,7 @@ import {
 import { MarkdownRenderer } from "@/components/ui/markdown-renderer";
 import { useQuery } from "@tanstack/react-query";
 import { createClient } from "@/lib/supabase/client";
+import { applyToVacancyAction } from "../actions/applications";
 import { jobSearchService, matchFuzzy } from "../services/job-search";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
@@ -314,43 +315,34 @@ export function JobSearchView({ initialVacancies = [], onBack }: JobSearchViewPr
     }
   };
 
-  // Handle Apply to Vacancy
+  // Handle Apply to Vacancy via Server Action
   const handleApplyToJob = async (job: SearchVacancy) => {
     if (appliedJobIds.has(job.id) || isApplying) return;
 
     try {
       setIsApplying(true);
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) {
-        toast.error("Inicia sesión para postularte a esta vacante");
+      const res = await applyToVacancyAction({ vacancyId: job.id });
+
+      if (!res.success) {
+        toast.error("No se pudo completar la postulación", {
+          description: res.error || "Intenta nuevamente.",
+        });
         return;
       }
 
-      const { error } = await supabase
-        .from("applications")
-        .insert({
-          candidate_id: user.id,
-          vacancy_id: job.id,
-          status: "Pendiente"
-        });
-
-      if (error) {
-        if (error.code === "23505") {
-          setAppliedJobIds((prev) => new Set([...prev, job.id]));
-          toast.info("Ya te has postulado a esta vacante");
-          return;
-        }
-        throw error;
-      }
-
       setAppliedJobIds((prev) => new Set([...prev, job.id]));
-      toast.success("¡Postulación enviada exitosamente!", {
-        description: `Tu postulación ha sido enviada a ${job.companyName}.`
-      });
-    } catch (err: any) {
-      console.error("Error applying to vacancy:", err);
+
+      if (res.data.alreadyApplied) {
+        toast.info(res.data.message);
+      } else {
+        toast.success("¡Postulación enviada exitosamente!", {
+          description: `Tu postulación ha sido enviada a ${job.companyName}.`,
+        });
+      }
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : "Intenta nuevamente.";
       toast.error("No se pudo completar la postulación", {
-        description: err.message || "Intenta nuevamente."
+        description: message,
       });
     } finally {
       setIsApplying(false);

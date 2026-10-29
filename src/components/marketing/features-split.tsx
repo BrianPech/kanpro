@@ -7,7 +7,7 @@ import {
   UserCheck, 
   ArrowRight, 
   MapPin
-} from "lucide-react";
+} from "@/components/ui/icons";
 import { Button } from "@/components/ui/button";
 
 export function FeaturesSplit() {

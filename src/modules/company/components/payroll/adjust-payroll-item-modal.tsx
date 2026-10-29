@@ -6,7 +6,7 @@ import {
   Sparkles,
   CheckCircle2,
   Receipt,
-} from "lucide-react";
+} from "@/components/ui/icons";
 import {
   Dialog,
   DialogContent,
@@ -82,7 +82,7 @@ export function AdjustPayrollItemModal({
                 step="50"
                 value={punctuality}
                 onChange={(e) => setPunctuality(parseFloat(e.target.value) || 0)}
-                className="h-10 rounded-xl bg-background border-border/80 text-xs font-medium"
+                className="text-xs font-medium"
               />
             </div>
 
@@ -96,7 +96,7 @@ export function AdjustPayrollItemModal({
                 step="50"
                 value={attendance}
                 onChange={(e) => setAttendance(parseFloat(e.target.value) || 0)}
-                className="h-10 rounded-xl bg-background border-border/80 text-xs font-medium"
+                className="text-xs font-medium"
               />
             </div>
 
@@ -110,23 +110,21 @@ export function AdjustPayrollItemModal({
                 step="100"
                 value={performance}
                 onChange={(e) => setPerformance(parseFloat(e.target.value) || 0)}
-                className="h-10 rounded-xl bg-background border-border/80 text-xs font-medium"
+                className="text-xs font-medium"
               />
             </div>
           </div>
 
-          <DialogFooter className="flex flex-col-reverse sm:flex-row gap-2 pt-2 border-t border-border/40">
+          <DialogFooter className="flex flex-col-reverse sm:flex-row gap-2 pt-2 border-t border-border">
             <Button
               type="button"
               variant="outline"
               onClick={() => onOpenChange(false)}
-              className="rounded-xl text-xs font-bold h-10 px-4"
             >
               Cancelar
             </Button>
             <Button
               type="submit"
-              className="rounded-xl text-xs font-bold h-10 px-5 bg-primary text-primary-foreground hover:bg-primary/90 shadow-xs"
             >
               Aplicar a Pre-Nómina
             </Button>

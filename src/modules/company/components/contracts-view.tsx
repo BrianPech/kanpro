@@ -36,7 +36,7 @@ import {
   Check,
   AlertCircle,
   FileSignature,
-} from "lucide-react";
+} from "@/components/ui/icons";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -104,6 +104,8 @@ import {
 } from "./contracts/contract-builder-modal";
 import { ContractPreviewModal } from "./contracts/contract-preview-modal";
 import { EmployeeDossierSheet } from "./dossier/employee-dossier-sheet";
+import { CompanyPageHeader } from "./shared/company-page-header";
+import { CompanyStatusBadge } from "./shared/company-status-badge";
 
 export interface ContractRecord {
   id: string;
@@ -708,7 +710,7 @@ export function ContractsView({
               </span>
               <Badge
                 variant="outline"
-                className="text-[10px] font-semibold px-2 py-0 rounded-md border-border/30 bg-muted/30"
+                className="text-[10px] font-semibold px-2 py-0 border-border/30 bg-muted/30"
               >
                 {item.templateType === "indeterminado"
                   ? "Planta (Indeterminado)"
@@ -758,11 +760,11 @@ export function ContractsView({
               </div>
               <div>
                 {isImminent ? (
-                  <Badge className="bg-destructive/15 text-destructive border-none text-[10px] font-extrabold px-2 py-0 rounded-md">
+                  <Badge className="bg-destructive/15 text-destructive border-none text-[10px] font-extrabold px-2 py-0">
                     ¡Vence en {item.daysRemaining} días!
                   </Badge>
                 ) : isUpcoming ? (
-                  <Badge className="bg-amber-500/15 text-amber-700 dark:text-amber-300 border-none text-[10px] font-extrabold px-2 py-0 rounded-md">
+                  <Badge className="bg-amber-500/15 text-amber-700 dark:text-amber-300 border-none text-[10px] font-extrabold px-2 py-0">
                     Vence en {item.daysRemaining} días
                   </Badge>
                 ) : (
@@ -1068,7 +1070,7 @@ export function ContractsView({
             <div className="space-y-0.5 py-1">
               <Badge
                 variant="outline"
-                className="text-[10px] font-bold px-2 py-0.5 rounded-md border-rose-500/20 bg-rose-500/10 text-rose-600 dark:text-rose-400"
+                className="text-[10px] font-bold px-2 py-0.5 border-rose-500/20 bg-rose-500/10 text-rose-600 dark:text-rose-400"
               >
                 {item.reason}
               </Badge>
@@ -1184,38 +1186,29 @@ export function ContractsView({
 
   return (
     <div className="space-y-6 w-full pb-16 font-sans">
-      {/* 1. Header & Quick Actions */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-2xl sm:text-3xl font-[800] text-foreground tracking-tight flex items-center gap-2.5">
-            <span>Contratos & Bajas Laborales</span>
-            <Badge
-              variant="outline"
-              className="text-xs font-bold font-mono px-2 py-0.5 rounded-lg border-border/40"
-            >
-              {contracts.length + terminations.length}
-            </Badge>
-          </h1>
-          <p className="text-xs sm:text-sm text-muted-foreground font-medium mt-1">
-            Plantillas oficiales LFT, firma electrónica digital, alertas de vigencia y registro de finiquitos.
-          </p>
-        </div>
-
+      {/* 1. Header Unificado */}
+      <CompanyPageHeader
+        title="Contratos & Bajas Laborales"
+        description="Plantillas oficiales LFT, firma electrónica digital, alertas de vigencia y registro de finiquitos."
+      >
         <div className="flex items-center gap-2">
+          <Badge variant="outline" className="font-mono">
+            {contracts.length + terminations.length}
+          </Badge>
           <Button
             size="sm"
             onClick={() => setIsBuilderOpen(true)}
-            className="h-9 font-bold text-xs rounded-xl px-4 flex items-center gap-2 bg-primary text-primary-foreground hover:bg-primary/90 shadow-xs cursor-pointer"
+            className="cursor-pointer font-medium"
           >
-            <Plus className="size-4" />
+            <Plus data-icon="inline-start" />
             <span>Nuevo Contrato con Plantilla</span>
           </Button>
         </div>
-      </div>
+      </CompanyPageHeader>
 
       {/* 2. KPI Cards Grid */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4">
-        <Card className="bg-card border border-border/40 rounded-2xl p-4 flex flex-col justify-between">
+        <Card className="p-4 sm:p-5 flex flex-col justify-between">
           <div className="flex items-center justify-between">
             <span className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider">
               Contratos Activos
@@ -1234,7 +1227,7 @@ export function ContractsView({
           </div>
         </Card>
 
-        <Card className="bg-card border border-border/40 rounded-2xl p-4 flex flex-col justify-between">
+        <Card className="p-4 sm:p-5 flex flex-col justify-between">
           <div className="flex items-center justify-between">
             <span className="text-[11px] font-bold text-rose-600 dark:text-rose-400 uppercase tracking-wider">
               Críticos (&lt; 7 días)
@@ -1253,7 +1246,7 @@ export function ContractsView({
           </div>
         </Card>
 
-        <Card className="bg-card border border-border/40 rounded-2xl p-4 flex flex-col justify-between">
+        <Card className="p-4 sm:p-5 flex flex-col justify-between">
           <div className="flex items-center justify-between">
             <span className="text-[11px] font-bold text-emerald-600 dark:text-emerald-400 uppercase tracking-wider">
               Planta (Indeterminados)
@@ -1272,7 +1265,7 @@ export function ContractsView({
           </div>
         </Card>
 
-        <Card className="bg-card border border-border/40 rounded-2xl p-4 flex flex-col justify-between">
+        <Card className="p-4 sm:p-5 flex flex-col justify-between">
           <div className="flex items-center justify-between">
             <span className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider">
               Bajas Registradas
@@ -1329,7 +1322,7 @@ export function ContractsView({
                     value={contractSearch}
                     onChange={(e) => setContractSearch(e.target.value)}
                     placeholder="Buscar por empleado, puesto, departamento o folio..."
-                    className="h-10 pl-10 pr-9 bg-background border-border/50 rounded-xl text-xs sm:text-sm font-medium focus-visible:ring-1 focus-visible:ring-primary"
+                    className="pl-10 pr-9 text-xs sm:text-sm font-medium"
                   />
                   {contractSearch && (
                     <button
@@ -1509,7 +1502,7 @@ export function ContractsView({
                       <Button
                         size="sm"
                         onClick={() => setIsBuilderOpen(true)}
-                        className="rounded-xl font-bold text-xs h-9 px-4 cursor-pointer gap-1.5 bg-primary text-primary-foreground hover:bg-primary/90"
+                        className="font-bold text-xs cursor-pointer gap-1.5"
                       >
                         <Plus className="size-3.5" />
                         <span>Nuevo Contrato Laboral</span>
@@ -1523,7 +1516,7 @@ export function ContractsView({
                           setContractStatusFilter("all");
                           setContractTypeFilter("all");
                         }}
-                        className="rounded-xl font-bold text-xs h-9 px-4 cursor-pointer border-border/50 gap-1.5"
+                        className="font-bold text-xs cursor-pointer gap-1.5"
                       >
                         <RotateCcw className="size-3.5" />
                         <span>Restablecer Filtros</span>
@@ -1609,7 +1602,7 @@ export function ContractsView({
                     value={terminationSearch}
                     onChange={(e) => setTerminationSearch(e.target.value)}
                     placeholder="Buscar por empleado, puesto o motivo de baja..."
-                    className="h-10 pl-10 pr-9 bg-background border-border/50 rounded-xl text-xs sm:text-sm font-medium focus-visible:ring-1 focus-visible:ring-primary"
+                    className="pl-10 pr-9 text-xs sm:text-sm font-medium"
                   />
                   {terminationSearch && (
                     <button
@@ -1628,7 +1621,7 @@ export function ContractsView({
                       setTerminationReasonFilter(val || "all")
                     }
                   >
-                    <SelectTrigger className="h-10 w-full rounded-xl border-border/50 bg-background text-xs font-semibold">
+                    <SelectTrigger className="w-full text-xs font-semibold">
                       <SelectValue placeholder="Motivo de Baja">
                         {terminationReasonFilter === "all"
                           ? "Todos los motivos"
@@ -1699,7 +1692,7 @@ export function ContractsView({
                         setTerminationSearch("");
                         setTerminationReasonFilter("all");
                       }}
-                      className="rounded-xl font-bold text-xs h-9 px-4 cursor-pointer border-border/50 gap-1.5"
+                      className="font-bold text-xs cursor-pointer gap-1.5"
                     >
                       <RotateCcw className="size-3.5" />
                       <span>Limpiar Filtros</span>
@@ -1795,7 +1788,7 @@ export function ContractsView({
                   value={extensionPeriod}
                   onValueChange={(val) => val && setExtensionPeriod(val)}
                 >
-                  <SelectTrigger className="h-11 rounded-xl bg-muted/40 border-border/60 text-xs font-semibold">
+                  <SelectTrigger className="text-xs font-semibold">
                     <SelectValue placeholder="Selecciona un plazo">
                       {extensionPeriod === "indeterminado"
                         ? "✨ Pasar a Contrato Indeterminado (Planta)"
@@ -1836,18 +1829,16 @@ export function ContractsView({
               </div>
             </div>
 
-            <DialogFooter className="flex flex-col-reverse sm:flex-row gap-2 pt-2 border-t border-border/40">
+            <DialogFooter className="flex flex-col-reverse sm:flex-row gap-2 pt-2 border-t border-border">
               <Button
                 type="button"
                 variant="outline"
                 onClick={() => setIsRenewModalOpen(false)}
-                className="rounded-xl text-xs font-bold h-10 px-4 cursor-pointer"
               >
                 Cancelar
               </Button>
               <Button
                 type="submit"
-                className="rounded-xl text-xs font-bold h-10 px-5 bg-primary text-primary-foreground hover:bg-primary/90 shadow-xs cursor-pointer"
               >
                 Confirmar Renovación
               </Button>
@@ -1952,7 +1943,7 @@ export function ContractsView({
                     val && setTerminationReason(val as TerminationRecord["reason"])
                   }
                 >
-                  <SelectTrigger className="h-11 rounded-xl bg-muted/40 border-border/60 text-xs font-semibold">
+                  <SelectTrigger className="text-xs font-semibold">
                     <SelectValue placeholder="Selecciona un motivo">
                       {terminationReason}
                     </SelectValue>
@@ -2009,20 +2000,19 @@ export function ContractsView({
               </div>
             </div>
 
-            <DialogFooter className="flex flex-col-reverse sm:flex-row gap-2 pt-2 border-t border-border/40">
+            <DialogFooter className="flex flex-col-reverse sm:flex-row gap-2 pt-2 border-t border-border">
               <Button
                 type="button"
                 variant="outline"
                 onClick={() => setIsTerminateModalOpen(false)}
                 disabled={isTerminating}
-                className="rounded-xl text-xs font-bold h-10 px-4 cursor-pointer"
               >
                 Cancelar
               </Button>
               <Button
                 type="submit"
+                variant="destructive"
                 disabled={isTerminating}
-                className="rounded-xl text-xs font-bold h-10 px-5 bg-rose-600 text-white hover:bg-rose-700 shadow-xs cursor-pointer gap-1.5"
               >
                 {isTerminating ? (
                   <>

@@ -10,7 +10,7 @@ import {
   Receipt,
   Calendar,
   User,
-} from "lucide-react";
+} from "@/components/ui/icons";
 import {
   Dialog,
   DialogContent,

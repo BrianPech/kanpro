@@ -1,17 +1,14 @@
 "use client";
 
 import React, { useState } from "react";
+import Link from "next/link";
 import {
   FileCheck2,
-  Clock,
-  AlertTriangle,
-  Calendar,
-  RotateCcw,
-  CheckCircle2,
   ChevronRight,
-  User,
+  RotateCcw,
   Sparkles,
-} from "lucide-react";
+  CheckCircle2,
+} from "@/components/ui/icons";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -24,8 +21,8 @@ import {
   DialogDescription,
   DialogFooter,
 } from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
 import {
   Select,
   SelectContent,
@@ -33,49 +30,67 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { CompanyStatusBadge } from "../shared/company-status-badge";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
-import Link from "next/link";
-import { ContractExpirationItem } from "../../types/dashboard";
 
-interface ContractsExpirationCardProps {
-  initialContracts: ContractExpirationItem[];
+interface ContractItem {
+  id: string;
+  employeeName: string;
+  avatarUrl?: string;
+  jobTitle: string;
+  department: string;
+  endDate: string;
+  daysRemaining: number;
+  contractType: string;
+  status: "imminent" | "upcoming" | "active";
 }
 
-export function ContractsExpirationCard({
-  initialContracts,
-}: ContractsExpirationCardProps) {
-  const [contracts, setContracts] = useState<ContractExpirationItem[]>(initialContracts);
-  const [selectedContract, setSelectedContract] = useState<ContractExpirationItem | null>(null);
+const INITIAL_CONTRACTS: ContractItem[] = [
+  {
+    id: "cnt-1",
+    employeeName: "Sofía Armenta Ruiz",
+    jobTitle: "Cocinera B",
+    department: "Alimentos y Bebidas",
+    endDate: "30 de Octubre, 2026",
+    daysRemaining: 1,
+    contractType: "Determinado (3 Meses)",
+    status: "imminent",
+  },
+  {
+    id: "cnt-2",
+    employeeName: "Rodrigo Cetina Pech",
+    jobTitle: "Auxiliar de Mantenimiento",
+    department: "Operaciones",
+    endDate: "12 de Noviembre, 2026",
+    daysRemaining: 14,
+    contractType: "Determinado (Prueba)",
+    status: "upcoming",
+  },
+  {
+    id: "cnt-3",
+    employeeName: "Valeria Montero Gil",
+    jobTitle: "Recepcionista Nocturna",
+    department: "Front Desk",
+    endDate: "24 de Noviembre, 2026",
+    daysRemaining: 26,
+    contractType: "Determinado (6 Meses)",
+    status: "upcoming",
+  },
+];
+
+export function ContractsExpirationCard() {
+  const [contracts, setContracts] = useState<ContractItem[]>(INITIAL_CONTRACTS);
+  const [selectedContract, setSelectedContract] = useState<ContractItem | null>(null);
   const [isRenewModalOpen, setIsRenewModalOpen] = useState(false);
-  const [extensionPeriod, setExtensionPeriod] = useState("6_meses");
-  const [newSalary, setNewSalary] = useState("");
+  const [extensionPeriod, setExtensionPeriod] = useState<string>("indeterminado");
+  const [newSalary, setNewSalary] = useState<string>("");
 
   const handleRenewContract = (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedContract) return;
 
-    // Extend contract by selected period
-    const monthsToAdd = extensionPeriod === "3_meses" ? 3 : extensionPeriod === "6_meses" ? 6 : 12;
-    const newEnd = new Date();
-    newEnd.setMonth(newEnd.getMonth() + monthsToAdd);
-
-    setContracts((prev) =>
-      prev.map((c) =>
-        c.id === selectedContract.id
-          ? {
-              ...c,
-              endDate: newEnd.toISOString().split("T")[0],
-              daysRemaining: monthsToAdd * 30,
-              status: "normal",
-              contractType:
-                extensionPeriod === "indeterminado"
-                  ? "Contrato Indeterminado"
-                  : `Determinado (${monthsToAdd} meses)`,
-            }
-          : c
-      )
-    );
+    setContracts((prev) => prev.filter((c) => c.id !== selectedContract.id));
 
     toast.success("Contrato renovado con éxito", {
       description: `Se ha extendido el contrato de ${selectedContract.employeeName}.`,
@@ -88,24 +103,25 @@ export function ContractsExpirationCard({
   const urgentCount = contracts.filter((c) => c.status === "imminent" || c.status === "upcoming").length;
 
   return (
-    <Card id="contracts-section" className="rounded-2xl border border-border/40 bg-card p-5 sm:p-6 space-y-5 shadow-xs">
-      <div className="flex items-center justify-between gap-3 pb-2 border-b border-border/40">
+    <Card id="contracts-section" className="p-5 sm:p-6 space-y-5">
+      <div className="flex items-center justify-between gap-3 pb-3 border-b border-border">
         <div className="flex items-center gap-3">
-          <div className="size-10 rounded-xl bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 flex items-center justify-center shrink-0">
+          <div className="size-10 rounded-2xl bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 flex items-center justify-center shrink-0">
             <FileCheck2 className="size-5" />
           </div>
           <div>
             <div className="flex items-center gap-2">
-              <h3 className="text-base font-extrabold text-foreground">
+              <h3 className="text-base font-bold text-foreground">
                 Contratos Próximos a Vencer
               </h3>
               {urgentCount > 0 && (
-                <Badge className="bg-amber-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-full">
-                  {urgentCount} por atender
-                </Badge>
+                <CompanyStatusBadge
+                  status="warning"
+                  label={`${urgentCount} por atender`}
+                />
               )}
             </div>
-            <p className="text-xs text-muted-foreground font-semibold mt-0.5">
+            <p className="text-xs text-muted-foreground font-medium mt-0.5">
               Control de vencimientos a 15 y 30 días para renovación o término legal.
             </p>
           </div>
@@ -115,15 +131,15 @@ export function ContractsExpirationCard({
           variant="outline"
           size="sm"
           render={<Link href="/dashboard/company/employees" />}
-          className="rounded-xl text-xs font-bold h-9 px-3.5 border-border/60 hidden sm:flex items-center gap-1.5"
+          className="hidden sm:inline-flex"
         >
           <span>Plantilla Completa</span>
-          <ChevronRight className="size-3.5" />
+          <ChevronRight data-icon="inline-end" />
         </Button>
       </div>
 
       {contracts.length === 0 ? (
-        <div className="p-8 text-center bg-muted/20 rounded-xl border border-dashed border-border/60 space-y-2">
+        <div className="p-8 text-center bg-muted/20 rounded-3xl border border-dashed border-border space-y-2">
           <CheckCircle2 className="size-8 text-emerald-500 mx-auto" />
           <p className="text-sm font-bold text-foreground">
             Todos los contratos al día
@@ -142,33 +158,33 @@ export function ContractsExpirationCard({
               <div
                 key={item.id}
                 className={cn(
-                  "p-4 rounded-xl border transition-all flex flex-col sm:flex-row sm:items-center justify-between gap-3.5",
+                  "p-4 rounded-3xl border transition-all flex flex-col sm:flex-row sm:items-center justify-between gap-3.5",
                   isImminent
                     ? "bg-destructive/5 border-destructive/30 hover:border-destructive/50"
                     : isUpcoming
                     ? "bg-amber-500/5 border-amber-500/30 hover:border-amber-500/50"
-                    : "bg-background border-border/60 hover:border-border"
+                    : "bg-card border-border hover:border-border/80"
                 )}
               >
                 <div className="flex items-start gap-3 min-w-0">
-                  <Avatar className="size-10 rounded-xl shrink-0 border border-border/40">
+                  <Avatar className="size-10 rounded-2xl shrink-0 border border-border">
                     <AvatarImage src={item.avatarUrl || ""} />
-                    <AvatarFallback className="rounded-xl text-xs font-bold bg-muted text-muted-foreground">
+                    <AvatarFallback className="rounded-2xl text-xs font-bold bg-muted text-muted-foreground">
                       {item.employeeName.slice(0, 2).toUpperCase()}
                     </AvatarFallback>
                   </Avatar>
 
                   <div className="space-y-1 min-w-0">
                     <div className="flex items-center gap-2 flex-wrap">
-                      <span className="text-xs font-extrabold text-foreground truncate">
+                      <span className="text-sm font-semibold text-foreground truncate">
                         {item.employeeName}
                       </span>
-                      <span className="text-[11px] text-muted-foreground font-medium truncate">
+                      <span className="text-xs text-muted-foreground font-medium truncate">
                         • {item.jobTitle} ({item.department})
                       </span>
                     </div>
 
-                    <div className="flex items-center gap-2 text-[11px] text-muted-foreground font-semibold flex-wrap">
+                    <div className="flex items-center gap-2 text-xs text-muted-foreground font-medium flex-wrap">
                       <span>Vence: {item.endDate}</span>
                       <span>•</span>
                       <span className="text-foreground">{item.contractType}</span>
@@ -178,13 +194,14 @@ export function ContractsExpirationCard({
 
                 <div className="flex items-center gap-3 self-end sm:self-center shrink-0">
                   <Badge
+                    variant="outline"
                     className={cn(
-                      "text-xs font-extrabold px-2.5 py-1 rounded-lg border-none",
+                      "text-xs font-semibold px-2.5 py-0.5 rounded-3xl",
                       isImminent
-                        ? "bg-destructive text-destructive-foreground animate-pulse"
+                        ? "bg-destructive text-destructive-foreground animate-pulse border-transparent"
                         : isUpcoming
-                        ? "bg-amber-500 text-white"
-                        : "bg-muted text-muted-foreground"
+                        ? "bg-amber-500/10 text-amber-700 dark:text-amber-300 border-amber-500/20"
+                        : "bg-muted text-muted-foreground border-border"
                     )}
                   >
                     {item.daysRemaining === 0
@@ -198,9 +215,8 @@ export function ContractsExpirationCard({
                       setSelectedContract(item);
                       setIsRenewModalOpen(true);
                     }}
-                    className="h-8 px-3 rounded-lg text-xs font-bold bg-primary text-primary-foreground hover:bg-primary/90 shadow-xs flex items-center gap-1"
                   >
-                    <RotateCcw className="size-3" />
+                    <RotateCcw data-icon="inline-start" />
                     <span>Renovar</span>
                   </Button>
                 </div>
@@ -213,14 +229,14 @@ export function ContractsExpirationCard({
       {/* Modal: Renovar Contrato */}
       {selectedContract && (
         <Dialog open={isRenewModalOpen} onOpenChange={setIsRenewModalOpen}>
-          <DialogContent className="sm:max-w-[480px] rounded-2xl p-6 bg-card border-border/80">
+          <DialogContent className="sm:max-w-md">
             <form onSubmit={handleRenewContract} className="space-y-4">
               <DialogHeader className="space-y-1.5 text-left">
                 <div className="flex items-center gap-2 text-primary font-bold text-xs uppercase tracking-wider">
                   <Sparkles className="size-3.5 text-primary" />
                   <span>Renovación Contractual</span>
                 </div>
-                <DialogTitle className="text-lg font-extrabold text-foreground">
+                <DialogTitle className="text-lg font-bold text-foreground">
                   Renovar Contrato de {selectedContract.employeeName}
                 </DialogTitle>
                 <DialogDescription className="text-xs text-muted-foreground">
@@ -228,19 +244,19 @@ export function ContractsExpirationCard({
                 </DialogDescription>
               </DialogHeader>
 
-              <div className="space-y-3.5">
-                <div className="space-y-1.5">
-                  <Label className="text-xs font-bold text-foreground">
+              <div className="space-y-4">
+                <div className="space-y-2">
+                  <Label className="text-xs font-semibold text-foreground">
                     Nuevo Plazo de Contratación
                   </Label>
                   <Select
                     value={extensionPeriod}
                     onValueChange={(val) => val && setExtensionPeriod(val)}
                   >
-                    <SelectTrigger className="h-10 rounded-xl bg-background border-border/80 text-xs font-medium">
+                    <SelectTrigger className="w-full">
                       <SelectValue placeholder="Seleccionar plazo" />
                     </SelectTrigger>
-                    <SelectContent className="rounded-xl">
+                    <SelectContent>
                       <SelectItem value="3_meses">Determinado (3 Meses)</SelectItem>
                       <SelectItem value="6_meses">Determinado (6 Meses)</SelectItem>
                       <SelectItem value="12_meses">Determinado (1 Año)</SelectItem>
@@ -249,8 +265,8 @@ export function ContractsExpirationCard({
                   </Select>
                 </div>
 
-                <div className="space-y-1.5">
-                  <Label htmlFor="renew-salary" className="text-xs font-bold text-foreground">
+                <div className="space-y-2">
+                  <Label htmlFor="renew-salary" className="text-xs font-semibold text-foreground">
                     Ajuste Salarial (Opcional)
                   </Label>
                   <Input
@@ -258,9 +274,8 @@ export function ContractsExpirationCard({
                     placeholder="Ej. $12,500 MXN mensuales"
                     value={newSalary}
                     onChange={(e) => setNewSalary(e.target.value)}
-                    className="h-10 rounded-xl bg-background border-border/80 text-xs font-medium"
                   />
-                  <p className="text-[11px] text-muted-foreground">
+                  <p className="text-xs text-muted-foreground">
                     Deja vacío si mantiene el mismo sueldo convenido.
                   </p>
                 </div>
@@ -271,14 +286,10 @@ export function ContractsExpirationCard({
                   type="button"
                   variant="outline"
                   onClick={() => setIsRenewModalOpen(false)}
-                  className="rounded-xl text-xs font-bold h-10 px-4"
                 >
                   Cancelar
                 </Button>
-                <Button
-                  type="submit"
-                  className="rounded-xl text-xs font-bold h-10 px-5 bg-primary text-primary-foreground hover:bg-primary/90 shadow-xs"
-                >
+                <Button type="submit">
                   Confirmar y Extender Contrato
                 </Button>
               </DialogFooter>

@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { Search, MapPin } from "lucide-react";
+import { Search, MapPin } from "@/components/ui/icons";
 import { useDebouncedCallback } from "@tanstack/react-pacer";
 import { Input } from "@/components/ui/input";
 import {

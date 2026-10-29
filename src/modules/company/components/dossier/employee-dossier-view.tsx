@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useRef } from "react";
 import {
   User,
   Building2,
@@ -29,7 +29,7 @@ import {
   FileSpreadsheet,
   Layers,
   Paperclip,
-} from "lucide-react";
+} from "@/components/ui/icons";
 import Link from "next/link";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -50,6 +50,8 @@ import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { EmployeeDossier, EmployeeDocument } from "../../types/employee-dossier";
+import { uploadDossierDocumentAction } from "../../actions/dossier";
+import { exportDossierToPrintableDocument } from "../../utils/dossier-exporter";
 
 interface EmployeeDossierViewProps {
   dossier: EmployeeDossier;
@@ -60,36 +62,64 @@ export function EmployeeDossierView({ dossier }: EmployeeDossierViewProps) {
   const [selectedDoc, setSelectedDoc] = useState<EmployeeDocument | null>(null);
   const [isUploadDocOpen, setIsUploadDocOpen] = useState(false);
   const [newDocTitle, setNewDocTitle] = useState("");
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [isUploadingDoc, setIsUploadingDoc] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
   const [documents, setDocuments] = useState<EmployeeDocument[]>(dossier.documents);
 
-  const handleUploadDoc = (e: React.FormEvent) => {
+  const handleUploadDoc = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newDocTitle.trim()) return;
+    if (!newDocTitle.trim()) {
+      toast.error("Ingresa el título del documento.");
+      return;
+    }
+    if (!selectedFile) {
+      toast.error("Por favor selecciona un archivo PDF o imagen para subir.");
+      return;
+    }
 
-    const newDoc: EmployeeDocument = {
-      id: `doc-${Date.now()}`,
-      docType: "comprobante_estudios",
-      title: newDocTitle.trim(),
-      fileName: `${newDocTitle.replace(/\s+/g, "_")}.pdf`,
-      fileUrl: "/assets/docs/sample.pdf",
-      fileSizeBytes: 750000,
-      uploadedAt: "Hoy",
-      status: "validado",
-    };
+    setIsUploadingDoc(true);
+    try {
+      const formData = new FormData();
+      formData.append("file", selectedFile);
+      formData.append("title", newDocTitle.trim());
+      formData.append("employeeId", dossier.id);
+      if (dossier.candidateId) {
+        formData.append("candidateId", dossier.candidateId);
+      }
 
-    setDocuments((prev) => [newDoc, ...prev]);
-    toast.success("Documento cargado exitosamente al expediente", {
-      description: `${newDocTitle} ha sido indexado en la bóveda digital.`,
-    });
+      const res = await uploadDossierDocumentAction(formData);
+      if (!res.success) {
+        throw new Error(res.error || "Error al cargar documento.");
+      }
 
-    setNewDocTitle("");
-    setIsUploadDocOpen(false);
+      setDocuments((prev) => [res.data, ...prev]);
+      toast.success("Documento cargado exitosamente al expediente", {
+        description: `${res.data.title} ha sido indexado y almacenado en Supabase Storage.`,
+      });
+
+      setNewDocTitle("");
+      setSelectedFile(null);
+      if (fileInputRef.current) fileInputRef.current.value = "";
+      setIsUploadDocOpen(false);
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : "Error al subir el archivo.";
+      toast.error("Error al cargar documento", { description: message });
+    } finally {
+      setIsUploadingDoc(false);
+    }
   };
 
   const handleDownloadDossier = () => {
-    toast.success("Generando Expediente Digital Completo (PDF)...", {
-      description: `Se ha descargado el dossier integral de ${dossier.fullName}.`,
-    });
+    try {
+      exportDossierToPrintableDocument(dossier);
+      toast.success("Expediente Digital Completo (PDF)", {
+        description: `Se desplegó el dossier integral de ${dossier.fullName} listo para impresión o guardado en PDF.`,
+      });
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : "No se pudo generar el expediente.";
+      toast.error("Error al exportar expediente", { description: message });
+    }
   };
 
   return (
@@ -315,7 +345,7 @@ export function EmployeeDossierView({ dossier }: EmployeeDossierViewProps) {
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               <div className="space-y-1">
                 <span className="text-xs font-bold text-muted-foreground block">Tipo de Contrato</span>
-                <Badge className="bg-primary/10 text-primary border-none text-xs font-extrabold px-2.5 py-0.5 rounded-lg">
+                <Badge className="bg-primary/10 text-primary border-none text-xs font-extrabold px-2.5 py-0.5">
                   {dossier.contractTypeLabel}
                 </Badge>
               </div>
@@ -774,13 +804,29 @@ export function EmployeeDossierView({ dossier }: EmployeeDossierViewProps) {
                 />
               </div>
 
-              <div className="p-6 rounded-2xl border border-dashed border-border/70 bg-muted/20 text-center space-y-2 cursor-pointer hover:bg-muted/40 transition-colors">
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept=".pdf,image/png,image/jpeg,image/webp"
+                className="hidden"
+                onChange={(e) => {
+                  if (e.target.files?.[0]) {
+                    setSelectedFile(e.target.files[0]);
+                  }
+                }}
+              />
+              <div
+                onClick={() => fileInputRef.current?.click()}
+                className="p-6 rounded-2xl border border-dashed border-border/70 bg-muted/20 text-center space-y-2 cursor-pointer hover:bg-muted/40 transition-colors"
+              >
                 <Paperclip className="size-6 text-muted-foreground mx-auto" />
                 <span className="text-xs font-bold text-foreground block">
-                  Arrastra o selecciona tu archivo PDF o imagen
+                  {selectedFile ? selectedFile.name : "Selecciona o arrastra tu archivo PDF o imagen"}
                 </span>
                 <span className="text-[10px] text-muted-foreground block">
-                  Máximo 15 MB (PDF, JPG, PNG)
+                  {selectedFile
+                    ? `${(selectedFile.size / 1024).toFixed(1)} KB`
+                    : "Máximo 15 MB (PDF, JPG, PNG, WEBP)"}
                 </span>
               </div>
             </div>
@@ -789,16 +835,20 @@ export function EmployeeDossierView({ dossier }: EmployeeDossierViewProps) {
               <Button
                 type="button"
                 variant="outline"
-                onClick={() => setIsUploadDocOpen(false)}
+                onClick={() => {
+                  setIsUploadDocOpen(false);
+                  setSelectedFile(null);
+                }}
                 className="rounded-xl text-xs font-bold h-10 px-4"
               >
                 Cancelar
               </Button>
               <Button
                 type="submit"
+                disabled={isUploadingDoc || !selectedFile || !newDocTitle.trim()}
                 className="rounded-xl text-xs font-bold h-10 px-5 bg-primary text-primary-foreground hover:bg-primary/90 shadow-xs"
               >
-                Guardar en Bóveda
+                {isUploadingDoc ? "Subiendo a Bóveda..." : "Guardar en Bóveda"}
               </Button>
             </DialogFooter>
           </form>

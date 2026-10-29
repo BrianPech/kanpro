@@ -1,7 +1,7 @@
 "use client"
 
 import * as React from "react"
-import { Settings, Shield, Globe, Lock, Bell, Database, Palette, ChevronRight, SlidersHorizontal } from "lucide-react"
+import { Settings, Shield, Globe, Lock, Bell, Database, Palette, ChevronRight, SlidersHorizontal } from "@/components/ui/icons"
 import { Button } from "@/components/ui/button"
 import { SettingsDialog } from "@/modules/admin/components/settings-dialog"
 

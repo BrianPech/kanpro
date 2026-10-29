@@ -3,7 +3,7 @@
 import * as React from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Plus } from "lucide-react";
+import { Plus } from "@/components/ui/icons";
 import {
   Tooltip,
   TooltipContent,

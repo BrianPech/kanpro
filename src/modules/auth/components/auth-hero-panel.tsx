@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { Sparkles, ShieldCheck, Clock, Kanban } from "lucide-react";
+import { Sparkles, ShieldCheck, Clock, Kanban } from "@/components/ui/icons";
 import { cn } from "@/lib/utils";
 
 interface SlideData {

@@ -16,7 +16,7 @@ import {
   Clock,
   Sparkles,
   ExternalLink,
-} from "lucide-react";
+} from "@/components/ui/icons";
 import {
   Dialog,
   DialogContent,
@@ -312,7 +312,7 @@ export function BranchQrKioskModal({
       />
 
       <Dialog open={isOpen} onOpenChange={onOpenChange}>
-        <DialogContent className="sm:max-w-[500px] rounded-3xl p-6 bg-card border-border/80 text-center max-h-[90vh] overflow-y-auto">
+        <DialogContent className="sm:max-w-[500px] p-6 text-center max-h-[90vh] overflow-y-auto">
           <DialogHeader className="space-y-1.5 text-center">
             <div className="mx-auto size-12 rounded-2xl bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 flex items-center justify-center mb-1">
               <QrCode className="size-6" />

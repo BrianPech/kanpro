@@ -10,7 +10,6 @@ import {
   calculateIMSSWorkerShare,
   calculateOvertimePay,
   calculateAbsenceDeduction,
-  generateValidClabe,
   FortnightPeriodInfo,
 } from "../utils/payroll-calculator";
 import type {
@@ -18,7 +17,10 @@ import type {
   DispersePayrollInput,
   UpdateEmployeeBankDetailsInput,
   ClosePayrollPeriodInput,
+  StampPayrollPeriodInput,
+  StampPayrollItemInput,
 } from "../schemas/payroll.schema";
+import { PacStampingService } from "./pac-stamping-service";
 
 export type PayrollRow = Database["public"]["Tables"]["company_payrolls"]["Row"];
 export type PayrollInsert = Database["public"]["Tables"]["company_payrolls"]["Insert"];
@@ -85,6 +87,7 @@ export class CompanyPayrollService {
           id,
           status,
           dispersed_at,
+          timbrada_at,
           company_payroll_items (*)
         `)
         .eq("company_id", companyId)
@@ -171,8 +174,12 @@ export class CompanyPayrollService {
       const totalDeductions = absenceDeductions + delayDeductions + imssDeduction + isrEstimated;
       const netPayEstimated = Math.max(0, totalPerceptions - totalDeductions);
 
-      const bankName = emp.bank_name || "BBVA México";
-      const clabe = emp.clabe_account || generateValidClabe(emp.id);
+      const clabeAccount = emp.clabe_account?.trim();
+      const hasValidClabe = Boolean(clabeAccount && /^\d{18}$/.test(clabeAccount));
+      const bankName = hasValidClabe ? (emp.bank_name?.trim() || "Banco Registrado") : undefined;
+      const bankAccount = hasValidClabe && bankName && clabeAccount
+        ? { bankName, clabe: clabeAccount }
+        : undefined;
 
       payrollEmployees.push({
         id: savedItem?.id || `pay-${emp.id}`,
@@ -197,10 +204,19 @@ export class CompanyPayrollService {
         totalPerceptions,
         totalDeductions,
         netPayEstimated,
-        bankAccount: {
-          bankName,
-          clabe,
-        },
+        bankAccount,
+        hasValidBankDetails: hasValidClabe,
+        cfdi: savedItem?.cfdi_uuid
+          ? {
+              uuid: savedItem.cfdi_uuid,
+              status: (savedItem.cfdi_status as "pendiente" | "timbrado" | "error" | "cancelado") || "timbrado",
+              xml: savedItem.cfdi_xml || undefined,
+              stampDate: savedItem.cfdi_stamp_date || undefined,
+              satSeal: savedItem.cfdi_sat_seal || undefined,
+              pacRfc: savedItem.cfdi_pac_rfc || undefined,
+              qrCode: savedItem.cfdi_qr_code || undefined,
+            }
+          : undefined,
       });
 
       sumGross += totalPerceptions;
@@ -210,7 +226,7 @@ export class CompanyPayrollService {
       sumNet += netPayEstimated;
     }
 
-    const currentStatus = (savedPayroll?.status as "borrador" | "calculada" | "pagada") || "calculada";
+    const currentStatus = (savedPayroll?.status as "borrador" | "calculada" | "dispersada" | "pagada" | "timbrada") || "calculada";
 
     const summary: PayrollPeriodSummary = {
       periodId: savedPayroll?.id || `payroll-${periodInfo.startDate}`,
@@ -220,6 +236,8 @@ export class CompanyPayrollService {
       endDate: periodInfo.endDate,
       payoutDate: periodInfo.payoutDate,
       status: currentStatus,
+      timbradaAt: savedPayroll?.timbrada_at || null,
+      timbradosCount: payrollEmployees.filter((e) => e.cfdi?.status === "timbrado").length,
       totalGross: sumGross,
       totalOvertime: sumOvertime,
       totalBonuses: sumBonuses,
@@ -485,6 +503,146 @@ export class CompanyPayrollService {
     }
 
     return data;
+  }
+
+  /**
+   * Timbra fiscalmente todos los recibos de una nómina quincenal mediante PAC (SAT CFDI 4.0)
+   */
+  async stampPayrollPeriod(
+    companyId: string,
+    input: StampPayrollPeriodInput
+  ): Promise<{ stampedCount: number; payrollId: string }> {
+    if (!companyId) {
+      throw new Error("ID de empresa requerido.");
+    }
+
+    // 1. Obtener datos de la empresa y la nómina
+    const [companyRes, payrollRes, itemsRes] = await Promise.all([
+      this.supabase
+        .from("company_profiles")
+        .select("id, company_name, legal_name, rfc, fiscal_address")
+        .eq("id", companyId)
+        .single(),
+      this.supabase
+        .from("company_payrolls")
+        .select("id, start_date, end_date, payout_date, period_name, status")
+        .eq("id", input.payrollId)
+        .eq("company_id", companyId)
+        .single(),
+      this.supabase
+        .from("company_payroll_items")
+        .select("*")
+        .eq("payroll_id", input.payrollId)
+        .eq("company_id", companyId),
+    ]);
+
+    if (companyRes.error || !companyRes.data) {
+      throw new Error("Perfil de empresa fiscal no encontrado.");
+    }
+    if (payrollRes.error || !payrollRes.data) {
+      throw new Error("Periodo de nómina no encontrado.");
+    }
+
+    const company = companyRes.data;
+    const payroll = payrollRes.data;
+    const items = itemsRes.data || [];
+
+    if (items.length === 0) {
+      throw new Error("No hay recibos de colaboradores para timbrar en este periodo.");
+    }
+
+    // 2. Extraer metadatos fiscales de colaboradores (RFC, CURP, NSS)
+    const empIds = items.map((it) => it.employee_id);
+    const { data: employeesData } = await this.supabase
+      .from("company_employees")
+      .select("id, rfc, curp, bank_name, clabe_account")
+      .in("id", empIds);
+
+    const empMetaMap = new Map((employeesData || []).map((e) => [e.id, e]));
+
+    let stampedCount = 0;
+    const nowIso = new Date().toISOString();
+
+    // 3. Timbrar cada recibo individual mediante PAC
+    for (const item of items) {
+      const empMeta = empMetaMap.get(item.employee_id);
+      const rfcReceptor = empMeta?.rfc?.trim() || "XAXX010101000";
+
+      const stampResult = await PacStampingService.stampPayrollReceipt({
+        folio: item.id.substring(0, 8).toUpperCase(),
+        serie: "NOM",
+        fechaEmision: nowIso.replace(/\.\d{3}Z$/, ""),
+        fechaPago: payroll.payout_date,
+        fechaInicioPeriodo: payroll.start_date,
+        fechaFinPeriodo: payroll.end_date,
+        emisor: {
+          rfc: company.rfc?.trim() || "KAN180101XYZ",
+          nombre: company.legal_name || company.company_name || "EMPRESA PATRONAL",
+          regimenFiscal: "601",
+          lugarExpedicion: (company.fiscal_address?.match(/\b\d{5}\b/) || ["77500"])[0],
+        },
+        receptor: {
+          rfc: rfcReceptor,
+          curp: empMeta?.curp || undefined,
+          nombre: item.employee_name,
+          codigoPostal: "77500",
+          regimenFiscal: "605",
+          numEmpleado: item.employee_id.substring(0, 6),
+          departamento: item.department || "Operaciones",
+          puesto: item.job_title || "General",
+          fechaInicioRelaboral: payroll.start_date,
+          banco: item.bank_name || undefined,
+          clabe: item.clabe || empMeta?.clabe_account || undefined,
+        },
+        conceptos: {
+          diasTrabajados: Number(item.days_worked) || 15,
+          sueldoBasePeriodo: Number(item.base_salary_period),
+          horasExtras: Number(item.overtime_hours),
+          importeHorasExtras: Number(item.overtime_pay),
+          bonoPuntualidad: Number(item.punctuality_bonus),
+          bonoAsistencia: Number(item.attendance_bonus),
+          bonoDesempeno: Number(item.performance_bonus),
+          descuentoFaltas: Number(item.absence_deductions),
+          descuentoRetardos: Number(item.delay_deductions),
+          retencionImss: Number(item.imss_deduction),
+          retencionIsr: Number(item.isr_estimated),
+          totalPercepciones: Number(item.total_perceptions),
+          totalDeducciones: Number(item.total_deductions),
+          netoAPagar: Number(item.net_pay),
+        },
+      });
+
+      // Actualizar recibo con timbre SAT
+      await this.supabase
+        .from("company_payroll_items")
+        .update({
+          cfdi_uuid: stampResult.uuid,
+          cfdi_status: "timbrado",
+          cfdi_xml: stampResult.xml,
+          cfdi_stamp_date: stampResult.stampDate,
+          cfdi_sat_seal: stampResult.satSeal,
+          cfdi_pac_rfc: stampResult.pacRfc,
+          cfdi_qr_code: stampResult.qrCode,
+          updated_at: nowIso,
+        })
+        .eq("id", item.id)
+        .eq("company_id", companyId);
+
+      stampedCount++;
+    }
+
+    // 4. Actualizar estado de la nómina a 'timbrada'
+    await this.supabase
+      .from("company_payrolls")
+      .update({
+        status: "timbrada",
+        timbrada_at: nowIso,
+        updated_at: nowIso,
+      })
+      .eq("id", input.payrollId)
+      .eq("company_id", companyId);
+
+    return { stampedCount, payrollId: input.payrollId };
   }
 
   private buildEmptyPayrollResult(periodInfo: FortnightPeriodInfo): CompanyPayrollDataResult {

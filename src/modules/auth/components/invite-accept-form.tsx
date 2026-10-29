@@ -18,7 +18,7 @@ import {
   CheckCircle2,
   Sparkles,
   ShieldCheck,
-} from "lucide-react";
+} from "@/components/ui/icons";
 import Link from "next/link";
 import { FormTextField, FormDateField, FormPhoneField } from "@/components/form";
 import { normalizeDateToISO, normalizePhone } from "@/lib/formatters";

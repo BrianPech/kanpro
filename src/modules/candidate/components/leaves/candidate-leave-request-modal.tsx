@@ -32,7 +32,7 @@ import {
   Loader2,
   CheckCircle2,
   Send,
-} from "lucide-react";
+} from "@/components/ui/icons";
 import { calculateWorkingDays } from "@/modules/company/utils/vacation-calculator";
 import { submitCandidateLeaveRequestAction } from "../../actions/leaves";
 import type { LeaveRequestType } from "../../schemas/leaves.schema";

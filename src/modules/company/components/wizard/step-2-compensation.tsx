@@ -11,7 +11,7 @@ import {
   CheckCircle2,
   Navigation,
   Loader2,
-} from "lucide-react";
+} from "@/components/ui/icons";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import {
@@ -371,17 +371,17 @@ export function Step2Compensation({
                   >
                     <SelectTrigger
                       aria-label="Ciudad o Municipio de la vacante"
-                      className="h-11 w-full rounded-2xl bg-input/50 border border-border/80 px-3.5 text-sm font-medium cursor-pointer shadow-2xs"
+                      className="w-full"
                     >
                       <SelectValue placeholder="Selecciona Ciudad o Municipio" />
                     </SelectTrigger>
-                    <SelectContent className="rounded-2xl border border-border/60 bg-popover shadow-xl max-h-72">
+                    <SelectContent className="max-h-72">
                       <SelectGroup>
                         <SelectLabel className="text-[11px] font-extrabold text-primary uppercase tracking-wider px-2 py-1.5">
                           Quintana Roo
                         </SelectLabel>
                         {qrooCities.map((c) => (
-                          <SelectItem key={c.name} value={c.name} className="text-xs font-semibold rounded-xl cursor-pointer py-2">
+                          <SelectItem key={c.name} value={c.name} className="text-xs cursor-pointer py-2">
                             {c.name}
                           </SelectItem>
                         ))}
@@ -392,7 +392,7 @@ export function Step2Compensation({
                           Yucatán
                         </SelectLabel>
                         {yucCities.map((c) => (
-                          <SelectItem key={c.name} value={c.name} className="text-xs font-semibold rounded-xl cursor-pointer py-2">
+                          <SelectItem key={c.name} value={c.name} className="text-xs cursor-pointer py-2">
                             {c.name}
                           </SelectItem>
                         ))}
@@ -403,7 +403,7 @@ export function Step2Compensation({
                           Campeche
                         </SelectLabel>
                         {campCities.map((c) => (
-                          <SelectItem key={c.name} value={c.name} className="text-xs font-semibold rounded-xl cursor-pointer py-2">
+                          <SelectItem key={c.name} value={c.name} className="text-xs cursor-pointer py-2">
                             {c.name}
                           </SelectItem>
                         ))}
@@ -414,14 +414,14 @@ export function Step2Compensation({
                           Nacional
                         </SelectLabel>
                         {nacCities.map((c) => (
-                          <SelectItem key={c.name} value={c.name} className="text-xs font-semibold rounded-xl cursor-pointer py-2">
+                          <SelectItem key={c.name} value={c.name} className="text-xs cursor-pointer py-2">
                             {c.name}
                           </SelectItem>
                         ))}
                       </SelectGroup>
 
                       <SelectGroup>
-                        <SelectItem value="__custom__" className="text-xs font-bold text-primary rounded-xl cursor-pointer border-t border-border/40 mt-1 py-2.5">
+                        <SelectItem value="__custom__" className="text-xs font-bold text-primary cursor-pointer border-t border-border/40 mt-1 py-2.5">
                           ✍️ Escribir otra ciudad...
                         </SelectItem>
                       </SelectGroup>
@@ -440,14 +440,14 @@ export function Step2Compensation({
                         }
                       }}
                       placeholder="Escribe la ciudad o municipio..."
-                      className="h-11 rounded-2xl bg-input/50 border border-border/80 px-3.5 text-sm font-medium shadow-2xs"
+                      className="w-full"
                       autoFocus
                     />
                     <Button
                       type="button"
                       variant="outline"
                       onClick={handleCustomCityApply}
-                      className="h-11 px-4 rounded-2xl text-xs font-bold shrink-0 cursor-pointer"
+                      className="shrink-0 cursor-pointer font-bold"
                     >
                       Aplicar
                     </Button>
@@ -495,17 +495,17 @@ export function Step2Compensation({
                     >
                       <SelectTrigger
                         aria-label="Zona o Colonia de la vacante"
-                        className="h-11 w-full rounded-2xl bg-input/50 border border-border/80 px-3.5 text-sm font-medium cursor-pointer shadow-2xs"
+                        className="w-full"
                       >
                         <SelectValue placeholder="Selecciona la zona" />
                       </SelectTrigger>
-                      <SelectContent className="rounded-2xl border border-border/60 bg-popover shadow-xl max-h-72">
+                      <SelectContent className="max-h-72">
                         <SelectGroup>
                           <SelectLabel className="text-[10px] font-extrabold text-muted-foreground uppercase tracking-wider px-2 py-1.5">
                             Zonas disponibles en {currentCityValue || "la ciudad"}
                           </SelectLabel>
                           {availableZones.map((z) => (
-                            <SelectItem key={z} value={z} className="text-xs font-semibold rounded-xl cursor-pointer py-2">
+                            <SelectItem key={z} value={z} className="text-xs cursor-pointer py-2">
                               {z}
                             </SelectItem>
                           ))}
@@ -521,14 +521,14 @@ export function Step2Compensation({
                           field.handleChange(e.target.value);
                         }}
                         placeholder="Ej. Fraccionamiento Los Álamos, Supermanzana 15..."
-                        className="h-11 rounded-2xl bg-input/50 border border-border/80 px-3.5 text-sm font-medium shadow-2xs"
+                        className="w-full"
                         autoFocus
                       />
                       <Button
                         type="button"
                         variant="outline"
                         onClick={handleCustomZoneApply}
-                        className="h-11 px-4 rounded-2xl text-xs font-bold shrink-0 cursor-pointer"
+                        className="shrink-0 cursor-pointer font-bold"
                       >
                         Aplicar
                       </Button>
@@ -592,7 +592,7 @@ export function Step2Compensation({
                   Sueldo Mínimo
                 </FieldLabel>
                 <div className="relative">
-                  <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-sm font-bold text-muted-foreground">$</span>
+                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm font-bold text-muted-foreground">$</span>
                   <Input
                     id="salary_min"
                     type="number"
@@ -601,7 +601,7 @@ export function Step2Compensation({
                     value={field.state.value ?? ""}
                     onChange={(e) => field.handleChange(e.target.value ? Number(e.target.value) : null)}
                     placeholder="10,000"
-                    className="h-11 w-full rounded-2xl bg-input/50 border border-border/80 pl-8 pr-3.5 font-mono font-bold text-sm shadow-2xs"
+                    className="w-full pl-7 pr-3 font-mono font-bold"
                   />
                 </div>
                 {field.state.meta.errors?.[0] && (
@@ -620,7 +620,7 @@ export function Step2Compensation({
                   Sueldo Máximo
                 </FieldLabel>
                 <div className="relative">
-                  <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-sm font-bold text-muted-foreground">$</span>
+                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm font-bold text-muted-foreground">$</span>
                   <Input
                     id="salary_max"
                     type="number"
@@ -629,7 +629,7 @@ export function Step2Compensation({
                     value={field.state.value ?? ""}
                     onChange={(e) => field.handleChange(e.target.value ? Number(e.target.value) : null)}
                     placeholder="14,000"
-                    className="h-11 w-full rounded-2xl bg-input/50 border border-border/80 pl-8 pr-3.5 font-mono font-bold text-sm shadow-2xs"
+                    className="w-full pl-7 pr-3 font-mono font-bold"
                   />
                 </div>
                 {field.state.meta.errors?.[0] && (
@@ -648,7 +648,7 @@ export function Step2Compensation({
               <FieldLabel className="text-sm font-semibold text-foreground">
                 Frecuencia de Pago
               </FieldLabel>
-              <div className="grid grid-cols-3 gap-3">
+              <div className="grid grid-cols-3 gap-2.5">
                 {[
                   { value: "semanal", label: "Semanal" },
                   { value: "quincenal", label: "Quincenal" },
@@ -661,10 +661,10 @@ export function Step2Compensation({
                       type="button"
                       onClick={() => field.handleChange(freq.value)}
                       className={cn(
-                        "h-11 rounded-2xl font-bold text-xs sm:text-sm transition-all border cursor-pointer select-none",
+                        "h-9 rounded-3xl font-bold text-xs transition-all border cursor-pointer select-none",
                         isSelected
                           ? "bg-primary text-primary-foreground border-primary shadow-xs"
-                          : "bg-input/30 hover:bg-input/60 text-muted-foreground border-border/80"
+                          : "bg-input/30 hover:bg-input/60 text-muted-foreground border-border"
                       )}
                     >
                       {freq.label}
@@ -732,14 +732,14 @@ export function Step2Compensation({
                     }
                   }}
                   placeholder="Escribe otro beneficio adicional y presiona Enter..."
-                  className="h-11 rounded-2xl bg-input/50 border border-border/80 px-3.5 text-xs font-medium shadow-2xs"
+                  className="w-full text-xs font-medium"
                 />
                 <Button
                   type="button"
                   variant="outline"
                   onClick={() => handleAddCustomBenefit(field)}
                   disabled={!customBenefit.trim()}
-                  className="h-11 px-4 rounded-2xl text-xs font-bold shrink-0 cursor-pointer"
+                  className="shrink-0 cursor-pointer font-bold"
                 >
                   <Plus className="size-4 mr-1" />
                   <span>Agregar</span>

@@ -10,7 +10,7 @@ import {
   StepperTitle,
   StepperTrigger,
 } from "@/components/reui/stepper"
-import { CheckIcon, LoaderCircleIcon } from "lucide-react"
+import { CheckIcon, LoaderCircleIcon } from "@/components/ui/icons"
 
 const steps = [
   { title: "User Details" },

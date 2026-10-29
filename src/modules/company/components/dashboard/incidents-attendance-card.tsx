@@ -2,25 +2,20 @@
 
 import React, { useState } from "react";
 import {
-  ShieldAlert,
+  FileText,
   Clock,
   CheckCircle2,
-  XCircle,
-  Calendar,
   AlertTriangle,
-  UserCheck,
-  UserX,
-  FileText,
-  Search,
-  Check,
   X,
+  Check,
   Plus,
-} from "lucide-react";
+  ShieldAlert,
+} from "@/components/ui/icons";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import {
   Dialog,
   DialogContent,
@@ -29,8 +24,8 @@ import {
   DialogDescription,
   DialogFooter,
 } from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import {
   Select,
@@ -39,167 +34,211 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { CompanyStatusBadge } from "../shared/company-status-badge";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
-import { PendingIncidentItem, TodayAttendanceItem } from "../../types/dashboard";
-import {
-  createIncidentAction,
-  updateIncidentStatusAction,
-} from "../../actions/incidents";
 
-interface IncidentsAttendanceCardProps {
-  initialIncidents: PendingIncidentItem[];
-  attendanceList: TodayAttendanceItem[];
+interface PendingIncidentItem {
+  id: string;
+  employeeName: string;
+  avatarUrl?: string;
+  department: string;
+  type: "falta_injustificada" | "retardo" | "incapacidad" | "permiso" | "horas_extra" | "vacaciones";
+  typeLabel: string;
+  title: string;
+  description: string;
+  date: string;
+  severity: "baja" | "media" | "alta" | "critica";
+  status: "pendiente" | "aprobado" | "rechazado";
+  hoursRequested?: number;
 }
 
-export function IncidentsAttendanceCard({
-  initialIncidents,
-  attendanceList,
-}: IncidentsAttendanceCardProps) {
-  const [incidents, setIncidents] = useState<PendingIncidentItem[]>(initialIncidents);
+interface AttendanceTodayItem {
+  id: string;
+  employeeName: string;
+  avatarUrl?: string;
+  jobTitle: string;
+  department: string;
+  checkInTime?: string;
+  status: "puntual" | "retardo" | "ausente";
+  delayMinutes?: number;
+}
+
+const INITIAL_INCIDENTS: PendingIncidentItem[] = [
+  {
+    id: "inc-1",
+    employeeName: "Mateo Canto Solís",
+    department: "Cocina Caliente",
+    type: "permiso",
+    typeLabel: "Permiso con Goce",
+    title: "Permiso por cita médica familiar",
+    description: "Solicita salir 2 horas antes para acompañar a su hijo a consulta clínica del IMSS.",
+    date: "Hoy, 29 Oct",
+    severity: "media",
+    status: "pendiente",
+    hoursRequested: 2,
+  },
+  {
+    id: "inc-2",
+    employeeName: "Ana Laura Poot",
+    department: "Housekeeping",
+    type: "incapacidad",
+    typeLabel: "Incapacidad IMSS",
+    title: "Presentación de certificado de incapacidad",
+    description: "Incapacidad por enfermedad general expedida por el IMSS por 3 días hábiles.",
+    date: "Ayer, 28 Oct",
+    severity: "alta",
+    status: "pendiente",
+  },
+  {
+    id: "inc-3",
+    employeeName: "Carlos Pool Chi",
+    department: "Mantenimiento",
+    type: "horas_extra",
+    typeLabel: "Horas Extra",
+    title: "Autorización de tiempo extraordinario",
+    description: "Reparación de fuga en cisterna principal fuera de turno regular (3 horas).",
+    date: "27 Oct, 2026",
+    severity: "media",
+    status: "pendiente",
+    hoursRequested: 3,
+  },
+];
+
+const INITIAL_ATTENDANCE: AttendanceTodayItem[] = [
+  {
+    id: "att-1",
+    employeeName: "Karla Romero Méndez",
+    jobTitle: "Supervisora de Pisos",
+    department: "Housekeeping",
+    checkInTime: "07:54 AM",
+    status: "puntual",
+  },
+  {
+    id: "att-2",
+    employeeName: "Javier Briceño Canul",
+    jobTitle: "Bartender Principal",
+    department: "Alimentos y Bebidas",
+    checkInTime: "08:18 AM",
+    status: "retardo",
+    delayMinutes: 18,
+  },
+  {
+    id: "att-3",
+    employeeName: "Fernanda Ucán May",
+    jobTitle: "Hostess",
+    department: "Restaurante",
+    checkInTime: "07:58 AM",
+    status: "puntual",
+  },
+  {
+    id: "att-4",
+    employeeName: "Emilio Escalante V.",
+    jobTitle: "Stewart",
+    department: "Steward",
+    status: "ausente",
+  },
+];
+
+export function IncidentsAttendanceCard() {
+  const [incidents, setIncidents] = useState<PendingIncidentItem[]>(INITIAL_INCIDENTS);
+  const [attendanceList] = useState<AttendanceTodayItem[]>(INITIAL_ATTENDANCE);
   const [selectedIncident, setSelectedIncident] = useState<PendingIncidentItem | null>(null);
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
   const [isNewIncidentOpen, setIsNewIncidentOpen] = useState(false);
 
-  // New Incident Form state
+  // Form states for new incident
   const [newEmployeeName, setNewEmployeeName] = useState("");
   const [newType, setNewType] = useState<PendingIncidentItem["type"]>("permiso");
+  const [newSeverity, setNewSeverity] = useState<PendingIncidentItem["severity"]>("media");
   const [newTitle, setNewTitle] = useState("");
   const [newDescription, setNewDescription] = useState("");
-  const [newSeverity, setNewSeverity] = useState<PendingIncidentItem["severity"]>("media");
 
-  const handleResolveIncident = async (id: string, newStatus: "aprobado" | "rechazado") => {
-    const prev = [...incidents];
-    setIncidents((curr) =>
-      curr.map((inc) => (inc.id === id ? { ...inc, status: newStatus } : inc))
+  const handleResolveIncident = (id: string, newStatus: "aprobado" | "rechazado") => {
+    setIncidents((prev) =>
+      prev.map((inc) => (inc.id === id ? { ...inc, status: newStatus } : inc))
     );
+
+    const actionText = newStatus === "aprobado" ? "autorizada" : "rechazada";
+    toast.success(`Incidencia ${actionText}`, {
+      description: "El estado se reflejará en la pre-nómina de la quincena en curso.",
+    });
+
     setIsDetailModalOpen(false);
-
-    try {
-      const res = await updateIncidentStatusAction({
-        incidentId: id,
-        status: newStatus,
-      });
-
-      if (!res.success) {
-        setIncidents(prev);
-        toast.error("Error al actualizar la incidencia", { description: res.error });
-        return;
-      }
-
-      toast.success(
-        newStatus === "aprobado"
-          ? "Incidencia autorizada con éxito"
-          : "Incidencia rechazada",
-        {
-          description: "El estatus ha sido actualizado para el cierre de nómina.",
-        }
-      );
-    } catch (err: any) {
-      setIncidents(prev);
-      toast.error("Error al comunicar con el servidor", { description: err.message });
-    }
   };
 
-  const handleCreateIncident = async (e: React.FormEvent) => {
+  const handleCreateIncident = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newEmployeeName.trim() || !newTitle.trim()) {
-      toast.error("Por favor completa los campos requeridos.");
+    if (!newEmployeeName || !newTitle) {
+      toast.error("Por favor completa los campos requeridos");
       return;
     }
 
-    try {
-      const category = (
-        newType === "horas_extra" ? "otro" : newType
-      ) as any;
+    const newInc: PendingIncidentItem = {
+      id: `inc-${Date.now()}`,
+      employeeName: newEmployeeName,
+      department: "Operaciones Generales",
+      type: newType,
+      typeLabel:
+        newType === "permiso"
+          ? "Permiso Personal"
+          : newType === "incapacidad"
+          ? "Incapacidad"
+          : newType === "horas_extra"
+          ? "Horas Extra"
+          : "Incidencia",
+      title: newTitle,
+      description: newDescription || "Incidencia registrada manualmente por supervisor.",
+      date: "Hoy",
+      severity: newSeverity,
+      status: "pendiente",
+    };
 
-      const res = await createIncidentAction({
-        employeeName: newEmployeeName.trim(),
-        title: newTitle.trim(),
-        description: newDescription.trim() || "Registrada manualmente desde el panel.",
-        category,
-        severity: newSeverity,
-      });
+    setIncidents((prev) => [newInc, ...prev]);
+    toast.success("Incidencia registrada con éxito");
+    setIsNewIncidentOpen(false);
 
-      if (!res.success || !res.incident) {
-        toast.error("Error al registrar incidencia", { description: res.error });
-        return;
-      }
-
-      const createdItem: PendingIncidentItem = {
-        id: res.incident.id,
-        employeeId: res.incident.employeeId || "",
-        employeeName: res.incident.employeeName,
-        avatarUrl: res.incident.avatarUrl || null,
-        department: res.incident.department,
-        type: newType,
-        typeLabel: res.incident.categoryLabel,
-        title: res.incident.title,
-        description: res.incident.description,
-        date: res.incident.incidentDate,
-        severity: res.incident.severity,
-        status: "pendiente",
-      };
-
-      setIncidents((prev) => [createdItem, ...prev]);
-      toast.success("Incidencia registrada con éxito", {
-        description: "Aparecerá en la lista para su revisión y cómputo.",
-      });
-
-      setNewEmployeeName("");
-      setNewTitle("");
-      setNewDescription("");
-      setIsNewIncidentOpen(false);
-    } catch (err: any) {
-      toast.error("Error al guardar incidencia", { description: err.message });
-    }
+    // Reset
+    setNewEmployeeName("");
+    setNewTitle("");
+    setNewDescription("");
   };
 
   const pendingCount = incidents.filter((i) => i.status === "pendiente").length;
 
-  const getSeverityBadge = (severity: PendingIncidentItem["severity"]) => {
-    switch (severity) {
+  const getSeverityBadge = (sev: PendingIncidentItem["severity"]) => {
+    switch (sev) {
       case "critica":
+        return <CompanyStatusBadge status="destructive" label="Crítica" />;
       case "alta":
-        return (
-          <Badge className="bg-destructive/15 text-destructive border-none text-[10px] font-bold px-2 py-0.5 rounded-full">
-            Alta Prioridad
-          </Badge>
-        );
+        return <CompanyStatusBadge status="warning" label="Alta" />;
       case "media":
-        return (
-          <Badge className="bg-amber-500/15 text-amber-700 dark:text-amber-300 border-none text-[10px] font-bold px-2 py-0.5 rounded-full">
-            Revisión Normal
-          </Badge>
-        );
+        return <CompanyStatusBadge status="info" label="Media" />;
       default:
-        return (
-          <Badge className="bg-muted text-muted-foreground border-none text-[10px] font-bold px-2 py-0.5 rounded-full">
-            Baja
-          </Badge>
-        );
+        return <CompanyStatusBadge status="neutral" label="Baja" />;
     }
   };
 
   return (
-    <Card id="incidents-section" className="rounded-2xl border border-border/40 bg-card p-5 sm:p-6 space-y-5 shadow-xs">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-2 border-b border-border/40">
+    <Card id="incidents-section" className="p-5 sm:p-6 space-y-5">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-border">
         <div className="flex items-center gap-3">
-          <div className="size-10 rounded-xl bg-amber-500/10 text-amber-600 dark:text-amber-400 flex items-center justify-center shrink-0">
+          <div className="size-10 rounded-2xl bg-amber-500/10 text-amber-600 dark:text-amber-400 flex items-center justify-center shrink-0">
             <ShieldAlert className="size-5" />
           </div>
           <div>
             <div className="flex items-center gap-2">
-              <h3 className="text-base font-extrabold text-foreground">
+              <h3 className="text-base font-bold text-foreground">
                 Asistencia & Gestión de Incidencias
               </h3>
               {pendingCount > 0 && (
-                <Badge className="bg-amber-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-full">
-                  {pendingCount} por autorizar
-                </Badge>
+                <CompanyStatusBadge
+                  status="warning"
+                  label={`${pendingCount} por autorizar`}
+                />
               )}
             </div>
-            <p className="text-xs text-muted-foreground font-semibold mt-0.5">
+            <p className="text-xs text-muted-foreground font-medium mt-0.5">
               Control de asistencias del turno, retardos y autorizaciones de personal.
             </p>
           </div>
@@ -208,29 +247,29 @@ export function IncidentsAttendanceCard({
         <Button
           size="sm"
           onClick={() => setIsNewIncidentOpen(true)}
-          className="rounded-xl text-xs font-bold h-9 px-3.5 bg-primary text-primary-foreground hover:bg-primary/90 flex items-center gap-1.5 self-start sm:self-center shadow-xs"
+          className="self-start sm:self-center"
         >
-          <Plus className="size-3.5" />
+          <Plus data-icon="inline-start" />
           <span>Registrar Incidencia</span>
         </Button>
       </div>
 
       <Tabs defaultValue="incidents" className="w-full">
-        <TabsList className="grid grid-cols-2 w-full sm:w-72 h-10 bg-muted/60 p-1 rounded-xl mb-4">
-          <TabsTrigger value="incidents" className="text-xs font-bold rounded-lg flex items-center gap-1.5">
+        <TabsList className="grid grid-cols-2 w-full sm:w-80">
+          <TabsTrigger value="incidents" className="flex items-center gap-1.5">
             <FileText className="size-3.5" />
             <span>Incidencias ({pendingCount})</span>
           </TabsTrigger>
-          <TabsTrigger value="attendance" className="text-xs font-bold rounded-lg flex items-center gap-1.5">
+          <TabsTrigger value="attendance" className="flex items-center gap-1.5">
             <Clock className="size-3.5" />
             <span>Checador de Hoy</span>
           </TabsTrigger>
         </TabsList>
 
         {/* TAB 1: Incidencias Pendientes */}
-        <TabsContent value="incidents" className="space-y-3 focus:outline-none">
+        <TabsContent value="incidents" className="space-y-3 pt-3 focus:outline-none">
           {incidents.length === 0 ? (
-            <div className="p-8 text-center bg-muted/20 rounded-xl border border-dashed border-border/60 space-y-2">
+            <div className="p-8 text-center bg-muted/20 rounded-3xl border border-dashed border-border space-y-2">
               <CheckCircle2 className="size-8 text-emerald-500 mx-auto" />
               <p className="text-sm font-bold text-foreground">
                 Al día con las incidencias
@@ -247,34 +286,34 @@ export function IncidentsAttendanceCard({
                 <div
                   key={incident.id}
                   className={cn(
-                    "p-4 rounded-xl border transition-all flex flex-col sm:flex-row sm:items-center justify-between gap-3.5",
+                    "p-4 rounded-3xl border transition-all flex flex-col sm:flex-row sm:items-center justify-between gap-3.5",
                     isPending
-                      ? "bg-background border-border/60 hover:border-border shadow-xs"
-                      : "bg-muted/25 border-border/30 opacity-75"
+                      ? "bg-card border-border hover:border-primary/40"
+                      : "bg-muted/20 border-border/40 opacity-75"
                   )}
                 >
                   <div className="flex items-start gap-3 min-w-0">
-                    <Avatar className="size-9 rounded-lg shrink-0 border border-border/40">
+                    <Avatar className="size-10 rounded-2xl shrink-0 border border-border">
                       <AvatarImage src={incident.avatarUrl || ""} />
-                      <AvatarFallback className="rounded-lg text-xs font-bold bg-muted text-muted-foreground">
+                      <AvatarFallback className="rounded-2xl text-xs font-bold bg-muted text-muted-foreground">
                         {incident.employeeName.slice(0, 2).toUpperCase()}
                       </AvatarFallback>
                     </Avatar>
 
                     <div className="space-y-1 min-w-0">
                       <div className="flex items-center gap-2 flex-wrap">
-                        <span className="text-xs font-bold text-foreground">
+                        <span className="text-sm font-semibold text-foreground">
                           {incident.employeeName}
                         </span>
-                        <span className="text-[11px] text-muted-foreground font-medium">
+                        <span className="text-xs text-muted-foreground font-medium">
                           • {incident.department}
                         </span>
                         {getSeverityBadge(incident.severity)}
                       </div>
-                      <h4 className="text-xs font-extrabold text-foreground truncate">
+                      <h4 className="text-xs font-bold text-foreground truncate">
                         {incident.title}
                       </h4>
-                      <p className="text-[11px] text-muted-foreground font-medium line-clamp-1">
+                      <p className="text-xs text-muted-foreground font-medium line-clamp-1">
                         {incident.description}
                       </p>
                     </div>
@@ -287,32 +326,24 @@ export function IncidentsAttendanceCard({
                           size="sm"
                           variant="outline"
                           onClick={() => handleResolveIncident(incident.id, "rechazado")}
-                          className="h-8 px-2.5 rounded-lg text-xs font-bold text-destructive hover:bg-destructive/10 hover:border-destructive/30"
+                          className="text-destructive hover:bg-destructive/10"
                         >
-                          <X className="size-3.5 mr-1" />
-                          Rechazar
+                          <X data-icon="inline-start" />
+                          <span>Rechazar</span>
                         </Button>
                         <Button
                           size="sm"
                           onClick={() => handleResolveIncident(incident.id, "aprobado")}
-                          className="h-8 px-3 rounded-lg text-xs font-bold bg-emerald-600 hover:bg-emerald-700 text-white shadow-xs"
                         >
-                          <Check className="size-3.5 mr-1" />
-                          Autorizar
+                          <Check data-icon="inline-start" />
+                          <span>Autorizar</span>
                         </Button>
                       </>
                     ) : (
-                      <Badge
-                        variant="outline"
-                        className={cn(
-                          "text-xs font-bold px-2.5 py-1 rounded-lg border-none",
-                          incident.status === "aprobado"
-                            ? "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400"
-                            : "bg-destructive/15 text-destructive"
-                        )}
-                      >
-                        {incident.status === "aprobado" ? "Autorizado" : "Rechazado"}
-                      </Badge>
+                      <CompanyStatusBadge
+                        status={incident.status === "aprobado" ? "success" : "destructive"}
+                        label={incident.status === "aprobado" ? "Autorizado" : "Rechazado"}
+                      />
                     )}
 
                     <Button
@@ -322,7 +353,6 @@ export function IncidentsAttendanceCard({
                         setSelectedIncident(incident);
                         setIsDetailModalOpen(true);
                       }}
-                      className="h-8 px-2 text-xs font-bold text-muted-foreground hover:text-foreground rounded-lg"
                     >
                       Ver
                     </Button>
@@ -334,15 +364,15 @@ export function IncidentsAttendanceCard({
         </TabsContent>
 
         {/* TAB 2: Checador de Hoy */}
-        <TabsContent value="attendance" className="space-y-2.5 focus:outline-none">
+        <TabsContent value="attendance" className="space-y-3 pt-3 focus:outline-none">
           {attendanceList.length === 0 ? (
-            <div className="p-8 text-center bg-muted/20 rounded-xl border border-dashed border-border/60">
-              <p className="text-xs text-muted-foreground">
+            <div className="p-8 text-center bg-muted/20 rounded-3xl border border-dashed border-border">
+              <p className="text-sm text-muted-foreground">
                 No hay registros de checador para el turno de hoy.
               </p>
             </div>
           ) : (
-            <div className="divide-y divide-border/30 rounded-xl border border-border/40 overflow-hidden bg-background">
+            <div className="divide-y divide-border rounded-3xl border border-border overflow-hidden bg-card">
               {attendanceList.map((item) => {
                 const isAbsent = item.status === "ausente";
                 const isLate = item.status === "retardo";
@@ -350,21 +380,21 @@ export function IncidentsAttendanceCard({
                 return (
                   <div
                     key={item.id}
-                    className="p-3 sm:px-4 flex items-center justify-between gap-3 text-xs"
+                    className="p-3.5 sm:px-4 flex items-center justify-between gap-3 text-xs"
                   >
                     <div className="flex items-center gap-3 min-w-0">
-                      <Avatar className="size-8 rounded-lg shrink-0 border border-border/40">
+                      <Avatar className="size-8 rounded-xl shrink-0 border border-border">
                         <AvatarImage src={item.avatarUrl || ""} />
-                        <AvatarFallback className="rounded-lg text-[10px] font-bold bg-muted text-muted-foreground">
+                        <AvatarFallback className="rounded-xl text-[10px] font-bold bg-muted text-muted-foreground">
                           {item.employeeName.slice(0, 2).toUpperCase()}
                         </AvatarFallback>
                       </Avatar>
 
                       <div className="truncate">
-                        <span className="font-extrabold text-foreground block truncate">
+                        <span className="font-semibold text-foreground block truncate">
                           {item.employeeName}
                         </span>
-                        <span className="text-[11px] text-muted-foreground font-medium truncate block">
+                        <span className="text-xs text-muted-foreground font-medium truncate block">
                           {item.jobTitle} • {item.department}
                         </span>
                       </div>
@@ -372,7 +402,7 @@ export function IncidentsAttendanceCard({
 
                     <div className="flex items-center gap-3 shrink-0">
                       <div className="text-right">
-                        <span className="font-extrabold text-foreground block">
+                        <span className="font-bold text-foreground block">
                           {item.checkInTime || "--:--"}
                         </span>
                         {item.delayMinutes && (
@@ -382,19 +412,10 @@ export function IncidentsAttendanceCard({
                         )}
                       </div>
 
-                      <Badge
-                        variant="outline"
-                        className={cn(
-                          "text-[10px] font-bold px-2 py-0.5 rounded-full border-none",
-                          isAbsent
-                            ? "bg-destructive/15 text-destructive"
-                            : isLate
-                            ? "bg-amber-500/15 text-amber-600 dark:text-amber-400"
-                            : "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400"
-                        )}
-                      >
-                        {isAbsent ? "Ausente" : isLate ? "Retardo" : "Puntual"}
-                      </Badge>
+                      <CompanyStatusBadge
+                        status={isAbsent ? "destructive" : isLate ? "warning" : "success"}
+                        label={isAbsent ? "Ausente" : isLate ? "Retardo" : "Puntual"}
+                      />
                     </div>
                   </div>
                 );
@@ -407,15 +428,18 @@ export function IncidentsAttendanceCard({
       {/* Modal: Detalle de Incidencia */}
       {selectedIncident && (
         <Dialog open={isDetailModalOpen} onOpenChange={setIsDetailModalOpen}>
-          <DialogContent className="sm:max-w-[480px] rounded-2xl p-6 bg-card border-border/80">
+          <DialogContent className="sm:max-w-md">
             <DialogHeader className="space-y-2 text-left">
               <div className="flex items-center gap-2">
-                <Badge className="bg-primary/10 text-primary border-none text-xs font-bold rounded-full">
+                <Badge
+                  variant="outline"
+                  className="bg-primary/10 text-primary border-primary/20 text-xs font-semibold px-2.5 py-0.5 rounded-3xl"
+                >
                   {selectedIncident.typeLabel}
                 </Badge>
                 {getSeverityBadge(selectedIncident.severity)}
               </div>
-              <DialogTitle className="text-lg font-extrabold text-foreground">
+              <DialogTitle className="text-lg font-bold text-foreground">
                 {selectedIncident.title}
               </DialogTitle>
               <DialogDescription className="text-xs text-muted-foreground">
@@ -423,8 +447,8 @@ export function IncidentsAttendanceCard({
               </DialogDescription>
             </DialogHeader>
 
-            <div className="p-4 bg-muted/30 rounded-xl border border-border/40 text-xs leading-relaxed space-y-2 text-foreground font-medium">
-              <span className="font-bold block text-muted-foreground">Descripción detallada:</span>
+            <div className="p-4 bg-muted/30 rounded-3xl border border-border text-xs leading-relaxed space-y-2 text-foreground font-medium">
+              <span className="font-bold text-muted-foreground block">Descripción detallada:</span>
               <p>{selectedIncident.description}</p>
               {selectedIncident.hoursRequested && (
                 <div className="pt-2 text-xs font-bold text-primary">
@@ -438,7 +462,6 @@ export function IncidentsAttendanceCard({
                 type="button"
                 variant="outline"
                 onClick={() => setIsDetailModalOpen(false)}
-                className="rounded-xl text-xs font-bold h-10 px-4"
               >
                 Cerrar
               </Button>
@@ -448,16 +471,15 @@ export function IncidentsAttendanceCard({
                     type="button"
                     variant="outline"
                     onClick={() => handleResolveIncident(selectedIncident.id, "rechazado")}
-                    className="rounded-xl text-xs font-bold h-10 px-4 text-destructive hover:bg-destructive/10 hover:border-destructive/30"
+                    className="text-destructive hover:bg-destructive/10"
                   >
-                    Rechazar Solicitud
+                    Rechazar
                   </Button>
                   <Button
                     type="button"
                     onClick={() => handleResolveIncident(selectedIncident.id, "aprobado")}
-                    className="rounded-xl text-xs font-bold h-10 px-4 bg-emerald-600 hover:bg-emerald-700 text-white"
                   >
-                    Autorizar e Integrar
+                    Autorizar
                   </Button>
                 </>
               )}
@@ -468,10 +490,10 @@ export function IncidentsAttendanceCard({
 
       {/* Modal: Registrar Nueva Incidencia */}
       <Dialog open={isNewIncidentOpen} onOpenChange={setIsNewIncidentOpen}>
-        <DialogContent className="sm:max-w-[480px] rounded-2xl p-6 bg-card border-border/80">
+        <DialogContent className="sm:max-w-md">
           <form onSubmit={handleCreateIncident} className="space-y-4">
             <DialogHeader className="space-y-1.5 text-left">
-              <DialogTitle className="text-lg font-extrabold text-foreground">
+              <DialogTitle className="text-lg font-bold text-foreground">
                 Registrar Incidencia de Personal
               </DialogTitle>
               <DialogDescription className="text-xs text-muted-foreground">
@@ -479,9 +501,9 @@ export function IncidentsAttendanceCard({
               </DialogDescription>
             </DialogHeader>
 
-            <div className="space-y-3">
+            <div className="space-y-3.5">
               <div className="space-y-1.5">
-                <Label htmlFor="inc-emp-name" className="text-xs font-bold text-foreground">
+                <Label htmlFor="inc-emp-name" className="text-xs font-semibold text-foreground">
                   Empleado involucrado *
                 </Label>
                 <Input
@@ -489,24 +511,23 @@ export function IncidentsAttendanceCard({
                   placeholder="Ej. Carlos Mendoza"
                   value={newEmployeeName}
                   onChange={(e) => setNewEmployeeName(e.target.value)}
-                  className="h-10 rounded-xl bg-background border-border/80 text-xs font-medium"
                   required
                 />
               </div>
 
               <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-1.5">
-                  <Label className="text-xs font-bold text-foreground">
+                  <Label className="text-xs font-semibold text-foreground">
                     Tipo de Incidencia
                   </Label>
                   <Select
                     value={newType}
                     onValueChange={(val) => setNewType(val as PendingIncidentItem["type"])}
                   >
-                    <SelectTrigger className="h-10 rounded-xl bg-background border-border/80 text-xs font-medium">
+                    <SelectTrigger className="w-full">
                       <SelectValue placeholder="Seleccionar tipo" />
                     </SelectTrigger>
-                    <SelectContent className="rounded-xl">
+                    <SelectContent>
                       <SelectItem value="permiso">Permiso Personal</SelectItem>
                       <SelectItem value="incapacidad">Incapacidad Médica</SelectItem>
                       <SelectItem value="horas_extra">Horas Extra</SelectItem>
@@ -518,17 +539,17 @@ export function IncidentsAttendanceCard({
                 </div>
 
                 <div className="space-y-1.5">
-                  <Label className="text-xs font-bold text-foreground">
+                  <Label className="text-xs font-semibold text-foreground">
                     Prioridad
                   </Label>
                   <Select
                     value={newSeverity}
                     onValueChange={(val) => setNewSeverity(val as PendingIncidentItem["severity"])}
                   >
-                    <SelectTrigger className="h-10 rounded-xl bg-background border-border/80 text-xs font-medium">
+                    <SelectTrigger className="w-full">
                       <SelectValue placeholder="Prioridad" />
                     </SelectTrigger>
-                    <SelectContent className="rounded-xl">
+                    <SelectContent>
                       <SelectItem value="baja">Baja</SelectItem>
                       <SelectItem value="media">Media</SelectItem>
                       <SelectItem value="alta">Alta</SelectItem>
@@ -539,7 +560,7 @@ export function IncidentsAttendanceCard({
               </div>
 
               <div className="space-y-1.5">
-                <Label htmlFor="inc-title" className="text-xs font-bold text-foreground">
+                <Label htmlFor="inc-title" className="text-xs font-semibold text-foreground">
                   Título del Motivo *
                 </Label>
                 <Input
@@ -547,13 +568,12 @@ export function IncidentsAttendanceCard({
                   placeholder="Ej. Permiso por trámite bancario / cita"
                   value={newTitle}
                   onChange={(e) => setNewTitle(e.target.value)}
-                  className="h-10 rounded-xl bg-background border-border/80 text-xs font-medium"
                   required
                 />
               </div>
 
               <div className="space-y-1.5">
-                <Label htmlFor="inc-desc" className="text-xs font-bold text-foreground">
+                <Label htmlFor="inc-desc" className="text-xs font-semibold text-foreground">
                   Detalles u observaciones
                 </Label>
                 <Textarea
@@ -561,7 +581,7 @@ export function IncidentsAttendanceCard({
                   placeholder="Describe la justificación, comprobantes o notas..."
                   value={newDescription}
                   onChange={(e) => setNewDescription(e.target.value)}
-                  className="min-h-[70px] rounded-xl bg-background border-border/80 text-xs resize-none"
+                  className="min-h-[70px] resize-none"
                 />
               </div>
             </div>
@@ -571,14 +591,10 @@ export function IncidentsAttendanceCard({
                 type="button"
                 variant="outline"
                 onClick={() => setIsNewIncidentOpen(false)}
-                className="rounded-xl text-xs font-bold h-10 px-4"
               >
                 Cancelar
               </Button>
-              <Button
-                type="submit"
-                className="rounded-xl text-xs font-bold h-10 px-5 bg-primary text-primary-foreground hover:bg-primary/90 shadow-xs"
-              >
+              <Button type="submit">
                 Guardar Incidencia
               </Button>
             </DialogFooter>

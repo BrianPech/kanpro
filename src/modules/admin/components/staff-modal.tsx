@@ -65,7 +65,7 @@ import {
   Loader2,
   RotateCcw,
   CheckCheck,
-} from "lucide-react";
+} from "@/components/ui/icons";
 import { cn } from "@/lib/utils";
 
 function getInitials(name: string) {

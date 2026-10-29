@@ -13,7 +13,7 @@ import {
   Lock,
   Headphones,
   Sparkles,
-} from "lucide-react";
+} from "@/components/ui/icons";
 
 export function FeaturesDarkBand() {
   const features = [

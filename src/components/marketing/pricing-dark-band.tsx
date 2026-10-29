@@ -2,7 +2,7 @@
 
 import React from "react";
 import Link from "next/link";
-import { Check, ArrowRight, Building2, UserCheck, ShieldCheck } from "lucide-react";
+import { Check, ArrowRight, Building2, UserCheck, ShieldCheck } from "@/components/ui/icons";
 
 export function PricingDarkBand() {
   const candidateBenefits = [

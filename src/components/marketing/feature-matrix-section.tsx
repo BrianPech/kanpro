@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import { Check, X, Zap } from "lucide-react";
+import { Check, X, Zap } from "@/components/ui/icons";
 import { Badge } from "@/components/ui/badge";
 
 export function FeatureMatrixSection() {

@@ -16,7 +16,7 @@ import {
   FileTextIcon,
   CoinsIcon,
   KeyRoundIcon,
-} from "lucide-react";
+} from "@/components/ui/icons";
 
 const SUPPORT_WHATSAPP_NUMBER = "529991234567";
 

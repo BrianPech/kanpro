@@ -7,8 +7,7 @@ import {
   CheckCircle2,
   ShieldCheck,
   Lock,
-  Sparkles,
-} from "lucide-react";
+} from "@/components/ui/icons";
 import {
   Dialog,
   DialogContent,
@@ -46,7 +45,7 @@ export function DigitalSignatureModal({
 
   useEffect(() => {
     if (isOpen) {
-      setTimeout(() => {
+      const timer = setTimeout(() => {
         const canvas = canvasRef.current;
         if (!canvas) return;
         const ctx = canvas.getContext("2d");
@@ -55,8 +54,9 @@ export function DigitalSignatureModal({
         ctx.lineWidth = 2.5;
         ctx.lineCap = "round";
         ctx.lineJoin = "round";
+        setHasDrawn(false);
       }, 100);
-      setHasDrawn(false);
+      return () => clearTimeout(timer);
     }
   }, [isOpen]);
 
@@ -104,7 +104,7 @@ export function DigitalSignatureModal({
     setHasDrawn(false);
   };
 
-  const handleConfirmSignature = () => {
+  const handleConfirmSignature = async () => {
     if (!hasDrawn) {
       toast.error("Por favor dibuja tu firma en el recuadro.");
       return;
@@ -116,20 +116,29 @@ export function DigitalSignatureModal({
     setIsProcessing(true);
     const dataUrl = canvas.toDataURL("image/png");
 
-    setTimeout(() => {
-      setIsProcessing(false);
+    try {
+      // Cálculo de digest criptográfico SHA-256 real del payload de firma usando Web Crypto API
+      const timestamp = new Date().toISOString();
+      const payloadString = JSON.stringify({
+        contractFolio,
+        signerName,
+        signerRole,
+        signedAt: timestamp,
+        signaturePayload: dataUrl,
+      });
 
-      const randomHash = Array.from({ length: 16 }, () =>
-        Math.floor(Math.random() * 16).toString(16)
-      ).join("");
+      const buffer = new TextEncoder().encode(payloadString);
+      const digestBuffer = await window.crypto.subtle.digest("SHA-256", buffer);
+      const hashArray = Array.from(new Uint8Array(digestBuffer));
+      const hashHex = hashArray.map((b) => b.toString(16).padStart(2, "0")).join("");
+      const certificateHash = `SHA256:0x${hashHex}`;
 
       const signature: DigitalSignature = {
         signerName,
         signerRole,
         signatureDataUrl: dataUrl,
         signedAt: new Date().toLocaleString("es-MX", { dateStyle: "medium", timeStyle: "short" }),
-        certificateHash: `SHA256:0x${randomHash}4b9a1e8c7f`,
-        ipAddress: "187.190.22.104",
+        certificateHash,
       };
 
       onSignComplete(signature);
@@ -137,7 +146,12 @@ export function DigitalSignatureModal({
         description: `Certificado digital generado para el contrato ${contractFolio}.`,
       });
       onOpenChange(false);
-    }, 600);
+    } catch (err: unknown) {
+      console.error("Error generating digital signature digest:", err);
+      toast.error("Error al generar el certificado criptográfico de firma.");
+    } finally {
+      setIsProcessing(false);
+    }
   };
 
   return (

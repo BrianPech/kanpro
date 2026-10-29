@@ -43,6 +43,22 @@ export async function updateSession(request: NextRequest) {
     return redirectResponse
   }
 
+  // E2E mock mode for automated UI consistency / styling tests
+  const isE2EMock =
+    process.env.NODE_ENV !== 'production' &&
+    (request.cookies.get('e2e-mock-role')?.value === 'company' ||
+      process.env.E2E_MOCK_AUTH === 'true')
+
+  if (isE2EMock) {
+    const pathname = request.nextUrl.pathname
+    if (pathname === '/login' || pathname === '/register') {
+      const url = request.nextUrl.clone()
+      url.pathname = '/dashboard/company'
+      return redirectWithCookies(url)
+    }
+    return supabaseResponse
+  }
+
   // IMPORTANT: Avoid writing any logic between createServerClient and
   // supabase.auth.getUser(). A simple mistake could make it very hard to debug
   // issues with users being randomly logged out.

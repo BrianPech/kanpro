@@ -13,7 +13,7 @@ import {
   ArrowRight,
   SunMoon,
   BellRing,
-} from "lucide-react";
+} from "@/components/ui/icons";
 import Link from "next/link";
 
 import { Button } from "@/components/ui/button";
@@ -21,6 +21,7 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { CompanySettingsModal } from "./company-settings-dialog";
 import { type BillingRecord } from "./billing-subscriptions-table";
+import { CompanyPageHeader } from "./shared/company-page-header";
 
 interface Invoice {
   id: string;
@@ -135,28 +136,22 @@ export function CompanySettingsView({
   }, [_initialInvoices]);
 
   return (
-    <div className="space-y-8 max-w-6xl mx-auto pb-16 font-sans animate-in fade-in duration-300">
-      
-      {/* Header */}
-      <div className="flex flex-col gap-2 pb-4 border-b border-border/40">
-        <div className="flex items-center gap-3 flex-wrap">
-          <h1 className="text-2xl sm:text-3xl font-[800] tracking-tight text-foreground">
-            Configuración de Empresa
-          </h1>
+    <div className="w-full space-y-6 pb-12 font-sans animate-in fade-in duration-300">
+      <CompanyPageHeader
+        title="Configuración de Empresa"
+        description="Administra las opciones globales, controles operativos, seguridad y preferencias del módulo corporativo."
+        badge={
           <Badge
             variant="outline"
-            className="bg-primary/10 text-primary border-primary/20 font-bold px-3 py-0.5 rounded-full text-xs"
+            className="text-xs font-bold"
           >
             {initialProfile.company_name}
           </Badge>
-        </div>
-        <p className="text-muted-foreground text-xs sm:text-sm leading-relaxed max-w-2xl font-medium">
-          Administra las opciones globales, controles operativos, seguridad y preferencias del módulo corporativo.
-        </p>
-      </div>
+        }
+      />
 
       {/* Main Hero Card with Modal Trigger */}
-      <Card className="rounded-3xl border border-primary/20 bg-gradient-to-br from-primary/5 via-background to-card shadow-sm overflow-hidden relative">
+      <Card className="border border-primary/20 bg-gradient-to-br from-primary/5 via-background to-card shadow-sm overflow-hidden relative">
         <div className="absolute top-0 right-0 p-8 pointer-events-none opacity-5 dark:opacity-10">
           <Settings className="size-64 -mr-16 -mt-16 text-primary" />
         </div>
@@ -183,7 +178,7 @@ export function CompanySettingsView({
             trigger={
               <Button
                 size="lg"
-                className="rounded-2xl gap-2.5 font-extrabold px-7 h-12 text-sm shadow-md bg-primary text-primary-foreground hover:bg-primary/90 transition-all cursor-pointer hover:scale-[1.01] active:scale-[0.99]"
+                className="gap-2.5 font-extrabold cursor-pointer"
               >
                 <SlidersHorizontal className="size-4.5 stroke-[2.5]" />
                 <span>Configuraciones</span>
@@ -195,7 +190,7 @@ export function CompanySettingsView({
             <Button
               variant="outline"
               size="lg"
-              className="rounded-2xl gap-2 font-bold px-6 h-12 text-sm border-border/60 hover:bg-muted/50 cursor-pointer"
+              className="gap-2 font-bold cursor-pointer"
             >
               <Building2 className="size-4 text-muted-foreground" />
               <span>Ver Perfil Público</span>
@@ -225,7 +220,7 @@ export function CompanySettingsView({
             return (
               <Card
                 key={module.title}
-                className="rounded-2xl border border-border/40 bg-card hover:border-border transition-all shadow-2xs hover:shadow-xs p-5 flex flex-col justify-between gap-4"
+                className="p-5 flex flex-col justify-between gap-4 hover:border-primary/40 transition-all"
               >
                 <div className="space-y-3">
                   <div className="flex items-center justify-between gap-2">

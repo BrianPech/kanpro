@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
-import { MapPin, Loader2, Sparkles, Navigation } from "lucide-react";
+import { MapPin, Loader2, Sparkles, Navigation } from "@/components/ui/icons";
 import { GEO_CONFIG, resolveLocationFromCoords } from "@/config/geo";
 import { normalizeLocation, parseLocation } from "@/lib/formatters";
 import { Label } from "@/components/ui/label";

@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import { Mail, Loader2, RefreshCw, CheckCircle2, ArrowRight } from "lucide-react";
+import { Mail, Loader2, RefreshCw, CheckCircle2, ArrowRight } from "@/components/ui/icons";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { authService } from "../services/auth-service";

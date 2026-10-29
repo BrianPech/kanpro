@@ -19,7 +19,7 @@ import {
   Link as LinkIcon,
   Unlink,
   RemoveFormatting,
-} from "lucide-react";
+} from "@/components/ui/icons";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import {

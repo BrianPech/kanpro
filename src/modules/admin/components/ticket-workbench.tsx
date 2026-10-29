@@ -46,7 +46,7 @@ import {
   CoinsIcon,
   ClockIcon,
   ShieldCheckIcon,
-} from "lucide-react";
+} from "@/components/ui/icons";
 
 const QUICK_TEMPLATES = [
   {

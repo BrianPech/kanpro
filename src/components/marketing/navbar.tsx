@@ -11,7 +11,7 @@ import {
   Sparkles,
   UserCheck,
   ArrowRight,
-} from "lucide-react";
+} from "@/components/ui/icons";
 import {
   NavigationMenu,
   NavigationMenuList,

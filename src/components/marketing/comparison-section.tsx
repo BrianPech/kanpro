@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import { Check, X, Kanban } from "lucide-react";
+import { Check, X, Kanban } from "@/components/ui/icons";
 
 export function ComparisonSection() {
   const comparisonRows = [

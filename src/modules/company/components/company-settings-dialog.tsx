@@ -31,7 +31,7 @@ import {
   CheckCircle2,
   FileText,
   Loader2,
-} from "lucide-react";
+} from "@/components/ui/icons";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
@@ -480,7 +480,7 @@ export function CompanySettingsModal({
               <div className="mt-auto p-3.5 border-t border-border/20">
                 <div className="flex items-center justify-between text-[11px] text-muted-foreground font-medium px-1">
                   <span>K&apos;anPro</span>
-                  <Badge variant="outline" className="text-[10px] font-bold h-5 px-1.5 rounded-md border-border/30">
+                  <Badge variant="outline" className="text-[10px] font-bold h-5 px-1.5 border-border/30">
                     v2.4
                   </Badge>
                 </div>
@@ -729,7 +729,7 @@ export function CompanySettingsModal({
                                 </span>
                               </div>
                             </div>
-                            <Badge variant="outline" className="text-[10px] font-bold h-5 px-2 rounded-md bg-primary/5 text-primary border-primary/20">
+                            <Badge variant="outline" className="text-[10px] font-bold h-5 px-2 bg-primary/5 text-primary border-primary/20">
                               Empresa
                             </Badge>
                           </div>
@@ -1141,28 +1141,28 @@ export function CompanySettingsModal({
                             {fiscalProfile.verificationStatus === "approved" ? (
                               <Badge
                                 variant="outline"
-                                className="text-[10px] font-bold h-5 px-2 rounded-md bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20"
+                                className="text-[10px] font-bold h-5 px-2 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20"
                               >
                                 SAT Verificado
                               </Badge>
                             ) : fiscalProfile.verificationStatus === "pending" ? (
                               <Badge
                                 variant="outline"
-                                className="text-[10px] font-bold h-5 px-2 rounded-md bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20"
+                                className="text-[10px] font-bold h-5 px-2 bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20"
                               >
                                 En Validación SAT
                               </Badge>
                             ) : fiscalProfile.verificationStatus === "rejected" ? (
                               <Badge
                                 variant="outline"
-                                className="text-[10px] font-bold h-5 px-2 rounded-md bg-rose-500/10 text-rose-600 dark:text-rose-400 border-rose-500/20"
+                                className="text-[10px] font-bold h-5 px-2 bg-rose-500/10 text-rose-600 dark:text-rose-400 border-rose-500/20"
                               >
                                 Doc. Rechazada
                               </Badge>
                             ) : (
                               <Badge
                                 variant="outline"
-                                className="text-[10px] font-bold h-5 px-2 rounded-md border-border/30 text-muted-foreground"
+                                className="text-[10px] font-bold h-5 px-2 border-border/30 text-muted-foreground"
                               >
                                 Sin Verificar
                               </Badge>

@@ -10,7 +10,7 @@ import {
   FolderLock,
   FileQuestion,
   FileCheck2,
-} from "lucide-react";
+} from "@/components/ui/icons";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
@@ -74,7 +74,7 @@ export function CandidateCvViewer({ applicant }: CandidateCvViewerProps) {
     <div className="w-full max-w-full min-w-0 space-y-4 text-left overflow-hidden">
       {/* Loading state */}
       {loading ? (
-        <Card className="p-12 text-center bg-card border border-border/40 rounded-2xl w-full max-w-full">
+        <Card className="p-12 text-center w-full max-w-full">
           <Loader2 className="size-6 animate-spin mx-auto text-primary mb-2" />
           <p className="text-xs text-muted-foreground font-medium">
             Verificando si el candidato adjuntó archivo de CV en PDF...
@@ -83,9 +83,9 @@ export function CandidateCvViewer({ applicant }: CandidateCvViewerProps) {
       ) : uploadedCv?.hasUploadedCv && uploadedCv?.cvUrl ? (
         /* PDF Attached: Controls & Viewer */
         <div className="space-y-4 w-full max-w-full min-w-0">
-          <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-3 p-3.5 sm:p-4 rounded-2xl bg-muted/30 border border-border/40 w-full max-w-full overflow-hidden">
+          <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-3 p-3.5 sm:p-4 rounded-3xl bg-muted/30 border border-border w-full max-w-full overflow-hidden">
             <div className="flex items-center gap-3 min-w-0 flex-1 w-full md:w-auto">
-              <div className="size-10 rounded-xl bg-rose-500/10 text-rose-600 dark:text-rose-400 flex items-center justify-center shrink-0">
+              <div className="size-10 rounded-2xl bg-rose-500/10 text-rose-600 dark:text-rose-400 flex items-center justify-center shrink-0">
                 <FileText className="size-5 shrink-0" />
               </div>
               <div className="min-w-0 flex-1">
@@ -115,7 +115,7 @@ export function CandidateCvViewer({ applicant }: CandidateCvViewerProps) {
                 <Button
                   size="sm"
                   variant="outline"
-                  className="h-8 px-2.5 sm:px-3 rounded-lg text-xs font-bold gap-1.5 border-border/60 hover:bg-muted/50 cursor-pointer"
+                  className="font-bold text-xs gap-1.5 cursor-pointer"
                 >
                   <ExternalLink className="size-3.5 shrink-0" />
                   <span>Abrir en pestaña nueva</span>
@@ -129,7 +129,7 @@ export function CandidateCvViewer({ applicant }: CandidateCvViewerProps) {
               >
                 <Button
                   size="sm"
-                  className="h-8 px-3 rounded-lg text-xs font-bold gap-1.5 bg-primary text-primary-foreground cursor-pointer shadow-2xs"
+                  className="font-bold text-xs gap-1.5 cursor-pointer"
                 >
                   <Download className="size-3.5 shrink-0" />
                   <span>Descargar PDF</span>
@@ -170,8 +170,8 @@ export function CandidateCvViewer({ applicant }: CandidateCvViewerProps) {
         </div>
       ) : (
         /* No PDF Attached State */
-        <Card className="p-6 sm:p-10 text-center bg-muted/10 border border-border/40 rounded-2xl space-y-4 w-full max-w-full overflow-hidden">
-          <div className="size-12 rounded-2xl bg-muted/60 text-muted-foreground flex items-center justify-center mx-auto border border-border/40 shrink-0">
+        <Card className="p-6 sm:p-10 text-center space-y-4 w-full max-w-full overflow-hidden">
+          <div className="size-12 rounded-2xl bg-muted/60 text-muted-foreground flex items-center justify-center mx-auto shrink-0">
             <FileQuestion className="size-6 text-muted-foreground/80" />
           </div>
 

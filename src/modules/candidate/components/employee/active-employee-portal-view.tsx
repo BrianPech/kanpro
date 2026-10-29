@@ -29,7 +29,7 @@ import {
   Check,
   QrCode,
   Camera,
-} from "lucide-react";
+} from "@/components/ui/icons";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";

@@ -2,6 +2,7 @@
 
 import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
+import { headers } from "next/headers";
 import {
   createContractSchema,
   renewContractSchema,
@@ -147,7 +148,13 @@ export async function signContractAction(
   }
 
   try {
-    await CompanyContractService.signContract(supabase, user.id, parsed.data);
+    const headersList = await headers();
+    const forwardedFor = headersList.get("x-forwarded-for");
+    const clientIp = forwardedFor
+      ? forwardedFor.split(",")[0].trim()
+      : (headersList.get("x-real-ip") || "127.0.0.1");
+
+    await CompanyContractService.signContract(supabase, user.id, parsed.data, clientIp);
 
     revalidatePath("/dashboard/company/contracts");
     revalidatePath("/dashboard/company");

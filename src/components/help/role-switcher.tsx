@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { Check, ChevronsUpDown, Building2, UserCheck } from "lucide-react";
+import { Check, ChevronsUpDown, Building2, UserCheck } from "@/components/ui/icons";
 import { Badge } from "@/components/ui/badge";
 import {
   DropdownMenu,

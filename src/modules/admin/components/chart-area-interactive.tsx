@@ -23,7 +23,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
-import { TrendingUp, Send, Briefcase } from "lucide-react";
+import { TrendingUp, Send, Briefcase } from "@/components/ui/icons";
 import { useIsMobile } from "@/hooks/use-mobile";
 
 interface ChartAreaInteractiveProps {

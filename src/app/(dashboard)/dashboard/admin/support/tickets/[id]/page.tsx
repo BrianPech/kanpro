@@ -3,7 +3,7 @@ import Link from "next/link";
 import { getSupportTicketById } from "@/app/(dashboard)/dashboard/admin/support/actions";
 import { TicketWorkbenchClient } from "@/modules/admin/components/ticket-workbench";
 import { Button } from "@/components/ui/button";
-import { ArrowLeftIcon } from "lucide-react";
+import { ArrowLeftIcon } from "@/components/ui/icons";
 
 interface TicketPageProps {
   params: Promise<{

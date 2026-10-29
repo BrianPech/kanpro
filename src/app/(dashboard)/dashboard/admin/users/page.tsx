@@ -10,7 +10,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import type { Database } from "@/types/supabase";
-import { TrendingUpIcon, ShieldCheckIcon, Building2Icon, UserCheckIcon } from "lucide-react";
+import { TrendingUpIcon, ShieldCheckIcon, Building2Icon, UserCheckIcon } from "@/components/ui/icons";
 
 type UserRole = Database["public"]["Enums"]["user_role"];
 

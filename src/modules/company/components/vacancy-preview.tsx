@@ -15,7 +15,7 @@ import {
   Globe,
   ChevronRight,
   Tag,
-} from "lucide-react";
+} from "@/components/ui/icons";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
@@ -351,7 +351,7 @@ export function VacancyPreview({
                   {skillsList.map((skill, idx) => (
                     <Badge
                       key={idx}
-                      className="rounded-lg bg-muted text-foreground border border-border px-3 py-1 text-xs font-bold shadow-none"
+                      className="bg-muted text-foreground border border-border px-3 py-1 text-xs font-bold shadow-none"
                     >
                       {skill}
                     </Badge>

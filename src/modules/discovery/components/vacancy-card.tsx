@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { MapPin, Clock, CheckCircle, BadgeCheck } from "lucide-react";
+import { MapPin, Clock, CheckCircle, BadgeCheck } from "@/components/ui/icons";
 import { cn } from "@/lib/utils";
 import type { Job } from "../types";
 

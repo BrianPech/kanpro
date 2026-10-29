@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
-import { ChevronDown, Building2, UserCheck } from "lucide-react";
+import { ChevronDown, Building2, UserCheck } from "@/components/ui/icons";
 
 interface FAQItemProps {
   num: string;

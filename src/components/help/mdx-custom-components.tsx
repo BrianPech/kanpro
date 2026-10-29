@@ -1,5 +1,5 @@
 import React from "react";
-import { Info, AlertTriangle, CheckCircle2, Lightbulb } from "lucide-react";
+import { Info, AlertTriangle, CheckCircle2, Lightbulb } from "@/components/ui/icons";
 import { cn } from "@/lib/utils";
 
 interface CalloutProps {

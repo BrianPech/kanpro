@@ -29,7 +29,7 @@ import {
   FileText,
   User,
   Sparkles,
-} from "lucide-react";
+} from "@/components/ui/icons";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";

@@ -23,7 +23,8 @@ import {
   AlertTriangle,
   Loader2,
   Layers,
-} from "lucide-react";
+  ShieldCheck,
+} from "@/components/ui/icons";
 import Link from "next/link";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -47,11 +48,14 @@ import { AdjustPayrollItemModal } from "./payroll/adjust-payroll-item-modal";
 import {
   adjustEmployeeBonusesAction,
   disperseCompanyPayrollAction,
+  stampPayrollPeriodAction,
 } from "../actions/payroll";
 import {
   generateBankDispersalLayout,
   BankLayoutType,
 } from "../utils/bank-layout-generator";
+import { CompanyPageHeader } from "./shared/company-page-header";
+import { CompanyStatusBadge } from "./shared/company-status-badge";
 
 interface PayrollViewProps {
   payrollSummary?: PayrollPeriodSummary;
@@ -73,18 +77,22 @@ export function PayrollView({
   const startDate = payrollSummary?.startDate || "2026-09-01";
   const endDate = payrollSummary?.endDate || "2026-09-15";
   const payoutDate = payrollSummary?.payoutDate || endDate;
+  const periodId = payrollSummary?.periodId || "";
 
   const [employees, setEmployees] = useState<PayrollEmployeeItem[]>(
     payrollSummary?.employees || []
   );
-  const [currentStatus, setCurrentStatus] = useState<"borrador" | "calculada" | "pagada">(
-    payrollSummary?.status === "dispersada" || payrollSummary?.status === "pagada"
-      ? "pagada"
-      : (payrollSummary?.status as "borrador" | "calculada") ||
-        (fallbackPayroll?.status === "pagada" ? "pagada" : "calculada")
+  const [currentStatus, setCurrentStatus] = useState<"borrador" | "calculada" | "pagada" | "timbrada">(
+    payrollSummary?.status === "timbrada"
+      ? "timbrada"
+      : payrollSummary?.status === "dispersada" || payrollSummary?.status === "pagada"
+        ? "pagada"
+        : (payrollSummary?.status as "borrador" | "calculada") ||
+          (fallbackPayroll?.status === "pagada" ? "pagada" : "calculada")
   );
   const [searchQuery, setSearchQuery] = useState("");
   const [isDispersing, setIsDispersing] = useState(false);
+  const [isStamping, setIsStamping] = useState(false);
 
   // Modals state
   const [selectedSlipEmployee, setSelectedSlipEmployee] = useState<PayrollEmployeeItem | null>(null);
@@ -101,6 +109,9 @@ export function PayrollView({
   const totalDeductionsCalculated = employees.reduce((acc, curr) => acc + curr.totalDeductions, 0);
   const totalNetCalculated = employees.reduce((acc, curr) => acc + curr.netPayEstimated, 0);
   const totalOvertimeCalculated = employees.reduce((acc, curr) => acc + curr.overtimePay, 0);
+  const employeesWithoutBank = employees.filter(
+    (e) => !e.bankAccount?.clabe || !/^\d{18}$/.test(e.bankAccount.clabe.trim())
+  );
 
   const handleAdjustBonus = async (
     employeeId: string,
@@ -153,9 +164,10 @@ export function PayrollView({
       toast.success("Bonos guardados en base de datos", {
         description: "El cálculo de la pre-nómina ha sido actualizado permanentemente.",
       });
-    } catch (err: any) {
+    } catch (err: unknown) {
       setEmployees(prevEmployees);
-      toast.error("Error al guardar bonos", { description: err.message });
+      const message = err instanceof Error ? err.message : "Error al actualizar bonos.";
+      toast.error("Error al guardar bonos", { description: message });
     }
   };
 
@@ -178,11 +190,18 @@ export function PayrollView({
       document.body.removeChild(link);
       URL.revokeObjectURL(url);
 
+      const skippedMsg = result.skippedCount && result.skippedCount > 0
+        ? ` (${result.skippedCount} excluido(s) por falta de CLABE válida)`
+        : "";
+
       toast.success("Layout de Dispersión Bancaria Generado", {
-        description: `Se descargó exitosamente: ${result.fileName} con ${employees.length} registros.`,
+        description: `Se descargó exitosamente: ${result.fileName} con ${result.includedCount ?? employees.length} registros${skippedMsg}.`,
       });
-    } catch {
-      toast.error("Error al generar layout bancario.");
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : "Error al generar layout bancario.";
+      toast.error("Imposible generar layout bancario", {
+        description: message,
+      });
     }
   };
 
@@ -227,36 +246,54 @@ export function PayrollView({
       toast.success("Nómina dispersada y registrada con éxito", {
         description: `Se procesó la orden por $${totalNetCalculated.toLocaleString()} MXN respaldada en Supabase.`,
       });
-    } catch (err: any) {
-      toast.error("Error al comunicar con el servidor", { description: err.message });
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : "Error al procesar la dispersión.";
+      toast.error("Error al comunicar con el servidor", { description: message });
     } finally {
       setIsDispersing(false);
     }
   };
 
-  return (
-    <div className="p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto space-y-6 sm:space-y-8 animate-in fade-in duration-300">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-2 border-b border-border/40">
-        <div className="space-y-1">
-          <div className="flex items-center gap-2">
-            <Link
-              href="/dashboard/company"
-              className="text-xs font-bold text-muted-foreground hover:text-foreground flex items-center gap-1 transition-colors"
-            >
-              <ArrowLeft className="size-3.5" />
-              <span>Volver al Dashboard</span>
-            </Link>
-          </div>
-          <h1 className="text-2xl sm:text-3xl font-extrabold text-foreground tracking-tight flex items-center gap-2.5">
-            <CreditCard className="size-7 text-emerald-600 dark:text-emerald-400" />
-            <span>Nómina, Percepciones & Dispersión</span>
-          </h1>
-          <p className="text-xs sm:text-sm text-muted-foreground font-semibold">
-            {`Pre-nómina para la ${periodName} (${startDate} al ${endDate}). Cálculo automático de LFT, IMSS, ISR y asistencias.`}
-          </p>
-        </div>
+  const handleStampPayroll = async () => {
+    if (employees.length === 0) {
+      toast.error("No hay empleados en este periodo para timbrar.");
+      return;
+    }
 
+    if (!periodId || periodId.startsWith("payroll-")) {
+      toast.error("Dispersión requerida", {
+        description: "Primero debes procesar y dispersar la nómina antes de emitir los CFDI fiscales ante el SAT.",
+      });
+      return;
+    }
+
+    setIsStamping(true);
+    try {
+      const res = await stampPayrollPeriodAction({ payrollId: periodId });
+      if (!res.success || !res.data) {
+        toast.error("Error al timbrar nómina con PAC", { description: res.error });
+        return;
+      }
+
+      setCurrentStatus("timbrada");
+      toast.success("Nómina timbrada exitosamente ante el SAT (CFDI 4.0)", {
+        description: `Se certificaron ${res.data.stampedCount} recibos de nómina con Timbre Fiscal Digital oficial.`,
+      });
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : "Error inesperado al conectar con el PAC.";
+      toast.error("Error de timbrado fiscal", { description: message });
+    } finally {
+      setIsStamping(false);
+    }
+  };
+
+  return (
+    <div className="space-y-6 sm:space-y-8 animate-in fade-in duration-300 font-sans">
+      {/* Header Unificado */}
+      <CompanyPageHeader
+        title="Nómina, Percepciones & Dispersión"
+        description={`Pre-nómina para la ${periodName} (${startDate} al ${endDate}). Cálculo automático de LFT, IMSS, ISR y asistencias.`}
+      >
         <div className="flex items-center gap-2.5 flex-wrap">
           {/* Dropdown de layouts bancarios */}
           <DropdownMenu>
@@ -265,14 +302,14 @@ export function PayrollView({
                 <Button
                   variant="outline"
                   size="sm"
-                  className="rounded-xl text-xs font-bold h-10 px-4 border-border/70 shadow-xs flex items-center gap-1.5"
+                  className="font-bold text-xs flex items-center gap-1.5"
                 >
                   <FileSpreadsheet className="size-3.5" />
                   <span>Descargar Layout Bancario</span>
                 </Button>
               }
             />
-            <DropdownMenuContent align="end" className="rounded-xl w-60">
+            <DropdownMenuContent align="end" className="w-60">
               <DropdownMenuLabel className="text-xs font-bold">
                 Formatos de Banca Empresarial
               </DropdownMenuLabel>
@@ -311,8 +348,8 @@ export function PayrollView({
           <Button
             size="sm"
             onClick={handleDispersePayout}
-            disabled={isDispersing || currentStatus === "pagada" || employees.length === 0}
-            className="rounded-xl text-xs font-bold h-10 px-4 bg-primary text-primary-foreground hover:bg-primary/90 shadow-xs flex items-center gap-1.5"
+            disabled={isDispersing || currentStatus === "pagada" || currentStatus === "timbrada" || employees.length === 0}
+            className="font-bold text-xs flex items-center gap-1.5"
           >
             {isDispersing ? (
               <>
@@ -323,24 +360,50 @@ export function PayrollView({
               <>
                 <Receipt className="size-4" />
                 <span>
-                  {currentStatus === "pagada"
+                  {currentStatus === "pagada" || currentStatus === "timbrada"
                     ? "Nómina Dispersada"
                     : "Aprobar & Dispersar Nómina"}
                 </span>
               </>
             )}
           </Button>
+
+          {/* Botón de Timbrado SAT 4.0 */}
+          <Button
+            size="sm"
+            variant={currentStatus === "timbrada" ? "secondary" : "default"}
+            onClick={handleStampPayroll}
+            disabled={isStamping || currentStatus === "timbrada" || employees.length === 0}
+            className="font-bold text-xs flex items-center gap-1.5"
+          >
+            {isStamping ? (
+              <>
+                <Loader2 className="size-4 animate-spin" />
+                <span>Timbrando con PAC...</span>
+              </>
+            ) : currentStatus === "timbrada" ? (
+              <>
+                <ShieldCheck className="size-4" />
+                <span>Timbrada SAT (4.0)</span>
+              </>
+            ) : (
+              <>
+                <ShieldCheck className="size-4" />
+                <span>Timbrar SAT 4.0</span>
+              </>
+            )}
+          </Button>
         </div>
-      </div>
+      </CompanyPageHeader>
 
       {/* KPI Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <Card className="rounded-2xl border border-border/40 bg-card p-5 space-y-2 shadow-xs">
+        <Card className="p-5 space-y-2">
           <div className="flex items-center justify-between text-xs font-bold text-muted-foreground">
             <span>Total Percepciones Brutas</span>
             <DollarSign className="size-4 text-primary" />
           </div>
-          <div className="text-2xl sm:text-3xl font-extrabold text-foreground">
+          <div className="text-2xl sm:text-3xl font-extrabold text-foreground font-mono">
             ${totalGrossCalculated.toLocaleString()} MXN
           </div>
           <p className="text-[11px] text-muted-foreground font-medium">
@@ -348,12 +411,12 @@ export function PayrollView({
           </p>
         </Card>
 
-        <Card className="rounded-2xl border border-border/40 bg-card p-5 space-y-2 shadow-xs">
+        <Card className="p-5 space-y-2">
           <div className="flex items-center justify-between text-xs font-bold text-muted-foreground">
             <span>Horas Extras Autorizadas</span>
             <Clock className="size-4 text-indigo-600 dark:text-indigo-400" />
           </div>
-          <div className="text-2xl sm:text-3xl font-extrabold text-indigo-600 dark:text-indigo-400">
+          <div className="text-2xl sm:text-3xl font-extrabold text-indigo-600 dark:text-indigo-400 font-mono">
             +${totalOvertimeCalculated.toLocaleString()} MXN
           </div>
           <p className="text-[11px] text-muted-foreground font-medium">
@@ -361,12 +424,12 @@ export function PayrollView({
           </p>
         </Card>
 
-        <Card className="rounded-2xl border border-border/40 bg-card p-5 space-y-2 shadow-xs">
+        <Card className="p-5 space-y-2">
           <div className="flex items-center justify-between text-xs font-bold text-muted-foreground">
             <span>Deducciones Totales</span>
             <AlertTriangle className="size-4 text-destructive" />
           </div>
-          <div className="text-2xl sm:text-3xl font-extrabold text-destructive">
+          <div className="text-2xl sm:text-3xl font-extrabold text-destructive font-mono">
             -${totalDeductionsCalculated.toLocaleString()} MXN
           </div>
           <p className="text-[11px] text-muted-foreground font-medium">
@@ -374,7 +437,7 @@ export function PayrollView({
           </p>
         </Card>
 
-        <Card className="rounded-2xl border border-border/40 bg-card p-5 space-y-2 shadow-xs">
+        <Card className="p-5 space-y-2">
           <div className="flex items-center justify-between text-xs font-bold text-muted-foreground">
             <span>Dispersión Neta Total</span>
             <Badge
@@ -388,7 +451,7 @@ export function PayrollView({
               {currentStatus === "pagada" ? "Dispersada" : "Por Dispersar"}
             </Badge>
           </div>
-          <div className="text-2xl sm:text-3xl font-extrabold text-emerald-600 dark:text-emerald-400">
+          <div className="text-2xl sm:text-3xl font-extrabold text-emerald-600 dark:text-emerald-400 font-mono">
             ${totalNetCalculated.toLocaleString()} MXN
           </div>
           <p className="text-[11px] text-muted-foreground font-medium">
@@ -397,8 +460,19 @@ export function PayrollView({
         </Card>
       </div>
 
+      {/* Missing Bank Account Warning Banner */}
+      {employeesWithoutBank.length > 0 && (
+        <div className="p-3.5 sm:p-4 rounded-2xl bg-amber-500/10 border border-amber-500/25 flex items-start sm:items-center gap-3 text-amber-900 dark:text-amber-200 text-xs">
+          <AlertTriangle className="size-4 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5 sm:mt-0" />
+          <div className="flex-1 leading-relaxed">
+            <span className="font-bold">Alerta para Dispersión Bancaria: </span>
+            {employeesWithoutBank.length} colaborador(es) no cuentan con una cuenta CLABE de 18 dígitos registrada. Quedarán excluidos automáticamente de los archivos de dispersión hasta registrar sus datos bancarios.
+          </div>
+        </div>
+      )}
+
       {/* Main Breakdown Table */}
-      <Card className="rounded-2xl border border-border/40 bg-card p-5 sm:p-6 space-y-5 shadow-xs">
+      <Card className="p-5 sm:p-6 space-y-5">
         <div className="flex flex-col sm:flex-row gap-3 items-stretch sm:items-center justify-between">
           <div className="relative flex-1 max-w-md">
             <Search className="size-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
@@ -406,13 +480,13 @@ export function PayrollView({
               placeholder="Buscar empleado, puesto o departamento..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-9 h-10 rounded-xl bg-background border-border/80 text-xs font-medium"
+              className="pl-9 w-full"
             />
           </div>
 
           <Badge
             variant="outline"
-            className="text-xs font-bold py-1.5 px-3 rounded-xl border-border/70 self-start sm:self-center"
+            className="text-xs font-bold font-mono self-start sm:self-center"
           >
             {`${filteredEmployees.length} empleados en pre-nómina`}
           </Badge>
@@ -433,7 +507,7 @@ export function PayrollView({
               render={<Link href="/dashboard/company/employees" />}
               variant="outline"
               size="sm"
-              className="mt-2 rounded-xl text-xs font-bold"
+              className="mt-2 font-bold text-xs"
             >
               <Plus className="size-3.5 mr-1" />
               Ir a Plantilla de Empleados
@@ -468,6 +542,15 @@ export function PayrollView({
                       <span className="text-xs text-muted-foreground font-medium">
                         • {emp.jobTitle} ({emp.department})
                       </span>
+                      {emp.cfdi?.status === "timbrado" ? (
+                        <Badge className="bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border-none text-[10px] font-bold py-0 h-4">
+                          SAT CFDI
+                        </Badge>
+                      ) : (
+                        <Badge variant="outline" className="text-[10px] text-muted-foreground border-border/60 py-0 h-4">
+                          Sin Timbre
+                        </Badge>
+                      )}
                     </div>
 
                     <div className="flex items-center gap-3 text-xs text-muted-foreground font-semibold flex-wrap">
@@ -508,11 +591,19 @@ export function PayrollView({
                           </span>
                         </>
                       )}
-                      {emp.bankAccount && (
+                      {emp.bankAccount?.clabe && /^\d{18}$/.test(emp.bankAccount.clabe.trim()) ? (
                         <>
                           <span>•</span>
                           <span className="font-mono text-[11px] text-muted-foreground">
                             {emp.bankAccount.bankName} ••••{emp.bankAccount.clabe.slice(-4)}
+                          </span>
+                        </>
+                      ) : (
+                        <>
+                          <span>•</span>
+                          <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-amber-600 dark:text-amber-400 bg-amber-500/10 px-1.5 py-0.5 rounded border border-amber-500/20">
+                            <AlertTriangle className="size-3 shrink-0" />
+                            Sin cuenta CLABE (No dispersable)
                           </span>
                         </>
                       )}

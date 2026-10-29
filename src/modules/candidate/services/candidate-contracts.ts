@@ -231,7 +231,8 @@ export class CandidateContractsService {
   static async signContract(
     supabase: SupabaseClient<Database>,
     userId: string,
-    input: SignCandidateContractInput
+    input: SignCandidateContractInput,
+    clientIp?: string
   ): Promise<SignContractResult> {
     // 1. Obtener y validar propiedad del contrato
     const { data: contract, error: contractErr } = await supabase
@@ -283,13 +284,16 @@ export class CandidateContractsService {
 
     const now = new Date().toISOString();
 
-    // 2. Actualizar contrato con la firma del empleado
+    // 2. Actualizar contrato con la firma del empleado y sello de auditoría de red
+    const auditLog = clientIp ? `[Sello Digital Colaborador] IP: ${clientIp} | Fecha: ${now}` : undefined;
+
     const { error: updateErr } = await supabase
       .from("company_contracts")
       .update({
         employee_signed: true,
         employee_signature_url: input.signatureData,
         status: "vigente",
+        ...(auditLog ? { notes: auditLog } : {}),
         updated_at: now,
       })
       .eq("id", input.contractId);

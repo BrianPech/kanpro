@@ -19,7 +19,7 @@ import {
   ShieldCheck,
   Video,
   Info,
-} from "lucide-react";
+} from "@/components/ui/icons";
 import {
   Dialog,
   DialogContent,
@@ -740,15 +740,17 @@ export function QrAttendanceScannerModal({
           </div>
 
           <div className="flex items-center gap-2">
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              onClick={handleSimulateScan}
-              className="text-xs h-8 px-3 rounded-xl border-border bg-card hover:bg-muted text-foreground"
-            >
-              Simular QR
-            </Button>
+            {process.env.NODE_ENV === "development" && (
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={handleSimulateScan}
+                className="text-xs h-8 px-3 rounded-xl border-border bg-card hover:bg-muted text-foreground"
+              >
+                Simular QR
+              </Button>
+            )}
             <Button
               type="button"
               variant="ghost"

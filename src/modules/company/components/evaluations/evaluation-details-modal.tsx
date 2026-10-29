@@ -19,7 +19,7 @@ import {
   ShieldCheck,
   Building2,
   Check,
-} from "lucide-react";
+} from "@/components/ui/icons";
 import {
   Dialog,
   DialogContent,
@@ -157,7 +157,7 @@ export function EvaluationDetailsModal({
                   <span>•</span>
                   <Badge
                     variant="outline"
-                    className="text-[10px] font-semibold px-2 py-0 rounded-md border-border/30 bg-muted/40"
+                    className="text-[10px] font-semibold px-2 py-0 border-border/30 bg-muted/40"
                   >
                     {evaluation.department}
                   </Badge>
@@ -169,7 +169,7 @@ export function EvaluationDetailsModal({
 
             {/* Quick Period Badge */}
             <div className="hidden sm:flex flex-col items-end shrink-0">
-              <Badge className="bg-primary/10 text-primary border-none text-xs font-bold px-3 py-1 rounded-xl">
+              <Badge className="bg-primary/10 text-primary border-none text-xs font-bold px-3 py-1">
                 {evaluation.period}
               </Badge>
               <span className="text-[11px] text-muted-foreground font-medium mt-1">

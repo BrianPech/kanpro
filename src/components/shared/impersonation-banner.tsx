@@ -12,7 +12,7 @@ import {
   Building2Icon,
   UserIcon,
   SparklesIcon,
-} from "lucide-react";
+} from "@/components/ui/icons";
 
 interface ImpersonationBannerProps {
   targetUserName?: string;

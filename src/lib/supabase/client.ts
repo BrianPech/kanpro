@@ -1,7 +1,16 @@
 import { createBrowserClient } from '@supabase/ssr'
 import type { Database } from '@/types/supabase'
+import { createMockSupabaseClient } from './mock-client'
 
 export function createClient() {
+  if (
+    process.env.NODE_ENV !== 'production' &&
+    ((typeof document !== 'undefined' && document.cookie.includes('e2e-mock-role=company')) ||
+      process.env.NEXT_PUBLIC_E2E_MOCK_AUTH === 'true')
+  ) {
+    return createMockSupabaseClient() as unknown as ReturnType<typeof createBrowserClient<Database>>
+  }
+
   let url = process.env.NEXT_PUBLIC_SUPABASE_URL
   const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
 

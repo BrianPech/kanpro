@@ -11,7 +11,7 @@ import {
   ShieldCheck,
   Clock,
   ArrowUpRight,
-} from "lucide-react";
+} from "@/components/ui/icons";
 
 interface SectionCardsProps {
   metrics?: {

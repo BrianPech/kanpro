@@ -54,7 +54,7 @@ import {
   Copy,
   Video,
   PenTool,
-} from "lucide-react";
+} from "@/components/ui/icons";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -113,6 +113,8 @@ import {
 import { HireCandidateWizardModal } from "./recruitment/hire-candidate-wizard-modal";
 import { CandidateCvViewer } from "./candidate-cv-viewer";
 import { DatePicker } from "@/components/ui/date-picker";
+import { CompanyPageHeader } from "./shared/company-page-header";
+import { CompanyStatusBadge } from "./shared/company-status-badge";
 
 export function ApplicationsInbox() {
   const {
@@ -653,7 +655,7 @@ export function ApplicationsInbox() {
                 <Badge
                   key={idx}
                   variant="outline"
-                  className="text-[10px] font-semibold px-2 py-0 rounded-md border-border/40 bg-muted/30"
+                  className="text-[10px] font-semibold px-2 py-0 border-border/40 bg-muted/30"
                 >
                   {skill}
                 </Badge>
@@ -953,44 +955,35 @@ export function ApplicationsInbox() {
 
   return (
     <div className="space-y-6 w-full pb-16 font-sans animate-in fade-in duration-300">
-      {/* 1. Header & Quick Actions */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-2xl sm:text-3xl font-[800] text-foreground tracking-tight flex items-center gap-2.5">
-            <span>Postulantes & Selección</span>
-            <Badge
-              variant="outline"
-              className="text-xs font-bold font-mono px-2 py-0.5 rounded-lg border-border/40"
-            >
-              {applicants.length}
-            </Badge>
-          </h1>
-          <p className="text-xs sm:text-sm text-muted-foreground font-medium mt-1">
-            Bandeja de candidatos, revisión de perfiles, evaluación curricular y contratación directa.
-          </p>
-        </div>
-
+      {/* 1. Header Unificado */}
+      <CompanyPageHeader
+        title="Postulantes & Selección"
+        description="Bandeja de candidatos, revisión de perfiles, evaluación curricular y contratación directa."
+      >
         <div className="flex items-center gap-2">
+          <Badge variant="outline" className="font-mono">
+            {applicants.length}
+          </Badge>
           <Button
             variant="outline"
             size="sm"
             onClick={() => handleExportCSV(filteredApplicants)}
-            className="h-9 font-semibold text-xs rounded-xl px-3.5 flex items-center gap-2 border-border/50 hover:bg-muted/40 cursor-pointer"
+            className="cursor-pointer"
           >
-            <Download className="size-4 text-emerald-600 dark:text-emerald-400" />
+            <Download data-icon="inline-start" className="text-emerald-600 dark:text-emerald-400" />
             <span>Exportar CSV</span>
           </Button>
 
           <Button
             size="sm"
             render={<Link href="/dashboard/company/vacancies" />}
-            className="h-9 font-bold text-xs rounded-xl px-4 flex items-center gap-2 bg-primary text-primary-foreground hover:bg-primary/90 shadow-xs cursor-pointer"
+            className="cursor-pointer font-medium"
           >
-            <Briefcase className="size-4" />
+            <Briefcase data-icon="inline-start" />
             <span>Ver Vacantes</span>
           </Button>
         </div>
-      </div>
+      </CompanyPageHeader>
 
       {/* 2. Barra de Selección y Filtro por Vacante */}
       <div className="p-4 rounded-2xl bg-card border border-border/60 shadow-xs space-y-3">
@@ -1005,11 +998,11 @@ export function ApplicationsInbox() {
                   Filtrar por Vacante
                 </h3>
                 {selectedVacancyId !== "all" ? (
-                  <Badge variant="outline" className="text-[10px] font-bold bg-primary/10 text-primary border-primary/30 px-2 py-0.5 rounded-md">
+                  <Badge variant="outline" className="text-[10px] font-bold bg-primary/10 text-primary border-primary/30 px-2 py-0.5">
                     Filtro activo
                   </Badge>
                 ) : (
-                  <Badge variant="outline" className="text-[10px] font-bold bg-muted text-muted-foreground border-border/40 px-2 py-0.5 rounded-md">
+                  <Badge variant="outline" className="text-[10px] font-bold bg-muted text-muted-foreground border-border/40 px-2 py-0.5">
                     {vacanciesWithCounts.length} {vacanciesWithCounts.length === 1 ? "vacante" : "vacantes"}
                   </Badge>
                 )}
@@ -1060,7 +1053,7 @@ export function ApplicationsInbox() {
                 variant="outline"
                 size="sm"
                 onClick={() => setSelectedVacancyId("all")}
-                className="h-9 px-3 rounded-xl text-xs font-bold text-muted-foreground hover:text-foreground border-border/60 hover:bg-muted cursor-pointer shrink-0 gap-1.5"
+                className="font-bold text-xs cursor-pointer shrink-0 gap-1.5"
                 title="Ver todas las vacantes"
               >
                 <X className="size-3.5" />
@@ -1134,7 +1127,7 @@ export function ApplicationsInbox() {
 
       {/* 3. Pipeline Metrics Cards */}
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 sm:gap-4">
-        <Card className="bg-card border border-border/40 rounded-2xl p-4 flex flex-col justify-between">
+        <Card className="p-4 flex flex-col justify-between">
           <div className="flex items-center justify-between">
             <span className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider">
               Total Postulantes
@@ -1153,7 +1146,7 @@ export function ApplicationsInbox() {
           </div>
         </Card>
 
-        <Card className="bg-card border border-border/40 rounded-2xl p-4 flex flex-col justify-between">
+        <Card className="p-4 flex flex-col justify-between">
           <div className="flex items-center justify-between">
             <span className="text-[11px] font-bold text-amber-600 dark:text-amber-400 uppercase tracking-wider">
               1. Por Revisar
@@ -1172,7 +1165,7 @@ export function ApplicationsInbox() {
           </div>
         </Card>
 
-        <Card className="bg-card border border-border/40 rounded-2xl p-4 flex flex-col justify-between">
+        <Card className="p-4 flex flex-col justify-between">
           <div className="flex items-center justify-between">
             <span className="text-[11px] font-bold text-indigo-600 dark:text-indigo-400 uppercase tracking-wider">
               2. Preselección
@@ -1191,7 +1184,7 @@ export function ApplicationsInbox() {
           </div>
         </Card>
 
-        <Card className="bg-card border border-border/40 rounded-2xl p-4 flex flex-col justify-between">
+        <Card className="p-4 flex flex-col justify-between">
           <div className="flex items-center justify-between">
             <span className="text-[11px] font-bold text-purple-600 dark:text-purple-400 uppercase tracking-wider">
               3. Entrevistas
@@ -1210,7 +1203,7 @@ export function ApplicationsInbox() {
           </div>
         </Card>
 
-        <Card className="bg-card border border-border/40 rounded-2xl p-4 flex flex-col justify-between col-span-2 sm:col-span-1">
+        <Card className="p-4 flex flex-col justify-between col-span-2 sm:col-span-1">
           <div className="flex items-center justify-between">
             <span className="text-[11px] font-bold text-emerald-600 dark:text-emerald-400 uppercase tracking-wider">
               4. Contratados
@@ -1244,7 +1237,7 @@ export function ApplicationsInbox() {
                 placeholder="Buscar por nombre, cargo, teléfono, skill..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-9 h-10 rounded-xl bg-background border-border/50 text-xs font-medium focus-visible:ring-primary/20 shadow-2xs"
+                className="pl-9 text-xs font-medium"
               />
               {searchQuery && (
                 <button
@@ -1469,7 +1462,7 @@ export function ApplicationsInbox() {
                       <Button
                         size="sm"
                         onClick={() => setSelectedVacancyId("all")}
-                        className="rounded-xl font-bold text-xs h-9 px-4 cursor-pointer gap-1.5 bg-primary text-primary-foreground shadow-xs"
+                        className="font-bold text-xs cursor-pointer gap-1.5"
                       >
                         <Briefcase className="size-3.5" />
                         <span>Ver todas las vacantes</span>
@@ -1479,7 +1472,7 @@ export function ApplicationsInbox() {
                       variant="outline"
                       size="sm"
                       onClick={handleClearFilters}
-                      className="rounded-xl font-bold text-xs h-9 px-4 cursor-pointer border-border/50 gap-1.5"
+                      className="font-bold text-xs cursor-pointer gap-1.5"
                     >
                       <RotateCcw className="size-3.5" />
                       <span>Restablecer Filtros</span>
@@ -1489,7 +1482,7 @@ export function ApplicationsInbox() {
                   <Button
                     size="sm"
                     render={<Link href="/dashboard/company/vacancies" />}
-                    className="rounded-xl font-bold text-xs h-9 px-4 cursor-pointer gap-1.5 bg-primary text-primary-foreground"
+                    className="font-bold text-xs cursor-pointer gap-1.5"
                   >
                     <Briefcase className="size-3.5" />
                     <span>Revisar Convocatorias</span>
@@ -1602,7 +1595,7 @@ export function ApplicationsInbox() {
       <Dialog open={isDetailModalOpen} onOpenChange={setIsDetailModalOpen}>
         <DialogContent
           showCloseButton={false}
-          className="w-full sm:!max-w-[700px] md:!max-w-[740px] rounded-[32px] p-0 overflow-hidden bg-card border-border/80 shadow-2xl !flex !flex-col h-[90vh] max-h-[860px] !gap-0 font-sans"
+          className="w-full sm:!max-w-[700px] md:!max-w-[740px] p-0 overflow-hidden !flex !flex-col h-[90vh] max-h-[860px] !gap-0 font-sans"
         >
           {selectedApplicant && (
             <>
@@ -2134,7 +2127,7 @@ export function ApplicationsInbox() {
                                     <Badge
                                       key={idx}
                                       variant="secondary"
-                                      className="px-3 py-1 rounded-xl text-xs font-bold bg-muted/60 border border-border/60 text-foreground"
+                                      className="px-3 py-1 text-xs font-bold bg-muted/60 border border-border/60 text-foreground"
                                     >
                                       {skill}
                                     </Badge>
@@ -2264,7 +2257,7 @@ export function ApplicationsInbox() {
 
                                 {docAccessState?.status === "approved" ? (
                                   <div className="space-y-3 pt-2">
-                                    <Badge className="bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-none font-bold text-xs px-3 py-1 rounded-lg">
+                                    <Badge className="bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 font-bold text-xs px-3 py-1">
                                       <CheckCircle2 className="size-3.5 mr-1" />
                                       Acceso Autorizado por el Empleado
                                     </Badge>
@@ -2351,26 +2344,26 @@ export function ApplicationsInbox() {
               </div>
 
               {/* 7. Bottom Operation Footer */}
-              <DialogFooter className="p-4 px-6 border-t border-border/40 bg-muted/20 shrink-0 flex items-center justify-between">
+              <DialogFooter className="p-4 px-6 border-t border-border bg-muted/20 shrink-0 flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <Button
                     variant="outline"
                     size="sm"
                     onClick={() => setIsDetailModalOpen(false)}
-                    className="rounded-xl text-xs font-semibold h-9 px-4 cursor-pointer"
+                    className="text-xs font-semibold cursor-pointer"
                   >
                     Cerrar
                   </Button>
 
                   {selectedApplicant.status !== "Descartado" && selectedApplicant.status !== "Contratado" && (
                     <Button
-                      variant="ghost"
+                      variant="destructive"
                       size="sm"
                       onClick={async () => {
                         await handleUpdateStatus(selectedApplicant.id, "Descartado");
                         setSelectedApplicant((prev) => prev ? { ...prev, status: "Descartado" } : null);
                       }}
-                      className="rounded-xl text-xs font-semibold h-9 px-3 text-rose-600 hover:bg-rose-500/10 hover:text-rose-700 cursor-pointer"
+                      className="text-xs font-semibold cursor-pointer"
                     >
                       Descartar
                     </Button>
@@ -2386,7 +2379,7 @@ export function ApplicationsInbox() {
                         await handleUpdateStatus(selectedApplicant.id, "En revisión");
                         setSelectedApplicant((prev) => prev ? { ...prev, status: "En revisión" } : null);
                       }}
-                      className="rounded-xl text-xs font-bold h-9 px-5 bg-blue-600 hover:bg-blue-700 text-white shadow-xs cursor-pointer gap-1.5"
+                      className="text-xs font-bold cursor-pointer gap-1.5"
                     >
                       <Eye className="size-3.5" />
                       <span>1. Iniciar Revisión</span>
@@ -2400,7 +2393,7 @@ export function ApplicationsInbox() {
                         await handleUpdateStatus(selectedApplicant.id, "Preseleccionado");
                         setSelectedApplicant((prev) => prev ? { ...prev, status: "Preseleccionado" } : null);
                       }}
-                      className="rounded-xl text-xs font-bold h-9 px-5 bg-indigo-600 hover:bg-indigo-700 text-white shadow-xs cursor-pointer gap-1.5"
+                      className="text-xs font-bold cursor-pointer gap-1.5"
                     >
                       <CheckCircle2 className="size-3.5" />
                       <span>2. Marcar Preseleccionado</span>
@@ -2411,7 +2404,7 @@ export function ApplicationsInbox() {
                     <Button
                       size="sm"
                       onClick={() => handleOpenScheduleInterview(selectedApplicant)}
-                      className="rounded-xl text-xs font-bold h-9 px-5 bg-purple-600 hover:bg-purple-700 text-white shadow-xs cursor-pointer gap-1.5"
+                      className="text-xs font-bold cursor-pointer gap-1.5"
                     >
                       <Calendar className="size-3.5" />
                       <span>3. Agendar Cita de Entrevista</span>
@@ -2425,7 +2418,7 @@ export function ApplicationsInbox() {
                         setIsDetailModalOpen(false);
                         handleStartHire(selectedApplicant);
                       }}
-                      className="rounded-xl text-xs font-bold h-9 px-5 bg-emerald-600 hover:bg-emerald-700 text-white shadow-xs cursor-pointer gap-1.5"
+                      className="text-xs font-bold cursor-pointer gap-1.5"
                     >
                       <Sparkles className="size-3.5" />
                       <span>4. Formalizar Contratación Final</span>
@@ -2433,7 +2426,7 @@ export function ApplicationsInbox() {
                   )}
 
                   {selectedApplicant.status === "Contratado" && (
-                    <Badge className="bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 px-3 py-1.5 rounded-xl font-bold text-xs">
+                    <Badge className="bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 px-3 py-1.5 font-bold text-xs">
                       <CheckCircle2 className="size-3.5 mr-1" />
                       Candidato Contratado
                     </Badge>
@@ -2447,7 +2440,7 @@ export function ApplicationsInbox() {
                         await handleUpdateStatus(selectedApplicant.id, "En revisión");
                         setSelectedApplicant((prev) => prev ? { ...prev, status: "En revisión" } : null);
                       }}
-                      className="rounded-xl text-xs font-bold h-9 px-4 cursor-pointer gap-1.5"
+                      className="text-xs font-bold cursor-pointer gap-1.5"
                     >
                       <RotateCcw className="size-3.5" />
                       <span>Reactivar Postulación</span>
@@ -2464,7 +2457,7 @@ export function ApplicationsInbox() {
       <Dialog open={isInterviewModalOpen} onOpenChange={setIsInterviewModalOpen}>
         <DialogContent
           showCloseButton={false}
-          className="w-full sm:!max-w-[700px] md:!max-w-[740px] rounded-[32px] p-0 overflow-hidden bg-card border-border/80 shadow-2xl flex flex-col h-[88vh] max-h-[820px] gap-0 font-sans"
+          className="w-full sm:!max-w-[700px] md:!max-w-[740px] p-0 overflow-hidden flex flex-col h-[88vh] max-h-[820px] gap-0 font-sans"
         >
           {/* 1. Header (Fijo arriba) */}
           <div className="p-5 sm:p-6 pb-4 border-b border-border/40 shrink-0 bg-card z-10">
@@ -2556,7 +2549,7 @@ export function ApplicationsInbox() {
                     minDate={new Date()}
                     hidePastDates={true}
                     placeholder="Selecciona el día de la cita"
-                    className="h-10.5 rounded-xl border-border/70 bg-background font-medium text-xs sm:text-sm shadow-2xs"
+                    className="h-9 font-medium text-xs sm:text-sm"
                   />
 
                   {/* Atajos Rápidos de Fecha */}
@@ -2607,7 +2600,7 @@ export function ApplicationsInbox() {
                       type="time"
                       value={interviewTime}
                       onChange={(e) => setInterviewTime(e.target.value)}
-                      className="rounded-xl h-10.5 text-xs sm:text-sm font-semibold bg-background border-border/70 w-32 shrink-0 shadow-2xs"
+                      className="h-9 text-xs sm:text-sm font-semibold w-32 shrink-0"
                     />
 
                     <div className="flex flex-wrap items-center gap-1.5 flex-1 min-w-0">
@@ -2849,7 +2842,7 @@ export function ApplicationsInbox() {
                             ? "Ej. https://teams.microsoft.com/l/meetup-join/..."
                             : "Pega el enlace de la reunión aquí..."
                         }
-                        className="rounded-xl h-11 text-xs sm:text-sm font-medium pl-10 pr-4 bg-background border-border/70 shadow-2xs"
+                        className="text-xs sm:text-sm font-medium pl-10 pr-4"
                       />
                     </div>
                     <p className="text-[11px] text-muted-foreground leading-normal">
@@ -2878,7 +2871,7 @@ export function ApplicationsInbox() {
                       value={interviewLocationOrLink}
                       onChange={(e) => setInterviewLocationOrLink(e.target.value)}
                       placeholder="Ej. Av. Paseo de Montejo #450 x 39, Col. Centro, Mérida, Yucatán"
-                      className="rounded-xl h-11 text-xs sm:text-sm font-medium pl-10 bg-background border-border/70 shadow-2xs"
+                      className="text-xs sm:text-sm font-medium pl-10"
                     />
                   </div>
 
@@ -2950,13 +2943,12 @@ export function ApplicationsInbox() {
           </ScrollArea>
         </div>
 
-          {/* 3. Footer (Fijo abajo con fondo opaco sólido para que el contenido nunca se trasluzca) */}
-          <div className="p-4 sm:p-5 border-t border-border/40 bg-card shrink-0 flex items-center justify-between sm:justify-end gap-3 z-10">
+          {/* 3. Footer */}
+          <div className="p-4 sm:p-5 border-t border-border bg-card shrink-0 flex items-center justify-between sm:justify-end gap-3 z-10">
             <Button
               variant="outline"
               size="sm"
               onClick={() => setIsInterviewModalOpen(false)}
-              className="rounded-xl text-xs font-semibold h-10 px-4 cursor-pointer border-border/70 hover:bg-muted/50"
             >
               Cancelar
             </Button>
@@ -2964,7 +2956,6 @@ export function ApplicationsInbox() {
               size="sm"
               onClick={handleConfirmInterview}
               disabled={isScheduling || !interviewDate}
-              className="rounded-xl text-xs font-bold h-10 px-5 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white cursor-pointer shadow-md gap-2"
             >
               {isScheduling ? (
                 <Loader2 className="size-3.5 animate-spin" />

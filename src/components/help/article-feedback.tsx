@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
-import { ThumbsUp, ThumbsDown, CheckCircle2, Share2, MessageSquare } from "lucide-react";
+import { ThumbsUp, ThumbsDown, CheckCircle2, Share2, MessageSquare } from "@/components/ui/icons";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 

@@ -8,7 +8,7 @@ import {
   Check,
   Loader2,
   ShieldAlert,
-} from "lucide-react";
+} from "@/components/ui/icons";
 import { toast } from "sonner";
 import { createClient } from "@/lib/supabase/client";
 import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";

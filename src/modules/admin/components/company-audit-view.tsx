@@ -29,7 +29,7 @@ import {
   Maximize2,
   X,
   FileSpreadsheet,
-} from "lucide-react";
+} from "@/components/ui/icons";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";

@@ -206,12 +206,18 @@ describe("[REAL INTEGRATION] 04 - Employee Server Actions with Real PostgreSQL",
         .select()
         .single();
 
-      // 3. Execute Server Action
+      // 3. Authenticate as candidate to execute Server Action under candidate session
+      const candidateAuth = await createAuthenticatedClient(candidateEmail, "TestPassword123!");
+      currentServerSupabaseClient = candidateAuth.client;
+
       const result = await acceptEmployeeInvitationAction({
         rawToken,
         userId: testCandidate.id,
         email: candidateEmail,
       });
+
+      // Restore company client for subsequent company-level tests
+      currentServerSupabaseClient = companyClient;
 
       expect(result.success).toBe(true);
 

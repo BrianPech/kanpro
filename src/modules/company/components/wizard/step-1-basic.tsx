@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { Minus, Plus, Briefcase } from "lucide-react";
+import { Minus, Plus, Briefcase } from "@/components/ui/icons";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import {
@@ -73,7 +73,7 @@ export function Step1Basic({ form }: Step1BasicProps) {
               value={field.state.value || ""}
               onChange={(e) => field.handleChange(e.target.value)}
               placeholder="Ej. Cocinero B (Línea Caliente), Recepcionista de Hotel, Mesero..."
-              className="h-11 w-full rounded-2xl bg-input/50 border border-border/80 px-3.5 text-sm font-medium focus-visible:bg-background shadow-2xs"
+              className="w-full"
               maxLength={80}
             />
             <FieldDescription className="text-xs text-muted-foreground">
@@ -112,11 +112,11 @@ export function Step1Basic({ form }: Step1BasicProps) {
               >
                 <SelectTrigger
                   aria-label="Categoría o Área de la vacante"
-                  className="h-11 w-full rounded-2xl bg-input/50 border border-border/80 px-3.5 text-sm font-medium cursor-pointer shadow-2xs"
+                  className="w-full"
                 >
                   <SelectValue placeholder="Selecciona una categoría" />
                 </SelectTrigger>
-                <SelectContent className="rounded-2xl border border-border/60 bg-popover shadow-xl max-h-72">
+                <SelectContent className="max-h-72">
                   {companyAreas.length > 0 && (
                     <>
                       <div className="px-2.5 py-1.5 text-[10px] font-extrabold uppercase tracking-wider text-primary">
@@ -126,7 +126,7 @@ export function Step1Basic({ form }: Step1BasicProps) {
                         <SelectItem
                           key={`area-${area.id}`}
                           value={area.name}
-                          className="text-xs font-semibold rounded-xl cursor-pointer py-2 text-primary font-bold"
+                          className="text-xs cursor-pointer py-2 text-primary font-bold"
                         >
                           ✦ {area.name}
                         </SelectItem>
@@ -141,7 +141,7 @@ export function Step1Basic({ form }: Step1BasicProps) {
                     <SelectItem
                       key={cat}
                       value={cat}
-                      className="text-xs font-semibold rounded-xl cursor-pointer py-2.5"
+                      className="text-xs cursor-pointer py-2"
                     >
                       {cat}
                     </SelectItem>
@@ -169,16 +169,16 @@ export function Step1Basic({ form }: Step1BasicProps) {
               >
                 <SelectTrigger
                   aria-label="Tipo de jornada laboral"
-                  className="h-11 w-full rounded-2xl bg-input/50 border border-border/80 px-3.5 text-sm font-medium cursor-pointer shadow-2xs"
+                  className="w-full"
                 >
                   <SelectValue placeholder="Selecciona la jornada" />
                 </SelectTrigger>
-                <SelectContent className="rounded-2xl border border-border/60 bg-popover shadow-xl">
+                <SelectContent>
                   {EMPLOYMENT_TYPES.map((type) => (
                     <SelectItem
                       key={type}
                       value={type}
-                      className="text-xs font-semibold rounded-xl cursor-pointer py-2.5"
+                      className="text-xs cursor-pointer py-2"
                     >
                       {type}
                     </SelectItem>
@@ -209,16 +209,16 @@ export function Step1Basic({ form }: Step1BasicProps) {
               >
                 <SelectTrigger
                   aria-label="Horario o turno de trabajo"
-                  className="h-11 w-full rounded-2xl bg-input/50 border border-border/80 px-3.5 text-sm font-medium cursor-pointer shadow-2xs"
+                  className="w-full"
                 >
                   <SelectValue placeholder="Selecciona el turno" />
                 </SelectTrigger>
-                <SelectContent className="rounded-2xl border border-border/60 bg-popover shadow-xl">
+                <SelectContent>
                   {SHIFT_SCHEDULES.map((shift) => (
                     <SelectItem
                       key={shift}
                       value={shift}
-                      className="text-xs font-semibold rounded-xl cursor-pointer py-2.5"
+                      className="text-xs cursor-pointer py-2"
                     >
                       {shift}
                     </SelectItem>
@@ -243,14 +243,14 @@ export function Step1Basic({ form }: Step1BasicProps) {
                 <FieldLabel className="text-sm font-semibold text-foreground">
                   Número de Plazas Disponibles
                 </FieldLabel>
-                <div className="flex items-center justify-between h-11 w-full rounded-2xl border border-border/80 bg-input/50 px-2 shadow-2xs transition-colors">
+                <div className="flex items-center justify-between h-9 w-full rounded-3xl border border-input bg-input/50 px-2 transition-colors">
                   <Button
                     type="button"
                     variant="ghost"
                     size="icon"
                     onClick={() => field.handleChange(Math.max(1, count - 1))}
                     disabled={count <= 1}
-                    className="size-9 rounded-xl text-muted-foreground hover:text-foreground hover:bg-background cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed"
+                    className="cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed"
                     aria-label="Reducir plazas"
                   >
                     <Minus className="size-4" />
@@ -271,7 +271,7 @@ export function Step1Basic({ form }: Step1BasicProps) {
                     size="icon"
                     onClick={() => field.handleChange(count + 1)}
                     disabled={count >= 50}
-                    className="size-9 rounded-xl text-muted-foreground hover:text-foreground hover:bg-background cursor-pointer"
+                    className="cursor-pointer"
                     aria-label="Aumentar plazas"
                   >
                     <Plus className="size-4" />

@@ -6,7 +6,7 @@ import {
   UserCheck,
   KeyRound,
   Users,
-} from "lucide-react";
+} from "@/components/ui/icons";
 
 export const metadata = {
   title: "Administradores y Staff | K'anPro Admin",

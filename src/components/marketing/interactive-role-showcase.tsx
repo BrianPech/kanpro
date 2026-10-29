@@ -15,7 +15,7 @@ import {
   Lock, 
   ArrowRight,
   PlusCircle
-} from "lucide-react";
+} from "@/components/ui/icons";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";

@@ -2,7 +2,7 @@
 
 import React from "react";
 import Link from "next/link";
-import { ArrowRight, UserCheck } from "lucide-react";
+import { ArrowRight, UserCheck } from "@/components/ui/icons";
 
 export function HeroBand() {
   return (

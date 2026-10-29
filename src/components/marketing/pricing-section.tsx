@@ -2,7 +2,7 @@
 
 import React from "react";
 import Link from "next/link";
-import { Check, ArrowRight, Building2, UserCheck } from "lucide-react";
+import { Check, ArrowRight, Building2, UserCheck } from "@/components/ui/icons";
 import { Button } from "@/components/ui/button";
 
 export function PricingSection() {

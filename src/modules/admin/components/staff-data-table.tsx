@@ -58,7 +58,7 @@ import {
   Clock,
   ArrowUpDown,
   Phone,
-} from "lucide-react";
+} from "@/components/ui/icons";
 
 import {
   ALL_PERMISSIONS,

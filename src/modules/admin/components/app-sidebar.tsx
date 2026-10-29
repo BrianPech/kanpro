@@ -18,7 +18,7 @@ import {
   Activity,
   PlusCircle,
   HelpCircle,
-} from "lucide-react";
+} from "@/components/ui/icons";
 import {
   Sidebar,
   SidebarContent,

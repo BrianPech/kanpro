@@ -7,10 +7,12 @@ import {
   dispersePayrollSchema,
   updateEmployeeBankDetailsSchema,
   closePayrollPeriodSchema,
+  stampPayrollPeriodSchema,
   type AdjustBonusesInput,
   type DispersePayrollInput,
   type UpdateEmployeeBankDetailsInput,
   type ClosePayrollPeriodInput,
+  type StampPayrollPeriodInput,
 } from "../schemas/payroll.schema";
 import {
   CompanyPayrollService,
@@ -159,6 +161,44 @@ export async function updateEmployeeBankDetailsAction(
     };
   } catch (error) {
     const errorMsg = error instanceof Error ? error.message : "Error inesperado al actualizar datos bancarios.";
+    return { success: false, error: errorMsg };
+  }
+}
+
+/**
+ * Timbra fiscalmente los recibos de la nómina con el SAT 4.0 mediante PAC
+ */
+export async function stampPayrollPeriodAction(
+  rawInput: StampPayrollPeriodInput
+): Promise<ActionResponse<{ stampedCount: number; payrollId: string }>> {
+  const parsed = stampPayrollPeriodSchema.safeParse(rawInput);
+  if (!parsed.success) {
+    const errorMsg = parsed.error.issues[0]?.message || "Datos de timbrado fiscal inválidos.";
+    return { success: false, error: errorMsg };
+  }
+
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    return { success: false, error: "No autorizado." };
+  }
+
+  try {
+    const service = new CompanyPayrollService(supabase);
+    const result = await service.stampPayrollPeriod(user.id, parsed.data);
+
+    revalidatePath("/dashboard/company/payroll");
+    revalidatePath("/dashboard/company");
+
+    return {
+      success: true,
+      data: result,
+    };
+  } catch (error) {
+    const errorMsg = error instanceof Error ? error.message : "Error inesperado al timbrar nómina con PAC.";
     return { success: false, error: errorMsg };
   }
 }

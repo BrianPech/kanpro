@@ -21,7 +21,7 @@ import {
   CameraOff,
   Radio,
   FileCheck2,
-} from "lucide-react";
+} from "@/components/ui/icons";
 import {
   Dialog,
   DialogContent,
@@ -745,7 +745,7 @@ export function MobileCheckInSheet({
                 </div>
                 <Badge
                   className={cn(
-                    "text-xs font-extrabold px-2.5 py-1 rounded-lg",
+                    "text-xs font-extrabold px-2.5 py-1",
                     voucherData.isLate
                       ? "bg-amber-500/15 text-amber-600 dark:text-amber-400 border border-amber-500/30"
                       : "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30"

@@ -52,7 +52,7 @@ import {
   CoinsIcon,
   ClockIcon,
   ShieldCheckIcon,
-} from "lucide-react";
+} from "@/components/ui/icons";
 
 interface TicketDetailModalProps {
   ticket: SupportTicketItem | null;

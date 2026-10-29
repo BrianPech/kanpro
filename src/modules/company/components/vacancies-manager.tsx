@@ -38,7 +38,7 @@ import {
   ChevronRight,
   Loader2,
   SlidersHorizontal,
-} from "lucide-react";
+} from "@/components/ui/icons";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
@@ -93,6 +93,8 @@ import { createClient } from "@/lib/supabase/client";
 import { useVacancyManager, type VacancyRow } from "@/modules/company/hooks/use-vacancy-manager";
 import { cloneVacancyAction } from "../actions/vacancies";
 import { VacancyPreviewDrawer } from "./vacancy-preview-drawer";
+import { CompanyPageHeader } from "./shared/company-page-header";
+import { CompanyStatusBadge } from "./shared/company-status-badge";
 import {
   Drawer,
   DrawerClose,
@@ -564,7 +566,7 @@ export function VacanciesManager({ userId }: { userId: string }) {
               <div className="flex items-center gap-2">
                 <Badge
                   variant="outline"
-                  className="text-[10px] font-semibold px-2 py-0 rounded-md border-border/30 bg-muted/40"
+                  className="text-[10px] font-semibold px-2 py-0 border-border/30 bg-muted/40"
                 >
                   {vacancy.category || "General"}
                 </Badge>
@@ -744,25 +746,17 @@ export function VacanciesManager({ userId }: { userId: string }) {
               <button
                 type="button"
                 onClick={() => handleToggleActive(vacancy.id, isActive)}
-                className={cn(
-                  "font-bold text-[10px] px-2.5 py-0.5 rounded-full border-none select-none inline-flex items-center gap-1.5 cursor-pointer transition-all hover:scale-105",
-                  isActive
-                    ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/20"
-                    : "bg-amber-500/10 text-amber-600 dark:text-amber-400 hover:bg-amber-500/20"
-                )}
+                className="cursor-pointer transition-transform hover:scale-105 select-none"
                 title={
                   isActive
                     ? "Clic para pausar vacante"
                     : "Clic para activar vacante"
                 }
               >
-                <span
-                  className={cn(
-                    "size-1.5 rounded-full",
-                    isActive ? "bg-emerald-500" : "bg-amber-500"
-                  )}
+                <CompanyStatusBadge
+                  status={isActive ? "activo" : "pausado"}
+                  label={isActive ? "Activa" : "Pausada"}
                 />
-                <span>{isActive ? "Activa" : "Pausada"}</span>
               </button>
             </div>
           );
@@ -949,50 +943,44 @@ export function VacanciesManager({ userId }: { userId: string }) {
 
   return (
     <div className="space-y-6 w-full pb-16 font-sans">
-      {/* 1. Header & Quick Actions */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-          <div className="flex items-center gap-2">
-            <h1 className="text-2xl sm:text-3xl font-[800] text-foreground tracking-tight flex items-center gap-2.5">
-              <span>Mis Vacantes Laborales</span>
-              <Badge
-                variant="outline"
-                className="text-xs font-bold font-mono px-2 py-0.5 rounded-lg border-border/40"
-              >
-                {metrics.total}
-              </Badge>
-            </h1>
-            {!loadingProfile && profile?.is_validated && (
-              <Badge
-                variant="outline"
-                className="bg-emerald-500/10 border-emerald-500/30 text-emerald-600 dark:text-emerald-400 font-semibold text-[11px] px-2.5 py-0.5 rounded-full flex items-center gap-1"
-              >
-                <CheckCircle2 className="size-3" />
-                <span>Verificada</span>
-              </Badge>
-            )}
-          </div>
-          <p className="text-xs sm:text-sm text-muted-foreground font-medium mt-1">
-            Gestiona tus convocatorias de empleo, postulantes y estado de publicación en la plataforma.
-          </p>
-        </div>
-
+      {/* 1. Header Unificado */}
+      <CompanyPageHeader
+        title="Mis Vacantes Laborales"
+        description="Gestiona tus convocatorias de empleo, postulantes y estado de publicación en la plataforma."
+      >
         <div className="flex items-center gap-2">
+          <Badge variant="outline" className="font-mono">
+            {metrics.total}
+          </Badge>
+          {!loadingProfile && profile?.is_validated && (
+            <Badge variant="outline" className="bg-emerald-500/10 border-emerald-500/30 text-emerald-600 dark:text-emerald-400 gap-1">
+              <CheckCircle2 className="size-3" />
+              <span>Verificada</span>
+            </Badge>
+          )}
           <Button
             variant="outline"
             size="sm"
             onClick={handleExportCSV}
-            className="h-9 font-semibold text-xs rounded-xl px-3.5 flex items-center gap-2 border-border/50 hover:bg-muted/40 cursor-pointer"
+            className="cursor-pointer"
           >
-            <FileDown className="size-4 text-emerald-600 dark:text-emerald-400" />
+            <FileDown data-icon="inline-start" className="text-emerald-600 dark:text-emerald-400" />
             <span>Exportar CSV</span>
           </Button>
+          <Button
+            size="sm"
+            render={<Link href="/dashboard/company/vacancies/new" />}
+            className="cursor-pointer font-medium"
+          >
+            <Plus data-icon="inline-start" />
+            <span>Publicar Oferta</span>
+          </Button>
         </div>
-      </div>
+      </CompanyPageHeader>
 
       {/* 2. Top Summary KPI Cards */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4">
-        <Card className="bg-card border border-border/40 rounded-2xl p-4 flex flex-col justify-between">
+        <Card className="p-4 sm:p-5 flex flex-col justify-between">
           <div className="flex items-center justify-between">
             <span className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider">
               Total Ofertas
@@ -1011,7 +999,7 @@ export function VacanciesManager({ userId }: { userId: string }) {
           </div>
         </Card>
 
-        <Card className="bg-card border border-border/40 rounded-2xl p-4 flex flex-col justify-between">
+        <Card className="p-4 sm:p-5 flex flex-col justify-between">
           <div className="flex items-center justify-between">
             <span className="text-[11px] font-bold text-emerald-600 dark:text-emerald-400 uppercase tracking-wider">
               Activas
@@ -1030,7 +1018,7 @@ export function VacanciesManager({ userId }: { userId: string }) {
           </div>
         </Card>
 
-        <Card className="bg-card border border-border/40 rounded-2xl p-4 flex flex-col justify-between">
+        <Card className="p-4 sm:p-5 flex flex-col justify-between">
           <div className="flex items-center justify-between">
             <span className="text-[11px] font-bold text-amber-600 dark:text-amber-400 uppercase tracking-wider">
               Pausadas
@@ -1049,7 +1037,7 @@ export function VacanciesManager({ userId }: { userId: string }) {
           </div>
         </Card>
 
-        <Card className="bg-card border border-border/40 rounded-2xl p-4 flex flex-col justify-between">
+        <Card className="p-4 sm:p-5 flex flex-col justify-between">
           <div className="flex items-center justify-between">
             <span className="text-[11px] font-bold text-indigo-600 dark:text-indigo-400 uppercase tracking-wider">
               Postulantes
@@ -1097,10 +1085,10 @@ export function VacanciesManager({ userId }: { userId: string }) {
       )}
 
       {/* 3. Master TanStack DataTable Card */}
-      <Card className="bg-card border border-border/50 rounded-3xl overflow-hidden shadow-xs">
+      <Card className="overflow-hidden">
         
         {/* Unified Toolbar & Filters inside Card Header */}
-        <div className="p-3 sm:p-5 border-b border-border/40 space-y-2 sm:space-y-3.5 bg-muted/10">
+        <div className="p-3 sm:p-5 border-b border-border space-y-2 sm:space-y-3.5 bg-muted/20">
           
           {/* === MOBILE FILTERS VIEW (sm:hidden) === */}
           <div className="flex flex-col gap-2 sm:hidden">
@@ -1112,7 +1100,7 @@ export function VacanciesManager({ userId }: { userId: string }) {
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   placeholder="Buscar vacante..."
-                  className="h-10 pl-9 pr-8 bg-muted/50 dark:bg-muted/30 hover:bg-muted/70 dark:hover:bg-muted/40 focus:bg-background border border-border/80 dark:border-border/80 hover:border-foreground/30 rounded-xl text-xs font-semibold text-foreground placeholder:text-muted-foreground/70 transition-all shadow-2xs focus-visible:ring-2 focus-visible:ring-primary/25 focus-visible:border-primary"
+                  className="pl-9 pr-8 text-xs font-semibold"
                 />
                 {searchQuery && (
                   <button
@@ -1132,12 +1120,7 @@ export function VacanciesManager({ userId }: { userId: string }) {
                 variant={activeSecondaryFiltersCount > 0 ? "default" : "outline"}
                 size="sm"
                 onClick={() => setIsMobileFilterDrawerOpen(true)}
-                className={cn(
-                  "h-10 px-3.5 rounded-xl gap-1.5 shrink-0 transition-all cursor-pointer border",
-                  activeSecondaryFiltersCount > 0
-                    ? "bg-primary text-primary-foreground font-bold shadow-xs border-primary"
-                    : "border-border/80 dark:border-border/80 bg-muted/40 dark:bg-muted/30 hover:bg-muted/60 text-foreground font-bold shadow-2xs"
-                )}
+                className="gap-1.5 shrink-0 cursor-pointer"
                 aria-label="Abrir filtros de categoría y zona"
               >
                 <SlidersHorizontal className="size-3.5 shrink-0" />
@@ -1244,7 +1227,7 @@ export function VacanciesManager({ userId }: { userId: string }) {
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   placeholder="Buscar por puesto, categoría, zona o sueldo..."
-                  className="h-10 pl-10 pr-9 bg-muted/50 dark:bg-muted/30 hover:bg-muted/70 dark:hover:bg-muted/40 focus:bg-background border border-border/80 dark:border-border/80 hover:border-foreground/30 rounded-xl text-xs sm:text-sm font-semibold text-foreground placeholder:text-muted-foreground/70 transition-all shadow-2xs focus-visible:ring-2 focus-visible:ring-primary/25 focus-visible:border-primary"
+                  className="pl-10 pr-9 text-xs sm:text-sm font-semibold"
                 />
                 {searchQuery && (
                   <button
@@ -1315,17 +1298,17 @@ export function VacanciesManager({ userId }: { userId: string }) {
                     value={categoryFilter}
                     onValueChange={(val) => setCategoryFilter(val || "all")}
                   >
-                    <SelectTrigger className="h-9 w-full rounded-xl border-border/50 bg-background text-xs font-semibold">
+                    <SelectTrigger className="w-full text-xs font-semibold">
                       <SelectValue placeholder="Todas las categorías">
                         {categoryFilter === "all"
                           ? `Todas las categorías (${categoriesList.length})`
                           : categoryFilter}
                       </SelectValue>
                     </SelectTrigger>
-                    <SelectContent className="rounded-xl border-border/50 bg-popover shadow-lg">
+                    <SelectContent>
                       <SelectItem
                         value="all"
-                        className="text-xs font-semibold rounded-lg cursor-pointer"
+                        className="text-xs font-semibold cursor-pointer"
                       >
                         Todas las categorías ({vacancies.length})
                       </SelectItem>
@@ -1333,7 +1316,7 @@ export function VacanciesManager({ userId }: { userId: string }) {
                         <SelectItem
                           key={cat}
                           value={cat}
-                          className="text-xs font-semibold rounded-lg cursor-pointer"
+                          className="text-xs font-semibold cursor-pointer"
                         >
                           {cat}
                         </SelectItem>
@@ -1348,17 +1331,17 @@ export function VacanciesManager({ userId }: { userId: string }) {
                     value={locationFilter}
                     onValueChange={(val) => setLocationFilter(val || "all")}
                   >
-                    <SelectTrigger className="h-9 w-full rounded-xl border-border/50 bg-background text-xs font-semibold">
+                    <SelectTrigger className="w-full text-xs font-semibold">
                       <SelectValue placeholder="Todas las zonas">
                         {locationFilter === "all"
                           ? "Todas las zonas"
                           : locationFilter}
                       </SelectValue>
                     </SelectTrigger>
-                    <SelectContent className="rounded-xl border-border/50 bg-popover shadow-lg">
+                    <SelectContent>
                       <SelectItem
                         value="all"
-                        className="text-xs font-semibold rounded-lg cursor-pointer"
+                        className="text-xs font-semibold cursor-pointer"
                       >
                         Todas las zonas
                       </SelectItem>
@@ -1366,7 +1349,7 @@ export function VacanciesManager({ userId }: { userId: string }) {
                         <SelectItem
                           key={loc}
                           value={loc}
-                          className="text-xs font-semibold rounded-lg cursor-pointer"
+                          className="text-xs font-semibold cursor-pointer"
                         >
                           {loc}
                         </SelectItem>

@@ -2,7 +2,7 @@
 
 import React from "react";
 import Link from "next/link";
-import { Kanban, ArrowRight } from "lucide-react";
+import { Kanban, ArrowRight } from "@/components/ui/icons";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 

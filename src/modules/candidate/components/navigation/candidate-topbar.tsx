@@ -5,7 +5,7 @@ import Link from "next/link";
 import {
   Bell,
   Sparkles,
-} from "lucide-react";
+} from "@/components/ui/icons";
 import * as React from "react";
 
 import { createClient } from "@/lib/supabase/client";

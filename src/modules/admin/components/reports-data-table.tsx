@@ -72,7 +72,7 @@ import {
   Building2Icon,
   ShieldCheckIcon,
   AlertTriangleIcon,
-} from "lucide-react";
+} from "@/components/ui/icons";
 
 interface ReportsDataTableProps {
   data: VacancyReportItem[];

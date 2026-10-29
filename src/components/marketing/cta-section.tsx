@@ -2,7 +2,7 @@
 
 import React from "react";
 import Link from "next/link";
-import { ArrowRight, Building2, UserCheck, Check } from "lucide-react";
+import { ArrowRight, Building2, UserCheck, Check } from "@/components/ui/icons";
 import { Button } from "@/components/ui/button";
 
 export function CtaSection() {

@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { FileText, Award, GraduationCap, Plus, X, Tag, Sparkles } from "lucide-react";
+import { FileText, Award, GraduationCap, Plus, X, Tag, Sparkles } from "@/components/ui/icons";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -133,16 +133,16 @@ export function Step3Description({ form }: Step3DescriptionProps) {
               >
                 <SelectTrigger
                   aria-label="Experiencia laboral requerida"
-                  className="h-11 w-full rounded-2xl bg-input/50 border border-border/80 px-3.5 text-sm font-medium cursor-pointer shadow-2xs"
+                  className="w-full"
                 >
                   <SelectValue placeholder="Selecciona la experiencia" />
                 </SelectTrigger>
-                <SelectContent className="rounded-2xl border border-border/60 bg-popover shadow-xl">
+                <SelectContent>
                   {EXPERIENCE_LEVELS.map((exp) => (
                     <SelectItem
                       key={exp}
                       value={exp}
-                      className="text-xs font-semibold rounded-xl cursor-pointer py-2.5"
+                      className="text-xs cursor-pointer py-2"
                     >
                       {exp}
                     </SelectItem>
@@ -173,16 +173,16 @@ export function Step3Description({ form }: Step3DescriptionProps) {
               >
                 <SelectTrigger
                   aria-label="Nivel de estudios mínimo"
-                  className="h-11 w-full rounded-2xl bg-input/50 border border-border/80 px-3.5 text-sm font-medium cursor-pointer shadow-2xs"
+                  className="w-full"
                 >
                   <SelectValue placeholder="Selecciona el nivel de estudios" />
                 </SelectTrigger>
-                <SelectContent className="rounded-2xl border border-border/60 bg-popover shadow-xl">
+                <SelectContent>
                   {EDUCATION_LEVELS.map((edu) => (
                     <SelectItem
                       key={edu}
                       value={edu}
-                      className="text-xs font-semibold rounded-xl cursor-pointer py-2.5"
+                      className="text-xs cursor-pointer py-2"
                     >
                       {edu}
                     </SelectItem>
@@ -224,7 +224,7 @@ export function Step3Description({ form }: Step3DescriptionProps) {
                     <Badge
                       key={skill}
                       variant="secondary"
-                      className="px-3 py-1.5 rounded-xl font-bold text-xs gap-2 bg-input/40 border border-border/80 text-foreground shadow-2xs"
+                      className="px-3 py-1.5 font-bold text-xs gap-2 bg-input/40 border border-border/80 text-foreground shadow-2xs"
                     >
                       <span>{skill}</span>
                       <button
@@ -274,14 +274,14 @@ export function Step3Description({ form }: Step3DescriptionProps) {
                     }
                   }}
                   placeholder="Escribe otra habilidad o competencia y presiona Enter..."
-                  className="h-11 rounded-2xl bg-input/50 border border-border/80 px-3.5 text-xs font-medium shadow-2xs"
+                  className="w-full text-xs font-medium"
                 />
                 <Button
                   type="button"
                   variant="outline"
                   onClick={() => handleAddSkill(field)}
                   disabled={!skillInput.trim()}
-                  className="h-11 px-4 rounded-2xl text-xs font-bold shrink-0 cursor-pointer"
+                  className="shrink-0 cursor-pointer font-bold"
                 >
                   <Plus className="size-4 mr-1" />
                   <span>Agregar</span>

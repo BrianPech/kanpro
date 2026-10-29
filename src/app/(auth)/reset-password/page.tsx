@@ -1,6 +1,6 @@
 import React, { Suspense } from "react";
 import { ResetPasswordForm } from "@/modules/auth/components/reset-password-form";
-import { Loader2 } from "lucide-react";
+import { Loader2 } from "@/components/ui/icons";
 
 export const dynamic = "force-dynamic";
 

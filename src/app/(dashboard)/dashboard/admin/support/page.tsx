@@ -15,7 +15,7 @@ import {
   CheckCircle2Icon,
   ClockIcon,
   TrendingUpIcon,
-} from "lucide-react";
+} from "@/components/ui/icons";
 
 export default async function AdminSupportPage() {
   // Fetch real ticket data

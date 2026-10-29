@@ -12,7 +12,7 @@ import {
   User,
   Paperclip,
   Sparkles,
-} from "lucide-react";
+} from "@/components/ui/icons";
 import {
   Dialog,
   DialogContent,
@@ -60,7 +60,7 @@ export function JustificationReviewModal({
     reasonType: "medica",
     reasonLabel: "Incapacidad / Cita Médica IMSS",
     comments: "El empleado presentó comprobante médico por cuadro de salud.",
-    evidenceUrl: "/assets/docs/comprobante_sample.pdf",
+    evidenceUrl: null,
     status: "pendiente",
     submittedAt: "Hoy, 08:30 AM",
   };

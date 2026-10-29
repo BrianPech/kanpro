@@ -12,7 +12,7 @@ import {
   Settings,
   HelpCircle,
   Plane,
-} from "lucide-react";
+} from "@/components/ui/icons";
 import {
   Sidebar,
   SidebarContent,

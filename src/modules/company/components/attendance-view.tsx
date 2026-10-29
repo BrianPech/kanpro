@@ -43,7 +43,7 @@ import {
   MoreHorizontal,
   X,
   SlidersHorizontal,
-} from "lucide-react";
+} from "@/components/ui/icons";
 import Link from "next/link";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -110,6 +110,8 @@ import { BranchQrKioskModal } from "./attendance/branch-qr-kiosk-modal";
 import { EmployeeAttendanceDossierModal } from "./attendance/employee-attendance-dossier-modal";
 import { JustificationReviewModal } from "./attendance/justification-review-modal";
 import { OvertimeApprovalModal } from "./attendance/overtime-approval-modal";
+import { CompanyPageHeader } from "./shared/company-page-header";
+import { CompanyStatusBadge } from "./shared/company-status-badge";
 
 interface AttendanceViewProps {
   companyId?: string;
@@ -431,49 +433,17 @@ export function AttendanceView({
   const getStatusBadge = (status: AttendanceStatus, delayMinutes?: number) => {
     switch (status) {
       case "presente":
-        return (
-          <Badge className="bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border border-emerald-500/20 text-xs font-bold px-2.5 py-0.5 rounded-lg select-none">
-            <span className="size-1.5 rounded-full bg-emerald-500 mr-1.5 inline-block" />
-            Puntual
-          </Badge>
-        );
+        return <CompanyStatusBadge status="activo" label="Puntual" />;
       case "retardo":
-        return (
-          <Badge className="bg-amber-500/15 text-amber-700 dark:text-amber-300 border border-amber-500/20 text-xs font-bold px-2.5 py-0.5 rounded-lg select-none">
-            <span className="size-1.5 rounded-full bg-amber-500 mr-1.5 inline-block" />
-            {`Retardo (+${delayMinutes || 15}m)`}
-          </Badge>
-        );
+        return <CompanyStatusBadge status="pausado" label={`Retardo (+${delayMinutes || 15}m)`} />;
       case "falta_justificada":
-        return (
-          <Badge className="bg-blue-500/15 text-blue-700 dark:text-blue-300 border border-blue-500/20 text-xs font-bold px-2.5 py-0.5 rounded-lg select-none">
-            <span className="size-1.5 rounded-full bg-blue-500 mr-1.5 inline-block" />
-            Falta Justificada
-          </Badge>
-        );
+        return <CompanyStatusBadge status="revision" label="Falta Justificada" />;
       case "falta_injustificada":
-        return (
-          <Badge className="bg-destructive/15 text-destructive border border-destructive/20 text-xs font-bold px-2.5 py-0.5 rounded-lg select-none">
-            <span className="size-1.5 rounded-full bg-destructive mr-1.5 inline-block" />
-            Falta Injustificada
-          </Badge>
-        );
+        return <CompanyStatusBadge status="inactivo" label="Falta Injustificada" />;
       case "vacaciones":
-        return (
-          <Badge className="bg-purple-500/15 text-purple-700 dark:text-purple-300 border border-purple-500/20 text-xs font-bold px-2.5 py-0.5 rounded-lg select-none">
-            <span className="size-1.5 rounded-full bg-purple-500 mr-1.5 inline-block" />
-            Vacaciones LFT
-          </Badge>
-        );
+        return <CompanyStatusBadge status="revision" label="Vacaciones LFT" />;
       default:
-        return (
-          <Badge
-            variant="outline"
-            className="text-xs font-bold px-2.5 py-0.5 rounded-lg border-border/40 select-none"
-          >
-            Descanso
-          </Badge>
-        );
+        return <CompanyStatusBadge status="neutral" label="Descanso" />;
     }
   };
 
@@ -483,7 +453,7 @@ export function AttendanceView({
         return (
           <Badge
             variant="outline"
-            className="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 border-emerald-500/25 px-2 py-0.5 rounded-md"
+            className="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 border-emerald-500/25 px-2 py-0.5"
           >
             <MapPin className="size-3" />
             <span>GPS Geocerca</span>
@@ -493,7 +463,7 @@ export function AttendanceView({
         return (
           <Badge
             variant="outline"
-            className="inline-flex items-center gap-1 text-[11px] font-bold text-indigo-600 dark:text-indigo-400 bg-indigo-500/10 border-indigo-500/25 px-2 py-0.5 rounded-md"
+            className="inline-flex items-center gap-1 text-[11px] font-bold text-indigo-600 dark:text-indigo-400 bg-indigo-500/10 border-indigo-500/25 px-2 py-0.5"
           >
             <QrCode className="size-3" />
             <span>QR Sucursal</span>
@@ -503,7 +473,7 @@ export function AttendanceView({
         return (
           <Badge
             variant="outline"
-            className="inline-flex items-center gap-1 text-[11px] font-bold text-muted-foreground bg-muted/40 border-border/40 px-2 py-0.5 rounded-md"
+            className="inline-flex items-center gap-1 text-[11px] font-bold text-muted-foreground bg-muted/40 border-border/40 px-2 py-0.5"
           >
             <span>Manual RH</span>
           </Badge>
@@ -609,7 +579,7 @@ export function AttendanceView({
                   <span>•</span>
                   <Badge
                     variant="outline"
-                    className="text-[10px] font-semibold px-1.5 py-0 rounded-md border-border/30 bg-muted/40"
+                    className="text-[10px] font-semibold px-1.5 py-0 border-border/30 bg-muted/40"
                   >
                     {item.department}
                   </Badge>
@@ -933,27 +903,17 @@ export function AttendanceView({
 
   return (
     <div className="space-y-6 w-full pb-16 font-sans animate-in fade-in duration-300">
-      {/* 1. Header Ejecutivo & Acciones Operativas */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-          <div className="flex items-center gap-2">
-            <h1 className="text-2xl sm:text-3xl font-[800] text-foreground tracking-tight flex items-center gap-2.5">
-              <span>Control de Asistencia & Checador</span>
-              <Badge
-                variant="outline"
-                className="text-xs font-bold font-mono px-2 py-0.5 rounded-lg border-border/40"
-              >
-                {records.length} Empleados
-              </Badge>
-            </h1>
-          </div>
-          <p className="text-xs sm:text-sm text-muted-foreground font-medium mt-1">
-            {`Monitoreo de entradas por GPS, QR del establecimiento, retardos automáticos y justificaciones • ${companyName} (${workDate}).`}
-          </p>
-        </div>
-
+      {/* 1. Header Unificado */}
+      <CompanyPageHeader
+        title="Control de Asistencia & Checador"
+        description={`Monitoreo de entradas por GPS, QR del establecimiento, retardos automáticos y justificaciones • ${companyName} (${workDate}).`}
+      >
         <div className="flex items-center gap-2 flex-wrap">
-          <div className="flex items-center gap-2 bg-muted/40 border border-border/50 rounded-xl px-2.5 h-9">
+          <Badge variant="outline" className="font-mono">
+            {records.length} Empleados
+          </Badge>
+
+          <div className="flex items-center gap-2 bg-input/50 rounded-3xl px-3 h-9">
             <Calendar className="size-3.5 text-muted-foreground" />
             <input
               type="date"
@@ -971,19 +931,19 @@ export function AttendanceView({
             variant="outline"
             size="sm"
             onClick={() => setIsQrKioskOpen(true)}
-            className="h-9 font-semibold text-xs rounded-xl px-3.5 flex items-center gap-2 border-border/50 hover:bg-muted/40 cursor-pointer"
+            className="cursor-pointer"
           >
-            <QrCode className="size-4 text-indigo-600 dark:text-indigo-400" />
-            <span>📄 Cartel QR de Sucursal (Imprimir / Proyectar)</span>
+            <QrCode data-icon="inline-start" className="text-indigo-600 dark:text-indigo-400" />
+            <span>Cartel QR</span>
           </Button>
 
           <Button
             variant="outline"
             size="sm"
             onClick={() => setIsManualModalOpen(true)}
-            className="h-9 font-semibold text-xs rounded-xl px-3.5 flex items-center gap-1.5 border-border/50 hover:bg-muted/40 cursor-pointer"
+            className="cursor-pointer"
           >
-            <Plus className="size-4" />
+            <Plus data-icon="inline-start" />
             <span>Entrada Manual</span>
           </Button>
 
@@ -992,31 +952,31 @@ export function AttendanceView({
             size="sm"
             onClick={handleExport}
             disabled={isExporting}
-            className="h-9 font-semibold text-xs rounded-xl px-3.5 flex items-center gap-2 border-border/50 hover:bg-muted/40 cursor-pointer"
+            className="cursor-pointer"
           >
-            <Download className="size-4 text-emerald-600 dark:text-emerald-400" />
+            <Download data-icon="inline-start" className="text-emerald-600 dark:text-emerald-400" />
             <span>{isExporting ? "Generando..." : "Exportar CSV"}</span>
           </Button>
 
           <Button
             size="sm"
             onClick={() => setIsMobileSheetOpen(true)}
-            className="h-9 font-bold text-xs rounded-xl px-4 flex items-center gap-2 bg-primary text-primary-foreground hover:bg-primary/90 shadow-xs cursor-pointer"
+            className="cursor-pointer font-medium"
           >
-            <Smartphone className="size-4" />
+            <Smartphone data-icon="inline-start" />
             <span>Checador Móvil</span>
           </Button>
         </div>
-      </div>
+      </CompanyPageHeader>
 
       {/* 2. Top Summary KPI Cards */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4">
-        <Card className="bg-card border border-border/40 rounded-2xl p-4 flex flex-col justify-between">
+        <Card className="p-4 sm:p-5 flex flex-col justify-between">
           <div className="flex items-center justify-between">
             <span className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider">
               Puntualidad del Turno
             </span>
-            <Badge className="bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-none text-[10px] font-extrabold px-2 py-0.2 rounded-md">
+            <Badge className="bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-none text-[10px] font-extrabold px-2 py-0.2">
               Tolerancia 15m
             </Badge>
           </div>
@@ -1030,7 +990,7 @@ export function AttendanceView({
           </div>
         </Card>
 
-        <Card className="bg-card border border-border/40 rounded-2xl p-4 flex flex-col justify-between">
+        <Card className="p-4 sm:p-5 flex flex-col justify-between">
           <div className="flex items-center justify-between">
             <span className="text-[11px] font-bold text-emerald-600 dark:text-emerald-400 uppercase tracking-wider">
               Presentes Hoy
@@ -1049,7 +1009,7 @@ export function AttendanceView({
           </div>
         </Card>
 
-        <Card className="bg-card border border-border/40 rounded-2xl p-4 flex flex-col justify-between">
+        <Card className="p-4 sm:p-5 flex flex-col justify-between">
           <div className="flex items-center justify-between">
             <span className="text-[11px] font-bold text-amber-600 dark:text-amber-400 uppercase tracking-wider">
               Llegadas Tarde
@@ -1068,7 +1028,7 @@ export function AttendanceView({
           </div>
         </Card>
 
-        <Card className="bg-card border border-border/40 rounded-2xl p-4 flex flex-col justify-between">
+        <Card className="p-4 sm:p-5 flex flex-col justify-between">
           <div className="flex items-center justify-between">
             <span className="text-[11px] font-bold text-destructive uppercase tracking-wider">
               Ausencias
@@ -1089,10 +1049,10 @@ export function AttendanceView({
       </div>
 
       {/* 3. Master TanStack DataTable Card */}
-      <Card className="bg-card border border-border/50 rounded-3xl overflow-hidden shadow-xs">
+      <Card className="overflow-hidden">
         
         {/* Unified Toolbar & Filters inside Card Header */}
-        <div className="p-4 sm:p-5 border-b border-border/40 space-y-3.5 bg-muted/10">
+        <div className="p-4 sm:p-5 border-b border-border space-y-3.5 bg-muted/20">
           
           {/* Top Row: Search & Info */}
           <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
@@ -1103,8 +1063,8 @@ export function AttendanceView({
               <Input
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Buscar por empleado, puesto, departamento o método..."
-                className="h-10 pl-10 pr-9 bg-background border-border/50 rounded-xl text-xs sm:text-sm font-medium focus-visible:ring-1 focus-visible:ring-primary"
+                placeholder="Buscar por empleado, puesto, turno o método de registro..."
+                className="pl-10 pr-9 w-full"
               />
               {searchQuery && (
                 <button
@@ -1318,7 +1278,7 @@ export function AttendanceView({
                     variant="outline"
                     size="sm"
                     onClick={handleClearFilters}
-                    className="rounded-xl font-bold text-xs h-9 px-4 cursor-pointer border-border/50 gap-1.5"
+                    className="font-bold text-xs cursor-pointer gap-1.5"
                   >
                     <RotateCcw className="size-3.5" />
                     <span>Restablecer Filtros</span>
@@ -1327,7 +1287,7 @@ export function AttendanceView({
                   <Button
                     size="sm"
                     onClick={() => setIsManualModalOpen(true)}
-                    className="rounded-xl font-bold text-xs h-9 px-4 cursor-pointer gap-1.5 bg-primary text-primary-foreground"
+                    className="font-bold text-xs cursor-pointer gap-1.5"
                   >
                     <Plus className="size-3.5" />
                     <span>Registrar Entrada Manual</span>
@@ -1495,10 +1455,10 @@ export function AttendanceView({
                       }
                     }}
                   >
-                    <SelectTrigger className="h-10 rounded-xl bg-background border-border/80 text-xs font-medium">
+                    <SelectTrigger className="h-9 text-xs font-medium">
                       <SelectValue placeholder="Selecciona un empleado..." />
                     </SelectTrigger>
-                    <SelectContent className="rounded-xl max-h-56">
+                    <SelectContent className="max-h-56">
                       {employees.map((emp) => (
                         <SelectItem key={emp.id} value={emp.id} className="text-xs font-medium">
                           {emp.name} — {emp.jobTitle} ({emp.department})
@@ -1512,7 +1472,7 @@ export function AttendanceView({
                     placeholder="Nombre del empleado"
                     value={manualName}
                     onChange={(e) => setManualName(e.target.value)}
-                    className="h-10 rounded-xl bg-background border-border/80 text-xs font-medium"
+                    className="h-9 text-xs font-medium"
                     required
                   />
                 )}
@@ -1535,7 +1495,7 @@ export function AttendanceView({
                       manualStatus === "falta_injustificada" ||
                       manualStatus === "falta_justificada"
                     }
-                    className="h-10 rounded-xl bg-background border-border/80 text-xs font-medium"
+                    className="h-9 text-xs font-medium"
                   />
                 </div>
 
@@ -1549,7 +1509,7 @@ export function AttendanceView({
                       val && setManualStatus(val as AttendanceStatus)
                     }
                   >
-                    <SelectTrigger className="h-10 rounded-xl bg-background border-border/80 text-xs font-medium">
+                    <SelectTrigger className="h-9 text-xs font-medium">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent className="rounded-xl">
@@ -1577,19 +1537,17 @@ export function AttendanceView({
               </div>
             </div>
 
-            <DialogFooter className="flex flex-col-reverse sm:flex-row gap-2 pt-3 border-t border-border/40">
+            <DialogFooter className="flex flex-col-reverse sm:flex-row gap-2 pt-3 border-t border-border">
               <Button
                 type="button"
                 variant="outline"
                 onClick={() => setIsManualModalOpen(false)}
-                className="rounded-xl text-xs font-bold h-10 px-4 cursor-pointer"
               >
                 Cancelar
               </Button>
               <Button
                 type="submit"
                 disabled={isSubmittingManual || (!selectedEmployeeId && !manualName.trim())}
-                className="rounded-xl text-xs font-bold h-10 px-5 bg-primary text-primary-foreground hover:bg-primary/90 shadow-xs cursor-pointer"
               >
                 {isSubmittingManual ? "Guardando..." : "Guardar Registro"}
               </Button>

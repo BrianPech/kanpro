@@ -2,7 +2,7 @@
 
 import React from "react";
 import Link from "next/link";
-import { Kanban } from "lucide-react";
+import { Kanban } from "@/components/ui/icons";
 import { CtaBanner } from "@/components/marketing/cta-banner";
 
 interface FooterProps {

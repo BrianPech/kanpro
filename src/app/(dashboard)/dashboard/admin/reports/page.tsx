@@ -7,7 +7,7 @@ import {
   AlertTriangleIcon,
   BanIcon,
   ShieldCheckIcon,
-} from "lucide-react";
+} from "@/components/ui/icons";
 
 export default async function AdminReportsPage() {
   const supabase = await createClient();

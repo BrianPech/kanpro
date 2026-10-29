@@ -25,10 +25,10 @@ import {
   QuestionnaireSubmit,
   QuestionnaireTitle,
 } from "@/components/ui/questionnaire";
-import { Sparkles, Star, Loader2, CheckCircle2, Users } from "lucide-react";
+import { Sparkles, Star, Loader2, CheckCircle2, Users } from "@/components/ui/icons";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
-import { EmployeeEvaluation } from "../../types/evaluations";
+import { EmployeeEvaluation, calculateNineBoxQuadrant } from "../../types/evaluations";
 import { EmployeeSelectOption } from "../../services/company-evaluations";
 import { createEvaluationAction } from "../../actions/evaluations";
 import { evaluationQuestionnaireSchema } from "../../schemas/evaluation-questionnaire.schema";
@@ -91,6 +91,69 @@ export function EvaluationQuestionnaireModal({
           description:
             "Selecciona al miembro activo de tu equipo que recibirá la evaluación de desempeño 360.",
           choices: employeeChoices,
+        },
+        {
+          name: "evaluator_relation",
+          required: true,
+          prompt: "Perspectiva de Evaluación 360°",
+          description:
+            "Selecciona el tipo de evaluación multidireccional para triangular la matriz de talento.",
+          choices: [
+            {
+              value: "jefe_directo",
+              label: "👑 Jefe Directo / Supervisor",
+              description: "Evaluación descendente de liderazgo directo y metas.",
+            },
+            {
+              value: "autoevaluacion",
+              label: "👤 Autoevaluación del Colaborador",
+              description: "Visión del propio empleado sobre su desempeño y desafíos.",
+            },
+            {
+              value: "par",
+              label: "👥 Par / Colega de Equipo",
+              description: "Feedback horizontal entre compañeros del mismo departamento.",
+            },
+            {
+              value: "subordinado",
+              label: "⬇️ Subordinado / Reporte Directo",
+              description: "Evaluación ascendente sobre el liderazgo y clima del equipo.",
+            },
+          ],
+        },
+        {
+          name: "potencial",
+          required: true,
+          prompt: "Potencial de Crecimiento & Liderazgo (Matriz 9-Box)",
+          description:
+            "¿Qué capacidad de aprendizaje, liderazgo y asunción de mayores retos demuestra?",
+          choices: [
+            {
+              value: "5",
+              label: "⭐⭐⭐⭐⭐ Alto Potencial (5.0)",
+              description: "Perfil con alta visión estratégica, autonomía y adaptabilidad.",
+            },
+            {
+              value: "4",
+              label: "⭐⭐⭐⭐ Crecimiento Promisorio (4.0)",
+              description: "Listo para asumir mayores responsabilidades y proyectos clave.",
+            },
+            {
+              value: "3",
+              label: "⭐⭐⭐ Sólido en su Posición (3.0)",
+              description: "Excelente ejecutor en su rol con desarrollo gradual.",
+            },
+            {
+              value: "2",
+              label: "⭐⭐ En Consolidación (2.0)",
+              description: "Enfocado en las tareas actuales, requiere acompañamiento.",
+            },
+            {
+              value: "1",
+              label: "⭐ Desarrollo Inicial (1.0)",
+              description: "Aún en curva de aprendizaje básica de la operación.",
+            },
+          ],
         },
         {
           name: "period",
@@ -448,6 +511,10 @@ export function EvaluationQuestionnaireModal({
 
     const employeeId = (formData.get("employee_id") as string) || "";
     const period = (formData.get("period") as string) || "Q2 2026 - Evaluación Trimestral";
+    const evaluator_relation =
+      (formData.get("evaluator_relation") as "autoevaluacion" | "jefe_directo" | "par" | "subordinado") ||
+      "jefe_directo";
+    const potencial = (formData.get("potencial") as string) || "4";
     const puntualidad = (formData.get("puntualidad") as string) || "5";
     const asistencia = (formData.get("asistencia") as string) || "5";
     const productividad = (formData.get("productividad") as string) || "5";
@@ -475,6 +542,8 @@ export function EvaluationQuestionnaireModal({
     const validation = evaluationQuestionnaireSchema.safeParse({
       employee_id: employeeId,
       period,
+      evaluator_relation,
+      potencial,
       puntualidad,
       asistencia,
       productividad,
@@ -522,6 +591,7 @@ export function EvaluationQuestionnaireModal({
       const tScore = Number(trabajo_equipo);
       const cScore = Number(atencion_comunicacion);
       const mScore = Number(metas);
+      const potScore = Number(potencial) || 4;
 
       const result = await createEvaluationAction({
         employeeId: employeeId.startsWith("emp-") && employeeId.length < 15 ? undefined : employeeId,
@@ -532,6 +602,8 @@ export function EvaluationQuestionnaireModal({
         period,
         evaluatorName: "Dirección de Operaciones",
         evaluatorRole: "Administrador K'anPro",
+        evaluatorRelation: evaluator_relation,
+        potentialScore: potScore,
         punctualityScore: pScore,
         attendanceScore: aScore,
         productivityScore: prScore,
@@ -542,7 +614,7 @@ export function EvaluationQuestionnaireModal({
         growthAreas: validation.data.areas_oportunidad,
         developmentPlan: plan_desarrollo,
         goalsAchieved: `Cumplimiento de metas: ${mScore >= 4 ? "Alto / Sobresaliente" : "Estándar"}`,
-        comments: `Evaluación 360 registrada con metodología guiada para ${employeeName}.`,
+        comments: `Evaluación 360 (${evaluator_relation}) registrada con metodología guiada para ${employeeName}.`,
         status: "completada",
       });
 
@@ -552,6 +624,9 @@ export function EvaluationQuestionnaireModal({
         });
         return;
       }
+
+      const calculatedAvg = result.averageScore || Math.round(((pScore + aScore + prScore + tScore + cScore + mScore) / 6) * 10) / 10;
+      const calculatedQuadrant = calculateNineBoxQuadrant(calculatedAvg, potScore);
 
       const newEval: EmployeeEvaluation = {
         id: result.evaluationId || `eval-${Date.now()}`,
@@ -564,13 +639,16 @@ export function EvaluationQuestionnaireModal({
         evaluationDate: new Date().toISOString().split("T")[0],
         evaluatorName: "Dirección de Operaciones",
         evaluatorRole: "Administrador K'anPro",
+        evaluatorRelation: evaluator_relation,
+        potentialScore: potScore,
+        nineBoxQuadrant: calculatedQuadrant,
         punctualityScore: pScore,
         attendanceScore: aScore,
         productivityScore: prScore,
         teamworkScore: tScore,
         customerServiceScore: cScore,
         goalsScore: mScore,
-        averageScore: result.averageScore || Math.round(((pScore + aScore + prScore + tScore + cScore + mScore) / 6) * 10) / 10,
+        averageScore: calculatedAvg,
         strengths: validation.data.fortalezas,
         growthAreas: validation.data.areas_oportunidad,
         developmentPlan: plan_desarrollo,

@@ -13,7 +13,7 @@ import {
   ExternalLink,
   Award,
   AlertTriangle,
-} from "lucide-react";
+} from "@/components/ui/icons";
 import {
   Dialog,
   DialogContent,
@@ -60,11 +60,11 @@ export function IncidentEvidenceModal({
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[560px] rounded-3xl p-6 bg-card border-border/80 max-h-[90vh] overflow-y-auto">
+      <DialogContent className="sm:max-w-[560px] p-6 max-h-[90vh] overflow-y-auto">
         <DialogHeader className="space-y-2 text-left pb-3 border-b border-border/40">
           <div className="flex items-center justify-between gap-3">
             <div className="flex items-center gap-2">
-              <Badge className="bg-primary/10 text-primary border-none text-xs font-bold px-2.5 py-0.5 rounded-lg">
+              <Badge variant="secondary" className="text-xs font-bold px-2.5 py-0.5">
                 {incident.categoryLabel}
               </Badge>
               {getSeverityBadge(incident.severity)}
@@ -86,7 +86,7 @@ export function IncidentEvidenceModal({
         {/* Content Body */}
         <div className="space-y-4 pt-1 text-xs">
           {/* Description Box */}
-          <div className="p-4 rounded-2xl bg-muted/30 border border-border/50 space-y-1.5 leading-relaxed">
+          <div className="p-4 rounded-3xl bg-muted/30 border border-border/50 space-y-1.5 leading-relaxed">
             <span className="text-[10px] font-bold text-muted-foreground uppercase block">
               Hechos Documentados
             </span>
@@ -94,16 +94,16 @@ export function IncidentEvidenceModal({
           </div>
 
           {/* Supervisor in charge */}
-          <div className="p-3 rounded-xl bg-background border border-border/60 flex items-center justify-between text-xs">
+          <div className="p-3 rounded-2xl bg-card border border-border/60 flex items-center justify-between text-xs">
             <span className="text-muted-foreground font-medium">Supervisor Responsable:</span>
             <span className="font-bold text-foreground">{incident.responsibleSupervisor}</span>
           </div>
 
           {/* Attached Evidence */}
           {incident.evidenceFileName ? (
-            <div className="p-3.5 rounded-xl border border-border/60 bg-background flex items-center justify-between gap-3">
+            <div className="p-3.5 rounded-2xl border border-border/60 bg-card flex items-center justify-between gap-3">
               <div className="flex items-center gap-2.5 min-w-0">
-                <div className="size-9 rounded-lg bg-primary/10 text-primary flex items-center justify-center shrink-0">
+                <div className="size-9 rounded-xl bg-primary/10 text-primary flex items-center justify-center shrink-0">
                   <Paperclip className="size-4" />
                 </div>
                 <div className="min-w-0">
@@ -120,14 +120,14 @@ export function IncidentEvidenceModal({
                 size="sm"
                 variant="outline"
                 onClick={() => toast.info("Abriendo visor de evidencia...")}
-                className="rounded-lg text-xs font-bold h-8 px-3 border-border/70 flex items-center gap-1 shrink-0"
+                className="font-bold gap-1 shrink-0 cursor-pointer"
               >
                 <ExternalLink className="size-3" />
                 <span>Ver</span>
               </Button>
             </div>
           ) : (
-            <div className="p-3 rounded-xl border border-dashed border-border/60 text-center text-muted-foreground font-medium">
+            <div className="p-3 rounded-2xl border border-dashed border-border/60 text-center text-muted-foreground font-medium">
               Sin documento adjunto adicional
             </div>
           )}
@@ -138,7 +138,8 @@ export function IncidentEvidenceModal({
             type="button"
             variant="outline"
             onClick={() => onOpenChange(false)}
-            className="rounded-xl text-xs font-bold h-10 px-4"
+            size="sm"
+            className="font-bold cursor-pointer"
           >
             Cerrar
           </Button>
@@ -152,7 +153,8 @@ export function IncidentEvidenceModal({
                   onResolve(incident.id, "rechazado");
                   onOpenChange(false);
                 }}
-                className="rounded-xl text-xs font-bold h-10 px-4 text-destructive hover:bg-destructive/10"
+                size="sm"
+                className="font-bold text-destructive hover:bg-destructive/10 cursor-pointer"
               >
                 Descartar
               </Button>
@@ -162,7 +164,8 @@ export function IncidentEvidenceModal({
                   onResolve(incident.id, "aprobado");
                   onOpenChange(false);
                 }}
-                className="rounded-xl text-xs font-bold h-10 px-5 bg-primary text-primary-foreground hover:bg-primary/90 shadow-xs"
+                size="sm"
+                className="font-bold cursor-pointer"
               >
                 Aplicar Incidencia a Pre-nómina
               </Button>
@@ -177,7 +180,8 @@ export function IncidentEvidenceModal({
                 toast.success("Reconocimiento publicado en el muro de honor");
                 onOpenChange(false);
               }}
-              className="rounded-xl text-xs font-bold h-10 px-5 bg-amber-500 hover:bg-amber-600 text-white shadow-xs flex items-center gap-1.5"
+              size="sm"
+              className="font-bold bg-amber-500 hover:bg-amber-600 text-white shadow-xs flex items-center gap-1.5 cursor-pointer"
             >
               <Award className="size-4" />
               <span>Publicar Reconocimiento</span>

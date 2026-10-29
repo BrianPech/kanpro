@@ -22,7 +22,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { toast } from "sonner";
-import { ShieldCheck, AlertTriangle, CheckCircle2, Loader2, Sparkles } from "lucide-react";
+import { ShieldCheck, AlertTriangle, CheckCircle2, Loader2, Sparkles } from "@/components/ui/icons";
 import { EmployeeSelectOption } from "../../services/company-evaluations";
 import { Nom035Survey, Nom035RiskLevel, Nom035GuideType } from "../../types/evaluations";
 import { createNom035SurveyAction } from "../../actions/evaluations";
@@ -376,7 +376,7 @@ export function Nom035SurveyModal({
               </div>
               <Badge
                 variant="outline"
-                className={cn("text-xs font-extrabold uppercase px-3 py-1 rounded-xl border", riskBadgeColor)}
+                className={cn("text-xs font-extrabold uppercase px-3 py-1 border", riskBadgeColor)}
               >
                 Riesgo {riskLevel.replace("_", " ")}
               </Badge>

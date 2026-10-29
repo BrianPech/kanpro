@@ -12,7 +12,7 @@ import {
   ChevronRight,
   X,
   Zap,
-} from "lucide-react";
+} from "@/components/ui/icons";
 import {
   Drawer,
   DrawerClose,

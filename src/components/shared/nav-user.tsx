@@ -34,7 +34,7 @@ import {
   ShieldCheckIcon,
   ChevronRight,
   Briefcase,
-} from "lucide-react";
+} from "@/components/ui/icons";
 
 export interface NavUserData {
   name: string;

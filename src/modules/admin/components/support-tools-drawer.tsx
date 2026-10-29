@@ -50,7 +50,7 @@ import {
   ClockIcon,
   QrCodeIcon,
   UserPlusIcon,
-} from "lucide-react";
+} from "@/components/ui/icons";
 
 export interface SupportUserResult {
   id: string;

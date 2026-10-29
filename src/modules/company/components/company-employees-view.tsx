@@ -39,7 +39,7 @@ import {
   Trash2,
   MailCheck,
   Layers,
-} from "lucide-react";
+} from "@/components/ui/icons";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -99,6 +99,8 @@ import {
 import { getCompanyDepartmentsAction } from "@/modules/company/actions/areas";
 import { EmployeeDossierModal } from "@/modules/company/components/dossier/employee-dossier-modal";
 import { RegisterEmployeeModal } from "@/modules/company/components/employees/register-employee-modal";
+import { CompanyPageHeader } from "./shared/company-page-header";
+import { CompanyStatusBadge } from "./shared/company-status-badge";
 
 export interface EmployeeInvitationItem {
   id: string;
@@ -719,7 +721,7 @@ export function CompanyEmployeesView({
                 <Badge
                   variant="outline"
                   className={cn(
-                    "text-[10px] font-semibold px-2 py-0.5 rounded-md border-border/40 transition-colors group-hover/badge:border-primary/60 group-hover/badge:bg-primary/5",
+                    "text-[10px] font-semibold px-2 py-0.5 border-border/40 transition-colors group-hover/badge:border-primary/60 group-hover/badge:bg-primary/5",
                     hasArea
                       ? "bg-muted/40 text-foreground"
                       : "bg-muted/20 text-muted-foreground border-dashed"
@@ -828,22 +830,10 @@ export function CompanyEmployeesView({
           const isActive = emp.status === "Contratado";
           return (
             <div className="py-1">
-              <Badge
-                className={cn(
-                  "font-bold text-[10px] px-2.5 py-0.5 rounded-full border-none select-none inline-flex items-center gap-1.5",
-                  isActive
-                    ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
-                    : "bg-rose-500/10 text-rose-600 dark:text-rose-400"
-                )}
-              >
-                <span
-                  className={cn(
-                    "size-1.5 rounded-full",
-                    isActive ? "bg-emerald-500" : "bg-rose-500"
-                  )}
-                />
-                <span>{isActive ? "Activo" : "Baja"}</span>
-              </Badge>
+              <CompanyStatusBadge
+                status={isActive ? "activo" : "inactivo"}
+                label={isActive ? "Activo" : "Baja"}
+              />
             </div>
           );
         },
@@ -996,14 +986,40 @@ export function CompanyEmployeesView({
 
   return (
     <div className="space-y-6 w-full pb-16 font-sans">
-      {/* Accessible semantic heading for screen readers */}
-      <h1 className="sr-only">Plantilla de Empleados</h1>
+      {/* 1. Header Unificado */}
+      <CompanyPageHeader
+        title="Plantilla de Empleados"
+        description="Directorio completo de colaboradores, estatus laboral, expedientes y contratos."
+      >
+        <div className="flex items-center gap-2">
+          <Badge variant="outline" className="font-mono">
+            {employees.length} colaboradores
+          </Badge>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleExportCSV}
+            className="cursor-pointer"
+          >
+            <Download data-icon="inline-start" className="text-emerald-600 dark:text-emerald-400" />
+            <span>Exportar</span>
+          </Button>
+          <Button
+            size="sm"
+            onClick={() => setIsNewEmployeeModalOpen(true)}
+            className="cursor-pointer font-medium"
+          >
+            <UserPlus data-icon="inline-start" />
+            <span>Registrar Empleado</span>
+          </Button>
+        </div>
+      </CompanyPageHeader>
 
       {/* Master TanStack DataTable Card */}
-      <Card className="bg-card border border-border/50 rounded-3xl overflow-hidden shadow-xs">
+      <Card className="overflow-hidden">
         
         {/* Toolbar & Filters Header */}
-        <div className="p-4 sm:p-5 border-b border-border/40 space-y-3.5 bg-muted/10">
+        <div className="p-4 sm:p-5 border-b border-border space-y-3.5 bg-muted/20">
           
           {/* Fila 1: Input de búsqueda alineado con los botones de Registrar Empleado y Exportar */}
           <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
@@ -1015,7 +1031,7 @@ export function CompanyEmployeesView({
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder="Buscar por empleado, puesto, ubicación o teléfono..."
-                className="h-10 pl-10 pr-9 bg-background border-border/50 rounded-xl text-xs sm:text-sm font-medium focus-visible:ring-1 focus-visible:ring-primary w-full shadow-2xs"
+                className="pl-10 pr-9 w-full"
               />
               {searchQuery && (
                 <button
@@ -1027,19 +1043,6 @@ export function CompanyEmployeesView({
                   <X className="size-3.5" />
                 </button>
               )}
-            </div>
-
-            {/* Botón de acción: Exportar */}
-            <div className="flex items-center gap-2 shrink-0">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={handleExportCSV}
-                className="h-10 font-semibold text-xs rounded-xl px-3.5 flex items-center gap-2 border-border/50 hover:bg-muted/40 cursor-pointer bg-background shadow-2xs"
-              >
-                <Download className="size-4 text-emerald-600 dark:text-emerald-400" />
-                <span>Exportar</span>
-              </Button>
             </div>
           </div>
 
@@ -1111,17 +1114,17 @@ export function CompanyEmployeesView({
                   value={categoryFilter}
                   onValueChange={(val) => setCategoryFilter(val || "all")}
                 >
-                  <SelectTrigger className="h-9 w-full rounded-xl border-border/50 bg-background text-xs font-semibold">
+                  <SelectTrigger className="w-full text-xs font-semibold">
                     <SelectValue placeholder="Todas las áreas">
                       {categoryFilter === "all"
                         ? `Todas las áreas (${employees.length})`
                         : categoryFilter}
                     </SelectValue>
                   </SelectTrigger>
-                  <SelectContent className="rounded-xl border-border/50 bg-popover shadow-lg">
+                  <SelectContent>
                     <SelectItem
                       value="all"
-                      className="text-xs font-semibold rounded-lg cursor-pointer"
+                      className="text-xs font-semibold cursor-pointer"
                     >
                       Todas las áreas ({employees.length})
                     </SelectItem>
@@ -1129,7 +1132,7 @@ export function CompanyEmployeesView({
                       <SelectItem
                         key={cat}
                         value={cat}
-                        className="text-xs font-semibold rounded-lg cursor-pointer"
+                        className="text-xs font-semibold cursor-pointer"
                       >
                         {cat}
                       </SelectItem>
@@ -1448,14 +1451,14 @@ export function CompanyEmployeesView({
                           {isTerminated ? (
                             <Badge
                               variant="destructive"
-                              className="bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/20 text-[10px] font-bold px-2 py-0.5 rounded-md select-none"
+                              className="bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/20 text-[10px] font-bold px-2 py-0.5 select-none"
                             >
                               Baja
                             </Badge>
                           ) : (
                             <Badge
                               variant="outline"
-                              className="bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20 text-[10px] font-bold px-2 py-0.5 rounded-md select-none"
+                              className="bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20 text-[10px] font-bold px-2 py-0.5 select-none"
                             >
                               Activo
                             </Badge>
@@ -1727,7 +1730,7 @@ export function CompanyEmployeesView({
                 >
                   <SelectTrigger
                     id="area_select"
-                    className="w-full h-11 px-3.5 rounded-xl bg-background border border-border/80 text-xs sm:text-sm font-semibold cursor-pointer shadow-2xs hover:border-foreground/30 focus-visible:ring-2 focus-visible:ring-primary/20 transition-all"
+                    className="w-full text-xs sm:text-sm font-semibold cursor-pointer"
                   >
                     <SelectValue placeholder="Selecciona el área para este empleado..." />
                   </SelectTrigger>
@@ -1831,7 +1834,7 @@ export function CompanyEmployeesView({
                   setTerminationReason(val || "Renuncia voluntaria")
                 }
               >
-                <SelectTrigger className="w-full h-11 px-3.5 rounded-xl bg-background border border-border/80 text-xs sm:text-sm font-semibold cursor-pointer shadow-2xs hover:border-foreground/30 focus-visible:ring-2 focus-visible:ring-primary/20 transition-all">
+                <SelectTrigger className="w-full text-xs sm:text-sm font-semibold cursor-pointer">
                   <SelectValue placeholder="Selecciona un motivo">
                     {terminationReason}
                   </SelectValue>

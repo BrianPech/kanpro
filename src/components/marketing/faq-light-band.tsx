@@ -2,7 +2,7 @@
 
 import React, { useState } from "react";
 import Link from "next/link";
-import { ChevronDown, Building2, UserCheck, MessageSquare, HelpCircle, ArrowRight } from "lucide-react";
+import { ChevronDown, Building2, UserCheck, MessageSquare, HelpCircle, ArrowRight } from "@/components/ui/icons";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 

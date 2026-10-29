@@ -19,7 +19,8 @@ const nextConfig: NextConfig = {
     preloadEntriesOnStart: false,
     turbopackFileSystemCacheForDev: false,
     optimizePackageImports: [
-      "lucide-react",
+      "@hugeicons/react",
+      "@hugeicons/core-free-icons",
       "@base-ui/react",
       "@shadcn/react",
       "date-fns",

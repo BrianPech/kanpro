@@ -37,7 +37,7 @@ import {
   ShieldCheck,
   Trash2,
   AlertTriangle,
-} from "lucide-react";
+} from "@/components/ui/icons";
 import Link from "next/link";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -83,16 +83,20 @@ import {
   Nom035Survey,
   Nom035Metrics,
   Nom035RiskLevel,
+  NINE_BOX_QUADRANTS,
+  NineBoxQuadrantType,
 } from "../types/evaluations";
 import { EmployeeSelectOption } from "../services/company-evaluations";
 import { EvaluationQuestionnaireModal } from "./evaluations/evaluation-questionnaire-modal";
 import { EvaluationDetailsModal } from "./evaluations/evaluation-details-modal";
 import { EmployeeDossierSheet } from "./dossier/employee-dossier-sheet";
 import { Nom035SurveyModal } from "./evaluations/nom035-survey-modal";
+import { NineBoxMatrixView } from "./evaluations/nine-box-matrix-view";
 import {
   deleteEvaluationAction,
   deleteNom035SurveyAction,
 } from "../actions/evaluations";
+import { CompanyPageHeader } from "./shared/company-page-header";
 
 export interface EvaluationsViewProps {
   initialEvaluations?: EmployeeEvaluation[];
@@ -110,7 +114,7 @@ export function EvaluationsView({
   companyName = "K'anPro",
 }: EvaluationsViewProps) {
   const [activeTab, setActiveTab] = React.useState<
-    "reviews" | "analytics" | "nom035"
+    "reviews" | "analytics" | "ninebox" | "nom035"
   >("reviews");
 
   // Real evaluations state directly from backend (empty if no records in Supabase)
@@ -601,7 +605,7 @@ export function EvaluationsView({
             <div className="space-y-1 py-1">
               <Badge
                 variant="outline"
-                className="text-[10px] font-semibold px-2 py-0 rounded-md border-border/30 bg-muted/30"
+                className="text-[10px] font-semibold px-2 py-0 border-border/30 bg-muted/30"
               >
                 {ev.department}
               </Badge>
@@ -633,14 +637,27 @@ export function EvaluationsView({
         ),
         cell: ({ row }) => {
           const ev = row.original;
+          const relationLabels: Record<string, { label: string; badge: string }> = {
+            jefe_directo: { label: "Jefe Directo", badge: "bg-blue-500/10 text-blue-600 dark:text-blue-400" },
+            autoevaluacion: { label: "Autoevaluación", badge: "bg-purple-500/10 text-purple-600 dark:text-purple-400" },
+            par: { label: "Par / Colega", badge: "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400" },
+            subordinado: { label: "Subordinado", badge: "bg-amber-500/10 text-amber-600 dark:text-amber-400" },
+          };
+          const rel = relationLabels[ev.evaluatorRelation || "jefe_directo"] || relationLabels.jefe_directo;
+
           return (
-            <div className="space-y-0.5 py-1 text-xs">
+            <div className="space-y-1 py-1 text-xs">
               <span className="font-semibold text-foreground block truncate">
                 {ev.evaluatorName}
               </span>
-              <span className="text-[10px] text-muted-foreground">
-                {ev.evaluationDate}
-              </span>
+              <div className="flex items-center gap-1.5 flex-wrap">
+                <span className={cn("text-[9px] font-bold px-1.5 py-0.5 rounded", rel.badge)}>
+                  {rel.label}
+                </span>
+                <span className="text-[10px] text-muted-foreground">
+                  {ev.evaluationDate}
+                </span>
+              </div>
             </div>
           );
         },
@@ -712,9 +729,12 @@ export function EvaluationsView({
         cell: ({ row }) => {
           const ev = row.original;
           const isOutstanding = ev.averageScore >= 4.7;
+          const quadMeta =
+            ev.nineBoxQuadrant &&
+            NINE_BOX_QUADRANTS[ev.nineBoxQuadrant as NineBoxQuadrantType];
 
           return (
-            <div className="py-1">
+            <div className="py-1 space-y-1">
               <div
                 className={cn(
                   "inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl font-extrabold text-xs font-mono shadow-2xs",
@@ -726,6 +746,18 @@ export function EvaluationsView({
                 <Star className="size-3.5 fill-amber-500 text-amber-500" />
                 <span>{ev.averageScore.toFixed(1)} / 5.0</span>
               </div>
+              {quadMeta && (
+                <div>
+                  <span
+                    className={cn(
+                      "text-[9px] font-bold px-1.5 py-0.5 rounded border inline-block truncate max-w-[120px]",
+                      quadMeta.badgeClass
+                    )}
+                  >
+                    {quadMeta.shortTitle}
+                  </span>
+                </div>
+              )}
             </div>
           );
         },
@@ -830,48 +862,39 @@ export function EvaluationsView({
 
   return (
     <div className="space-y-6 w-full pb-16 font-sans">
-      {/* 1. Header & Quick Actions */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-2xl sm:text-3xl font-[800] text-foreground tracking-tight flex items-center gap-2.5">
-            <span>Evaluación de Desempeño 360</span>
-            <Badge
-              variant="outline"
-              className="text-xs font-bold font-mono px-2 py-0.5 rounded-lg border-border/40"
-            >
-              {evaluations.length}
-            </Badge>
-          </h1>
-          <p className="text-xs sm:text-sm text-muted-foreground font-medium mt-1">
-            Evaluación periódica de 6 competencias clave, planes de desarrollo humano y seguimiento de metas.
-          </p>
-        </div>
-
+      {/* 1. Header Unificado */}
+      <CompanyPageHeader
+        title="Evaluación de Desempeño 360"
+        description="Evaluación periódica de 6 competencias clave, planes de desarrollo humano y seguimiento de metas."
+      >
         <div className="flex items-center gap-2">
+          <Badge variant="outline" className="font-mono">
+            {evaluations.length}
+          </Badge>
           <Button
             variant="outline"
             size="sm"
             onClick={handleExportSummary}
-            className="h-9 font-semibold text-xs rounded-xl px-3.5 flex items-center gap-2 border-border/50 hover:bg-muted/40 cursor-pointer"
+            className="cursor-pointer"
           >
-            <Download className="size-4 text-emerald-600 dark:text-emerald-400" />
+            <Download data-icon="inline-start" className="text-emerald-600 dark:text-emerald-400" />
             <span>Exportar CSV</span>
           </Button>
 
           <Button
             size="sm"
             onClick={() => setIsNewModalOpen(true)}
-            className="h-9 font-bold text-xs rounded-xl px-4 flex items-center gap-2 bg-primary text-primary-foreground hover:bg-primary/90 shadow-xs cursor-pointer"
+            className="cursor-pointer font-medium"
           >
-            <Plus className="size-4" />
+            <Plus data-icon="inline-start" />
             <span>Nueva Evaluación</span>
           </Button>
         </div>
-      </div>
+      </CompanyPageHeader>
 
       {/* 2. KPI Cards Grid */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4">
-        <Card className="bg-card border border-border/40 rounded-2xl p-4 flex flex-col justify-between">
+        <Card className="p-4 sm:p-5 flex flex-col justify-between">
           <div className="flex items-center justify-between">
             <span className="text-[11px] font-bold text-amber-600 dark:text-amber-400 uppercase tracking-wider">
               Índice General
@@ -895,7 +918,7 @@ export function EvaluationsView({
           </div>
         </Card>
 
-        <Card className="bg-card border border-border/40 rounded-2xl p-4 flex flex-col justify-between">
+        <Card className="p-4 sm:p-5 flex flex-col justify-between">
           <div className="flex items-center justify-between">
             <span className="text-[11px] font-bold text-emerald-600 dark:text-emerald-400 uppercase tracking-wider">
               Evaluaciones
@@ -914,7 +937,7 @@ export function EvaluationsView({
           </div>
         </Card>
 
-        <Card className="bg-card border border-border/40 rounded-2xl p-4 flex flex-col justify-between">
+        <Card className="p-4 sm:p-5 flex flex-col justify-between">
           <div className="flex items-center justify-between">
             <span className="text-[11px] font-bold text-primary uppercase tracking-wider">
               Fortaleza Top
@@ -933,7 +956,7 @@ export function EvaluationsView({
           </div>
         </Card>
 
-        <Card className="bg-card border border-border/40 rounded-2xl p-4 flex flex-col justify-between">
+        <Card className="p-4 sm:p-5 flex flex-col justify-between">
           <div className="flex items-center justify-between">
             <span className="text-[11px] font-bold text-indigo-600 dark:text-indigo-400 uppercase tracking-wider">
               Sobresalientes
@@ -956,10 +979,10 @@ export function EvaluationsView({
       {/* 3. Main Tabs Structure */}
       <Tabs
         value={activeTab}
-        onValueChange={(val) => setActiveTab(val as "reviews" | "analytics")}
+        onValueChange={(val) => setActiveTab(val as "reviews" | "analytics" | "ninebox" | "nom035")}
         className="w-full space-y-4"
       >
-        <TabsList className="w-full sm:w-auto grid grid-cols-1 sm:grid-cols-3 sm:inline-flex h-auto sm:h-11 p-1 rounded-2xl bg-muted/40 border border-border/40 gap-1 sm:gap-0">
+        <TabsList className="w-full sm:w-auto grid grid-cols-2 sm:grid-cols-4 sm:inline-flex h-auto sm:h-11 p-1 rounded-2xl bg-muted/40 border border-border/40 gap-1 sm:gap-0">
           <TabsTrigger
             value="reviews"
             className="rounded-xl text-xs font-bold gap-2 data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-2xs cursor-pointer px-4"
@@ -975,11 +998,18 @@ export function EvaluationsView({
             <span>Matriz de Competencias</span>
           </TabsTrigger>
           <TabsTrigger
+            value="ninebox"
+            className="rounded-xl text-xs font-bold gap-2 data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-2xs cursor-pointer px-4"
+          >
+            <Target className="size-4 text-purple-600 dark:text-purple-400" />
+            <span>Matriz 9-Box</span>
+          </TabsTrigger>
+          <TabsTrigger
             value="nom035"
             className="rounded-xl text-xs font-bold gap-2 data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-2xs cursor-pointer px-4"
           >
             <ShieldCheck className="size-4 text-emerald-600 dark:text-emerald-400" />
-            <span>Clima Laboral & NOM-035 ({nomSurveys.length})</span>
+            <span>Clima & NOM-035 ({nomSurveys.length})</span>
           </TabsTrigger>
         </TabsList>
 
@@ -1000,7 +1030,7 @@ export function EvaluationsView({
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
                     placeholder="Buscar por empleado, puesto, área o evaluador..."
-                    className="h-10 pl-10 pr-9 bg-background border-border/50 rounded-xl text-xs sm:text-sm font-medium focus-visible:ring-1 focus-visible:ring-primary"
+                    className="pl-10 pr-9 text-xs sm:text-sm font-medium"
                   />
                   {searchQuery && (
                     <button
@@ -1151,7 +1181,7 @@ export function EvaluationsView({
                       <Button
                         size="sm"
                         onClick={() => setIsNewModalOpen(true)}
-                        className="rounded-xl font-bold text-xs h-9 px-4 cursor-pointer gap-1.5 bg-primary text-primary-foreground hover:bg-primary/90"
+                        className="font-bold text-xs cursor-pointer gap-1.5"
                       >
                         <Plus className="size-3.5" />
                         <span>Nueva Evaluación</span>
@@ -1161,7 +1191,7 @@ export function EvaluationsView({
                         variant="outline"
                         size="sm"
                         onClick={handleClearFilters}
-                        className="rounded-xl font-bold text-xs h-9 px-4 cursor-pointer border-border/50 gap-1.5"
+                        className="font-bold text-xs cursor-pointer gap-1.5"
                       >
                         <RotateCcw className="size-3.5" />
                         <span>Restablecer Filtros</span>
@@ -1415,7 +1445,18 @@ export function EvaluationsView({
           </Card>
         </TabsContent>
 
-        {/* TAB 3: NOM-035-STPS-2018 Clima Laboral & Factores de Riesgo */}
+        {/* TAB 3: Matriz 9-Box de Talento */}
+        <TabsContent
+          value="ninebox"
+          className="space-y-4 m-0 focus-visible:outline-none"
+        >
+          <NineBoxMatrixView
+            evaluations={evaluations}
+            onSelectEvaluation={(ev) => setSelectedEvaluation(ev)}
+          />
+        </TabsContent>
+
+        {/* TAB 4: NOM-035-STPS-2018 Clima Laboral & Factores de Riesgo */}
         <TabsContent
           value="nom035"
           className="space-y-6 m-0 focus-visible:outline-none"
@@ -1439,16 +1480,16 @@ export function EvaluationsView({
                 variant="outline"
                 size="sm"
                 onClick={handleExportNom035Csv}
-                className="h-9 font-semibold text-xs rounded-xl px-3.5 flex items-center gap-2 border-border/50 hover:bg-muted/40 cursor-pointer"
+                className="font-semibold text-xs cursor-pointer"
               >
-                <Download className="size-4 text-emerald-600 dark:text-emerald-400" />
+                <Download className="size-4" />
                 <span>Exportar Cédula STPS</span>
               </Button>
 
               <Button
                 size="sm"
                 onClick={() => setIsNomModalOpen(true)}
-                className="h-9 font-bold text-xs rounded-xl px-4 flex items-center gap-2 bg-emerald-600 text-white hover:bg-emerald-700 shadow-xs cursor-pointer"
+                className="font-bold text-xs cursor-pointer"
               >
                 <Plus className="size-4" />
                 <span>Nueva Cédula NOM-035</span>
@@ -1467,7 +1508,7 @@ export function EvaluationsView({
                 <Badge
                   variant="outline"
                   className={cn(
-                    "text-xs font-black uppercase px-2.5 py-0.5 rounded-lg border",
+                    "text-xs font-black uppercase px-2.5 py-0.5 border",
                     currentNomMetrics.overallRiskLevel === "nulo" && "bg-emerald-500/10 text-emerald-600 border-emerald-500/30",
                     currentNomMetrics.overallRiskLevel === "bajo" && "bg-teal-500/10 text-teal-600 border-teal-500/30",
                     currentNomMetrics.overallRiskLevel === "medio" && "bg-amber-500/10 text-amber-600 border-amber-500/30",
@@ -1593,7 +1634,7 @@ export function EvaluationsView({
                     value={nomSearchQuery}
                     onChange={(e) => setNomSearchQuery(e.target.value)}
                     placeholder="Buscar por empleado, puesto o departamento..."
-                    className="h-10 pl-10 pr-9 bg-background border-border/50 rounded-xl text-xs sm:text-sm font-medium focus-visible:ring-1 focus-visible:ring-primary"
+                    className="pl-10 pr-9 text-xs sm:text-sm font-medium"
                   />
                   {nomSearchQuery && (
                     <button
@@ -1705,7 +1746,7 @@ export function EvaluationsView({
                   <Button
                     size="sm"
                     onClick={() => setIsNomModalOpen(true)}
-                    className="rounded-xl font-bold text-xs h-9 px-4 cursor-pointer gap-1.5 bg-emerald-600 text-white hover:bg-emerald-700"
+                    className="font-bold text-xs cursor-pointer gap-1.5"
                   >
                     <Plus className="size-3.5" />
                     <span>Nueva Cédula NOM-035</span>
@@ -1794,7 +1835,7 @@ export function EvaluationsView({
                             <Badge
                               variant="outline"
                               className={cn(
-                                "text-[10px] font-extrabold uppercase px-2 py-0.5 rounded-lg border",
+                                "text-[10px] font-extrabold uppercase px-2 py-0.5 border",
                                 survey.riskLevel === "nulo" && "bg-emerald-500/10 text-emerald-600 border-emerald-500/30",
                                 survey.riskLevel === "bajo" && "bg-teal-500/10 text-teal-600 border-teal-500/30",
                                 survey.riskLevel === "medio" && "bg-amber-500/10 text-amber-600 border-amber-500/30",

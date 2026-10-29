@@ -82,7 +82,7 @@ test.describe("[REAL E2E] Flujo Completo de Employee Invitation & Onboarding", (
     await registerBtn.click();
 
     // 5. Verificar que el modal se abrió y completar los datos del colaborador
-    const modalTitle = page.locator("text=Alta de Colaboradores");
+    const modalTitle = page.locator("text=/Alta de (Colaboradores|Empleados)/i");
     await expect(modalTitle).toBeVisible();
 
     const nameInput = page.locator("input#full_name");

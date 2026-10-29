@@ -23,7 +23,7 @@ import {
   Plus,
   Layers,
   ChevronRight,
-} from "lucide-react";
+} from "@/components/ui/icons";
 
 import {
   Sidebar,
@@ -430,7 +430,7 @@ export function CompanySidebar({
                               {item.badge && (
                                 <Badge
                                   variant="outline"
-                                  className="text-[9px] font-extrabold uppercase px-1.5 py-0 rounded border-primary/20 bg-primary/5 text-primary tracking-wide shrink-0"
+                                  className="text-[9px] font-extrabold uppercase px-1.5 py-0 border-primary/20 bg-primary/5 text-primary tracking-wide shrink-0"
                                 >
                                   {item.badge}
                                 </Badge>
@@ -463,9 +463,9 @@ export function CompanySidebar({
                   onClick={() => {
                     if (isMobile) setOpenMobile(false);
                   }}
-                  className="w-full h-8.5 rounded-xl font-semibold text-xs bg-primary text-primary-foreground hover:bg-primary/90 shadow-xs flex items-center justify-center gap-1.5 cursor-pointer"
+                  className="w-full font-semibold text-xs cursor-pointer"
                 >
-                  <activeSection.action.icon className="size-3.5 stroke-[2.5]" />
+                  <activeSection.action.icon data-icon="inline-start" />
                   <span>{activeSection.action.label}</span>
                 </Button>
               </div>

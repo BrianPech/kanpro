@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import { CreditCard } from "lucide-react";
+import { CreditCard } from "@/components/ui/icons";
 import { normalizeCurp } from "@/lib/formatters";
 
 export interface FormCurpFieldProps {

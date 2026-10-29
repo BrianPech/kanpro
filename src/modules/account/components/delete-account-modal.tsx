@@ -1,7 +1,8 @@
 "use client";
 
 import React, { useState } from "react";
-import { AlertTriangle, Loader2, ShieldAlert, KeyRound, Type } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { AlertTriangle, Loader2, ShieldAlert, KeyRound, Type } from "@/components/ui/icons";
 import { toast } from "sonner";
 import { createClient } from "@/lib/supabase/client";
 import { accountSecurityService } from "../services/account-security-service";
@@ -29,6 +30,7 @@ export function DeleteAccountModal({
   open,
   onOpenChange,
 }: DeleteAccountModalProps) {
+  const router = useRouter();
   const [confirmationMethod, setConfirmationMethod] = useState<"text" | "password">("text");
   const [confirmText, setConfirmText] = useState("");
   const [password, setPassword] = useState("");
@@ -79,10 +81,18 @@ export function DeleteAccountModal({
         }
       }
 
-      toast.loading("Procesando desactivación y eliminación de cuenta...");
+      toast.loading("Procesando desactivación y eliminación de cuenta...", { id: "arco-delete" });
 
       await accountSecurityService.requestAccountDeletion(reason.trim() || undefined);
+
+      toast.dismiss("arco-delete");
+      toast.success("Cuenta cancelada exitosamente", {
+        description: "Tu perfil ha sido desactivado y tus datos personales han sido anonimizados (Derechos ARCO).",
+      });
+      handleClose();
+      router.push("/login?deleted=true");
     } catch (err: unknown) {
+      toast.dismiss("arco-delete");
       console.error("Error deleting account:", err);
       const msg =
         err instanceof Error ? err.message : "Ocurrió un error inesperado al eliminar la cuenta.";
@@ -106,7 +116,7 @@ export function DeleteAccountModal({
                 Eliminar / Desactivar cuenta
               </DialogTitle>
               <p className="text-xs text-muted-foreground font-medium mt-0.5">
-                Derechos ARCO / LFPDPPP - K'anPro
+                Derechos ARCO / LFPDPPP - K&apos;anPro
               </p>
             </div>
           </div>
@@ -158,7 +168,7 @@ export function DeleteAccountModal({
 
               <TabsContent value="text" className="space-y-2 pt-3">
                 <p className="text-xs text-muted-foreground">
-                  Para confirmar, escribe exactamente <span className="font-bold text-destructive select-all">"{REQUIRED_CONFIRMATION}"</span> en el campo inferior:
+                  Para confirmar, escribe exactamente <span className="font-bold text-destructive select-all">&quot;{REQUIRED_CONFIRMATION}&quot;</span> en el campo inferior:
                 </p>
                 <Input
                   type="text"

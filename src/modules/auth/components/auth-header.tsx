@@ -2,7 +2,7 @@
 
 import React, { ReactNode } from "react";
 import Link from "next/link";
-import { ArrowLeft, Kanban } from "lucide-react";
+import { ArrowLeft, Kanban } from "@/components/ui/icons";
 
 interface AuthHeaderProps {
   /**

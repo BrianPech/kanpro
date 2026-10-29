@@ -34,6 +34,18 @@ export interface PayrollEmployeeItem {
     bankName: string;
     clabe: string;
   };
+  hasValidBankDetails?: boolean;
+
+  // Timbrado Fiscal CFDI 4.0 (SAT)
+  cfdi?: {
+    uuid: string;
+    status: "pendiente" | "timbrado" | "error" | "cancelado";
+    xml?: string;
+    stampDate?: string;
+    satSeal?: string;
+    pacRfc?: string;
+    qrCode?: string;
+  };
 }
 
 export interface PayrollPeriodSummary {
@@ -43,7 +55,9 @@ export interface PayrollPeriodSummary {
   startDate: string;
   endDate: string;
   payoutDate: string;
-  status: "borrador" | "calculada" | "dispersada" | "pagada";
+  status: "borrador" | "calculada" | "dispersada" | "pagada" | "timbrada";
+  timbradaAt?: string | null;
+  timbradosCount?: number;
 
   totalGross: number;
   totalOvertime: number;

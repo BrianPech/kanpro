@@ -18,7 +18,7 @@ import {
   FileSpreadsheet,
   Users,
   Loader2,
-} from "lucide-react";
+} from "@/components/ui/icons";
 import Link from "next/link";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -38,6 +38,8 @@ import { VacationRequest, RequestStatus } from "../../types/employee-dossier";
 import { VacationRequestModal } from "./vacation-request-modal";
 import { respondToCompanyLeaveAction } from "../../actions/leaves";
 import { CompanyEmployeeRosterItem } from "../../services/company-dossier";
+import { CompanyPageHeader } from "../shared/company-page-header";
+import { CompanyStatusBadge } from "../shared/company-status-badge";
 
 interface CompanyLeavesViewProps {
   initialRequests: VacationRequest[];
@@ -132,61 +134,45 @@ export function CompanyLeavesView({
   const approvedCount = requests.filter((r) => r.status === "aprobada").length;
 
   return (
-    <div className="p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto space-y-6 sm:space-y-8 animate-in fade-in duration-300">
-      {/* Header Ejecutivo */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-2 border-b border-border/40">
-        <div className="space-y-1">
-          <div className="flex items-center gap-2">
-            <Link
-              href="/dashboard/company"
-              className="text-xs font-bold text-muted-foreground hover:text-foreground flex items-center gap-1 transition-colors"
-            >
-              <ArrowLeft className="size-3.5" />
-              <span>Volver al Dashboard</span>
-            </Link>
-          </div>
-          <h1 className="text-2xl sm:text-3xl font-extrabold text-foreground tracking-tight flex items-center gap-2.5">
-            <Plane className="size-7 text-primary" />
-            <span>{`Vacaciones & Permisos • ${companyName}`}</span>
-          </h1>
-          <p className="text-xs sm:text-sm text-muted-foreground font-semibold">
-            {`Gestión automatizada de vacaciones según LFT (Vacaciones Dignas), permisos y descansos.`}
-          </p>
-        </div>
-
-        <div className="flex items-center gap-2.5 flex-wrap">
+    <div className="space-y-6 sm:space-y-8 animate-in fade-in duration-300 font-sans">
+      {/* Header Unificado */}
+      <CompanyPageHeader
+        title={`Vacaciones & Permisos • ${companyName}`}
+        description="Gestión automatizada de vacaciones según LFT (Vacaciones Dignas), permisos y descansos."
+      >
+        <div className="flex items-center gap-2 flex-wrap">
           <Button
             variant="outline"
             size="sm"
             onClick={handleExport}
             disabled={isExporting}
-            className="rounded-xl text-xs font-bold h-10 px-4 border-border/70 shadow-xs flex items-center gap-1.5"
+            className="cursor-pointer font-semibold text-xs"
           >
-            <FileSpreadsheet className="size-3.5" />
+            <FileSpreadsheet data-icon="inline-start" />
             <span>{isExporting ? "Descargando..." : "Descargar Reporte"}</span>
           </Button>
 
           <Button
             size="sm"
             onClick={() => setIsModalOpen(true)}
-            className="rounded-xl text-xs font-bold h-10 px-4 bg-primary text-primary-foreground hover:bg-primary/90 shadow-xs flex items-center gap-1.5"
+            className="cursor-pointer font-medium"
           >
-            <Plus className="size-4" />
+            <Plus data-icon="inline-start" />
             <span>Nueva Solicitud</span>
           </Button>
         </div>
-      </div>
+      </CompanyPageHeader>
 
       {/* KPI Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <Card className="rounded-2xl border border-border/40 bg-card p-5 space-y-2 shadow-xs">
+        <Card className="p-5 space-y-2">
           <div className="flex items-center justify-between text-xs font-bold text-muted-foreground">
             <span>Solicitudes Pendientes</span>
             <Badge className="bg-amber-500 text-white border-none text-[10px]">
               Por Autorizar
             </Badge>
           </div>
-          <div className="text-2xl sm:text-3xl font-extrabold text-foreground">
+          <div className="text-2xl sm:text-3xl font-extrabold text-foreground font-mono">
             {pendingCount}
           </div>
           <p className="text-[11px] text-muted-foreground font-medium">
@@ -194,12 +180,12 @@ export function CompanyLeavesView({
           </p>
         </Card>
 
-        <Card className="rounded-2xl border border-border/40 bg-card p-5 space-y-2 shadow-xs">
+        <Card className="p-5 space-y-2">
           <div className="flex items-center justify-between text-xs font-bold text-muted-foreground">
             <span>Aprobadas este Mes</span>
             <CheckCircle2 className="size-4 text-emerald-600 dark:text-emerald-400" />
           </div>
-          <div className="text-2xl sm:text-3xl font-extrabold text-foreground">
+          <div className="text-2xl sm:text-3xl font-extrabold text-foreground font-mono">
             {approvedCount}
           </div>
           <p className="text-[11px] text-muted-foreground font-medium">
@@ -207,12 +193,12 @@ export function CompanyLeavesView({
           </p>
         </Card>
 
-        <Card className="rounded-2xl border border-border/40 bg-card p-5 space-y-2 shadow-xs">
+        <Card className="p-5 space-y-2">
           <div className="flex items-center justify-between text-xs font-bold text-muted-foreground">
             <span>En Vacaciones / Permiso Hoy</span>
             <Plane className="size-4 text-primary" />
           </div>
-          <div className="text-2xl sm:text-3xl font-extrabold text-foreground">
+          <div className="text-2xl sm:text-3xl font-extrabold text-foreground font-mono">
             {initialStats.employeesOnLeaveToday}
           </div>
           <p className="text-[11px] text-muted-foreground font-medium">
@@ -220,12 +206,12 @@ export function CompanyLeavesView({
           </p>
         </Card>
 
-        <Card className="rounded-2xl border border-border/40 bg-card p-5 space-y-2 shadow-xs">
+        <Card className="p-5 space-y-2">
           <div className="flex items-center justify-between text-xs font-bold text-muted-foreground">
             <span>Saldo LFT Promedio</span>
             <Sparkles className="size-4 text-indigo-600 dark:text-indigo-400" />
           </div>
-          <div className="text-2xl sm:text-3xl font-extrabold text-foreground">
+          <div className="text-2xl sm:text-3xl font-extrabold text-foreground font-mono">
             {initialStats.averageVacationBalance} días
           </div>
           <p className="text-[11px] text-muted-foreground font-medium">
@@ -235,7 +221,7 @@ export function CompanyLeavesView({
       </div>
 
       {/* Main Inbox Card */}
-      <Card className="rounded-2xl border border-border/40 bg-card p-5 sm:p-6 space-y-5 shadow-xs">
+      <Card className="p-5 sm:p-6 space-y-5">
         <div className="flex flex-col sm:flex-row gap-3 items-stretch sm:items-center justify-between">
           <div className="relative flex-1 max-w-md">
             <Search className="size-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
@@ -243,7 +229,7 @@ export function CompanyLeavesView({
               placeholder="Buscar por empleado, departamento o tipo..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-9 h-10 rounded-xl bg-background border-border/80 text-xs font-medium"
+              className="pl-9 text-xs font-medium"
             />
           </div>
 
@@ -251,7 +237,7 @@ export function CompanyLeavesView({
             value={statusFilter}
             onValueChange={(val) => val && setStatusFilter(val)}
           >
-            <SelectTrigger className="h-10 w-44 rounded-xl bg-background border-border/80 text-xs font-medium">
+            <SelectTrigger className="w-44 text-xs font-medium">
               <SelectValue placeholder="Filtrar por estatus" />
             </SelectTrigger>
             <SelectContent className="rounded-xl">
@@ -352,16 +338,10 @@ export function CompanyLeavesView({
                         </Button>
                       </>
                     ) : (
-                      <Badge
-                        className={cn(
-                          "text-xs font-bold px-3 py-1 rounded-lg border-none",
-                          req.status === "aprobada"
-                            ? "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400"
-                            : "bg-destructive/15 text-destructive"
-                        )}
-                      >
-                        {req.status === "aprobada" ? "Aprobada" : "Rechazada"}
-                      </Badge>
+                      <CompanyStatusBadge
+                        status={req.status === "aprobada" ? "activo" : "inactivo"}
+                        label={req.status === "aprobada" ? "Aprobada" : "Rechazada"}
+                      />
                     )}
 
                     <Button

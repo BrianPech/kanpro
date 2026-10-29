@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import { VacancyCard } from "./vacancy-card";
-import { Sparkles, RotateCcw } from "lucide-react";
+import { Sparkles, RotateCcw } from "@/components/ui/icons";
 import { Button } from "@/components/ui/button";
 import { useVirtualizer } from "@tanstack/react-virtual";
 import type { Job } from "../types";

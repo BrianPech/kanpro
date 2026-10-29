@@ -96,7 +96,7 @@ import {
   ArrowUpDown,
   Loader2,
   Clock,
-} from "lucide-react";
+} from "@/components/ui/icons";
 import {
   updateUserRole,
   toggleUserStatus,

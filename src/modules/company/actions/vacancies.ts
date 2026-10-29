@@ -158,6 +158,52 @@ export async function createVacancyAction(
 }
 
 /**
+ * Actualiza una vacante existente desde el asistente (wizard).
+ */
+export async function updateVacancyAction(
+  vacancyId: string,
+  rawInput: VacancyWizardValues
+): Promise<CreateVacancyActionResult> {
+  const parsed = vacancyWizardSchema.safeParse(rawInput);
+  if (!parsed.success) {
+    const errorMsg =
+      parsed.error.issues[0]?.message || "Datos de vacante inválidos.";
+    return { success: false, error: errorMsg };
+  }
+
+  const supabase = await createClient();
+  const {
+    data: { user },
+    error: authError,
+  } = await supabase.auth.getUser();
+
+  if (authError || !user) {
+    return { success: false, error: "No autorizado. Inicia sesión para continuar." };
+  }
+
+  try {
+    const vacancy = await CompanyVacanciesService.updateVacancy(
+      supabase,
+      user.id,
+      vacancyId,
+      parsed.data
+    );
+
+    await revalidateVacancies();
+
+    return {
+      success: true,
+      data: vacancy,
+      vacancy,
+    };
+  } catch (err: unknown) {
+    const message =
+      err instanceof Error ? err.message : "No se pudo actualizar la vacante.";
+    return { success: false, error: message };
+  }
+}
+
+/**
  * Crea una vacante exprés con valores por defecto.
  */
 export async function createExpressVacancyAction(

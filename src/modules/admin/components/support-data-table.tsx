@@ -94,7 +94,7 @@ import {
   MailIcon,
   Building2Icon,
   UserIcon,
-} from "lucide-react";
+} from "@/components/ui/icons";
 
 import {
   CATEGORY_LABELS,

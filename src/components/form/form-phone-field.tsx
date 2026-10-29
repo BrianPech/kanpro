@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import { Phone } from "lucide-react";
+import { Phone } from "@/components/ui/icons";
 import { normalizePhone, formatPhoneDisplay } from "@/lib/formatters";
 
 export interface FormPhoneFieldProps {

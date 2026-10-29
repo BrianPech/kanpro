@@ -11,14 +11,14 @@ import {
   MessageCircle,
   ExternalLink,
   BadgeCheck,
-} from "lucide-react";
+} from "@/components/ui/icons";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
-import { createClient } from "@/lib/supabase/client";
 import { cn } from "@/lib/utils";
 import type { Job } from "../types";
 import { useConnection } from "@/hooks/use-connection";
+import { applyToVacancyAction } from "@/modules/candidate/actions/applications";
 
 interface VacancyDetailProps {
   job: Job | null;
@@ -106,37 +106,23 @@ export function VacancyDetail({
     }
 
     setIsSubmitting(true);
-    const supabase = createClient();
-
-    if (!candidateId) {
-      toast.error("Debes iniciar sesión como candidato para postularte");
-      return;
-    }
-
     try {
-      // Real database insert
-      const { error } = await supabase.from("applications").insert({
-        candidate_id: candidateId,
-        vacancy_id: job.id,
-        status: "Pendiente",
-      });
+      const res = await applyToVacancyAction({ vacancyId: job.id });
 
-      if (error) {
-        if (error.code === "23505") {
-          // Unique key violation
-          toast.info("Ya te has postulado a este empleo");
-          setIsAppliedSession(true);
-          onApplySuccess(job.id);
-        } else {
-          throw error;
-        }
+      if (!res.success) {
+        toast.error(res.error || "Error al enviar la postulación");
+        return;
+      }
+
+      if (res.data.alreadyApplied) {
+        toast.info(res.data.message);
       } else {
         toast.success("¡Postulación enviada con éxito!");
-        setIsAppliedSession(true);
-        onApplySuccess(job.id);
       }
+
+      setIsAppliedSession(true);
+      onApplySuccess(job.id);
     } catch (err: unknown) {
-      console.error("Error submitting application:", err);
       const errMsg =
         err instanceof Error ? err.message : "Error al enviar la postulación";
       toast.error(errMsg);

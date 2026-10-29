@@ -14,7 +14,7 @@ import {
   Users,
   MessageSquare,
   Loader2,
-} from "lucide-react";
+} from "@/components/ui/icons";
 import {
   Dialog,
   DialogContent,
@@ -37,7 +37,7 @@ import {
 } from "@/components/ui/select";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
-import { EmployeeEvaluation } from "../../types/evaluations";
+import { EmployeeEvaluation, calculateNineBoxQuadrant } from "../../types/evaluations";
 import { EmployeeSelectOption } from "../../services/company-evaluations";
 import { createEvaluationAction } from "../../actions/evaluations";
 
@@ -181,6 +181,8 @@ export function EvaluationFormModal({
         period,
         evaluatorName,
         evaluatorRole: "Evaluador Directo",
+        evaluatorRelation: "jefe_directo",
+        potentialScore: 3.5,
         punctualityScore: punctuality,
         attendanceScore: attendance,
         productivityScore: productivity,
@@ -202,6 +204,7 @@ export function EvaluationFormModal({
         return;
       }
 
+      const avgScore = result.averageScore || averageScore;
       const newEval: EmployeeEvaluation = {
         id: result.evaluationId || `eval-${Date.now()}`,
         employeeId: targetEmployeeId || `emp-${Date.now()}`,
@@ -213,13 +216,16 @@ export function EvaluationFormModal({
         evaluationDate: new Date().toISOString().split("T")[0],
         evaluatorName,
         evaluatorRole: "Evaluador Directo",
+        evaluatorRelation: "jefe_directo",
+        potentialScore: 3.5,
+        nineBoxQuadrant: calculateNineBoxQuadrant(avgScore, 3.5),
         punctualityScore: punctuality,
         attendanceScore: attendance,
         productivityScore: productivity,
         teamworkScore: teamwork,
         customerServiceScore: customerService,
         goalsScore: goals,
-        averageScore: result.averageScore || averageScore,
+        averageScore: avgScore,
         strengths: parsedStrengths,
         growthAreas: parsedGrowthAreas,
         developmentPlan,

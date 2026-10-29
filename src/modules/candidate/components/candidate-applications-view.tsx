@@ -34,7 +34,7 @@ import {
   Search, 
   ArrowUpRight, 
   CheckCheck,
-} from "lucide-react";
+} from "@/components/ui/icons";
 import { toast } from "sonner";
 import {
   useReactTable,

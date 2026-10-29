@@ -6,7 +6,7 @@ import {
   Plus,
   ArrowRight,
   MapPin,
-} from "lucide-react";
+} from "@/components/ui/icons";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -23,17 +23,17 @@ export function ActiveVacanciesSummary({
   totalVacancies,
 }: ActiveVacanciesSummaryProps) {
   return (
-    <Card className="rounded-2xl border border-border/40 bg-card p-5 sm:p-6 space-y-4 shadow-xs">
-      <div className="flex items-center justify-between gap-3 pb-2 border-b border-border/40">
+    <Card className="p-6 space-y-5">
+      <div className="flex items-center justify-between gap-3 pb-3 border-b border-border">
         <div className="flex items-center gap-3">
-          <div className="size-10 rounded-xl bg-primary/10 text-primary flex items-center justify-center shrink-0">
+          <div className="size-10 rounded-2xl bg-primary/10 text-primary flex items-center justify-center shrink-0">
             <Briefcase className="size-5" />
           </div>
           <div>
-            <h3 className="text-base font-extrabold text-foreground">
+            <h3 className="text-base font-bold text-foreground">
               Vacantes Activas & Atracción
             </h3>
-            <p className="text-xs text-muted-foreground font-semibold mt-0.5">
+            <p className="text-xs text-muted-foreground font-medium mt-0.5">
               {`${totalVacancies} ofertas activas en el feed de K'anPro.`}
             </p>
           </div>
@@ -42,55 +42,53 @@ export function ActiveVacanciesSummary({
         <Button
           size="sm"
           render={<Link href="/dashboard/company/vacancies/new" />}
-          className="rounded-xl text-xs font-bold h-9 px-3 bg-primary text-primary-foreground hover:bg-primary/90 shadow-xs flex items-center gap-1.5"
         >
-          <Plus className="size-3.5" />
+          <Plus data-icon="inline-start" />
           <span>Publicar</span>
         </Button>
       </div>
 
       {vacancies.length === 0 ? (
-        <div className="p-6 text-center bg-muted/20 rounded-xl border border-dashed border-border/60 space-y-3">
-          <p className="text-xs text-muted-foreground">
+        <div className="p-8 text-center bg-muted/30 rounded-3xl border border-dashed border-border space-y-3">
+          <p className="text-sm text-muted-foreground">
             No tienes vacantes activas en este momento.
           </p>
           <Button
             size="sm"
             render={<Link href="/dashboard/company/vacancies/new" />}
-            className="rounded-xl text-xs font-bold h-8 px-4 bg-primary text-primary-foreground"
           >
             Publicar primera oferta
           </Button>
         </div>
       ) : (
-        <div className="space-y-2.5">
+        <div className="space-y-3">
           {vacancies.map((vac) => (
             <Link
               key={vac.id}
               href={`/dashboard/company/vacancies/${vac.id}`}
               className="group block"
             >
-              <div className="p-3.5 rounded-xl border border-border/50 bg-background hover:border-primary/40 hover:shadow-xs transition-all space-y-2">
+              <div className="p-4 rounded-3xl border border-border bg-card hover:ring-1 hover:ring-primary/30 transition-all space-y-2">
                 <div className="flex items-center justify-between gap-2">
-                  <h4 className="text-xs font-extrabold text-foreground truncate group-hover:text-primary transition-colors">
+                  <h4 className="text-sm font-semibold text-foreground truncate group-hover:text-primary transition-colors">
                     {vac.title}
                   </h4>
                   <Badge
                     variant="outline"
-                    className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-primary/10 text-primary border-transparent shrink-0"
+                    className="text-xs font-semibold px-2.5 py-0.5 rounded-3xl bg-primary/10 text-primary border-primary/20 shrink-0"
                   >
                     {vac.applicationsCount} postulaciones
                   </Badge>
                 </div>
 
-                <div className="flex items-center justify-between text-[11px] text-muted-foreground font-medium">
-                  <span className="flex items-center gap-1">
-                    <MapPin className="size-3" />
+                <div className="flex items-center justify-between text-xs text-muted-foreground font-medium">
+                  <span className="flex items-center gap-1.5">
+                    <MapPin className="size-3.5 shrink-0" />
                     {vac.location}
                   </span>
-                  <span className="text-primary font-bold flex items-center gap-0.5 group-hover:translate-x-0.5 transition-transform">
+                  <span className="text-primary font-semibold flex items-center gap-1 group-hover:translate-x-0.5 transition-transform">
                     Ver candidatos
-                    <ArrowRight className="size-3" />
+                    <ArrowRight className="size-3.5" />
                   </span>
                 </div>
               </div>
@@ -99,16 +97,19 @@ export function ActiveVacanciesSummary({
         </div>
       )}
 
-      <div className="pt-2 border-t border-border/40">
-        <Button
-          variant="outline"
-          size="sm"
-          render={<Link href="/dashboard/company/vacancies" />}
-          className="w-full rounded-xl text-xs font-bold h-9 border-border/60"
-        >
-          Ver todas las vacantes publicadas
-        </Button>
-      </div>
+      {vacancies.length > 0 && (
+        <div className="pt-2 border-t border-border flex justify-end">
+          <Button
+            variant="ghost"
+            size="sm"
+            render={<Link href="/dashboard/company/vacancies" />}
+            className="text-primary font-semibold"
+          >
+            <span>Ver todas las vacantes</span>
+            <ArrowRight data-icon="inline-end" />
+          </Button>
+        </div>
+      )}
     </Card>
   );
 }

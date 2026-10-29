@@ -29,7 +29,7 @@ import {
   Check,
   X,
   Building,
-} from "lucide-react";
+} from "@/components/ui/icons";
 import {
   Dialog,
   DialogContent,
@@ -50,6 +50,8 @@ import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { calculateLFTVacationDays } from "../../utils/vacation-calculator";
 import { EmployeeDocument, EmployeeDossier } from "../../types/employee-dossier";
+import { uploadDossierDocumentAction } from "../../actions/dossier";
+import { exportDossierToPrintableDocument } from "../../utils/dossier-exporter";
 
 export interface SimpleEmployee {
   id: string;
@@ -95,6 +97,9 @@ export function EmployeeDossierModal({
   const [activeTab, setActiveTab] = React.useState("laboral");
   const [isUploadDocOpen, setIsUploadDocOpen] = React.useState(false);
   const [newDocTitle, setNewDocTitle] = React.useState("");
+  const [selectedFile, setSelectedFile] = React.useState<File | null>(null);
+  const [isUploadingDoc, setIsUploadingDoc] = React.useState(false);
+  const fileInputRef = React.useRef<HTMLInputElement | null>(null);
   const [copiedKey, setCopiedKey] = React.useState<string | null>(null);
 
   // Construct dynamic dossier strictly from real employee record
@@ -196,15 +201,10 @@ export function EmployeeDossierModal({
     };
   }, [employee]);
 
-  const [documentsList, setDocumentsList] = React.useState<EmployeeDocument[]>(
-    []
-  );
-
-  React.useEffect(() => {
-    if (dossier?.documents) {
-      setDocumentsList(dossier.documents);
-    }
-  }, [dossier]);
+  const [uploadedDocs, setUploadedDocs] = React.useState<EmployeeDocument[]>([]);
+  const documentsList = React.useMemo<EmployeeDocument[]>(() => {
+    return [...uploadedDocs, ...(dossier?.documents || [])];
+  }, [uploadedDocs, dossier?.documents]);
 
   if (!employee || !dossier) return null;
 
@@ -232,34 +232,60 @@ export function EmployeeDossierModal({
     setTimeout(() => setCopiedKey(null), 2000);
   };
 
-  const handleUploadDoc = (e: React.FormEvent) => {
+  const handleUploadDoc = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newDocTitle.trim()) return;
+    if (!newDocTitle.trim()) {
+      toast.error("Ingresa el nombre o título del documento.");
+      return;
+    }
+    if (!selectedFile) {
+      toast.error("Por favor selecciona un archivo PDF o imagen para subir.");
+      return;
+    }
 
-    const newDoc: EmployeeDocument = {
-      id: `doc-${Date.now()}`,
-      docType: "comprobante_estudios",
-      title: newDocTitle.trim(),
-      fileName: `${newDocTitle.replace(/\s+/g, "_")}.pdf`,
-      fileUrl: "/assets/docs/sample.pdf",
-      fileSizeBytes: 750000,
-      uploadedAt: "Hoy",
-      status: "validado",
-    };
+    setIsUploadingDoc(true);
+    try {
+      const formData = new FormData();
+      formData.append("file", selectedFile);
+      formData.append("title", newDocTitle.trim());
+      formData.append("employeeId", employee.id);
+      if (employee.candidate_id) {
+        formData.append("candidateId", employee.candidate_id);
+      }
 
-    setDocumentsList((prev) => [newDoc, ...prev]);
-    toast.success("Documento cargado al expediente digital", {
-      description: `${newDocTitle} ha sido indexado exitosamente.`,
-    });
+      const res = await uploadDossierDocumentAction(formData);
+      if (!res.success) {
+        throw new Error(res.error || "Error al cargar documento.");
+      }
 
-    setNewDocTitle("");
-    setIsUploadDocOpen(false);
+      setUploadedDocs((prev) => [res.data, ...prev]);
+      toast.success("Documento cargado al expediente digital", {
+        description: `${res.data.title} ha sido indexado y almacenado exitosamente en Supabase.`,
+      });
+
+      setNewDocTitle("");
+      setSelectedFile(null);
+      if (fileInputRef.current) fileInputRef.current.value = "";
+      setIsUploadDocOpen(false);
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : "Error al subir el archivo.";
+      toast.error("Error al cargar documento", { description: message });
+    } finally {
+      setIsUploadingDoc(false);
+    }
   };
 
   const handleDownloadDossier = () => {
-    toast.success("Generando Expediente Digital 360...", {
-      description: `Se ha descargado el expediente integral de ${dossier.fullName}.`,
-    });
+    if (!dossier) return;
+    try {
+      exportDossierToPrintableDocument(dossier);
+      toast.success("Generando Expediente Digital 360...", {
+        description: `Se desplegó el expediente integral de ${dossier.fullName} listo para impresión o guardado en PDF.`,
+      });
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : "No se pudo generar el expediente.";
+      toast.error("Error al exportar expediente", { description: message });
+    }
   };
 
   const isActive = employee.status === "Contratado";
@@ -321,7 +347,7 @@ export function EmployeeDossierModal({
                     {employee.employee_code && (
                       <Badge
                         variant="outline"
-                        className="text-[10px] font-mono px-2 py-0 rounded-md border-border/50 text-muted-foreground"
+                        className="text-[10px] font-mono px-2 py-0 border-border/50 text-muted-foreground"
                       >
                         {employee.employee_code}
                       </Badge>
@@ -342,7 +368,7 @@ export function EmployeeDossierModal({
                       >
                         <Badge
                           variant="outline"
-                          className="text-[10px] font-semibold px-2 py-0.5 rounded-md border-border/40 bg-muted/40 group-hover/badge:border-primary/50 group-hover/badge:bg-primary/5 transition-colors flex items-center gap-1"
+                          className="text-[10px] font-semibold px-2 py-0.5 border-border/40 bg-muted/40 group-hover/badge:border-primary/50 group-hover/badge:bg-primary/5 transition-colors flex items-center gap-1"
                         >
                           <Layers className="size-2.5 text-primary" />
                           <span>{dossier.department}</span>
@@ -351,7 +377,7 @@ export function EmployeeDossierModal({
                     ) : (
                       <Badge
                         variant="outline"
-                        className="text-[10px] font-semibold px-2 py-0 rounded-md border-border/40 bg-muted/40"
+                        className="text-[10px] font-semibold px-2 py-0 border-border/40 bg-muted/40"
                       >
                         {dossier.department}
                       </Badge>
@@ -936,7 +962,7 @@ export function EmployeeDossierModal({
                     </div>
                     <Badge
                       variant="outline"
-                      className="text-xs font-extrabold font-mono text-primary px-2.5 py-0.5 rounded-lg border-primary/30 bg-primary/5"
+                      className="text-xs font-extrabold font-mono text-primary px-2.5 py-0.5 border-primary/30 bg-primary/5"
                     >
                       {dossier.vacationBalance.daysAvailable} días disponibles
                     </Badge>
@@ -1076,7 +1102,7 @@ export function EmployeeDossierModal({
                         <div className="flex items-center gap-2 shrink-0">
                           <Badge
                             variant="outline"
-                            className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400 border-emerald-500/20 bg-emerald-500/10 px-2 py-0.5 rounded-md"
+                            className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400 border-emerald-500/20 bg-emerald-500/10 px-2 py-0.5"
                           >
                             <CheckCircle2 className="size-3 mr-1" />
                             Validado
@@ -1189,13 +1215,29 @@ export function EmployeeDossierModal({
                 />
               </div>
 
-              <div className="border-2 border-dashed border-border/50 rounded-xl p-6 text-center space-y-2 bg-muted/10">
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept=".pdf,image/png,image/jpeg,image/webp"
+                className="hidden"
+                onChange={(e) => {
+                  if (e.target.files?.[0]) {
+                    setSelectedFile(e.target.files[0]);
+                  }
+                }}
+              />
+              <div
+                onClick={() => fileInputRef.current?.click()}
+                className="border-2 border-dashed border-border/50 rounded-xl p-6 text-center space-y-2 bg-muted/10 cursor-pointer hover:bg-muted/20 transition-colors"
+              >
                 <Paperclip className="size-6 mx-auto text-muted-foreground" />
                 <p className="text-xs font-semibold text-foreground">
-                  Selecciona un archivo PDF o imagen
+                  {selectedFile ? selectedFile.name : "Selecciona un archivo PDF o imagen"}
                 </p>
                 <p className="text-[11px] text-muted-foreground">
-                  Máximo 10 MB (PDF, PNG, JPG)
+                  {selectedFile
+                    ? `${(selectedFile.size / 1024).toFixed(1)} KB`
+                    : "Máximo 15 MB (PDF, PNG, JPG, WEBP)"}
                 </p>
               </div>
             </div>
@@ -1204,16 +1246,20 @@ export function EmployeeDossierModal({
               <Button
                 type="button"
                 variant="ghost"
-                onClick={() => setIsUploadDocOpen(false)}
+                onClick={() => {
+                  setIsUploadDocOpen(false);
+                  setSelectedFile(null);
+                }}
                 className="rounded-lg text-xs font-semibold"
               >
                 Cancelar
               </Button>
               <Button
                 type="submit"
+                disabled={isUploadingDoc || !selectedFile || !newDocTitle.trim()}
                 className="rounded-lg text-xs font-bold bg-primary text-primary-foreground shadow-none"
               >
-                Guardar Documento
+                {isUploadingDoc ? "Subiendo a Bóveda..." : "Guardar Documento"}
               </Button>
             </DialogFooter>
           </form>

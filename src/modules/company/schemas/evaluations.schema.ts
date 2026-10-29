@@ -35,6 +35,11 @@ export const createEvaluationSchema = z.object({
     .max(120)
     .default("Evaluador Directo"),
   evaluatorRole: z.string().max(100).optional().nullable().default("Dirección / RRHH"),
+  evaluatorRelation: z
+    .enum(["autoevaluacion", "jefe_directo", "par", "subordinado"])
+    .optional()
+    .default("jefe_directo"),
+  potentialScore: scoreSchema.optional().default(3.5),
   evaluationDate: z
     .string()
     .regex(/^\d{4}-\d{2}-\d{2}$/, "La fecha debe tener formato YYYY-MM-DD.")

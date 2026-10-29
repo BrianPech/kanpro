@@ -7,7 +7,7 @@ import {
   UserPlus,
   Plus,
   FileSpreadsheet,
-} from "lucide-react";
+} from "@/components/ui/icons";
 import * as React from "react";
 
 import { createClient } from "@/lib/supabase/client";
@@ -76,10 +76,10 @@ export function DashboardTopbar({
   const isAreasPage = pathname === "/dashboard/company/areas";
 
   return (
-    <header className="flex h-16 shrink-0 items-center justify-between gap-2 border-b border-border/15 bg-background/90 backdrop-blur-md px-4 md:px-6 transition-all">
+    <header className="flex h-16 shrink-0 items-center justify-between gap-2 border-b border-border bg-background/95 backdrop-blur-md px-4 md:px-6 transition-all">
       {/* Left Area: Sidebar Trigger & Breadcrumbs */}
       <div className="flex items-center gap-2 min-w-0">
-        <SidebarTrigger className="-ml-1 h-8 w-8 rounded-lg hover:bg-muted hidden md:flex shrink-0" />
+        <SidebarTrigger className="-ml-1 h-8 w-8 hover:bg-muted hidden md:flex shrink-0" />
         <Separator
           orientation="vertical"
           className="mr-2 data-vertical:h-4 data-vertical:self-auto hidden md:block shrink-0"
@@ -119,17 +119,17 @@ export function DashboardTopbar({
               variant="outline"
               size="sm"
               render={<Link href="/dashboard/company/reports" />}
-              className="font-semibold px-2.5 sm:px-3 h-8 rounded-lg flex items-center gap-1.5 text-xs cursor-pointer border-border/80 hover:bg-muted/60"
+              className="font-semibold px-2.5 sm:px-3 text-xs cursor-pointer"
             >
-              <FileSpreadsheet className="size-3.5 stroke-[2]" />
+              <FileSpreadsheet data-icon="inline-start" />
               <span className="hidden sm:inline">Reportes</span>
             </Button>
             <Button
               size="sm"
               render={<Link href="/dashboard/company/employees?action=new" />}
-              className="font-semibold px-2.5 sm:px-3 h-8 rounded-lg flex items-center gap-1.5 shadow-xs text-xs bg-primary text-primary-foreground hover:bg-primary/90 cursor-pointer"
+              className="font-semibold px-2.5 sm:px-3 text-xs cursor-pointer"
             >
-              <UserPlus className="size-3.5 stroke-[2.5]" />
+              <UserPlus data-icon="inline-start" />
               <span className="hidden sm:inline">Registrar Empleado</span>
               <span className="sm:hidden">Registrar</span>
             </Button>
@@ -142,10 +142,10 @@ export function DashboardTopbar({
             onClick={() => {
               window.dispatchEvent(new CustomEvent("open-register-employee-modal"));
             }}
-            className="font-semibold px-2.5 sm:px-3 h-8 rounded-lg flex items-center gap-1.5 shadow-xs text-xs bg-primary text-primary-foreground hover:bg-primary/90 cursor-pointer"
+            className="font-semibold px-2.5 sm:px-3 text-xs cursor-pointer"
             data-testid="register-employee-btn"
           >
-            <UserPlus className="size-3.5 stroke-[2.5]" />
+            <UserPlus data-icon="inline-start" />
             <span className="hidden sm:inline">Registrar Empleado</span>
             <span className="sm:hidden">Registrar</span>
           </Button>
@@ -157,10 +157,10 @@ export function DashboardTopbar({
             onClick={() => {
               window.dispatchEvent(new CustomEvent("open-create-area-modal"));
             }}
-            className="font-semibold px-2.5 sm:px-3 h-8 rounded-lg flex items-center gap-1.5 shadow-xs text-xs bg-primary text-primary-foreground hover:bg-primary/90 cursor-pointer"
+            className="font-semibold px-2.5 sm:px-3 text-xs cursor-pointer"
             data-testid="create-area-btn"
           >
-            <Plus className="size-3.5 stroke-[2.5]" />
+            <Plus data-icon="inline-start" />
             <span className="hidden sm:inline">Nueva Área</span>
             <span className="sm:hidden">Área</span>
           </Button>
@@ -172,7 +172,7 @@ export function DashboardTopbar({
           <Button
             variant="ghost"
             size="icon"
-            className="relative h-8 w-8 rounded-lg text-muted-foreground hover:bg-muted cursor-pointer"
+            className="relative size-8 text-muted-foreground hover:bg-muted cursor-pointer"
           >
             <Bell className="size-4" />
           </Button>

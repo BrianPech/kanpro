@@ -22,7 +22,7 @@ import {
   Sparkles,
   Briefcase,
   Users,
-} from "lucide-react";
+} from "@/components/ui/icons";
 import {
   Drawer,
   DrawerClose,

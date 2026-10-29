@@ -13,7 +13,7 @@ import {
   Check,
   Circle,
   Building2,
-} from "lucide-react";
+} from "@/components/ui/icons";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { useCandidateRegisterForm } from "../hooks/use-candidate-register-form";

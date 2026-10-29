@@ -879,9 +879,18 @@ export class CompanyEmployeeService {
 
     const now = new Date().toISOString();
 
-    // 1. Vincular registro en company_employees
+    // 1. Garantizar existencia en candidate_profiles para satisfacer FK company_employees_employee_id_fkey
+    const { error: profileUpsertErr } = await adminClient
+      .from("candidate_profiles")
+      .upsert({ id: input.userId }, { onConflict: "id" });
+
+    if (profileUpsertErr) {
+      throw new Error(`Error al sincronizar el perfil del colaborador: ${profileUpsertErr.message}`);
+    }
+
+    // 2. Vincular registro en company_employees con control estricto de errores
     if (invitation.employee_id) {
-      await adminClient
+      const { error: empUpdateErr } = await adminClient
         .from("company_employees")
         .update({
           employee_id: input.userId,
@@ -889,8 +898,12 @@ export class CompanyEmployeeService {
           updated_at: now,
         })
         .eq("id", invitation.employee_id);
+
+      if (empUpdateErr) {
+        throw new Error(`Error al vincular el colaborador: ${empUpdateErr.message}`);
+      }
     } else {
-      await adminClient
+      const { error: empUpdateErr } = await adminClient
         .from("company_employees")
         .update({
           employee_id: input.userId,
@@ -899,10 +912,14 @@ export class CompanyEmployeeService {
         })
         .eq("company_id", invitation.company_id)
         .ilike("email", input.email.toLowerCase().trim());
+
+      if (empUpdateErr) {
+        throw new Error(`Error al vincular el colaborador: ${empUpdateErr.message}`);
+      }
     }
 
-    // 2. Marcar invitación como aceptada
-    await adminClient
+    // 3. Marcar invitación como aceptada
+    const { error: invUpdateErr } = await adminClient
       .from("employee_invitations")
       .update({
         status: "accepted",
@@ -911,7 +928,11 @@ export class CompanyEmployeeService {
       })
       .eq("id", invitation.id);
 
-    // 3. Notificación a la empresa
+    if (invUpdateErr) {
+      throw new Error(`Error al actualizar la invitación: ${invUpdateErr.message}`);
+    }
+
+    // 4. Notificación a la empresa
     await adminClient.from("notifications").insert({
       user_id: invitation.company_id,
       title: "Colaborador se ha unido",
@@ -1111,10 +1132,12 @@ export class CompanyContractService {
   public static async signContract(
     supabase: SupabaseClient<Database>,
     companyId: string,
-    input: SignContractInput
+    input: SignContractInput,
+    clientIp?: string
   ): Promise<void> {
+    const now = new Date().toISOString();
     const updates: CompanyContractUpdate = {
-      updated_at: new Date().toISOString(),
+      updated_at: now,
     };
 
     if (input.signerRole === "representante_legal") {
@@ -1127,6 +1150,10 @@ export class CompanyContractService {
 
     if (input.isNowFullySigned) {
       updates.status = "vigente";
+    }
+
+    if (clientIp) {
+      updates.notes = `[Sello Digital ${input.signerRole}] IP: ${clientIp} | Fecha: ${now}`;
     }
 
     const { error } = await supabase

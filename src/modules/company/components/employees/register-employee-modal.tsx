@@ -9,7 +9,7 @@ import {
   Send,
   Loader2,
   AlertCircle,
-} from "lucide-react";
+} from "@/components/ui/icons";
 import {
   Dialog,
   DialogContent,
@@ -350,7 +350,7 @@ export function RegisterEmployeeModal({
                   >
                     <SelectTrigger
                       id="employee_dept"
-                      className="w-full h-11 px-3.5 rounded-xl bg-background border border-border/80 text-xs sm:text-sm font-semibold cursor-pointer shadow-2xs hover:border-foreground/30 focus-visible:ring-2 focus-visible:ring-primary/20 transition-all"
+                      className="w-full text-xs sm:text-sm font-semibold cursor-pointer"
                     >
                       <SelectValue placeholder="Selecciona el área para este colaborador..." />
                     </SelectTrigger>

@@ -146,8 +146,10 @@ export class AccountSecurityService {
 
   /**
    * Requests account deletion and deactivates the user account (ARCO Right of Cancellation).
+   * Registers audit trail in arco_requests, marks profile as suspended/pending_deletion,
+   * invokes admin API to anonymize user data, and terminates the session.
    */
-  async requestAccountDeletion(_reason?: string): Promise<void> {
+  async requestAccountDeletion(reason?: string): Promise<void> {
     const supabase = this.getSupabase();
     const {
       data: { user },
@@ -158,11 +160,16 @@ export class AccountSecurityService {
       throw new Error("No se pudo obtener la sesión actual.");
     }
 
-    const { error } = await supabase.auth.signOut();
-    if (error) {
-      throw new Error(
-        error.message || "Error al procesar la eliminación de cuenta."
-      );
+    const { requestAccountDeletionAction } = await import("../actions/account-actions");
+    const result = await requestAccountDeletionAction(reason);
+
+    if (!result.success) {
+      throw new Error(result.error || "Error al procesar la cancelación de cuenta ARCO.");
+    }
+
+    const { error: signOutError } = await supabase.auth.signOut();
+    if (signOutError) {
+      console.warn("SignOut after account deletion warning:", signOutError.message);
     }
   }
 

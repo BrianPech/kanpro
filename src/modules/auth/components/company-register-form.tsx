@@ -12,7 +12,7 @@ import {
   Check,
   Circle,
   User,
-} from "lucide-react";
+} from "@/components/ui/icons";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { useCompanyRegisterForm } from "../hooks/use-company-register-form";

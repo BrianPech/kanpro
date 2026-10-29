@@ -96,6 +96,60 @@ export class CompanyVacanciesService {
   }
 
   /**
+   * Actualiza una vacante existente garantizando pertenencia a la empresa.
+   */
+  public static async updateVacancy(
+    supabase: SupabaseClient<Database>,
+    companyId: string,
+    vacancyId: string,
+    data: VacancyWizardValues
+  ): Promise<VacancyRow> {
+    if (data.is_active) {
+      await CompanyVacanciesService.checkActiveVacancyLimit(supabase, companyId);
+    }
+
+    const payload: VacancyUpdate = {
+      title: data.title.trim(),
+      category: data.category,
+      employment_type: data.employment_type,
+      shift_schedule: data.shift_schedule,
+      positions_available: data.positions_available,
+      location: data.location.trim(),
+      zone: data.zone.trim(),
+      salary_min: data.salary_min != null ? data.salary_min : null,
+      salary_max: data.salary_max != null ? data.salary_max : null,
+      payment_frequency: data.payment_frequency,
+      benefits: data.benefits || [],
+      description: data.description.trim(),
+      requirements: data.description.trim(),
+      experience_required: data.experience_required,
+      education_level: data.education_level,
+      skills: data.skills || [],
+      tags: data.skills || [],
+      contact_phone: data.contact_phone?.trim() || null,
+      contact_email: data.contact_email?.trim() || null,
+      preferred_contact_method: data.preferred_contact_method || "whatsapp",
+      is_active: Boolean(data.is_active),
+      status: data.is_active ? "Activa" : "Borrador",
+      updated_at: new Date().toISOString(),
+    };
+
+    const { data: updated, error } = await supabase
+      .from("vacancies")
+      .update(payload)
+      .eq("id", vacancyId)
+      .eq("company_id", companyId)
+      .select()
+      .single();
+
+    if (error || !updated) {
+      throw new Error(error?.message || "No se pudo actualizar la vacante.");
+    }
+
+    return updated;
+  }
+
+  /**
    * Crea una vacante exprés con valores por defecto.
    */
   public static async createExpressVacancy(

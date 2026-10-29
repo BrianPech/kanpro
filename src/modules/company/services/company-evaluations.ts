@@ -5,6 +5,8 @@ import {
   Nom035Survey,
   Nom035Metrics,
   Nom035RiskLevel,
+  EvaluatorRelation,
+  calculateNineBoxQuadrant,
 } from "../types/evaluations";
 import { Nom035Engine } from "../utils/nom035-engine";
 import type {
@@ -56,6 +58,9 @@ export class CompanyEvaluationsService {
       0
     );
     const averageScore = Math.round((sum / scores.length) * 10) / 10;
+    const potentialScore = Math.max(1, Math.min(5, Number(input.potentialScore) || 3.5));
+    const evaluatorRelation = input.evaluatorRelation || "jefe_directo";
+    const nineBoxQuadrant = calculateNineBoxQuadrant(averageScore, potentialScore);
     const evaluationDate =
       input.evaluationDate || new Date().toISOString().split("T")[0];
 
@@ -71,6 +76,9 @@ export class CompanyEvaluationsService {
       evaluation_date: evaluationDate,
       evaluator_name: input.evaluatorName.trim() || "Evaluador Directo",
       evaluator_role: input.evaluatorRole?.trim() || "Dirección / RRHH",
+      evaluator_relation: evaluatorRelation,
+      potential_score: potentialScore,
+      nine_box_quadrant: nineBoxQuadrant,
       punctuality_score: Math.max(1, Math.min(5, Number(input.punctualityScore) || 5)),
       attendance_score: Math.max(1, Math.min(5, Number(input.attendanceScore) || 5)),
       productivity_score: Math.max(1, Math.min(5, Number(input.productivityScore) || 5)),
@@ -247,6 +255,9 @@ export class CompanyEvaluationsService {
           evaluation_date,
           evaluator_name,
           evaluator_role,
+          evaluator_relation,
+          potential_score,
+          nine_box_quadrant,
           punctuality_score,
           attendance_score,
           productivity_score,
@@ -325,6 +336,7 @@ export class CompanyEvaluationsService {
         evaluationDate: ev.evaluation_date,
         evaluatorName: ev.evaluator_name,
         evaluatorRole: ev.evaluator_role || "Evaluador Directo",
+        evaluatorRelation: (ev.evaluator_relation as EvaluatorRelation) || "jefe_directo",
         punctualityScore: Number(ev.punctuality_score) || 5,
         attendanceScore: Number(ev.attendance_score) || 5,
         productivityScore: Number(ev.productivity_score) || 5,
@@ -332,6 +344,13 @@ export class CompanyEvaluationsService {
         customerServiceScore: Number(ev.customer_service_score) || 5,
         goalsScore: Number(ev.goals_score) || 5,
         averageScore: Number(ev.average_score) || 5.0,
+        potentialScore: Number(ev.potential_score) || 3.5,
+        nineBoxQuadrant:
+          ev.nine_box_quadrant ||
+          calculateNineBoxQuadrant(
+            Number(ev.average_score) || 5.0,
+            Number(ev.potential_score) || 3.5
+          ),
         strengths: parseStringArray(ev.strengths),
         growthAreas: parseStringArray(ev.growth_areas),
         developmentPlan: ev.development_plan || "",

@@ -4,7 +4,7 @@ import React, { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import Link from "next/link";
-import { Loader2, MailCheck, ArrowLeft, Mail, KeyRound } from "lucide-react";
+import { Loader2, MailCheck, ArrowLeft, Mail, KeyRound } from "@/components/ui/icons";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import {

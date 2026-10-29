@@ -3,7 +3,7 @@
 import * as React from "react"
 import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
-import { Send, CheckCircle, ArrowLeft, Sparkles } from "lucide-react"
+import { Send, CheckCircle, ArrowLeft, Sparkles, AlertCircle } from "@/components/ui/icons"
 import Link from "next/link"
 
 import { Button } from "@/components/ui/button"
@@ -13,10 +13,11 @@ import { Label } from "@/components/ui/label"
 import { FieldError } from "@/components/ui/field"
 
 import { contactFormSchema, type ContactFormValues } from "../schemas/contact.schema"
-import { contactService } from "../services/contact-service"
+import { submitContactMessageAction } from "../actions/contact"
 
 export function ContactForm() {
   const [isSuccess, setIsSuccess] = React.useState(false)
+  const [errorMessage, setErrorMessage] = React.useState<string | null>(null)
 
   const {
     register,
@@ -28,12 +29,13 @@ export function ContactForm() {
   })
 
   const onSubmit = async (data: ContactFormValues) => {
-    try {
-      await contactService.sendMessage(data)
-      setIsSuccess(true)
-    } catch {
-      // Error handled silently - user sees generic error
+    setErrorMessage(null)
+    const result = await submitContactMessageAction(data)
+    if (!result.success) {
+      setErrorMessage(result.error || "No se pudo enviar tu mensaje. Por favor intenta de nuevo.")
+      return
     }
+    setIsSuccess(true)
   }
 
   if (isSuccess) {
@@ -70,7 +72,7 @@ export function ContactForm() {
           <div className="h-8 w-8 bg-foreground rounded-lg flex items-center justify-center shadow-md">
             <Sparkles className="h-[18px] w-[18px] text-background" />
           </div>
-          <span className="text-[18px] font-semibold text-foreground tracking-tight">K'anPro</span>
+          <span className="text-[18px] font-semibold text-foreground tracking-tight">K&apos;anPro</span>
         </div>
         <h1 className="text-[32px] font-medium text-foreground tracking-[-0.32px] leading-[1.19]">
           Contacto
@@ -138,6 +140,13 @@ export function ContactForm() {
           />
           {errors.message && <FieldError errors={[errors.message]} />}
         </div>
+
+        {errorMessage && (
+          <div className="flex items-center gap-2.5 p-3.5 rounded-xl bg-destructive/10 text-destructive text-sm font-medium border border-destructive/20 animate-in fade-in duration-200">
+            <AlertCircle className="size-4 shrink-0" />
+            <span>{errorMessage}</span>
+          </div>
+        )}
 
         <Button
           type="submit"

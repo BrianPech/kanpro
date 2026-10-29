@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { Shield, Key, Bell, User, Lock, Trash2, ArrowRight } from "lucide-react";
+import { Shield, Key, Bell, User, Lock, Trash2, ArrowRight } from "@/components/ui/icons";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";

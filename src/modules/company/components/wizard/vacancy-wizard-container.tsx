@@ -12,7 +12,7 @@ import {
   Loader2,
   Check,
   Eye,
-} from "lucide-react";
+} from "@/components/ui/icons";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import {
@@ -45,7 +45,11 @@ import { Step3Description } from "./step-3-description";
 import { Step4Publication } from "./step-4-publication";
 import { createClient } from "@/lib/supabase/client";
 import { useDebouncedCallback } from "@tanstack/react-pacer";
-import { revalidateVacancies } from "../../actions/vacancies";
+import {
+  revalidateVacancies,
+  createVacancyAction,
+  updateVacancyAction,
+} from "../../actions/vacancies";
 import { parseLocation, formatSalaryDisplay, formatDateToDisplay } from "@/lib/formatters";
 import { GEO_CONFIG } from "@/config/geo";
 import { cn } from "@/lib/utils";
@@ -358,113 +362,52 @@ export function VacancyWizardContainer({
 
     setIsSubmitting(true);
     try {
-      const supabase = createClient();
-
-      // Check active vacancy plan limits if publishing
-      if (publishNow) {
-        const plan = companyProfile?.subscription_plan || "basic";
-        let maxAllowed = 3;
-        if (plan === "pro") maxAllowed = 15;
-        if (plan === "enterprise") maxAllowed = Infinity;
-
-        if (maxAllowed !== Infinity) {
-          let countQuery = supabase
-            .from("vacancies")
-            .select("id", { count: "exact", head: true })
-            .eq("company_id", userId)
-            .eq("is_active", true);
-
-          if (isEditing && vacancyId) {
-            countQuery = countQuery.neq("id", vacancyId);
-          }
-
-          const { count: activeCount } = await countQuery;
-
-          if ((activeCount || 0) >= maxAllowed) {
-            throw new Error(
-              `Has alcanzado el límite de ${maxAllowed} vacantes activas de tu Plan ${plan.toUpperCase()}. Actualiza a Plan PRO en Configuración o guarda como borrador.`
-            );
-          }
-        }
-      }
-
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const payload: any = {
-        company_id: userId,
-        recruiter_id: userId,
-        title: values.title.trim(),
-        category: values.category,
-        employment_type: values.employment_type,
-        shift_schedule: values.shift_schedule || "Matutino (Mañana)",
-        positions_available: Number(values.positions_available) || 1,
-        location: values.location,
-        zone: values.zone,
-        modality: "Presencial",
-        salary_min: values.salary_min !== undefined ? values.salary_min : null,
-        salary_max: values.salary_max !== undefined ? values.salary_max : null,
-        currency: "MXN",
-        payment_frequency: values.payment_frequency || "quincenal",
-        description: values.description,
-        requirements: values.description,
-        experience_required:
-          values.experience_required || "Sin experiencia previa",
-        education_level: values.education_level || "Indistinto",
-        benefits: Array.isArray(values.benefits) ? values.benefits : [],
-        skills: Array.isArray(values.skills) ? values.skills : [],
-        tags: Array.isArray(values.skills) ? values.skills : [],
-        contact_phone: values.contact_phone || null,
-        contact_email: values.contact_email || null,
-        preferred_contact_method:
-          values.preferred_contact_method || "whatsapp",
+      const wizardData: VacancyWizardValues = {
+        ...values,
         is_active: publishNow,
-        status: publishNow ? "Activa" : "Borrador",
       };
 
+      let res;
       if (isEditing && vacancyId) {
-        const { error } = await supabase
-          .from("vacancies")
-          .update(payload)
-          .eq("id", vacancyId)
-          .eq("company_id", userId);
-
-        if (error) throw error;
-
-        toast.success(
-          publishNow
-            ? "¡Vacante actualizada y publicada exitosamente!"
-            : "¡Vacante guardada como borrador!"
-        );
+        res = await updateVacancyAction(vacancyId, wizardData);
       } else {
-        const { error } = await supabase.from("vacancies").insert([payload]);
-
-        if (error) throw error;
-
-        // Clear local storage draft
-        try {
-          localStorage.removeItem(DRAFT_STORAGE_KEY);
-        } catch {}
-
-        toast.success(
-          publishNow
-            ? "¡Oferta publicada exitosamente!"
-            : "¡Oferta guardada como borrador!",
-          {
-            description: publishNow
-              ? "Tu vacante ya está visible para todos los candidatos locales."
-              : "Tu vacante se ha guardado en tu panel de ofertas pausadas/borradores.",
-          }
-        );
+        res = await createVacancyAction(wizardData);
       }
 
-      await revalidateVacancies();
+      if (!res.success) {
+        throw new Error(res.error || "No se pudo guardar la vacante.");
+      }
+
+      // Clear local storage draft
+      try {
+        localStorage.removeItem(DRAFT_STORAGE_KEY);
+      } catch {}
+
+      toast.success(
+        isEditing
+          ? publishNow
+            ? "¡Vacante actualizada y publicada exitosamente!"
+            : "¡Vacante guardada como borrador!"
+          : publishNow
+          ? "¡Oferta publicada exitosamente!"
+          : "¡Oferta guardada como borrador!",
+        {
+          description: publishNow
+            ? "Tu vacante ya está visible para todos los candidatos locales."
+            : "Tu vacante se ha guardado en tu panel de ofertas pausadas/borradores.",
+        }
+      );
+
       router.push("/dashboard/company/vacancies");
       router.refresh();
     } catch (err: unknown) {
       console.error("Error saving vacancy:", err);
+      const message =
+        err instanceof Error
+          ? err.message
+          : "Ocurrió un error inesperado al conectar con el servidor.";
       toast.error("Error al guardar la vacante", {
-        description:
-          (err as Error).message ||
-          "Ocurrió un error inesperado al conectar con el servidor.",
+        description: message,
       });
     } finally {
       setIsSubmitting(false);
@@ -518,7 +461,7 @@ export function VacancyWizardContainer({
             variant="outline"
             size="sm"
             onClick={() => setShowPreviewDrawer(true)}
-            className="h-8 px-2.5 sm:px-3 rounded-xl text-xs font-semibold text-foreground border-border/80 hover:bg-muted gap-1.5 cursor-pointer shadow-2xs"
+            className="cursor-pointer gap-1.5"
           >
             <Eye className="size-3.5 text-primary" />
             <span>Vista Previa</span>
@@ -530,7 +473,7 @@ export function VacancyWizardContainer({
               variant="ghost"
               size="sm"
               onClick={handleClearDraft}
-              className="h-8 px-2.5 sm:px-3 rounded-xl text-xs font-semibold text-muted-foreground hover:text-rose-500 gap-1.5 cursor-pointer"
+              className="text-muted-foreground hover:text-rose-500 gap-1.5 cursor-pointer"
               title="Restablecer formulario a valores iniciales"
             >
               <RotateCcw className="size-3.5" />
@@ -705,7 +648,7 @@ export function VacancyWizardContainer({
         </div>
 
         {/* 3. Main Form Card Container */}
-        <Card className="bg-card border border-border/80 rounded-2xl sm:rounded-3xl p-4 sm:p-8 md:p-10 shadow-xs">
+        <Card className="p-4 sm:p-8 md:p-10">
           <form
             onSubmit={(e) => {
               e.preventDefault();
@@ -748,14 +691,14 @@ export function VacancyWizardContainer({
             </StepperPanel>
 
             {/* 4. Wizard Footer Action Controls */}
-            <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 sm:gap-4 pt-5 sm:pt-6 border-t border-border/60">
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 sm:gap-4 pt-5 sm:pt-6 border-t border-border">
               {/* Steps 1, 2, 3: Botón continuar full-width en mobile + botón volver abajo */}
               {currentStep < 4 ? (
                 <>
                   <Button
                     type="button"
                     onClick={handleNextStep}
-                    className="h-12 sm:h-11 px-6 rounded-2xl font-bold text-sm gap-2 bg-primary text-primary-foreground hover:bg-primary/90 shadow-2xs cursor-pointer w-full sm:w-auto order-1 sm:order-2 justify-center"
+                    className="font-bold text-sm gap-2 cursor-pointer w-full sm:w-auto order-1 sm:order-2 justify-center"
                   >
                     <span>Continuar al Paso {currentStep + 1}</span>
                     <ArrowRight className="size-4" />
@@ -767,7 +710,7 @@ export function VacancyWizardContainer({
                       variant="outline"
                       onClick={handlePrevStep}
                       disabled={isSubmitting}
-                      className="h-11 px-5 rounded-2xl font-bold text-xs gap-2 cursor-pointer w-full sm:w-auto order-2 sm:order-1 border-border/80 hover:bg-muted justify-center"
+                      className="font-bold text-xs gap-2 cursor-pointer w-full sm:w-auto order-2 sm:order-1 justify-center"
                     >
                       <ArrowLeft className="size-4" />
                       <span>Paso Anterior</span>
@@ -777,7 +720,7 @@ export function VacancyWizardContainer({
                       type="button"
                       variant="ghost"
                       render={<Link href="/dashboard/company/vacancies" />}
-                      className="h-11 px-5 rounded-2xl font-semibold text-xs text-muted-foreground hover:text-foreground cursor-pointer w-full sm:w-auto order-2 sm:order-1 justify-center"
+                      className="font-semibold text-xs text-muted-foreground hover:text-foreground cursor-pointer w-full sm:w-auto order-2 sm:order-1 justify-center"
                     >
                       Cancelar
                     </Button>
@@ -791,7 +734,7 @@ export function VacancyWizardContainer({
                     type="button"
                     disabled={isSubmitting}
                     onClick={() => handleFinalSubmit(true)}
-                    className="h-12 sm:h-11 px-6 rounded-2xl font-bold text-sm gap-2 bg-primary text-primary-foreground hover:bg-primary/90 shadow-xs cursor-pointer w-full sm:w-auto order-1 sm:order-2 justify-center"
+                    className="font-bold text-sm gap-2 cursor-pointer w-full sm:w-auto order-1 sm:order-2 justify-center"
                   >
                     {isSubmitting ? (
                       <>
@@ -813,7 +756,7 @@ export function VacancyWizardContainer({
                       variant="outline"
                       onClick={handlePrevStep}
                       disabled={isSubmitting}
-                      className="h-11 px-4 rounded-2xl font-bold text-xs gap-1.5 cursor-pointer border-border/80 hover:bg-muted justify-center"
+                      className="font-bold text-xs gap-1.5 cursor-pointer justify-center"
                     >
                       <ArrowLeft className="size-3.5" />
                       <span>Anterior</span>
@@ -824,7 +767,7 @@ export function VacancyWizardContainer({
                       variant="outline"
                       disabled={isSubmitting}
                       onClick={() => handleFinalSubmit(false)}
-                      className="h-11 px-4 rounded-2xl font-bold text-xs gap-1.5 border-border/80 hover:bg-muted cursor-pointer shadow-2xs justify-center"
+                      className="font-bold text-xs gap-1.5 cursor-pointer justify-center"
                     >
                       <Save className="size-3.5 text-muted-foreground" />
                       <span className="truncate">{isEditing ? "Guardar" : "Borrador"}</span>

@@ -9,7 +9,7 @@ import {
   Star,
   CheckCircle2,
   ArrowRight,
-} from "lucide-react";
+} from "@/components/ui/icons";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -77,26 +77,26 @@ export function ApplicationsPipelineSummary({
   ];
 
   return (
-    <Card className="rounded-2xl border border-border/40 bg-card p-5 space-y-4 shadow-xs">
+    <Card className="p-5 sm:p-6 space-y-4">
       {/* Header */}
-      <div className="flex items-center justify-between gap-3 pb-2 border-b border-border/40">
-        <div className="flex items-center gap-2.5">
-          <div className="size-9 rounded-xl bg-blue-500/10 text-blue-600 dark:text-blue-400 flex items-center justify-center shrink-0">
-            <Inbox className="size-4.5" />
+      <div className="flex items-center justify-between gap-3 pb-3 border-b border-border">
+        <div className="flex items-center gap-3">
+          <div className="size-10 rounded-2xl bg-primary/10 text-primary flex items-center justify-center shrink-0">
+            <Inbox className="size-5" />
           </div>
           <div>
             <div className="flex items-center gap-2">
-              <h3 className="text-sm font-extrabold text-foreground tracking-tight">
+              <h3 className="text-base font-bold text-foreground">
                 Embudo de Postulaciones
               </h3>
               <Badge
                 variant="outline"
-                className="bg-primary/10 text-primary border-primary/20 text-[10px] font-bold px-2 py-0.2 rounded-full"
+                className="bg-primary/10 text-primary border-primary/20 text-xs font-semibold px-2 py-0.5 rounded-3xl"
               >
                 {summary.total} Totales
               </Badge>
             </div>
-            <p className="text-[11px] text-muted-foreground font-semibold">
+            <p className="text-xs text-muted-foreground font-medium mt-0.5">
               Estado de candidatos en proceso
             </p>
           </div>
@@ -106,17 +106,16 @@ export function ApplicationsPipelineSummary({
           variant="outline"
           size="sm"
           render={<Link href="/dashboard/company/applications" />}
-          className="rounded-xl text-[11px] font-bold h-7 px-2.5 border-border/60 hover:bg-muted/50 flex items-center gap-1"
         >
-          <span>Abrir Bandeja</span>
-          <ArrowRight className="size-3" />
+          <span>Bandeja</span>
+          <ArrowRight data-icon="inline-end" />
         </Button>
       </div>
 
       {/* Visual Pipeline Bar */}
       {summary.total > 0 ? (
-        <div className="space-y-2">
-          <div className="w-full h-2.5 bg-muted rounded-full overflow-hidden flex">
+        <div className="space-y-3">
+          <div className="w-full h-3 bg-muted rounded-full overflow-hidden flex">
             {summary.pending > 0 && (
               <div
                 className="bg-amber-500 h-full transition-all duration-300"
@@ -155,29 +154,29 @@ export function ApplicationsPipelineSummary({
           </div>
 
           {/* Grid Breakdown */}
-          <div className="grid grid-cols-2 gap-2 pt-1">
+          <div className="grid grid-cols-2 gap-2.5 pt-1">
             {STAGES.map((stage) => {
               const Icon = stage.icon;
               return (
                 <div
                   key={stage.label}
-                  className="p-2.5 rounded-xl border border-border/40 bg-background/60 flex items-center justify-between"
+                  className="p-3 rounded-2xl border border-border bg-card flex items-center justify-between"
                 >
                   <div className="flex items-center gap-2 min-w-0">
                     <div
                       className={cn(
-                        "size-6 rounded-lg flex items-center justify-center shrink-0",
+                        "size-7 rounded-xl flex items-center justify-center shrink-0",
                         stage.bgLight,
                         stage.textColor
                       )}
                     >
                       <Icon className="size-3.5" />
                     </div>
-                    <span className="text-[11px] text-muted-foreground font-semibold truncate">
+                    <span className="text-xs text-muted-foreground font-semibold truncate">
                       {stage.label}
                     </span>
                   </div>
-                  <span className={cn("text-xs font-bold font-mono", stage.textColor)}>
+                  <span className={cn("text-xs font-bold font-mono ml-2", stage.textColor)}>
                     {stage.count}
                   </span>
                 </div>
@@ -186,8 +185,8 @@ export function ApplicationsPipelineSummary({
           </div>
         </div>
       ) : (
-        <div className="py-4 px-3 text-center bg-muted/20 rounded-xl border border-dashed border-border/60">
-          <p className="text-xs text-muted-foreground font-medium">
+        <div className="py-6 px-4 text-center bg-muted/20 rounded-3xl border border-dashed border-border">
+          <p className="text-sm text-muted-foreground font-medium">
             Aún no hay postulaciones registradas en el pipeline.
           </p>
         </div>

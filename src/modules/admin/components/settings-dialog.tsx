@@ -53,7 +53,7 @@ import {
   CheckCircle2,
   Settings,
   Loader2,
-} from "lucide-react"
+} from "@/components/ui/icons"
 import {
   getSystemSettings,
   saveSystemSettings,

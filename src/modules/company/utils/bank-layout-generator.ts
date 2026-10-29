@@ -6,6 +6,8 @@ export interface GenerateLayoutResult {
   content: string;
   fileName: string;
   mimeType: string;
+  includedCount?: number;
+  skippedCount?: number;
 }
 
 /**
@@ -186,6 +188,22 @@ export function generateBankDispersalLayout(
   layoutType: BankLayoutType = "csv_universal",
   companyRfc = "KAN180101XYZ"
 ): GenerateLayoutResult {
+  // Only employees with valid 18-digit CLABE accounts can be included in bank dispersal layouts
+  const validEmployees = employees.filter(
+    (emp) => emp.bankAccount?.clabe && /^\d{18}$/.test(emp.bankAccount.clabe.trim())
+  );
+
+  if (validEmployees.length === 0) {
+    throw new Error(
+      "No hay colaboradores con cuenta CLABE interbancaria válida (18 dígitos) para generar el archivo de dispersión."
+    );
+  }
+
   const strategy = BankLayoutFactory.create(layoutType);
-  return strategy.generate(employees, periodName, companyRfc);
+  const result = strategy.generate(validEmployees, periodName, companyRfc);
+  return {
+    ...result,
+    includedCount: validEmployees.length,
+    skippedCount: employees.length - validEmployees.length,
+  };
 }

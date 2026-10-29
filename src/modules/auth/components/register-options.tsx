@@ -3,7 +3,7 @@
 import * as React from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ArrowRight, UserCheck, Building2, Check, Sparkles } from "lucide-react";
+import { ArrowRight, UserCheck, Building2, Check, Sparkles } from "@/components/ui/icons";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 

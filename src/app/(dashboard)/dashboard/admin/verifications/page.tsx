@@ -10,7 +10,7 @@ import {
   Users,
   ShieldCheck,
   Clock,
-} from "lucide-react";
+} from "@/components/ui/icons";
 
 export const metadata = {
   title: "Verificación de Expedientes | K'anPro Admin",

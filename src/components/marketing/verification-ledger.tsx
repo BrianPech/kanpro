@@ -2,7 +2,7 @@
 
 import React, { useState } from "react";
 import Link from "next/link";
-import { ShieldCheck, Check, ArrowRight, Building2, UserCheck, Lock } from "lucide-react";
+import { ShieldCheck, Check, ArrowRight, Building2, UserCheck, Lock } from "@/components/ui/icons";
 import { Button } from "@/components/ui/button";
 
 export function VerificationLedger() {

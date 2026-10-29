@@ -45,6 +45,7 @@ export const payrollEmployeeItemSchema = z.object({
     })
     .optional()
     .nullable(),
+  hasValidBankDetails: z.boolean().optional(),
 });
 
 export const dispersePayrollSchema = z.object({
@@ -80,7 +81,17 @@ export const closePayrollPeriodSchema = z.object({
   notes: z.string().max(500, "Las notas no pueden exceder 500 caracteres").optional(),
 });
 
+export const stampPayrollPeriodSchema = z.object({
+  payrollId: z.string().min(1, "El ID de nómina es obligatorio para timbrado fiscal"),
+});
+
+export const stampPayrollItemSchema = z.object({
+  itemId: z.string().uuid("El identificador del recibo debe ser un UUID válido"),
+});
+
 export type AdjustBonusesInput = z.infer<typeof adjustBonusesSchema>;
 export type DispersePayrollInput = z.infer<typeof dispersePayrollSchema>;
 export type UpdateEmployeeBankDetailsInput = z.infer<typeof updateEmployeeBankDetailsSchema>;
 export type ClosePayrollPeriodInput = z.infer<typeof closePayrollPeriodSchema>;
+export type StampPayrollPeriodInput = z.infer<typeof stampPayrollPeriodSchema>;
+export type StampPayrollItemInput = z.infer<typeof stampPayrollItemSchema>;

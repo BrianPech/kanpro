@@ -16,12 +16,13 @@ import {
   ArrowRight,
   X,
   Pipette,
-} from "lucide-react";
+} from "@/components/ui/icons";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
+import { Card, CardContent } from "@/components/ui/card";
 import {
   Dialog,
   DialogContent,
@@ -55,6 +56,7 @@ import {
   createPresetDepartmentsAction,
 } from "../../actions/areas";
 import type { DepartmentWithStats } from "../../services/company-areas";
+import { CompanyPageHeader } from "../shared/company-page-header";
 
 const COLOR_PALETTE = [
   { hex: "#6366f1", label: "Índigo" },
@@ -420,12 +422,29 @@ export function CompanyAreasView({
 
   return (
     <div className="w-full space-y-6 pb-12 animate-in fade-in duration-300">
-      {/* Encabezado semántico para accesibilidad */}
-      <h1 className="sr-only">Áreas & Departamentos</h1>
+      <CompanyPageHeader
+        title="Áreas & Departamentos"
+        description="Estructura organizacional, centros de costo y distribución de plantilla."
+        badge={
+          <Badge variant="outline" className="text-xs">
+            {departments.length} Registradas
+          </Badge>
+        }
+        actions={
+          <Button
+            onClick={() => setIsCreateOpen(true)}
+            size="sm"
+            className="cursor-pointer gap-1.5 font-bold"
+          >
+            <Plus className="size-4" />
+            <span>Nueva Área</span>
+          </Button>
+        }
+      />
 
       {/* Sugerencias Rápidas con 1 clic (si quedan sugerencias disponibles) */}
       {availableSuggestions.length > 0 && (
-        <div className="p-4 rounded-2xl border border-dashed border-primary/30 bg-primary/5 space-y-2.5">
+        <Card className="p-4 border-dashed border-primary/30 bg-primary/5 space-y-2.5">
           <div className="flex items-center gap-2">
             <Sparkles className="size-4 text-primary" />
             <span className="text-xs font-bold text-foreground">
@@ -442,14 +461,14 @@ export function CompanyAreasView({
                 type="button"
                 disabled={isAddingPreset === suggestion}
                 onClick={() => handleAddPreset(suggestion)}
-                className="px-2.5 py-1 text-xs font-semibold rounded-lg bg-background border border-border/70 text-foreground hover:bg-primary hover:text-primary-foreground hover:border-primary transition-all duration-150 cursor-pointer shadow-2xs flex items-center gap-1 disabled:opacity-50"
+                className="px-2.5 py-1 text-xs font-semibold rounded-full bg-background border border-border/70 text-foreground hover:bg-primary hover:text-primary-foreground hover:border-primary transition-all duration-150 cursor-pointer shadow-2xs flex items-center gap-1 disabled:opacity-50"
               >
                 <span>+</span>
                 <span>{suggestion}</span>
               </button>
             ))}
           </div>
-        </div>
+        </Card>
       )}
 
       {/* Barra de Búsqueda y Contador */}
@@ -460,7 +479,7 @@ export function CompanyAreasView({
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder="Buscar por nombre o descripción..."
-            className="h-10 pl-9 pr-8 rounded-xl bg-card border-border/70 text-xs sm:text-sm font-medium"
+            className="pl-9 pr-8 w-full"
           />
           {searchQuery && (
             <button
@@ -482,9 +501,9 @@ export function CompanyAreasView({
       {filteredDepartments.length > 0 ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {filteredDepartments.map((dept) => (
-            <div
+            <Card
               key={dept.id}
-              className="group p-5 rounded-2xl border border-border/80 bg-card hover:border-primary/40 hover:shadow-md transition-all duration-200 flex flex-col justify-between gap-4"
+              className="group p-5 hover:border-primary/40 hover:shadow-md transition-all duration-200 flex flex-col justify-between gap-4"
             >
               <div className="space-y-2.5">
                 {/* Header de la tarjeta */}
@@ -505,14 +524,14 @@ export function CompanyAreasView({
                       render={
                         <Button
                           variant="ghost"
-                          size="icon-sm"
-                          className="size-8 rounded-lg text-muted-foreground hover:text-foreground cursor-pointer"
+                          size="icon"
+                          className="size-8 text-muted-foreground hover:text-foreground cursor-pointer"
                         >
                           <MoreVertical className="size-4" />
                         </Button>
                       }
                     />
-                    <DropdownMenuContent align="end" className="rounded-xl w-36">
+                    <DropdownMenuContent align="end" className="w-36">
                       <DropdownMenuItem
                         onClick={() => handleOpenEdit(dept)}
                         className="text-xs font-semibold gap-2 cursor-pointer"
@@ -545,7 +564,7 @@ export function CompanyAreasView({
                 <div className="flex items-center gap-1.5">
                   <Badge
                     variant="outline"
-                    className="text-[11px] font-bold px-2 py-0.5 rounded-md border-border/60 bg-muted/40 text-foreground"
+                    className="text-[11px] font-bold"
                   >
                     <Users className="size-3 mr-1 text-muted-foreground" />
                     {dept.employee_count} empleado(s)
@@ -562,12 +581,12 @@ export function CompanyAreasView({
                   <ArrowRight className="size-3" />
                 </Link>
               </div>
-            </div>
+            </Card>
           ))}
         </div>
       ) : (
         /* Empty State */
-        <div className="p-8 sm:p-12 rounded-3xl border border-dashed border-border/80 bg-card text-center space-y-4">
+        <Card className="p-8 sm:p-12 border-dashed text-center space-y-4">
           <div className="size-14 rounded-2xl bg-muted/60 text-muted-foreground flex items-center justify-center mx-auto">
             <Layers className="size-7" />
           </div>
@@ -586,21 +605,22 @@ export function CompanyAreasView({
               <Button
                 type="button"
                 onClick={() => setIsCreateOpen(true)}
-                className="rounded-xl font-bold text-xs h-10 px-5 bg-primary text-primary-foreground hover:bg-primary/90 cursor-pointer shadow-xs"
+                size="sm"
+                className="font-bold cursor-pointer"
               >
                 <Plus className="size-4 mr-1.5" />
                 <span>Crear mi primera área</span>
               </Button>
             </div>
           )}
-        </div>
+        </Card>
       )}
 
       {/* ========================================================================= */}
       {/* MODAL: CREAR ÁREA                                                         */}
       {/* ========================================================================= */}
       <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
-        <DialogContent className="sm:max-w-md rounded-3xl p-6">
+        <DialogContent className="sm:max-w-md p-6">
           <DialogHeader className="space-y-1.5 pb-2 border-b border-border/40">
             <div className="flex items-center gap-2">
               <div className="size-9 rounded-xl bg-primary/10 text-primary flex items-center justify-center shrink-0">
@@ -628,7 +648,6 @@ export function CompanyAreasView({
                 value={createName}
                 onChange={(e) => setCreateName(e.target.value)}
                 placeholder="Ej. Cocina Caliente, Mostrador, Almacén General..."
-                className="h-10 rounded-xl bg-background border-border/70 text-xs sm:text-sm font-medium"
                 required
               />
             </div>
@@ -650,7 +669,7 @@ export function CompanyAreasView({
                 value={createDescription}
                 onChange={(e) => setCreateDescription(e.target.value)}
                 placeholder="Funciones principales, turnos o alcance de este departamento..."
-                className="min-h-[80px] rounded-xl bg-background border-border/70 text-xs sm:text-sm font-medium resize-none"
+                className="min-h-[80px] resize-none"
                 maxLength={250}
               />
               <span className="text-[10px] text-muted-foreground block text-right">
@@ -664,14 +683,14 @@ export function CompanyAreasView({
                 variant="outline"
                 disabled={isCreating}
                 onClick={() => setIsCreateOpen(false)}
-                className="rounded-xl font-semibold text-xs h-10 cursor-pointer"
+                className="font-semibold text-xs cursor-pointer"
               >
                 Cancelar
               </Button>
               <Button
                 type="submit"
                 disabled={isCreating}
-                className="rounded-xl font-bold text-xs h-10 px-5 bg-primary text-primary-foreground hover:bg-primary/90 shadow-xs cursor-pointer"
+                className="font-bold text-xs px-5 cursor-pointer"
               >
                 {isCreating ? "Guardando..." : "Guardar Área"}
               </Button>
@@ -684,7 +703,7 @@ export function CompanyAreasView({
       {/* MODAL: EDITAR ÁREA                                                        */}
       {/* ========================================================================= */}
       <Dialog open={isEditOpen} onOpenChange={setIsEditOpen}>
-        <DialogContent className="sm:max-w-md rounded-3xl p-6">
+        <DialogContent className="sm:max-w-md p-6">
           <DialogHeader className="space-y-1.5 pb-2 border-b border-border/40">
             <DialogTitle className="text-lg font-bold">
               Editar Área o Departamento
@@ -704,7 +723,6 @@ export function CompanyAreasView({
                 id="edit_name"
                 value={editName}
                 onChange={(e) => setEditName(e.target.value)}
-                className="h-10 rounded-xl bg-background border-border/70 text-xs sm:text-sm font-medium"
                 required
               />
             </div>
@@ -725,7 +743,7 @@ export function CompanyAreasView({
                 id="edit_desc"
                 value={editDescription}
                 onChange={(e) => setEditDescription(e.target.value)}
-                className="min-h-[80px] rounded-xl bg-background border-border/70 text-xs sm:text-sm font-medium resize-none"
+                className="min-h-[80px] resize-none"
                 maxLength={250}
               />
             </div>
@@ -736,14 +754,14 @@ export function CompanyAreasView({
                 variant="outline"
                 disabled={isUpdating}
                 onClick={() => setIsEditOpen(false)}
-                className="rounded-xl font-semibold text-xs h-10 cursor-pointer"
+                className="font-semibold text-xs cursor-pointer"
               >
                 Cancelar
               </Button>
               <Button
                 type="submit"
                 disabled={isUpdating}
-                className="rounded-xl font-bold text-xs h-10 px-5 bg-primary text-primary-foreground hover:bg-primary/90 shadow-xs cursor-pointer"
+                className="font-bold text-xs px-5 cursor-pointer"
               >
                 {isUpdating ? "Actualizando..." : "Guardar Cambios"}
               </Button>
@@ -756,7 +774,7 @@ export function CompanyAreasView({
       {/* ALERT DIALOG: ELIMINAR ÁREA                                              */}
       {/* ========================================================================= */}
       <AlertDialog open={isDeleteOpen} onOpenChange={setIsDeleteOpen}>
-        <AlertDialogContent className="rounded-3xl max-w-md p-6">
+        <AlertDialogContent className="max-w-md p-6">
           <AlertDialogHeader className="space-y-2">
             <div className="size-10 rounded-2xl bg-rose-500/10 text-rose-600 dark:text-rose-400 flex items-center justify-center">
               <AlertTriangle className="size-5" />
@@ -777,7 +795,7 @@ export function CompanyAreasView({
           <AlertDialogFooter className="pt-3 border-t border-border/40 gap-2">
             <AlertDialogCancel
               disabled={isDeleting}
-              className="rounded-xl font-semibold text-xs h-10 cursor-pointer"
+              className="font-semibold text-xs cursor-pointer"
             >
               Cancelar
             </AlertDialogCancel>
@@ -785,7 +803,7 @@ export function CompanyAreasView({
               <AlertDialogAction
                 disabled={isDeleting}
                 onClick={handleDeleteConfirm}
-                className="rounded-xl font-bold text-xs h-10 bg-rose-600 text-white hover:bg-rose-700 cursor-pointer"
+                className="font-bold text-xs bg-rose-600 text-white hover:bg-rose-700 cursor-pointer"
               >
                 {isDeleting ? "Eliminando..." : "Confirmar Eliminación"}
               </AlertDialogAction>

@@ -3,6 +3,10 @@ import { z } from "zod";
 export const evaluationQuestionnaireSchema = z.object({
   employee_id: z.string().min(1, "Debe seleccionar un colaborador para evaluar."),
   period: z.string().min(1, "El periodo de evaluación es requerido."),
+  evaluator_relation: z
+    .enum(["autoevaluacion", "jefe_directo", "par", "subordinado"])
+    .default("jefe_directo"),
+  potencial: z.enum(["1", "2", "3", "4", "5"]).default("4"),
   puntualidad: z.enum(["1", "2", "3", "4", "5"], {
     message: "Debe calificar la puntualidad del colaborador.",
   }),

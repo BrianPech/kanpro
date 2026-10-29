@@ -25,7 +25,7 @@ import {
   Building2Icon,
   ShieldCheckIcon,
   ChevronRight,
-} from "lucide-react";
+} from "@/components/ui/icons";
 import { cn } from "@/lib/utils";
 
 export interface CompanyTopbarUserProps {
@@ -174,7 +174,7 @@ export function CompanyTopbarUser({
           <div className="mt-2.5 pt-2 border-t border-border/30 flex items-center justify-between gap-1 text-[10px]">
             <Badge
               variant="outline"
-              className="text-[10px] font-bold bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20 px-2 py-0.5 rounded-md gap-1"
+              className="text-[10px] font-bold bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20 px-2 py-0.5 gap-1"
             >
               <Building2Icon className="size-3" />
               <span>Empresa</span>

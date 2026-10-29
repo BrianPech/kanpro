@@ -24,7 +24,7 @@ import {
   MapPin,
   Briefcase,
   Edit3,
-} from "lucide-react";
+} from "@/components/ui/icons";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -63,8 +63,10 @@ import {
   CompanyVerificationDoc,
   companyVerificationService,
 } from "../services/company-verification";
+import { saveCompanyVerificationAction } from "../actions/verification";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { CompanyPageHeader } from "./shared/company-page-header";
 
 interface CompanyVerificationViewProps {
   userId: string;
@@ -277,27 +279,28 @@ export function CompanyVerificationView({
     }
   };
 
-  // Save Draft Handler
+  // Save Draft Handler via Server Action
   const handleSaveDraft = async () => {
     setIsSaving(true);
     try {
-      await companyVerificationService.saveVerificationData(
-        userId,
-        {
-          legal_name: legalName,
-          company_name: companyName,
-          rfc: rfc.toUpperCase().trim(),
-          fiscal_address: fiscalAddress,
-          industry,
-          legal_rep_name: legalRepName,
-          corporate_email: corporateEmail,
-          contact_phone: contactPhone,
-          fiscal_regime: fiscalRegime,
-          entity_type: fiscalRegime,
-          terms_accepted: termsAccepted,
-        },
-        false
-      );
+      const res = await saveCompanyVerificationAction({
+        legal_name: legalName,
+        company_name: companyName,
+        rfc: rfc.toUpperCase().trim(),
+        fiscal_address: fiscalAddress,
+        industry,
+        legal_rep_name: legalRepName,
+        corporate_email: corporateEmail,
+        contact_phone: contactPhone,
+        fiscal_regime: fiscalRegime,
+        entity_type: fiscalRegime,
+        terms_accepted: termsAccepted,
+        submitForReview: false,
+      });
+
+      if (!res.success) {
+        throw new Error(res.error);
+      }
 
       toast.success("Avance guardado en borrador", {
         description: "Puedes continuar completando tu expediente en cualquier momento.",
@@ -312,7 +315,7 @@ export function CompanyVerificationView({
     }
   };
 
-  // Submit for Verification Handler
+  // Submit for Verification Handler via Server Action
   const handleSubmitVerification = async () => {
     if (completedCount < totalCount) {
       const missingItems = itemsChecklist
@@ -327,23 +330,24 @@ export function CompanyVerificationView({
 
     setIsSubmitting(true);
     try {
-      await companyVerificationService.saveVerificationData(
-        userId,
-        {
-          legal_name: legalName,
-          company_name: companyName,
-          rfc: rfc.toUpperCase().trim(),
-          fiscal_address: fiscalAddress,
-          industry,
-          legal_rep_name: legalRepName,
-          corporate_email: corporateEmail,
-          contact_phone: contactPhone,
-          fiscal_regime: fiscalRegime,
-          entity_type: fiscalRegime,
-          terms_accepted: termsAccepted,
-        },
-        true
-      );
+      const res = await saveCompanyVerificationAction({
+        legal_name: legalName,
+        company_name: companyName,
+        rfc: rfc.toUpperCase().trim(),
+        fiscal_address: fiscalAddress,
+        industry,
+        legal_rep_name: legalRepName,
+        corporate_email: corporateEmail,
+        contact_phone: contactPhone,
+        fiscal_regime: fiscalRegime,
+        entity_type: fiscalRegime,
+        terms_accepted: termsAccepted,
+        submitForReview: true,
+      });
+
+      if (!res.success) {
+        throw new Error(res.error);
+      }
 
       setVerificationStatus("pending");
       toast.success("¡Expediente enviado a revisión!", {
@@ -367,6 +371,19 @@ export function CompanyVerificationView({
       transition={{ duration: 0.25 }}
       className="space-y-6 w-full font-sans"
     >
+      <CompanyPageHeader
+        title="Verificación de Empresa"
+        description="Expediente digital de validación legal y fiscal corporativa ante K'anPro."
+        badge={
+          <Badge
+            variant="outline"
+            className="text-xs font-bold"
+          >
+            🔒 Confidencial SAT / K&apos;anPro
+          </Badge>
+        }
+      />
+
       {/* ========================================================================= */}
       {/* 1. SHADCN ALERT: ESTADO GLOBAL DEL EXPEDIENTE                             */}
       {/* ========================================================================= */}
@@ -401,7 +418,7 @@ export function CompanyVerificationView({
               variant="outline"
               onClick={handleUnlockForEdit}
               disabled={isSaving || isSubmitting}
-              className="h-9 px-3.5 rounded-xl text-xs font-bold border-amber-500/40 text-amber-900 dark:text-amber-200 hover:bg-amber-500/20 cursor-pointer flex items-center gap-1.5"
+              className="gap-1.5 font-bold border-amber-500/40 text-amber-900 dark:text-amber-200 hover:bg-amber-500/20 cursor-pointer"
             >
               <Edit3 className="size-3.5" />
               <span>Editar Expediente</span>
@@ -441,10 +458,10 @@ export function CompanyVerificationView({
       {/* ========================================================================= */}
       {/* 2. CARD PRINCIPAL UNIFICADA (HEADER + CONTENT + FOOTER)                   */}
       {/* ========================================================================= */}
-      <Card className="rounded-2xl border border-border/80 bg-card shadow-xs overflow-hidden">
+      <Card className="overflow-hidden">
         
         {/* ---------------- CARD HEADER: TÍTULO, BADGE Y BARRA DE PROGRESO -------- */}
-        <CardHeader className="p-5 sm:p-6 md:p-8 border-b border-border/60 space-y-4">
+        <CardHeader className="p-5 sm:p-6 md:p-8 border-b border-border space-y-4">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
             <div className="space-y-1">
               <div className="flex items-center gap-2.5 flex-wrap">
@@ -465,7 +482,7 @@ export function CompanyVerificationView({
             </div>
 
             <div className="shrink-0 flex items-center gap-2">
-              <span className="text-xs sm:text-sm font-extrabold text-foreground bg-muted/60 px-3 py-1.5 rounded-xl border border-border/60">
+              <span className="text-xs sm:text-sm font-extrabold text-foreground bg-muted/60 px-3 py-1.5 rounded-full border border-border/60">
                 {completedCount} de {totalCount} ({progressPercent}%)
               </span>
             </div>
@@ -481,7 +498,7 @@ export function CompanyVerificationView({
                 <div
                   key={index}
                   className={cn(
-                    "flex items-center gap-1.5 px-2 py-1 rounded-lg border text-[11px] font-semibold truncate transition-colors",
+                    "flex items-center gap-1.5 px-2 py-1 rounded-full border text-[11px] font-semibold truncate transition-colors",
                     item.isComplete
                       ? "bg-emerald-500/10 border-emerald-500/20 text-emerald-700 dark:text-emerald-300"
                       : "bg-muted/30 border-border/40 text-muted-foreground"
@@ -540,12 +557,12 @@ export function CompanyVerificationView({
                   }}
                   disabled={isReadOnly}
                 >
-                  <SelectTrigger className="h-11 w-full rounded-xl bg-input/40 border border-border/80 px-3.5 text-xs sm:text-sm font-semibold focus-visible:bg-background cursor-pointer">
+                  <SelectTrigger className="w-full">
                     <SelectValue placeholder="Selecciona el régimen">
                       {(val: string | null) => (val && FISCAL_REGIME_LABELS[val]) || val || "Selecciona el régimen"}
                     </SelectValue>
                   </SelectTrigger>
-                  <SelectContent className="rounded-xl border border-border/80 bg-popover text-xs font-semibold">
+                  <SelectContent>
                     <SelectItem value="persona_moral">
                       Persona Moral (Empresa / Sociedad - RFC 12 dígitos)
                     </SelectItem>
@@ -570,7 +587,7 @@ export function CompanyVerificationView({
                     value={legalName}
                     onChange={(e) => setLegalName(e.target.value)}
                     disabled={isReadOnly}
-                    className="h-11 rounded-xl bg-input/40 border border-border/80 pl-10 text-xs sm:text-sm font-semibold focus-visible:bg-background"
+                    className="pl-10 w-full"
                   />
                 </div>
               </div>
@@ -589,7 +606,7 @@ export function CompanyVerificationView({
                     value={companyName}
                     onChange={(e) => setCompanyName(e.target.value)}
                     disabled={isReadOnly}
-                    className="h-11 rounded-xl bg-input/40 border border-border/80 pl-10 text-xs sm:text-sm font-semibold focus-visible:bg-background"
+                    className="pl-10 w-full"
                   />
                 </div>
               </div>
@@ -617,7 +634,7 @@ export function CompanyVerificationView({
                     maxLength={fiscalRegime === "persona_moral" ? 12 : 13}
                     disabled={isReadOnly}
                     className={cn(
-                      "h-11 rounded-xl bg-input/40 border border-border/80 pl-10 text-xs sm:text-sm font-mono font-bold uppercase tracking-wider focus-visible:bg-background",
+                      "pl-10 w-full font-mono font-bold uppercase tracking-wider",
                       rfc.trim().length > 0 && !isRfcValid && "border-destructive text-destructive"
                     )}
                   />
@@ -640,10 +657,10 @@ export function CompanyVerificationView({
                   onValueChange={(val) => setIndustry(val || "")}
                   disabled={isReadOnly}
                 >
-                  <SelectTrigger className="h-11 w-full rounded-xl bg-input/40 border border-border/80 px-3.5 text-xs sm:text-sm font-semibold focus-visible:bg-background cursor-pointer">
+                  <SelectTrigger className="w-full">
                     <SelectValue placeholder="Selecciona el sector" />
                   </SelectTrigger>
-                  <SelectContent className="rounded-xl border border-border/80 bg-popover text-xs font-semibold">
+                  <SelectContent>
                     {INDUSTRY_OPTIONS.map((opt) => (
                       <SelectItem key={opt} value={opt}>
                         {opt}
@@ -667,7 +684,7 @@ export function CompanyVerificationView({
                     value={legalRepName}
                     onChange={(e) => setLegalRepName(e.target.value)}
                     disabled={isReadOnly}
-                    className="h-11 rounded-xl bg-input/40 border border-border/80 pl-10 text-xs sm:text-sm font-semibold focus-visible:bg-background"
+                    className="pl-10 w-full"
                   />
                 </div>
               </div>
@@ -688,7 +705,7 @@ export function CompanyVerificationView({
                     value={fiscalAddress}
                     onChange={(e) => setFiscalAddress(e.target.value)}
                     disabled={isReadOnly}
-                    className="h-11 rounded-xl bg-input/40 border border-border/80 pl-10 text-xs sm:text-sm font-semibold focus-visible:bg-background"
+                    className="pl-10 w-full"
                   />
                 </div>
               </div>
@@ -707,7 +724,7 @@ export function CompanyVerificationView({
                     value={corporateEmail}
                     onChange={(e) => setCorporateEmail(e.target.value)}
                     disabled={isReadOnly}
-                    className="h-11 rounded-xl bg-input/40 border border-border/80 pl-10 text-xs sm:text-sm font-semibold focus-visible:bg-background"
+                    className="pl-10 w-full"
                   />
                 </div>
               </div>
@@ -726,7 +743,7 @@ export function CompanyVerificationView({
                     value={contactPhone}
                     onChange={(e) => setContactPhone(e.target.value)}
                     disabled={isReadOnly}
-                    className="h-11 rounded-xl bg-input/40 border border-border/80 pl-10 text-xs sm:text-sm font-semibold focus-visible:bg-background"
+                    className="pl-10 w-full"
                   />
                 </div>
               </div>
@@ -871,9 +888,10 @@ export function CompanyVerificationView({
             <Button
               type="button"
               variant="outline"
+              size="sm"
               onClick={handleSaveDraft}
               disabled={isSaving || isSubmitting || isLocked}
-              className="h-10 px-4 rounded-xl text-xs font-bold border-border/80 hover:bg-muted cursor-pointer gap-1.5 shadow-none disabled:opacity-50 disabled:cursor-not-allowed"
+              className="font-bold cursor-pointer gap-1.5 shadow-none disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {isSaving ? (
                 <>
@@ -890,10 +908,11 @@ export function CompanyVerificationView({
 
             <Button
               type="button"
+              size="sm"
               onClick={handleSubmitVerification}
               disabled={isSubmitting || isSaving || completedCount < totalCount || isLocked}
               className={cn(
-                "h-10 px-6 rounded-xl text-xs font-bold gap-2 shadow-sm transition-all",
+                "font-bold gap-2 shadow-sm transition-all",
                 isApproved
                   ? "bg-emerald-600/15 text-emerald-700 dark:text-emerald-400 border border-emerald-500/30 opacity-80 cursor-not-allowed"
                   : isPendingReview
@@ -929,7 +948,7 @@ export function CompanyVerificationView({
 
       {/* PDF PREVIEW MODAL WITH SECURE SIGNED URL */}
       <Dialog open={!!previewDoc} onOpenChange={(open) => !open && setPreviewDoc(null)}>
-        <DialogContent className="sm:max-w-[700px] max-h-[90vh] overflow-y-auto rounded-2xl bg-background border border-border/80 p-6 space-y-4">
+        <DialogContent className="sm:max-w-[700px] max-h-[90vh] overflow-y-auto p-6 space-y-4">
           <DialogHeader>
             <DialogTitle className="text-base font-bold text-foreground flex items-center gap-2">
               <FileText className="size-5 text-primary" />
@@ -940,7 +959,7 @@ export function CompanyVerificationView({
             </DialogDescription>
           </DialogHeader>
 
-          <div className="p-3 bg-muted/30 border border-border/60 rounded-xl flex flex-col items-center justify-center text-center space-y-3">
+          <div className="p-3 bg-muted/30 border border-border/60 rounded-2xl flex flex-col items-center justify-center text-center space-y-3">
             {previewDoc?.url && (
               <div className="w-full space-y-3">
                 {previewDoc.fileName.toLowerCase().endsWith(".pdf") ? (
@@ -964,7 +983,7 @@ export function CompanyVerificationView({
                     href={previewDoc.url}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="inline-flex items-center gap-2 px-5 py-2.5 bg-primary text-primary-foreground rounded-xl text-xs font-bold shadow-xs hover:bg-primary/90"
+                    className="inline-flex items-center gap-2 px-5 py-2.5 bg-primary text-primary-foreground rounded-full text-xs font-bold shadow-xs hover:bg-primary/90"
                   >
                     <span>Abrir en Pestaña Completa</span>
                     <ExternalLink className="size-3.5" />
@@ -1005,7 +1024,7 @@ function DocumentUploadCard({
   const fileInputRef = React.useRef<HTMLInputElement | null>(null);
 
   return (
-    <div className="p-4 bg-muted/20 border border-border/80 rounded-xl space-y-3 flex flex-col justify-between">
+    <div className="p-4 bg-muted/20 border border-border/80 rounded-3xl space-y-3 flex flex-col justify-between">
       <div>
         <div className="flex items-start justify-between gap-2">
           <div>
@@ -1030,7 +1049,7 @@ function DocumentUploadCard({
 
         {/* Existing Doc Item */}
         {doc ? (
-          <div className="mt-3 p-3 bg-card border border-border/80 rounded-xl flex items-center justify-between gap-3 shadow-2xs">
+          <div className="mt-3 p-3 bg-card border border-border/80 rounded-2xl flex items-center justify-between gap-3 shadow-2xs">
             <div className="flex items-center gap-2.5 min-w-0">
               <FileText className="size-5 text-primary shrink-0" />
               <div className="min-w-0">
@@ -1074,7 +1093,7 @@ function DocumentUploadCard({
             onClick={() => fileInputRef.current?.click()}
             aria-label={`Subir documento ${title}`}
             className={cn(
-              "w-full mt-3 p-4 bg-background rounded-xl border-2 border-dashed transition-all text-center flex flex-col items-center justify-center space-y-1.5 focus-visible:ring-2 focus-visible:ring-primary focus-visible:outline-hidden",
+              "w-full mt-3 p-4 bg-background rounded-2xl border-2 border-dashed transition-all text-center flex flex-col items-center justify-center space-y-1.5 focus-visible:ring-2 focus-visible:ring-primary focus-visible:outline-hidden",
               disabled
                 ? "border-border/40 bg-muted/10 opacity-60 cursor-not-allowed"
                 : isUploading
