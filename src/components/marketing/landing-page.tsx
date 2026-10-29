@@ -2,7 +2,7 @@
 
 import React from "react";
 import { Navbar } from "@/components/marketing/navbar";
-import { HeroSection } from "@/components/marketing/hero-section";
+import { Hero1 } from "@/components/blocks/hero-1";
 import { FeaturesDarkBand } from "@/components/marketing/features-dark-band";
 import { ComparisonLightBand } from "@/components/marketing/comparison-light-band";
 import { FaqLightBand } from "@/components/marketing/faq-light-band";
@@ -18,7 +18,7 @@ export function LandingPage() {
       {/* 2. Light Fiord Marketing Bands */}
       <main className="flex-1">
         {/* Band 1: Interactive Split Hero Section */}
-        <HeroSection />
+        <Hero1 />
 
         {/* Band 2: Operating Suite Band (Empresas, Candidatos & SAT Audit) */}
         <FeaturesDarkBand />

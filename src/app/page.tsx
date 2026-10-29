@@ -1,5 +1,5 @@
 import { Navbar } from "@/components/marketing/navbar";
-import { HeroSection } from "@/components/marketing/hero-section";
+import { Hero1 } from "@/components/blocks/hero-1";
 import { FeaturesDarkBand } from "@/components/marketing/features-dark-band";
 import { ComparisonLightBand } from "@/components/marketing/comparison-light-band";
 import { FaqLightBand } from "@/components/marketing/faq-light-band";
@@ -19,7 +19,7 @@ export default function Home() {
       <div className="relative z-10 flex min-h-screen w-full flex-col">
         <Navbar />
         <main className="flex-1">
-          <HeroSection />
+          <Hero1 />
           <FeaturesDarkBand />
           <ComparisonLightBand />
           <FaqLightBand />
