@@ -2,7 +2,7 @@ import { Navigation14 } from "@/components/blocks/navigation-14";
 import { Hero1 } from "@/components/blocks/hero-1";
 import { FeaturesDarkBand } from "@/components/marketing/features-dark-band";
 import { Comparison8 } from "@/components/blocks/comparison-8";
-import { FaqLightBand } from "@/components/marketing/faq-light-band";
+import { Faq7 } from "@/components/blocks/faq-7";
 import { CtaBanner } from "@/components/marketing/cta-banner";
 import { Footer } from "@/components/marketing/footer";
 
@@ -22,7 +22,7 @@ export default function Home() {
           <Hero1 />
           <FeaturesDarkBand />
           <Comparison8 />
-          <FaqLightBand />
+          <Faq7 />
           <CtaBanner />
         </main>
         <Footer />

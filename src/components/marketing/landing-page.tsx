@@ -5,7 +5,7 @@ import { Navigation14 } from "@/components/blocks/navigation-14";
 import { Hero1 } from "@/components/blocks/hero-1";
 import { FeaturesDarkBand } from "@/components/marketing/features-dark-band";
 import { Comparison8 } from "@/components/blocks/comparison-8";
-import { FaqLightBand } from "@/components/marketing/faq-light-band";
+import { Faq7 } from "@/components/blocks/faq-7";
 import { CtaBanner } from "@/components/marketing/cta-banner";
 import { Footer } from "@/components/marketing/footer";
 
@@ -26,8 +26,8 @@ export function LandingPage() {
         {/* Band 3: Capability Matrix Comparison 8 */}
         <Comparison8 />
 
-        {/* Band 4: FAQ Accordion Band */}
-        <FaqLightBand />
+        {/* Band 4: Help Center FAQ 7 */}
+        <Faq7 />
 
         {/* Band 5: Floating Light CTA Banner */}
         <CtaBanner />
