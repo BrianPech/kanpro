@@ -11,7 +11,6 @@ import {
   Lock,
   FileText,
   ArrowRight,
-  ArrowLeft,
   BookOpen,
   ChevronRight,
   Send,
@@ -22,17 +21,15 @@ import {
   MapPin,
   Clock,
   CheckCircle2,
-  AlertTriangle,
   Info,
   ThumbsUp,
   ThumbsDown,
-  Layers,
 } from "@/components/ui/icons";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Kbd } from "@/components/ui/kbd";
-import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
+import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import {
   Sheet,
   SheetTrigger,
@@ -40,7 +37,6 @@ import {
   SheetHeader,
   SheetTitle,
   SheetDescription,
-  SheetClose,
 } from "@/components/ui/sheet";
 import {
   Breadcrumb,
@@ -159,7 +155,7 @@ export function HelpCenterClient({ navigation }: HelpCenterClientProps) {
       const url = `${window.location.origin}/help/${roleKey}/${activeDocId}`;
       navigator.clipboard.writeText(url);
       setCopiedLink(true);
-      toast.success("Enlace a la guía copiado al portapapeles");
+      toast.success("Enlace copiado al portapapeles");
       setTimeout(() => setCopiedLink(false), 2000);
     }
   };
@@ -178,14 +174,14 @@ export function HelpCenterClient({ navigation }: HelpCenterClientProps) {
       {/* ========================================================= */}
       {/* 1. MOBILE DRAWER TRIGGER BAR                              */}
       {/* ========================================================= */}
-      <div className="lg:hidden sticky top-14 z-30 flex items-center justify-between border-b border-border/60 bg-background/95 backdrop-blur-md px-4 py-2.5 shadow-2xs">
+      <div className="lg:hidden sticky top-14 z-30 flex items-center justify-between border-b border-border bg-background/95 backdrop-blur-md px-4 py-2.5 shadow-2xs">
         <Sheet open={isMobileDrawerOpen} onOpenChange={setIsMobileDrawerOpen}>
           <SheetTrigger
             render={
               <Button
                 variant="outline"
                 size="sm"
-                className="gap-2 text-xs font-semibold rounded-xl border-border bg-card shadow-2xs"
+                className="gap-2 text-xs font-semibold rounded-lg border-border bg-card shadow-2xs"
               >
                 <Menu className="size-4 text-primary" />
                 <span>Explorar Índice ({filteredSections.reduce((acc, s) => acc + s.items.length, 0)})</span>
@@ -196,13 +192,13 @@ export function HelpCenterClient({ navigation }: HelpCenterClientProps) {
             side="left"
             className="w-[85vw] max-w-sm p-0 flex flex-col z-50 bg-background border-r border-border"
           >
-            <SheetHeader className="p-4 border-b border-border/60 text-left">
+            <SheetHeader className="p-4 border-b border-border text-left">
               <div className="flex items-center gap-2">
                 <div className="size-8 rounded-lg bg-primary/10 text-primary flex items-center justify-center">
                   <BookOpen className="size-4" />
                 </div>
                 <div>
-                  <SheetTitle className="text-sm font-bold">Documentación K&apos;anPro</SheetTitle>
+                  <SheetTitle className="text-sm font-semibold">Documentación K&apos;anPro</SheetTitle>
                   <SheetDescription className="text-xs">
                     Navega por temas y requerimientos
                   </SheetDescription>
@@ -211,12 +207,12 @@ export function HelpCenterClient({ navigation }: HelpCenterClientProps) {
             </SheetHeader>
 
             {/* Role Switcher inside Drawer */}
-            <div className="p-3 border-b border-border/60 bg-muted/10 space-y-2">
+            <div className="p-3 border-b border-border bg-muted/20 space-y-2">
               <RoleSwitcher activeRole={activeRole} onRoleChange={handleSwitchRole} />
 
               {/* Drawer Search */}
               <div className="relative mt-2.5">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-3.5 text-muted-foreground" />
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-3.5 text-muted-foreground pointer-events-none" />
                 <Input
                   type="search"
                   placeholder="Filtrar temas..."
@@ -232,8 +228,8 @@ export function HelpCenterClient({ navigation }: HelpCenterClientProps) {
               {filteredSections.map((section, idx) => {
                 const IconComponent = getSectionIcon(section.title);
                 return (
-                  <div key={idx} className="space-y-1.5">
-                    <div className="flex items-center gap-1.5 px-2 text-[11px] font-mono font-bold text-muted-foreground uppercase tracking-wider">
+                  <div key={idx} className="space-y-1">
+                    <div className="flex items-center gap-1.5 px-2 text-[11px] font-mono font-medium text-muted-foreground uppercase tracking-wider">
                       <IconComponent className="size-3.5 text-primary" />
                       <span>{section.title}</span>
                     </div>
@@ -245,17 +241,17 @@ export function HelpCenterClient({ navigation }: HelpCenterClientProps) {
                             <button
                               type="button"
                               onClick={() => handleSelectDoc(item.id)}
-                              className={`w-full text-left px-3 py-2 rounded-lg text-xs flex items-center justify-between transition-colors ${
+                              className={`w-full text-left px-2.5 py-1.5 rounded-lg text-xs flex items-center justify-between transition-colors ${
                                 isActive
-                                  ? "bg-primary/10 text-primary font-semibold border-l-2 border-primary"
-                                  : "text-muted-foreground hover:text-foreground hover:bg-accent/40"
+                                  ? "bg-accent text-accent-foreground font-semibold"
+                                  : "text-muted-foreground hover:text-foreground hover:bg-muted/60"
                               }`}
                             >
                               <span className="line-clamp-1">{item.title}</span>
                               {item.badge && (
                                 <Badge
                                   variant="secondary"
-                                  className="text-[9px] px-1 py-0 h-3.5 shrink-0 ml-1 font-mono"
+                                  className="text-[9px] px-1 py-0 h-3.5 shrink-0 ml-1 font-mono font-normal"
                                 >
                                   {item.badge}
                                 </Badge>
@@ -271,7 +267,7 @@ export function HelpCenterClient({ navigation }: HelpCenterClientProps) {
             </div>
 
             {/* Drawer Bottom Support Link */}
-            <div className="p-3 border-t border-border/60 bg-muted/20">
+            <div className="p-3 border-t border-border bg-muted/20">
               <Link
                 href="https://wa.me/529990000000"
                 target="_blank"
@@ -303,7 +299,7 @@ export function HelpCenterClient({ navigation }: HelpCenterClientProps) {
             aria-label="Índice de documentación"
             className="hidden lg:flex flex-col w-72 xl:w-80 shrink-0 sticky top-20 h-[calc(100vh-5rem)] overflow-y-auto border-r border-border py-6 pr-6 gap-6 [scrollbar-gutter:stable] self-start"
           >
-            {/* Header: Role Switcher Dropdown */}
+            {/* Header: Role Switcher Segmented Control */}
             <RoleSwitcher activeRole={activeRole} onRoleChange={handleSwitchRole} />
 
             {/* Interactive Search Trigger / Filter Bar */}
@@ -314,10 +310,10 @@ export function HelpCenterClient({ navigation }: HelpCenterClientProps) {
                 placeholder="Buscar guías en tiempo real..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="h-9 pl-9 pr-14 text-xs rounded-xl bg-card border-border shadow-2xs focus-visible:ring-1 focus-visible:ring-primary placeholder:text-muted-foreground"
+                className="h-9 pl-9 pr-14 text-xs rounded-lg bg-muted/40 border-border focus-visible:ring-1 focus-visible:ring-primary placeholder:text-muted-foreground"
               />
-              <div className="absolute right-2.5 top-1/2 -translate-y-1/2 flex items-center">
-                <Kbd className="text-[10px] font-mono font-semibold text-muted-foreground bg-muted border border-border px-1.5 py-0.5 rounded">
+              <div className="absolute right-2.5 top-1/2 -translate-y-1/2 flex items-center pointer-events-none">
+                <Kbd className="text-[10px] font-mono font-medium text-muted-foreground bg-background border border-border px-1.5 py-0.5 rounded">
                   ⌘K
                 </Kbd>
               </div>
@@ -333,8 +329,8 @@ export function HelpCenterClient({ navigation }: HelpCenterClientProps) {
                 filteredSections.map((section, idx) => {
                   const SectionIcon = getSectionIcon(section.title);
                   return (
-                    <div key={idx} className="flex flex-col gap-1.5">
-                      <div className="flex items-center gap-2 px-2 text-[11px] font-mono font-bold text-muted-foreground uppercase tracking-wider">
+                    <div key={idx} className="flex flex-col gap-1">
+                      <div className="flex items-center gap-2 px-2 text-[11px] font-mono font-medium text-muted-foreground uppercase tracking-wider">
                         <SectionIcon className="size-3.5 text-primary" />
                         <span>{section.title}</span>
                       </div>
@@ -346,10 +342,10 @@ export function HelpCenterClient({ navigation }: HelpCenterClientProps) {
                               <button
                                 type="button"
                                 onClick={() => handleSelectDoc(item.id)}
-                                className={`w-full text-left px-2.5 py-1.5 rounded-lg text-xs flex items-center justify-between transition-all group ${
+                                className={`w-full text-left px-2.5 py-1.5 rounded-lg text-xs flex items-center justify-between transition-all group cursor-pointer ${
                                   isActive
-                                    ? "bg-primary/10 text-primary font-bold border-l-2 border-primary"
-                                    : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
+                                    ? "bg-accent text-accent-foreground font-semibold"
+                                    : "text-muted-foreground hover:text-foreground hover:bg-muted/60"
                                 }`}
                               >
                                 <span className="line-clamp-1">{item.title}</span>
@@ -365,7 +361,7 @@ export function HelpCenterClient({ navigation }: HelpCenterClientProps) {
                                   <ChevronRight
                                     className={`size-3 transition-transform ${
                                       isActive
-                                        ? "text-primary opacity-100 translate-x-0.5"
+                                        ? "text-foreground opacity-100 translate-x-0.5"
                                         : "opacity-0 group-hover:opacity-60"
                                     }`}
                                   />
@@ -382,25 +378,25 @@ export function HelpCenterClient({ navigation }: HelpCenterClientProps) {
             </nav>
 
             {/* Sidebar Bottom Regional Badge */}
-            <div className="pt-4 border-t border-border/60">
-              <div className="rounded-xl border border-border/70 bg-card p-3 space-y-2">
+            <div className="pt-4 border-t border-border">
+              <Card className="rounded-xl border-border bg-card p-3 space-y-2 shadow-2xs">
                 <div className="flex items-center gap-2">
                   <div className="size-2 rounded-full bg-emerald-500 animate-pulse" />
-                  <span className="text-[11px] font-semibold text-foreground">Soporte Operativo Sureste</span>
+                  <span className="text-xs font-semibold text-foreground">Soporte Operativo Sureste</span>
                 </div>
-                <p className="text-[11px] text-muted-foreground leading-relaxed">
+                <p className="text-xs text-muted-foreground leading-relaxed">
                   ¿Dudas con tu Opinión 32-D o vacante? Conecta con nuestro equipo local.
                 </p>
                 <Link
                   href="https://wa.me/529990000000"
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="inline-flex items-center gap-1 text-[11px] font-medium text-primary hover:underline"
+                  className="inline-flex items-center gap-1 text-xs font-medium text-primary hover:underline"
                 >
                   <span>Abrir chat de WhatsApp</span>
                   <ExternalLink className="size-3" />
                 </Link>
-              </div>
+              </Card>
             </div>
           </aside>
 
@@ -410,7 +406,7 @@ export function HelpCenterClient({ navigation }: HelpCenterClientProps) {
           <div className="flex-1 min-w-0 py-6 max-w-4xl">
             <article className="space-y-8 sm:space-y-10">
               {/* Breadcrumb Bar & Quick Utilities */}
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-2 border-b border-border/40">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-border">
                 <Breadcrumb>
                   <BreadcrumbList>
                     <BreadcrumbItem>
@@ -428,7 +424,7 @@ export function HelpCenterClient({ navigation }: HelpCenterClientProps) {
                     </BreadcrumbItem>
                     <BreadcrumbSeparator />
                     <BreadcrumbItem>
-                      <BreadcrumbPage className="font-semibold text-foreground line-clamp-1">
+                      <BreadcrumbPage className="font-medium text-foreground line-clamp-1">
                         {currentDocMeta.item.title}
                       </BreadcrumbPage>
                     </BreadcrumbItem>
@@ -440,8 +436,9 @@ export function HelpCenterClient({ navigation }: HelpCenterClientProps) {
                   <Button
                     variant="outline"
                     size="sm"
+                    nativeButton={false}
                     render={<Link href={`/help/${roleKey}/${currentDocMeta.item.id}`} />}
-                    className="h-8 px-2.5 rounded-lg text-xs gap-1.5"
+                    className="h-8 px-2.5 rounded-lg text-xs gap-1.5 cursor-pointer"
                   >
                     <ExternalLink className="size-3.5" />
                     <span>Ver página completa</span>
@@ -472,33 +469,33 @@ export function HelpCenterClient({ navigation }: HelpCenterClientProps) {
                 <div className="flex flex-wrap items-center gap-2">
                   <Badge
                     variant="outline"
-                    className="text-xs font-mono font-bold text-primary border-primary/30 bg-primary/5"
+                    className="text-xs font-mono font-medium text-primary border-primary/30"
                   >
                     {currentDocMeta.sectionTitle.toUpperCase()}
                   </Badge>
                   {currentDocMeta.item.badge && (
-                    <Badge variant="secondary" className="text-xs font-mono">
+                    <Badge variant="secondary" className="text-xs font-mono font-normal">
                       {currentDocMeta.item.badge}
                     </Badge>
                   )}
-                  <span className="inline-flex items-center gap-1 text-xs text-muted-foreground ml-auto">
-                    <Clock className="size-3.5" />
+                  <span className="inline-flex items-center gap-1 text-xs text-muted-foreground ml-auto font-mono">
+                    <Clock className="size-3.5 text-primary" />
                     <span>{currentDocMeta.item.readTime || "3 min de lectura"}</span>
                   </span>
                 </div>
 
-                <h1 className="text-2xl sm:text-4xl font-black tracking-tight text-foreground font-sans leading-tight">
+                <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold tracking-tight text-foreground font-heading leading-tight">
                   {currentDocMeta.item.title}
                 </h1>
 
                 {currentDocMeta.item.description && (
-                  <p className="text-sm sm:text-base text-muted-foreground font-normal leading-relaxed text-balance">
+                  <p className="text-base sm:text-lg text-muted-foreground font-normal leading-relaxed text-pretty">
                     {currentDocMeta.item.description}
                   </p>
                 )}
 
                 {/* Metadata Pill Banner */}
-                <div className="flex flex-wrap items-center gap-4 pt-2 text-xs text-muted-foreground border-y border-border/50 py-3">
+                <div className="flex flex-wrap items-center gap-4 pt-2 text-xs text-muted-foreground border-y border-border py-3">
                   <div className="flex items-center gap-1.5">
                     <CheckCircle2 className="size-3.5 text-primary" />
                     <span>
@@ -521,56 +518,61 @@ export function HelpCenterClient({ navigation }: HelpCenterClientProps) {
               </header>
 
               {/* Quick Jump Callout */}
-              <section className="rounded-2xl border-l-4 border-l-primary border border-border bg-card p-4 sm:p-5 shadow-2xs flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                <div className="space-y-1">
-                  <div className="flex items-center gap-2 text-xs font-mono font-bold text-primary uppercase">
-                    <Info className="size-4" />
-                    <span>Artículo Oficial MDX</span>
+              <Card className="rounded-xl border border-border bg-card shadow-2xs">
+                <CardContent className="p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                  <div className="space-y-1">
+                    <div className="flex items-center gap-2 text-xs font-mono font-semibold text-primary uppercase">
+                      <Info className="size-4" />
+                      <span>Artículo Oficial MDX</span>
+                    </div>
+                    <p className="text-xs sm:text-sm text-muted-foreground">
+                      Esta guía cuenta con versión completa con tablas interactivas, pasos validados y soporte por WhatsApp.
+                    </p>
                   </div>
-                  <p className="text-xs sm:text-sm text-muted-foreground">
-                    Esta guía cuenta con versión completa con tablas interactivas, pasos validados y soporte por WhatsApp.
-                  </p>
-                </div>
-                <Button
-                  render={<Link href={`/help/${roleKey}/${currentDocMeta.item.id}`} />}
-                  size="sm"
-                  className="rounded-xl text-xs gap-1.5 shrink-0"
-                >
-                  <span>Abrir artículo completo</span>
-                  <ArrowRight className="size-3.5" />
-                </Button>
-              </section>
+                  <Button
+                    nativeButton={false}
+                    render={<Link href={`/help/${roleKey}/${currentDocMeta.item.id}`} />}
+                    size="sm"
+                    className="rounded-lg text-xs gap-1.5 shrink-0 cursor-pointer"
+                  >
+                    <span>Abrir artículo completo</span>
+                    <ArrowRight className="size-3.5" />
+                  </Button>
+                </CardContent>
+              </Card>
 
               {/* Interactive Feedback Widget */}
-              <section className="rounded-2xl border border-border bg-muted/30 p-5 sm:p-6 flex flex-col sm:flex-row items-center justify-between gap-4">
-                <div className="space-y-1 text-center sm:text-left">
-                  <h4 className="text-sm font-bold text-foreground">¿Te fue útil esta guía de ayuda?</h4>
-                  <p className="text-xs text-muted-foreground">
-                    Tus comentarios ayudan a mejorar la documentación para toda la comunidad del Sureste.
-                  </p>
-                </div>
+              <Card className="rounded-xl border border-border bg-muted/30 shadow-2xs">
+                <CardContent className="p-5 sm:p-6 flex flex-col sm:flex-row items-center justify-between gap-4">
+                  <div className="space-y-1 text-center sm:text-left">
+                    <h4 className="text-sm font-semibold text-foreground">¿Te fue útil esta guía de ayuda?</h4>
+                    <p className="text-xs text-muted-foreground">
+                      Tus comentarios ayudan a mejorar la documentación para toda la comunidad del Sureste.
+                    </p>
+                  </div>
 
-                <div className="flex items-center gap-2">
-                  <Button
-                    variant={feedbackGiven === "yes" ? "default" : "outline"}
-                    size="sm"
-                    onClick={() => handleFeedback("yes")}
-                    className="h-9 px-3.5 rounded-xl text-xs font-semibold gap-1.5 cursor-pointer"
-                  >
-                    <ThumbsUp className="size-3.5" />
-                    <span>Sí, me sirvió</span>
-                  </Button>
-                  <Button
-                    variant={feedbackGiven === "no" ? "destructive" : "outline"}
-                    size="sm"
-                    onClick={() => handleFeedback("no")}
-                    className="h-9 px-3.5 rounded-xl text-xs font-semibold gap-1.5 cursor-pointer"
-                  >
-                    <ThumbsDown className="size-3.5" />
-                    <span>No resolvió mi duda</span>
-                  </Button>
-                </div>
-              </section>
+                  <div className="flex items-center gap-2">
+                    <Button
+                      variant={feedbackGiven === "yes" ? "default" : "outline"}
+                      size="sm"
+                      onClick={() => handleFeedback("yes")}
+                      className="h-9 px-3.5 rounded-lg text-xs font-semibold gap-1.5 cursor-pointer"
+                    >
+                      <ThumbsUp className="size-3.5" />
+                      <span>Sí, me sirvió</span>
+                    </Button>
+                    <Button
+                      variant={feedbackGiven === "no" ? "destructive" : "outline"}
+                      size="sm"
+                      onClick={() => handleFeedback("no")}
+                      className="h-9 px-3.5 rounded-lg text-xs font-semibold gap-1.5 cursor-pointer"
+                    >
+                      <ThumbsDown className="size-3.5" />
+                      <span>No resolvió mi duda</span>
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
             </article>
           </div>
 
@@ -579,23 +581,23 @@ export function HelpCenterClient({ navigation }: HelpCenterClientProps) {
           {/* ======================================================= */}
           <aside className="hidden xl:flex flex-col w-64 shrink-0 sticky top-20 h-[calc(100vh-5rem)] py-6 space-y-6 self-start">
             {/* Quick Actions Card */}
-            <Card className="rounded-2xl border-border bg-card shadow-2xs">
-              <CardHeader className="pb-3">
-                <CardTitle className="text-xs font-mono uppercase tracking-wider font-bold text-muted-foreground flex items-center gap-2">
+            <Card className="rounded-xl border-border bg-card shadow-2xs">
+              <CardHeader className="pb-3 pt-5 px-5">
+                <CardTitle className="text-xs font-mono uppercase tracking-wider font-semibold text-muted-foreground flex items-center gap-2">
                   <BookOpen className="size-3.5 text-primary" />
                   <span>En esta categoría</span>
                 </CardTitle>
               </CardHeader>
-              <CardContent className="space-y-2">
+              <CardContent className="space-y-1.5 px-5 pb-5">
                 {sectionsForRole.flatMap((s) => s.items).slice(0, 6).map((item) => (
                   <button
                     key={item.id}
                     type="button"
                     onClick={() => handleSelectDoc(item.id)}
-                    className={`w-full text-left text-xs p-1.5 rounded-lg flex items-center justify-between transition-colors ${
+                    className={`w-full text-left text-xs p-2 rounded-lg flex items-center justify-between transition-colors cursor-pointer ${
                       item.id === activeDocId
-                        ? "bg-primary/10 text-primary font-semibold"
-                        : "text-muted-foreground hover:text-foreground hover:bg-muted/40"
+                        ? "bg-accent text-accent-foreground font-semibold"
+                        : "text-muted-foreground hover:text-foreground hover:bg-muted/60"
                     }`}
                   >
                     <span className="line-clamp-1">{item.title}</span>
@@ -606,23 +608,26 @@ export function HelpCenterClient({ navigation }: HelpCenterClientProps) {
             </Card>
 
             {/* Direct Support Card */}
-            <div className="p-5 rounded-2xl bg-muted/40 border border-border space-y-3 text-left">
-              <div className="flex items-center gap-2 text-xs font-mono font-bold text-primary">
-                <MessageSquare className="size-3.5" />
-                <span>¿DUDAS CON ESTE PASO?</span>
-              </div>
-              <p className="text-xs text-muted-foreground leading-relaxed">
-                Escríbenos directamente por WhatsApp para asistencia personalizada en Mérida y Cancún.
-              </p>
-              <Button
-                render={<Link href="https://wa.me/529990000000" target="_blank" rel="noopener noreferrer" />}
-                size="sm"
-                className="w-full h-9 rounded-xl text-xs font-semibold gap-1.5 shadow-xs cursor-pointer"
-              >
-                <MessageSquare className="size-3.5" />
-                <span>Chatear con Soporte</span>
-              </Button>
-            </div>
+            <Card className="rounded-xl border-border bg-muted/30 shadow-2xs">
+              <CardContent className="p-5 space-y-3 text-left">
+                <div className="flex items-center gap-2 text-xs font-mono font-semibold text-primary">
+                  <MessageSquare className="size-3.5" />
+                  <span>¿DUDAS CON ESTE PASO?</span>
+                </div>
+                <p className="text-xs text-muted-foreground leading-relaxed">
+                  Escríbenos directamente por WhatsApp para asistencia personalizada en Mérida y Cancún.
+                </p>
+                <Button
+                  render={<Link href="https://wa.me/529990000000" target="_blank" rel="noopener noreferrer" />}
+                  nativeButton={false}
+                  size="sm"
+                  className="w-full h-9 rounded-lg text-xs font-semibold gap-1.5 shadow-xs cursor-pointer"
+                >
+                  <MessageSquare className="size-3.5" />
+                  <span>Chatear con Soporte</span>
+                </Button>
+              </CardContent>
+            </Card>
           </aside>
         </div>
       </div>

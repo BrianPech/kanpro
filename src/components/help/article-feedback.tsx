@@ -9,10 +9,10 @@ export function ArticleFeedback() {
   const [feedbackGiven, setFeedbackGiven] = useState<boolean | null>(null);
 
   return (
-    <div className="p-6 rounded-2xl border border-border bg-card text-card-foreground shadow-2xs space-y-4">
+    <div className="p-5 sm:p-6 rounded-xl border border-border bg-card text-card-foreground shadow-2xs space-y-4">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h2 className="text-sm font-bold text-foreground">
+          <h2 className="text-sm font-semibold text-foreground tracking-tight">
             ¿Te resultó útil este artículo?
           </h2>
           <p className="text-xs text-muted-foreground mt-0.5">
@@ -30,9 +30,9 @@ export function ArticleFeedback() {
                 setFeedbackGiven(true);
                 toast.success("¡Gracias por tu retroalimentación!");
               }}
-              className="h-8 gap-1.5 text-xs rounded-lg"
+              className="h-8 gap-1.5 text-xs rounded-lg cursor-pointer hover:bg-muted"
             >
-              <ThumbsUp className="size-3.5 text-emerald-500" />
+              <ThumbsUp className="size-3.5 text-primary" />
               <span>Sí, fue útil</span>
             </Button>
             <Button
@@ -43,30 +43,30 @@ export function ArticleFeedback() {
                 setFeedbackGiven(false);
                 toast.info("Anotado. Trabajaremos en mejorar esta guía.");
               }}
-              className="h-8 gap-1.5 text-xs rounded-lg"
+              className="h-8 gap-1.5 text-xs rounded-lg cursor-pointer hover:bg-muted text-muted-foreground"
             >
-              <ThumbsDown className="size-3.5 text-muted-foreground" />
+              <ThumbsDown className="size-3.5" />
               <span>No del todo</span>
             </Button>
           </div>
         ) : (
-          <div className="flex items-center gap-2 text-xs font-semibold text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 px-3 py-1.5 rounded-lg">
-            <CheckCircle2 className="size-4" />
+          <div className="flex items-center gap-2 text-xs font-medium text-foreground bg-muted px-3 py-1.5 rounded-lg border border-border">
+            <CheckCircle2 className="size-4 text-primary" />
             <span>¡Gracias por tus comentarios!</span>
           </div>
         )}
       </div>
 
-      <div className="pt-3 border-t border-border/60 flex flex-wrap items-center justify-between gap-2 text-xs text-muted-foreground">
+      <div className="pt-3 border-t border-border flex flex-wrap items-center justify-between gap-2 text-xs text-muted-foreground">
         <span>¿Dudas específicas no resueltas?</span>
         <a
           href="https://wa.me/529990000000"
           target="_blank"
           rel="noopener noreferrer"
-          className="font-semibold text-primary hover:underline inline-flex items-center gap-1"
+          className="font-medium text-primary hover:underline inline-flex items-center gap-1"
         >
           <MessageSquare className="size-3.5" />
-          <span>Contactar mesa de soporte</span>
+          <span>Contactar soporte directo</span>
         </a>
       </div>
     </div>
@@ -95,7 +95,7 @@ export function ShareArticleButton({ title }: { title: string }) {
     <button
       type="button"
       onClick={handleShare}
-      className="flex items-center gap-1.5 text-muted-foreground hover:text-foreground transition-colors cursor-pointer ml-auto"
+      className="flex items-center gap-1.5 text-muted-foreground hover:text-foreground transition-colors cursor-pointer ml-auto text-xs"
       title="Compartir este artículo"
     >
       <Share2 className="size-3.5" />

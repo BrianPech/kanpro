@@ -16,17 +16,8 @@ export default function HelpLayout({
 }) {
   return (
     <div className="relative min-h-screen w-full bg-background text-foreground flex flex-col justify-between selection:bg-primary selection:text-primary-foreground">
-      {/* Sutil resplandor ambiental de fondo */}
-      <div
-        className="pointer-events-none absolute inset-0 overflow-hidden"
-        aria-hidden="true"
-      >
-        <div className="absolute -top-32 left-1/2 -translate-x-1/2 w-[900px] h-[450px] rounded-full bg-primary/5 blur-[120px]" />
-        <div className="absolute top-96 right-[-5%] w-[400px] h-[400px] rounded-full bg-accent/30 blur-[130px]" />
-      </div>
-
       {/* Barra de navegación principal */}
-      <div className="relative z-20">
+      <div className="sticky top-0 z-40 w-full border-b border-border/60 bg-background/80 backdrop-blur-md">
         <Navbar />
       </div>
 
@@ -36,7 +27,7 @@ export default function HelpLayout({
       </main>
 
       {/* Pie de página */}
-      <div className="relative z-10">
+      <div className="relative z-10 border-t border-border">
         <Footer />
       </div>
     </div>

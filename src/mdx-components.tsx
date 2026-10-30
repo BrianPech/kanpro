@@ -15,18 +15,14 @@ export function useMDXComponents(components?: MDXComponents): MDXComponents {
     Badge,
     Button,
 
+    // El encabezado de página ya renderiza el título H1 principal con metadatos.
+    // Omitimos el H1 duplicado del MDX para mantener coherencia visual limpia.
+    h1: () => null,
+
     // Base HTML typography styled with Tailwind & shadcn tokens
-    h1: ({ children, ...props }) => (
-      <h1
-        className="text-3xl sm:text-4xl font-black tracking-tight text-foreground font-sans mt-8 mb-4 leading-tight"
-        {...props}
-      >
-        {children}
-      </h1>
-    ),
     h2: ({ children, ...props }) => (
       <h2
-        className="text-xl sm:text-2xl font-bold tracking-tight text-foreground font-sans mt-8 mb-3 pb-2 border-b border-border"
+        className="text-xl sm:text-2xl font-semibold tracking-tight text-foreground font-heading mt-8 mb-3 pb-2 border-b border-border"
         {...props}
       >
         {children}
@@ -34,7 +30,7 @@ export function useMDXComponents(components?: MDXComponents): MDXComponents {
     ),
     h3: ({ children, ...props }) => (
       <h3
-        className="text-lg sm:text-xl font-bold tracking-tight text-foreground font-sans mt-6 mb-2"
+        className="text-lg sm:text-xl font-semibold tracking-tight text-foreground font-heading mt-6 mb-2"
         {...props}
       >
         {children}
@@ -42,7 +38,7 @@ export function useMDXComponents(components?: MDXComponents): MDXComponents {
     ),
     h4: ({ children, ...props }) => (
       <h4
-        className="text-base font-bold text-foreground font-sans mt-4 mb-2"
+        className="text-base font-semibold text-foreground font-heading mt-4 mb-2"
         {...props}
       >
         {children}
@@ -79,7 +75,7 @@ export function useMDXComponents(components?: MDXComponents): MDXComponents {
     ),
     blockquote: ({ children, ...props }) => (
       <blockquote
-        className="border-l-2 border-primary/60 pl-4 py-1.5 italic text-muted-foreground my-4 bg-muted/20 rounded-r-lg"
+        className="border-l-2 border-primary/50 pl-4 py-1 italic text-muted-foreground my-4 bg-muted/20 rounded-r-lg"
         {...props}
       >
         {children}
@@ -87,7 +83,7 @@ export function useMDXComponents(components?: MDXComponents): MDXComponents {
     ),
     hr: ({ ...props }) => <hr className="border-border my-8" {...props} />,
     table: ({ children, ...props }) => (
-      <div className="my-6 overflow-x-auto rounded-xl border border-border bg-card">
+      <div className="my-6 overflow-x-auto rounded-xl border border-border bg-card shadow-2xs">
         <table
           className="w-full border-collapse text-xs sm:text-sm text-left"
           {...props}
@@ -98,7 +94,7 @@ export function useMDXComponents(components?: MDXComponents): MDXComponents {
     ),
     th: ({ children, ...props }) => (
       <th
-        className="border-b border-border bg-muted/50 p-3 font-semibold text-foreground"
+        className="border-b border-border bg-muted/50 p-3 font-semibold text-xs font-mono uppercase tracking-wider text-foreground"
         {...props}
       >
         {children}
@@ -106,7 +102,7 @@ export function useMDXComponents(components?: MDXComponents): MDXComponents {
     ),
     td: ({ children, ...props }) => (
       <td
-        className="border-b border-border/60 p-3 text-muted-foreground"
+        className="border-b border-border/50 p-3 text-muted-foreground"
         {...props}
       >
         {children}
@@ -114,7 +110,7 @@ export function useMDXComponents(components?: MDXComponents): MDXComponents {
     ),
     code: ({ children, ...props }) => (
       <code
-        className="px-1.5 py-0.5 rounded font-mono text-xs bg-muted text-foreground border border-border/80"
+        className="px-1.5 py-0.5 rounded-md font-mono text-xs bg-muted text-foreground border border-border"
         {...props}
       >
         {children}
@@ -122,7 +118,7 @@ export function useMDXComponents(components?: MDXComponents): MDXComponents {
     ),
     pre: ({ children, ...props }) => (
       <pre
-        className="p-4 rounded-xl bg-muted/60 border border-border overflow-x-auto text-xs font-mono my-4"
+        className="p-4 rounded-xl bg-muted/40 border border-border overflow-x-auto text-xs font-mono my-4 text-foreground"
         {...props}
       >
         {children}

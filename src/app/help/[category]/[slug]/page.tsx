@@ -64,7 +64,7 @@ export default async function HelpArticleLayoutPage({ params }: PageProps) {
   return (
     <div className="w-full pb-20 sm:pb-28">
       {/* Top Breadcrumb Bar */}
-      <section className="w-full border-b border-border/60 bg-muted/20 py-3.5 px-4 sm:px-6 lg:px-8">
+      <section className="w-full border-b border-border bg-muted/30 py-3 px-4 sm:px-6 lg:px-8">
         <div className="max-w-7xl mx-auto">
           <Breadcrumb>
             <BreadcrumbList>
@@ -81,7 +81,7 @@ export default async function HelpArticleLayoutPage({ params }: PageProps) {
               </BreadcrumbItem>
               <BreadcrumbSeparator />
               <BreadcrumbItem>
-                <BreadcrumbPage className="font-semibold text-foreground capitalize">
+                <BreadcrumbPage className="font-medium text-foreground line-clamp-1">
                   {doc?.metadata?.title || slug.replace(/-/g, " ")}
                 </BreadcrumbPage>
               </BreadcrumbItem>
@@ -91,8 +91,8 @@ export default async function HelpArticleLayoutPage({ params }: PageProps) {
       </section>
 
       {/* Main Container: 2-Column Responsive Layout */}
-      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-8 sm:pt-12">
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 sm:gap-12 text-left">
+      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-6 sm:pt-10">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 text-left">
           
           {/* ========================================================= */}
           {/* LEFT/MAIN COLUMN (8 COLS): ARTICLE CONTENT VIA MDX        */}
@@ -102,7 +102,7 @@ export default async function HelpArticleLayoutPage({ params }: PageProps) {
             {/* Back Button (Mobile-First) */}
             <Link
               href="/help"
-              className="inline-flex items-center gap-1.5 text-xs font-semibold text-muted-foreground hover:text-foreground transition-colors"
+              className="inline-flex items-center gap-1.5 text-xs font-medium text-muted-foreground hover:text-foreground transition-colors"
             >
               <ArrowLeft className="size-3.5" />
               <span>Volver a todas las guías</span>
@@ -113,27 +113,27 @@ export default async function HelpArticleLayoutPage({ params }: PageProps) {
                 {/* Article Header */}
                 <header className="space-y-4 pb-6 border-b border-border">
                   <div className="flex flex-wrap items-center gap-2">
-                    <Badge variant="outline" className="text-xs font-mono font-bold text-primary border-primary/20 bg-primary/5">
+                    <Badge variant="outline" className="text-xs font-mono font-medium text-primary border-primary/30">
                       {sectionName}
                     </Badge>
                     {doc.metadata.badge && (
-                      <Badge variant="secondary" className="text-xs font-mono text-muted-foreground">
+                      <Badge variant="secondary" className="text-xs font-mono font-normal">
                         {doc.metadata.badge}
                       </Badge>
                     )}
                   </div>
 
-                  <h1 className="text-3xl sm:text-4xl lg:text-[42px] font-black tracking-tight text-foreground font-sans leading-[1.12]">
+                  <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold tracking-tight text-foreground font-heading">
                     {doc.metadata.title}
                   </h1>
 
                   {doc.metadata.description && (
-                    <p className="text-base sm:text-lg text-muted-foreground leading-relaxed">
+                    <p className="text-base sm:text-lg text-muted-foreground leading-relaxed text-pretty">
                       {doc.metadata.description}
                     </p>
                   )}
 
-                  <div className="flex flex-wrap items-center gap-4 sm:gap-6 text-xs text-muted-foreground font-mono pt-2">
+                  <div className="flex flex-wrap items-center gap-4 sm:gap-6 text-xs text-muted-foreground font-mono pt-1">
                     <span className="flex items-center gap-1.5">
                       <Clock className="size-3.5 text-primary" />
                       {doc.metadata.readTime || "3 min de lectura"}
@@ -147,7 +147,7 @@ export default async function HelpArticleLayoutPage({ params }: PageProps) {
                 </header>
 
                 {/* Render Native Compiled MDX Component */}
-                <div className="prose-content">
+                <div className="space-y-4">
                   <doc.MDXContent />
                 </div>
 
@@ -156,15 +156,21 @@ export default async function HelpArticleLayoutPage({ params }: PageProps) {
               </>
             ) : (
               /* Fallback if doc is still in draft */
-              <div className="p-8 sm:p-12 text-center rounded-2xl border border-dashed border-border bg-muted/20 space-y-4">
+              <div className="p-8 sm:p-12 text-center rounded-xl border border-dashed border-border bg-card space-y-4">
                 <FileText className="size-10 text-muted-foreground mx-auto" />
                 <div className="space-y-1">
-                  <h2 className="text-lg font-bold text-foreground">Guía en proceso de redacción</h2>
+                  <h2 className="text-lg font-semibold text-foreground">Guía en proceso de redacción</h2>
                   <p className="text-xs sm:text-sm text-muted-foreground max-w-md mx-auto">
                     El equipo editorial está completando esta guía operativa en formato MDX. Estará disponible en la próxima actualización.
                   </p>
                 </div>
-                <Button render={<Link href="/help" />} variant="outline" size="sm" className="rounded-xl text-xs gap-1.5">
+                <Button
+                  render={<Link href="/help" />}
+                  nativeButton={false}
+                  variant="outline"
+                  size="sm"
+                  className="rounded-lg text-xs gap-1.5"
+                >
                   <ArrowLeft className="size-3.5" />
                   <span>Regresar al índice principal</span>
                 </Button>
@@ -179,14 +185,14 @@ export default async function HelpArticleLayoutPage({ params }: PageProps) {
           <aside className="lg:col-span-4 space-y-6 lg:sticky lg:top-24 h-fit">
             
             {/* Quick Actions / Available MDX Guides */}
-            <Card className="rounded-2xl border-border bg-card">
-              <CardHeader className="pb-3">
-                <CardTitle className="text-xs font-mono uppercase tracking-wider font-bold text-muted-foreground flex items-center gap-2">
+            <Card className="rounded-xl border-border bg-card shadow-2xs">
+              <CardHeader className="pb-3 pt-5 px-5">
+                <CardTitle className="text-xs font-mono uppercase tracking-wider font-semibold text-muted-foreground flex items-center gap-2">
                   <BookOpen className="size-3.5 text-primary" />
                   <span>Guías en esta categoría</span>
                 </CardTitle>
               </CardHeader>
-              <CardContent className="space-y-2.5">
+              <CardContent className="space-y-1.5 px-5 pb-5">
                 {relatedSections.flatMap((s) => s.items).slice(0, 5).map((item) => {
                   const itemHref = `/help/${catalogKey}/${item.id}`;
                   const isCurrent = item.id === slug;
@@ -194,10 +200,10 @@ export default async function HelpArticleLayoutPage({ params }: PageProps) {
                     <Link
                       key={item.id}
                       href={itemHref}
-                      className={`flex items-center justify-between text-xs transition-colors p-1.5 rounded-lg ${
+                      className={`flex items-center justify-between text-xs transition-colors p-2 rounded-lg ${
                         isCurrent
-                          ? "bg-primary/10 text-primary font-semibold"
-                          : "text-muted-foreground hover:text-foreground hover:bg-muted/40"
+                          ? "bg-accent text-accent-foreground font-semibold"
+                          : "text-muted-foreground hover:text-foreground hover:bg-muted/60"
                       }`}
                     >
                       <span className="line-clamp-1">{item.title}</span>
@@ -209,23 +215,26 @@ export default async function HelpArticleLayoutPage({ params }: PageProps) {
             </Card>
 
             {/* Direct Support Card */}
-            <div className="p-5 rounded-2xl bg-muted/40 border border-border space-y-3 text-left">
-              <div className="flex items-center gap-2 text-xs font-mono font-bold text-primary">
-                <MessageSquare className="size-3.5" />
-                <span>¿DUDAS CON ESTE PASO?</span>
-              </div>
-              <p className="text-xs text-muted-foreground leading-relaxed">
-                Escríbenos directamente por WhatsApp para asistencia personalizada en Mérida y Cancún.
-              </p>
-              <Button
-                render={<Link href="https://wa.me/529990000000" target="_blank" rel="noopener noreferrer" />}
-                size="sm"
-                className="w-full h-9 rounded-xl text-xs font-semibold gap-1.5 shadow-xs cursor-pointer"
-              >
-                <MessageSquare className="size-3.5" />
-                <span>Chatear con Soporte</span>
-              </Button>
-            </div>
+            <Card className="rounded-xl border-border bg-muted/30 shadow-2xs">
+              <CardContent className="p-5 space-y-3 text-left">
+                <div className="flex items-center gap-2 text-xs font-mono font-semibold text-primary">
+                  <MessageSquare className="size-3.5" />
+                  <span>¿DUDAS CON ESTE PASO?</span>
+                </div>
+                <p className="text-xs text-muted-foreground leading-relaxed">
+                  Escríbenos directamente por WhatsApp para asistencia personalizada en Mérida y Cancún.
+                </p>
+                <Button
+                  render={<Link href="https://wa.me/529990000000" target="_blank" rel="noopener noreferrer" />}
+                  nativeButton={false}
+                  size="sm"
+                  className="w-full h-9 rounded-lg text-xs font-semibold gap-1.5 shadow-xs cursor-pointer"
+                >
+                  <MessageSquare className="size-3.5" />
+                  <span>Chatear con Soporte</span>
+                </Button>
+              </CardContent>
+            </Card>
 
           </aside>
 

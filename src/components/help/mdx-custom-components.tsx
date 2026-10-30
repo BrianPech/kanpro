@@ -18,30 +18,30 @@ export function Callout({
   const configs = {
     info: {
       icon: Info,
-      wrapperClasses: "bg-primary/5 border-primary/20 text-foreground",
+      wrapperClasses: "border-border bg-muted/40 text-foreground",
       iconClasses: "text-primary",
-      titleColor: "text-primary",
+      titleColor: "text-foreground",
       defaultTitle: "Información importante",
     },
     warning: {
       icon: AlertTriangle,
-      wrapperClasses: "bg-amber-500/10 border-amber-500/30 text-amber-900 dark:text-amber-200",
+      wrapperClasses: "border-amber-500/30 bg-amber-500/5 text-foreground dark:border-amber-500/40 dark:bg-amber-500/10",
       iconClasses: "text-amber-600 dark:text-amber-400",
-      titleColor: "text-amber-800 dark:text-amber-300",
+      titleColor: "text-foreground font-semibold",
       defaultTitle: "Atención requerida",
     },
     success: {
       icon: CheckCircle2,
-      wrapperClasses: "bg-emerald-500/10 border-emerald-500/30 text-emerald-900 dark:text-emerald-200",
+      wrapperClasses: "border-emerald-500/30 bg-emerald-500/5 text-foreground dark:border-emerald-500/40 dark:bg-emerald-500/10",
       iconClasses: "text-emerald-600 dark:text-emerald-400",
-      titleColor: "text-emerald-800 dark:text-emerald-300",
+      titleColor: "text-foreground font-semibold",
       defaultTitle: "Validación exitosa",
     },
     tip: {
       icon: Lightbulb,
-      wrapperClasses: "bg-purple-500/10 border-purple-500/30 text-purple-900 dark:text-purple-200",
-      iconClasses: "text-purple-600 dark:text-purple-400",
-      titleColor: "text-purple-800 dark:text-purple-300",
+      wrapperClasses: "border-primary/25 bg-primary/5 text-foreground",
+      iconClasses: "text-primary",
+      titleColor: "text-foreground font-semibold",
       defaultTitle: "Recomendación operativa",
     },
   };
@@ -52,14 +52,14 @@ export function Callout({
   return (
     <aside
       className={cn(
-        "my-6 p-4 sm:p-5 rounded-2xl border flex items-start gap-3.5 transition-all text-xs sm:text-sm",
+        "my-6 p-4 sm:p-5 rounded-xl border flex items-start gap-3.5 transition-all text-xs sm:text-sm",
         config.wrapperClasses,
         className
       )}
     >
       <Icon className={cn("size-5 shrink-0 mt-0.5", config.iconClasses)} />
       <div className="space-y-1 w-full overflow-hidden">
-        <span className={cn("font-bold block text-xs sm:text-sm", config.titleColor)}>
+        <span className={cn("font-semibold block text-xs sm:text-sm tracking-tight", config.titleColor)}>
           {title || config.defaultTitle}
         </span>
         <div className="text-muted-foreground leading-relaxed [&>p]:mb-0 [&>p]:mt-1">
@@ -102,7 +102,7 @@ export function Step({
         className
       )}
     >
-      <div className="flex items-center gap-2.5 font-bold text-foreground text-sm sm:text-base">
+      <div className="flex items-center gap-2.5 font-semibold text-foreground text-sm sm:text-base">
         <span className="flex size-6 sm:size-7 rounded-full bg-primary/10 text-primary text-xs font-mono font-bold items-center justify-center shrink-0">
           {number}
         </span>
