@@ -124,10 +124,10 @@ const DEFAULT_CATEGORIES: Record<string, NavCategory> = {
         href: "#comparativa",
       },
       {
-        icon: BookOpen,
-        title: "Documentación Oficial",
-        description: "Manuales operativos, guías fiscales SAT y procesos de contratación.",
-        href: "/help",
+        icon: BarChart3,
+        title: "Tabuladores Salariales",
+        description: "Rangos de compensación actualizados para la península de Yucatán.",
+        href: "#comparativa",
       },
       {
         icon: HelpCircle,
@@ -137,11 +137,11 @@ const DEFAULT_CATEGORIES: Record<string, NavCategory> = {
       },
     ],
     featured: {
-      tag: "Centro de Ayuda",
-      title: "Documentación y Soporte",
-      description: "Aprende a gestionar expedientes digitales, altas y contratos sin intermediarios.",
-      href: "/help",
-      ctaText: "Ver Documentación",
+      tag: "Sureste MX",
+      title: "Ecosistema Laboral del Sureste",
+      description: "Impulsando el empleo formal en hotelería, comercio, logística y servicios.",
+      href: "#faq",
+      ctaText: "Ver Preguntas",
     },
   },
 };
