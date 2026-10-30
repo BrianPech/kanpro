@@ -18,6 +18,7 @@ import {
   FileText,
   BookOpen,
   BarChart3,
+  HelpCircle,
   type IconComponent,
 } from "@/components/ui/icons";
 
@@ -123,30 +124,31 @@ const DEFAULT_CATEGORIES: Record<string, NavCategory> = {
         href: "#comparativa",
       },
       {
-        icon: BarChart3,
-        title: "Tabuladores Salariales",
-        description: "Rangos de compensación actualizados para la península de Yucatán.",
-        href: "#comparativa",
+        icon: BookOpen,
+        title: "Documentación Oficial",
+        description: "Manuales operativos, guías fiscales SAT y procesos de contratación.",
+        href: "/help",
       },
       {
-        icon: BookOpen,
+        icon: HelpCircle,
         title: "Preguntas Frecuentes",
         description: "Todo sobre validación de expedientes, CFDI y alta patronal.",
         href: "#faq",
       },
     ],
     featured: {
-      tag: "Sureste MX",
-      title: "Ecosistema Laboral del Sureste",
-      description: "Impulsando el empleo formal en hotelería, comercio, logística y servicios.",
-      href: "#faq",
-      ctaText: "Ver Preguntas",
+      tag: "Centro de Ayuda",
+      title: "Documentación y Soporte",
+      description: "Aprende a gestionar expedientes digitales, altas y contratos sin intermediarios.",
+      href: "/help",
+      ctaText: "Ver Documentación",
     },
   },
 };
 
 const DEFAULT_DIRECT_LINKS = [
   { label: "Comparativa", href: "#comparativa" },
+  { label: "Documentación", href: "/help" },
   { label: "Preguntas Frecuentes", href: "#faq" },
 ];
 
