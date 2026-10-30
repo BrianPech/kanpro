@@ -1,6 +1,5 @@
 import React from "react";
 import Link from "next/link";
-import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 import {
   Clock,
@@ -62,184 +61,168 @@ export default async function HelpArticleLayoutPage({ params }: PageProps) {
   const relatedSections = getHelpNavigation(catalogKey);
 
   return (
-    <div className="w-full pb-20 sm:pb-28">
+    <div className="w-full pb-16">
       {/* Top Breadcrumb Bar */}
-      <section className="w-full border-b border-border bg-muted/30 py-3 px-4 sm:px-6 lg:px-8">
-        <div className="max-w-7xl mx-auto">
-          <Breadcrumb>
-            <BreadcrumbList>
-              <BreadcrumbItem>
-                <BreadcrumbLink render={<Link href="/help" />}>
-                  Centro de Ayuda
-                </BreadcrumbLink>
-              </BreadcrumbItem>
-              <BreadcrumbSeparator />
-              <BreadcrumbItem>
-                <BreadcrumbLink render={<Link href="/help" />}>
-                  {sectionName}
-                </BreadcrumbLink>
-              </BreadcrumbItem>
-              <BreadcrumbSeparator />
-              <BreadcrumbItem>
-                <BreadcrumbPage className="font-medium text-foreground line-clamp-1">
-                  {doc?.metadata?.title || slug.replace(/-/g, " ")}
-                </BreadcrumbPage>
-              </BreadcrumbItem>
-            </BreadcrumbList>
-          </Breadcrumb>
-        </div>
-      </section>
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-border mb-8">
+        <Breadcrumb>
+          <BreadcrumbList>
+            <BreadcrumbItem>
+              <BreadcrumbLink render={<Link href="/help" />}>
+                Centro de Ayuda
+              </BreadcrumbLink>
+            </BreadcrumbItem>
+            <BreadcrumbSeparator />
+            <BreadcrumbItem>
+              <span className="text-muted-foreground capitalize">{sectionName}</span>
+            </BreadcrumbItem>
+            <BreadcrumbSeparator />
+            <BreadcrumbItem>
+              <BreadcrumbPage className="font-medium text-foreground line-clamp-1">
+                {doc?.metadata?.title || slug.replace(/-/g, " ")}
+              </BreadcrumbPage>
+            </BreadcrumbItem>
+          </BreadcrumbList>
+        </Breadcrumb>
+
+        {doc && (
+          <div className="flex items-center gap-2 shrink-0">
+            <ShareArticleButton title={doc.metadata.title || "Guía K'anPro"} />
+          </div>
+        )}
+      </div>
 
       {/* Main Container: 2-Column Responsive Layout */}
-      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-6 sm:pt-10">
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 text-left">
-          
-          {/* ========================================================= */}
-          {/* LEFT/MAIN COLUMN (8 COLS): ARTICLE CONTENT VIA MDX        */}
-          {/* ========================================================= */}
-          <article className="lg:col-span-8 space-y-8">
-            
-            {/* Back Button (Mobile-First) */}
-            <Link
-              href="/help"
-              className="inline-flex items-center gap-1.5 text-xs font-medium text-muted-foreground hover:text-foreground transition-colors"
-            >
-              <ArrowLeft className="size-3.5" />
-              <span>Volver a todas las guías</span>
-            </Link>
-
-            {doc ? (
-              <>
-                {/* Article Header */}
-                <header className="space-y-4 pb-6 border-b border-border">
-                  <div className="flex flex-wrap items-center gap-2">
-                    <Badge variant="outline" className="text-xs font-mono font-medium text-primary border-primary/30">
-                      {sectionName}
+      <div className="grid grid-cols-1 xl:grid-cols-12 gap-8 lg:gap-10 text-left">
+        {/* ========================================================= */}
+        {/* MAIN COLUMN (8 COLS ON XL): MDX ARTICLE CONTENT           */}
+        {/* ========================================================= */}
+        <article className="xl:col-span-8 space-y-8 min-w-0">
+          {doc ? (
+            <>
+              {/* Article Header */}
+              <header className="space-y-4 pb-6 border-b border-border">
+                <div className="flex flex-wrap items-center gap-2">
+                  <Badge variant="outline" className="text-xs font-mono font-medium text-primary border-primary/30">
+                    {sectionName}
+                  </Badge>
+                  {doc.metadata.badge && (
+                    <Badge variant="secondary" className="text-xs font-mono font-normal">
+                      {doc.metadata.badge}
                     </Badge>
-                    {doc.metadata.badge && (
-                      <Badge variant="secondary" className="text-xs font-mono font-normal">
-                        {doc.metadata.badge}
-                      </Badge>
-                    )}
-                  </div>
-
-                  <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold tracking-tight text-foreground font-heading">
-                    {doc.metadata.title}
-                  </h1>
-
-                  {doc.metadata.description && (
-                    <p className="text-base sm:text-lg text-muted-foreground leading-relaxed text-pretty">
-                      {doc.metadata.description}
-                    </p>
                   )}
-
-                  <div className="flex flex-wrap items-center gap-4 sm:gap-6 text-xs text-muted-foreground font-mono pt-1">
-                    <span className="flex items-center gap-1.5">
-                      <Clock className="size-3.5 text-primary" />
-                      {doc.metadata.readTime || "3 min de lectura"}
-                    </span>
-                    <span className="flex items-center gap-1.5">
-                      <Calendar className="size-3.5" />
-                      {doc.metadata.updatedAt ? `Actualizado ${doc.metadata.updatedAt}` : "Septiembre 2026"}
-                    </span>
-                    <ShareArticleButton title={doc.metadata.title || "Guía K'anPro"} />
-                  </div>
-                </header>
-
-                {/* Render Native Compiled MDX Component */}
-                <div className="space-y-4">
-                  <doc.MDXContent />
                 </div>
 
-                {/* Interactive Feedback & Support Widget */}
-                <ArticleFeedback />
-              </>
-            ) : (
-              /* Fallback if doc is still in draft */
-              <div className="p-8 sm:p-12 text-center rounded-xl border border-dashed border-border bg-card space-y-4">
-                <FileText className="size-10 text-muted-foreground mx-auto" />
-                <div className="space-y-1">
-                  <h2 className="text-lg font-semibold text-foreground">Guía en proceso de redacción</h2>
-                  <p className="text-xs sm:text-sm text-muted-foreground max-w-md mx-auto">
-                    El equipo editorial está completando esta guía operativa en formato MDX. Estará disponible en la próxima actualización.
+                <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold tracking-tight text-foreground font-heading leading-tight">
+                  {doc.metadata.title}
+                </h1>
+
+                {doc.metadata.description && (
+                  <p className="text-base sm:text-lg text-muted-foreground leading-relaxed text-pretty">
+                    {doc.metadata.description}
                   </p>
+                )}
+
+                <div className="flex flex-wrap items-center gap-4 sm:gap-6 text-xs text-muted-foreground font-mono pt-1">
+                  <span className="flex items-center gap-1.5">
+                    <Clock className="size-3.5 text-primary" />
+                    {doc.metadata.readTime || "3 min de lectura"}
+                  </span>
+                  <span className="flex items-center gap-1.5">
+                    <Calendar className="size-3.5" />
+                    {doc.metadata.updatedAt ? `Actualizado ${doc.metadata.updatedAt}` : "Septiembre 2026"}
+                  </span>
                 </div>
-                <Button
-                  render={<Link href="/help" />}
-                  nativeButton={false}
-                  variant="outline"
-                  size="sm"
-                  className="rounded-lg text-xs gap-1.5"
-                >
-                  <ArrowLeft className="size-3.5" />
-                  <span>Regresar al índice principal</span>
-                </Button>
+              </header>
+
+              {/* Render Native Compiled MDX Component */}
+              <div className="space-y-4">
+                <doc.MDXContent />
               </div>
-            )}
 
-          </article>
-
-          {/* ========================================================= */}
-          {/* RIGHT COLUMN (4 COLS): STICKY SIDEBAR (TOC & SUPPORT)    */}
-          {/* ========================================================= */}
-          <aside className="lg:col-span-4 space-y-6 lg:sticky lg:top-24 h-fit">
-            
-            {/* Quick Actions / Available MDX Guides */}
-            <Card className="rounded-xl border-border bg-card shadow-2xs">
-              <CardHeader className="pb-3 pt-5 px-5">
-                <CardTitle className="text-xs font-mono uppercase tracking-wider font-semibold text-muted-foreground flex items-center gap-2">
-                  <BookOpen className="size-3.5 text-primary" />
-                  <span>Guías en esta categoría</span>
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-1.5 px-5 pb-5">
-                {relatedSections.flatMap((s) => s.items).slice(0, 5).map((item) => {
-                  const itemHref = `/help/${catalogKey}/${item.id}`;
-                  const isCurrent = item.id === slug;
-                  return (
-                    <Link
-                      key={item.id}
-                      href={itemHref}
-                      className={`flex items-center justify-between text-xs transition-colors p-2 rounded-lg ${
-                        isCurrent
-                          ? "bg-accent text-accent-foreground font-semibold"
-                          : "text-muted-foreground hover:text-foreground hover:bg-muted/60"
-                      }`}
-                    >
-                      <span className="line-clamp-1">{item.title}</span>
-                      <ChevronRight className="size-3 shrink-0 ml-2 text-muted-foreground" />
-                    </Link>
-                  );
-                })}
-              </CardContent>
-            </Card>
-
-            {/* Direct Support Card */}
-            <Card className="rounded-xl border-border bg-muted/30 shadow-2xs">
-              <CardContent className="p-5 space-y-3 text-left">
-                <div className="flex items-center gap-2 text-xs font-mono font-semibold text-primary">
-                  <MessageSquare className="size-3.5" />
-                  <span>¿DUDAS CON ESTE PASO?</span>
-                </div>
-                <p className="text-xs text-muted-foreground leading-relaxed">
-                  Escríbenos directamente por WhatsApp para asistencia personalizada en Mérida y Cancún.
+              {/* Interactive Feedback & Support Widget */}
+              <ArticleFeedback />
+            </>
+          ) : (
+            /* Fallback if doc is still in draft */
+            <div className="p-8 sm:p-12 text-center rounded-xl border border-dashed border-border bg-card space-y-4">
+              <FileText className="size-10 text-muted-foreground mx-auto" />
+              <div className="space-y-1">
+                <h2 className="text-lg font-semibold text-foreground">Guía en proceso de redacción</h2>
+                <p className="text-xs sm:text-sm text-muted-foreground max-w-md mx-auto">
+                  El equipo editorial está completando esta guía operativa en formato MDX. Estará disponible en la próxima actualización.
                 </p>
-                <Button
-                  render={<Link href="https://wa.me/529990000000" target="_blank" rel="noopener noreferrer" />}
-                  nativeButton={false}
-                  size="sm"
-                  className="w-full h-9 rounded-lg text-xs font-semibold gap-1.5 shadow-xs cursor-pointer"
-                >
-                  <MessageSquare className="size-3.5" />
-                  <span>Chatear con Soporte</span>
-                </Button>
-              </CardContent>
-            </Card>
+              </div>
+              <Button
+                render={<Link href="/help" />}
+                nativeButton={false}
+                variant="outline"
+                size="sm"
+                className="rounded-lg text-xs gap-1.5"
+              >
+                <ArrowLeft className="size-3.5" />
+                <span>Regresar al índice principal</span>
+              </Button>
+            </div>
+          )}
+        </article>
 
-          </aside>
+        {/* ========================================================= */}
+        {/* RIGHT COLUMN (4 COLS ON XL): RELATED GUIDES & SUPPORT    */}
+        {/* ========================================================= */}
+        <aside className="hidden xl:block xl:col-span-4 space-y-6 sticky top-20 h-fit">
+          {/* Quick Actions / Available MDX Guides */}
+          <Card className="rounded-xl border-border bg-card shadow-2xs">
+            <CardHeader className="pb-3 pt-5 px-5">
+              <CardTitle className="text-xs font-mono uppercase tracking-wider font-semibold text-muted-foreground flex items-center gap-2">
+                <BookOpen className="size-3.5 text-primary" />
+                <span>En esta categoría</span>
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-1 px-5 pb-5">
+              {relatedSections.flatMap((s) => s.items).slice(0, 6).map((item) => {
+                const itemHref = `/help/${catalogKey}/${item.id}`;
+                const isCurrent = item.id === slug;
+                return (
+                  <Link
+                    key={item.id}
+                    href={itemHref}
+                    className={`flex items-center justify-between text-xs transition-colors p-2 rounded-lg ${
+                      isCurrent
+                        ? "bg-accent text-accent-foreground font-semibold"
+                        : "text-muted-foreground hover:text-foreground hover:bg-muted/60"
+                    }`}
+                  >
+                    <span className="line-clamp-1">{item.title}</span>
+                    <ChevronRight className="size-3 shrink-0 ml-2 text-muted-foreground" />
+                  </Link>
+                );
+              })}
+            </CardContent>
+          </Card>
 
-        </div>
-      </section>
+          {/* Direct Support Card */}
+          <Card className="rounded-xl border-border bg-muted/30 shadow-2xs">
+            <CardContent className="p-5 space-y-3 text-left">
+              <div className="flex items-center gap-2 text-xs font-mono font-semibold text-primary">
+                <MessageSquare className="size-3.5" />
+                <span>¿DUDAS CON ESTE PASO?</span>
+              </div>
+              <p className="text-xs text-muted-foreground leading-relaxed">
+                Escríbenos directamente por WhatsApp para asistencia personalizada en Mérida y Cancún.
+              </p>
+              <Button
+                render={<Link href="https://wa.me/529990000000" target="_blank" rel="noopener noreferrer" />}
+                nativeButton={false}
+                size="sm"
+                className="w-full h-9 rounded-lg text-xs font-semibold gap-1.5 shadow-xs cursor-pointer"
+              >
+                <MessageSquare className="size-3.5" />
+                <span>Chatear con Soporte</span>
+              </Button>
+            </CardContent>
+          </Card>
+        </aside>
+      </div>
     </div>
   );
 }
