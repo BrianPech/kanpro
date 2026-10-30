@@ -1,7 +1,7 @@
 import { Navigation14 } from "@/components/blocks/navigation-14";
 import { Hero1 } from "@/components/blocks/hero-1";
 import { FeaturesDarkBand } from "@/components/marketing/features-dark-band";
-import { ComparisonLightBand } from "@/components/marketing/comparison-light-band";
+import { Comparison8 } from "@/components/blocks/comparison-8";
 import { FaqLightBand } from "@/components/marketing/faq-light-band";
 import { CtaBanner } from "@/components/marketing/cta-banner";
 import { Footer } from "@/components/marketing/footer";
@@ -21,7 +21,7 @@ export default function Home() {
         <main className="flex-1">
           <Hero1 />
           <FeaturesDarkBand />
-          <ComparisonLightBand />
+          <Comparison8 />
           <FaqLightBand />
           <CtaBanner />
         </main>

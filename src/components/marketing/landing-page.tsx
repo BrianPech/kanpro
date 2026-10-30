@@ -4,7 +4,7 @@ import React from "react";
 import { Navigation14 } from "@/components/blocks/navigation-14";
 import { Hero1 } from "@/components/blocks/hero-1";
 import { FeaturesDarkBand } from "@/components/marketing/features-dark-band";
-import { ComparisonLightBand } from "@/components/marketing/comparison-light-band";
+import { Comparison8 } from "@/components/blocks/comparison-8";
 import { FaqLightBand } from "@/components/marketing/faq-light-band";
 import { CtaBanner } from "@/components/marketing/cta-banner";
 import { Footer } from "@/components/marketing/footer";
@@ -23,8 +23,8 @@ export function LandingPage() {
         {/* Band 2: Operating Suite Band (Empresas, Candidatos & SAT Audit) */}
         <FeaturesDarkBand />
 
-        {/* Band 3: Economic Comparison & Territorial Corridors */}
-        <ComparisonLightBand />
+        {/* Band 3: Capability Matrix Comparison 8 */}
+        <Comparison8 />
 
         {/* Band 4: FAQ Accordion Band */}
         <FaqLightBand />
