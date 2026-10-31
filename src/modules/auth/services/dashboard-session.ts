@@ -1,5 +1,10 @@
 import { createClient } from "@/lib/supabase/server"
 import { getImpersonationState } from "@/lib/auth/impersonation"
+import {
+  DEFAULT_DEMO_ROLLOUT,
+  normalizeDemoRollout,
+  type CompanyModuleKey,
+} from "@/modules/company/config/demo-rollout"
 
 export async function getDashboardSession() {
   const supabase = await createClient()
@@ -11,6 +16,8 @@ export async function getDashboardSession() {
   let plan = "Plan Básico"
   let isImpersonated = false
   let targetUserId: string | undefined = undefined
+  let demoPhase: 1 | 2 | 3 | 4 = DEFAULT_DEMO_ROLLOUT.activePhase
+  let enabledCompanyModules: CompanyModuleKey[] = DEFAULT_DEMO_ROLLOUT.enabledModules
 
   if (user) {
     // 1. Authoritative source of truth: database profile
@@ -129,6 +136,24 @@ export async function getDashboardSession() {
     } catch {
       // Graceful fallback if outside request context or cookies unavailable
     }
+
+    if (role === "company" || role === "admin") {
+      try {
+        const { data: rolloutRow } = await supabase
+          .from("system_settings")
+          .select("value")
+          .eq("key", "demo_rollout")
+          .maybeSingle()
+
+        if (rolloutRow?.value) {
+          const normalized = normalizeDemoRollout(rolloutRow.value)
+          demoPhase = normalized.activePhase
+          enabledCompanyModules = normalized.enabledModules
+        }
+      } catch {
+        // Fallback to DEFAULT_DEMO_ROLLOUT if system_settings query fails in tests
+      }
+    }
   }
 
   return {
@@ -138,5 +163,7 @@ export async function getDashboardSession() {
     plan,
     isImpersonated,
     targetUserId,
+    demoPhase,
+    enabledCompanyModules,
   }
 }

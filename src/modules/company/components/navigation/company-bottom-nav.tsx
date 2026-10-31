@@ -3,6 +3,7 @@
 import * as React from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { toast } from "sonner";
 import { Plus } from "@/components/ui/icons";
 import {
   Tooltip,
@@ -11,11 +12,16 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
+import { getLockedModuleBadge } from "@/modules/company/config/demo-rollout";
 import { CompanyBottomNavDrawer } from "./company-bottom-nav-drawer";
 import { CompanyQuickActionsSheet } from "./company-quick-actions-sheet";
 import { CompanySettingsModal } from "../company-settings-dialog";
 
-export function CompanyBottomNav() {
+export interface CompanyBottomNavProps {
+  enabledModules?: string[];
+}
+
+export function CompanyBottomNav({ enabledModules }: CompanyBottomNavProps) {
   const pathname = usePathname();
   const [isDrawerOpen, setIsDrawerOpen] = React.useState(false);
   const [isQuickActionsOpen, setIsQuickActionsOpen] = React.useState(false);
@@ -24,6 +30,10 @@ export function CompanyBottomNav() {
   const isHomeActive = pathname === "/dashboard/company";
   const isEmployeesActive = pathname.startsWith("/dashboard/company/employees");
   const isAttendanceActive = pathname.startsWith("/dashboard/company/attendance");
+  const attendanceLockBadge = getLockedModuleBadge(
+    "/dashboard/company/attendance",
+    enabledModules
+  );
 
   // Si el usuario está en otra ruta secundaria del portal de empresa
   const isOtherRouteActive =
@@ -141,12 +151,22 @@ export function CompanyBottomNav() {
               <TooltipTrigger
                 render={
                   <Link
-                    href="/dashboard/company/attendance"
+                    href={attendanceLockBadge ? "#" : "/dashboard/company/attendance"}
+                    onClick={(e) => {
+                      if (attendanceLockBadge) {
+                        e.preventDefault();
+                        toast.info(
+                          `Asistencia & Checador se habilitará en la ${attendanceLockBadge} de la DEMO.`
+                        );
+                      }
+                    }}
                     aria-current={isAttendanceActive ? "page" : undefined}
                     aria-label="Asistencia y checador"
                     className={cn(
                       "size-12 flex flex-col items-center justify-center rounded-2xl transition-all duration-150 active:scale-90 cursor-pointer gap-0.5",
-                      isAttendanceActive
+                      attendanceLockBadge
+                        ? "opacity-55 text-muted-foreground"
+                        : isAttendanceActive
                         ? "text-primary font-bold"
                         : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
                     )}
@@ -168,7 +188,7 @@ export function CompanyBottomNav() {
                 <span className="text-[10px] font-semibold leading-none">Asistencia</span>
               </TooltipTrigger>
               <TooltipContent side="top" sideOffset={8}>
-                Asistencia
+                {attendanceLockBadge ? `Asistencia (${attendanceLockBadge})` : "Asistencia"}
               </TooltipContent>
             </Tooltip>
 
@@ -221,6 +241,7 @@ export function CompanyBottomNav() {
       <CompanyQuickActionsSheet
         open={isQuickActionsOpen}
         onOpenChange={setIsQuickActionsOpen}
+        enabledModules={enabledModules}
       />
 
       {/* Bottom Sheet Drawer para el catálogo completo de módulos */}
@@ -228,6 +249,7 @@ export function CompanyBottomNav() {
         open={isDrawerOpen}
         onOpenChange={setIsDrawerOpen}
         onOpenSettings={() => setIsSettingsOpen(true)}
+        enabledModules={enabledModules}
       />
 
       {/* Modal de Configuración desacoplado */}

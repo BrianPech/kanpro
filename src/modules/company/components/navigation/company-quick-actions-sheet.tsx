@@ -2,6 +2,7 @@
 
 import * as React from "react";
 import Link from "next/link";
+import { toast } from "sonner";
 import {
   UserPlus,
   Clock,
@@ -12,7 +13,9 @@ import {
   ChevronRight,
   X,
   Zap,
+  Lock,
 } from "@/components/ui/icons";
+import { getLockedModuleBadge } from "@/modules/company/config/demo-rollout";
 import {
   Drawer,
   DrawerClose,
@@ -27,6 +30,7 @@ import { cn } from "@/lib/utils";
 export interface CompanyQuickActionsSheetProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  enabledModules?: string[];
 }
 
 interface QuickAction {
@@ -103,6 +107,7 @@ const QUICK_ACTIONS: QuickAction[] = [
 export function CompanyQuickActionsSheet({
   open,
   onOpenChange,
+  enabledModules,
 }: CompanyQuickActionsSheetProps) {
   return (
     <Drawer open={open} onOpenChange={onOpenChange} showSwipeHandle swipeDirection="down">
@@ -141,15 +146,29 @@ export function CompanyQuickActionsSheet({
         <div className="flex-1 overflow-y-auto overscroll-contain px-4 py-3.5 space-y-2 pb-[calc(2.5rem+env(safe-area-inset-bottom,0px))]">
           {QUICK_ACTIONS.map((action) => {
             const Icon = action.icon;
+            const lockBadge = getLockedModuleBadge(action.href, enabledModules);
+            const isLocked = Boolean(lockBadge);
+            const displayBadge = lockBadge || action.badge;
 
             return (
               <Link
                 key={action.id}
-                href={action.href}
-                onClick={() => onOpenChange(false)}
+                href={isLocked ? "#" : action.href}
+                onClick={(e) => {
+                  if (isLocked) {
+                    e.preventDefault();
+                    toast.info(
+                      `${action.title} se habilitará en la ${lockBadge} de la DEMO.`
+                    );
+                    return;
+                  }
+                  onOpenChange(false);
+                }}
                 className={cn(
                   "group flex items-center justify-between p-3 rounded-2xl border transition-all duration-150 active:scale-[0.98] cursor-pointer select-none",
-                  action.isPrimary
+                  isLocked
+                    ? "opacity-65 bg-card/60 border-border/30"
+                    : action.isPrimary
                     ? "bg-primary/5 hover:bg-primary/10 border-primary/30 shadow-2xs"
                     : "bg-card hover:bg-muted/50 border-border/40 hover:border-border/70"
                 )}
@@ -158,20 +177,28 @@ export function CompanyQuickActionsSheet({
                   <div
                     className={cn(
                       "size-11 rounded-xl flex items-center justify-center shrink-0 transition-transform group-hover:scale-105 shadow-2xs",
-                      action.iconBg,
-                      action.iconColor
+                      isLocked
+                        ? "bg-amber-500/10 text-amber-600 dark:text-amber-400"
+                        : cn(action.iconBg, action.iconColor)
                     )}
                   >
-                    <Icon className="size-5" />
+                    {isLocked ? <Lock className="size-5" /> : <Icon className="size-5" />}
                   </div>
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-2">
                       <span className="text-xs sm:text-sm font-bold text-foreground block truncate">
                         {action.title}
                       </span>
-                      {action.badge && (
-                        <span className="text-[10px] font-extrabold px-1.5 py-0.2 rounded-md bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 shrink-0">
-                          {action.badge}
+                      {displayBadge && (
+                        <span
+                          className={cn(
+                            "text-[10px] font-extrabold px-1.5 py-0.2 rounded-md shrink-0",
+                            isLocked
+                              ? "bg-amber-500/15 text-amber-700 dark:text-amber-300 border border-amber-500/25"
+                              : "bg-emerald-500/15 text-emerald-700 dark:text-emerald-400"
+                          )}
+                        >
+                          {displayBadge}
                         </span>
                       )}
                     </div>

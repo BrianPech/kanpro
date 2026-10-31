@@ -53,11 +53,21 @@ import {
   CheckCircle2,
   Settings,
   Loader2,
+  SlidersHorizontal,
 } from "@/components/ui/icons"
 import {
   getSystemSettings,
   saveSystemSettings,
 } from "@/app/(dashboard)/dashboard/admin/settings/actions"
+import {
+  COMPANY_MODULES,
+  DEFAULT_DEMO_ROLLOUT,
+  DEMO_PHASES,
+  getModulesForPhase,
+  normalizeDemoRollout,
+  type CompanyModuleKey,
+  type DemoRolloutConfig,
+} from "@/modules/company/config/demo-rollout"
 
 export interface SettingsDialogProps {
   open?: boolean
@@ -67,6 +77,12 @@ export interface SettingsDialogProps {
 }
 
 const categories = [
+  {
+    id: "demo_rollout",
+    name: "Fases DEMO (Empresas)",
+    icon: SlidersHorizontal,
+    description: "Desbloqueo progresivo semanal de herramientas para empresas",
+  },
   {
     id: "general",
     name: "Configuración Global",
@@ -147,12 +163,37 @@ export function SettingsDialog({
     autoAnonymizeRejected: false,
   })
 
-  // Sync category if defaultCategory prop changes when dialog opens
-  React.useEffect(() => {
-    if (defaultCategory) {
-      setActiveCategory(defaultCategory)
-    }
-  }, [defaultCategory])
+  const [demoRollout, setDemoRollout] = React.useState<DemoRolloutConfig>(
+    DEFAULT_DEMO_ROLLOUT
+  )
+
+  const handleSelectDemoPhase = (phase: 1 | 2 | 3 | 4) => {
+    setDemoRollout({
+      activePhase: phase,
+      enabledModules: getModulesForPhase(phase),
+    })
+  }
+
+  const handleToggleModule = (moduleKey: CompanyModuleKey, checked: boolean) => {
+    setDemoRollout((prev) => {
+      const nextSet = new Set<CompanyModuleKey>(prev.enabledModules)
+      if (checked) {
+        nextSet.add(moduleKey)
+      } else {
+        nextSet.delete(moduleKey)
+      }
+      return {
+        ...prev,
+        enabledModules: Array.from(nextSet),
+      }
+    })
+  }
+
+  const [prevDefaultCategory, setPrevDefaultCategory] = React.useState(defaultCategory)
+  if (defaultCategory && prevDefaultCategory !== defaultCategory) {
+    setPrevDefaultCategory(defaultCategory)
+    setActiveCategory(defaultCategory)
+  }
 
   const isControlled = controlledOpen !== undefined
   const open = isControlled ? controlledOpen : internalOpen
@@ -166,21 +207,31 @@ export function SettingsDialog({
 
   // Load real settings from backend whenever dialog opens
   React.useEffect(() => {
-    if (open) {
-      setIsLoading(true)
-      getSystemSettings()
-        .then((data) => {
-          if (data.general) setGeneral((prev) => ({ ...prev, ...data.general }))
-          if (data.security) setSecurity((prev) => ({ ...prev, ...data.security }))
-          if (data.notifications) setNotifications((prev) => ({ ...prev, ...data.notifications }))
-          if (data.privacy) setPrivacy((prev) => ({ ...prev, ...data.privacy }))
-        })
-        .catch((err) => {
-          console.error("Error al cargar configuración del sistema:", err)
-        })
-        .finally(() => {
-          setIsLoading(false)
-        })
+    if (!open) return
+    let active = true
+    Promise.resolve()
+      .then(() => {
+        if (active) setIsLoading(true)
+        return getSystemSettings()
+      })
+      .then((data) => {
+        if (!active) return
+        if (data.demo_rollout) {
+          setDemoRollout(normalizeDemoRollout(data.demo_rollout))
+        }
+        if (data.general) setGeneral((prev) => ({ ...prev, ...data.general }))
+        if (data.security) setSecurity((prev) => ({ ...prev, ...data.security }))
+        if (data.notifications) setNotifications((prev) => ({ ...prev, ...data.notifications }))
+        if (data.privacy) setPrivacy((prev) => ({ ...prev, ...data.privacy }))
+      })
+      .catch((err) => {
+        console.error("Error al cargar configuración del sistema:", err)
+      })
+      .finally(() => {
+        if (active) setIsLoading(false)
+      })
+    return () => {
+      active = false
     }
   }, [open])
 
@@ -188,6 +239,7 @@ export function SettingsDialog({
     setIsSaving(true)
     try {
       await saveSystemSettings({
+        demo_rollout: demoRollout,
         general,
         security,
         notifications,
@@ -212,7 +264,7 @@ export function SettingsDialog({
     <Dialog open={open} onOpenChange={setOpen}>
       {trigger && <DialogTrigger render={trigger} />}
       <DialogContent className="overflow-hidden p-0 w-full sm:max-w-[840px] md:max-w-[920px] lg:max-w-[980px] h-[620px] max-h-[85vh] gap-0 border-border/40 shadow-2xl rounded-2xl">
-        <DialogTitle className="sr-only">Configuración K'anPro</DialogTitle>
+        <DialogTitle className="sr-only">Configuración K&apos;anPro</DialogTitle>
         <DialogDescription className="sr-only">
           Panel de configuración del sistema para administradores
         </DialogDescription>
@@ -256,7 +308,7 @@ export function SettingsDialog({
 
             <div className="p-3 border-t border-border/10">
               <div className="flex items-center justify-between text-[11px] text-muted-foreground font-medium px-1">
-                <span>Versión K'anPro</span>
+                <span>Versión K&apos;anPro</span>
                 <Badge variant="outline" className="text-[10px] h-5 font-bold">
                   v2.4.0
                 </Badge>
@@ -291,6 +343,93 @@ export function SettingsDialog({
                 </div>
               ) : (
                 <>
+                  {activeCategory === "demo_rollout" && (
+                    <div className="flex flex-col gap-6 animate-in fade-in-50 duration-200">
+                      <div>
+                        <h3 className="text-base font-bold text-foreground">
+                          Desbloqueo Progresivo Semanal (DEMO Empresas)
+                        </h3>
+                        <p className="text-xs text-muted-foreground mt-0.5">
+                          Selecciona la fase semanal activa o habilita herramientas individuales para las empresas participantes.
+                        </p>
+                      </div>
+                      <Separator />
+
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        {DEMO_PHASES.map((p) => {
+                          const isSelected = demoRollout.activePhase === p.phase
+                          return (
+                            <button
+                              key={p.phase}
+                              type="button"
+                              onClick={() => handleSelectDemoPhase(p.phase)}
+                              className={`text-left rounded-xl border p-3.5 transition-all cursor-pointer flex flex-col gap-1 ${
+                                isSelected
+                                  ? "border-primary bg-primary/10 ring-1 ring-primary/30"
+                                  : "border-border/50 bg-card hover:bg-muted/40"
+                              }`}
+                            >
+                              <div className="flex items-center justify-between gap-2">
+                                <span className="text-xs font-bold text-foreground">
+                                  {p.title}
+                                </span>
+                                <Badge
+                                  variant={isSelected ? "default" : "outline"}
+                                  className="text-[10px] px-1.5 py-0"
+                                >
+                                  {p.subtitle}
+                                </Badge>
+                              </div>
+                              <p className="text-[11px] text-muted-foreground leading-snug">
+                                {p.description}
+                              </p>
+                            </button>
+                          )
+                        })}
+                      </div>
+
+                      <div className="space-y-2.5 pt-2">
+                        <span className="text-xs font-bold text-foreground block">
+                          Control Granular por Herramienta
+                        </span>
+                        <div className="grid grid-cols-1 gap-2">
+                          {COMPANY_MODULES.filter((m) => !m.alwaysEnabled).map((mod) => {
+                            const isChecked = demoRollout.enabledModules.includes(mod.key)
+                            return (
+                              <div
+                                key={mod.key}
+                                className="flex items-center justify-between rounded-xl border border-border/40 p-3 bg-muted/15"
+                              >
+                                <div className="grid gap-0.5 pr-3">
+                                  <div className="flex items-center gap-2">
+                                    <span className="text-xs font-bold text-foreground">
+                                      {mod.label}
+                                    </span>
+                                    <Badge
+                                      variant="outline"
+                                      className="text-[9px] px-1.5 py-0 font-bold"
+                                    >
+                                      Semana {mod.week}
+                                    </Badge>
+                                  </div>
+                                  <span className="text-[11px] text-muted-foreground">
+                                    {mod.description}
+                                  </span>
+                                </div>
+                                <Switch
+                                  checked={isChecked}
+                                  onCheckedChange={(checked) =>
+                                    handleToggleModule(mod.key, checked)
+                                  }
+                                />
+                              </div>
+                            )
+                          })}
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
                   {activeCategory === "general" && (
                     <div className="flex flex-col gap-6 animate-in fade-in-50 duration-200">
                       <div>
@@ -298,7 +437,7 @@ export function SettingsDialog({
                           Configuración Global
                         </h3>
                         <p className="text-xs text-muted-foreground mt-0.5">
-                          Define los parámetros principales del sistema K'anPro.
+                          Define los parámetros principales del sistema K&apos;anPro.
                         </p>
                       </div>
                       <Separator />
@@ -652,7 +791,7 @@ export function SettingsDialog({
                       <div className="grid gap-4">
                         <div className="rounded-xl border border-border/40 p-4 bg-muted/20 flex flex-col gap-2">
                           <span className="text-xs font-bold text-foreground">
-                            Soporte de Plataforma K'anPro
+                            Soporte de Plataforma K&apos;anPro
                           </span>
                           <p className="text-[12px] text-muted-foreground leading-relaxed">
                             Para incidencias críticas o requerimientos de infraestructura, contacta con el equipo de soporte técnico.

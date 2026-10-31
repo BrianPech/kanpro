@@ -4,8 +4,10 @@ import { requireAdminAuth } from "@/lib/auth/require-admin";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import type { Json } from "@/types/supabase";
+import type { DemoRolloutConfig } from "@/modules/company/config/demo-rollout";
 
 export type SystemSettingsMap = {
+  demo_rollout?: DemoRolloutConfig;
   general?: {
     appName: string;
     language: string;
@@ -87,6 +89,7 @@ export async function saveSystemSettings(settings: Record<string, unknown>) {
 
   revalidatePath("/dashboard/admin");
   revalidatePath("/dashboard/admin/settings");
+  revalidatePath("/dashboard/company", "layout");
 
   return { success: true };
 }

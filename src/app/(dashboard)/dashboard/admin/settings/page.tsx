@@ -7,6 +7,13 @@ import { SettingsDialog } from "@/modules/admin/components/settings-dialog"
 
 const settingsSections = [
   {
+    id: "demo_rollout",
+    icon: <SlidersHorizontal className="h-5 w-5" />,
+    title: "Fases DEMO (Empresas)",
+    description: "Controla qué herramientas se desbloquean cada semana para las empresas participantes",
+    color: "#8b5cf6",
+  },
+  {
     id: "security",
     icon: <Shield className="h-5 w-5" />,
     title: "Seguridad",
@@ -71,7 +78,7 @@ export default function AdminSettingsPage() {
               Configuración del Sistema
             </h1>
             <p className="text-[14px] text-muted-foreground mt-1">
-              Administra los parámetros centrales del panel de control K'anPro
+              Administra los parámetros centrales del panel de control K&apos;anPro
             </p>
           </div>
         </div>

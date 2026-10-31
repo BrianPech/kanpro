@@ -3,6 +3,7 @@
 import * as React from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { toast } from "sonner";
 import {
   LayoutDashboard,
   KanproIsotype,
@@ -23,7 +24,12 @@ import {
   Plus,
   Layers,
   ChevronRight,
+  Lock,
 } from "@/components/ui/icons";
+import {
+  getLockedModuleBadge,
+  isCompanyRouteAllowed,
+} from "@/modules/company/config/demo-rollout";
 
 import {
   Sidebar,
@@ -217,10 +223,15 @@ export const companySections: PrimarySection[] = [
   },
 ];
 
+export interface CompanySidebarProps extends React.ComponentProps<typeof Sidebar> {
+  enabledModules?: string[];
+}
+
 export function CompanySidebar({
   className,
+  enabledModules,
   ...props
-}: React.ComponentProps<typeof Sidebar>) {
+}: CompanySidebarProps) {
   const pathname = usePathname();
   const { isMobile, setOpenMobile, setOpen } = useSidebar();
   const isItemActive = React.useCallback(
@@ -242,11 +253,15 @@ export function CompanySidebar({
     return companySections[0].id;
   }, [isItemActive]);
 
-  const [activeSectionId, setActiveSectionId] = React.useState<string>(currentSectionId);
+  const [selectedSectionId, setActiveSectionId] = React.useState<string | null>(null);
+  const [prevSectionId, setPrevSectionId] = React.useState<string>(currentSectionId);
 
-  React.useEffect(() => {
-    setActiveSectionId(currentSectionId);
-  }, [currentSectionId]);
+  if (prevSectionId !== currentSectionId) {
+    setPrevSectionId(currentSectionId);
+    setActiveSectionId(null);
+  }
+
+  const activeSectionId = selectedSectionId ?? currentSectionId;
 
   const activeSection =
     companySections.find((s) => s.id === activeSectionId) || companySections[0];
@@ -298,14 +313,24 @@ export function CompanySidebar({
               <SidebarMenu className="gap-2 items-center w-full">
                 {companySections.map((section) => {
                   const isActive = activeSection.id === section.id;
+                  const firstAllowedItem = section.items.find((it) =>
+                    isCompanyRouteAllowed(it.url, enabledModules)
+                  );
+                  const allLocked = !firstAllowedItem;
 
                   return (
                     <SidebarMenuItem key={section.id} className="w-full flex items-center justify-center">
                       <SidebarMenuButton
                         size="icon"
-                        render={<Link href={section.items[0].url} />}
+                        render={
+                          firstAllowedItem ? (
+                            <Link href={firstAllowedItem.url} />
+                          ) : undefined
+                        }
                         tooltip={{
-                          children: section.label,
+                          children: allLocked
+                            ? `${section.label} (Próximamente)`
+                            : section.label,
                           hidden: false,
                           side: "right",
                           sideOffset: 12,
@@ -313,14 +338,15 @@ export function CompanySidebar({
                         onClick={() => {
                           setActiveSectionId(section.id);
                           setOpen(true);
-                          if (isMobile) setOpenMobile(false);
+                          if (isMobile && firstAllowedItem) setOpenMobile(false);
                         }}
                         isActive={isActive}
                         className={cn(
                           "size-10 p-0 flex items-center justify-center rounded-xl transition-all duration-150 relative cursor-pointer has-[>svg:first-child]:pl-0 has-[>svg:last-child]:pr-0",
                           isActive
                             ? "bg-sidebar-accent text-sidebar-accent-foreground font-bold shadow-xs hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
-                            : "text-muted-foreground hover:bg-sidebar-accent/60 hover:text-sidebar-foreground"
+                            : "text-muted-foreground hover:bg-sidebar-accent/60 hover:text-sidebar-foreground",
+                          allLocked && !isActive && "opacity-60"
                         )}
                       >
                         <section.icon className="size-5 shrink-0" />
@@ -394,19 +420,29 @@ export function CompanySidebar({
                 <SidebarMenu className="gap-1">
                   {activeSection.items.map((item) => {
                     const isActive = isItemActive(item.url);
+                    const lockBadge = getLockedModuleBadge(item.url, enabledModules);
+                    const isLocked = Boolean(lockBadge);
+                    const displayBadge = lockBadge || item.badge;
 
                     return (
                       <SidebarMenuItem key={item.title}>
                         <SidebarMenuButton
-                          render={<Link href={item.url} />}
-                          isActive={isActive}
-                          tooltip={item.title}
-                          onClick={() => {
+                          render={isLocked ? undefined : <Link href={item.url} />}
+                          isActive={isActive && !isLocked}
+                          tooltip={isLocked ? `${item.title} (${lockBadge})` : item.title}
+                          onClick={(e) => {
+                            if (isLocked) {
+                              e.preventDefault();
+                              toast.info(`${item.title} se habilitará en la ${lockBadge} de la DEMO.`);
+                              return;
+                            }
                             if (isMobile) setOpenMobile(false);
                           }}
                           className={cn(
                             "h-auto py-2 px-2.5 rounded-xl gap-2.5 items-start transition-all cursor-pointer",
-                            isActive
+                            isLocked
+                              ? "opacity-65 text-muted-foreground hover:bg-sidebar-accent/30"
+                              : isActive
                               ? "bg-sidebar-accent text-sidebar-accent-foreground font-bold shadow-xs ring-1 ring-border/40"
                               : "text-muted-foreground hover:bg-sidebar-accent/50 hover:text-sidebar-foreground"
                           )}
@@ -414,12 +450,18 @@ export function CompanySidebar({
                           <div
                             className={cn(
                               "size-6 rounded-lg flex items-center justify-center shrink-0 mt-0.5 transition-colors",
-                              isActive
+                              isLocked
+                                ? "bg-amber-500/10 text-amber-600 dark:text-amber-400"
+                                : isActive
                                 ? "bg-primary text-primary-foreground"
                                 : "bg-sidebar-accent/80 text-muted-foreground"
                             )}
                           >
-                            <item.icon className="size-3.5" />
+                            {isLocked ? (
+                              <Lock className="size-3.5" />
+                            ) : (
+                              <item.icon className="size-3.5" />
+                            )}
                           </div>
 
                           <div className="flex-1 min-w-0 text-left">
@@ -427,12 +469,17 @@ export function CompanySidebar({
                               <span className="text-xs font-semibold truncate text-foreground">
                                 {item.title}
                               </span>
-                              {item.badge && (
+                              {displayBadge && (
                                 <Badge
                                   variant="outline"
-                                  className="text-[9px] font-extrabold uppercase px-1.5 py-0 border-primary/20 bg-primary/5 text-primary tracking-wide shrink-0"
+                                  className={cn(
+                                    "text-[9px] font-extrabold uppercase px-1.5 py-0 tracking-wide shrink-0",
+                                    isLocked
+                                      ? "border-amber-500/30 bg-amber-500/10 text-amber-700 dark:text-amber-300"
+                                      : "border-primary/20 bg-primary/5 text-primary"
+                                  )}
                                 >
-                                  {item.badge}
+                                  {displayBadge}
                                 </Badge>
                               )}
                             </div>
@@ -443,7 +490,7 @@ export function CompanySidebar({
                             )}
                           </div>
 
-                          {isActive && (
+                          {isActive && !isLocked && (
                             <ChevronRight className="size-3.5 text-primary ml-auto self-center shrink-0" />
                           )}
                         </SidebarMenuButton>
@@ -455,21 +502,22 @@ export function CompanySidebar({
             </SidebarGroup>
 
             {/* Acción Primaria Contextual */}
-            {activeSection.action && (
-              <div className="mt-4 pt-3 border-t border-sidebar-border/60">
-                <Button
-                  size="sm"
-                  render={<Link href={activeSection.action.url} />}
-                  onClick={() => {
-                    if (isMobile) setOpenMobile(false);
-                  }}
-                  className="w-full font-semibold text-xs cursor-pointer"
-                >
-                  <activeSection.action.icon data-icon="inline-start" />
-                  <span>{activeSection.action.label}</span>
-                </Button>
-              </div>
-            )}
+            {activeSection.action &&
+              isCompanyRouteAllowed(activeSection.action.url, enabledModules) && (
+                <div className="mt-4 pt-3 border-t border-sidebar-border/60">
+                  <Button
+                    size="sm"
+                    render={<Link href={activeSection.action.url} />}
+                    onClick={() => {
+                      if (isMobile) setOpenMobile(false);
+                    }}
+                    className="w-full font-semibold text-xs cursor-pointer"
+                  >
+                    <activeSection.action.icon data-icon="inline-start" />
+                    <span>{activeSection.action.label}</span>
+                  </Button>
+                </div>
+              )}
           </ScrollArea>
         </SidebarContent>
 
@@ -479,7 +527,7 @@ export function CompanySidebar({
             <SidebarMenuItem>
               <SidebarMenuButton
                 size="sm"
-                render={<Link href="/dashboard/company/reports" />}
+                render={<Link href="/help" />}
                 className="h-8 rounded-lg px-2 text-xs text-muted-foreground hover:text-foreground hover:bg-sidebar-accent/50 cursor-pointer"
               >
                 <HelpCircle className="size-3.5 shrink-0 text-muted-foreground" />

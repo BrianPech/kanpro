@@ -3,6 +3,7 @@
 import * as React from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { toast } from "sonner";
 import {
   UserPlus,
   UserCheck,
@@ -22,7 +23,9 @@ import {
   Sparkles,
   Briefcase,
   Users,
+  Lock,
 } from "@/components/ui/icons";
+import { getLockedModuleBadge } from "@/modules/company/config/demo-rollout";
 import {
   Drawer,
   DrawerClose,
@@ -38,6 +41,7 @@ export interface CompanyBottomNavDrawerProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onOpenSettings?: () => void;
+  enabledModules?: string[];
 }
 
 interface NavItem {
@@ -174,6 +178,7 @@ export function CompanyBottomNavDrawer({
   open,
   onOpenChange,
   onOpenSettings,
+  enabledModules,
 }: CompanyBottomNavDrawerProps) {
   const pathname = usePathname();
 
@@ -288,14 +293,29 @@ export function CompanyBottomNavDrawer({
                     );
                   }
 
+                  const lockBadge = getLockedModuleBadge(item.href, enabledModules);
+                  const isLocked = Boolean(lockBadge);
+                  const displayBadge = lockBadge || item.badge;
+
                   return (
                     <Link
                       key={item.title}
-                      href={item.href}
-                      onClick={() => onOpenChange(false)}
+                      href={isLocked ? "#" : item.href}
+                      onClick={(e) => {
+                        if (isLocked) {
+                          e.preventDefault();
+                          toast.info(
+                            `${item.title} se habilitará en la ${lockBadge} de la DEMO.`
+                          );
+                          return;
+                        }
+                        onOpenChange(false);
+                      }}
                       className={cn(
                         "group flex items-center justify-between p-2.5 rounded-xl border transition-all duration-150 active:scale-[0.99] cursor-pointer",
-                        isActive
+                        isLocked
+                          ? "opacity-65 border-border/20 bg-card/50 text-muted-foreground"
+                          : isActive
                           ? "bg-primary/10 border-primary/30 text-primary"
                           : "border-border/30 hover:border-border/70 bg-card hover:bg-muted/50 text-foreground"
                       )}
@@ -304,36 +324,41 @@ export function CompanyBottomNavDrawer({
                         <div
                           className={cn(
                             "size-9 rounded-xl flex items-center justify-center shrink-0 transition-colors shadow-2xs",
-                            isActive
+                            isLocked
+                              ? "bg-amber-500/10 text-amber-600 dark:text-amber-400"
+                              : isActive
                               ? "bg-primary text-primary-foreground shadow-xs"
                               : "bg-muted/60 text-muted-foreground group-hover:text-foreground group-hover:bg-muted"
                           )}
                         >
-                          <Icon className="size-4" />
+                          {isLocked ? <Lock className="size-4" /> : <Icon className="size-4" />}
                         </div>
                         <div className="min-w-0 flex-1">
                           <div className="flex items-center gap-2">
                             <span
                               className={cn(
                                 "text-xs block truncate",
-                                isActive ? "font-extrabold text-primary" : "font-bold text-foreground"
+                                isActive && !isLocked
+                                  ? "font-extrabold text-primary"
+                                  : "font-bold text-foreground"
                               )}
                             >
                               {item.title}
                             </span>
-                            {item.badge && (
+                            {displayBadge && (
                               <span
                                 className={cn(
                                   "text-[9px] font-bold px-1.5 py-0.2 rounded-md shrink-0",
-                                  item.badgeVariant === "primary" &&
-                                    "bg-primary/15 text-primary border border-primary/25",
-                                  item.badgeVariant === "muted" &&
-                                    "bg-muted text-muted-foreground border border-border/50",
-                                  !item.badgeVariant &&
-                                    "bg-muted text-muted-foreground"
+                                  isLocked
+                                    ? "bg-amber-500/15 text-amber-700 dark:text-amber-300 border border-amber-500/25"
+                                    : item.badgeVariant === "primary"
+                                    ? "bg-primary/15 text-primary border border-primary/25"
+                                    : item.badgeVariant === "muted"
+                                    ? "bg-muted text-muted-foreground border border-border/50"
+                                    : "bg-muted text-muted-foreground"
                                 )}
                               >
-                                {item.badge}
+                                {displayBadge}
                               </span>
                             )}
                           </div>
@@ -344,7 +369,7 @@ export function CompanyBottomNavDrawer({
                       </div>
 
                       <div className="flex items-center gap-1.5 shrink-0 ml-2">
-                        {isActive && (
+                        {isActive && !isLocked && (
                           <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-md bg-primary/15 text-primary">
                             Activo
                           </span>
@@ -352,7 +377,7 @@ export function CompanyBottomNavDrawer({
                         <ChevronRight
                           className={cn(
                             "size-4 transition-all",
-                            isActive
+                            isActive && !isLocked
                               ? "text-primary"
                               : "text-muted-foreground/30 group-hover:text-muted-foreground group-hover:translate-x-0.5"
                           )}

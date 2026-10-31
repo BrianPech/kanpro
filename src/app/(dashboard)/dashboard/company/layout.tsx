@@ -4,6 +4,7 @@ import { CompanySidebar } from "@/modules/company/components/navigation/company-
 import { getDashboardSession } from "@/modules/auth/services/dashboard-session";
 import { CompanyTopbar } from "@/modules/company/components/navigation/company-topbar";
 import { CompanyBottomNav } from "@/modules/company/components/navigation/company-bottom-nav";
+import { CompanyRouteGuard } from "@/modules/company/components/navigation/company-route-guard";
 import { ScrollArea } from "@/components/ui/scroll-area";
 
 export default async function CompanyDashboardLayout({
@@ -11,7 +12,14 @@ export default async function CompanyDashboardLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const { userName, userInitials, role, plan, isImpersonated } = await getDashboardSession();
+  const {
+    userName,
+    userInitials,
+    role,
+    plan,
+    isImpersonated,
+    enabledCompanyModules,
+  } = await getDashboardSession();
 
   return (
     <SidebarProvider
@@ -27,7 +35,7 @@ export default async function CompanyDashboardLayout({
           : "h-screen overflow-hidden flex bg-sidebar"
       }
     >
-      <CompanySidebar variant="inset" />
+      <CompanySidebar variant="inset" enabledModules={enabledCompanyModules} />
       <SidebarInset className="flex flex-1 flex-col overflow-hidden bg-background">
         <CompanyTopbar
           userName={userName}
@@ -37,10 +45,12 @@ export default async function CompanyDashboardLayout({
         />
         <ScrollArea className="flex-1 min-h-0 w-full" style={{ WebkitOverflowScrolling: "touch" }}>
           <main className="flex-1 flex flex-col p-4 md:p-6 lg:p-8 pb-[calc(5rem+env(safe-area-inset-bottom,0px))] md:pb-8 w-full">
-            {children}
+            <CompanyRouteGuard enabledModules={enabledCompanyModules}>
+              {children}
+            </CompanyRouteGuard>
           </main>
         </ScrollArea>
-        <CompanyBottomNav />
+        <CompanyBottomNav enabledModules={enabledCompanyModules} />
       </SidebarInset>
     </SidebarProvider>
   );
