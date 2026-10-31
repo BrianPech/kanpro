@@ -90,9 +90,9 @@ export function RescheduleInterviewModal({
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[480px] rounded-3xl p-6 bg-card border-border/80">
+      <DialogContent className="sm:max-w-[480px] rounded-4xl p-6 bg-card border-border/80">
         <DialogHeader className="space-y-1 text-left">
-          <div className="flex items-center gap-2 text-amber-600 dark:text-amber-400 font-bold text-xs uppercase tracking-wider">
+          <div className="flex items-center gap-2 text-primary font-bold text-xs uppercase tracking-wider">
             <CalendarClock className="size-4" />
             <span>Coordinación de Cita</span>
           </div>
@@ -106,7 +106,7 @@ export function RescheduleInterviewModal({
 
         <form onSubmit={handleSubmit} className="space-y-4 pt-1">
           {currentDate && (
-            <div className="p-3 rounded-xl bg-muted/40 border border-border/60 text-xs text-muted-foreground">
+            <div className="p-3 rounded-3xl bg-muted/40 border border-border/60 text-xs text-muted-foreground">
               <span className="font-semibold text-foreground">Fecha actual de la cita: </span>
               {currentDate} {currentTime ? `a las ${currentTime}` : ""}
             </div>
@@ -124,7 +124,7 @@ export function RescheduleInterviewModal({
                 min={minDate}
                 value={proposedDate}
                 onChange={(e) => setProposedDate(e.target.value)}
-                className="h-10 rounded-xl text-xs bg-background border-border/80"
+                className="h-9 rounded-3xl text-xs sm:text-sm bg-input/50 border-input"
                 required
               />
             </div>
@@ -138,7 +138,7 @@ export function RescheduleInterviewModal({
                 type="time"
                 value={proposedTime}
                 onChange={(e) => setProposedTime(e.target.value)}
-                className="h-10 rounded-xl text-xs bg-background border-border/80"
+                className="h-9 rounded-3xl text-xs sm:text-sm bg-input/50 border-input"
                 required
               />
             </div>
@@ -155,10 +155,10 @@ export function RescheduleInterviewModal({
                   key={t}
                   type="button"
                   onClick={() => setProposedTime(t)}
-                  className={`px-2.5 py-1 rounded-lg text-[11px] font-bold transition-all cursor-pointer ${
+                  className={`px-2.5 py-1 rounded-3xl text-[11px] font-medium transition-all cursor-pointer ${
                     proposedTime === t
-                      ? "bg-amber-600 text-white shadow-xs"
-                      : "bg-muted/60 text-muted-foreground hover:text-foreground"
+                      ? "bg-primary text-primary-foreground shadow-xs"
+                      : "bg-muted text-muted-foreground hover:text-foreground"
                   }`}
                 >
                   {t}
@@ -178,7 +178,7 @@ export function RescheduleInterviewModal({
               placeholder="Ej: Por motivos laborales actuales me sería más viable asistir en este horario, quedo atento a su confirmación..."
               value={reason}
               onChange={(e) => setReason(e.target.value)}
-              className="rounded-xl text-xs resize-none bg-background border-border/80"
+              className="rounded-3xl text-xs sm:text-sm resize-none bg-input/50 border-input p-3"
               required
             />
           </div>
@@ -188,14 +188,14 @@ export function RescheduleInterviewModal({
               type="button"
               variant="outline"
               onClick={() => onOpenChange(false)}
-              className="h-10 rounded-xl text-xs font-bold border-border/70 cursor-pointer"
+              className="h-9 rounded-4xl text-xs font-semibold cursor-pointer"
             >
               Cancelar
             </Button>
             <Button
               type="submit"
               disabled={isSubmitting}
-              className="h-10 rounded-xl text-xs font-bold bg-amber-600 hover:bg-amber-700 text-white gap-2 cursor-pointer shadow-xs"
+              className="h-9 rounded-4xl text-xs font-semibold gap-2 cursor-pointer shadow-xs"
             >
               {isSubmitting ? (
                 <>

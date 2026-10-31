@@ -253,10 +253,10 @@ export function JobAlertPreferencesView({ onBack }: JobAlertPreferencesViewProps
       <div className="space-y-6">
         
         {/* 1. Master Switch Card */}
-        <Card className="rounded-2xl border-primary/20 bg-primary/5 dark:bg-primary/10 shadow-xs">
+        <Card className="rounded-4xl border-primary/20 bg-primary/5 dark:bg-primary/10 shadow-xs">
           <CardContent className="p-5 sm:p-6 flex items-center justify-between gap-4">
             <div className="flex items-center gap-3.5 min-w-0">
-              <div className="size-10 rounded-xl bg-primary/15 text-primary flex items-center justify-center shrink-0">
+              <div className="size-10 rounded-3xl bg-primary/10 text-primary flex items-center justify-center shrink-0">
                 <BellRing className="size-5" />
               </div>
               <div className="min-w-0 space-y-0.5">
@@ -283,7 +283,7 @@ export function JobAlertPreferencesView({ onBack }: JobAlertPreferencesViewProps
           <div className="space-y-6 animate-in fade-in duration-200">
             
             {/* Categories Section */}
-            <Card className="rounded-2xl border-border/60 shadow-xs">
+            <Card className="rounded-4xl border-border/70 bg-card shadow-xs">
               <CardHeader className="pb-3">
                 <CardTitle className="text-base font-bold">Categorías de Interés</CardTitle>
                 <CardDescription className="text-xs">
@@ -302,7 +302,7 @@ export function JobAlertPreferencesView({ onBack }: JobAlertPreferencesViewProps
                         size="sm"
                         onClick={() => toggleCategory(cat)}
                         className={cn(
-                          "rounded-xl text-xs font-semibold gap-1.5 cursor-pointer transition-all",
+                          "h-9 rounded-3xl text-xs font-medium gap-1.5 cursor-pointer transition-all",
                           isSel && "shadow-xs"
                         )}
                       >
@@ -316,7 +316,7 @@ export function JobAlertPreferencesView({ onBack }: JobAlertPreferencesViewProps
             </Card>
 
             {/* Locations Section */}
-            <Card className="rounded-2xl border-border/60 shadow-xs">
+            <Card className="rounded-4xl border-border/70 bg-card shadow-xs">
               <CardHeader className="pb-3">
                 <CardTitle className="text-base font-bold">Zonas y Ciudades Preferidas</CardTitle>
                 <CardDescription className="text-xs">
@@ -335,7 +335,7 @@ export function JobAlertPreferencesView({ onBack }: JobAlertPreferencesViewProps
                         size="sm"
                         onClick={() => toggleLocation(loc)}
                         className={cn(
-                          "rounded-xl text-xs font-semibold gap-1.5 cursor-pointer transition-all",
+                          "h-9 rounded-3xl text-xs font-medium gap-1.5 cursor-pointer transition-all",
                           isSel && "shadow-xs"
                         )}
                       >
@@ -349,7 +349,7 @@ export function JobAlertPreferencesView({ onBack }: JobAlertPreferencesViewProps
             </Card>
 
             {/* Minimum Salary Slider Section */}
-            <Card className="rounded-2xl border-border/60 shadow-xs">
+            <Card className="rounded-4xl border-border/70 bg-card shadow-xs">
               <CardHeader className="pb-3">
                 <div className="flex items-center justify-between">
                   <div>
@@ -358,7 +358,7 @@ export function JobAlertPreferencesView({ onBack }: JobAlertPreferencesViewProps
                       Filtra vacantes que cumplan con tu expectativa salarial mínima.
                     </CardDescription>
                   </div>
-                  <Badge variant="secondary" className="text-xs font-bold px-3 py-1">
+                  <Badge variant="secondary" className="text-xs font-mono font-bold px-3 py-1 rounded-3xl">
                     ${Math.round(minSalaryExpectation / 1000)}k MXN /mes
                   </Badge>
                 </div>
@@ -381,7 +381,7 @@ export function JobAlertPreferencesView({ onBack }: JobAlertPreferencesViewProps
             </Card>
 
             {/* Frequency Selection */}
-            <Card className="rounded-2xl border-border/60 shadow-xs">
+            <Card className="rounded-4xl border-border/70 bg-card shadow-xs">
               <CardHeader className="pb-3">
                 <CardTitle className="text-base font-bold">Frecuencia de Notificación</CardTitle>
                 <CardDescription className="text-xs">
@@ -399,7 +399,7 @@ export function JobAlertPreferencesView({ onBack }: JobAlertPreferencesViewProps
                         variant={isSel ? "default" : "outline"}
                         onClick={() => setAlertFrequency(freq)}
                         className={cn(
-                          "h-11 rounded-xl text-xs sm:text-sm font-semibold transition-all cursor-pointer",
+                          "h-9 rounded-3xl text-xs sm:text-sm font-semibold transition-all cursor-pointer",
                           isSel && "shadow-xs"
                         )}
                       >
@@ -420,7 +420,7 @@ export function JobAlertPreferencesView({ onBack }: JobAlertPreferencesViewProps
             type="button"
             onClick={handleSavePreferences}
             disabled={isSaving}
-            className="w-full sm:w-auto font-semibold text-xs sm:text-sm gap-2 min-w-44 cursor-pointer shadow-xs"
+            className="w-full sm:w-auto h-9 rounded-4xl font-semibold text-xs sm:text-sm gap-2 min-w-44 cursor-pointer shadow-xs"
           >
             {isSaving ? (
               <>

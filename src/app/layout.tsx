@@ -61,6 +61,7 @@ export const viewport: Viewport = {
 
 import { QueryProvider } from "@/components/providers/query-provider";
 import { ThemeProvider } from "@/components/providers/theme-provider";
+import { CookieConsentProvider } from "@/components/providers/cookie-consent-provider";
 import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { WhatsAppSupportWidget } from "@/components/marketing/whatsapp-support-widget";
@@ -95,7 +96,9 @@ export default function RootLayout({
               enableSystem
               disableTransitionOnChange
             >
-              {children}
+              <CookieConsentProvider>
+                {children}
+              </CookieConsentProvider>
             </ThemeProvider>
             <Toaster richColors />
           </TooltipProvider>

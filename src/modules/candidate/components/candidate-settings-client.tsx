@@ -39,16 +39,16 @@ export function CandidateSettingsClient({ user }: CandidateSettingsClientProps) 
       </div>
 
       <Tabs defaultValue="security" className="space-y-6">
-        <TabsList className="grid grid-cols-3 w-full max-w-md bg-muted/60 p-1 rounded-xl">
-          <TabsTrigger value="security" className="rounded-lg text-xs font-semibold gap-1.5">
+        <TabsList className="grid grid-cols-3 w-full max-w-md bg-muted/60 p-1 rounded-3xl">
+          <TabsTrigger value="security" className="rounded-3xl text-xs font-semibold gap-1.5">
             <Key className="size-3.5" />
             Seguridad
           </TabsTrigger>
-          <TabsTrigger value="privacy" className="rounded-lg text-xs font-semibold gap-1.5">
+          <TabsTrigger value="privacy" className="rounded-3xl text-xs font-semibold gap-1.5">
             <Lock className="size-3.5" />
             Privacidad
           </TabsTrigger>
-          <TabsTrigger value="preferences" className="rounded-lg text-xs font-semibold gap-1.5">
+          <TabsTrigger value="preferences" className="rounded-3xl text-xs font-semibold gap-1.5">
             <Bell className="size-3.5" />
             Alertas
           </TabsTrigger>
@@ -64,10 +64,10 @@ export function CandidateSettingsClient({ user }: CandidateSettingsClientProps) 
 
         {/* Tab 2: Privacidad y Cuenta */}
         <TabsContent value="privacy" className="space-y-6">
-          <Card className="rounded-2xl border-border/40 shadow-xs">
+          <Card className="rounded-4xl border-border/40 shadow-xs">
             <CardHeader>
               <div className="flex items-center gap-3">
-                <div className="p-2.5 bg-primary/10 rounded-xl text-primary">
+                <div className="p-2.5 bg-primary/10 rounded-3xl text-primary">
                   <User className="size-5" />
                 </div>
                 <div>
@@ -83,7 +83,7 @@ export function CandidateSettingsClient({ user }: CandidateSettingsClientProps) 
                 Puedes editar en cualquier momento tu CV, número de WhatsApp para contacto directo y las zonas de trabajo preferidas.
               </p>
               <Link href="/dashboard/candidate/profile/edit">
-                <Button variant="outline" size="sm" className="rounded-full text-xs font-semibold">
+                <Button variant="outline" size="sm" className="h-9 px-4 rounded-4xl text-xs font-semibold">
                   Editar información de perfil
                   <ArrowRight className="size-3.5 ml-1.5" />
                 </Button>
@@ -92,10 +92,10 @@ export function CandidateSettingsClient({ user }: CandidateSettingsClientProps) 
           </Card>
 
           {/* Danger Zone */}
-          <Card className="rounded-2xl border-destructive/20 bg-destructive/5 shadow-xs">
+          <Card className="rounded-4xl border-destructive/20 bg-destructive/5 shadow-xs">
             <CardHeader>
               <div className="flex items-center gap-3">
-                <div className="p-2.5 bg-destructive/10 rounded-xl text-destructive">
+                <div className="p-2.5 bg-destructive/10 rounded-3xl text-destructive">
                   <Trash2 className="size-5" />
                 </div>
                 <div>
@@ -114,7 +114,7 @@ export function CandidateSettingsClient({ user }: CandidateSettingsClientProps) 
                 variant="destructive"
                 size="sm"
                 onClick={() => setIsDeleteModalOpen(true)}
-                className="rounded-full text-xs font-semibold"
+                className="h-9 px-4 rounded-4xl text-xs font-semibold"
               >
                 Eliminar mi cuenta de K&apos;anPro
               </Button>
@@ -124,10 +124,10 @@ export function CandidateSettingsClient({ user }: CandidateSettingsClientProps) 
 
         {/* Tab 3: Alertas y Notificaciones */}
         <TabsContent value="preferences" className="space-y-6">
-          <Card className="rounded-2xl border-border/40 shadow-xs">
+          <Card className="rounded-4xl border-border/40 shadow-xs">
             <CardHeader>
               <div className="flex items-center gap-3">
-                <div className="p-2.5 bg-amber-500/10 rounded-xl text-amber-600 dark:text-amber-400">
+                <div className="p-2.5 bg-primary/10 rounded-3xl text-primary">
                   <Bell className="size-5" />
                 </div>
                 <div>
@@ -143,7 +143,7 @@ export function CandidateSettingsClient({ user }: CandidateSettingsClientProps) 
                 Gestiona la frecuencia de notificaciones, rangos de salario deseados y municipios de interés en Yucatán y la Riviera Maya.
               </p>
               <Link href="/dashboard/candidate/notifications/preferences">
-                <Button className="rounded-full text-xs font-semibold bg-primary text-primary-foreground hover:bg-primary/90">
+                <Button className="h-9 px-4 rounded-4xl text-xs font-semibold shadow-xs">
                   Configurar Alertas de Empleo
                   <ArrowRight className="size-3.5 ml-1.5" />
                 </Button>

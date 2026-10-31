@@ -367,7 +367,7 @@ export function QrAttendanceScannerModal({
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-xl md:max-w-2xl max-h-[92vh] overflow-y-auto rounded-3xl p-6 bg-card border border-border shadow-2xl text-card-foreground">
+      <DialogContent className="sm:max-w-xl md:max-w-2xl max-h-[92vh] overflow-y-auto rounded-4xl p-6 bg-card border border-border shadow-2xl text-card-foreground">
         {/* Hidden inputs for native mobile camera photo capture and file selection */}
         <input
           ref={cameraInputRef}
@@ -397,7 +397,7 @@ export function QrAttendanceScannerModal({
         <DialogHeader className="space-y-1.5 pb-2 border-b border-border/70">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <div className="size-11 rounded-2xl bg-primary/10 text-primary border border-primary/20 flex items-center justify-center shrink-0">
+              <div className="size-11 rounded-3xl bg-primary/10 text-primary border border-primary/20 flex items-center justify-center shrink-0">
                 <Camera className="size-5.5" />
               </div>
               <div>
@@ -417,7 +417,7 @@ export function QrAttendanceScannerModal({
                 variant="outline"
                 onClick={handleToggleFacingMode}
                 title="Cambiar cámara"
-                className="size-9 rounded-xl border-border bg-card hover:bg-muted text-foreground"
+                className="size-9 rounded-full border-border bg-card hover:bg-muted text-foreground cursor-pointer"
               >
                 <SwitchCamera className="size-4" />
               </Button>
@@ -426,7 +426,7 @@ export function QrAttendanceScannerModal({
         </DialogHeader>
 
         {/* Segmented Mode Selector */}
-        <div className="flex items-center justify-center bg-muted/60 p-1 rounded-2xl gap-1">
+        <div className="flex items-center justify-center bg-muted/60 p-1 rounded-3xl gap-1">
           <button
             type="button"
             onClick={() => {
@@ -434,7 +434,7 @@ export function QrAttendanceScannerModal({
               startCamera();
             }}
             className={cn(
-              "flex-1 flex items-center justify-center gap-2 py-2 text-xs font-bold rounded-xl transition-all cursor-pointer",
+              "flex-1 flex items-center justify-center gap-2 py-2 text-xs font-semibold rounded-3xl transition-all cursor-pointer",
               activeTab === "camera"
                 ? "bg-card text-foreground shadow-2xs border border-border/60"
                 : "text-muted-foreground hover:text-foreground"
@@ -451,7 +451,7 @@ export function QrAttendanceScannerModal({
               stopCamera();
             }}
             className={cn(
-              "flex-1 flex items-center justify-center gap-2 py-2 text-xs font-bold rounded-xl transition-all cursor-pointer",
+              "flex-1 flex items-center justify-center gap-2 py-2 text-xs font-semibold rounded-3xl transition-all cursor-pointer",
               activeTab === "photo"
                 ? "bg-card text-foreground shadow-2xs border border-border/60"
                 : "text-muted-foreground hover:text-foreground"
@@ -468,7 +468,7 @@ export function QrAttendanceScannerModal({
               stopCamera();
             }}
             className={cn(
-              "flex-1 flex items-center justify-center gap-2 py-2 text-xs font-bold rounded-xl transition-all cursor-pointer",
+              "flex-1 flex items-center justify-center gap-2 py-2 text-xs font-semibold rounded-3xl transition-all cursor-pointer",
               activeTab === "manual"
                 ? "bg-card text-foreground shadow-2xs border border-border/60"
                 : "text-muted-foreground hover:text-foreground"
@@ -535,11 +535,11 @@ export function QrAttendanceScannerModal({
                 </p>
               </div>
 
-              <div className="flex flex-col w-full max-w-xs gap-2.5 pt-2">
+              <div className="flex flex-col w-full max-w-xs gap-2 pt-2">
                 <Button
                   type="button"
                   onClick={() => cameraInputRef.current?.click()}
-                  className="w-full h-11 rounded-2xl bg-primary hover:bg-primary/90 text-primary-foreground font-bold text-xs flex items-center justify-center gap-2 shadow-sm"
+                  className="w-full h-9 rounded-4xl bg-primary hover:bg-primary/90 text-primary-foreground font-semibold text-xs flex items-center justify-center gap-2 shadow-xs"
                 >
                   <Camera className="size-4" />
                   <span>Abrir Cámara del Teléfono</span>
@@ -549,7 +549,7 @@ export function QrAttendanceScannerModal({
                   type="button"
                   variant="outline"
                   onClick={() => galleryInputRef.current?.click()}
-                  className="w-full h-11 rounded-2xl border-border bg-card hover:bg-muted text-foreground font-semibold text-xs flex items-center justify-center gap-2"
+                  className="w-full h-9 rounded-4xl border-border bg-card hover:bg-muted text-foreground font-semibold text-xs flex items-center justify-center gap-2"
                 >
                   <Upload className="size-4 text-muted-foreground" />
                   <span>Cargar Imagen de Galería</span>
@@ -574,19 +574,19 @@ export function QrAttendanceScannerModal({
                 </p>
               </div>
 
-              <div className="w-full max-w-xs space-y-3 pt-1">
+              <div className="w-full max-w-xs space-y-2.5 pt-1">
                 <Input
                   value={manualCode}
                   onChange={(e) => setManualCode(e.target.value)}
                   placeholder="ej. V100 o /checkin?t=..."
-                  className="bg-card border-input text-foreground placeholder:text-muted-foreground text-center font-mono text-sm h-11 rounded-2xl"
+                  className="bg-input/50 border-input text-foreground placeholder:text-muted-foreground text-center font-mono text-xs sm:text-sm h-9 rounded-3xl"
                 />
 
                 <Button
                   type="button"
                   disabled={!manualCode.trim()}
                   onClick={() => handleQrDetected(manualCode.trim())}
-                  className="w-full h-11 rounded-2xl bg-primary hover:bg-primary/90 text-primary-foreground font-bold text-xs"
+                  className="w-full h-9 rounded-4xl bg-primary hover:bg-primary/90 text-primary-foreground font-semibold text-xs"
                 >
                   Confirmar Asistencia
                 </Button>
@@ -597,7 +597,7 @@ export function QrAttendanceScannerModal({
           {/* Submitting Overlay */}
           {isSubmitting && (
             <div className="absolute inset-0 bg-background/85 backdrop-blur-sm flex flex-col items-center justify-center p-6 space-y-3 z-20">
-              <div className="size-14 rounded-2xl bg-primary/10 text-primary border border-primary/20 flex items-center justify-center animate-pulse shadow-md">
+              <div className="size-14 rounded-3xl bg-primary/10 text-primary border border-primary/20 flex items-center justify-center animate-pulse shadow-xs">
                 <Loader2 className="size-7 animate-spin" />
               </div>
               <div className="text-center space-y-1">
@@ -613,31 +613,31 @@ export function QrAttendanceScannerModal({
 
           {/* Success Overlay */}
           {successData && (
-            <div className="absolute inset-0 bg-emerald-950/90 dark:bg-emerald-950/95 backdrop-blur-md flex flex-col items-center justify-center p-6 space-y-3 text-center z-20 animate-in fade-in duration-200">
-              <div className="size-16 rounded-full bg-emerald-500 text-white flex items-center justify-center shadow-lg shadow-emerald-500/30 animate-in zoom-in-75 duration-300">
+            <div className="absolute inset-0 bg-card/95 backdrop-blur-md flex flex-col items-center justify-center p-6 space-y-3 text-center z-20 animate-in fade-in duration-200">
+              <div className="size-16 rounded-full bg-primary/10 text-primary border border-primary/20 flex items-center justify-center shadow-xs animate-in zoom-in-75 duration-300">
                 <CheckCircle2 className="size-9" />
               </div>
 
               <div className="space-y-1">
                 <Badge
                   variant="outline"
-                  className="bg-emerald-500/20 text-emerald-200 border-emerald-400/40 text-xs px-3 py-0.5 font-bold uppercase tracking-wide"
+                  className="bg-primary/10 text-primary border-primary/20 text-xs px-3 py-0.5 rounded-full font-bold uppercase tracking-wide"
                 >
                   {successData.actionType === "check_out"
                     ? "Salida Registrada"
                     : "Entrada Registrada"}
                 </Badge>
-                <div className="text-3xl sm:text-4xl font-black font-mono text-white tracking-tight pt-1">
+                <div className="text-3xl sm:text-4xl font-black font-mono text-foreground tracking-tight pt-1">
                   {successData.timeStr}
                 </div>
-                <p className="text-xs text-emerald-200 font-medium">
+                <p className="text-xs text-muted-foreground font-medium">
                   {successData.employeeName}
                 </p>
               </div>
 
               {successData.branchName && (
-                <div className="flex items-center gap-1.5 text-xs text-emerald-300 bg-emerald-900/60 border border-emerald-700/50 rounded-xl px-3.5 py-1">
-                  <MapPin className="size-3.5 shrink-0" />
+                <div className="flex items-center gap-1.5 text-xs text-foreground bg-muted/60 border border-border/70 rounded-full px-3.5 py-1">
+                  <MapPin className="size-3.5 shrink-0 text-muted-foreground" />
                   <span className="truncate max-w-[220px]">
                     {successData.branchName}
                   </span>
@@ -645,7 +645,7 @@ export function QrAttendanceScannerModal({
               )}
 
               {successData.isLate && (
-                <p className="text-xs font-semibold text-amber-300">
+                <p className="text-xs font-semibold text-destructive">
                   ⚠️ Retardo registrado (+{successData.delayMinutes} min)
                 </p>
               )}
@@ -655,7 +655,7 @@ export function QrAttendanceScannerModal({
           {/* Error Overlay with Clean Retry Button */}
           {errorMessage && (
             <div className="absolute inset-0 bg-background/90 backdrop-blur-sm flex flex-col items-center justify-center p-6 space-y-3 text-center z-20">
-              <div className="size-12 rounded-2xl bg-destructive/10 text-destructive border border-destructive/20 flex items-center justify-center">
+              <div className="size-12 rounded-3xl bg-destructive/10 text-destructive border border-destructive/20 flex items-center justify-center">
                 <AlertCircle className="size-6" />
               </div>
               <div className="space-y-1 max-w-sm">
@@ -671,7 +671,7 @@ export function QrAttendanceScannerModal({
                   type="button"
                   size="sm"
                   onClick={resetAndRestartScan}
-                  className="rounded-xl bg-primary hover:bg-primary/90 text-primary-foreground font-bold text-xs h-9 px-4 gap-1.5"
+                  className="rounded-4xl bg-primary hover:bg-primary/90 text-primary-foreground font-semibold text-xs h-9 px-4 gap-1.5 shadow-xs"
                 >
                   <RefreshCw className="size-3.5" />
                   <span>Intentar de Nuevo</span>
@@ -684,7 +684,7 @@ export function QrAttendanceScannerModal({
                     setErrorMessage(null);
                     setActiveTab("photo");
                   }}
-                  className="rounded-xl border-border bg-card text-foreground text-xs h-9 px-3"
+                  className="rounded-4xl border-border bg-card hover:bg-muted text-foreground text-xs font-semibold h-9 px-4"
                 >
                   Tomar Foto
                 </Button>
@@ -695,7 +695,7 @@ export function QrAttendanceScannerModal({
           {/* Camera Permission / Access Guidance on Live Tab */}
           {activeTab === "camera" && cameraError && !errorMessage && !successData && (
             <div className="absolute inset-0 bg-card p-6 flex flex-col items-center justify-center text-center gap-3.5 z-10">
-              <div className="size-14 rounded-3xl bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20 flex items-center justify-center">
+              <div className="size-14 rounded-3xl bg-primary/10 text-primary border border-primary/20 flex items-center justify-center">
                 <Camera className="size-7" />
               </div>
               <div className="space-y-1.5 max-w-sm">
@@ -711,7 +711,7 @@ export function QrAttendanceScannerModal({
                 <Button
                   type="button"
                   onClick={() => cameraInputRef.current?.click()}
-                  className="h-11 rounded-2xl bg-primary hover:bg-primary/90 text-primary-foreground font-bold text-xs flex items-center justify-center gap-2 shadow-sm"
+                  className="h-9 rounded-4xl bg-primary hover:bg-primary/90 text-primary-foreground font-semibold text-xs flex items-center justify-center gap-2 shadow-xs"
                 >
                   <Camera className="size-4" />
                   <span>Abrir Cámara Nativa del Móvil</span>
@@ -722,7 +722,7 @@ export function QrAttendanceScannerModal({
                   variant="outline"
                   size="sm"
                   onClick={resetAndRestartScan}
-                  className="h-10 rounded-xl border-border bg-card hover:bg-muted text-foreground text-xs font-semibold gap-1.5"
+                  className="h-9 rounded-4xl border-border bg-card hover:bg-muted text-foreground text-xs font-semibold gap-1.5"
                 >
                   <RefreshCw className="size-3.5" />
                   <span>Reintentar Acceso en Vivo</span>
@@ -746,7 +746,7 @@ export function QrAttendanceScannerModal({
                 variant="outline"
                 size="sm"
                 onClick={handleSimulateScan}
-                className="text-xs h-8 px-3 rounded-xl border-border bg-card hover:bg-muted text-foreground"
+                className="text-xs h-9 px-3.5 rounded-4xl border-border bg-card hover:bg-muted text-foreground font-semibold"
               >
                 Simular QR
               </Button>
@@ -756,7 +756,7 @@ export function QrAttendanceScannerModal({
               variant="ghost"
               size="sm"
               onClick={() => onOpenChange(false)}
-              className="text-xs text-muted-foreground hover:text-foreground h-8 px-3 rounded-xl"
+              className="text-xs text-muted-foreground hover:text-foreground h-9 px-3.5 rounded-4xl"
             >
               Cerrar
             </Button>

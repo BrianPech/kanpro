@@ -393,9 +393,9 @@ export function CandidateDocumentsView() {
   };
 
   const getDossierLevel = (score: number) => {
-    if (score >= 85) return { label: "Documentación Completa", color: "emerald", badge: "Prioridad Máxima" };
-    if (score >= 50) return { label: "Documentación en Progreso", color: "amber", badge: "Verificación Parcial" };
-    return { label: "Documentación Básica", color: "zinc", badge: "Requisitos Pendientes" };
+    if (score >= 85) return { label: "Documentación Completa", color: "primary", badge: "Prioridad Máxima" };
+    if (score >= 50) return { label: "Documentación en Progreso", color: "primary", badge: "Verificación Parcial" };
+    return { label: "Documentación Básica", color: "muted", badge: "Requisitos Pendientes" };
   };
 
   const levelInfo = getDossierLevel(totalScore);
@@ -420,13 +420,13 @@ export function CandidateDocumentsView() {
           Datos Oficiales y Ubicación
         </span>
         
-        <div className="rounded-2xl border border-border/60 bg-card p-5 sm:p-6 shadow-xs space-y-4">
+        <div className="rounded-4xl border border-border/60 bg-card p-5 sm:p-6 shadow-xs space-y-4">
           <div className="flex items-center gap-2.5 pb-3 border-b border-border/60">
-            <div className="size-8 rounded-lg bg-primary/10 text-primary flex items-center justify-center shrink-0">
+            <div className="size-8 rounded-2xl bg-primary/10 text-primary flex items-center justify-center shrink-0">
               <User className="size-4" />
             </div>
             <div className="min-w-0">
-              <h3 className="text-sm sm:text-base font-semibold text-foreground truncate">Datos Personales Oficiales</h3>
+              <h3 className="text-sm sm:text-base font-bold text-foreground tracking-tight truncate">Datos Personales Oficiales</h3>
               <p className="text-xs text-muted-foreground truncate">Utilizados para emitir contratos y trámites de RRHH.</p>
             </div>
           </div>
@@ -441,7 +441,7 @@ export function CandidateDocumentsView() {
                 id="docFullName"
                 value={fullName}
                 disabled
-                className="h-9.5 rounded-xl bg-muted/50 border-border/70 text-xs sm:text-sm text-muted-foreground cursor-not-allowed select-none"
+                className="h-9 rounded-3xl bg-muted/50 border-input text-xs sm:text-sm text-muted-foreground cursor-not-allowed select-none"
               />
               <p className="text-[11px] text-muted-foreground font-medium">
                 Para modificar tu nombre oficial, edítalo desde tu perfil público.
@@ -465,7 +465,7 @@ export function CandidateDocumentsView() {
                   value={curp}
                   onChange={(e) => setCurp(normalizeCurp(e.target.value))}
                   placeholder="EJ. HESA950412HDFRR09"
-                  className="h-9.5 rounded-xl bg-background border-border/70 text-xs sm:text-sm uppercase font-mono tracking-wider"
+                  className="h-9 rounded-3xl bg-input/50 border-input text-xs sm:text-sm uppercase font-mono tracking-wider"
                 />
                 <p className="text-[11px] text-muted-foreground font-medium">
                   Clave Única de Registro de Población.
@@ -505,7 +505,7 @@ export function CandidateDocumentsView() {
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     placeholder="candidato@correo.com"
-                    className="h-9.5 rounded-xl bg-background border-border/70 text-xs sm:text-sm pr-9"
+                    className="h-9 rounded-3xl bg-input/50 border-input text-xs sm:text-sm pr-9"
                   />
                   <Mail className="size-3.5 absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none" />
                 </div>
@@ -519,7 +519,7 @@ export function CandidateDocumentsView() {
                   WhatsApp / Celular <span className="text-destructive">*</span>
                 </Label>
                 <div className="flex items-center gap-2">
-                  <div className="flex items-center justify-center h-9.5 px-3 rounded-xl bg-muted/50 border border-border/70 text-xs font-semibold text-muted-foreground shrink-0 select-none">
+                  <div className="flex items-center justify-center h-9 px-3 rounded-3xl bg-muted/50 border border-input text-xs font-semibold text-muted-foreground shrink-0 select-none">
                     <span className="mr-1.5">🇲🇽</span> +52
                   </div>
                   <div className="relative flex-1">
@@ -529,7 +529,7 @@ export function CandidateDocumentsView() {
                       value={formatPhoneDisplay(phone)}
                       onChange={(e) => setPhone(normalizePhone(e.target.value))}
                       placeholder="10 dígitos (ej. 999 123 4567)"
-                      className="h-9.5 rounded-xl bg-background border-border/70 text-xs sm:text-sm pr-9"
+                      className="h-9 rounded-3xl bg-input/50 border-input text-xs sm:text-sm pr-9"
                     />
                     <Phone className="size-3.5 absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none" />
                   </div>
@@ -617,16 +617,16 @@ export function CandidateDocumentsView() {
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {/* Constancias Laborales */}
-            <div className="rounded-2xl border border-border/60 bg-card p-5 sm:p-6 shadow-xs space-y-4 flex flex-col justify-between">
+            <div className="rounded-3xl border border-border/60 bg-card p-5 sm:p-6 shadow-xs space-y-4 flex flex-col justify-between">
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
-                    <div className="size-8 rounded-lg bg-blue-500/10 text-blue-600 dark:text-blue-400 flex items-center justify-center shrink-0">
+                    <div className="size-8 rounded-2xl bg-primary/10 text-primary flex items-center justify-center shrink-0">
                       <Briefcase className="size-4" />
                     </div>
-                    <h4 className="text-sm sm:text-base font-semibold text-foreground">Constancias Laborales</h4>
+                    <h4 className="text-sm sm:text-base font-bold text-foreground">Constancias Laborales</h4>
                   </div>
-                  <Badge variant="secondary" className="text-xs font-semibold rounded-lg">
+                  <Badge variant="secondary" className="text-xs font-semibold rounded-3xl">
                     {workCertificates.length} adjuntas
                   </Badge>
                 </div>
@@ -638,7 +638,7 @@ export function CandidateDocumentsView() {
               {workCertificates.length > 0 && (
                 <div className="space-y-2 max-h-48 overflow-y-auto pr-1">
                   {workCertificates.map((doc) => (
-                    <div key={doc.id} className="p-3 rounded-xl bg-muted/40 border border-border/60 flex items-center justify-between gap-3">
+                    <div key={doc.id} className="p-3 rounded-2xl bg-muted/40 border border-border/60 flex items-center justify-between gap-3">
                       <div className="flex items-center gap-2.5 truncate">
                         <FileText className="size-4 text-primary shrink-0" />
                         <span className="text-xs font-semibold text-foreground truncate">{doc.file_name}</span>
@@ -671,7 +671,7 @@ export function CandidateDocumentsView() {
                 variant="outline"
                 onClick={() => requestFileUpload("work_certificate")}
                 disabled={isUploading}
-                className="w-full rounded-xl text-xs font-medium gap-1.5 h-9.5 border-dashed hover:border-solid cursor-pointer shadow-2xs"
+                className="w-full rounded-4xl text-xs font-semibold gap-1.5 h-9 border-dashed hover:border-solid cursor-pointer shadow-2xs"
               >
                 <Plus className="size-3.5" />
                 <span>Agregar Constancia Laboral</span>
@@ -679,16 +679,16 @@ export function CandidateDocumentsView() {
             </div>
 
             {/* Cartas de Recomendación */}
-            <div className="rounded-2xl border border-border/60 bg-card p-5 sm:p-6 shadow-xs space-y-4 flex flex-col justify-between">
+            <div className="rounded-3xl border border-border/60 bg-card p-5 sm:p-6 shadow-xs space-y-4 flex flex-col justify-between">
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
-                    <div className="size-8 rounded-lg bg-amber-500/10 text-amber-600 dark:text-amber-400 flex items-center justify-center shrink-0">
+                    <div className="size-8 rounded-2xl bg-primary/10 text-primary flex items-center justify-center shrink-0">
                       <Award className="size-4" />
                     </div>
-                    <h4 className="text-sm sm:text-base font-semibold text-foreground">Cartas de Recomendación</h4>
+                    <h4 className="text-sm sm:text-base font-bold text-foreground">Cartas de Recomendación</h4>
                   </div>
-                  <Badge variant="secondary" className="text-xs font-semibold rounded-lg">
+                  <Badge variant="secondary" className="text-xs font-semibold rounded-3xl">
                     {recommendationLetters.length} adjuntas
                   </Badge>
                 </div>
@@ -700,7 +700,7 @@ export function CandidateDocumentsView() {
               {recommendationLetters.length > 0 && (
                 <div className="space-y-2 max-h-48 overflow-y-auto pr-1">
                   {recommendationLetters.map((doc) => (
-                    <div key={doc.id} className="p-3 rounded-xl bg-muted/40 border border-border/60 flex items-center justify-between gap-3">
+                    <div key={doc.id} className="p-3 rounded-2xl bg-muted/40 border border-border/60 flex items-center justify-between gap-3">
                       <div className="flex items-center gap-2.5 truncate">
                         <FileText className="size-4 text-primary shrink-0" />
                         <span className="text-xs font-semibold text-foreground truncate">{doc.file_name}</span>
@@ -733,7 +733,7 @@ export function CandidateDocumentsView() {
                 variant="outline"
                 onClick={() => requestFileUpload("recommendation_letter")}
                 disabled={isUploading}
-                className="w-full rounded-xl text-xs font-medium gap-1.5 h-9.5 border-dashed hover:border-solid cursor-pointer shadow-2xs"
+                className="w-full rounded-4xl text-xs font-semibold gap-1.5 h-9 border-dashed hover:border-solid cursor-pointer shadow-2xs"
               >
                 <Plus className="size-3.5" />
                 <span>Agregar Carta de Recomendación</span>
@@ -801,21 +801,21 @@ export function CandidateDocumentsView() {
           </div>
 
           {/* Certificaciones y Licencias */}
-          <div className="rounded-2xl border border-border/60 bg-card p-5 sm:p-6 shadow-xs space-y-4">
+          <div className="rounded-3xl border border-border/60 bg-card p-5 sm:p-6 shadow-xs space-y-4">
             <div className="flex items-center justify-between gap-2">
               <div className="flex items-center gap-2.5">
-                <div className="size-8 rounded-lg bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0">
+                <div className="size-8 rounded-2xl bg-primary/10 text-primary flex items-center justify-center shrink-0">
                   <ShieldCheck className="size-4" />
                 </div>
                 <div>
-                  <h4 className="text-sm sm:text-base font-semibold text-foreground">Certificaciones Oficiales</h4>
+                  <h4 className="text-sm sm:text-base font-bold text-foreground">Certificaciones Oficiales</h4>
                   <p className="text-xs text-muted-foreground">Distintivo H, Primeros Auxilios, etc.</p>
                 </div>
               </div>
               <Button
                 size="sm"
                 onClick={() => setIsAddCertModalOpen(true)}
-                className="rounded-xl text-xs font-medium gap-1 h-8 px-3 cursor-pointer shadow-2xs"
+                className="rounded-4xl text-xs font-semibold gap-1 h-9 px-3.5 cursor-pointer shadow-2xs"
               >
                 <Plus className="size-3.5" />
                 <span>Agregar</span>
@@ -823,13 +823,13 @@ export function CandidateDocumentsView() {
             </div>
 
             {certifications.length === 0 ? (
-              <div className="p-5 rounded-xl bg-muted/30 border border-dashed border-border/70 text-center text-xs text-muted-foreground">
+              <div className="p-5 rounded-2xl bg-muted/30 border border-dashed border-border/70 text-center text-xs text-muted-foreground">
                 No hay certificaciones registradas.
               </div>
             ) : (
               <div className="space-y-2">
                 {certifications.map((cert) => (
-                  <div key={cert.id} className="p-3 rounded-xl bg-muted/30 border border-border/60 flex items-center justify-between gap-3">
+                  <div key={cert.id} className="p-3 rounded-2xl bg-muted/30 border border-border/60 flex items-center justify-between gap-3">
                     <div className="min-w-0">
                       <p className="text-xs font-semibold text-foreground truncate">{cert.name}</p>
                       <p className="text-[11px] text-muted-foreground truncate">{cert.issuer}</p>
@@ -849,21 +849,21 @@ export function CandidateDocumentsView() {
           </div>
 
           {/* Idiomas */}
-          <div className="rounded-2xl border border-border/60 bg-card p-5 sm:p-6 shadow-xs space-y-4">
+          <div className="rounded-3xl border border-border/60 bg-card p-5 sm:p-6 shadow-xs space-y-4">
             <div className="flex items-center justify-between gap-2">
               <div className="flex items-center gap-2.5">
-                <div className="size-8 rounded-lg bg-blue-500/10 text-blue-600 dark:text-blue-400 flex items-center justify-center shrink-0">
+                <div className="size-8 rounded-2xl bg-primary/10 text-primary flex items-center justify-center shrink-0">
                   <Globe className="size-4" />
                 </div>
                 <div>
-                  <h4 className="text-sm sm:text-base font-semibold text-foreground">Idiomas</h4>
+                  <h4 className="text-sm sm:text-base font-bold text-foreground">Idiomas</h4>
                   <p className="text-xs text-muted-foreground">Nivel conversacional y dominio.</p>
                 </div>
               </div>
               <Button
                 size="sm"
                 onClick={() => setIsAddLangModalOpen(true)}
-                className="rounded-xl text-xs font-medium gap-1 h-8 px-3 cursor-pointer shadow-2xs"
+                className="rounded-4xl text-xs font-semibold gap-1 h-9 px-3.5 cursor-pointer shadow-2xs"
               >
                 <Plus className="size-3.5" />
                 <span>Agregar</span>
@@ -871,7 +871,7 @@ export function CandidateDocumentsView() {
             </div>
 
             {languages.length === 0 ? (
-              <div className="p-5 rounded-xl bg-muted/30 border border-dashed border-border/70 text-center text-xs text-muted-foreground">
+              <div className="p-5 rounded-2xl bg-muted/30 border border-dashed border-border/70 text-center text-xs text-muted-foreground">
                 Registra los idiomas que dominas (Ej. Inglés B2, Maya, etc.).
               </div>
             ) : (
@@ -880,7 +880,7 @@ export function CandidateDocumentsView() {
                   <Badge
                     key={lang.id}
                     variant="secondary"
-                    className="px-2.5 py-1 rounded-lg text-xs font-medium gap-1.5 bg-secondary text-secondary-foreground"
+                    className="px-3 py-1 rounded-3xl text-xs font-medium gap-1.5 bg-secondary text-secondary-foreground"
                   >
                     <span>{lang.language}</span>
                     <span className="text-[10px] text-muted-foreground">({lang.level})</span>
@@ -899,13 +899,13 @@ export function CandidateDocumentsView() {
           </div>
 
           {/* Portafolio Digital */}
-          <div className="rounded-2xl border border-border/60 bg-card p-5 sm:p-6 shadow-xs space-y-4">
+          <div className="rounded-3xl border border-border/60 bg-card p-5 sm:p-6 shadow-xs space-y-4">
             <div className="flex items-center gap-2.5">
-              <div className="size-8 rounded-lg bg-purple-500/10 text-purple-600 dark:text-purple-400 flex items-center justify-center shrink-0">
+              <div className="size-8 rounded-2xl bg-primary/10 text-primary flex items-center justify-center shrink-0">
                 <Sparkles className="size-4" />
               </div>
               <div>
-                <h4 className="text-sm sm:text-base font-semibold text-foreground">Portafolio Digital o Web</h4>
+                <h4 className="text-sm sm:text-base font-bold text-foreground">Portafolio Digital o Web</h4>
                 <p className="text-xs text-muted-foreground">Muestra tus proyectos anteriores o enlace profesional.</p>
               </div>
             </div>
@@ -915,7 +915,7 @@ export function CandidateDocumentsView() {
                 value={portfolioUrl}
                 onChange={(e) => setPortfolioUrl(e.target.value)}
                 placeholder="https://behance.net/mi-perfil o LinkedIn"
-                className="h-9.5 rounded-xl bg-background border-border/70 text-xs sm:text-sm"
+                className="h-9 rounded-3xl bg-input/50 border-input text-xs sm:text-sm"
               />
               {portfolioUrl && (
                 <a
@@ -924,7 +924,7 @@ export function CandidateDocumentsView() {
                   rel="noopener noreferrer"
                   className="shrink-0"
                 >
-                  <Button variant="outline" size="icon" className="size-9.5 rounded-xl cursor-pointer">
+                  <Button variant="outline" size="icon" className="size-9 rounded-3xl cursor-pointer">
                     <ExternalLink className="size-4 text-muted-foreground" />
                   </Button>
                 </a>
@@ -942,13 +942,13 @@ export function CandidateDocumentsView() {
           Seguridad y Privacidad
         </span>
 
-        <div className="rounded-2xl border border-border/60 bg-card p-5 sm:p-6 shadow-xs space-y-4">
+        <div className="rounded-4xl border border-border/60 bg-card p-5 sm:p-6 shadow-xs space-y-4">
           <div className="flex items-center gap-3">
-            <div className="size-10 rounded-xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0">
+            <div className="size-10 rounded-2xl bg-primary/10 text-primary flex items-center justify-center shrink-0">
               <ShieldCheck className="size-5" />
             </div>
             <div>
-              <h3 className="text-sm sm:text-base font-semibold text-foreground">Protocolo de Privacidad K&apos;anPro</h3>
+              <h3 className="text-sm sm:text-base font-bold text-foreground">Protocolo de Privacidad K&apos;anPro</h3>
               <p className="text-xs text-muted-foreground">
                 Tus documentos oficiales y privados están protegidos con RLS y cifrado de extremo a extremo en Supabase Storage.
               </p>
@@ -959,7 +959,7 @@ export function CandidateDocumentsView() {
             <span className="text-xs text-muted-foreground">
               Únicamente se comparten con empresas verificadas a las que decidas postularte formalmente.
             </span>
-            <Badge variant="outline" className="border-emerald-500/30 text-emerald-600 dark:text-emerald-400 bg-emerald-500/5 font-semibold text-xs rounded-lg self-start sm:self-auto shrink-0">
+            <Badge variant="outline" className="border-primary/30 text-primary bg-primary/5 font-semibold text-xs rounded-3xl self-start sm:self-auto shrink-0">
               Vigente y Protegido
             </Badge>
           </div>
@@ -976,7 +976,7 @@ export function CandidateDocumentsView() {
         <Button
           onClick={handleSaveProgress}
           disabled={isSaving}
-          className="w-full sm:w-auto h-10 px-6 rounded-xl font-semibold text-xs sm:text-sm gap-2 cursor-pointer shadow-xs"
+          className="w-full sm:w-auto h-9 px-6 rounded-4xl font-semibold text-xs sm:text-sm gap-2 cursor-pointer shadow-xs"
         >
           {isSaving ? <Loader2 className="size-4 animate-spin" /> : <Save className="size-4" />}
           Guardar Documentos
@@ -989,10 +989,10 @@ export function CandidateDocumentsView() {
 
       {/* 1. Document Preview Modal */}
       <Dialog open={!!previewData} onOpenChange={(open) => !open && setPreviewData(null)}>
-        <DialogContent className="sm:max-w-3xl max-h-[90vh] flex flex-col p-0 rounded-2xl bg-card border border-border shadow-2xl overflow-hidden">
+        <DialogContent className="sm:max-w-3xl max-h-[90vh] flex flex-col p-0 rounded-4xl bg-card border border-border shadow-2xl overflow-hidden">
           <DialogHeader className="p-4 sm:p-5 border-b border-border flex flex-row items-center justify-between">
             <div className="min-w-0 pr-4">
-              <DialogTitle className="text-sm sm:text-base font-semibold text-foreground truncate">
+              <DialogTitle className="text-sm sm:text-base font-bold text-foreground truncate">
                 {previewData?.type || "Vista Previa de Documento"}
               </DialogTitle>
               <DialogDescription className="text-xs text-muted-foreground truncate max-w-sm mt-0.5">
@@ -1006,7 +1006,7 @@ export function CandidateDocumentsView() {
                 rel="noopener noreferrer"
                 download={previewData.name}
               >
-                <Button size="sm" variant="outline" className="rounded-xl text-xs font-medium gap-1.5 h-8 px-3">
+                <Button size="sm" variant="outline" className="rounded-4xl text-xs font-semibold gap-1.5 h-9 px-3.5">
                   <Download className="size-3.5" />
                   <span>Descargar</span>
                 </Button>
@@ -1024,7 +1024,7 @@ export function CandidateDocumentsView() {
               previewData.isPdf ? (
                 <iframe
                   src={`${previewData.url}#toolbar=0`}
-                  className="w-full h-[480px] rounded-xl border border-border"
+                  className="w-full h-[480px] rounded-3xl border border-border"
                   title="PDF Preview"
                 />
               ) : (
@@ -1032,7 +1032,7 @@ export function CandidateDocumentsView() {
                 <img
                   src={previewData.url}
                   alt={previewData.name}
-                  className="max-h-[480px] w-auto object-contain rounded-xl shadow-xs"
+                  className="max-h-[480px] w-auto object-contain rounded-3xl shadow-xs"
                 />
               )
             ) : (
@@ -1046,9 +1046,9 @@ export function CandidateDocumentsView() {
 
       {/* 2. Add Course Modal */}
       <Dialog open={isAddCourseModalOpen} onOpenChange={setIsAddCourseModalOpen}>
-        <DialogContent className="sm:max-w-md rounded-2xl bg-card border border-border p-5 sm:p-6 space-y-4">
+        <DialogContent className="sm:max-w-md rounded-4xl bg-card border border-border p-5 sm:p-6 space-y-4">
           <DialogHeader>
-            <DialogTitle className="text-base font-semibold text-foreground">Agregar Curso o Diplomado</DialogTitle>
+            <DialogTitle className="text-base font-bold text-foreground">Agregar Curso o Diplomado</DialogTitle>
           </DialogHeader>
           <div className="space-y-3">
             <div className="space-y-1.5">
@@ -1057,7 +1057,7 @@ export function CandidateDocumentsView() {
                 value={newCourseTitle}
                 onChange={(e) => setNewCourseTitle(e.target.value)}
                 placeholder="Ej. Diplomado en Manejo Higiénico de Alimentos"
-                className="h-9.5 rounded-xl bg-background border-border/70 text-xs sm:text-sm"
+                className="h-9 rounded-3xl bg-input/50 border-input text-xs sm:text-sm"
               />
             </div>
             <div className="space-y-1.5">
@@ -1066,15 +1066,15 @@ export function CandidateDocumentsView() {
                 value={newCourseInst}
                 onChange={(e) => setNewCourseInst(e.target.value)}
                 placeholder="Ej. Instituto Gastronómico de Mérida"
-                className="h-9.5 rounded-xl bg-background border-border/70 text-xs sm:text-sm"
+                className="h-9 rounded-3xl bg-input/50 border-input text-xs sm:text-sm"
               />
             </div>
           </div>
           <DialogFooter className="gap-2 pt-2">
-            <Button variant="ghost" size="sm" onClick={() => setIsAddCourseModalOpen(false)} className="rounded-xl text-xs h-8.5">
+            <Button variant="ghost" size="sm" onClick={() => setIsAddCourseModalOpen(false)} className="rounded-4xl text-xs h-9">
               Cancelar
             </Button>
-            <Button size="sm" onClick={handleAddCourse} className="rounded-xl text-xs font-medium h-8.5 px-4">
+            <Button size="sm" onClick={handleAddCourse} className="rounded-4xl text-xs font-semibold h-9 px-4">
               Guardar Curso
             </Button>
           </DialogFooter>
@@ -1083,9 +1083,9 @@ export function CandidateDocumentsView() {
 
       {/* 3. Add Certification Modal */}
       <Dialog open={isAddCertModalOpen} onOpenChange={setIsAddCertModalOpen}>
-        <DialogContent className="sm:max-w-md rounded-2xl bg-card border border-border p-5 sm:p-6 space-y-4">
+        <DialogContent className="sm:max-w-md rounded-4xl bg-card border border-border p-5 sm:p-6 space-y-4">
           <DialogHeader>
-            <DialogTitle className="text-base font-semibold text-foreground">Agregar Certificación Oficial</DialogTitle>
+            <DialogTitle className="text-base font-bold text-foreground">Agregar Certificación Oficial</DialogTitle>
           </DialogHeader>
           <div className="space-y-3">
             <div className="space-y-1.5">
@@ -1094,7 +1094,7 @@ export function CandidateDocumentsView() {
                 value={newCertName}
                 onChange={(e) => setNewCertName(e.target.value)}
                 placeholder="Ej. Distintivo H, Certificación CONOCER"
-                className="h-9.5 rounded-xl bg-background border-border/70 text-xs sm:text-sm"
+                className="h-9 rounded-3xl bg-input/50 border-input text-xs sm:text-sm"
               />
             </div>
             <div className="space-y-1.5">
@@ -1103,15 +1103,15 @@ export function CandidateDocumentsView() {
                 value={newCertIssuer}
                 onChange={(e) => setNewCertIssuer(e.target.value)}
                 placeholder="Ej. Secretaría de Turismo (SECTUR)"
-                className="h-9.5 rounded-xl bg-background border-border/70 text-xs sm:text-sm"
+                className="h-9 rounded-3xl bg-input/50 border-input text-xs sm:text-sm"
               />
             </div>
           </div>
           <DialogFooter className="gap-2 pt-2">
-            <Button variant="ghost" size="sm" onClick={() => setIsAddCertModalOpen(false)} className="rounded-xl text-xs h-8.5">
+            <Button variant="ghost" size="sm" onClick={() => setIsAddCertModalOpen(false)} className="rounded-4xl text-xs h-9">
               Cancelar
             </Button>
-            <Button size="sm" onClick={handleAddCertification} className="rounded-xl text-xs font-medium h-8.5 px-4">
+            <Button size="sm" onClick={handleAddCertification} className="rounded-4xl text-xs font-semibold h-9 px-4">
               Guardar Certificación
             </Button>
           </DialogFooter>
@@ -1120,9 +1120,9 @@ export function CandidateDocumentsView() {
 
       {/* 4. Add Language Modal */}
       <Dialog open={isAddLangModalOpen} onOpenChange={setIsAddLangModalOpen}>
-        <DialogContent className="sm:max-w-md rounded-2xl bg-card border border-border p-5 sm:p-6 space-y-4">
+        <DialogContent className="sm:max-w-md rounded-4xl bg-card border border-border p-5 sm:p-6 space-y-4">
           <DialogHeader>
-            <DialogTitle className="text-base font-semibold text-foreground">Agregar Idioma</DialogTitle>
+            <DialogTitle className="text-base font-bold text-foreground">Agregar Idioma</DialogTitle>
           </DialogHeader>
           <div className="space-y-3">
             <div className="space-y-1.5">
@@ -1131,7 +1131,7 @@ export function CandidateDocumentsView() {
                 value={newLangName}
                 onChange={(e) => setNewLangName(e.target.value)}
                 placeholder="Ej. Inglés, Francés, Maya"
-                className="h-9.5 rounded-xl bg-background border-border/70 text-xs sm:text-sm"
+                className="h-9 rounded-3xl bg-input/50 border-input text-xs sm:text-sm"
               />
             </div>
             <div className="space-y-1.5">
@@ -1139,7 +1139,7 @@ export function CandidateDocumentsView() {
               <select
                 value={newLangLevel}
                 onChange={(e) => setNewLangLevel(e.target.value)}
-                className="w-full h-9.5 px-3 bg-background border border-border/70 rounded-xl text-xs sm:text-sm font-medium focus:outline-none focus:ring-2 focus:ring-primary/20"
+                className="w-full h-9 px-3 bg-background border border-input rounded-3xl text-xs sm:text-sm font-medium focus:outline-none focus:ring-2 focus:ring-primary/20"
               >
                 <option value="Básico (A1-A2)">Básico (A1-A2)</option>
                 <option value="Intermedio (B1-B2)">Intermedio (B1-B2)</option>
@@ -1149,10 +1149,10 @@ export function CandidateDocumentsView() {
             </div>
           </div>
           <DialogFooter className="gap-2 pt-2">
-            <Button variant="ghost" size="sm" onClick={() => setIsAddLangModalOpen(false)} className="rounded-xl text-xs h-8.5">
+            <Button variant="ghost" size="sm" onClick={() => setIsAddLangModalOpen(false)} className="rounded-4xl text-xs h-9">
               Cancelar
             </Button>
-            <Button size="sm" onClick={handleAddLanguage} className="rounded-xl text-xs font-medium h-8.5 px-4">
+            <Button size="sm" onClick={handleAddLanguage} className="rounded-4xl text-xs font-semibold h-9 px-4">
               Guardar Idioma
             </Button>
           </DialogFooter>
@@ -1188,12 +1188,12 @@ function DocumentUploadCard({
   required?: boolean;
 }) {
   return (
-    <div className="rounded-2xl border border-border/60 bg-card p-5 sm:p-6 shadow-xs space-y-4 flex flex-col justify-between">
+    <div className="rounded-3xl border border-border/60 bg-card p-5 sm:p-6 shadow-xs space-y-4 flex flex-col justify-between">
       <div className="space-y-1.5">
         <div className="flex items-center justify-between gap-2">
-          <h4 className="text-sm sm:text-base font-semibold text-foreground">{title}</h4>
+          <h4 className="text-sm sm:text-base font-bold text-foreground">{title}</h4>
           {required && (
-            <Badge variant="outline" className="text-[10px] font-semibold text-primary border-primary/30 bg-primary/5 rounded-md">
+            <Badge variant="outline" className="text-[10px] font-semibold text-primary border-primary/30 bg-primary/5 rounded-3xl">
               Requerido
             </Badge>
           )}
@@ -1202,14 +1202,14 @@ function DocumentUploadCard({
       </div>
 
       {document ? (
-        <div className="p-3.5 rounded-xl bg-muted/40 border border-border/60 flex items-center justify-between gap-3">
+        <div className="p-3.5 rounded-2xl bg-muted/40 border border-border/60 flex items-center justify-between gap-3">
           <div className="flex items-center gap-3 overflow-hidden">
-            <div className="size-9 rounded-lg bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0">
+            <div className="size-9 rounded-2xl bg-primary/10 text-primary flex items-center justify-center shrink-0">
               <FileText className="size-4.5" />
             </div>
             <div className="truncate">
               <p className="text-xs font-semibold text-foreground truncate">{document.file_name}</p>
-              <p className="text-[11px] text-emerald-600 dark:text-emerald-400 font-medium flex items-center gap-1 mt-0.5">
+              <p className="text-[11px] text-primary font-medium flex items-center gap-1 mt-0.5">
                 <CheckCircle2 className="size-3" /> Documento Verificado
               </p>
             </div>
@@ -1241,7 +1241,7 @@ function DocumentUploadCard({
           type="button"
           onClick={() => onRequestUpload(docType)}
           disabled={isUploading}
-          className="w-full p-5 border-2 border-dashed border-border/70 hover:border-primary/50 hover:bg-primary/5 rounded-xl flex flex-col items-center justify-center text-center gap-2 transition-all cursor-pointer group"
+          className="w-full p-5 border-2 border-dashed border-border/70 hover:border-primary/50 hover:bg-primary/5 rounded-3xl flex flex-col items-center justify-center text-center gap-2 transition-all cursor-pointer group"
         >
           {isUploading ? (
             <Loader2 className="size-6 text-primary animate-spin" />

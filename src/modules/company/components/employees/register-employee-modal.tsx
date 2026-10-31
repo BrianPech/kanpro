@@ -220,7 +220,7 @@ export function RegisterEmployeeModal({
   return (
     <>
       <Dialog open={isOpen} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-xl max-h-[90vh] overflow-y-auto rounded-3xl p-6">
+      <DialogContent className="sm:max-w-xl max-h-[90vh] overflow-y-auto rounded-4xl p-6">
         <DialogHeader className="space-y-1.5 pb-2 border-b border-border/40">
           <div className="flex items-center gap-2.5">
             <div className="size-10 rounded-2xl bg-primary/10 text-primary flex items-center justify-center shrink-0">
@@ -266,7 +266,7 @@ export function RegisterEmployeeModal({
                 value={inviteEmails}
                 onChange={(e) => setInviteEmails(e.target.value)}
                 placeholder={"ejemplo1@empresa.com, ejemplo2@empresa.com\no escribe una lista de correos separados por coma o salto de línea..."}
-                className="min-h-[160px] rounded-2xl p-3.5 bg-background border-border/60 text-xs sm:text-sm font-medium focus-visible:ring-1 focus-visible:ring-primary resize-y"
+                className="min-h-[160px] rounded-2xl p-3.5 bg-input/50 border-input text-xs sm:text-sm font-medium focus-visible:ring-1 focus-visible:ring-primary resize-y"
               />
               <p className="text-[11px] text-muted-foreground">
                 Escribe uno o varios correos electrónicos separados por comas o saltos de línea para enviar las invitaciones de registro.
@@ -278,13 +278,13 @@ export function RegisterEmployeeModal({
                 type="button"
                 variant="outline"
                 onClick={handleClose}
-                className="rounded-xl font-semibold text-xs h-10 cursor-pointer"
+                className="rounded-4xl font-semibold text-xs h-9 cursor-pointer"
               >
                 Cancelar
               </Button>
               <Button
                 type="button"
-                className="rounded-xl font-bold text-xs h-10 bg-primary text-primary-foreground hover:bg-primary/90 shadow-xs flex items-center gap-1.5 cursor-pointer px-5"
+                className="rounded-4xl font-bold text-xs h-9 bg-primary text-primary-foreground hover:bg-primary/90 shadow-xs flex items-center gap-1.5 cursor-pointer px-5"
               >
                 <Send className="size-3.5" />
                 <span>Invitar</span>
@@ -299,7 +299,7 @@ export function RegisterEmployeeModal({
                 {/* Nombre */}
                 <div className="space-y-1.5">
                   <Label htmlFor="full_name" className="text-xs font-semibold">
-                    Nombre Completo <span className="text-rose-500">*</span>
+                    Nombre Completo <span className="text-destructive">*</span>
                   </Label>
                   <Input
                     id="full_name"
@@ -308,14 +308,14 @@ export function RegisterEmployeeModal({
                     value={fullName}
                     onChange={(e) => setFullName(e.target.value)}
                     disabled={isSubmitting}
-                    className="h-10 rounded-xl bg-background border-border/60 text-xs sm:text-sm font-medium"
+                    className="h-9 rounded-3xl bg-input/50 border-input text-xs sm:text-sm font-medium"
                   />
                 </div>
 
                 {/* Email */}
                 <div className="space-y-1.5">
                   <Label htmlFor="email" className="text-xs font-semibold">
-                    Correo Electrónico <span className="text-rose-500">*</span>
+                    Correo Electrónico <span className="text-destructive">*</span>
                   </Label>
                   <Input
                     id="email"
@@ -324,7 +324,7 @@ export function RegisterEmployeeModal({
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     disabled={isSubmitting}
-                    className="h-10 rounded-xl bg-background border-border/60 text-xs sm:text-sm font-medium"
+                    className="h-9 rounded-3xl bg-input/50 border-input text-xs sm:text-sm font-medium"
                   />
                 </div>
 
@@ -390,7 +390,7 @@ export function RegisterEmployeeModal({
                   {/* Contraseña */}
                   <div className="space-y-1.5">
                     <Label htmlFor="password" className="text-xs font-semibold">
-                      Contraseña <span className="text-rose-500">*</span>
+                      Contraseña <span className="text-destructive">*</span>
                     </Label>
                     <div className="relative">
                       <Input
@@ -400,7 +400,7 @@ export function RegisterEmployeeModal({
                         value={password}
                         onChange={(e) => setPassword(e.target.value)}
                         disabled={isSubmitting}
-                        className="h-10 pr-9 rounded-xl bg-background border-border/60 text-xs sm:text-sm font-medium"
+                        className="h-9 pr-9 rounded-3xl bg-input/50 border-input text-xs sm:text-sm font-medium"
                       />
                       <button
                         type="button"
@@ -420,7 +420,7 @@ export function RegisterEmployeeModal({
                   {/* Confirmar Contraseña */}
                   <div className="space-y-1.5">
                     <Label htmlFor="confirm_password" className="text-xs font-semibold">
-                      Confirmar Contraseña <span className="text-rose-500">*</span>
+                      Confirmar Contraseña <span className="text-destructive">*</span>
                     </Label>
                     <div className="relative">
                       <Input
@@ -430,7 +430,7 @@ export function RegisterEmployeeModal({
                         value={confirmPassword}
                         onChange={(e) => setConfirmPassword(e.target.value)}
                         disabled={isSubmitting}
-                        className="h-10 pr-9 rounded-xl bg-background border-border/60 text-xs sm:text-sm font-medium"
+                        className="h-9 pr-9 rounded-3xl bg-input/50 border-input text-xs sm:text-sm font-medium"
                       />
                       <button
                         type="button"
@@ -477,14 +477,14 @@ export function RegisterEmployeeModal({
                   variant="outline"
                   onClick={handleClose}
                   disabled={isSubmitting}
-                  className="rounded-xl font-semibold text-xs h-10 cursor-pointer"
+                  className="rounded-4xl font-semibold text-xs h-9 cursor-pointer"
                 >
                   Cancelar
                 </Button>
                 <Button
                   type="submit"
                   disabled={isSubmitting}
-                  className="rounded-xl font-bold text-xs h-10 bg-primary text-primary-foreground hover:bg-primary/90 shadow-xs flex items-center gap-1.5 cursor-pointer px-5"
+                  className="rounded-4xl font-bold text-xs h-9 bg-primary text-primary-foreground hover:bg-primary/90 shadow-xs flex items-center gap-1.5 cursor-pointer px-5"
                 >
                   {isSubmitting ? (
                     <>
@@ -510,14 +510,14 @@ export function RegisterEmployeeModal({
       open={alertState.isOpen}
       onOpenChange={(open) => setAlertState((prev) => ({ ...prev, isOpen: open }))}
     >
-      <AlertDialogContent className="z-[70] rounded-3xl max-w-md p-6 border-border/60 shadow-2xl bg-card text-card-foreground">
+      <AlertDialogContent className="z-[70] rounded-4xl max-w-md p-6 border-border/60 shadow-2xl bg-card text-card-foreground">
         <AlertDialogHeader>
           <div className="flex items-center gap-3">
             <div
               className={cn(
                 "size-10 rounded-2xl flex items-center justify-center shrink-0",
                 alertState.type === "user_exists"
-                  ? "bg-amber-500/10 text-amber-600 dark:text-amber-400"
+                  ? "bg-primary/10 text-primary"
                   : "bg-destructive/10 text-destructive"
               )}
             >
@@ -539,7 +539,7 @@ export function RegisterEmployeeModal({
         <AlertDialogFooter className="gap-2 pt-3">
           {alertState.type === "user_exists" ? (
             <>
-              <AlertDialogCancel className="h-10 rounded-xl text-xs font-semibold cursor-pointer">
+              <AlertDialogCancel className="h-9 rounded-4xl text-xs font-semibold cursor-pointer">
                 Permanecer aquí
               </AlertDialogCancel>
               <AlertDialogAction
@@ -553,14 +553,14 @@ export function RegisterEmployeeModal({
                   setActiveTab("invite");
                   setAlertState((prev) => ({ ...prev, isOpen: false }));
                 }}
-                className="h-10 rounded-xl text-xs font-bold bg-primary text-primary-foreground hover:bg-primary/90 shadow-xs cursor-pointer flex items-center gap-1.5"
+                className="h-9 rounded-4xl text-xs font-bold bg-primary text-primary-foreground hover:bg-primary/90 shadow-xs cursor-pointer flex items-center gap-1.5"
               >
                 <Send className="size-3.5" />
                 <span>Ir a Invitar Empleado</span>
               </AlertDialogAction>
             </>
           ) : (
-            <AlertDialogCancel className="h-10 rounded-xl text-xs font-semibold cursor-pointer">
+            <AlertDialogCancel className="h-9 rounded-4xl text-xs font-semibold cursor-pointer">
               Entendido
             </AlertDialogCancel>
           )}

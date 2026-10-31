@@ -159,7 +159,7 @@ export function EmployeeDossierView({ dossier }: EmployeeDossierViewProps) {
       </div>
 
       {/* Hero Card del Empleado */}
-      <Card className="rounded-3xl border border-border/40 bg-gradient-to-br from-card via-background to-primary/5 p-6 sm:p-8 space-y-6 shadow-xs">
+      <Card className="rounded-4xl border border-border/40 bg-gradient-to-br from-card via-background to-primary/5 p-6 sm:p-8 space-y-6 shadow-xs">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
           <div className="flex items-start sm:items-center gap-4 sm:gap-6">
             <Avatar className="size-16 sm:size-20 rounded-2xl shrink-0 border-2 border-primary/20 shadow-xs">
@@ -174,7 +174,10 @@ export function EmployeeDossierView({ dossier }: EmployeeDossierViewProps) {
                 <h2 className="text-xl sm:text-2xl font-extrabold text-foreground tracking-tight">
                   {dossier.fullName}
                 </h2>
-                <Badge className="bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border-none text-xs font-bold px-2.5 py-0.5 rounded-full">
+                <Badge
+                  variant="outline"
+                  className="bg-primary/10 text-primary border-primary/20 text-xs font-bold px-2.5 py-0.5 rounded-full"
+                >
                   Empleado Activo
                 </Badge>
               </div>
@@ -190,7 +193,7 @@ export function EmployeeDossierView({ dossier }: EmployeeDossierViewProps) {
                 </span>
                 <span>•</span>
                 <span className="flex items-center gap-1">
-                  <Calendar className="size-3.5 text-indigo-600" />
+                  <Calendar className="size-3.5 text-primary" />
                   {`Ingreso: ${dossier.hireDate} (${dossier.yearsOfServiceFormatted})`}
                 </span>
               </div>
@@ -357,7 +360,7 @@ export function EmployeeDossierView({ dossier }: EmployeeDossierViewProps) {
 
               <div className="space-y-1">
                 <span className="text-xs font-bold text-muted-foreground block">Antigüedad Oficial</span>
-                <span className="text-sm font-extrabold text-emerald-600 dark:text-emerald-400 block">
+                <span className="text-sm font-extrabold text-foreground block">
                   {dossier.yearsOfServiceFormatted}
                 </span>
               </div>
@@ -446,7 +449,10 @@ export function EmployeeDossierView({ dossier }: EmployeeDossierViewProps) {
                     </div>
 
                     <div className="flex items-center gap-2 shrink-0">
-                      <Badge className="bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border-none text-[10px] font-bold">
+                      <Badge
+                        variant="outline"
+                        className="bg-primary/10 text-primary border-primary/20 text-[10px] font-bold"
+                      >
                         Validado
                       </Badge>
                       <Button
@@ -500,7 +506,7 @@ export function EmployeeDossierView({ dossier }: EmployeeDossierViewProps) {
                     <div className="flex items-center gap-3 text-xs text-muted-foreground font-semibold">
                       <span>Departamento: <strong className="text-foreground">{item.department}</strong></span>
                       <span>•</span>
-                      <span>Salario: <strong className="text-emerald-600 dark:text-emerald-400">${item.salary.toLocaleString()} MXN</strong></span>
+                      <span>Salario: <strong className="text-foreground">${item.salary.toLocaleString()} MXN</strong></span>
                     </div>
 
                     {item.promotionReason && (
@@ -534,7 +540,7 @@ export function EmployeeDossierView({ dossier }: EmployeeDossierViewProps) {
               <div className="text-xs font-bold text-muted-foreground">
                 Días Disfrutados
               </div>
-              <div className="text-3xl font-extrabold text-indigo-600 dark:text-indigo-400">
+              <div className="text-3xl font-extrabold text-foreground">
                 {dossier.vacationBalance.daysTaken} días
               </div>
               <p className="text-[11px] text-muted-foreground font-medium">
@@ -546,7 +552,7 @@ export function EmployeeDossierView({ dossier }: EmployeeDossierViewProps) {
               <div className="text-xs font-bold text-muted-foreground">
                 Saldo Disponible en Tiempo Real
               </div>
-              <div className="text-3xl font-extrabold text-emerald-600 dark:text-emerald-400">
+              <div className="text-3xl font-extrabold text-primary">
                 {dossier.vacationBalance.daysAvailable} días
               </div>
               <p className="text-[11px] text-muted-foreground font-medium">
@@ -583,19 +589,20 @@ export function EmployeeDossierView({ dossier }: EmployeeDossierViewProps) {
                           {req.typeLabel}
                         </span>
                         <Badge
+                          variant="outline"
                           className={cn(
-                            "text-[10px] font-bold px-2 py-0.5 rounded-full border-none",
+                            "text-[10px] font-bold px-2 py-0.5 rounded-full",
                             req.status === "aprobada"
-                              ? "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400"
+                              ? "bg-primary/10 text-primary border-primary/20"
                               : req.status === "pendiente"
-                              ? "bg-amber-500/15 text-amber-700 dark:text-amber-300"
-                              : "bg-destructive/15 text-destructive"
+                              ? "bg-muted text-foreground border-border"
+                              : "bg-destructive/10 text-destructive border-destructive/20"
                           )}
                         >
                           {req.status === "aprobada"
                             ? "Aprobada"
                             : req.status === "pendiente"
-                            ? "🟡 Pendiente de Aprobación"
+                            ? "Pendiente de Aprobación"
                             : "Rechazada"}
                         </Badge>
                       </div>
@@ -633,21 +640,21 @@ export function EmployeeDossierView({ dossier }: EmployeeDossierViewProps) {
 
             <Card className="rounded-2xl border border-border/40 bg-card p-5 space-y-1 shadow-xs">
               <span className="text-xs font-bold text-muted-foreground">Días Laborados</span>
-              <div className="text-2xl font-extrabold text-emerald-600 dark:text-emerald-400">
+              <div className="text-2xl font-extrabold text-foreground">
                 {dossier.attendanceSummary.totalDaysPresent} días
               </div>
             </Card>
 
             <Card className="rounded-2xl border border-border/40 bg-card p-5 space-y-1 shadow-xs">
               <span className="text-xs font-bold text-muted-foreground">Retardos Acumulados</span>
-              <div className="text-2xl font-extrabold text-amber-600 dark:text-amber-400">
+              <div className="text-2xl font-extrabold text-foreground">
                 {dossier.attendanceSummary.totalLateArrivals}
               </div>
             </Card>
 
             <Card className="rounded-2xl border border-border/40 bg-card p-5 space-y-1 shadow-xs">
               <span className="text-xs font-bold text-muted-foreground">Horas Extra Totales</span>
-              <div className="text-2xl font-extrabold text-indigo-600 dark:text-indigo-400">
+              <div className="text-2xl font-extrabold text-foreground">
                 +{dossier.attendanceSummary.totalOvertimeHours} hrs
               </div>
             </Card>
@@ -688,8 +695,8 @@ export function EmployeeDossierView({ dossier }: EmployeeDossierViewProps) {
                         </p>
                       </div>
 
-                      <div className="flex items-center gap-1.5 p-2 rounded-xl bg-amber-500/10 text-amber-600 dark:text-amber-400 font-extrabold text-sm self-start sm:self-center">
-                        <Star className="size-4 fill-amber-500 text-amber-500" />
+                      <div className="flex items-center gap-1.5 p-2 rounded-xl bg-primary/10 text-primary font-extrabold text-sm self-start sm:self-center">
+                        <Star className="size-4 fill-primary text-primary" />
                         <span>{rev.score} / 5.0</span>
                       </div>
                     </div>

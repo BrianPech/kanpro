@@ -5,6 +5,7 @@ import { Comparison8 } from "@/components/blocks/comparison-8";
 import { Faq7 } from "@/components/blocks/faq-7";
 import { CtaBanner } from "@/components/marketing/cta-banner";
 import { Footer } from "@/components/marketing/footer";
+import { CookieBanner } from "@/components/marketing/cookie-banner";
 
 export default function Home() {
   return (
@@ -26,6 +27,7 @@ export default function Home() {
           <CtaBanner />
         </main>
         <Footer />
+        <CookieBanner />
       </div>
     </div>
   );

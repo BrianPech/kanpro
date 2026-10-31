@@ -306,7 +306,7 @@ export function CandidateVacancyDetailView({
       <div className="flex items-center justify-between gap-4">
         <button
           onClick={() => router.back()}
-          className="inline-flex items-center gap-2 text-xs sm:text-sm font-medium text-fiord-600 hover:text-fiord-950 dark:text-fiord-400 dark:hover:text-fiord-100 transition-colors p-2 -ml-2 rounded-md hover:bg-fiord-50 dark:hover:bg-fiord-900 cursor-pointer"
+          className="inline-flex items-center gap-2 text-xs sm:text-sm font-medium text-muted-foreground hover:text-foreground transition-colors p-2 -ml-2 rounded-3xl hover:bg-muted cursor-pointer"
         >
           <ArrowLeft className="size-4" />
           <span>Volver a vacantes</span>
@@ -317,7 +317,7 @@ export function CandidateVacancyDetailView({
             variant="outline"
             size="sm"
             onClick={handleShare}
-            className="h-9 px-3.5 rounded-md border-fiord-200 dark:border-fiord-800 text-fiord-700 dark:text-fiord-300 text-xs font-medium gap-1.5 shadow-soft cursor-pointer"
+            className="h-9 px-4 rounded-4xl border-border/70 text-xs font-semibold gap-1.5 shadow-2xs cursor-pointer"
           >
             <Share2 className="size-3.5" />
             <span className="hidden sm:inline">Compartir</span>
@@ -328,25 +328,25 @@ export function CandidateVacancyDetailView({
             size="sm"
             onClick={handleToggleBookmark}
             disabled={isSaving}
-            className="h-9 px-3.5 rounded-md border-fiord-200 dark:border-fiord-800 text-fiord-700 dark:text-fiord-300 text-xs font-medium gap-1.5 shadow-soft cursor-pointer"
+            className="h-9 px-4 rounded-4xl border-border/70 text-xs font-semibold gap-1.5 shadow-2xs cursor-pointer"
           >
-            <Bookmark className={cn('size-3.5', isSaved ? 'fill-amber-500 text-amber-500' : '')} />
+            <Bookmark className={cn('size-3.5', isSaved ? 'fill-primary text-primary' : 'text-muted-foreground')} />
             <span className="hidden sm:inline">{isSaved ? 'Guardado' : 'Guardar'}</span>
           </Button>
         </div>
       </div>
 
       {/* ── HERO BANNER CARD ── */}
-      <div className="bg-white dark:bg-card border border-fiord-200 dark:border-fiord-800 rounded-xl p-6 sm:p-8 shadow-soft relative overflow-hidden">
+      <div className="bg-card border border-border/70 rounded-4xl p-6 sm:p-8 shadow-xs relative overflow-hidden">
         {/* Atmospheric radial wash */}
         <div className="absolute inset-0 pointer-events-none -z-0 overflow-hidden" aria-hidden="true">
-          <div className="absolute -top-24 right-0 w-[500px] h-[300px] bg-gradient-to-b from-fiord-200/40 via-fiord-100/20 to-transparent dark:from-fiord-800/20 dark:via-fiord-900/10 dark:to-transparent blur-3xl rounded-full" />
+          <div className="absolute -top-24 right-0 w-[500px] h-[300px] bg-gradient-to-b from-primary/10 via-primary/5 to-transparent blur-3xl rounded-full" />
         </div>
 
         <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
           <div className="flex items-start gap-4 sm:gap-5 min-w-0 flex-1">
             {/* Company Avatar */}
-            <div className="size-16 rounded-lg bg-fiord-50 dark:bg-fiord-900/60 border border-fiord-200 dark:border-fiord-800 flex items-center justify-center text-fiord-900 dark:text-fiord-100 shrink-0 font-semibold text-lg overflow-hidden shadow-2xs">
+            <div className="size-16 rounded-3xl bg-muted border border-border/70 flex items-center justify-center text-foreground shrink-0 font-bold text-lg overflow-hidden shadow-2xs">
               {company?.logo_url ? (
                 <img src={company.logo_url} alt={company.company_name || 'Empresa'} className="size-full object-cover" />
               ) : (
@@ -359,44 +359,44 @@ export function CandidateVacancyDetailView({
             {/* Title & Metadata */}
             <div className="min-w-0 flex-1 space-y-1.5">
               <div className="flex items-center gap-2 flex-wrap">
-                <span className="text-xs font-medium text-fiord-600 dark:text-fiord-400 flex items-center gap-1.5">
+                <span className="text-xs font-medium text-muted-foreground flex items-center gap-1.5">
                   {company?.company_name || 'Empresa Empleadora'}
-                  <CheckCircle2 className="size-3.5 text-emerald-600 dark:text-emerald-400 shrink-0" />
+                  <CheckCircle2 className="size-3.5 text-primary shrink-0" />
                 </span>
 
                 {distanceBadge && (
-                  <span className="inline-flex items-center gap-1 text-[11px] font-semibold px-2.5 py-0.5 rounded-full bg-fiord-100 dark:bg-fiord-800 text-fiord-900 dark:text-fiord-100 border border-fiord-200 dark:border-fiord-700">
-                    <Navigation className="size-2.5 text-fiord-600 dark:text-fiord-300" />
+                  <span className="inline-flex items-center gap-1 text-[11px] font-semibold px-2.5 py-0.5 rounded-3xl bg-primary/10 text-primary border border-primary/20">
+                    <Navigation className="size-2.5 text-primary" />
                     {distanceBadge}
                   </span>
                 )}
 
                 {(vacancy.is_featured || vacancy.is_promoted) && (
-                  <span className="inline-flex items-center gap-1 text-[11px] font-semibold px-2.5 py-0.5 rounded-full bg-amber-500/10 text-amber-800 dark:text-amber-300 border border-amber-500/20">
+                  <span className="inline-flex items-center gap-1 text-[11px] font-semibold px-2.5 py-0.5 rounded-3xl bg-primary/10 text-primary border border-primary/20">
                     <Sparkles className="size-3" /> Destacada
                   </span>
                 )}
               </div>
 
-              <h1 className="text-2xl sm:text-3xl font-semibold text-fiord-950 dark:text-fiord-50 tracking-[-0.84px] leading-tight">
+              <h1 className="text-2xl sm:text-3xl font-bold text-foreground tracking-tight leading-tight">
                 {vacancy.title}
               </h1>
 
               {/* Tag Chips */}
-              <div className="flex flex-wrap items-center gap-2 pt-1 text-xs text-fiord-600 dark:text-fiord-400">
-                <span className="inline-flex items-center gap-1 bg-fiord-50 dark:bg-fiord-900/50 px-2.5 py-0.5 rounded-full border border-fiord-200/80 dark:border-fiord-800">
-                  <MapPin className="size-3 text-fiord-500 shrink-0" />
+              <div className="flex flex-wrap items-center gap-2 pt-1 text-xs text-muted-foreground">
+                <span className="inline-flex items-center gap-1 bg-muted/60 px-2.5 py-0.5 rounded-3xl border border-border/60">
+                  <MapPin className="size-3 text-muted-foreground shrink-0" />
                   {displayLocation}
                 </span>
-                <span className="inline-flex items-center gap-1 bg-fiord-50 dark:bg-fiord-900/50 px-2.5 py-0.5 rounded-full border border-fiord-200/80 dark:border-fiord-800">
-                  <Briefcase className="size-3 text-fiord-500 shrink-0" />
+                <span className="inline-flex items-center gap-1 bg-muted/60 px-2.5 py-0.5 rounded-3xl border border-border/60">
+                  <Briefcase className="size-3 text-muted-foreground shrink-0" />
                   {vacancy.employment_type || 'Tiempo Completo'}
                 </span>
-                <span className="inline-flex items-center gap-1 bg-fiord-50 dark:bg-fiord-900/50 px-2.5 py-0.5 rounded-full border border-fiord-200/80 dark:border-fiord-800">
-                  <Building2 className="size-3 text-fiord-500 shrink-0" />
+                <span className="inline-flex items-center gap-1 bg-muted/60 px-2.5 py-0.5 rounded-3xl border border-border/60">
+                  <Building2 className="size-3 text-muted-foreground shrink-0" />
                   {vacancy.modality || 'Presencial'}
                 </span>
-                <span className="inline-flex items-center gap-1 text-fiord-500 dark:text-fiord-400 pl-1">
+                <span className="inline-flex items-center gap-1 text-muted-foreground pl-1">
                   <Clock className="size-3 shrink-0" />
                   Publicado el {publishedDateText}
                 </span>
@@ -405,12 +405,12 @@ export function CandidateVacancyDetailView({
           </div>
 
           {/* Salary & Primary Apply Action */}
-          <div className="flex flex-col sm:flex-row md:flex-col items-start sm:items-center md:items-end justify-between gap-3 pt-4 md:pt-0 border-t md:border-t-0 border-fiord-100 dark:border-fiord-800 shrink-0">
+          <div className="flex flex-col sm:flex-row md:flex-col items-start sm:items-center md:items-end justify-between gap-3 pt-4 md:pt-0 border-t md:border-t-0 border-border/60 shrink-0">
             <div className="text-left md:text-right">
-              <span className="text-[10px] text-fiord-500 dark:text-fiord-400 font-semibold uppercase tracking-wider block">
+              <span className="text-[10px] text-muted-foreground font-semibold uppercase tracking-wider block">
                 Salario mensual ofrecido
               </span>
-              <span className="text-xl sm:text-2xl font-semibold font-mono text-emerald-700 dark:text-emerald-400 block mt-0.5">
+              <span className="text-xl sm:text-2xl font-bold font-mono text-foreground block mt-0.5">
                 {formattedSalary}
               </span>
             </div>
@@ -418,16 +418,16 @@ export function CandidateVacancyDetailView({
             {application ? (
               <Button
                 disabled
-                className="w-full sm:w-auto h-10 px-5 rounded-md font-medium text-xs bg-emerald-500/10 text-emerald-800 dark:text-emerald-300 border border-emerald-500/30 gap-2 cursor-default"
+                className="w-full sm:w-auto h-9 px-4 rounded-4xl font-semibold text-xs bg-primary/10 text-primary border border-primary/20 gap-2 cursor-default"
               >
-                <Check className="size-4 text-emerald-600" />
+                <Check className="size-4 text-primary" />
                 Postulado ({application.status})
               </Button>
             ) : (
               <Button
                 onClick={handleApply}
                 disabled={isApplying}
-                className="w-full sm:w-auto h-10 px-6 rounded-md bg-fiord-950 text-white text-sm font-medium hover:bg-fiord-900 active:scale-[0.98] transition-all shadow-sm gap-2 cursor-pointer dark:bg-fiord-100 dark:text-fiord-950 dark:hover:bg-white"
+                className="w-full sm:w-auto h-9 px-5 rounded-4xl text-xs font-semibold gap-2 shadow-xs cursor-pointer"
               >
                 {isApplying ? (
                   <Loader2 className="size-4 animate-spin" />
@@ -448,29 +448,29 @@ export function CandidateVacancyDetailView({
         <div className="lg:col-span-8 space-y-6">
           
           {/* Main Description */}
-          <div className="bg-white dark:bg-card border border-fiord-200 dark:border-fiord-800 rounded-lg p-6 sm:p-8 shadow-soft space-y-4">
-            <div className="flex items-center gap-2.5 pb-3 border-b border-fiord-100 dark:border-fiord-800">
-              <div className="size-7 rounded-md bg-fiord-100 dark:bg-fiord-800 text-fiord-950 dark:text-fiord-100 flex items-center justify-center shrink-0">
+          <div className="bg-card border border-border/70 rounded-4xl p-6 sm:p-8 shadow-xs space-y-4">
+            <div className="flex items-center gap-2.5 pb-3 border-b border-border/60">
+              <div className="size-8 rounded-2xl bg-primary/10 text-primary flex items-center justify-center shrink-0">
                 <Sparkles className="size-4" />
               </div>
-              <h2 className="text-base font-semibold text-fiord-950 dark:text-fiord-50 tracking-[-0.2px]">
+              <h2 className="text-base font-bold text-foreground tracking-tight">
                 Descripción del puesto
               </h2>
             </div>
 
-            <div className="pt-1 text-sm text-fiord-800 dark:text-fiord-200 leading-relaxed">
+            <div className="pt-1 text-sm text-foreground/90 leading-relaxed">
               <MarkdownRenderer content={vacancy.description} />
             </div>
           </div>
 
           {/* Benefits Section */}
           {benefitsList.length > 0 && (
-            <div className="bg-white dark:bg-card border border-fiord-200 dark:border-fiord-800 rounded-lg p-6 sm:p-8 shadow-soft space-y-4">
-              <div className="flex items-center gap-2.5 pb-3 border-b border-fiord-100 dark:border-fiord-800">
-                <div className="size-7 rounded-md bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 flex items-center justify-center shrink-0">
+            <div className="bg-card border border-border/70 rounded-4xl p-6 sm:p-8 shadow-xs space-y-4">
+              <div className="flex items-center gap-2.5 pb-3 border-b border-border/60">
+                <div className="size-8 rounded-2xl bg-primary/10 text-primary flex items-center justify-center shrink-0">
                   <Gift className="size-4" />
                 </div>
-                <h2 className="text-base font-semibold text-fiord-950 dark:text-fiord-50 tracking-[-0.2px]">
+                <h2 className="text-base font-bold text-foreground tracking-tight">
                   Prestaciones y Beneficios
                 </h2>
               </div>
@@ -479,9 +479,9 @@ export function CandidateVacancyDetailView({
                 {benefitsList.map((benefit, idx) => (
                   <div
                     key={idx}
-                    className="flex items-center gap-2.5 p-3 rounded-md bg-fiord-50 dark:bg-fiord-900/40 border border-fiord-200 dark:border-fiord-800 text-xs sm:text-sm font-medium text-fiord-800 dark:text-fiord-200"
+                    className="flex items-center gap-2.5 p-3 rounded-3xl bg-muted/40 border border-border/60 text-xs sm:text-sm font-medium text-foreground"
                   >
-                    <CheckCircle2 className="size-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
+                    <CheckCircle2 className="size-4 text-primary shrink-0" />
                     <span>{benefit}</span>
                   </div>
                 ))}
@@ -490,19 +490,19 @@ export function CandidateVacancyDetailView({
           )}
 
           {/* Skills & Requirements Section */}
-          <div className="bg-white dark:bg-card border border-fiord-200 dark:border-fiord-800 rounded-lg p-6 sm:p-8 shadow-soft space-y-6">
-            <div className="flex items-center gap-2.5 pb-3 border-b border-fiord-100 dark:border-fiord-800">
-              <div className="size-7 rounded-md bg-fiord-100 dark:bg-fiord-800 text-fiord-950 dark:text-fiord-100 flex items-center justify-center shrink-0">
+          <div className="bg-card border border-border/70 rounded-4xl p-6 sm:p-8 shadow-xs space-y-6">
+            <div className="flex items-center gap-2.5 pb-3 border-b border-border/60">
+              <div className="size-8 rounded-2xl bg-primary/10 text-primary flex items-center justify-center shrink-0">
                 <Tag className="size-4" />
               </div>
-              <h2 className="text-base font-semibold text-fiord-950 dark:text-fiord-50 tracking-[-0.2px]">
+              <h2 className="text-base font-bold text-foreground tracking-tight">
                 Requisitos y Habilidades
               </h2>
             </div>
 
             {/* Skills Badges */}
             <div className="space-y-2.5">
-              <span className="text-xs font-semibold text-fiord-500 dark:text-fiord-400 uppercase tracking-wider block">
+              <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider block">
                 Habilidades y Competencias Clave
               </span>
               <div className="flex flex-wrap gap-2">
@@ -510,7 +510,7 @@ export function CandidateVacancyDetailView({
                   <Badge
                     key={idx}
                     variant="secondary"
-                    className="rounded-full px-3 py-1 text-xs font-medium border bg-fiord-100 dark:bg-fiord-800 text-fiord-900 dark:text-fiord-100 border-fiord-200 dark:border-fiord-700"
+                    className="rounded-3xl px-3 py-1 text-xs font-medium border bg-muted/60 text-foreground border-border/60"
                   >
                     {skill}
                   </Badge>
@@ -519,31 +519,31 @@ export function CandidateVacancyDetailView({
             </div>
 
             {/* Detailed Requirements */}
-            <div className="space-y-3 pt-3 border-t border-fiord-100 dark:border-fiord-800">
-              <span className="text-xs font-semibold text-fiord-500 dark:text-fiord-400 uppercase tracking-wider block">
+            <div className="space-y-3 pt-3 border-t border-border/60">
+              <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider block">
                 Requisitos de Contratación
               </span>
 
               {vacancy.requirements && vacancy.requirements !== vacancy.description ? (
-                <div className="pt-1 text-sm text-fiord-800 dark:text-fiord-200 leading-relaxed">
+                <div className="pt-1 text-sm text-foreground/90 leading-relaxed">
                   <MarkdownRenderer content={vacancy.requirements} />
                 </div>
               ) : (
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 pt-1">
-                  <div className="flex items-center gap-2.5 p-3 rounded-md bg-fiord-50 dark:bg-fiord-900/40 border border-fiord-200 dark:border-fiord-800 text-xs sm:text-sm font-medium text-fiord-800 dark:text-fiord-200">
-                    <CheckCircle2 className="size-4 text-fiord-700 dark:text-fiord-300 shrink-0" />
+                  <div className="flex items-center gap-2.5 p-3 rounded-3xl bg-muted/40 border border-border/60 text-xs sm:text-sm font-medium text-foreground">
+                    <CheckCircle2 className="size-4 text-primary shrink-0" />
                     <span>Disponibilidad de horario para el puesto</span>
                   </div>
-                  <div className="flex items-center gap-2.5 p-3 rounded-md bg-fiord-50 dark:bg-fiord-900/40 border border-fiord-200 dark:border-fiord-800 text-xs sm:text-sm font-medium text-fiord-800 dark:text-fiord-200">
-                    <CheckCircle2 className="size-4 text-fiord-700 dark:text-fiord-300 shrink-0" />
+                  <div className="flex items-center gap-2.5 p-3 rounded-3xl bg-muted/40 border border-border/60 text-xs sm:text-sm font-medium text-foreground">
+                    <CheckCircle2 className="size-4 text-primary shrink-0" />
                     <span>Documentación básica en regla</span>
                   </div>
-                  <div className="flex items-center gap-2.5 p-3 rounded-md bg-fiord-50 dark:bg-fiord-900/40 border border-fiord-200 dark:border-fiord-800 text-xs sm:text-sm font-medium text-fiord-800 dark:text-fiord-200">
-                    <CheckCircle2 className="size-4 text-fiord-700 dark:text-fiord-300 shrink-0" />
+                  <div className="flex items-center gap-2.5 p-3 rounded-3xl bg-muted/40 border border-border/60 text-xs sm:text-sm font-medium text-foreground">
+                    <CheckCircle2 className="size-4 text-primary shrink-0" />
                     <span>Puntualidad y sentido de responsabilidad</span>
                   </div>
-                  <div className="flex items-center gap-2.5 p-3 rounded-md bg-fiord-50 dark:bg-fiord-900/40 border border-fiord-200 dark:border-fiord-800 text-xs sm:text-sm font-medium text-fiord-800 dark:text-fiord-200">
-                    <CheckCircle2 className="size-4 text-fiord-700 dark:text-fiord-300 shrink-0" />
+                  <div className="flex items-center gap-2.5 p-3 rounded-3xl bg-muted/40 border border-border/60 text-xs sm:text-sm font-medium text-foreground">
+                    <CheckCircle2 className="size-4 text-primary shrink-0" />
                     <span>Radicar en o cerca de {displayLocation}</span>
                   </div>
                 </div>
@@ -557,71 +557,71 @@ export function CandidateVacancyDetailView({
         <div className="lg:col-span-4 space-y-6">
           
           {/* Quick Summary Card */}
-          <div className="bg-white dark:bg-card border border-fiord-200 dark:border-fiord-800 rounded-lg p-6 shadow-soft space-y-4">
-            <h3 className="text-sm font-semibold text-fiord-950 dark:text-fiord-50 tracking-[-0.2px] pb-3 border-b border-fiord-100 dark:border-fiord-800">
+          <div className="bg-card border border-border/70 rounded-4xl p-6 shadow-xs space-y-4">
+            <h3 className="text-sm font-bold text-foreground tracking-tight pb-3 border-b border-border/60">
               Resumen del empleo
             </h3>
 
             <div className="space-y-3 text-xs sm:text-sm">
               <div className="flex items-center justify-between gap-2">
-                <span className="text-fiord-600 dark:text-fiord-400 flex items-center gap-1.5">
-                  <DollarSign className="size-4 text-emerald-600 shrink-0" />
+                <span className="text-muted-foreground flex items-center gap-1.5">
+                  <DollarSign className="size-4 text-primary shrink-0" />
                   Sueldo
                 </span>
-                <span className="font-semibold font-mono text-emerald-700 dark:text-emerald-400 text-right">{formattedSalary}</span>
+                <span className="font-semibold font-mono text-foreground text-right">{formattedSalary}</span>
               </div>
 
               <div className="flex items-center justify-between gap-2">
-                <span className="text-fiord-600 dark:text-fiord-400 flex items-center gap-1.5">
-                  <MapPin className="size-4 text-fiord-500 shrink-0" />
+                <span className="text-muted-foreground flex items-center gap-1.5">
+                  <MapPin className="size-4 text-muted-foreground shrink-0" />
                   Ubicación
                 </span>
-                <span className="font-medium text-fiord-900 dark:text-fiord-100 text-right truncate max-w-[170px]">
+                <span className="font-medium text-foreground text-right truncate max-w-[170px]">
                   {displayLocation}
                 </span>
               </div>
 
               <div className="flex items-center justify-between gap-2">
-                <span className="text-fiord-600 dark:text-fiord-400 flex items-center gap-1.5">
-                  <Briefcase className="size-4 text-fiord-500 shrink-0" />
+                <span className="text-muted-foreground flex items-center gap-1.5">
+                  <Briefcase className="size-4 text-muted-foreground shrink-0" />
                   Contrato
                 </span>
-                <span className="font-medium text-fiord-900 dark:text-fiord-100 text-right">
+                <span className="font-medium text-foreground text-right">
                   {vacancy.employment_type || 'Tiempo Completo'}
                 </span>
               </div>
 
               <div className="flex items-center justify-between gap-2">
-                <span className="text-fiord-600 dark:text-fiord-400 flex items-center gap-1.5">
-                  <Building2 className="size-4 text-fiord-500 shrink-0" />
+                <span className="text-muted-foreground flex items-center gap-1.5">
+                  <Building2 className="size-4 text-muted-foreground shrink-0" />
                   Modalidad
                 </span>
-                <span className="font-medium text-fiord-900 dark:text-fiord-100 text-right">
+                <span className="font-medium text-foreground text-right">
                   {vacancy.modality || 'Presencial'}
                 </span>
               </div>
 
               <div className="flex items-center justify-between gap-2">
-                <span className="text-fiord-600 dark:text-fiord-400 flex items-center gap-1.5">
-                  <Tag className="size-4 text-fiord-500 shrink-0" />
+                <span className="text-muted-foreground flex items-center gap-1.5">
+                  <Tag className="size-4 text-muted-foreground shrink-0" />
                   Categoría
                 </span>
-                <span className="font-medium text-fiord-900 dark:text-fiord-100 text-right">
+                <span className="font-medium text-foreground text-right">
                   {vacancy.category || 'General'}
                 </span>
               </div>
             </div>
 
-            <div className="pt-3 border-t border-fiord-100 dark:border-fiord-800">
+            <div className="pt-3 border-t border-border/60">
               {application ? (
-                <Button disabled className="w-full h-9 rounded-md font-medium text-xs bg-fiord-100 text-fiord-600 dark:bg-fiord-800 dark:text-fiord-300">
+                <Button disabled className="w-full h-9 rounded-4xl font-semibold text-xs bg-primary/10 text-primary border border-primary/20">
                   Ya estás postulado
                 </Button>
               ) : (
                 <Button
                   onClick={handleApply}
                   disabled={isApplying}
-                  className="w-full h-9 rounded-md bg-fiord-950 text-white text-xs font-medium hover:bg-fiord-900 dark:bg-fiord-100 dark:text-fiord-950 dark:hover:bg-white shadow-sm gap-1.5 cursor-pointer"
+                  className="w-full h-9 rounded-4xl text-xs font-semibold shadow-xs gap-1.5 cursor-pointer"
                 >
                   <Send className="size-3.5" />
                   Postularme a esta vacante
@@ -631,33 +631,33 @@ export function CandidateVacancyDetailView({
           </div>
 
           {/* Company Card */}
-          <div className="bg-white dark:bg-card border border-fiord-200 dark:border-fiord-800 rounded-lg p-6 shadow-soft space-y-4">
-            <h3 className="text-sm font-semibold text-fiord-950 dark:text-fiord-50 tracking-[-0.2px] pb-3 border-b border-fiord-100 dark:border-fiord-800 flex items-center justify-between">
+          <div className="bg-card border border-border/70 rounded-4xl p-6 shadow-xs space-y-4">
+            <h3 className="text-sm font-bold text-foreground tracking-tight pb-3 border-b border-border/60 flex items-center justify-between">
               <span>Sobre la empresa</span>
-              <ShieldCheck className="size-4 text-emerald-600" />
+              <ShieldCheck className="size-4 text-primary" />
             </h3>
 
             <div className="space-y-3">
               <div className="flex items-center gap-3">
-                <div className="size-11 rounded-md bg-fiord-50 dark:bg-fiord-900/60 flex items-center justify-center text-fiord-900 dark:text-fiord-100 font-semibold text-sm overflow-hidden border border-fiord-200 dark:border-fiord-800">
+                <div className="size-11 rounded-3xl bg-muted flex items-center justify-center text-foreground font-bold text-sm overflow-hidden border border-border/70">
                   {company?.logo_url ? (
                     <img src={company.logo_url} alt={company.company_name || 'Empresa'} className="size-full object-cover" />
                   ) : (
-                    <Building2 className="size-5 text-fiord-500" />
+                    <Building2 className="size-5 text-muted-foreground" />
                   )}
                 </div>
                 <div>
-                  <h4 className="font-semibold text-sm text-fiord-950 dark:text-fiord-50">
+                  <h4 className="font-bold text-sm text-foreground">
                     {company?.company_name || 'Empresa Empleadora'}
                   </h4>
-                  <p className="text-xs text-fiord-600 dark:text-fiord-400">
+                  <p className="text-xs text-muted-foreground">
                     {company?.industry || 'Empresa Verificada'}
                   </p>
                 </div>
               </div>
 
               {company?.description && (
-                <p className="text-xs text-fiord-700 dark:text-fiord-300 leading-relaxed line-clamp-3">
+                <p className="text-xs text-muted-foreground leading-relaxed line-clamp-3">
                   {company.description}
                 </p>
               )}
@@ -667,7 +667,7 @@ export function CandidateVacancyDetailView({
                   href={company.website_url}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="inline-flex items-center gap-1.5 text-xs font-semibold text-fiord-800 hover:text-fiord-950 dark:text-fiord-200 dark:hover:text-white underline decoration-fiord-300 underline-offset-2 pt-1"
+                  className="inline-flex items-center gap-1.5 text-xs font-semibold text-primary hover:underline underline-offset-4 pt-1"
                 >
                   <Globe className="size-3.5" />
                   Sitio web de la empresa
@@ -677,12 +677,12 @@ export function CandidateVacancyDetailView({
           </div>
 
           {/* K'anPro Guarantee Card */}
-          <div className="p-5 rounded-lg bg-fiord-50 dark:bg-fiord-900/40 border border-fiord-200 dark:border-fiord-800 space-y-2">
-            <div className="flex items-center gap-2 text-fiord-950 dark:text-fiord-100 font-semibold text-xs uppercase tracking-wider">
-              <ShieldCheck className="size-4 text-emerald-600" />
+          <div className="p-5 rounded-4xl bg-primary/5 border border-primary/20 space-y-2">
+            <div className="flex items-center gap-2 text-foreground font-bold text-xs uppercase tracking-wider">
+              <ShieldCheck className="size-4 text-primary" />
               Garantía K&apos;anPro
             </div>
-            <p className="text-xs text-fiord-700 dark:text-fiord-300 leading-relaxed">
+            <p className="text-xs text-muted-foreground leading-relaxed">
               Esta vacante cuenta con salario real y validación de contacto directo con el área de Recursos Humanos.
             </p>
           </div>
@@ -693,8 +693,8 @@ export function CandidateVacancyDetailView({
 
       {/* ── SIMILAR VACANCIES SECTION ── */}
       {similarVacancies.length > 0 && (
-        <section className="pt-6 space-y-4 border-t border-fiord-100 dark:border-fiord-800">
-          <h3 className="text-base font-semibold tracking-[-0.2px] text-fiord-950 dark:text-fiord-50">
+        <section className="pt-6 space-y-4 border-t border-border/60">
+          <h3 className="text-base font-bold tracking-tight text-foreground">
             Otras oportunidades que te pueden interesar
           </h3>
 
@@ -703,23 +703,23 @@ export function CandidateVacancyDetailView({
               <div
                 key={item.id}
                 onClick={() => router.push(`/dashboard/candidate/vacancies/${item.id}`)}
-                className="group bg-white dark:bg-card border border-fiord-200 dark:border-fiord-800 rounded-lg p-5 shadow-soft hover:shadow-card-hover hover:border-fiord-400 dark:hover:border-fiord-600 transition-all cursor-pointer flex flex-col justify-between"
+                className="group bg-card border border-border/70 rounded-4xl p-5 shadow-xs hover:border-border hover:bg-muted/30 transition-all cursor-pointer flex flex-col justify-between"
               >
                 <div>
-                  <h4 className="text-sm font-semibold text-fiord-950 dark:text-fiord-50 group-hover:text-fiord-700 dark:group-hover:text-fiord-200 transition-colors line-clamp-1">
+                  <h4 className="text-sm font-bold text-foreground group-hover:text-primary transition-colors line-clamp-1">
                     {item.title}
                   </h4>
-                  <p className="text-xs text-fiord-600 dark:text-fiord-400 font-normal mt-1">
+                  <p className="text-xs text-muted-foreground font-normal mt-1">
                     {item.location} • {item.employment_type || 'Tiempo Completo'}
                   </p>
                 </div>
-                <div className="pt-3 mt-3 border-t border-fiord-100 dark:border-fiord-800 flex items-center justify-between">
-                  <span className="text-xs font-semibold font-mono text-emerald-700 dark:text-emerald-400">
+                <div className="pt-3 mt-3 border-t border-border/60 flex items-center justify-between">
+                  <span className="text-xs font-bold font-mono text-foreground">
                     {item.salary_min && item.salary_max
                       ? `$${item.salary_min.toLocaleString()} - $${item.salary_max.toLocaleString()} MXN`
                       : 'Sueldo a convenir'}
                   </span>
-                  <span className="text-xs font-semibold text-fiord-950 dark:text-fiord-100 inline-flex items-center gap-0.5 group-hover:translate-x-0.5 transition-transform">
+                  <span className="text-xs font-semibold text-foreground inline-flex items-center gap-0.5 group-hover:translate-x-0.5 transition-transform">
                     Ver <ChevronRight className="size-3" />
                   </span>
                 </div>

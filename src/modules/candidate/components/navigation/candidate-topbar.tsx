@@ -137,7 +137,7 @@ export function CandidateTopbar({
           variant="outline"
           size="sm"
           render={<Link href="/dashboard/candidate/discovery" />}
-          className="hidden sm:flex items-center gap-1.5 h-8 text-xs font-semibold rounded-lg border-primary/30 text-primary hover:bg-primary/10"
+          className="hidden sm:flex items-center gap-1.5 h-9 px-3.5 text-xs font-semibold rounded-4xl border-primary/30 text-primary hover:bg-primary/10"
         >
           <Sparkles className="size-3.5" />
           <span>Ver Vacantes</span>

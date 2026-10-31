@@ -295,7 +295,7 @@ export function EmployeeDossierModal({
       <Dialog open={open} onOpenChange={onOpenChange}>
         <DialogContent
           showCloseButton={false}
-          className="w-full sm:max-w-3xl lg:max-w-4xl h-[88vh] max-h-[820px] p-0 gap-0 overflow-hidden flex flex-col rounded-2xl border border-border/80 bg-card font-sans shadow-md"
+          className="w-full sm:max-w-3xl lg:max-w-4xl h-[88vh] max-h-[820px] p-0 gap-0 overflow-hidden flex flex-col rounded-4xl border border-border/80 bg-card font-sans shadow-md"
         >
           {/* Hidden Dialog Titles for Screen Readers Accessibility */}
           <DialogHeader className="sr-only">
@@ -329,16 +329,16 @@ export function EmployeeDossierModal({
 
                     <Badge
                       className={cn(
-                        "font-bold text-[10px] px-2.5 py-0.5 rounded-full border-none select-none shrink-0 inline-flex items-center gap-1.5",
+                        "font-bold text-[10px] px-2.5 py-0.5 rounded-full select-none shrink-0 inline-flex items-center gap-1.5",
                         isActive
-                          ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
-                          : "bg-rose-500/10 text-rose-600 dark:text-rose-400"
+                          ? "bg-primary/10 text-primary border-primary/20"
+                          : "bg-destructive/10 text-destructive border-destructive/20"
                       )}
                     >
                       <span
                         className={cn(
                           "size-1.5 rounded-full",
-                          isActive ? "bg-emerald-500" : "bg-rose-500"
+                          isActive ? "bg-primary" : "bg-destructive"
                         )}
                       />
                       <span>{isActive ? "Activo" : "Baja Laboral"}</span>
@@ -398,7 +398,7 @@ export function EmployeeDossierModal({
                     href={getWhatsAppLink()}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="size-8.5 rounded-xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/20 flex items-center justify-center transition-colors cursor-pointer"
+                    className="size-8.5 rounded-xl bg-primary/10 text-primary hover:bg-primary/20 flex items-center justify-center transition-colors cursor-pointer"
                     title="Contactar por WhatsApp"
                   >
                     <MessageSquare className="size-4 stroke-[2.5]" />
@@ -460,7 +460,7 @@ export function EmployeeDossierModal({
               {/* 2. SDI */}
               <div className="p-2.5 rounded-xl bg-muted/30 border border-border/40 space-y-0.5">
                 <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1">
-                  <ShieldCheck className="size-3 text-emerald-600 dark:text-emerald-400" />
+                  <ShieldCheck className="size-3 text-primary" />
                   <span>SDI (IMSS)</span>
                 </span>
                 <p className="text-sm font-extrabold text-foreground font-mono truncate">
@@ -474,7 +474,7 @@ export function EmployeeDossierModal({
               {/* 3. Antigüedad */}
               <div className="p-2.5 rounded-xl bg-muted/30 border border-border/40 space-y-0.5">
                 <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1">
-                  <Calendar className="size-3 text-indigo-600 dark:text-indigo-400" />
+                  <Calendar className="size-3 text-primary" />
                   <span>Antigüedad LFT</span>
                 </span>
                 <p className="text-sm font-extrabold text-foreground truncate">
@@ -488,7 +488,7 @@ export function EmployeeDossierModal({
               {/* 4. Vacaciones */}
               <div className="p-2.5 rounded-xl bg-muted/30 border border-border/40 space-y-0.5">
                 <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1">
-                  <Award className="size-3 text-amber-500" />
+                  <Award className="size-3 text-primary" />
                   <span>Vacaciones LFT</span>
                 </span>
                 <p className="text-sm font-extrabold text-primary font-mono truncate">
@@ -758,7 +758,7 @@ export function EmployeeDossierModal({
                             title="Copiar RFC"
                           >
                             {copiedKey === "rfc" ? (
-                              <Check className="size-3 text-emerald-500" />
+                              <Check className="size-3 text-primary" />
                             ) : (
                               <Copy className="size-3" />
                             )}
@@ -785,7 +785,7 @@ export function EmployeeDossierModal({
                             title="Copiar CURP"
                           >
                             {copiedKey === "curp" ? (
-                              <Check className="size-3 text-emerald-500" />
+                              <Check className="size-3 text-primary" />
                             ) : (
                               <Copy className="size-3" />
                             )}
@@ -812,7 +812,7 @@ export function EmployeeDossierModal({
                             title="Copiar NSS"
                           >
                             {copiedKey === "nss" ? (
-                              <Check className="size-3 text-emerald-500" />
+                              <Check className="size-3 text-primary" />
                             ) : (
                               <Copy className="size-3" />
                             )}
@@ -866,7 +866,7 @@ export function EmployeeDossierModal({
                               title="Copiar Teléfono"
                             >
                               {copiedKey === "phone" ? (
-                                <Check className="size-3 text-emerald-500" />
+                                <Check className="size-3 text-primary" />
                               ) : (
                                 <Copy className="size-3" />
                               )}
@@ -892,7 +892,7 @@ export function EmployeeDossierModal({
                               title="Copiar Correo"
                             >
                               {copiedKey === "email" ? (
-                                <Check className="size-3 text-emerald-500" />
+                                <Check className="size-3 text-primary" />
                               ) : (
                                 <Copy className="size-3" />
                               )}
@@ -916,7 +916,7 @@ export function EmployeeDossierModal({
                 {/* Card: Contacto de Emergencia */}
                 <div className="bg-card border border-border/50 rounded-xl p-4 space-y-2.5">
                   <div className="flex items-center gap-2 text-xs font-extrabold uppercase tracking-wider text-muted-foreground pb-1 border-b border-border/30">
-                    <HeartHandshake className="size-3.5 text-rose-500" />
+                    <HeartHandshake className="size-3.5 text-primary" />
                     <span>Contacto de Emergencia Registrado</span>
                   </div>
                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
@@ -985,7 +985,7 @@ export function EmployeeDossierModal({
                         {dossier.vacationBalance.daysTaken}
                       </span>
                     </div>
-                    <div className="p-3 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-emerald-600 dark:text-emerald-400">
+                    <div className="p-3 rounded-lg bg-primary/10 border border-primary/20 text-primary">
                       <span className="text-[10px] font-bold uppercase block">
                         Saldo Restante
                       </span>
@@ -1102,7 +1102,7 @@ export function EmployeeDossierModal({
                         <div className="flex items-center gap-2 shrink-0">
                           <Badge
                             variant="outline"
-                            className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400 border-emerald-500/20 bg-emerald-500/10 px-2 py-0.5"
+                            className="text-[10px] font-bold text-primary border-primary/20 bg-primary/10 px-2 py-0.5"
                           >
                             <CheckCircle2 className="size-3 mr-1" />
                             Validado
@@ -1136,7 +1136,7 @@ export function EmployeeDossierModal({
                     variant="outline"
                     size="sm"
                     onClick={() => onOpenTerminateDialog(employee)}
-                    className="rounded-lg text-xs font-semibold text-rose-600 dark:text-rose-400 border-rose-500/30 hover:bg-rose-500/10 cursor-pointer h-9 shadow-none"
+                    className="rounded-4xl text-xs font-semibold text-destructive border-destructive/30 hover:bg-destructive/10 cursor-pointer h-9 shadow-none"
                   >
                     <UserX className="size-3.5 mr-1.5" />
                     <span>Registrar Baja</span>
@@ -1148,7 +1148,7 @@ export function EmployeeDossierModal({
                     variant="outline"
                     size="sm"
                     onClick={() => onReactivate(employee)}
-                    className="rounded-lg text-xs font-semibold text-emerald-600 dark:text-emerald-400 border-emerald-500/30 hover:bg-emerald-500/10 cursor-pointer h-9 shadow-none"
+                    className="rounded-4xl text-xs font-semibold text-primary border-primary/30 hover:bg-primary/10 cursor-pointer h-9 shadow-none"
                   >
                     <CheckCircle2 className="size-3.5 mr-1.5" />
                     <span>Reactivar Colaborador</span>

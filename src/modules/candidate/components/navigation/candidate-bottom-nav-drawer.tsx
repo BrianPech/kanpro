@@ -245,7 +245,7 @@ export function CandidateBottomNavDrawer({
               className="group flex items-center justify-between p-3.5 rounded-2xl bg-gradient-to-r from-primary via-primary/95 to-primary/85 text-primary-foreground shadow-sm transition-all duration-150 active:scale-[0.98] cursor-pointer"
             >
               <div className="flex items-center gap-3 min-w-0">
-                <div className="size-10 rounded-xl bg-white/20 backdrop-blur-xs flex items-center justify-center shrink-0 text-primary-foreground shadow-2xs">
+                <div className="size-10 rounded-xl bg-primary-foreground/20 backdrop-blur-xs flex items-center justify-center shrink-0 text-primary-foreground shadow-2xs">
                   <Compass className="size-5" />
                 </div>
                 <div className="text-left min-w-0">
@@ -253,7 +253,7 @@ export function CandidateBottomNavDrawer({
                     <span className="text-sm font-black tracking-tight block truncate">
                       Bolsa de Empleo Regional
                     </span>
-                    <span className="text-[10px] font-bold px-1.5 py-0.2 rounded-md bg-white/25 text-white">
+                    <span className="text-[10px] font-bold px-1.5 py-0.2 rounded-md bg-primary-foreground/25 text-primary-foreground">
                       Explorar
                     </span>
                   </div>

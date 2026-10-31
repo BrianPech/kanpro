@@ -408,7 +408,7 @@ export function JobSearchView({ initialVacancies = [], onBack }: JobSearchViewPr
           size="icon"
           onClick={handleBack}
           aria-label="Regresar"
-          className="size-10 rounded-xl border-border/70 hover:bg-muted/50 text-muted-foreground hover:text-foreground shrink-0 shadow-2xs cursor-pointer"
+          className="size-9 rounded-4xl border-border/70 hover:bg-muted/50 text-muted-foreground hover:text-foreground shrink-0 shadow-2xs cursor-pointer"
         >
           <ArrowLeft className="size-4" />
         </Button>
@@ -421,7 +421,7 @@ export function JobSearchView({ initialVacancies = [], onBack }: JobSearchViewPr
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder="Buscar por puesto, empresa, zona o habilidad..."
-            className="h-10 rounded-xl bg-background border-border/70 pl-10 pr-9 text-xs sm:text-sm placeholder:text-muted-foreground shadow-2xs focus-visible:ring-primary/20"
+            className="h-9 rounded-3xl bg-input/50 border-input pl-10 pr-9 text-xs sm:text-sm placeholder:text-muted-foreground shadow-2xs focus-visible:ring-primary/20"
           />
           {searchQuery.length > 0 && (
             <button
@@ -440,7 +440,7 @@ export function JobSearchView({ initialVacancies = [], onBack }: JobSearchViewPr
           variant="outline"
           onClick={() => setIsFilterOpen(true)}
           aria-label="Filtros avanzados"
-          className="h-10 px-3.5 rounded-xl border-border/70 hover:bg-muted/50 text-xs font-medium gap-2 shrink-0 shadow-2xs cursor-pointer"
+          className="h-9 px-4 rounded-4xl border-border/70 hover:bg-muted/50 text-xs font-medium gap-2 shrink-0 shadow-2xs cursor-pointer"
         >
           <SlidersHorizontal className="size-4 text-muted-foreground" />
           <span className="hidden sm:inline">Filtros</span>
@@ -465,14 +465,14 @@ export function JobSearchView({ initialVacancies = [], onBack }: JobSearchViewPr
             <Badge
               key={filter}
               variant="secondary"
-              className="shrink-0 px-2.5 py-1 rounded-lg flex items-center gap-1.5 text-xs font-medium bg-secondary text-secondary-foreground border border-border/60"
+              className="shrink-0 px-2.5 py-1 rounded-3xl flex items-center gap-1.5 text-xs font-medium bg-secondary text-secondary-foreground border border-border/60"
             >
               <span>{filter}</span>
               <button
                 type="button"
                 onClick={() => removeFilter(filter)}
                 aria-label={`Remover filtro ${filter}`}
-                className="p-0.5 rounded-md hover:bg-muted text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
+                className="p-0.5 rounded-full hover:bg-muted text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
               >
                 <X className="size-3" />
               </button>
@@ -500,7 +500,7 @@ export function JobSearchView({ initialVacancies = [], onBack }: JobSearchViewPr
                 key={tag}
                 variant="outline"
                 onClick={() => addFilter(tag)}
-                className="px-3 py-1.5 rounded-lg text-xs font-medium bg-card hover:bg-accent hover:text-accent-foreground border-border/60 transition-all cursor-pointer shadow-2xs select-none"
+                className="px-3 py-1.5 rounded-3xl text-xs font-medium bg-card hover:bg-accent hover:text-accent-foreground border-border/60 transition-all cursor-pointer shadow-2xs select-none"
               >
                 {tag}
               </Badge>
@@ -517,9 +517,9 @@ export function JobSearchView({ initialVacancies = [], onBack }: JobSearchViewPr
               {[1, 2, 3, 4].map((i) => (
                 <div
                   key={i}
-                  className="p-5 bg-card border border-border/60 rounded-2xl flex items-center gap-4 animate-pulse shadow-xs"
+                  className="p-5 bg-card border border-border/60 rounded-4xl flex items-center gap-4 animate-pulse shadow-xs"
                 >
-                  <Skeleton className="size-12 rounded-xl shrink-0" />
+                  <Skeleton className="size-12 rounded-3xl shrink-0" />
                   <div className="flex-1 space-y-2">
                     <Skeleton className="h-4 w-1/3 rounded-md" />
                     <Skeleton className="h-3.5 w-1/4 rounded-md" />
@@ -528,11 +528,11 @@ export function JobSearchView({ initialVacancies = [], onBack }: JobSearchViewPr
               ))}
             </div>
             <div className="hidden lg:block lg:col-span-7">
-              <Skeleton className="h-[480px] w-full rounded-3xl" />
+              <Skeleton className="h-[480px] w-full rounded-4xl" />
             </div>
           </div>
         ) : hasError ? (
-          <div className="py-16 px-6 rounded-2xl bg-card border border-border/60 text-center space-y-3 shadow-xs">
+          <div className="py-16 px-6 rounded-4xl bg-card border border-border/60 text-center space-y-3 shadow-xs">
             <WifiOff className="size-10 text-destructive mx-auto" />
             <h3 className="text-base font-semibold text-foreground">
               Error al consultar las vacantes
@@ -543,15 +543,15 @@ export function JobSearchView({ initialVacancies = [], onBack }: JobSearchViewPr
             <Button
               onClick={() => refetch()}
               size="sm"
-              className="rounded-xl text-xs font-medium gap-2 cursor-pointer"
+              className="h-9 px-4 rounded-4xl text-xs font-semibold gap-2 cursor-pointer"
             >
               <RotateCw className="size-3.5" />
               Reintentar
             </Button>
           </div>
         ) : filteredVacancies.length === 0 ? (
-          <div className="py-16 px-6 rounded-2xl bg-card border border-border/60 flex flex-col items-center justify-center text-center space-y-4 shadow-xs">
-            <div className="size-12 rounded-xl bg-muted/60 flex items-center justify-center text-muted-foreground">
+          <div className="py-16 px-6 rounded-4xl bg-card border border-border/60 flex flex-col items-center justify-center text-center space-y-4 shadow-xs">
+            <div className="size-12 rounded-3xl bg-muted/60 flex items-center justify-center text-muted-foreground">
               <SearchX className="size-6" />
             </div>
             
@@ -569,7 +569,7 @@ export function JobSearchView({ initialVacancies = [], onBack }: JobSearchViewPr
             <Button
               onClick={clearAllSearchAndFilters}
               size="sm"
-              className="rounded-xl text-xs font-medium gap-2 shadow-xs cursor-pointer"
+              className="h-9 px-4 rounded-4xl text-xs font-semibold gap-2 shadow-xs cursor-pointer"
             >
               <ListX className="size-4" />
               Limpiar búsqueda y filtros
@@ -619,7 +619,7 @@ export function JobSearchView({ initialVacancies = [], onBack }: JobSearchViewPr
                       key={job.id}
                       onClick={() => handleCardClick(job)}
                       className={cn(
-                        "rounded-2xl p-4 sm:p-5 transition-all duration-200 cursor-pointer relative bg-card shadow-xs",
+                        "rounded-4xl p-5 transition-all duration-200 cursor-pointer relative bg-card shadow-xs",
                         isSelected
                           ? "border-2 border-primary ring-2 ring-primary/15 bg-primary/[0.02] shadow-sm"
                           : "border border-border/70 hover:border-border hover:shadow-xs"
@@ -628,11 +628,11 @@ export function JobSearchView({ initialVacancies = [], onBack }: JobSearchViewPr
                       {/* Top Row: Logo, Title with Sparkle, Bookmark & Summary */}
                       <div className="flex items-start gap-3.5">
                         {/* Company Logo Square */}
-                        <Avatar className="size-12 rounded-2xl ring-1 ring-border/60 shrink-0 shadow-2xs">
+                        <Avatar className="size-12 rounded-3xl ring-1 ring-border/60 shrink-0 shadow-2xs">
                           {job.companyLogo ? (
                             <AvatarImage src={job.companyLogo} alt={job.companyName} className="object-cover" />
                           ) : null}
-                          <AvatarFallback className="rounded-2xl font-bold text-xs bg-muted text-foreground">
+                          <AvatarFallback className="rounded-3xl font-bold text-xs bg-muted text-foreground">
                             {companyInitials}
                           </AvatarFallback>
                         </Avatar>
@@ -655,12 +655,12 @@ export function JobSearchView({ initialVacancies = [], onBack }: JobSearchViewPr
                                 toggleBookmark(job.id);
                               }}
                               aria-label={isSaved ? `Remover ${job.title} de guardados` : `Guardar ${job.title}`}
-                              className="text-muted-foreground hover:text-amber-500 dark:hover:text-amber-400 p-1 rounded-md hover:bg-muted transition-colors cursor-pointer shrink-0"
+                              className="text-muted-foreground hover:text-primary p-1 rounded-2xl hover:bg-muted transition-colors cursor-pointer shrink-0"
                             >
                               <Bookmark
                                 className={cn(
                                   "size-4 transition-transform active:scale-90",
-                                  isSaved ? "fill-amber-500 text-amber-500 dark:fill-amber-400 dark:text-amber-400" : ""
+                                  isSaved ? "fill-primary text-primary" : ""
                                 )}
                               />
                             </button>
@@ -678,7 +678,7 @@ export function JobSearchView({ initialVacancies = [], onBack }: JobSearchViewPr
                       {/* Bottom Row Stats (Rating/Trust, Applicants/Type, Verified Badge) */}
                       <div className="flex items-center justify-between text-xs text-muted-foreground gap-2 pt-0.5">
                         <div className="flex items-center gap-1 font-medium text-foreground">
-                          <Star className="size-3.5 text-amber-500 fill-amber-500 shrink-0" />
+                          <DollarSign className="size-3.5 text-primary shrink-0" />
                           <span className="text-[11px] font-semibold font-mono">{job.formattedSalary}</span>
                         </div>
 
@@ -702,16 +702,16 @@ export function JobSearchView({ initialVacancies = [], onBack }: JobSearchViewPr
             {/* RIGHT COLUMN: Selected Vacancy Detail (Ref. Image 2) */}
             <div className="hidden lg:block lg:col-span-7 sticky top-16">
               {selectedJob ? (
-                <Card className="rounded-3xl border-border/70 bg-card p-6 sm:p-8 shadow-sm overflow-hidden space-y-6 min-h-[640px] max-h-[calc(100vh-130px)] overflow-y-auto hide-scrollbar">
+                <Card className="rounded-4xl border-border/70 bg-card p-6 sm:p-8 shadow-sm overflow-hidden space-y-6 min-h-[640px] max-h-[calc(100vh-130px)] overflow-y-auto hide-scrollbar">
                   
                   {/* 1. Header: Logo, Title with Sparkle, Subtitle & Action CTAs */}
                   <div className="flex items-start justify-between gap-4 pb-5 border-b border-border/60">
                     <div className="flex items-start gap-4 min-w-0">
-                      <Avatar className="size-14 sm:size-16 rounded-2xl ring-1 ring-border/60 shrink-0 shadow-2xs">
+                      <Avatar className="size-14 sm:size-16 rounded-3xl ring-1 ring-border/60 shrink-0 shadow-2xs">
                         {selectedJob.companyLogo ? (
                           <AvatarImage src={selectedJob.companyLogo} alt={selectedJob.companyName} className="object-cover" />
                         ) : null}
-                        <AvatarFallback className="rounded-2xl font-bold text-lg bg-muted text-foreground">
+                        <AvatarFallback className="rounded-3xl font-bold text-lg bg-muted text-foreground">
                           {selectedJob.companyName ? selectedJob.companyName.substring(0, 2).toUpperCase() : "EM"}
                         </AvatarFallback>
                       </Avatar>
@@ -726,7 +726,7 @@ export function JobSearchView({ initialVacancies = [], onBack }: JobSearchViewPr
                           <span>•</span>
                           <span>{selectedJob.location}</span>
                           <span>•</span>
-                          <span className="font-mono text-emerald-600 dark:text-emerald-400 font-semibold">{selectedJob.formattedSalary}</span>
+                          <span className="font-mono text-foreground font-semibold">{selectedJob.formattedSalary}</span>
                         </p>
                       </div>
                     </div>
@@ -739,8 +739,8 @@ export function JobSearchView({ initialVacancies = [], onBack }: JobSearchViewPr
                         disabled={appliedJobIds.has(selectedJob.id) || isApplying}
                         onClick={() => handleApplyToJob(selectedJob)}
                         className={cn(
-                          "h-9 px-4 rounded-xl text-xs font-semibold gap-1.5 shadow-xs cursor-pointer",
-                          appliedJobIds.has(selectedJob.id) && "bg-emerald-600/15 text-emerald-700 dark:text-emerald-400 border border-emerald-500/30"
+                          "h-9 px-4 rounded-4xl text-xs font-semibold gap-1.5 shadow-xs cursor-pointer",
+                          appliedJobIds.has(selectedJob.id) && "bg-primary/15 text-primary border border-primary/30"
                         )}
                       >
                         {isApplying ? (
@@ -762,12 +762,12 @@ export function JobSearchView({ initialVacancies = [], onBack }: JobSearchViewPr
                         variant="outline"
                         size="sm"
                         onClick={() => toggleBookmark(selectedJob.id)}
-                        className="h-9 px-3 rounded-xl text-xs font-medium gap-1.5 border-border/70 hover:bg-muted cursor-pointer shadow-2xs"
+                        className="h-9 px-4 rounded-4xl text-xs font-medium gap-1.5 border-border/70 hover:bg-muted cursor-pointer shadow-2xs"
                       >
                         <Bookmark
                           className={cn(
                             "size-3.5",
-                            savedJobIds.has(selectedJob.id) ? "fill-amber-500 text-amber-500 dark:fill-amber-400 dark:text-amber-400" : "text-muted-foreground"
+                            savedJobIds.has(selectedJob.id) ? "fill-primary text-primary" : "text-muted-foreground"
                           )}
                         />
                         <span>{savedJobIds.has(selectedJob.id) ? "Guardado" : "Guardar"}</span>
@@ -795,15 +795,15 @@ export function JobSearchView({ initialVacancies = [], onBack }: JobSearchViewPr
                     </h3>
                     <div className="space-y-2">
                       <div className="flex items-start gap-2 text-xs sm:text-sm text-foreground/90">
-                        <CheckCircle2 className="size-4 text-emerald-600 dark:text-emerald-400 shrink-0 mt-0.5" />
+                        <CheckCircle2 className="size-4 text-primary shrink-0 mt-0.5" />
                         <span>Ejecución de actividades operativas y de atención correspondientes al área de {selectedJob.category}.</span>
                       </div>
                       <div className="flex items-start gap-2 text-xs sm:text-sm text-foreground/90">
-                        <CheckCircle2 className="size-4 text-emerald-600 dark:text-emerald-400 shrink-0 mt-0.5" />
+                        <CheckCircle2 className="size-4 text-primary shrink-0 mt-0.5" />
                         <span>Colaboración en equipo y cumplimiento de estándares de calidad y servicio en {selectedJob.location}.</span>
                       </div>
                       <div className="flex items-start gap-2 text-xs sm:text-sm text-foreground/90">
-                        <CheckCircle2 className="size-4 text-emerald-600 dark:text-emerald-400 shrink-0 mt-0.5" />
+                        <CheckCircle2 className="size-4 text-primary shrink-0 mt-0.5" />
                         <span>Seguimiento de lineamientos internos y reporte directo a supervisores de área.</span>
                       </div>
                     </div>
@@ -818,7 +818,7 @@ export function JobSearchView({ initialVacancies = [], onBack }: JobSearchViewPr
                     <div className="flex flex-wrap gap-2">
                       {Array.isArray(selectedJob.skills) && selectedJob.skills.length > 0 ? (
                         selectedJob.skills.map((sk) => (
-                          <Badge key={sk} variant="secondary" className="px-2.5 py-1 text-xs font-medium bg-muted/60 text-foreground border-border/60">
+                          <Badge key={sk} variant="secondary" className="px-3 py-1 rounded-3xl text-xs font-medium bg-muted/60 text-foreground border-border/60">
                             {sk}
                           </Badge>
                         ))
@@ -843,7 +843,7 @@ export function JobSearchView({ initialVacancies = [], onBack }: JobSearchViewPr
                       </h3>
                       <div className="flex flex-wrap gap-2">
                         {selectedJob.benefits.map((ben) => (
-                          <Badge key={ben} variant="outline" className="px-2.5 py-1 text-xs font-medium border-primary/20 text-primary bg-primary/5">
+                          <Badge key={ben} variant="outline" className="px-3 py-1 rounded-3xl text-xs font-medium border-primary/20 text-primary bg-primary/5">
                             ✓ {ben}
                           </Badge>
                         ))}
@@ -858,7 +858,7 @@ export function JobSearchView({ initialVacancies = [], onBack }: JobSearchViewPr
                         <span>Sobre {selectedJob.companyName}</span>
                         <Sparkles className="size-3.5 text-primary fill-primary" />
                       </h3>
-                      <Badge variant="outline" className="gap-1 text-[11px] text-primary border-primary/30">
+                      <Badge variant="outline" className="gap-1 text-[11px] text-primary border-primary/30 rounded-3xl">
                         <ShieldCheck className="size-3" /> Verificada
                       </Badge>
                     </div>
@@ -878,14 +878,14 @@ export function JobSearchView({ initialVacancies = [], onBack }: JobSearchViewPr
       {/* Mobile Vacancy Detail Dialog (< lg screens) */}
       {selectedJob && (
         <Dialog open={mobileDetailOpen} onOpenChange={setMobileDetailOpen}>
-          <DialogContent className="lg:hidden sm:max-w-lg rounded-3xl bg-card border-border p-5 sm:p-6 space-y-4 max-h-[88vh] overflow-y-auto">
+          <DialogContent className="lg:hidden sm:max-w-lg rounded-4xl bg-card border-border p-5 sm:p-6 space-y-4 max-h-[88vh] overflow-y-auto">
             <DialogHeader className="pb-3 border-b border-border/60 text-left">
               <div className="flex items-start gap-3">
-                <Avatar className="size-12 rounded-2xl ring-1 ring-border/60 shrink-0">
+                <Avatar className="size-12 rounded-3xl ring-1 ring-border/60 shrink-0">
                   {selectedJob.companyLogo ? (
                     <AvatarImage src={selectedJob.companyLogo} alt={selectedJob.companyName} className="object-cover" />
                   ) : null}
-                  <AvatarFallback className="rounded-2xl font-bold text-xs bg-muted text-foreground">
+                  <AvatarFallback className="rounded-3xl font-bold text-xs bg-muted text-foreground">
                     {selectedJob.companyName ? selectedJob.companyName.substring(0, 2).toUpperCase() : "EM"}
                   </AvatarFallback>
                 </Avatar>
@@ -898,7 +898,7 @@ export function JobSearchView({ initialVacancies = [], onBack }: JobSearchViewPr
                   <p className="text-xs text-muted-foreground">
                     {selectedJob.companyName} • {selectedJob.location}
                   </p>
-                  <p className="text-xs font-mono font-semibold text-emerald-600 dark:text-emerald-400">
+                  <p className="text-xs font-mono font-semibold text-foreground">
                     {selectedJob.formattedSalary}
                   </p>
                 </div>
@@ -924,11 +924,11 @@ export function JobSearchView({ initialVacancies = [], onBack }: JobSearchViewPr
                 </h4>
                 <div className="space-y-1.5 text-xs text-foreground/90">
                   <div className="flex items-start gap-2">
-                    <CheckCircle2 className="size-3.5 text-emerald-600 shrink-0 mt-0.5" />
+                    <CheckCircle2 className="size-3.5 text-primary shrink-0 mt-0.5" />
                     <span>Actividades operativas y de servicio en el área de {selectedJob.category}.</span>
                   </div>
                   <div className="flex items-start gap-2">
-                    <CheckCircle2 className="size-3.5 text-emerald-600 shrink-0 mt-0.5" />
+                    <CheckCircle2 className="size-3.5 text-primary shrink-0 mt-0.5" />
                     <span>Cumplimiento de estándares de calidad y atención al cliente.</span>
                   </div>
                 </div>
@@ -942,7 +942,7 @@ export function JobSearchView({ initialVacancies = [], onBack }: JobSearchViewPr
                 <div className="flex flex-wrap gap-1.5">
                   {Array.isArray(selectedJob.skills) && selectedJob.skills.length > 0 ? (
                     selectedJob.skills.map((sk) => (
-                      <Badge key={sk} variant="secondary" className="text-[11px] py-0.5 px-2">
+                      <Badge key={sk} variant="secondary" className="text-[11px] py-0.5 px-2.5 rounded-3xl">
                         {sk}
                       </Badge>
                     ))
@@ -964,7 +964,7 @@ export function JobSearchView({ initialVacancies = [], onBack }: JobSearchViewPr
                 variant={appliedJobIds.has(selectedJob.id) ? "secondary" : "default"}
                 disabled={appliedJobIds.has(selectedJob.id) || isApplying}
                 onClick={() => handleApplyToJob(selectedJob)}
-                className="flex-1 h-9 rounded-xl text-xs font-semibold gap-1.5 shadow-xs cursor-pointer"
+                className="flex-1 h-9 rounded-4xl text-xs font-semibold gap-1.5 shadow-xs cursor-pointer"
               >
                 {isApplying ? (
                   <Loader2 className="size-3.5 animate-spin" />
@@ -985,12 +985,12 @@ export function JobSearchView({ initialVacancies = [], onBack }: JobSearchViewPr
                 variant="outline"
                 size="sm"
                 onClick={() => toggleBookmark(selectedJob.id)}
-                className="h-9 px-3 rounded-xl text-xs font-medium gap-1 border-border/70 hover:bg-muted cursor-pointer"
+                className="h-9 px-4 rounded-4xl text-xs font-medium gap-1 border-border/70 hover:bg-muted cursor-pointer"
               >
                 <Bookmark
                   className={cn(
                     "size-3.5",
-                    savedJobIds.has(selectedJob.id) ? "fill-amber-500 text-amber-500" : "text-muted-foreground"
+                    savedJobIds.has(selectedJob.id) ? "fill-primary text-primary" : "text-muted-foreground"
                   )}
                 />
                 <span>{savedJobIds.has(selectedJob.id) ? "Guardado" : "Guardar"}</span>
@@ -1044,7 +1044,7 @@ export function JobSearchView({ initialVacancies = [], onBack }: JobSearchViewPr
                       variant={isSel ? "default" : "outline"}
                       onClick={() => (isSel ? removeFilter(loc) : addFilter(loc))}
                       className={cn(
-                        "px-3 py-1.5 rounded-lg text-xs font-medium cursor-pointer transition-all shadow-2xs select-none gap-1",
+                        "px-3 py-1.5 rounded-3xl text-xs font-medium cursor-pointer transition-all shadow-2xs select-none gap-1",
                         isSel
                           ? "bg-primary text-primary-foreground shadow-xs"
                           : "bg-background hover:bg-muted/60 text-foreground border-border/70"
@@ -1082,7 +1082,7 @@ export function JobSearchView({ initialVacancies = [], onBack }: JobSearchViewPr
                       variant={isSel ? "default" : "outline"}
                       onClick={() => (isSel ? removeFilter(mod) : addFilter(mod))}
                       className={cn(
-                        "px-3 py-1.5 rounded-lg text-xs font-medium cursor-pointer transition-all shadow-2xs select-none gap-1",
+                        "px-3 py-1.5 rounded-3xl text-xs font-medium cursor-pointer transition-all shadow-2xs select-none gap-1",
                         isSel
                           ? "bg-primary text-primary-foreground shadow-xs"
                           : "bg-background hover:bg-muted/60 text-foreground border-border/70"
@@ -1120,7 +1120,7 @@ export function JobSearchView({ initialVacancies = [], onBack }: JobSearchViewPr
                       variant={isSel ? "default" : "outline"}
                       onClick={() => (isSel ? removeFilter(type) : addFilter(type))}
                       className={cn(
-                        "px-3 py-1.5 rounded-lg text-xs font-medium cursor-pointer transition-all shadow-2xs select-none gap-1",
+                        "px-3 py-1.5 rounded-3xl text-xs font-medium cursor-pointer transition-all shadow-2xs select-none gap-1",
                         isSel
                           ? "bg-primary text-primary-foreground shadow-xs"
                           : "bg-background hover:bg-muted/60 text-foreground border-border/70"
@@ -1158,7 +1158,7 @@ export function JobSearchView({ initialVacancies = [], onBack }: JobSearchViewPr
                       variant={isSel ? "default" : "outline"}
                       onClick={() => (isSel ? removeFilter(cat) : addFilter(cat))}
                       className={cn(
-                        "px-3 py-1.5 rounded-lg text-xs font-medium cursor-pointer transition-all shadow-2xs select-none gap-1",
+                        "px-3 py-1.5 rounded-3xl text-xs font-medium cursor-pointer transition-all shadow-2xs select-none gap-1",
                         isSel
                           ? "bg-primary text-primary-foreground shadow-xs"
                           : "bg-background hover:bg-muted/60 text-foreground border-border/70"
@@ -1180,14 +1180,14 @@ export function JobSearchView({ initialVacancies = [], onBack }: JobSearchViewPr
               size="sm"
               onClick={() => setActiveFilters([])}
               disabled={activeFilters.length === 0}
-              className="flex-1 h-9 rounded-xl text-xs font-medium cursor-pointer"
+              className="flex-1 h-9 rounded-4xl text-xs font-medium cursor-pointer"
             >
               Limpiar filtros
             </Button>
             <Button
               size="sm"
               onClick={() => setIsFilterOpen(false)}
-              className="flex-1 h-9 rounded-xl text-xs font-semibold cursor-pointer shadow-xs"
+              className="flex-1 h-9 rounded-4xl text-xs font-semibold cursor-pointer shadow-xs"
             >
               Ver {filteredVacancies.length} {filteredVacancies.length === 1 ? "vacante" : "vacantes"}
             </Button>

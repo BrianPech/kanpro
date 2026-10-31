@@ -55,7 +55,7 @@ export function CandidateLeavesView({ initialData }: CandidateLeavesViewProps) {
           </h1>
         </div>
 
-        <div className="py-20 px-6 flex flex-col items-center justify-center text-center space-y-4 bg-card border border-border/80 rounded-3xl p-8">
+        <div className="py-20 px-6 flex flex-col items-center justify-center text-center space-y-4 bg-card border border-border/80 rounded-4xl p-8">
           <div className="size-20 rounded-full bg-primary/10 text-primary flex items-center justify-center">
             <Palmtree className="size-10 stroke-[1.75]" />
           </div>
@@ -71,13 +71,13 @@ export function CandidateLeavesView({ initialData }: CandidateLeavesViewProps) {
             <Button
               onClick={() => router.push("/dashboard/candidate/applications")}
               variant="outline"
-              className="rounded-xl text-xs font-bold h-10 px-5"
+              className="rounded-4xl text-xs font-semibold h-9 px-4 cursor-pointer"
             >
               Ver Mis Postulaciones
             </Button>
             <Button
               onClick={() => router.push("/dashboard/candidate/discovery")}
-              className="rounded-xl text-xs font-bold h-10 px-5 bg-primary text-primary-foreground shadow-2xs"
+              className="rounded-4xl text-xs font-semibold h-9 px-4 bg-primary text-primary-foreground shadow-2xs cursor-pointer"
             >
               Explorar Vacantes
             </Button>
@@ -103,7 +103,7 @@ export function CandidateLeavesView({ initialData }: CandidateLeavesViewProps) {
             <span className="text-xs font-bold text-muted-foreground uppercase tracking-wider">
               Autoservicio del Colaborador
             </span>
-            <Badge variant="outline" className="text-[10px] font-bold border-primary/30 text-primary bg-primary/10">
+            <Badge variant="outline" className="text-[10px] font-bold border-primary/30 text-primary bg-primary/10 rounded-3xl">
               Art. 76 LFT
             </Badge>
           </div>
@@ -126,7 +126,7 @@ export function CandidateLeavesView({ initialData }: CandidateLeavesViewProps) {
             size="sm"
             onClick={handleRefresh}
             disabled={isRefreshing}
-            className="rounded-xl size-10 p-0 flex items-center justify-center border-border/70"
+            className="rounded-4xl size-9 p-0 flex items-center justify-center border-border/70 cursor-pointer"
             aria-label="Actualizar solicitudes"
           >
             <RotateCw className={cn("size-4", isRefreshing && "animate-spin")} />
@@ -134,7 +134,7 @@ export function CandidateLeavesView({ initialData }: CandidateLeavesViewProps) {
 
           <Button
             onClick={() => setIsModalOpen(true)}
-            className="rounded-xl text-xs font-bold h-10 px-5 gap-1.5 bg-primary text-primary-foreground shadow-2xs cursor-pointer active:scale-95 transition-all"
+            className="rounded-4xl text-xs font-semibold h-9 px-4 gap-1.5 bg-primary text-primary-foreground shadow-2xs cursor-pointer active:scale-95 transition-all"
           >
             <Plus className="size-4" />
             <span>Solicitar Vacaciones o Permiso</span>
@@ -145,15 +145,15 @@ export function CandidateLeavesView({ initialData }: CandidateLeavesViewProps) {
       {/* 2. 4 Metrics Cards (LFT Dignas Balance) */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
         {/* Card 1: Saldo Disponible (Hero) */}
-        <Card className="p-4 sm:p-5 rounded-2xl bg-gradient-to-br from-indigo-500/10 via-primary/5 to-transparent border-indigo-500/30 space-y-2 relative overflow-hidden shadow-xs">
+        <Card className="p-4 sm:p-5 rounded-4xl bg-primary/5 dark:bg-primary/10 border border-primary/20 space-y-2 relative overflow-hidden shadow-xs">
           <div className="flex items-center justify-between">
             <span className="text-xs font-bold text-muted-foreground">Saldo Disponible</span>
-            <div className="size-7 rounded-lg bg-indigo-500/20 text-indigo-600 dark:text-indigo-400 flex items-center justify-center">
+            <div className="size-7 rounded-2xl bg-primary/10 text-primary flex items-center justify-center">
               <Plane className="size-3.5" />
             </div>
           </div>
           <div className="space-y-0.5">
-            <div className="text-2xl sm:text-3xl font-black text-indigo-950 dark:text-indigo-100 tracking-tight">
+            <div className="text-2xl sm:text-3xl font-black text-foreground tracking-tight">
               {balance?.daysAvailable ?? 0}
               <span className="text-xs font-semibold text-muted-foreground ml-1">días hábiles</span>
             </div>
@@ -162,10 +162,10 @@ export function CandidateLeavesView({ initialData }: CandidateLeavesViewProps) {
         </Card>
 
         {/* Card 2: Días por Antigüedad LFT */}
-        <Card className="p-4 sm:p-5 rounded-2xl bg-card border-border/80 space-y-2 shadow-xs">
+        <Card className="p-4 sm:p-5 rounded-4xl bg-card border-border/70 space-y-2 shadow-xs">
           <div className="flex items-center justify-between">
             <span className="text-xs font-bold text-muted-foreground">Derecho LFT</span>
-            <div className="size-7 rounded-lg bg-primary/10 text-primary flex items-center justify-center">
+            <div className="size-7 rounded-2xl bg-primary/10 text-primary flex items-center justify-center">
               <Sparkles className="size-3.5" />
             </div>
           </div>
@@ -179,15 +179,15 @@ export function CandidateLeavesView({ initialData }: CandidateLeavesViewProps) {
         </Card>
 
         {/* Card 3: Días en Revisión */}
-        <Card className="p-4 sm:p-5 rounded-2xl bg-card border-border/80 space-y-2 shadow-xs">
+        <Card className="p-4 sm:p-5 rounded-4xl bg-card border-border/70 space-y-2 shadow-xs">
           <div className="flex items-center justify-between">
             <span className="text-xs font-bold text-muted-foreground">En Revisión</span>
-            <div className="size-7 rounded-lg bg-amber-500/15 text-amber-600 flex items-center justify-center">
+            <div className="size-7 rounded-2xl bg-muted text-foreground flex items-center justify-center">
               <Clock className="size-3.5" />
             </div>
           </div>
           <div className="space-y-0.5">
-            <div className="text-2xl sm:text-3xl font-black text-amber-600 dark:text-amber-400 tracking-tight">
+            <div className="text-2xl sm:text-3xl font-black text-foreground tracking-tight">
               {balance?.daysPendingApproval ?? 0}
               <span className="text-xs font-semibold text-muted-foreground ml-1">días</span>
             </div>
@@ -196,15 +196,15 @@ export function CandidateLeavesView({ initialData }: CandidateLeavesViewProps) {
         </Card>
 
         {/* Card 4: Días Gozados / Aprobados */}
-        <Card className="p-4 sm:p-5 rounded-2xl bg-card border-border/80 space-y-2 shadow-xs">
+        <Card className="p-4 sm:p-5 rounded-4xl bg-card border-border/70 space-y-2 shadow-xs">
           <div className="flex items-center justify-between">
             <span className="text-xs font-bold text-muted-foreground">Días Gozados</span>
-            <div className="size-7 rounded-lg bg-emerald-500/15 text-emerald-600 flex items-center justify-center">
+            <div className="size-7 rounded-2xl bg-primary/10 text-primary flex items-center justify-center">
               <CheckCircle2 className="size-3.5" />
             </div>
           </div>
           <div className="space-y-0.5">
-            <div className="text-2xl sm:text-3xl font-black text-emerald-600 dark:text-emerald-400 tracking-tight">
+            <div className="text-2xl sm:text-3xl font-black text-foreground tracking-tight">
               {balance?.daysTaken ?? 0}
               <span className="text-xs font-semibold text-muted-foreground ml-1">días</span>
             </div>
@@ -214,7 +214,7 @@ export function CandidateLeavesView({ initialData }: CandidateLeavesViewProps) {
       </div>
 
       {/* 3. LFT Legal Information Banner */}
-      <div className="p-4 rounded-2xl bg-primary/5 border border-primary/20 flex items-start gap-3 text-xs leading-relaxed text-muted-foreground">
+      <div className="p-4 rounded-3xl bg-primary/5 border border-primary/20 flex items-start gap-3 text-xs leading-relaxed text-muted-foreground">
         <Info className="size-4.5 text-primary shrink-0 mt-0.5" />
         <div>
           <span className="font-extrabold text-foreground mr-1">
@@ -243,10 +243,10 @@ export function CandidateLeavesView({ initialData }: CandidateLeavesViewProps) {
                 key={chip.id}
                 onClick={() => setStatusFilter(chip.id)}
                 className={cn(
-                  "px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer",
+                  "px-3.5 py-1.5 rounded-3xl text-xs font-medium transition-all cursor-pointer",
                   statusFilter === chip.id
-                    ? "bg-foreground text-background shadow-xs"
-                    : "bg-muted text-muted-foreground hover:bg-muted/80"
+                    ? "bg-primary text-primary-foreground shadow-xs"
+                    : "bg-card hover:bg-muted/60 text-muted-foreground hover:text-foreground border border-border/70"
                 )}
               >
                 {chip.label}
@@ -256,7 +256,7 @@ export function CandidateLeavesView({ initialData }: CandidateLeavesViewProps) {
         </div>
 
         {filteredRequests.length === 0 ? (
-          <div className="py-14 px-6 flex flex-col items-center justify-center text-center space-y-3 bg-card border border-border/80 rounded-3xl p-8">
+          <div className="py-14 px-6 flex flex-col items-center justify-center text-center space-y-3 bg-card border border-border/80 rounded-4xl p-8">
             <div className="size-14 rounded-full bg-muted flex items-center justify-center text-muted-foreground">
               <Calendar className="size-7 stroke-[1.5]" />
             </div>
@@ -269,7 +269,7 @@ export function CandidateLeavesView({ initialData }: CandidateLeavesViewProps) {
             <Button
               size="sm"
               onClick={() => setIsModalOpen(true)}
-              className="mt-2 rounded-xl text-xs font-bold h-9 px-4 bg-primary text-primary-foreground shadow-2xs"
+              className="mt-2 rounded-4xl text-xs font-semibold h-9 px-4 bg-primary text-primary-foreground shadow-2xs cursor-pointer"
             >
               Crear Solicitud
             </Button>
@@ -279,17 +279,17 @@ export function CandidateLeavesView({ initialData }: CandidateLeavesViewProps) {
             {filteredRequests.map((req) => (
               <div
                 key={req.id}
-                className="p-4 sm:p-5 rounded-2xl bg-card border border-border/80 shadow-xs hover:border-border transition-all space-y-3"
+                className="p-4 sm:p-5 rounded-4xl bg-card border border-border/70 shadow-xs hover:border-border transition-all space-y-3"
               >
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
                   <div className="flex items-center gap-3">
                     <div className={cn(
-                      "size-10 rounded-xl flex items-center justify-center shrink-0",
+                      "size-10 rounded-3xl flex items-center justify-center shrink-0",
                       req.status === "aprobada"
-                        ? "bg-emerald-500/15 text-emerald-600"
+                        ? "bg-primary/10 text-primary"
                         : req.status === "rechazada"
-                        ? "bg-rose-500/15 text-rose-600"
-                        : "bg-amber-500/15 text-amber-600"
+                        ? "bg-destructive/10 text-destructive"
+                        : "bg-muted text-foreground"
                     )}>
                       {req.status === "aprobada" ? (
                         <CheckCircle2 className="size-5" />
@@ -304,7 +304,7 @@ export function CandidateLeavesView({ initialData }: CandidateLeavesViewProps) {
                         <span className="font-extrabold text-sm text-foreground">
                           {req.typeLabel}
                         </span>
-                        <Badge variant="outline" className="text-[10px] font-bold px-2 py-0 border-border/80">
+                        <Badge variant="outline" className="text-[10px] font-bold px-2 py-0 border-border/80 rounded-3xl">
                           {req.totalWorkingDays} día{req.totalWorkingDays !== 1 ? "s" : ""} hábiles
                         </Badge>
                       </div>
@@ -320,17 +320,17 @@ export function CandidateLeavesView({ initialData }: CandidateLeavesViewProps) {
                   {/* Status badge */}
                   <div>
                     {req.status === "aprobada" ? (
-                      <Badge className="bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border border-emerald-500/30 text-xs font-extrabold gap-1 px-2.5 py-1">
+                      <Badge variant="outline" className="bg-primary/10 text-primary border border-primary/20 text-xs font-semibold gap-1 px-2.5 py-1 rounded-3xl">
                         <CheckCircle2 className="size-3.5" />
                         <span>Aprobada por RH</span>
                       </Badge>
                     ) : req.status === "rechazada" ? (
-                      <Badge className="bg-rose-500/15 text-rose-700 dark:text-rose-300 border border-rose-500/30 text-xs font-extrabold gap-1 px-2.5 py-1">
+                      <Badge variant="outline" className="bg-destructive/10 text-destructive border border-destructive/20 text-xs font-semibold gap-1 px-2.5 py-1 rounded-3xl">
                         <XCircle className="size-3.5" />
                         <span>Rechazada</span>
                       </Badge>
                     ) : (
-                      <Badge className="bg-amber-500/15 text-amber-700 dark:text-amber-300 border border-amber-500/30 text-xs font-extrabold gap-1 px-2.5 py-1">
+                      <Badge variant="outline" className="bg-muted text-foreground border border-border/80 text-xs font-semibold gap-1 px-2.5 py-1 rounded-3xl">
                         <Clock className="size-3.5" />
                         <span>En Revisión por RH</span>
                       </Badge>
@@ -340,7 +340,7 @@ export function CandidateLeavesView({ initialData }: CandidateLeavesViewProps) {
 
                 {/* Reason / Notes */}
                 {req.reason && (
-                  <p className="text-xs text-muted-foreground bg-muted/40 p-2.5 rounded-xl border border-border/40">
+                  <p className="text-xs text-muted-foreground bg-muted/40 p-2.5 rounded-2xl border border-border/40">
                     <span className="font-bold text-foreground mr-1">Observaciones:</span>
                     {req.reason}
                   </p>
@@ -348,7 +348,7 @@ export function CandidateLeavesView({ initialData }: CandidateLeavesViewProps) {
 
                 {/* Rejection Feedback Note */}
                 {req.status === "rechazada" && req.rejectionReason && (
-                  <div className="p-3 rounded-xl bg-rose-500/10 border border-rose-500/20 text-xs text-rose-800 dark:text-rose-300 space-y-1">
+                  <div className="p-3 rounded-2xl bg-destructive/10 border border-destructive/20 text-xs text-destructive space-y-1">
                     <span className="font-bold block">Motivo de resolución de RH:</span>
                     <p className="text-[11px] leading-relaxed">
                       &ldquo;{req.rejectionReason}&rdquo;

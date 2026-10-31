@@ -84,10 +84,10 @@ export function CandidateContractsView({
       {/* 1. Header */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-[26px] sm:text-[32px] font-[800] text-[#1f2732] dark:text-zinc-50 tracking-[-0.6px]">
+          <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-foreground">
             Mis Contratos Laborales
           </h1>
-          <p className="text-sm text-muted-foreground font-medium mt-1">
+          <p className="text-xs sm:text-sm text-muted-foreground font-medium mt-1">
             Consulta tus contratos formalizados con validez de la Ley Federal del Trabajo y estampa tu firma electrónica.
           </p>
         </div>
@@ -98,7 +98,7 @@ export function CandidateContractsView({
             size="sm"
             onClick={handleRefresh}
             disabled={isRefreshing}
-            className="rounded-xl border-[#ebeef3] dark:border-zinc-800 text-xs font-bold gap-2 cursor-pointer shadow-2xs"
+            className="h-9 rounded-4xl border-border/70 text-xs font-semibold gap-2 cursor-pointer shadow-2xs"
           >
             <RotateCw className={cn("size-3.5", isRefreshing && "animate-spin")} />
             <span>Actualizar</span>
@@ -108,7 +108,7 @@ export function CandidateContractsView({
 
       {/* 2. Quick Metric Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5">
-        <div className="p-4 rounded-2xl bg-card border border-border/80 shadow-2xs space-y-1">
+        <div className="p-4 rounded-3xl bg-card border border-border/70 shadow-xs space-y-1">
           <span className="text-xs font-bold text-muted-foreground uppercase tracking-wider">
             Total Contratos
           </span>
@@ -117,26 +117,26 @@ export function CandidateContractsView({
           </div>
         </div>
 
-        <div className="p-4 rounded-2xl bg-amber-500/10 border border-amber-500/20 shadow-2xs space-y-1">
+        <div className="p-4 rounded-3xl bg-muted/40 border border-border/70 shadow-xs space-y-1">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-bold text-amber-700 dark:text-amber-400 uppercase tracking-wider">
+            <span className="text-xs font-semibold text-foreground uppercase tracking-wider">
               Pendientes de Firma
             </span>
-            <Clock className="size-4 text-amber-600 dark:text-amber-400" />
+            <Clock className="size-4 text-foreground" />
           </div>
-          <div className="text-2xl font-black text-amber-700 dark:text-amber-300">
+          <div className="text-2xl font-black text-foreground">
             {pendingCount}
           </div>
         </div>
 
-        <div className="p-4 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 shadow-2xs space-y-1">
+        <div className="p-4 rounded-3xl bg-primary/10 border border-primary/20 shadow-xs space-y-1">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-bold text-emerald-700 dark:text-emerald-400 uppercase tracking-wider">
+            <span className="text-xs font-semibold text-primary uppercase tracking-wider">
               Formalizados y Vigentes
             </span>
-            <CheckCircle2 className="size-4 text-emerald-600 dark:text-emerald-400" />
+            <CheckCircle2 className="size-4 text-primary" />
           </div>
-          <div className="text-2xl font-black text-emerald-700 dark:text-emerald-300">
+          <div className="text-2xl font-black text-primary">
             {activeCount}
           </div>
         </div>
@@ -148,10 +148,10 @@ export function CandidateContractsView({
           type="button"
           onClick={() => setSelectedFilter("todos")}
           className={cn(
-            "px-4 py-2 rounded-xl text-xs font-extrabold transition-all cursor-pointer",
+            "px-3.5 py-1.5 rounded-3xl text-xs font-medium transition-all cursor-pointer",
             selectedFilter === "todos"
-              ? "bg-foreground text-background shadow-xs"
-              : "bg-muted/40 text-muted-foreground hover:text-foreground"
+              ? "bg-primary text-primary-foreground shadow-xs"
+              : "bg-card hover:bg-muted/60 text-muted-foreground hover:text-foreground border border-border/70"
           )}
         >
           Todos ({contracts.length})
@@ -160,25 +160,25 @@ export function CandidateContractsView({
           type="button"
           onClick={() => setSelectedFilter("pendientes")}
           className={cn(
-            "px-4 py-2 rounded-xl text-xs font-extrabold transition-all cursor-pointer flex items-center gap-1.5",
+            "px-3.5 py-1.5 rounded-3xl text-xs font-medium transition-all cursor-pointer flex items-center gap-1.5",
             selectedFilter === "pendientes"
-              ? "bg-amber-600 text-white shadow-xs"
-              : "bg-amber-500/10 text-amber-700 dark:text-amber-400 hover:bg-amber-500/20"
+              ? "bg-primary text-primary-foreground shadow-xs"
+              : "bg-card hover:bg-muted/60 text-muted-foreground hover:text-foreground border border-border/70"
           )}
         >
           <span>Pendientes de Firma</span>
           {pendingCount > 0 && (
-            <span className="size-2 rounded-full bg-amber-400 animate-pulse" />
+            <span className="size-2 rounded-full bg-primary animate-pulse" />
           )}
         </button>
         <button
           type="button"
           onClick={() => setSelectedFilter("vigentes")}
           className={cn(
-            "px-4 py-2 rounded-xl text-xs font-extrabold transition-all cursor-pointer",
+            "px-3.5 py-1.5 rounded-3xl text-xs font-medium transition-all cursor-pointer",
             selectedFilter === "vigentes"
-              ? "bg-emerald-600 text-white shadow-xs"
-              : "bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 hover:bg-emerald-500/20"
+              ? "bg-primary text-primary-foreground shadow-xs"
+              : "bg-card hover:bg-muted/60 text-muted-foreground hover:text-foreground border border-border/70"
           )}
         >
           Vigentes ({activeCount})
@@ -187,8 +187,8 @@ export function CandidateContractsView({
 
       {/* 4. Contracts List or Empty State */}
       {filteredContracts.length === 0 ? (
-        <div className="py-16 px-6 rounded-3xl border border-dashed border-border/80 flex flex-col items-center justify-center text-center space-y-4 bg-card/40">
-          <div className="size-16 rounded-2xl bg-muted/60 flex items-center justify-center text-muted-foreground">
+        <div className="py-16 px-6 rounded-4xl border border-dashed border-border/80 flex flex-col items-center justify-center text-center space-y-4 bg-card/40">
+          <div className="size-16 rounded-3xl bg-muted/60 flex items-center justify-center text-muted-foreground">
             <FileCheck2 className="size-8 stroke-[1.5]" />
           </div>
           <div className="space-y-1.5 max-w-sm">
@@ -203,7 +203,7 @@ export function CandidateContractsView({
           </div>
           <Button
             onClick={() => router.push("/dashboard/candidate/discovery")}
-            className="rounded-xl text-xs font-bold gap-2 cursor-pointer"
+            className="h-9 px-4 rounded-4xl text-xs font-semibold gap-2 cursor-pointer shadow-xs"
           >
             <Sparkles className="size-3.5" />
             <span>Explorar Oportunidades Laborales</span>
@@ -221,23 +221,18 @@ export function CandidateContractsView({
             return (
               <div
                 key={contract.id}
-                className={cn(
-                  "p-5 sm:p-6 rounded-2xl border transition-all bg-card shadow-2xs space-y-4",
-                  !isSigned
-                    ? "border-amber-500/40 hover:border-amber-500/70"
-                    : "border-border/80 hover:border-border"
-                )}
+                className="p-5 sm:p-6 rounded-4xl border border-border/70 hover:border-border transition-all bg-card shadow-xs space-y-4"
               >
                 {/* Header Row: Company, Folio, Status Badge */}
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-border/40">
                   <div className="flex items-center gap-3">
-                    <div className="size-11 rounded-xl bg-muted/60 border border-border/60 flex items-center justify-center shrink-0 font-bold text-sm text-foreground">
+                    <div className="size-11 rounded-3xl bg-muted/60 border border-border/60 flex items-center justify-center shrink-0 font-bold text-sm text-foreground overflow-hidden">
                       {contract.companyLogo ? (
                         /* eslint-disable-next-line @next/next/no-img-element */
                         <img
                           src={contract.companyLogo}
                           alt={contract.companyName}
-                          className="size-full object-cover rounded-xl"
+                          className="size-full object-cover rounded-3xl"
                         />
                       ) : (
                         <Building2 className="size-5 text-muted-foreground" />
@@ -248,7 +243,7 @@ export function CandidateContractsView({
                         <span className="text-xs font-extrabold text-foreground">
                           {contract.companyName}
                         </span>
-                        <Badge variant="outline" className="text-[10px] font-mono px-2 py-0 border-border/80">
+                        <Badge variant="outline" className="text-[10px] font-mono px-2 py-0 border-border/80 rounded-3xl">
                           {contract.folio}
                         </Badge>
                       </div>
@@ -260,11 +255,12 @@ export function CandidateContractsView({
 
                   <div className="flex items-center gap-2">
                     <Badge
+                      variant="outline"
                       className={cn(
-                        "text-xs font-bold px-2.5 py-1 rounded-lg border-none",
+                        "text-xs font-semibold px-2.5 py-1 rounded-3xl",
                         isSigned
-                          ? "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400"
-                          : "bg-amber-500/15 text-amber-700 dark:text-amber-300"
+                          ? "bg-primary/10 text-primary border-primary/20"
+                          : "bg-muted text-foreground border-border/80"
                       )}
                     >
                       {isSigned ? (
@@ -315,7 +311,7 @@ export function CandidateContractsView({
                     <span className="text-[11px] font-semibold text-muted-foreground block">
                       Sueldo Pactado ({contract.paymentFrequency})
                     </span>
-                    <span className="font-extrabold text-foreground">
+                    <span className="font-mono font-bold text-foreground">
                       ${salaryFmt} MXN
                     </span>
                   </div>
@@ -335,13 +331,9 @@ export function CandidateContractsView({
 
                   <div className="flex items-center gap-2">
                     <Button
+                      variant={!isSigned ? "default" : "secondary"}
                       onClick={() => handleOpenContract(contract)}
-                      className={cn(
-                        "rounded-xl text-xs font-bold gap-1.5 cursor-pointer shadow-xs",
-                        !isSigned
-                          ? "bg-amber-600 hover:bg-amber-700 text-white"
-                          : "bg-primary text-primary-foreground"
-                      )}
+                      className="h-9 px-4 rounded-4xl text-xs font-semibold gap-1.5 cursor-pointer shadow-xs"
                     >
                       {!isSigned ? (
                         <>

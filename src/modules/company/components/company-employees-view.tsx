@@ -857,7 +857,7 @@ export function CompanyEmployeesView({
                   href={getWhatsAppLink(emp)}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="size-8 rounded-lg bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/20 flex items-center justify-center transition-colors cursor-pointer"
+                  className="size-8 rounded-lg bg-primary/10 text-primary hover:bg-primary/20 flex items-center justify-center transition-colors cursor-pointer"
                   title="Enviar mensaje WhatsApp"
                 >
                   <MessageSquare className="size-3.5 stroke-[2.5]" />
@@ -902,11 +902,11 @@ export function CompanyEmployeesView({
                           href={getWhatsAppLink(emp)}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="cursor-pointer text-xs font-semibold py-2 px-2.5 gap-2 text-emerald-600 dark:text-emerald-400"
+                          className="cursor-pointer text-xs font-semibold py-2 px-2.5 gap-2 text-foreground"
                         />
                       }
                     >
-                      <MessageSquare className="size-3.5" />
+                      <MessageSquare className="size-3.5 text-muted-foreground" />
                       <span>Mensaje WhatsApp</span>
                     </DropdownMenuItem>
                   )}
@@ -932,7 +932,7 @@ export function CompanyEmployeesView({
                   {emp.status === "Contratado" ? (
                     <DropdownMenuItem
                       onSelect={() => handleOpenTerminateDialog(emp)}
-                      className="cursor-pointer text-xs font-semibold text-rose-600 dark:text-rose-400 rounded-lg hover:bg-rose-500/10 focus:bg-rose-500/10 py-2 px-2.5 gap-2"
+                      className="cursor-pointer text-xs font-semibold text-destructive rounded-lg hover:bg-destructive/10 focus:bg-destructive/10 py-2 px-2.5 gap-2"
                     >
                       <UserX className="size-3.5" />
                       <span>Registrar Baja</span>
@@ -940,7 +940,7 @@ export function CompanyEmployeesView({
                   ) : (
                     <DropdownMenuItem
                       onSelect={() => handleReactivate(emp)}
-                      className="cursor-pointer text-xs font-semibold text-emerald-600 dark:text-emerald-400 rounded-lg hover:bg-emerald-500/10 focus:bg-emerald-500/10 py-2 px-2.5 gap-2"
+                      className="cursor-pointer text-xs font-semibold text-primary rounded-lg hover:bg-primary/10 focus:bg-primary/10 py-2 px-2.5 gap-2"
                     >
                       <RotateCcw className="size-3.5" />
                       <span>Reactivar Empleado</span>
@@ -1001,7 +1001,7 @@ export function CompanyEmployeesView({
             onClick={handleExportCSV}
             className="cursor-pointer"
           >
-            <Download data-icon="inline-start" className="text-emerald-600 dark:text-emerald-400" />
+            <Download data-icon="inline-start" className="text-muted-foreground" />
             <span>Exportar</span>
           </Button>
           <Button
@@ -1014,6 +1014,85 @@ export function CompanyEmployeesView({
           </Button>
         </div>
       </CompanyPageHeader>
+
+      {/* 2. Top Summary KPI Cards */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4">
+        <Card className="p-4 sm:p-5 flex flex-col justify-between">
+          <div className="flex items-center justify-between">
+            <span className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider">
+              Total Colaboradores
+            </span>
+            <div className="size-8 rounded-lg bg-primary/10 text-primary flex items-center justify-center">
+              <Users className="size-4" />
+            </div>
+          </div>
+          <div className="mt-2">
+            <h3 className="text-2xl font-extrabold text-foreground font-mono">
+              {metrics.total}
+            </h3>
+            <p className="text-[10px] font-semibold text-muted-foreground mt-0.5">
+              {metrics.categoriesCount} {metrics.categoriesCount === 1 ? "área activa" : "áreas activas"}
+            </p>
+          </div>
+        </Card>
+
+        <Card className="p-4 sm:p-5 flex flex-col justify-between">
+          <div className="flex items-center justify-between">
+            <span className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider">
+              Activos
+            </span>
+            <div className="size-8 rounded-lg bg-primary/10 text-primary flex items-center justify-center">
+              <UserCheck className="size-4" />
+            </div>
+          </div>
+          <div className="mt-2">
+            <h3 className="text-2xl font-extrabold text-foreground font-mono">
+              {metrics.active}
+            </h3>
+            <p className="text-[10px] font-semibold text-muted-foreground mt-0.5">
+              En plantilla laboral
+            </p>
+          </div>
+        </Card>
+
+        <Card className="p-4 sm:p-5 flex flex-col justify-between">
+          <div className="flex items-center justify-between">
+            <span className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider">
+              Invitaciones
+            </span>
+            <div className="size-8 rounded-lg bg-muted text-muted-foreground flex items-center justify-center">
+              <Clock className="size-4" />
+            </div>
+          </div>
+          <div className="mt-2">
+            <h3 className="text-2xl font-extrabold text-foreground font-mono">
+              {metrics.pendingInvitations}
+            </h3>
+            <p className="text-[10px] font-semibold text-muted-foreground mt-0.5">
+              Por completar expediente
+            </p>
+          </div>
+        </Card>
+
+        <Card className="p-4 sm:p-5 flex flex-col justify-between">
+          <div className="flex items-center justify-between">
+            <span className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider">
+              Bajas
+            </span>
+            <div className="size-8 rounded-lg bg-destructive/10 text-destructive flex items-center justify-center">
+              <UserX className="size-4" />
+            </div>
+          </div>
+          <div className="mt-2">
+            <h3 className="text-2xl font-extrabold text-destructive font-mono">
+              {metrics.terminated}
+            </h3>
+            <p className="text-[10px] font-semibold text-muted-foreground mt-0.5">
+              Historial de finiquitos
+            </p>
+          </div>
+        </Card>
+      </div>
 
       {/* Master TanStack DataTable Card */}
       <Card className="overflow-hidden">
@@ -1031,7 +1110,7 @@ export function CompanyEmployeesView({
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder="Buscar por empleado, puesto, ubicación o teléfono..."
-                className="pl-10 pr-9 w-full"
+                className="pl-10 pr-9 w-full h-9 rounded-3xl bg-input/50 border-input text-xs sm:text-sm"
               />
               {searchQuery && (
                 <button
@@ -1069,11 +1148,11 @@ export function CompanyEmployeesView({
                 className={cn(
                   "px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5",
                   statusFilter === "Contratado"
-                    ? "bg-background text-emerald-600 dark:text-emerald-400 shadow-2xs"
+                    ? "bg-background text-foreground shadow-2xs"
                     : "text-muted-foreground hover:text-foreground"
                 )}
               >
-                <span className="size-1.5 rounded-full bg-emerald-500 inline-block" />
+                <span className="size-1.5 rounded-full bg-primary inline-block" />
                 <span>Activos ({metrics.active})</span>
               </button>
               <button
@@ -1082,14 +1161,14 @@ export function CompanyEmployeesView({
                 className={cn(
                   "px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5",
                   statusFilter === "invitaciones"
-                    ? "bg-background text-amber-600 dark:text-amber-400 shadow-2xs"
+                    ? "bg-background text-foreground shadow-2xs"
                     : "text-muted-foreground hover:text-foreground"
                 )}
               >
-                <Clock className="size-3 text-amber-500" />
+                <Clock className="size-3 text-muted-foreground" />
                 <span>Invitaciones ({metrics.pendingInvitations})</span>
                 {metrics.pendingInvitations > 0 && (
-                  <span className="size-1.5 rounded-full bg-amber-500 inline-block animate-pulse" />
+                  <span className="size-1.5 rounded-full bg-primary inline-block animate-pulse" />
                 )}
               </button>
               <button
@@ -1098,11 +1177,11 @@ export function CompanyEmployeesView({
                 className={cn(
                   "px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5",
                   statusFilter === "Baja"
-                    ? "bg-background text-rose-600 dark:text-rose-400 shadow-2xs"
+                    ? "bg-background text-destructive shadow-2xs"
                     : "text-muted-foreground hover:text-foreground"
                 )}
               >
-                <span className="size-1.5 rounded-full bg-rose-500 inline-block" />
+                <span className="size-1.5 rounded-full bg-destructive inline-block" />
                 <span>Bajas ({metrics.terminated})</span>
               </button>
             </div>
@@ -1114,7 +1193,7 @@ export function CompanyEmployeesView({
                   value={categoryFilter}
                   onValueChange={(val) => setCategoryFilter(val || "all")}
                 >
-                  <SelectTrigger className="w-full text-xs font-semibold">
+                  <SelectTrigger className="w-full h-9 rounded-3xl bg-input/50 text-xs font-semibold">
                     <SelectValue placeholder="Todas las áreas">
                       {categoryFilter === "all"
                         ? `Todas las áreas (${employees.length})`
@@ -1162,7 +1241,7 @@ export function CompanyEmployeesView({
             filteredInvitations.length === 0 ? (
               <Empty className="py-16">
                 <EmptyHeader>
-                  <EmptyMedia variant="icon" className="bg-amber-500/10 text-amber-600 dark:text-amber-400">
+                  <EmptyMedia variant="icon" className="bg-primary/10 text-primary">
                     <Clock className="size-5" />
                   </EmptyMedia>
                   <EmptyTitle>No hay invitaciones registradas</EmptyTitle>
@@ -1268,13 +1347,16 @@ export function CompanyEmployeesView({
 
                           <TableCell className="py-3.5 px-4">
                             {inv.status === "accepted" ? (
-                              <Badge className="bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/20 text-[10px] font-bold">
+                              <Badge
+                                variant="outline"
+                                className="bg-primary/10 text-primary border-primary/20 text-[10px] font-bold"
+                              >
                                 Aceptada
                               </Badge>
                             ) : inv.status === "cancelled" ? (
                               <Badge
                                 variant="outline"
-                                className="text-rose-500 border-rose-500/30 bg-rose-500/10 text-[10px] font-bold"
+                                className="text-destructive border-destructive/30 bg-destructive/10 text-[10px] font-bold"
                               >
                                 Cancelada
                               </Badge>
@@ -1286,8 +1368,11 @@ export function CompanyEmployeesView({
                                 Expirada
                               </Badge>
                             ) : (
-                              <Badge className="bg-amber-500/15 text-amber-600 dark:text-amber-400 hover:bg-amber-500/20 text-[10px] font-bold flex items-center gap-1 w-fit">
-                                <span className="size-1.5 rounded-full bg-amber-500 animate-pulse" />
+                              <Badge
+                                variant="outline"
+                                className="bg-muted text-foreground border-border text-[10px] font-bold flex items-center gap-1 w-fit"
+                              >
+                                <span className="size-1.5 rounded-full bg-primary animate-pulse" />
                                 <span>{inv.status === "sent" ? "Enviada" : "Pendiente"}</span>
                               </Badge>
                             )}
@@ -1318,7 +1403,7 @@ export function CompanyEmployeesView({
                                     size="sm"
                                     disabled={actionLoadingId === inv.id}
                                     onClick={() => handleCancelInvitation(inv)}
-                                    className="h-8 w-8 p-0 rounded-xl text-muted-foreground hover:text-rose-600 hover:bg-rose-500/10 cursor-pointer"
+                                    className="h-8 w-8 p-0 rounded-xl text-muted-foreground hover:text-destructive hover:bg-destructive/10 cursor-pointer"
                                     title="Cancelar invitación"
                                   >
                                     <Trash2 className="size-3.5" />
@@ -1451,14 +1536,14 @@ export function CompanyEmployeesView({
                           {isTerminated ? (
                             <Badge
                               variant="destructive"
-                              className="bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/20 text-[10px] font-bold px-2 py-0.5 select-none"
+                              className="text-[10px] font-bold px-2 py-0.5 select-none"
                             >
                               Baja
                             </Badge>
                           ) : (
                             <Badge
                               variant="outline"
-                              className="bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20 text-[10px] font-bold px-2 py-0.5 select-none"
+                              className="bg-primary/10 text-primary border-primary/20 text-[10px] font-bold px-2 py-0.5 select-none"
                             >
                               Activo
                             </Badge>
@@ -1494,11 +1579,11 @@ export function CompanyEmployeesView({
                                       href={getWhatsAppLink(emp)}
                                       target="_blank"
                                       rel="noopener noreferrer"
-                                      className="cursor-pointer text-xs font-semibold py-2.5 px-3 gap-2.5 text-emerald-600 dark:text-emerald-400 rounded-xl"
+                                      className="cursor-pointer text-xs font-semibold py-2.5 px-3 gap-2.5 text-foreground rounded-xl"
                                     />
                                   }
                                 >
-                                  <MessageSquare className="size-4" />
+                                  <MessageSquare className="size-4 text-muted-foreground" />
                                   <span>Mensaje WhatsApp</span>
                                 </DropdownMenuItem>
                               )}
@@ -1524,7 +1609,7 @@ export function CompanyEmployeesView({
                               {isTerminated ? (
                                 <DropdownMenuItem
                                   onSelect={() => handleReactivate(emp)}
-                                  className="cursor-pointer text-xs font-semibold text-emerald-600 dark:text-emerald-400 rounded-xl hover:bg-emerald-500/10 focus:bg-emerald-500/10 py-2.5 px-3 gap-2.5"
+                                  className="cursor-pointer text-xs font-semibold text-primary rounded-xl hover:bg-primary/10 focus:bg-primary/10 py-2.5 px-3 gap-2.5"
                                 >
                                   <RotateCcw className="size-4" />
                                   <span>Reactivar Empleado</span>
@@ -1532,7 +1617,7 @@ export function CompanyEmployeesView({
                               ) : (
                                 <DropdownMenuItem
                                   onSelect={() => handleOpenTerminateDialog(emp)}
-                                  className="cursor-pointer text-xs font-semibold text-rose-600 dark:text-rose-400 rounded-xl hover:bg-rose-500/10 focus:bg-rose-500/10 py-2.5 px-3 gap-2.5"
+                                  className="cursor-pointer text-xs font-semibold text-destructive rounded-xl hover:bg-destructive/10 focus:bg-destructive/10 py-2.5 px-3 gap-2.5"
                                 >
                                   <UserX className="size-4" />
                                   <span>Registrar Baja</span>
@@ -1573,9 +1658,9 @@ export function CompanyEmployeesView({
                                   rel="noopener noreferrer"
                                 />
                               }
-                              className="h-8 px-3 rounded-lg text-xs font-semibold border-emerald-500/30 text-emerald-600 dark:text-emerald-400 bg-emerald-500/5 hover:bg-emerald-500/10 gap-1.5 cursor-pointer"
+                              className="h-8 px-3 rounded-lg text-xs font-semibold gap-1.5 cursor-pointer"
                             >
-                              <MessageSquare className="size-3.5" />
+                              <MessageSquare className="size-3.5 text-primary" />
                               <span>WhatsApp</span>
                             </Button>
                           )}
@@ -1668,7 +1753,7 @@ export function CompanyEmployeesView({
 
       {/* Dialog: Asignar Área o Departamento */}
       <Dialog open={isAreaDialogOpen} onOpenChange={setIsAreaDialogOpen}>
-        <DialogContent className="rounded-3xl border-border/60 bg-card max-w-md p-6">
+        <DialogContent className="rounded-4xl border-border/60 bg-card max-w-md p-6">
           <DialogHeader className="space-y-1.5 pb-2 border-b border-border/40">
             <div className="flex items-center gap-2.5">
               <div className="size-9 rounded-xl bg-primary/10 text-primary flex items-center justify-center shrink-0">
@@ -1755,7 +1840,7 @@ export function CompanyEmployeesView({
                         <div className="flex items-center gap-2.5">
                           <span
                             className="size-3 rounded-full shrink-0 shadow-2xs ring-1 ring-border/20"
-                            style={{ backgroundColor: dept.color || "#6366f1" }}
+                            style={{ backgroundColor: dept.color || "var(--primary)" }}
                           />
                           <span className="text-foreground">{dept.name}</span>
                         </div>
@@ -1785,7 +1870,7 @@ export function CompanyEmployeesView({
               variant="outline"
               disabled={isSavingArea}
               onClick={() => setIsAreaDialogOpen(false)}
-              className="rounded-xl text-xs font-semibold cursor-pointer"
+              className="rounded-4xl text-xs font-semibold cursor-pointer"
             >
               Cancelar
             </Button>
@@ -1793,7 +1878,7 @@ export function CompanyEmployeesView({
               type="button"
               disabled={isSavingArea}
               onClick={handleSaveArea}
-              className="rounded-xl text-xs font-bold bg-primary text-primary-foreground hover:bg-primary/90 cursor-pointer shadow-xs"
+              className="rounded-4xl text-xs font-bold bg-primary text-primary-foreground hover:bg-primary/90 cursor-pointer shadow-xs"
             >
               {isSavingArea ? (
                 <Loader2 className="size-3.5 animate-spin mr-1.5" />
@@ -1811,9 +1896,9 @@ export function CompanyEmployeesView({
         open={isTerminateDialogOpen}
         onOpenChange={setIsTerminateDialogOpen}
       >
-        <DialogContent className="rounded-2xl border-border/60 bg-card max-w-md">
+        <DialogContent className="rounded-4xl border-border/60 bg-card max-w-md">
           <DialogHeader>
-            <DialogTitle className="text-base font-bold text-rose-600 dark:text-rose-400 flex items-center gap-2">
+            <DialogTitle className="text-base font-bold text-destructive flex items-center gap-2">
               <AlertTriangle className="size-4" />
               <span>Registrar Baja de Empleado</span>
             </DialogTitle>
@@ -1907,15 +1992,16 @@ export function CompanyEmployeesView({
               type="button"
               variant="ghost"
               onClick={() => setIsTerminateDialogOpen(false)}
-              className="rounded-xl text-xs font-semibold"
+              className="rounded-4xl text-xs font-semibold"
             >
               Cancelar
             </Button>
             <Button
               type="button"
+              variant="destructive"
               onClick={handleConfirmTermination}
               disabled={isTerminating}
-              className="rounded-xl text-xs font-bold bg-rose-600 hover:bg-rose-700 text-white"
+              className="rounded-4xl text-xs font-bold"
             >
               {isTerminating ? (
                 <Loader2 className="size-3.5 animate-spin mr-1" />
@@ -1928,7 +2014,7 @@ export function CompanyEmployeesView({
 
       {/* Dialog: Employee Notes */}
       <Dialog open={isNotesDialogOpen} onOpenChange={setIsNotesDialogOpen}>
-        <DialogContent className="rounded-2xl border-border/60 bg-card max-w-md">
+        <DialogContent className="rounded-4xl border-border/60 bg-card max-w-md">
           <DialogHeader>
             <DialogTitle className="text-base font-bold text-foreground flex items-center gap-2">
               <FileText className="size-4 text-primary" />
@@ -1954,7 +2040,7 @@ export function CompanyEmployeesView({
               type="button"
               variant="ghost"
               onClick={() => setIsNotesDialogOpen(false)}
-              className="rounded-xl text-xs font-semibold"
+              className="rounded-4xl text-xs font-semibold"
             >
               Cerrar
             </Button>
@@ -1980,7 +2066,7 @@ export function CompanyEmployeesView({
                 }
               }}
               disabled={isSavingNotes}
-              className="rounded-xl text-xs font-bold bg-primary text-primary-foreground"
+              className="rounded-4xl text-xs font-bold bg-primary text-primary-foreground"
             >
               {isSavingNotes ? (
                 <Loader2 className="size-3.5 animate-spin mr-1" />
@@ -1993,7 +2079,7 @@ export function CompanyEmployeesView({
 
       {/* Dialog: Reenviar Invitación */}
       <Dialog open={isResendDialogOpen} onOpenChange={setIsResendDialogOpen}>
-        <DialogContent className="rounded-2xl border-border/60 bg-card max-w-md">
+        <DialogContent className="rounded-4xl border-border/60 bg-card max-w-md">
           <DialogHeader>
             <div className="size-10 rounded-xl bg-primary/10 text-primary flex items-center justify-center mb-1">
               <MailCheck className="size-5" />
@@ -2032,7 +2118,7 @@ export function CompanyEmployeesView({
                   >
                     {isCopiedResend ? (
                       <>
-                        <Check className="size-3.5 text-emerald-500" />
+                        <Check className="size-3.5 text-primary" />
                         <span>Copiado</span>
                       </>
                     ) : (
@@ -2059,7 +2145,7 @@ export function CompanyEmployeesView({
                     window.open(`https://wa.me/?text=${whatsappMsg}`, "_blank");
                   }}
                 >
-                  <Share2 className="size-3.5 text-emerald-600" />
+                  <Share2 className="size-3.5 text-primary" />
                   Compartir por WhatsApp
                 </Button>
 

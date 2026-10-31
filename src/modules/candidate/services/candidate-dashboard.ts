@@ -724,34 +724,34 @@ export async function getCandidateDashboardData(): Promise<CandidateDashboardDat
       null;
 
     let statusLabel = app.status
-    let statusColor = "text-zinc-500 bg-zinc-500/10 border-zinc-500/20 dark:text-zinc-400 dark:bg-zinc-400/10 dark:border-zinc-400/20"
+    let statusColor = "text-muted-foreground bg-muted/60 border-border/70"
     let progress = 25
 
     switch (app.status) {
       case "Pendiente":
         statusLabel = "Pendiente"
-        statusColor = "text-zinc-500 bg-zinc-500/10 border-zinc-500/20 dark:text-zinc-400 dark:bg-zinc-400/10 dark:border-zinc-400/20"
+        statusColor = "text-muted-foreground bg-muted/60 border-border/70"
         progress = 25
         break
       case "En revisión":
         statusLabel = "En Revisión"
-        statusColor = "text-amber-500 bg-amber-500/10 border-amber-500/20 dark:text-amber-400 dark:bg-amber-400/10 dark:border-amber-400/20"
+        statusColor = "text-foreground bg-muted border-border"
         progress = 50
         break
       case "Preseleccionado":
       case "Entrevista":
         statusLabel = app.status === "Entrevista" ? "En Entrevista" : "Preseleccionado"
-        statusColor = "text-indigo-500 bg-indigo-500/10 border-indigo-500/20 dark:text-indigo-400 dark:bg-indigo-400/10 dark:border-indigo-400/20"
+        statusColor = "text-primary bg-primary/10 border-primary/20"
         progress = 75
         break
       case "Contratado":
         statusLabel = "Contratado"
-        statusColor = "text-emerald-500 bg-emerald-500/10 border-emerald-500/20 dark:text-emerald-400 dark:bg-emerald-400/10 dark:border-emerald-400/20"
+        statusColor = "text-primary bg-primary/10 border-primary/20"
         progress = 100
         break
       case "Descartado":
         statusLabel = "Descartado"
-        statusColor = "text-rose-500 bg-rose-500/10 border-rose-500/20 dark:text-rose-400 dark:bg-rose-400/10 dark:border-rose-400/20"
+        statusColor = "text-destructive bg-destructive/10 border-destructive/20"
         progress = 100
         break
     }

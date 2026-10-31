@@ -152,22 +152,23 @@ export function CandidateContractModal({
   return (
     <>
       <Dialog open={isOpen} onOpenChange={onOpenChange}>
-        <DialogContent className="sm:max-w-[760px] rounded-3xl p-6 bg-card border-border/80 max-h-[90vh] overflow-y-auto">
+        <DialogContent className="sm:max-w-[760px] rounded-4xl p-6 bg-card border-border/80 max-h-[90vh] overflow-y-auto">
           <DialogHeader className="space-y-2 text-left pb-3 border-b border-border/40">
             <div className="flex items-center justify-between gap-3">
               <div className="flex items-center gap-2">
-                <Badge className="bg-primary/10 text-primary border-none text-xs font-extrabold px-2.5 py-0.5 rounded-lg">
+                <Badge className="bg-primary/10 text-primary border-none text-xs font-extrabold px-2.5 py-0.5 rounded-3xl">
                   {contract.folio}
                 </Badge>
                 <Badge
+                  variant="outline"
                   className={cn(
-                    "text-xs font-bold px-2.5 py-0.5 rounded-lg border-none",
+                    "text-xs font-semibold px-2.5 py-0.5 rounded-3xl",
                     isSigned
-                      ? "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400"
-                      : "bg-amber-500/15 text-amber-700 dark:text-amber-300"
+                      ? "bg-primary/10 text-primary border-primary/20"
+                      : "bg-muted text-foreground border-border/80"
                   )}
                 >
-                  {isSigned ? "🟢 Contrato Formalizado y Vigente" : "🟡 Requiere tu Firma Digital"}
+                  {isSigned ? "Contrato Formalizado y Vigente" : "Requiere tu Firma Digital"}
                 </Badge>
               </div>
 
@@ -176,7 +177,7 @@ export function CandidateContractModal({
                   variant="outline"
                   size="sm"
                   onClick={handlePrint}
-                  className="rounded-xl text-xs font-bold h-8 px-2.5 border-border/70 flex items-center gap-1 cursor-pointer"
+                  className="rounded-4xl text-xs font-semibold h-8 px-2.5 border-border/70 flex items-center gap-1 cursor-pointer"
                 >
                   <Printer className="size-3.5" />
                   <span>Imprimir</span>
@@ -185,7 +186,7 @@ export function CandidateContractModal({
                   variant="outline"
                   size="sm"
                   onClick={handleDownload}
-                  className="rounded-xl text-xs font-bold h-8 px-2.5 border-border/70 flex items-center gap-1 cursor-pointer"
+                  className="rounded-4xl text-xs font-semibold h-8 px-2.5 border-border/70 flex items-center gap-1 cursor-pointer"
                 >
                   <Download className="size-3.5" />
                   <span>PDF</span>
@@ -203,20 +204,21 @@ export function CandidateContractModal({
 
           {/* Prompt banner if signing is required */}
           {!isSigned && (
-            <div className="p-4 rounded-2xl bg-amber-500/10 border border-amber-500/20 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
-              <div className="flex items-center gap-2.5 text-amber-800 dark:text-amber-200">
-                <AlertCircle className="size-5 shrink-0 text-amber-600 dark:text-amber-400" />
+            <div className="p-4 rounded-3xl bg-muted/40 border border-border/80 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+              <div className="flex items-center gap-2.5 text-foreground">
+                <AlertCircle className="size-5 shrink-0 text-foreground" />
                 <div className="text-xs leading-snug">
-                  <p className="font-extrabold">Firma del trabajador requerida</p>
+                  <p className="font-extrabold text-foreground">Firma del trabajador requerida</p>
                   <p className="text-muted-foreground">
                     Lee las cláusulas legales y pulsa el botón para estampar tu firma electrónica.
                   </p>
                 </div>
               </div>
               <Button
+                variant="default"
                 onClick={() => setIsSigningOpen(true)}
                 disabled={isSubmitting}
-                className="w-full sm:w-auto h-9 rounded-xl text-xs font-bold bg-amber-600 hover:bg-amber-700 text-white flex items-center gap-1.5 shrink-0 cursor-pointer shadow-xs"
+                className="w-full sm:w-auto h-9 rounded-4xl text-xs font-semibold flex items-center gap-1.5 shrink-0 cursor-pointer shadow-xs"
               >
                 {isSubmitting ? (
                   <>
@@ -314,7 +316,7 @@ export function CandidateContractModal({
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 {/* Patrón */}
-                <div className="p-4 rounded-xl border border-border/60 bg-background text-center space-y-2">
+                <div className="p-4 rounded-3xl border border-border/60 bg-background text-center space-y-2">
                   <span className="text-[10px] font-bold text-muted-foreground uppercase block">
                     Por El Patrón / Empresa
                   </span>
@@ -333,8 +335,8 @@ export function CandidateContractModal({
                           {contract.companyLegalRep || contract.companyName || "Firma Electrónica Autorizada"}
                         </div>
                       )}
-                      <div className="flex items-center justify-center gap-1 text-[11px] font-mono text-emerald-600 dark:text-emerald-400 font-bold">
-                        <CheckCircle2 className="size-3" />
+                      <div className="flex items-center justify-center gap-1 text-[11px] font-mono text-primary font-bold">
+                        <CheckCircle2 className="size-3 text-primary" />
                         <span>Sello Patronal Verificado</span>
                       </div>
                       <span className="text-[10px] text-muted-foreground block">
@@ -352,7 +354,7 @@ export function CandidateContractModal({
                 </div>
 
                 {/* Trabajador */}
-                <div className="p-4 rounded-xl border border-border/60 bg-background text-center space-y-2">
+                <div className="p-4 rounded-3xl border border-border/60 bg-background text-center space-y-2">
                   <span className="text-[10px] font-bold text-muted-foreground uppercase block">
                     Por El Trabajador
                   </span>
@@ -371,8 +373,8 @@ export function CandidateContractModal({
                           {candidateName}
                         </div>
                       )}
-                      <div className="flex items-center justify-center gap-1 text-[11px] font-mono text-emerald-600 dark:text-emerald-400 font-bold">
-                        <CheckCircle2 className="size-3" />
+                      <div className="flex items-center justify-center gap-1 text-[11px] font-mono text-primary font-bold">
+                        <CheckCircle2 className="size-3 text-primary" />
                         <span>Firma del Trabajador Verificada</span>
                       </div>
                       <span className="text-[10px] text-muted-foreground block">
@@ -381,14 +383,14 @@ export function CandidateContractModal({
                     </div>
                   ) : (
                     <div className="py-2 space-y-2">
-                      <p className="text-[11px] text-amber-700 dark:text-amber-300 font-medium">
+                      <p className="text-[11px] text-muted-foreground font-medium">
                         Pendiente de tu firma
                       </p>
                       <Button
                         size="sm"
                         onClick={() => setIsSigningOpen(true)}
                         disabled={isSubmitting}
-                        className="h-8 rounded-lg text-xs font-bold bg-primary text-primary-foreground cursor-pointer shadow-xs"
+                        className="h-9 px-4 rounded-4xl text-xs font-semibold bg-primary text-primary-foreground cursor-pointer shadow-xs"
                       >
                         <PenTool className="size-3 mr-1" />
                         Estampar mi Firma

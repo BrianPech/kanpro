@@ -169,7 +169,7 @@ export function CandidateSettingsView() {
               variant="default"
               size="sm"
               onClick={() => router.push("/dashboard/candidate/profile/edit")}
-              className="h-8 px-4 text-xs font-medium rounded-lg cursor-pointer shadow-xs"
+              className="h-9 px-4 text-xs font-semibold rounded-4xl cursor-pointer shadow-xs"
             >
               Completar
             </Button>
@@ -179,7 +179,7 @@ export function CandidateSettingsView() {
 
       {/* 2. Header Profile Card (Style matching reference) */}
       {isLoadingProfile ? (
-        <div className="rounded-2xl border border-border/60 bg-card p-4 sm:p-5 flex items-center gap-4 shadow-xs">
+        <div className="rounded-4xl border border-border/60 bg-card p-4 sm:p-5 flex items-center gap-4 shadow-xs">
           <Skeleton className="size-14 sm:size-16 rounded-full shrink-0" />
           <div className="space-y-2 flex-1">
             <Skeleton className="h-5 w-44 rounded-md" />
@@ -187,7 +187,7 @@ export function CandidateSettingsView() {
           </div>
         </div>
       ) : (
-        <div className="rounded-2xl border border-border/60 bg-card p-4 sm:p-5 flex items-center justify-between gap-4 shadow-xs">
+        <div className="rounded-4xl border border-border/60 bg-card p-4 sm:p-5 flex items-center justify-between gap-4 shadow-xs">
           <div className="flex items-center gap-4 sm:gap-5 min-w-0">
             <Avatar className="size-14 sm:size-16 ring-1 ring-border/50 shrink-0">
               {avatarUrl && <AvatarImage src={avatarUrl} alt={candidateName} />}
@@ -200,12 +200,12 @@ export function CandidateSettingsView() {
                 <h2 className="text-base sm:text-lg font-bold text-foreground truncate">
                   {candidateName}
                 </h2>
-                <Badge variant="secondary" className="hidden sm:inline-flex text-[10px] font-medium px-1.5 py-0">
+                <Badge variant="secondary" className="hidden sm:inline-flex text-[10px] font-medium px-2 py-0.5 rounded-3xl">
                   Candidato
                 </Badge>
                 {isEarlyAccess && (
-                  <Badge variant="outline" className="text-[10px] font-bold bg-amber-500/10 text-amber-700 dark:text-amber-300 border-amber-500/30 gap-1 px-2 py-0.5">
-                    <Sparkles className="size-3 text-amber-500" />
+                  <Badge variant="outline" className="text-[10px] font-semibold bg-primary/10 text-primary border-primary/20 gap-1 px-2.5 py-0.5 rounded-3xl">
+                    <Sparkles className="size-3 text-primary" />
                     Pionero • Acceso Anticipado
                   </Badge>
                 )}
@@ -225,7 +225,7 @@ export function CandidateSettingsView() {
             variant="outline"
             size="sm"
             onClick={() => router.push("/dashboard/candidate/profile/edit")}
-            className="h-8 px-3.5 text-xs font-medium rounded-lg shrink-0 cursor-pointer"
+            className="h-9 px-4 text-xs font-semibold rounded-4xl shrink-0 cursor-pointer"
           >
             Editar Perfil
           </Button>
@@ -237,7 +237,7 @@ export function CandidateSettingsView() {
         <h3 className="text-xs sm:text-sm font-semibold text-muted-foreground/80 px-1">
           Cuenta y Perfil
         </h3>
-        <div className="rounded-2xl border border-border/60 bg-card shadow-xs divide-y divide-border/60 overflow-hidden">
+        <div className="rounded-4xl border border-border/60 bg-card shadow-xs divide-y divide-border/60 overflow-hidden">
           <SettingsSectionRow
             icon={<User className="size-5 text-foreground" />}
             title="Información laboral pública"
@@ -263,7 +263,7 @@ export function CandidateSettingsView() {
         <h3 className="text-xs sm:text-sm font-semibold text-muted-foreground/80 px-1">
           Preferencias y Seguridad
         </h3>
-        <div className="rounded-2xl border border-border/60 bg-card shadow-xs divide-y divide-border/60 overflow-hidden">
+        <div className="rounded-4xl border border-border/60 bg-card shadow-xs divide-y divide-border/60 overflow-hidden">
           <SettingsSectionRow
             icon={<Bell className="size-5 text-foreground" />}
             title="Alertas de empleo"
@@ -292,7 +292,7 @@ export function CandidateSettingsView() {
         <h3 className="text-xs sm:text-sm font-semibold text-muted-foreground/80 px-1">
           Soporte y Cuenta
         </h3>
-        <div className="rounded-2xl border border-border/60 bg-card shadow-xs divide-y divide-border/60 overflow-hidden">
+        <div className="rounded-4xl border border-border/60 bg-card shadow-xs divide-y divide-border/60 overflow-hidden">
           <SettingsSectionRow
             icon={<HelpCircle className="size-5 text-foreground" />}
             title="Centro de Ayuda y Soporte"
@@ -309,10 +309,10 @@ export function CandidateSettingsView() {
 
       {/* Help & Support Dialog */}
       <Dialog open={isSupportOpen} onOpenChange={setIsSupportOpen}>
-        <DialogContent className="sm:max-w-md rounded-2xl border-border bg-card p-5 sm:p-6 space-y-3.5 max-h-[90vh] overflow-y-auto">
+        <DialogContent className="sm:max-w-md rounded-4xl border-border bg-card p-5 sm:p-6 space-y-3.5 max-h-[90vh] overflow-y-auto">
           <DialogHeader className="space-y-1.5 text-left">
             <div className="flex items-center gap-2.5">
-              <div className="size-8 rounded-lg bg-primary/10 text-primary flex items-center justify-center shrink-0">
+              <div className="size-8 rounded-2xl bg-primary/10 text-primary flex items-center justify-center shrink-0">
                 <HelpCircle className="size-4" />
               </div>
               <DialogTitle className="text-lg font-bold text-foreground">
@@ -332,18 +332,18 @@ export function CandidateSettingsView() {
               </span>
 
               {/* WhatsApp Support */}
-              <div className="rounded-xl border border-emerald-500/20 bg-emerald-500/5 dark:bg-emerald-950/20 p-3 space-y-2.5">
+              <div className="rounded-3xl border border-primary/20 bg-primary/5 p-3.5 space-y-2.5">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2.5">
-                    <div className="size-7 rounded-full bg-emerald-600 text-white flex items-center justify-center shrink-0">
-                      <MessageCircle className="size-3.5" />
+                    <div className="size-8 rounded-full bg-primary/15 text-primary flex items-center justify-center shrink-0">
+                      <MessageCircle className="size-4" />
                     </div>
                     <div>
                       <h4 className="text-xs font-semibold text-foreground">WhatsApp de Soporte</h4>
-                      <p className="text-[11px] text-emerald-700 dark:text-emerald-300 font-medium">+52 999 123 4567 • Lun a Vie 9:00 - 18:00</p>
+                      <p className="text-[11px] text-muted-foreground font-medium">+52 999 123 4567 • Lun a Vie 9:00 - 18:00</p>
                     </div>
                   </div>
-                  <Badge variant="outline" className="border-emerald-500/30 text-emerald-700 dark:text-emerald-300 text-[10px] px-1.5 py-0">
+                  <Badge variant="outline" className="border-primary/30 text-primary text-[10px] px-2 py-0.5 rounded-3xl">
                     En línea
                   </Badge>
                 </div>
@@ -353,7 +353,7 @@ export function CandidateSettingsView() {
                   rel="noopener noreferrer"
                   className="block w-full"
                 >
-                  <Button className="w-full h-8 bg-emerald-600 hover:bg-emerald-700 text-white font-medium text-xs rounded-lg flex items-center justify-center gap-1.5 cursor-pointer">
+                  <Button className="w-full h-9 rounded-4xl text-xs font-semibold flex items-center justify-center gap-1.5 cursor-pointer shadow-xs">
                     <MessageCircle className="size-3.5" />
                     <span>Escribir por WhatsApp</span>
                     <ExternalLink className="size-3" />
@@ -362,10 +362,10 @@ export function CandidateSettingsView() {
               </div>
 
               {/* Email Support */}
-              <div className="rounded-xl border border-border/60 bg-muted/40 p-3 flex items-center justify-between gap-3">
+              <div className="rounded-3xl border border-border/60 bg-muted/40 p-3.5 flex items-center justify-between gap-3">
                 <div className="flex items-center gap-2.5 min-w-0">
-                  <div className="size-7 rounded-full bg-primary/10 text-primary flex items-center justify-center shrink-0">
-                    <Mail className="size-3.5" />
+                  <div className="size-8 rounded-full bg-primary/10 text-primary flex items-center justify-center shrink-0">
+                    <Mail className="size-4" />
                   </div>
                   <div className="min-w-0">
                     <h4 className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">Correo de Soporte</h4>
@@ -380,9 +380,9 @@ export function CandidateSettingsView() {
                     size="sm"
                     variant="outline"
                     onClick={handleCopyEmail}
-                    className="h-7 px-2 text-xs font-medium rounded-md cursor-pointer"
+                    className="h-8 px-2.5 text-xs font-semibold rounded-3xl cursor-pointer"
                   >
-                    {copiedEmail ? <Check className="size-3 text-emerald-500 mr-1" /> : <Copy className="size-3 mr-1" />}
+                    {copiedEmail ? <Check className="size-3 text-primary mr-1" /> : <Copy className="size-3 mr-1" />}
                     <span>{copiedEmail ? "Copiado" : "Copiar"}</span>
                   </Button>
                   <a href="mailto:soporte@kanpro.mx?subject=Soporte%20K'anPro%20Candidato">
@@ -390,7 +390,7 @@ export function CandidateSettingsView() {
                       type="button"
                       size="sm"
                       variant="secondary"
-                      className="h-7 px-2 rounded-md cursor-pointer"
+                      className="h-8 px-2.5 rounded-3xl cursor-pointer"
                       aria-label="Abrir cliente de correo"
                     >
                       <ExternalLink className="size-3" />
@@ -406,7 +406,7 @@ export function CandidateSettingsView() {
                 Preguntas Frecuentes
               </span>
               <div className="space-y-1.5">
-                <div className="p-2.5 bg-muted/50 rounded-xl border border-border/40 space-y-0.5">
+                <div className="p-3 bg-muted/50 rounded-2xl border border-border/40 space-y-0.5">
                   <h5 className="text-xs font-medium text-foreground">
                     ¿Cómo me postulo a una vacante?
                   </h5>
@@ -414,7 +414,7 @@ export function CandidateSettingsView() {
                     Ingresa a la sección de Explorar o Inicio, haz clic en la oferta de tu interés y presiona &quot;Postularme ahora&quot;.
                   </p>
                 </div>
-                <div className="p-2.5 bg-muted/50 rounded-xl border border-border/40 space-y-0.5">
+                <div className="p-3 bg-muted/50 rounded-2xl border border-border/40 space-y-0.5">
                   <h5 className="text-xs font-medium text-foreground">
                     ¿Cómo validar mis documentos?
                   </h5>
@@ -422,7 +422,7 @@ export function CandidateSettingsView() {
                     Dirígete a &quot;Mi CV y Documentos&quot; para cargar tu identificación oficial (INE) y CURP para obtener verificación.
                   </p>
                 </div>
-                <div className="p-2.5 bg-muted/50 rounded-xl border border-border/40 space-y-0.5">
+                <div className="p-3 bg-muted/50 rounded-2xl border border-border/40 space-y-0.5">
                   <h5 className="text-xs font-medium text-foreground">
                     ¿Cómo activar las alertas de empleo?
                   </h5>
@@ -439,7 +439,7 @@ export function CandidateSettingsView() {
               variant="outline"
               size="sm"
               onClick={() => setIsSupportOpen(false)}
-              className="w-full text-xs font-medium rounded-lg cursor-pointer"
+              className="w-full h-9 text-xs font-semibold rounded-4xl cursor-pointer"
             >
               Cerrar
             </Button>
@@ -449,7 +449,7 @@ export function CandidateSettingsView() {
 
       {/* Logout Confirmation Dialog */}
       <Dialog open={isLogoutOpen} onOpenChange={setIsLogoutOpen}>
-        <DialogContent className="sm:max-w-sm rounded-2xl border-border bg-card p-5 space-y-3">
+        <DialogContent className="sm:max-w-sm rounded-4xl border-border bg-card p-5 space-y-3">
           <DialogHeader className="space-y-1.5 text-left">
             <DialogTitle className="text-lg font-bold text-foreground">
               Cerrar Sesión
@@ -464,7 +464,7 @@ export function CandidateSettingsView() {
               variant="outline"
               size="sm"
               onClick={() => setIsLogoutOpen(false)}
-              className="text-xs font-medium rounded-lg"
+              className="h-9 rounded-4xl text-xs font-semibold"
             >
               Cancelar
             </Button>
@@ -473,7 +473,7 @@ export function CandidateSettingsView() {
               size="sm"
               onClick={handleSignOut}
               disabled={isLoggingOut}
-              className="text-xs font-medium rounded-lg"
+              className="h-9 rounded-4xl text-xs font-semibold"
             >
               {isLoggingOut ? "Cerrando..." : "Cerrar Sesión"}
             </Button>

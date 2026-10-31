@@ -235,9 +235,17 @@ export function Footer({ showCta = false }: FooterProps = {}) {
               <Link href="/terms" className="hover:text-foreground transition-colors">
                 Términos de Servicio
               </Link>
-              <Link href="/contact" className="hover:text-foreground transition-colors">
+              <button
+                type="button"
+                onClick={() => {
+                  if (typeof window !== "undefined") {
+                    window.dispatchEvent(new Event("kanpro:open-cookies"));
+                  }
+                }}
+                className="hover:text-foreground transition-colors cursor-pointer text-left"
+              >
                 Configuración de Cookies
-              </Link>
+              </button>
             </div>
           </div>
 

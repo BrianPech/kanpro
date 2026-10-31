@@ -223,9 +223,9 @@ export function SavedJobsView({ onBack }: SavedJobsViewProps) {
         {isLoading ? (
           <div className="space-y-3">
             {[1, 2, 3].map((i) => (
-              <Card key={i} className="rounded-2xl border-border/60">
+              <Card key={i} className="rounded-4xl border-border/60">
                 <CardContent className="p-5 flex items-center gap-4">
-                  <Skeleton className="size-12 rounded-xl shrink-0" />
+                  <Skeleton className="size-12 rounded-3xl shrink-0" />
                   <div className="flex-1 space-y-2">
                     <Skeleton className="h-4 w-1/3 rounded-md" />
                     <Skeleton className="h-3.5 w-1/4 rounded-md" />
@@ -235,7 +235,7 @@ export function SavedJobsView({ onBack }: SavedJobsViewProps) {
             ))}
           </div>
         ) : hasError && savedVacancies.length === 0 ? (
-          <Card className="rounded-2xl border-border/60 shadow-xs">
+          <Card className="rounded-4xl border-border/60 shadow-xs">
             <CardContent className="py-16 px-6 text-center space-y-4">
               <WifiOff className="size-10 text-destructive mx-auto" />
               <div className="space-y-1">
@@ -250,7 +250,7 @@ export function SavedJobsView({ onBack }: SavedJobsViewProps) {
                 variant="outline"
                 size="sm"
                 onClick={fetchSavedVacancies}
-                className="gap-2 text-xs font-semibold cursor-pointer"
+                className="h-9 px-4 rounded-4xl gap-2 text-xs font-semibold cursor-pointer"
               >
                 <RotateCw className="size-3.5" />
                 <span>Reintentar</span>
@@ -258,9 +258,9 @@ export function SavedJobsView({ onBack }: SavedJobsViewProps) {
             </CardContent>
           </Card>
         ) : savedVacancies.length === 0 ? (
-          <Card className="rounded-2xl border-border/60 shadow-xs">
+          <Card className="rounded-4xl border-border/60 shadow-xs">
             <CardContent className="py-16 px-6 flex flex-col items-center justify-center text-center space-y-4">
-              <div className="size-14 rounded-2xl bg-muted flex items-center justify-center text-muted-foreground">
+              <div className="size-14 rounded-3xl bg-muted flex items-center justify-center text-muted-foreground">
                 <Bookmark className="size-6" />
               </div>
 
@@ -275,7 +275,7 @@ export function SavedJobsView({ onBack }: SavedJobsViewProps) {
 
               <Button
                 onClick={() => router.push("/dashboard/candidate/discovery")}
-                className="text-xs font-semibold gap-2 shadow-xs cursor-pointer"
+                className="h-9 px-4 rounded-4xl text-xs font-semibold gap-2 shadow-xs cursor-pointer"
               >
                 <Sparkles className="size-3.5" />
                 <span>Explorar vacantes</span>
@@ -288,13 +288,13 @@ export function SavedJobsView({ onBack }: SavedJobsViewProps) {
               <Card
                 key={vacancy.id}
                 onClick={() => router.push(`/dashboard/candidate/vacancies/${vacancy.id}`)}
-                className="rounded-2xl border-border/60 shadow-xs hover:shadow-md hover:border-border transition-all cursor-pointer group"
+                className="rounded-4xl border-border/60 shadow-xs hover:shadow-md hover:border-border transition-all cursor-pointer group"
               >
                 <CardContent className="p-4 sm:p-5 flex flex-col md:flex-row md:items-center justify-between gap-4">
                   <div className="flex items-start gap-4 min-w-0 flex-1">
-                    <Avatar className="size-12 rounded-xl ring-1 ring-border/50 shrink-0">
+                    <Avatar className="size-12 rounded-3xl ring-1 ring-border/50 shrink-0">
                       {vacancy.companyLogo && <AvatarImage src={vacancy.companyLogo} alt={vacancy.companyName} />}
-                      <AvatarFallback className="text-xs font-bold rounded-xl bg-muted text-foreground">
+                      <AvatarFallback className="text-xs font-bold rounded-3xl bg-muted text-foreground">
                         {vacancy.companyName.substring(0, 2).toUpperCase()}
                       </AvatarFallback>
                     </Avatar>
@@ -303,11 +303,11 @@ export function SavedJobsView({ onBack }: SavedJobsViewProps) {
                       <div className="flex items-center gap-2 flex-wrap">
                         <span className="text-xs font-medium text-muted-foreground truncate flex items-center gap-1">
                           {vacancy.companyName}
-                          <CheckCircle2 className="size-3 text-emerald-500 shrink-0" />
+                          <CheckCircle2 className="size-3 text-primary shrink-0" />
                         </span>
 
                         {vacancy.isPromoted && (
-                          <Badge variant="secondary" className="text-[10px] font-semibold py-0.5 bg-amber-500/10 text-amber-800 dark:text-amber-300 border-amber-500/20">
+                          <Badge variant="outline" className="text-[10px] font-semibold py-0.5 px-2.5 rounded-3xl bg-primary/10 text-primary border-primary/20">
                             ★ Destacada
                           </Badge>
                         )}
@@ -333,7 +333,7 @@ export function SavedJobsView({ onBack }: SavedJobsViewProps) {
                       <span className="text-[10px] text-muted-foreground font-semibold uppercase tracking-wider block">
                         Salario mensual
                       </span>
-                      <span className="text-sm sm:text-base font-semibold font-mono text-emerald-600 dark:text-emerald-400">
+                      <span className="text-sm sm:text-base font-bold font-mono text-foreground">
                         {vacancy.formattedSalary}
                       </span>
                     </div>
@@ -348,14 +348,14 @@ export function SavedJobsView({ onBack }: SavedJobsViewProps) {
                           handleRemoveSaved(vacancy.id);
                         }}
                         aria-label={`Remover ${vacancy.title} de guardados`}
-                        className="size-9 rounded-xl text-amber-500 hover:text-destructive hover:border-destructive/30 cursor-pointer"
+                        className="size-9 rounded-3xl text-primary hover:text-destructive hover:border-destructive/30 cursor-pointer"
                       >
-                        <Bookmark className="size-4 fill-amber-500 text-amber-500" />
+                        <Bookmark className="size-4 fill-primary text-primary" />
                       </Button>
 
                       <Button
                         size="sm"
-                        className="text-xs font-semibold gap-1.5 cursor-pointer"
+                        className="h-9 px-4 rounded-4xl text-xs font-semibold gap-1.5 cursor-pointer shadow-xs"
                       >
                         <span>Postularme</span>
                         <ArrowUpRight className="size-3.5" />

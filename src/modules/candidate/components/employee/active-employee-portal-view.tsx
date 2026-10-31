@@ -137,19 +137,19 @@ export function ActiveEmployeePortalView({
 
       {/* ── 1. URGENT PENDING CONTRACT SIGNATURE BANNER ── */}
       {employment.contract?.isPendingSignature && (
-        <div className="p-4 sm:p-5 rounded-3xl bg-amber-500/10 border-2 border-amber-500/30 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 animate-in slide-in-from-top-2 duration-300 shadow-2xs">
+        <div className="p-4 sm:p-5 rounded-4xl bg-primary/5 dark:bg-primary/10 border border-primary/20 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 animate-in slide-in-from-top-2 duration-300 shadow-2xs">
           <div className="flex items-start sm:items-center gap-3.5">
-            <div className="size-11 rounded-2xl bg-amber-500/20 text-amber-700 dark:text-amber-300 flex items-center justify-center shrink-0">
+            <div className="size-11 rounded-3xl bg-primary/15 text-primary flex items-center justify-center shrink-0">
               <FileCheck2 className="size-6" />
             </div>
             <div className="space-y-0.5">
               <div className="flex items-center gap-2">
-                <h2 className="text-sm sm:text-base font-black text-amber-950 dark:text-amber-100">
+                <h2 className="text-sm sm:text-base font-bold text-foreground">
                   ¡Tienes un contrato laboral pendiente de firma digital!
                 </h2>
-                <span className="size-2 rounded-full bg-amber-500 animate-ping" />
+                <span className="size-2 rounded-full bg-primary animate-ping" />
               </div>
-              <p className="text-xs text-amber-900/80 dark:text-amber-200/80 font-medium">
+              <p className="text-xs text-muted-foreground font-medium">
                 {employment.companyName} ha emitido tu contrato laboral (Folio:{" "}
                 <span className="font-mono font-semibold">{employment.contract.folio}</span>).
                 Revisa las cláusulas y estampa tu firma legal con validez oficial LFT.
@@ -161,7 +161,7 @@ export function ActiveEmployeePortalView({
             href="/dashboard/candidate/contracts"
             className="shrink-0 w-full sm:w-auto"
           >
-            <Button className="w-full sm:w-auto h-10 px-4 rounded-xl text-xs font-bold bg-amber-600 hover:bg-amber-700 text-white gap-2 cursor-pointer shadow-xs">
+            <Button className="w-full sm:w-auto h-9 px-4 rounded-4xl text-xs font-semibold bg-primary hover:bg-primary/90 text-primary-foreground gap-2 cursor-pointer shadow-xs">
               <FileCheck2 className="size-3.5" />
               Firmar Contrato Ahora
             </Button>
@@ -170,17 +170,17 @@ export function ActiveEmployeePortalView({
       )}
 
       {/* ── 2. CORPORATE IDENTITY HERO CARD ── */}
-      <div className="relative overflow-hidden rounded-3xl border border-border/70 bg-gradient-to-br from-card via-card to-primary/5 p-6 sm:p-8 shadow-sm">
+      <div className="relative overflow-hidden rounded-4xl border border-border/70 bg-gradient-to-br from-card via-card to-primary/5 p-6 sm:p-8 shadow-xs">
         <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
           <div className="flex items-start sm:items-center gap-5">
             {/* Company Avatar / Logo */}
-            <Avatar className="size-16 sm:size-20 rounded-2xl border-2 border-border/60 shadow-md ring-2 ring-primary/20 shrink-0">
+            <Avatar className="size-16 sm:size-20 rounded-3xl border-2 border-border/60 shadow-md ring-2 ring-primary/20 shrink-0">
               <AvatarImage
                 src={employment.companyLogoUrl || ""}
                 alt={employment.companyName}
                 className="object-cover"
               />
-              <AvatarFallback className="rounded-2xl bg-primary/10 text-primary font-black text-xl sm:text-2xl">
+              <AvatarFallback className="rounded-3xl bg-primary/10 text-primary font-black text-xl sm:text-2xl">
                 {companyInitials}
               </AvatarFallback>
             </Avatar>
@@ -189,21 +189,21 @@ export function ActiveEmployeePortalView({
               <div className="flex flex-wrap items-center gap-2">
                 <Badge
                   variant="outline"
-                  className="bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border-emerald-500/30 text-[11px] font-bold px-2.5 py-0.5 rounded-full gap-1.5"
+                  className="bg-primary/10 text-primary border-primary/30 text-[11px] font-semibold px-2.5 py-0.5 rounded-3xl gap-1.5"
                 >
-                  <span className="size-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                  <span className="size-1.5 rounded-full bg-primary animate-pulse" />
                   Empleado Activo
                 </Badge>
                 {employment.department && (
                   <Badge
                     variant="secondary"
-                    className="text-[11px] font-semibold py-0.5 px-2.5 rounded-full"
+                    className="text-[11px] font-semibold py-0.5 px-2.5 rounded-3xl"
                   >
                     {employment.department}
                   </Badge>
                 )}
                 {employment.employeeCode && (
-                  <span className="text-[11px] font-mono font-medium text-muted-foreground bg-muted/70 px-2 py-0.5 rounded-md">
+                  <span className="text-[11px] font-mono font-medium text-muted-foreground bg-muted/70 px-2 py-0.5 rounded-3xl">
                     No. {employment.employeeCode}
                   </span>
                 )}
@@ -239,14 +239,14 @@ export function ActiveEmployeePortalView({
 
           {/* Quick Metrics Badge Group */}
           <div className="flex flex-wrap md:flex-col items-start md:items-end gap-2 w-full md:w-auto pt-3 md:pt-0 border-t md:border-t-0 border-border/50">
-            <div className="flex items-center gap-2 text-xs bg-muted/60 border border-border/60 rounded-xl px-3 py-1.5">
+            <div className="flex items-center gap-2 text-xs bg-muted/60 border border-border/60 rounded-3xl px-3 py-1.5">
               <Calendar className="size-3.5 text-primary shrink-0" />
               <span className="text-muted-foreground">Antigüedad:</span>
               <span className="font-bold text-foreground">{employment.seniorityFormatted}</span>
             </div>
 
             {employment.hireDate && (
-              <div className="flex items-center gap-2 text-xs bg-muted/60 border border-border/60 rounded-xl px-3 py-1.5">
+              <div className="flex items-center gap-2 text-xs bg-muted/60 border border-border/60 rounded-3xl px-3 py-1.5">
                 <Clock className="size-3.5 text-primary shrink-0" />
                 <span className="text-muted-foreground">Ingreso:</span>
                 <span className="font-semibold text-foreground font-mono">{employment.hireDate}</span>
@@ -257,9 +257,9 @@ export function ActiveEmployeePortalView({
       </div>
 
       {/* ── 2.5 BANNER PROMINENTE DE ASISTENCIA CON CÁMARA ── */}
-      <div className="bg-card border border-border/80 rounded-3xl p-5 sm:p-6 shadow-xs flex flex-col md:flex-row items-center justify-between gap-5 transition-all">
+      <div className="bg-card border border-border/70 rounded-4xl p-5 sm:p-6 shadow-xs flex flex-col md:flex-row items-center justify-between gap-5 transition-all">
         <div className="flex items-center gap-4 w-full md:w-auto">
-          <div className="size-13 rounded-2xl bg-primary/10 text-primary border border-primary/20 flex items-center justify-center shrink-0 shadow-2xs">
+          <div className="size-13 rounded-3xl bg-primary/10 text-primary border border-primary/20 flex items-center justify-center shrink-0 shadow-2xs">
             <Camera className="size-6 text-primary" />
           </div>
           <div className="space-y-1">
@@ -267,12 +267,12 @@ export function ActiveEmployeePortalView({
               <Badge
                 variant="outline"
                 className={cn(
-                  "text-[10px] px-2.5 py-0.5 font-bold uppercase tracking-wider",
+                  "text-[10px] px-2.5 py-0.5 font-bold uppercase tracking-wider rounded-3xl",
                   !todayAttendance?.hasCheckedIn
-                    ? "bg-amber-500/10 text-amber-700 dark:text-amber-400 border-amber-500/30"
+                    ? "bg-muted text-foreground border-border/80"
                     : !todayAttendance?.hasCheckedOut
                     ? "bg-primary/10 text-primary border-primary/20"
-                    : "bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border-emerald-500/30"
+                    : "bg-primary/10 text-primary border-primary/20"
                 )}
               >
                 {!todayAttendance?.hasCheckedIn
@@ -306,7 +306,7 @@ export function ActiveEmployeePortalView({
           type="button"
           onClick={() => setIsQrScannerOpen(true)}
           size="lg"
-          className="w-full md:w-auto h-12 px-6 rounded-2xl bg-primary hover:bg-primary/90 text-primary-foreground font-bold text-sm shadow-xs flex items-center justify-center gap-2.5 shrink-0 transition-transform active:scale-95"
+          className="w-full md:w-auto h-9 px-6 rounded-4xl bg-primary hover:bg-primary/90 text-primary-foreground font-semibold text-xs sm:text-sm shadow-xs flex items-center justify-center gap-2.5 shrink-0 transition-transform active:scale-95 cursor-pointer"
         >
           <Camera className="size-5" />
           <span>
@@ -322,13 +322,13 @@ export function ActiveEmployeePortalView({
       {/* ── 3. FOUR KEY OPERATIONAL KPI CARDS ── */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {/* CARD 1: MI JORNADA HOY */}
-        <Card className="p-5 rounded-3xl border-border/70 hover:border-primary/40 transition-all shadow-2xs flex flex-col justify-between">
+        <Card className="p-5 rounded-4xl border-border/70 hover:border-primary/40 transition-all shadow-xs flex flex-col justify-between">
           <div className="space-y-3">
             <div className="flex items-center justify-between">
               <span className="text-xs font-bold text-muted-foreground uppercase tracking-wider">
                 Mi Jornada Hoy
               </span>
-              <div className="size-9 rounded-xl bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20 flex items-center justify-center">
+              <div className="size-9 rounded-2xl bg-primary/10 text-primary border border-primary/20 flex items-center justify-center">
                 <Clock className="size-4" />
               </div>
             </div>
@@ -341,7 +341,7 @@ export function ActiveEmployeePortalView({
                   </span>
                   <Badge
                     variant="outline"
-                    className="text-[10px] font-bold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20 px-2 py-0.5"
+                    className="text-[10px] font-semibold bg-primary/10 text-primary border-primary/20 px-2 py-0.5 rounded-3xl"
                   >
                     Entrada
                   </Badge>
@@ -354,7 +354,7 @@ export function ActiveEmployeePortalView({
                 {todayAttendance.delayMinutes > 0 && (
                   <Badge
                     variant="secondary"
-                    className="text-[10px] bg-amber-500/10 text-amber-700 dark:text-amber-300 font-semibold mt-1"
+                    className="text-[10px] bg-muted text-foreground border-border/80 font-semibold mt-1 rounded-3xl"
                   >
                     +{todayAttendance.delayMinutes} min retardo
                   </Badge>
@@ -370,7 +370,7 @@ export function ActiveEmployeePortalView({
                 </p>
                 <Badge
                   variant="outline"
-                  className="text-[10px] font-semibold bg-amber-500/10 text-amber-700 dark:text-amber-400 border-amber-500/20 px-2 py-0.5 mt-1"
+                  className="text-[10px] font-semibold bg-muted text-foreground border-border/80 px-2 py-0.5 mt-1 rounded-3xl"
                 >
                   Pendiente de checador
                 </Badge>
@@ -383,7 +383,7 @@ export function ActiveEmployeePortalView({
                 <Button
                   type="button"
                   onClick={() => setIsQrScannerOpen(true)}
-                  className="w-full h-10 rounded-2xl bg-primary hover:bg-primary/90 text-primary-foreground font-bold text-xs shadow-xs flex items-center justify-center gap-2 group transition-all"
+                  className="w-full h-9 rounded-4xl bg-primary hover:bg-primary/90 text-primary-foreground font-semibold text-xs shadow-xs flex items-center justify-center gap-2 group transition-all cursor-pointer"
                 >
                   <QrCode className="size-4 transition-transform group-hover:scale-110" />
                   <span>Escanear QR de Sucursal</span>
@@ -393,13 +393,13 @@ export function ActiveEmployeePortalView({
                   type="button"
                   onClick={() => setIsQrScannerOpen(true)}
                   variant="outline"
-                  className="w-full h-10 rounded-2xl border-border bg-card hover:bg-muted text-foreground font-bold text-xs shadow-xs flex items-center justify-center gap-2 group transition-all"
+                  className="w-full h-9 rounded-4xl border-border bg-card hover:bg-muted text-foreground font-semibold text-xs shadow-xs flex items-center justify-center gap-2 group transition-all cursor-pointer"
                 >
                   <QrCode className="size-4 transition-transform group-hover:scale-110 text-primary" />
                   <span>Registrar Salida con QR</span>
                 </Button>
               ) : (
-                <div className="flex items-center justify-between bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 rounded-xl px-3 py-2 text-xs font-semibold">
+                <div className="flex items-center justify-between bg-primary/10 text-primary rounded-3xl px-3 py-2 text-xs font-semibold">
                   <span className="flex items-center gap-1.5">
                     <CheckCircle2 className="size-3.5" />
                     Jornada completada
@@ -409,7 +409,7 @@ export function ActiveEmployeePortalView({
                     variant="ghost"
                     size="sm"
                     onClick={() => setIsQrScannerOpen(true)}
-                    className="h-6 px-1.5 text-[11px] hover:bg-emerald-500/20 font-bold"
+                    className="h-6 px-1.5 text-[11px] rounded-3xl hover:bg-primary/20 font-bold"
                   >
                     Volver a checar
                   </Button>
@@ -420,18 +420,18 @@ export function ActiveEmployeePortalView({
 
           <div className="pt-3 mt-3 border-t border-border/50 text-[11px] text-muted-foreground flex items-center justify-between">
             <span>Control de Asistencia LFT</span>
-            <CheckCircle2 className="size-3.5 text-emerald-500" />
+            <CheckCircle2 className="size-3.5 text-primary" />
           </div>
         </Card>
 
         {/* CARD 2: VACACIONES LFT */}
-        <Card className="p-5 rounded-3xl border-border/70 hover:border-primary/40 transition-all shadow-2xs flex flex-col justify-between">
+        <Card className="p-5 rounded-4xl border-border/70 hover:border-primary/40 transition-all shadow-xs flex flex-col justify-between">
           <div className="space-y-3">
             <div className="flex items-center justify-between">
               <span className="text-xs font-bold text-muted-foreground uppercase tracking-wider">
                 Vacaciones LFT
               </span>
-              <div className="size-9 rounded-xl bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20 flex items-center justify-center">
+              <div className="size-9 rounded-2xl bg-primary/10 text-primary border border-primary/20 flex items-center justify-center">
                 <Palmtree className="size-4" />
               </div>
             </div>
@@ -457,7 +457,7 @@ export function ActiveEmployeePortalView({
               <Button
                 variant="ghost"
                 size="sm"
-                className="w-full h-7 px-2 text-xs font-bold text-primary hover:text-primary hover:bg-primary/10 justify-between cursor-pointer rounded-xl"
+                className="w-full h-8 px-2 text-xs font-semibold text-primary hover:text-primary hover:bg-primary/10 justify-between cursor-pointer rounded-4xl"
               >
                 <span>Solicitar Permiso</span>
                 <ArrowUpRight className="size-3" />
@@ -467,13 +467,13 @@ export function ActiveEmployeePortalView({
         </Card>
 
         {/* CARD 3: MI CONTRATO LABORAL */}
-        <Card className="p-5 rounded-3xl border-border/70 hover:border-primary/40 transition-all shadow-2xs flex flex-col justify-between">
+        <Card className="p-5 rounded-4xl border-border/70 hover:border-primary/40 transition-all shadow-xs flex flex-col justify-between">
           <div className="space-y-3">
             <div className="flex items-center justify-between">
               <span className="text-xs font-bold text-muted-foreground uppercase tracking-wider">
                 Mi Contrato
               </span>
-              <div className="size-9 rounded-xl bg-purple-500/10 text-purple-600 dark:text-purple-400 border border-purple-500/20 flex items-center justify-center">
+              <div className="size-9 rounded-2xl bg-primary/10 text-primary border border-primary/20 flex items-center justify-center">
                 <FileCheck2 className="size-4" />
               </div>
             </div>
@@ -488,14 +488,14 @@ export function ActiveEmployeePortalView({
               {employment.contract?.isPendingSignature ? (
                 <Badge
                   variant="outline"
-                  className="text-[10px] font-bold bg-amber-500/15 text-amber-700 dark:text-amber-300 border-amber-500/30 px-2 py-0.5"
+                  className="text-[10px] font-semibold bg-muted text-foreground border-border/80 px-2 py-0.5 rounded-3xl"
                 >
                   Firma requerida
                 </Badge>
               ) : (
                 <Badge
                   variant="outline"
-                  className="text-[10px] font-bold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20 px-2 py-0.5"
+                  className="text-[10px] font-semibold bg-primary/10 text-primary border-primary/20 px-2 py-0.5 rounded-3xl"
                 >
                   Firmado & Vigente
                 </Badge>
@@ -508,7 +508,7 @@ export function ActiveEmployeePortalView({
               <Button
                 variant="ghost"
                 size="sm"
-                className="w-full h-7 px-2 text-xs font-bold text-primary hover:text-primary hover:bg-primary/10 justify-between cursor-pointer rounded-xl"
+                className="w-full h-8 px-2 text-xs font-semibold text-primary hover:text-primary hover:bg-primary/10 justify-between cursor-pointer rounded-4xl"
               >
                 <span>Ver Contratos</span>
                 <ArrowUpRight className="size-3" />
@@ -518,19 +518,19 @@ export function ActiveEmployeePortalView({
         </Card>
 
         {/* CARD 4: NÓMINA & SUELDO */}
-        <Card className="p-5 rounded-3xl border-border/70 hover:border-primary/40 transition-all shadow-2xs flex flex-col justify-between">
+        <Card className="p-5 rounded-4xl border-border/70 hover:border-primary/40 transition-all shadow-xs flex flex-col justify-between">
           <div className="space-y-3">
             <div className="flex items-center justify-between">
               <span className="text-xs font-bold text-muted-foreground uppercase tracking-wider">
                 Nómina & Sueldo
               </span>
-              <div className="size-9 rounded-xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 flex items-center justify-center">
+              <div className="size-9 rounded-2xl bg-primary/10 text-primary border border-primary/20 flex items-center justify-center">
                 <DollarSign className="size-4" />
               </div>
             </div>
 
             <div className="space-y-1">
-              <span className="text-xl font-black text-emerald-600 dark:text-emerald-400 font-mono block">
+              <span className="text-xl font-bold text-foreground font-mono block">
                 {employment.baseSalaryMonthly
                   ? formatSalaryDisplay(employment.baseSalaryMonthly)
                   : "En Contrato"}
@@ -540,7 +540,7 @@ export function ActiveEmployeePortalView({
               </p>
               <Badge
                 variant="secondary"
-                className="text-[10px] font-medium bg-muted/80 text-muted-foreground"
+                className="text-[10px] font-medium bg-muted/80 text-muted-foreground rounded-3xl"
               >
                 Documentos Oficiales LFT
               </Badge>
@@ -552,7 +552,7 @@ export function ActiveEmployeePortalView({
               <Button
                 variant="ghost"
                 size="sm"
-                className="w-full h-7 px-2 text-xs font-bold text-primary hover:text-primary hover:bg-primary/10 justify-between cursor-pointer rounded-xl"
+                className="w-full h-8 px-2 text-xs font-semibold text-primary hover:text-primary hover:bg-primary/10 justify-between cursor-pointer rounded-4xl"
               >
                 <span>Mis Documentos</span>
                 <ArrowUpRight className="size-3" />
@@ -563,7 +563,7 @@ export function ActiveEmployeePortalView({
       </div>
 
       {/* ── 4. SELF-SERVICE QUICK ACTIONS BAR ── */}
-      <div className="p-4 sm:p-5 rounded-3xl bg-muted/40 border border-border/60">
+      <div className="p-4 sm:p-5 rounded-4xl bg-muted/40 border border-border/60">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-3">
           <div>
             <h2 className="text-sm font-bold text-foreground flex items-center gap-2">
@@ -580,9 +580,9 @@ export function ActiveEmployeePortalView({
           <Link href="/dashboard/candidate/leaves">
             <Button
               variant="outline"
-              className="w-full h-auto py-3 px-3.5 rounded-2xl flex flex-col items-center justify-center text-center gap-1.5 border-border/70 hover:bg-card hover:border-primary/50 transition-all cursor-pointer shadow-2xs"
+              className="w-full h-auto py-3 px-3.5 rounded-3xl flex flex-col items-center justify-center text-center gap-1.5 border-border/70 hover:bg-card hover:border-primary/50 transition-all cursor-pointer shadow-2xs"
             >
-              <Plane className="size-5 text-amber-600 dark:text-amber-400" />
+              <Plane className="size-5 text-primary" />
               <span className="text-xs font-bold text-foreground">Solicitar Permiso</span>
               <span className="text-[10px] text-muted-foreground">Vacaciones LFT</span>
             </Button>
@@ -591,9 +591,9 @@ export function ActiveEmployeePortalView({
           <Link href="/dashboard/candidate/contracts">
             <Button
               variant="outline"
-              className="w-full h-auto py-3 px-3.5 rounded-2xl flex flex-col items-center justify-center text-center gap-1.5 border-border/70 hover:bg-card hover:border-primary/50 transition-all cursor-pointer shadow-2xs"
+              className="w-full h-auto py-3 px-3.5 rounded-3xl flex flex-col items-center justify-center text-center gap-1.5 border-border/70 hover:bg-card hover:border-primary/50 transition-all cursor-pointer shadow-2xs"
             >
-              <FileCheck2 className="size-5 text-purple-600 dark:text-purple-400" />
+              <FileCheck2 className="size-5 text-primary" />
               <span className="text-xs font-bold text-foreground">Contratos Laborales</span>
               <span className="text-[10px] text-muted-foreground">Firmas y Adendas</span>
             </Button>
@@ -602,9 +602,9 @@ export function ActiveEmployeePortalView({
           <Link href="/dashboard/candidate/documents">
             <Button
               variant="outline"
-              className="w-full h-auto py-3 px-3.5 rounded-2xl flex flex-col items-center justify-center text-center gap-1.5 border-border/70 hover:bg-card hover:border-primary/50 transition-all cursor-pointer shadow-2xs"
+              className="w-full h-auto py-3 px-3.5 rounded-3xl flex flex-col items-center justify-center text-center gap-1.5 border-border/70 hover:bg-card hover:border-primary/50 transition-all cursor-pointer shadow-2xs"
             >
-              <ShieldCheck className="size-5 text-emerald-600 dark:text-emerald-400" />
+              <ShieldCheck className="size-5 text-primary" />
               <span className="text-xs font-bold text-foreground">Mis Documentos</span>
               <span className="text-[10px] text-muted-foreground">RFC, CURP, IMSS</span>
             </Button>
@@ -613,9 +613,9 @@ export function ActiveEmployeePortalView({
           <Link href="/dashboard/candidate/profile">
             <Button
               variant="outline"
-              className="w-full h-auto py-3 px-3.5 rounded-2xl flex flex-col items-center justify-center text-center gap-1.5 border-border/70 hover:bg-card hover:border-primary/50 transition-all cursor-pointer shadow-2xs"
+              className="w-full h-auto py-3 px-3.5 rounded-3xl flex flex-col items-center justify-center text-center gap-1.5 border-border/70 hover:bg-card hover:border-primary/50 transition-all cursor-pointer shadow-2xs"
             >
-              <User className="size-5 text-blue-600 dark:text-blue-400" />
+              <User className="size-5 text-primary" />
               <span className="text-xs font-bold text-foreground">Perfil Laboral</span>
               <span className="text-[10px] text-muted-foreground">Habilidades y CV</span>
             </Button>
@@ -624,14 +624,14 @@ export function ActiveEmployeePortalView({
       </div>
 
       {/* ── 5. SECONDARY COLLAPSIBLE SECTION: BOLSA DE EMPLEO & MOVILIDAD INTERNA ── */}
-      <div className="rounded-3xl border border-border/70 bg-card overflow-hidden shadow-2xs transition-all">
+      <div className="rounded-4xl border border-border/70 bg-card overflow-hidden shadow-2xs transition-all">
         <button
           type="button"
           onClick={() => setShowJobMarket(!showJobMarket)}
           className="w-full p-5 sm:p-6 flex items-center justify-between text-left hover:bg-muted/30 transition-colors cursor-pointer"
         >
           <div className="flex items-center gap-3.5">
-            <div className="size-10 rounded-2xl bg-primary/10 text-primary border border-primary/20 flex items-center justify-center shrink-0">
+            <div className="size-10 rounded-3xl bg-primary/10 text-primary border border-primary/20 flex items-center justify-center shrink-0">
               <Compass className="size-5" />
             </div>
             <div>
@@ -639,7 +639,7 @@ export function ActiveEmployeePortalView({
                 <h2 className="text-sm sm:text-base font-bold text-foreground">
                   Bolsa de Empleo & Movilidad Interna
                 </h2>
-                <Badge variant="secondary" className="text-[10px] font-semibold py-0.5 px-2">
+                <Badge variant="secondary" className="text-[10px] font-semibold py-0.5 px-2 rounded-3xl">
                   Secundario
                 </Badge>
               </div>
@@ -653,7 +653,7 @@ export function ActiveEmployeePortalView({
             <span className="text-xs font-semibold text-primary hidden sm:inline-block">
               {showJobMarket ? "Ocultar vacantes" : "Explorar vacantes"}
             </span>
-            <div className="size-8 rounded-xl bg-muted/60 flex items-center justify-center text-muted-foreground">
+            <div className="size-8 rounded-full bg-muted/60 flex items-center justify-center text-muted-foreground">
               {showJobMarket ? <ChevronUp className="size-4" /> : <ChevronDown className="size-4" />}
             </div>
           </div>
@@ -669,12 +669,12 @@ export function ActiveEmployeePortalView({
                   value={jobSearchQuery}
                   onChange={(e) => setJobSearchQuery(e.target.value)}
                   placeholder="Buscar vacante por puesto, empresa o ciudad..."
-                  className="pl-10 h-10 rounded-2xl bg-muted/40 border-border/70 text-xs"
+                  className="pl-10 h-9 rounded-3xl bg-input/50 border-input text-xs"
                 />
               </div>
 
               <Link href="/dashboard/candidate/discovery" className="shrink-0">
-                <Button className="h-10 px-4 rounded-2xl text-xs font-bold gap-1.5 cursor-pointer shadow-2xs">
+                <Button className="h-9 px-4 rounded-4xl text-xs font-semibold gap-1.5 cursor-pointer shadow-xs">
                   <span>Ver todas las vacantes</span>
                   <ArrowUpRight className="size-3.5" />
                 </Button>
@@ -691,7 +691,7 @@ export function ActiveEmployeePortalView({
                     onClick={() => {
                       window.location.href = `/dashboard/candidate/vacancies/${job.id}`;
                     }}
-                    className="p-4 rounded-2xl border border-border/60 bg-muted/20 hover:bg-card hover:border-primary/40 transition-all cursor-pointer flex flex-col justify-between gap-3 shadow-2xs group"
+                    className="p-4 rounded-3xl border border-border/60 bg-muted/20 hover:bg-card hover:border-primary/40 transition-all cursor-pointer flex flex-col justify-between gap-3 shadow-2xs group"
                   >
                     <div className="space-y-2">
                       <div className="flex items-start justify-between gap-2">
@@ -702,7 +702,7 @@ export function ActiveEmployeePortalView({
                           <button
                             type="button"
                             onClick={(e) => toggleSaveJob(e, job.id)}
-                            className="p-1 rounded-md text-muted-foreground hover:text-primary transition-colors"
+                            className="p-1 rounded-full text-muted-foreground hover:text-primary transition-colors"
                             aria-label="Guardar empleo"
                           >
                             <Bookmark
@@ -715,7 +715,7 @@ export function ActiveEmployeePortalView({
                           <button
                             type="button"
                             onClick={(e) => shareJob(e, job)}
-                            className="p-1 rounded-md text-muted-foreground hover:text-foreground transition-colors"
+                            className="p-1 rounded-full text-muted-foreground hover:text-foreground transition-colors"
                             aria-label="Compartir empleo"
                           >
                             <Share2 className="size-3.5" />
@@ -731,14 +731,14 @@ export function ActiveEmployeePortalView({
                       <div className="flex flex-wrap items-center gap-1.5">
                         <Badge
                           variant="secondary"
-                          className="text-[10px] font-medium py-0 px-2 bg-muted/70 text-muted-foreground"
+                          className="text-[10px] font-medium py-0 px-2 bg-muted/70 text-muted-foreground rounded-3xl"
                         >
                           <MapPin className="size-2.5 mr-1" />
                           {job.location}
                         </Badge>
                         <Badge
                           variant="secondary"
-                          className="text-[10px] font-medium py-0 px-2 bg-muted/70 text-muted-foreground"
+                          className="text-[10px] font-medium py-0 px-2 bg-muted/70 text-muted-foreground rounded-3xl"
                         >
                           {job.employmentType}
                         </Badge>
@@ -746,13 +746,13 @@ export function ActiveEmployeePortalView({
                     </div>
 
                     <div className="pt-2 border-t border-border/50 flex items-center justify-between">
-                      <span className="text-xs font-bold font-mono text-emerald-600 dark:text-emerald-400">
+                      <span className="text-xs font-bold font-mono text-foreground">
                         {job.formattedSalary}
                       </span>
                       <Button
                         size="sm"
                         variant="ghost"
-                        className="h-7 px-2 text-[11px] font-bold text-primary gap-1"
+                        className="h-8 px-2.5 text-xs font-semibold text-primary gap-1 rounded-4xl"
                       >
                         <span>Detalles</span>
                         <ArrowUpRight className="size-3" />

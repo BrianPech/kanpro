@@ -118,11 +118,11 @@ export function CandidateLeaveRequestModal({
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[480px] rounded-3xl p-6 bg-card border-border/80 max-h-[92vh] overflow-y-auto">
+      <DialogContent className="sm:max-w-[480px] rounded-4xl p-6 bg-card border-border/80 max-h-[92vh] overflow-y-auto">
         <form onSubmit={handleSubmit} className="space-y-4">
           <DialogHeader className="space-y-1.5 text-left pb-2 border-b border-border/40">
             <div className="flex items-center gap-2">
-              <div className="size-8 rounded-xl bg-primary/10 text-primary flex items-center justify-center">
+              <div className="size-8 rounded-3xl bg-primary/10 text-primary flex items-center justify-center">
                 <Plane className="size-4" />
               </div>
               <div>
@@ -145,7 +145,7 @@ export function CandidateLeaveRequestModal({
               {requestType === "vacaciones" && (
                 <Badge
                   variant="outline"
-                  className="text-[10px] font-extrabold border-emerald-500/30 text-emerald-700 dark:text-emerald-300 bg-emerald-500/10"
+                  className="text-[10px] font-bold border-primary/30 text-primary bg-primary/10 rounded-3xl"
                 >
                   Saldo disponible: {daysAvailable} días
                 </Badge>
@@ -156,43 +156,43 @@ export function CandidateLeaveRequestModal({
               value={requestType}
               onValueChange={(val) => setRequestType(val as LeaveRequestType)}
             >
-              <SelectTrigger className="rounded-xl h-11 text-xs font-semibold">
+              <SelectTrigger className="rounded-3xl h-9 text-xs sm:text-sm bg-input/50 border-input font-medium">
                 <SelectValue placeholder="Selecciona tipo de permiso" />
               </SelectTrigger>
-              <SelectContent className="rounded-2xl">
+              <SelectContent className="rounded-3xl">
                 <SelectItem value="vacaciones" className="text-xs font-semibold py-2">
                   <div className="flex items-center gap-2">
-                    <Plane className="size-3.5 text-emerald-600" />
+                    <Plane className="size-3.5 text-primary" />
                     <span>Vacaciones Anuales LFT (Art. 76)</span>
                   </div>
                 </SelectItem>
                 <SelectItem value="permiso_con_goce" className="text-xs font-semibold py-2">
                   <div className="flex items-center gap-2">
-                    <CheckCircle2 className="size-3.5 text-blue-600" />
+                    <CheckCircle2 className="size-3.5 text-foreground" />
                     <span>Permiso con Goce de Sueldo</span>
                   </div>
                 </SelectItem>
                 <SelectItem value="permiso_sin_goce" className="text-xs font-semibold py-2">
                   <div className="flex items-center gap-2">
-                    <Clock className="size-3.5 text-amber-600" />
+                    <Clock className="size-3.5 text-foreground" />
                     <span>Permiso sin Goce de Sueldo</span>
                   </div>
                 </SelectItem>
                 <SelectItem value="paternidad" className="text-xs font-semibold py-2">
                   <div className="flex items-center gap-2">
-                    <Baby className="size-3.5 text-indigo-600" />
+                    <Baby className="size-3.5 text-foreground" />
                     <span>Permiso por Paternidad (5 días LFT)</span>
                   </div>
                 </SelectItem>
                 <SelectItem value="maternidad" className="text-xs font-semibold py-2">
                   <div className="flex items-center gap-2">
-                    <Baby className="size-3.5 text-rose-600" />
+                    <Baby className="size-3.5 text-foreground" />
                     <span>Incapacidad por Maternidad (84 días IMSS)</span>
                   </div>
                 </SelectItem>
                 <SelectItem value="luto" className="text-xs font-semibold py-2">
                   <div className="flex items-center gap-2">
-                    <HeartHandshake className="size-3.5 text-purple-600" />
+                    <HeartHandshake className="size-3.5 text-foreground" />
                     <span>Permiso por Luto</span>
                   </div>
                 </SelectItem>
@@ -216,7 +216,7 @@ export function CandidateLeaveRequestModal({
                     setEndDate(e.target.value);
                   }
                 }}
-                className="rounded-xl h-10 text-xs font-semibold"
+                className="rounded-3xl h-9 text-xs sm:text-sm bg-input/50 border-input font-medium"
                 required
               />
             </div>
@@ -229,32 +229,32 @@ export function CandidateLeaveRequestModal({
                 value={endDate}
                 min={startDate}
                 onChange={(e) => setEndDate(e.target.value)}
-                className="rounded-xl h-10 text-xs font-semibold"
+                className="rounded-3xl h-9 text-xs sm:text-sm bg-input/50 border-input font-medium"
                 required
               />
             </div>
           </div>
 
           {/* Working Days Counter Banner */}
-          <div className="p-3 rounded-2xl bg-muted/60 border border-border/60 flex items-center justify-between text-xs">
+          <div className="p-3 rounded-3xl bg-muted/60 border border-border/60 flex items-center justify-between text-xs">
             <div className="flex items-center gap-2">
               <CalendarDays className="size-4 text-primary" />
               <span className="font-semibold text-muted-foreground">
                 Días laborales hábiles:
               </span>
             </div>
-            <span className="font-extrabold text-foreground text-sm">
+            <span className="font-extrabold text-foreground text-sm font-mono">
               {workingDays} día{workingDays !== 1 ? "s" : ""}
             </span>
           </div>
 
           {/* Insufficient balance warning */}
           {exceedsBalance && (
-            <div className="p-3 rounded-2xl bg-rose-500/10 border border-rose-500/20 text-rose-700 dark:text-rose-400 text-xs flex items-start gap-2">
+            <div className="p-3 rounded-3xl bg-destructive/10 border border-destructive/20 text-destructive text-xs flex items-start gap-2">
               <AlertTriangle className="size-4 shrink-0 mt-0.5" />
               <div className="space-y-0.5">
                 <p className="font-bold">Saldo de vacaciones insuficiente</p>
-                <p className="text-[11px] leading-relaxed text-rose-600/90 dark:text-rose-400/90">
+                <p className="text-[11px] leading-relaxed text-destructive/90">
                   Estás solicitando {workingDays} días pero solo dispones de {daysAvailable} días hábiles. Por favor ajusta tu periodo.
                 </p>
               </div>
@@ -270,7 +270,7 @@ export function CandidateLeaveRequestModal({
               placeholder="Ej. Viaje familiar programado, trámites personales..."
               value={reason}
               onChange={(e) => setReason(e.target.value)}
-              className="rounded-xl text-xs resize-none min-h-[70px]"
+              className="rounded-3xl text-xs sm:text-sm resize-none bg-input/50 border-input p-3 min-h-[70px]"
               maxLength={250}
             />
           </div>
@@ -282,7 +282,7 @@ export function CandidateLeaveRequestModal({
               size="sm"
               onClick={() => onOpenChange(false)}
               disabled={isSubmitting}
-              className="rounded-xl h-9 text-xs font-bold"
+              className="rounded-4xl h-9 text-xs font-semibold cursor-pointer"
             >
               Cancelar
             </Button>
@@ -290,7 +290,7 @@ export function CandidateLeaveRequestModal({
               type="submit"
               size="sm"
               disabled={isSubmitting || workingDays <= 0 || exceedsBalance}
-              className="rounded-xl h-9 text-xs font-bold gap-1.5 bg-primary text-primary-foreground shadow-2xs"
+              className="rounded-4xl h-9 text-xs font-semibold gap-1.5 bg-primary text-primary-foreground shadow-2xs cursor-pointer"
             >
               {isSubmitting ? (
                 <>

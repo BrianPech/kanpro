@@ -91,20 +91,20 @@ export function ForcePasswordChangeAlert({
   return (
     <>
       {/* ── SECURITY ALERT BANNER ── */}
-      <Alert className="border-2 border-amber-500/40 bg-amber-500/10 text-amber-950 dark:text-amber-100 rounded-3xl p-4 sm:p-5 shadow-2xs animate-in slide-in-from-top-2 duration-300">
+      <Alert className="border border-primary/20 bg-primary/10 text-foreground rounded-4xl p-5 shadow-2xs animate-in slide-in-from-top-2 duration-300">
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 w-full">
           <div className="flex items-start sm:items-center gap-3.5">
-            <div className="size-11 rounded-2xl bg-amber-500/20 text-amber-700 dark:text-amber-300 flex items-center justify-center shrink-0">
+            <div className="size-11 rounded-3xl bg-primary/20 text-primary flex items-center justify-center shrink-0">
               <KeyRound className="size-6" />
             </div>
             <div className="space-y-0.5">
               <div className="flex items-center gap-2">
-                <AlertTitle className="text-sm sm:text-base font-black text-amber-950 dark:text-amber-100">
+                <AlertTitle className="text-sm sm:text-base font-bold text-foreground">
                   Por seguridad, actualiza tu contraseña provisional
                 </AlertTitle>
-                <span className="size-2 rounded-full bg-amber-500 animate-ping" />
+                <span className="size-2 rounded-full bg-primary animate-ping" />
               </div>
-              <AlertDescription className="text-xs text-amber-900/80 dark:text-amber-200/80 font-medium">
+              <AlertDescription className="text-xs text-muted-foreground font-medium">
                 Tu empresa dio de alta tu usuario con una contraseña temporal. Te recomendamos cambiarla por una contraseña personal y segura.
               </AlertDescription>
             </div>
@@ -113,7 +113,7 @@ export function ForcePasswordChangeAlert({
           <Button
             type="button"
             onClick={() => setIsModalOpen(true)}
-            className="shrink-0 w-full sm:w-auto h-10 px-4 rounded-xl text-xs font-bold bg-amber-600 hover:bg-amber-700 text-white gap-2 cursor-pointer shadow-xs"
+            className="shrink-0 w-full sm:w-auto h-9 px-4 rounded-4xl text-xs font-semibold gap-2 cursor-pointer shadow-xs"
           >
             <KeyRound className="size-3.5" />
             <span>Cambiar Contraseña</span>
@@ -123,10 +123,10 @@ export function ForcePasswordChangeAlert({
 
       {/* ── CHANGE PASSWORD DIALOG MODAL ── */}
       <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
-        <DialogContent className="sm:max-w-md rounded-3xl p-6 border-border bg-card">
+        <DialogContent className="sm:max-w-md rounded-4xl p-6 border-border bg-card">
           <DialogHeader className="space-y-2 text-left">
             <div className="flex items-center gap-3">
-              <div className="size-10 rounded-2xl bg-amber-500/15 text-amber-600 dark:text-amber-400 flex items-center justify-center shrink-0">
+              <div className="size-10 rounded-3xl bg-primary/15 text-primary flex items-center justify-center shrink-0">
                 <ShieldAlert className="size-5" />
               </div>
               <div>
@@ -152,7 +152,7 @@ export function ForcePasswordChangeAlert({
                   value={newPassword}
                   onChange={(e) => setNewPassword(e.target.value)}
                   placeholder="Mínimo 8 caracteres"
-                  className="pr-10 h-10 rounded-xl bg-muted/30 border-border/70 text-xs"
+                  className="pr-10 h-9 rounded-3xl bg-input/50 border-input text-xs"
                   required
                 />
                 <button
@@ -177,7 +177,7 @@ export function ForcePasswordChangeAlert({
                   value={confirmPassword}
                   onChange={(e) => setConfirmPassword(e.target.value)}
                   placeholder="Repite la contraseña"
-                  className="pr-10 h-10 rounded-xl bg-muted/30 border-border/70 text-xs"
+                  className="pr-10 h-9 rounded-3xl bg-input/50 border-input text-xs"
                   required
                 />
                 <button
@@ -196,14 +196,14 @@ export function ForcePasswordChangeAlert({
                 type="button"
                 variant="outline"
                 onClick={() => setIsModalOpen(false)}
-                className="h-10 rounded-xl text-xs font-semibold"
+                className="h-9 rounded-4xl text-xs font-semibold"
               >
                 Omitir por ahora
               </Button>
               <Button
                 type="submit"
                 disabled={isSubmitting}
-                className="h-10 rounded-xl text-xs font-bold gap-2 bg-primary text-primary-foreground shadow-xs cursor-pointer"
+                className="h-9 rounded-4xl text-xs font-semibold gap-2 shadow-xs cursor-pointer"
               >
                 {isSubmitting ? (
                   <Loader2 className="size-4 animate-spin" />

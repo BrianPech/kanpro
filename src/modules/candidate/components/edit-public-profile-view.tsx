@@ -65,19 +65,19 @@ const ExperienceFieldArray = React.memo(({
   return (
     <div className="space-y-3">
       {fields.length === 0 ? (
-        <div className="p-4 bg-muted/30 border border-border/60 rounded-xl text-xs text-muted-foreground text-center">
+        <div className="p-4 bg-muted/30 border border-border/60 rounded-3xl text-xs text-muted-foreground text-center">
           No has registrado experiencias aún. Toca &quot;Añadir empleo&quot; para agregar tu historial.
         </div>
       ) : (
         <div className="space-y-3">
           {fields.map((field, index) => (
-            <div key={field.id} className="p-4 bg-muted/20 border border-border/60 rounded-2xl space-y-3.5 relative shadow-2xs">
+            <div key={field.id} className="p-4 bg-muted/20 border border-border/60 rounded-3xl space-y-3.5 relative shadow-2xs">
               <Button
                 type="button"
                 variant="ghost"
                 size="icon"
                 onClick={() => remove(index)}
-                className="absolute top-3 right-3 size-7 text-destructive hover:bg-destructive/10 rounded-lg cursor-pointer"
+                className="absolute top-3 right-3 size-7 text-destructive hover:bg-destructive/10 rounded-full cursor-pointer"
                 aria-label="Eliminar experiencia"
               >
                 <Trash2 className="size-3.5" />
@@ -91,7 +91,7 @@ const ExperienceFieldArray = React.memo(({
                   <Input
                     {...register(`experience.${index}.role`)}
                     placeholder="Ej. Chef Ejecutivo, Mesero, Recepcionista"
-                    className="h-9.5 rounded-xl bg-background border-border/70 text-xs sm:text-sm"
+                    className="h-9 rounded-3xl bg-input/50 border-input text-xs sm:text-sm"
                   />
                   {errors.experience?.[index]?.role && (
                     <p className="text-[11px] font-medium text-destructive mt-0.5">{errors.experience[index]?.role?.message}</p>
@@ -105,7 +105,7 @@ const ExperienceFieldArray = React.memo(({
                   <Input
                     {...register(`experience.${index}.company`)}
                     placeholder="Ej. Hotel Riviera Grand"
-                    className="h-9.5 rounded-xl bg-background border-border/70 text-xs sm:text-sm"
+                    className="h-9 rounded-3xl bg-input/50 border-input text-xs sm:text-sm"
                   />
                   {errors.experience?.[index]?.company && (
                     <p className="text-[11px] font-medium text-destructive mt-0.5">{errors.experience[index]?.company?.message}</p>
@@ -121,7 +121,7 @@ const ExperienceFieldArray = React.memo(({
                   <Input
                     {...register(`experience.${index}.period`)}
                     placeholder="Ej. 2022 - 2024"
-                    className="h-9.5 rounded-xl bg-background border-border/70 text-xs sm:text-sm"
+                    className="h-9 rounded-3xl bg-input/50 border-input text-xs sm:text-sm"
                   />
                   {errors.experience?.[index]?.period && (
                     <p className="text-[11px] font-medium text-destructive mt-0.5">{errors.experience[index]?.period?.message}</p>
@@ -133,7 +133,7 @@ const ExperienceFieldArray = React.memo(({
                   <Input
                     {...register(`experience.${index}.description`)}
                     placeholder="Resumen de responsabilidades principales..."
-                    className="h-9.5 rounded-xl bg-background border-border/70 text-xs sm:text-sm"
+                    className="h-9 rounded-3xl bg-input/50 border-input text-xs sm:text-sm"
                   />
                 </div>
               </div>
@@ -147,7 +147,7 @@ const ExperienceFieldArray = React.memo(({
         variant="outline"
         size="sm"
         onClick={() => append({ role: "", company: "", period: "", description: "" })}
-        className="h-8 px-3.5 text-xs font-medium gap-1.5 rounded-xl cursor-pointer"
+        className="h-9 px-4 text-xs font-medium gap-1.5 rounded-4xl cursor-pointer"
       >
         <Plus className="size-3.5" />
         <span>Añadir empleo</span>
@@ -175,19 +175,19 @@ const EducationFieldArray = React.memo(({
   return (
     <div className="space-y-3">
       {fields.length === 0 ? (
-        <div className="p-4 bg-muted/30 border border-border/60 rounded-xl text-xs text-muted-foreground text-center">
+        <div className="p-4 bg-muted/30 border border-border/60 rounded-3xl text-xs text-muted-foreground text-center">
           No has registrado estudios aún. Toca &quot;Añadir formación&quot; para sumar tus grados.
         </div>
       ) : (
         <div className="space-y-3">
           {fields.map((field, index) => (
-            <div key={field.id} className="p-4 bg-muted/20 border border-border/60 rounded-2xl space-y-3.5 relative shadow-2xs">
+            <div key={field.id} className="p-4 bg-muted/20 border border-border/60 rounded-3xl space-y-3.5 relative shadow-2xs">
               <Button
                 type="button"
                 variant="ghost"
                 size="icon"
                 onClick={() => remove(index)}
-                className="absolute top-3 right-3 size-7 text-destructive hover:bg-destructive/10 rounded-lg cursor-pointer"
+                className="absolute top-3 right-3 size-7 text-destructive hover:bg-destructive/10 rounded-full cursor-pointer"
                 aria-label="Eliminar educación"
               >
                 <Trash2 className="size-3.5" />
@@ -201,7 +201,7 @@ const EducationFieldArray = React.memo(({
                   <Input
                     {...register(`education.${index}.institution`)}
                     placeholder="Ej. Universidad del Caribe, CONALEP"
-                    className="h-9.5 rounded-xl bg-background border-border/70 text-xs sm:text-sm"
+                    className="h-9 rounded-3xl bg-input/50 border-input text-xs sm:text-sm"
                   />
                   {errors.education?.[index]?.institution && (
                     <p className="text-[11px] font-medium text-destructive mt-0.5">{errors.education[index]?.institution?.message}</p>
@@ -215,7 +215,7 @@ const EducationFieldArray = React.memo(({
                   <Input
                     {...register(`education.${index}.degree`)}
                     placeholder="Ej. Licenciatura en Gastronomía, Técnico Hotelero"
-                    className="h-9.5 rounded-xl bg-background border-border/70 text-xs sm:text-sm"
+                    className="h-9 rounded-3xl bg-input/50 border-input text-xs sm:text-sm"
                   />
                   {errors.education?.[index]?.degree && (
                     <p className="text-[11px] font-medium text-destructive mt-0.5">{errors.education[index]?.degree?.message}</p>
@@ -231,7 +231,7 @@ const EducationFieldArray = React.memo(({
                   <Input
                     {...register(`education.${index}.period`)}
                     placeholder="Ej. 2018 - 2022"
-                    className="h-9.5 rounded-xl bg-background border-border/70 text-xs sm:text-sm"
+                    className="h-9 rounded-3xl bg-input/50 border-input text-xs sm:text-sm"
                   />
                   {errors.education?.[index]?.period && (
                     <p className="text-[11px] font-medium text-destructive mt-0.5">{errors.education[index]?.period?.message}</p>
@@ -243,7 +243,7 @@ const EducationFieldArray = React.memo(({
                   <Input
                     {...register(`education.${index}.description`)}
                     placeholder="Ej. Graduado con honores..."
-                    className="h-9.5 rounded-xl bg-background border-border/70 text-xs sm:text-sm"
+                    className="h-9 rounded-3xl bg-input/50 border-input text-xs sm:text-sm"
                   />
                 </div>
               </div>
@@ -257,7 +257,7 @@ const EducationFieldArray = React.memo(({
         variant="outline"
         size="sm"
         onClick={() => append({ institution: "", degree: "", period: "", description: "" })}
-        className="h-8 px-3.5 text-xs font-medium gap-1.5 rounded-xl cursor-pointer"
+        className="h-9 px-4 text-xs font-medium gap-1.5 rounded-4xl cursor-pointer"
       >
         <Plus className="size-3.5" />
         <span>Añadir formación</span>
@@ -486,17 +486,17 @@ export function EditPublicProfileView({ onBack }: EditPublicProfileViewProps) {
         </div>
       ) : (
         /* Main Profile Card matching Reference */
-        <div className="rounded-3xl border border-border/60 bg-card shadow-sm overflow-hidden">
+        <div className="rounded-4xl border border-border/60 bg-card shadow-sm overflow-hidden">
           
           {/* 1. Hero Cover Banner */}
-          <div className="h-32 sm:h-44 bg-gradient-to-r from-sky-200/50 via-teal-100/40 to-emerald-100/50 dark:from-sky-950/40 dark:via-teal-950/30 dark:to-emerald-950/40 relative">
+          <div className="h-32 sm:h-44 bg-gradient-to-r from-primary/10 via-primary/5 to-muted/20 relative">
             <Button
               type="button"
               variant="secondary"
               size="icon"
               onClick={handleBack}
               aria-label="Regresar"
-              className="absolute top-4 left-4 size-8.5 rounded-full bg-background/80 hover:bg-background backdrop-blur-md shadow-xs cursor-pointer"
+              className="absolute top-4 left-4 size-9 rounded-full bg-background/80 hover:bg-background backdrop-blur-md shadow-xs cursor-pointer"
             >
               <ArrowLeft className="size-4" />
             </Button>
@@ -532,7 +532,7 @@ export function EditPublicProfileView({ onBack }: EditPublicProfileViewProps) {
               <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-foreground">
                 {fullName || "Tu Nombre Completo"}
               </h1>
-              <BadgeCheck className="size-5 text-sky-500 fill-sky-500/20" />
+              <BadgeCheck className="size-5 text-primary fill-primary/20" />
             </div>
             <p className="text-xs sm:text-sm text-muted-foreground">
               {candidateEmail}
@@ -580,7 +580,7 @@ export function EditPublicProfileView({ onBack }: EditPublicProfileViewProps) {
                   <Input
                     id="full_name"
                     placeholder="Tu nombre completo como aparecerá en el perfil"
-                    className="h-9.5 rounded-xl bg-background border-border/70 text-xs sm:text-sm"
+                    className="h-9 rounded-3xl bg-input/50 border-input text-xs sm:text-sm"
                     {...register("full_name")}
                   />
                   {errors.full_name && (
@@ -596,7 +596,7 @@ export function EditPublicProfileView({ onBack }: EditPublicProfileViewProps) {
                     Número de WhatsApp Directo <span className="text-destructive">*</span>
                   </Label>
                   <div className="flex items-center gap-2">
-                    <div className="flex items-center justify-center h-9.5 px-3 rounded-xl bg-muted/50 border border-border/70 text-xs font-semibold text-muted-foreground shrink-0 select-none">
+                    <div className="flex items-center justify-center h-9 px-3 rounded-3xl bg-muted/50 border border-input text-xs font-semibold text-muted-foreground shrink-0 select-none">
                       <span className="mr-1.5">🇲🇽</span> +52
                     </div>
                     <div className="relative flex-1">
@@ -606,7 +606,7 @@ export function EditPublicProfileView({ onBack }: EditPublicProfileViewProps) {
                         placeholder="10 dígitos (ej. 999 123 4567)"
                         value={formatPhoneDisplay(watch("whatsapp_number") || "")}
                         onChange={(e) => setValue("whatsapp_number", normalizePhone(e.target.value), { shouldValidate: true })}
-                        className="h-9.5 rounded-xl bg-background border-border/70 text-xs sm:text-sm pr-9"
+                        className="h-9 rounded-3xl bg-input/50 border-input text-xs sm:text-sm pr-9"
                       />
                       <Phone className="size-3.5 absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none" />
                     </div>
@@ -630,7 +630,7 @@ export function EditPublicProfileView({ onBack }: EditPublicProfileViewProps) {
                   <Input
                     id="headline"
                     placeholder="Ej. Chef Especialista en Cocina de Mar | Barman Bilingüe"
-                    className="h-9.5 rounded-xl bg-background border-border/70 text-xs sm:text-sm"
+                    className="h-9 rounded-3xl bg-input/50 border-input text-xs sm:text-sm"
                     {...register("headline")}
                   />
                   {errors.headline ? (
@@ -664,7 +664,7 @@ export function EditPublicProfileView({ onBack }: EditPublicProfileViewProps) {
                   {...register("experience_summary")}
                   placeholder="Describe brevemente tu trayectoria, tus fortalezas principales y lo que buscas en tu próximo empleo..."
                   rows={4}
-                  className="w-full resize-none rounded-xl bg-background border-border/70 text-xs sm:text-sm leading-relaxed p-3 min-h-24"
+                  className="w-full resize-none rounded-3xl bg-input/50 border-input text-xs sm:text-sm leading-relaxed p-3.5 min-h-24"
                 />
               </div>
             </div>
@@ -679,7 +679,7 @@ export function EditPublicProfileView({ onBack }: EditPublicProfileViewProps) {
               </div>
 
               <div className="md:col-span-8 space-y-3">
-                <div className="flex flex-wrap items-center gap-1.5 min-h-11 p-3 bg-muted/20 border border-border/60 rounded-2xl">
+                <div className="flex flex-wrap items-center gap-1.5 min-h-11 p-3 bg-muted/20 border border-border/60 rounded-3xl">
                   {skills.length === 0 ? (
                     <span className="text-xs text-muted-foreground">
                       No has agregado habilidades aún. Haz clic en añadir para sumar aptitudes.
@@ -689,7 +689,7 @@ export function EditPublicProfileView({ onBack }: EditPublicProfileViewProps) {
                       <Badge
                         key={skill}
                         variant="secondary"
-                        className="text-xs font-medium px-2.5 py-1 gap-1.5 rounded-lg bg-background border border-border/60 shadow-2xs"
+                        className="text-xs font-medium px-2.5 py-1 gap-1.5 rounded-3xl bg-background border border-border/60 shadow-2xs"
                       >
                         <span>{skill}</span>
                         <button
@@ -710,7 +710,7 @@ export function EditPublicProfileView({ onBack }: EditPublicProfileViewProps) {
                   variant="outline"
                   size="sm"
                   onClick={() => setIsAddSkillOpen(true)}
-                  className="h-8 px-3.5 text-xs font-medium gap-1.5 rounded-xl cursor-pointer"
+                  className="h-9 px-4 text-xs font-medium gap-1.5 rounded-4xl cursor-pointer"
                 >
                   <Plus className="size-3.5" />
                   <span>Añadir habilidad</span>
@@ -784,7 +784,7 @@ export function EditPublicProfileView({ onBack }: EditPublicProfileViewProps) {
                 type="button"
                 variant="outline"
                 onClick={handleBack}
-                className="rounded-xl h-9.5 px-4 text-xs font-medium cursor-pointer"
+                className="rounded-4xl h-9 px-4 text-xs font-medium cursor-pointer"
               >
                 Cancelar
               </Button>
@@ -792,7 +792,7 @@ export function EditPublicProfileView({ onBack }: EditPublicProfileViewProps) {
               <Button
                 type="submit"
                 disabled={isSaving}
-                className="rounded-xl h-9.5 px-5 text-xs font-medium gap-2 min-w-32 cursor-pointer shadow-xs"
+                className="rounded-4xl h-9 px-5 text-xs font-medium gap-2 min-w-32 cursor-pointer shadow-xs"
               >
                 {isSaving ? (
                   <>
@@ -812,7 +812,7 @@ export function EditPublicProfileView({ onBack }: EditPublicProfileViewProps) {
 
       {/* Add Skill Modal Dialog */}
       <Dialog open={isAddSkillOpen} onOpenChange={setIsAddSkillOpen}>
-        <DialogContent className="sm:max-w-sm rounded-2xl border-border bg-card p-5 space-y-3">
+        <DialogContent className="sm:max-w-sm rounded-4xl border-border bg-card p-6 space-y-3">
           <DialogHeader className="space-y-1 text-left">
             <DialogTitle className="text-base font-bold text-foreground">
               Agregar Habilidad o Destreza
@@ -839,7 +839,7 @@ export function EditPublicProfileView({ onBack }: EditPublicProfileViewProps) {
                 }
               }}
               placeholder="Ej. Cocina Caliente, Proactivo, Inglés..."
-              className="h-9.5 rounded-xl bg-background border-border/70 text-xs sm:text-sm"
+              className="h-9 rounded-3xl bg-input/50 border-input text-xs sm:text-sm"
             />
           </div>
 
@@ -848,7 +848,7 @@ export function EditPublicProfileView({ onBack }: EditPublicProfileViewProps) {
               variant="outline"
               size="sm"
               onClick={() => setIsAddSkillOpen(false)}
-              className="rounded-xl h-8.5 px-3.5 text-xs font-medium"
+              className="rounded-4xl h-9 px-4 text-xs font-medium"
             >
               Cancelar
             </Button>
@@ -856,7 +856,7 @@ export function EditPublicProfileView({ onBack }: EditPublicProfileViewProps) {
               type="button"
               size="sm"
               onClick={handleAddSkill}
-              className="rounded-xl h-8.5 px-3.5 text-xs font-medium shadow-xs"
+              className="rounded-4xl h-9 px-4 text-xs font-medium shadow-xs"
             >
               Agregar
             </Button>
