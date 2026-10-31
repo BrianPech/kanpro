@@ -8,7 +8,7 @@ import {
 } from "@/modules/company/config/demo-rollout";
 
 describe("DEMO progressive module rollout", () => {
-  it("allows Week 1 core routes (vacancies, employees, areas) by default and locks Week 2-4 routes", () => {
+  it("allows Week 1 core routes (vacancies, employees, areas, attendance) by default and locks Week 2-4 routes", () => {
     const enabled = DEFAULT_DEMO_ROLLOUT.enabledModules;
 
     expect(isCompanyRouteAllowed("/dashboard/company", enabled)).toBe(true);
@@ -18,10 +18,11 @@ describe("DEMO progressive module rollout", () => {
     expect(isCompanyRouteAllowed("/dashboard/company/employees", enabled)).toBe(true);
     expect(isCompanyRouteAllowed("/dashboard/company/areas", enabled)).toBe(true);
     expect(isCompanyRouteAllowed("/dashboard/company/profile", enabled)).toBe(true);
+    expect(isCompanyRouteAllowed("/dashboard/company/attendance", enabled)).toBe(true);
 
     // Locked in Week 1
-    expect(isCompanyRouteAllowed("/dashboard/company/attendance", enabled)).toBe(false);
-    expect(getLockedModuleBadge("/dashboard/company/attendance", enabled)).toBe("Semana 2");
+    expect(isCompanyRouteAllowed("/dashboard/company/leaves", enabled)).toBe(false);
+    expect(getLockedModuleBadge("/dashboard/company/leaves", enabled)).toBe("Semana 2");
     expect(getLockedModuleBadge("/dashboard/company/contracts", enabled)).toBe("Semana 3");
     expect(getLockedModuleBadge("/dashboard/company/payroll", enabled)).toBe("Semana 4");
   });

@@ -4,7 +4,7 @@
 INSERT INTO public.system_settings (key, value, description)
 VALUES (
     'demo_rollout',
-    '{"activePhase": 1, "enabledModules": ["dashboard", "vacancies", "applications", "employees", "areas", "profile", "verification", "settings"]}'::jsonb,
+    '{"activePhase": 1, "enabledModules": ["dashboard", "vacancies", "applications", "employees", "areas", "profile", "verification", "settings", "attendance"]}'::jsonb,
     'Control de fases semanales y herramientas habilitadas para empresas durante la DEMO'
 )
 ON CONFLICT (key) DO NOTHING;

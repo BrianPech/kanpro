@@ -94,7 +94,7 @@ export const COMPANY_MODULES: readonly CompanyModuleDefinition[] = [
     key: "attendance",
     label: "Asistencia & Checador QR",
     description: "Control horario, entradas/salidas y retardos en tiempo real",
-    week: 2,
+    week: 1,
     routePrefixes: ["/dashboard/company/attendance"],
   },
   {
@@ -149,15 +149,15 @@ export const DEMO_PHASES: readonly {
 }[] = [
   {
     phase: 1,
-    title: "Semana 1 • Reclutamiento y Personal",
+    title: "Semana 1 • Reclutamiento, Personal y Asistencia",
     subtitle: "Fase Inicial (Core)",
-    description: "Vacantes, postulantes (ATS), plantilla de empleados, áreas y perfil corporativo.",
+    description: "Vacantes, postulantes (ATS), plantilla de empleados, checador QR, áreas y perfil.",
   },
   {
     phase: 2,
-    title: "Semana 2 • Operaciones y Asistencia",
-    subtitle: "+ Control Horario",
-    description: "Desbloquea checador QR, vacaciones/permisos LFT e incidencias laborales.",
+    title: "Semana 2 • Vacaciones e Incidencias",
+    subtitle: "+ Operaciones LFT",
+    description: "Desbloquea vacaciones/permisos LFT e incidencias laborales.",
   },
   {
     phase: 3,
