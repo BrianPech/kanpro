@@ -1042,7 +1042,8 @@ export class CompanyContractService {
     input: CreateContractInput
   ): Promise<{ contractId: string; folio: string }> {
     const folio =
-      input.folio || `KAN-CTR-${new Date().getFullYear()}-${Math.floor(100 + Math.random() * 900)}`;
+      input.folio ||
+      `KAN-CTR-${new Date().getFullYear()}-${crypto.randomBytes(4).toString("hex").toUpperCase()}`;
 
     const initialStatus =
       input.status ||
@@ -1135,18 +1136,18 @@ export class CompanyContractService {
     input: SignContractInput,
     clientIp?: string
   ): Promise<void> {
+    if (input.signerRole !== "representante_legal") {
+      throw new Error(
+        "La firma del trabajador debe ser registrada exclusivamente por el colaborador desde su portal."
+      );
+    }
+
     const now = new Date().toISOString();
     const updates: CompanyContractUpdate = {
       updated_at: now,
+      company_signed: true,
+      company_signature_url: input.signatureUrl,
     };
-
-    if (input.signerRole === "representante_legal") {
-      updates.company_signed = true;
-      updates.company_signature_url = input.signatureUrl;
-    } else {
-      updates.employee_signed = true;
-      updates.employee_signature_url = input.signatureUrl;
-    }
 
     if (input.isNowFullySigned) {
       updates.status = "vigente";

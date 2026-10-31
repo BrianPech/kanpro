@@ -8,10 +8,6 @@ import {
   updateSubscriptionPlanSchema,
   updateCompanyBranchesSchema,
   getCompanyInvoicesSchema,
-  type ToggleGlobalRecruitmentInput,
-  type UpdateContactChannelInput,
-  type UpdateSubscriptionPlanInput,
-  type UpdateCompanyBranchesInput,
   type BranchGeofenceInput,
 } from "../schemas/settings.schema";
 import {
@@ -157,6 +153,14 @@ export async function updateSubscriptionPlan(
     return {
       success: false,
       error: "No tienes permisos para modificar la suscripción de esta empresa.",
+    };
+  }
+
+  if (parsed.data.plan !== "basic") {
+    return {
+      success: false,
+      error:
+        "Las actualizaciones a planes de pago (Pro / Enterprise) requieren un pago verificado por la pasarela de facturación.",
     };
   }
 

@@ -1,6 +1,6 @@
 "use server";
 
-import { createClient } from "@/lib/supabase/server";
+import { requireAdminAuth } from "@/lib/auth/require-admin";
 import { revalidatePath } from "next/cache";
 import type {
   VacancyReportItem,
@@ -8,32 +8,8 @@ import type {
   ReportStatus,
 } from "@/modules/admin/types/moderation";
 
-async function requireAdminAuth() {
-  const supabase = await createClient();
-
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  if (!user) {
-    throw new Error("No autenticado. Por favor inicie sesión.");
-  }
-
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("role")
-    .eq("id", user.id)
-    .maybeSingle();
-
-  if (!profile || profile.role !== "admin") {
-    throw new Error("Acceso denegado: Se requieren permisos de administrador.");
-  }
-
-  return { supabase, user };
-}
-
 export async function getVacancyReports(): Promise<VacancyReportItem[]> {
-  const { supabase } = await requireAdminAuth();
+  const { supabase } = await requireAdminAuth({ requiredPermission: "manage_vacancies" });
 
   const { data: reports, error } = await supabase
     .from("vacancy_reports")

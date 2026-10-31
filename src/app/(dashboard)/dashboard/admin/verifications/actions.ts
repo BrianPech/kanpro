@@ -1,6 +1,7 @@
 "use server";
 
-import { createClient } from "@/lib/supabase/server";
+import type { createClient } from "@/lib/supabase/server";
+import { requireAdminAuth } from "@/lib/auth/require-admin";
 import { revalidatePath } from "next/cache";
 import type { Database } from "@/types/supabase";
 
@@ -70,14 +71,6 @@ async function batchToAdminDocumentItems(
   });
 }
 
-async function toAdminDocumentItem(
-  supabase: Awaited<ReturnType<typeof createClient>>,
-  doc: ProfileDocumentRow
-): Promise<ProfileDocumentItem> {
-  const items = await batchToAdminDocumentItems(supabase, [doc]);
-  return items[0];
-}
-
 export interface PendingCompanyItem {
   id: string;
   companyName: string;
@@ -138,30 +131,6 @@ export interface PendingCandidateItem {
   createdAt: string;
 }
 
-async function requireAdminAuth() {
-  const supabase = await createClient();
-
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  if (!user) {
-    throw new Error("No autenticado. Por favor inicie sesión.");
-  }
-
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("role")
-    .eq("id", user.id)
-    .maybeSingle();
-
-  if (!profile || profile.role !== "admin") {
-    throw new Error("Acceso denegado: Se requieren permisos de administrador.");
-  }
-
-  return { supabase, user };
-}
-
 /**
  * Genera una URL firmada o pública desde Supabase Storage para un archivo.
  */
@@ -169,7 +138,7 @@ export async function getSignedDocumentUrl(bucket: string, path: string): Promis
   if (!path) return "";
   if (path.startsWith("http://") || path.startsWith("https://")) return path;
 
-  const { supabase } = await requireAdminAuth();
+  const { supabase } = await requireAdminAuth({ requiredPermission: "verify_documents" });
   const { data } = await supabase.storage.from(bucket).createSignedUrl(path, 600);
   return data?.signedUrl || "";
 }
@@ -178,7 +147,7 @@ export async function getSignedDocumentUrl(bucket: string, path: string): Promis
  * Consulta la lista de empresas para auditoría de expediente fiscal y legal desde Supabase (incluyendo profile_documents).
  */
 export async function getCompanyVerifications(): Promise<PendingCompanyItem[]> {
-  const { supabase } = await requireAdminAuth();
+  const { supabase } = await requireAdminAuth({ requiredPermission: "verify_documents" });
 
   const { data: companies, error } = await supabase
     .from("company_profiles")
@@ -265,7 +234,7 @@ export async function getCompanyVerifications(): Promise<PendingCompanyItem[]> {
  * Consulta el expediente completo de una empresa específica por su ID.
  */
 export async function getCompanyVerificationById(companyId: string): Promise<PendingCompanyItem | null> {
-  const { supabase } = await requireAdminAuth();
+  const { supabase } = await requireAdminAuth({ requiredPermission: "verify_documents" });
 
   const [companyRes, dbDocsRes] = await Promise.all([
     supabase
@@ -341,7 +310,7 @@ export async function getCompanyVerificationById(companyId: string): Promise<Pen
  * Consulta el expediente completo de un candidato específico por su ID.
  */
 export async function getCandidateVerificationById(candidateId: string): Promise<PendingCandidateItem | null> {
-  const { supabase } = await requireAdminAuth();
+  const { supabase } = await requireAdminAuth({ requiredPermission: "verify_documents" });
 
   const [candidateRes, privateProfileRes, dbDocsRes] = await Promise.all([
     supabase
@@ -420,7 +389,7 @@ export async function getCandidateVerificationById(candidateId: string): Promise
  * Consulta la lista de candidatos para auditoría de expedientes profesionales desde Supabase (incluyendo profile_documents).
  */
 export async function getCandidateVerifications(): Promise<PendingCandidateItem[]> {
-  const { supabase } = await requireAdminAuth();
+  const { supabase } = await requireAdminAuth({ requiredPermission: "verify_documents" });
 
   const { data: candidateProfiles, error } = await supabase
     .from("candidate_profiles")
@@ -514,7 +483,7 @@ export async function reviewCompanyVerification(
   newStatus: "approved" | "rejected" | "requires_revision",
   notes?: string
 ) {
-  const { supabase } = await requireAdminAuth();
+  const { supabase } = await requireAdminAuth({ requiredPermission: "verify_documents" });
 
   const isVerified = newStatus === "approved";
 
@@ -585,7 +554,7 @@ export async function reviewCandidateVerification(
   isVerified: boolean,
   notes?: string
 ) {
-  const { supabase } = await requireAdminAuth();
+  const { supabase } = await requireAdminAuth({ requiredPermission: "verify_documents" });
 
   const { error: profileErr } = await supabase
     .from("profiles")
@@ -635,7 +604,7 @@ export async function reviewProfileDocument(
   status: "approved" | "rejected",
   notes?: string
 ) {
-  const { supabase } = await requireAdminAuth();
+  const { supabase } = await requireAdminAuth({ requiredPermission: "verify_documents" });
   const { error } = await supabase
     .from("profile_documents")
     .update({ status, rejection_reason: status === "rejected" ? notes?.trim() || "Documento rechazado por el equipo de verificación." : null, updated_at: new Date().toISOString() })

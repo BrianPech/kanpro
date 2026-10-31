@@ -1,34 +1,10 @@
 "use server";
 
-import { createClient } from "@/lib/supabase/server";
+import { requireAdminAuth } from "@/lib/auth/require-admin";
 import { revalidatePath } from "next/cache";
 
-async function requireAdminAuth() {
-  const supabase = await createClient();
-
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  if (!user) {
-    throw new Error("No autenticado. Por favor inicie sesión.");
-  }
-
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("role")
-    .eq("id", user.id)
-    .maybeSingle();
-
-  if (!profile || profile.role !== "admin") {
-    throw new Error("Acceso denegado: Se requieren permisos de administrador.");
-  }
-
-  return { supabase, user };
-}
-
 export async function updateUserRole(userId: string, newRole: "admin" | "candidate" | "company") {
-  const { supabase, user } = await requireAdminAuth();
+  const { supabase, user } = await requireAdminAuth({ requiredPermission: "manage_users" });
 
   if (userId === user.id && newRole !== "admin") {
     throw new Error("No puede revocar sus propios permisos de administrador.");

@@ -114,13 +114,19 @@ export class CompanyAttendanceService {
   ): Promise<MobileCheckInResult> {
     const { data: employee, error: empError } = await this.supabase
       .from("company_employees")
-      .select("id, company_id, full_name, work_schedule, department, job_title")
+      .select("id, company_id, employee_id, full_name, work_schedule, department, job_title")
       .eq("id", input.employeeId)
       .single();
 
-    if (empError || !employee || employee.company_id !== companyId) {
+    if (
+      empError ||
+      !employee ||
+      (employee.company_id !== companyId && employee.employee_id !== companyId)
+    ) {
       throw new Error("Colaborador no encontrado en la plantilla de la empresa.");
     }
+
+    const effectiveCompanyId = employee.company_id;
 
     // Doble Factor: Si el método es 'qr', validar token y geocerca GPS
     if (input.method === "qr") {
@@ -156,7 +162,7 @@ export class CompanyAttendanceService {
     const { data: existing } = await this.supabase
       .from("company_attendance")
       .select("*")
-      .eq("company_id", companyId)
+      .eq("company_id", effectiveCompanyId)
       .eq("employee_id", employee.id)
       .eq("work_date", workDate)
       .maybeSingle();

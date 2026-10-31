@@ -655,27 +655,36 @@ describe("Fase 18: Gestión de Colaboradores y Contratos - Patrón Schema -> Han
       expect(contracts[0].status).toBe("vigente");
     });
 
-    test("signContract: Registra firma digital y pasa a vigente si está completamente firmado", async () => {
+    test("signContract: Registra firma digital del representante legal y pasa a vigente si está completamente firmado", async () => {
       const { client, contracts } = createMockSupabase();
       contracts.push({
         id: "ctr-201",
         company_id: "comp-1",
         status: "en_firma",
-        company_signed: true,
-        employee_signed: false,
+        company_signed: false,
+        employee_signed: true,
       });
 
       await CompanyContractService.signContract(client, "comp-1", {
         contractId: "ctr-201",
-        signerRole: "trabajador",
+        signerRole: "representante_legal",
         signatureUrl: "data:image/png;base64,signature123",
         isNowFullySigned: true,
       });
 
       const updated = contracts.find((c) => c.id === "ctr-201");
-      expect(updated?.employee_signed).toBe(true);
-      expect(updated?.employee_signature_url).toBe("data:image/png;base64,signature123");
+      expect(updated?.company_signed).toBe(true);
+      expect(updated?.company_signature_url).toBe("data:image/png;base64,signature123");
       expect(updated?.status).toBe("vigente");
+
+      await expect(
+        CompanyContractService.signContract(client, "comp-1", {
+          contractId: "ctr-201",
+          signerRole: "trabajador",
+          signatureUrl: "data:image/png;base64,signature123",
+          isNowFullySigned: true,
+        })
+      ).rejects.toThrow("La firma del trabajador debe ser registrada exclusivamente");
     });
 
     test("renewContract: Modifica tipo y fecha fin del contrato", async () => {

@@ -127,7 +127,7 @@ describe("[REAL INTEGRATION] 07 - Company Contracts & Mexican Payroll Engine wit
       isNowFullySigned: false,
     });
 
-    let { data: step1 } = await admin
+    const { data: step1 } = await admin
       .from("company_contracts")
       .select("company_signed, employee_signed, status")
       .eq("id", contract1Id)
@@ -136,15 +136,27 @@ describe("[REAL INTEGRATION] 07 - Company Contracts & Mexican Payroll Engine wit
     expect(step1?.company_signed).toBe(true);
     expect(step1?.employee_signed).toBe(false);
 
-    // Step B: Employee signs and contract becomes fully executed
-    await CompanyContractService.signContract(clientA, companyA.id, {
-      contractId: contract1Id,
-      signerRole: "trabajador",
-      signatureUrl: "https://kanpro.storage.local/signatures/emp-sig-01.png",
-      isNowFullySigned: true,
-    });
+    // Step B: Verify company cannot forge employee signature via CompanyContractService
+    await expect(
+      CompanyContractService.signContract(clientA, companyA.id, {
+        contractId: contract1Id,
+        signerRole: "trabajador",
+        signatureUrl: "https://kanpro.storage.local/signatures/emp-sig-01.png",
+        isNowFullySigned: true,
+      })
+    ).rejects.toThrow("La firma del trabajador debe ser registrada exclusivamente");
 
-    let { data: step2 } = await admin
+    // Record employee signature (simulating candidate portal completion)
+    await admin
+      .from("company_contracts")
+      .update({
+        employee_signed: true,
+        employee_signature_url: "https://kanpro.storage.local/signatures/emp-sig-01.png",
+        status: "vigente",
+      })
+      .eq("id", contract1Id);
+
+    const { data: step2 } = await admin
       .from("company_contracts")
       .select("company_signed, employee_signed, status, company_signature_url, employee_signature_url")
       .eq("id", contract1Id)

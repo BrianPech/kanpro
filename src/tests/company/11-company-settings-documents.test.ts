@@ -596,10 +596,22 @@ describe("Fase 20: Flujos Finales - Acceso a Documentos y Configuración de Empr
       expect(companyProfiles[0].contact_channel).toBe("whatsapp");
     });
 
-    test("updateSubscriptionPlan: Asigna beneficios de Plan PRO y genera factura", async () => {
+    test("updateSubscriptionPlan: Rechaza upgrade directo a planes de pago sin ID de transacción verificado y permite cuando está verificado", async () => {
       const { client, companyProfiles, invoices } = createMockSettingsSupabase();
 
-      const res = await CompanySettingsService.updateSubscriptionPlan(client, "comp-1", "pro");
+      await expect(
+        CompanySettingsService.updateSubscriptionPlan(client, "comp-1", "pro")
+      ).rejects.toThrow(/ID de transacción verificado/i);
+
+      await expect(
+        CompanySettingsService.updateSubscriptionPlan(client, "comp-1", "enterprise")
+      ).rejects.toThrow(/ID de transacción verificado/i);
+      expect(invoices.length).toBe(0);
+
+      // Con transacción verificada por webhook sí procede y registra factura
+      const res = await CompanySettingsService.updateSubscriptionPlan(client, "comp-1", "pro", {
+        verifiedTransactionId: "tx_stripe_verified_999",
+      });
 
       expect(res.success).toBe(true);
       expect(res.featuredAllowance).toBe(3);
@@ -609,6 +621,12 @@ describe("Fase 20: Flujos Finales - Acceso a Documentos y Configuración de Empr
       expect(invoices.length).toBe(1);
       expect(invoices[0].amount).toBe(1499.0);
       expect(invoices[0].plan_name).toBe("Plan PRO Mensual");
+
+      // Downgrade a basic funciona sin ID de transacción y sin factura adicional
+      const basicRes = await CompanySettingsService.updateSubscriptionPlan(client, "comp-1", "basic");
+      expect(basicRes.success).toBe(true);
+      expect(companyProfiles[0].subscription_plan).toBe("basic");
+      expect(invoices.length).toBe(1);
     });
 
     test("updateCompanyBranches & getCompanyBranches: Persiste sucursales con geocercas GPS", async () => {

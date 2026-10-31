@@ -69,12 +69,22 @@ export class CompanySettingsService {
 
   /**
    * Actualiza el plan de suscripción de la empresa, calcula vigencia y genera factura contable.
+   * Los planes de pago ("pro" | "enterprise") requieren un ID de transacción verificado.
    */
   static async updateSubscriptionPlan(
     supabase: SupabaseClient<Database>,
     companyId: string,
-    plan: "basic" | "pro" | "enterprise"
+    plan: "basic" | "pro" | "enterprise",
+    options?: { verifiedTransactionId?: string }
   ): Promise<UpdateSubscriptionPlanResult> {
+    const verifiedTransactionId = options?.verifiedTransactionId?.trim();
+
+    if (plan !== "basic" && !verifiedTransactionId) {
+      throw new Error(
+        "No se permite activar planes de pago sin un ID de transacción verificado por el proveedor de pagos."
+      );
+    }
+
     const planConfig = getSubscriptionPlan(plan);
     const featuredAllowance = planConfig.featuredVacanciesAllowance;
     const planPrice = planConfig.price;
@@ -99,15 +109,15 @@ export class CompanySettingsService {
       throw new Error("No se pudo actualizar el plan de suscripción.");
     }
 
-    // Registrar factura contable si el precio es mayor a cero
-    if (planPrice > 0) {
+    // Registrar factura contable como 'paid' únicamente si existe una transacción de pago verificada
+    if (planPrice > 0 && verifiedTransactionId) {
       await supabase.from("company_invoices").insert({
         company_id: companyId,
         plan_name: planName,
         amount: planPrice,
         currency: "MXN",
         status: "paid",
-        payment_method: "Tarjeta / Suscripción Activa",
+        payment_method: `Transacción Verificada (${verifiedTransactionId})`,
       });
     }
 

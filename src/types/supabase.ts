@@ -1099,6 +1099,9 @@ isOneToOne: true
           Functions: {
             "notify_candidate_contact":
 { Args: { "p_candidate_id": string,"p_company_name": string,"p_vacancy_title": string }; Returns: undefined
+                           },
+            "sign_employee_contract":
+{ Args: { "p_contract_id": string,"p_signature_url": string,"p_notes"?: string | null }; Returns: Json
                            }
           }
           Enums: {

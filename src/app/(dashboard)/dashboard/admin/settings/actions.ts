@@ -1,33 +1,9 @@
 "use server";
 
-import { createClient } from "@/lib/supabase/server";
+import { requireAdminAuth } from "@/lib/auth/require-admin";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import type { Json } from "@/types/supabase";
-
-export async function requireAdminAuth() {
-  const supabase = await createClient();
-
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  if (!user) {
-    throw new Error("No autenticado. Por favor inicie sesión.");
-  }
-
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("role")
-    .eq("id", user.id)
-    .maybeSingle();
-
-  if (!profile || profile.role !== "admin") {
-    throw new Error("Acceso denegado: Se requieren permisos de administrador.");
-  }
-
-  return { supabase, user };
-}
 
 export type SystemSettingsMap = {
   general?: {
@@ -50,11 +26,11 @@ export type SystemSettingsMap = {
     cvRetentionMonths: number;
     autoAnonymizeRejected: boolean;
   };
-  [key: string]: any;
+  [key: string]: unknown;
 };
 
 export async function getSystemSettings(): Promise<SystemSettingsMap> {
-  const { supabase } = await requireAdminAuth();
+  const { supabase } = await requireAdminAuth({ requiredPermission: "system_settings" });
 
   const { data, error } = await supabase
     .from("system_settings")
@@ -80,7 +56,7 @@ export const systemSettingsSchema = z.record(
 );
 
 export async function saveSystemSettings(settings: Record<string, unknown>) {
-  const { supabase, user } = await requireAdminAuth();
+  const { supabase, user } = await requireAdminAuth({ requiredPermission: "system_settings" });
 
   const parsed = systemSettingsSchema.safeParse(settings);
   if (!parsed.success) {

@@ -1,5 +1,7 @@
-import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { requireAdminAuth } from "@/lib/auth/require-admin";
+
+export { requireAdminAuth };
 
 export interface CompanyDiagnosticProfile {
   id: string;
@@ -175,31 +177,11 @@ export interface CompanyFullDiagnostic {
   };
 }
 
-/**
- * Validates that the current user has administrator privileges.
- */
-export async function requireAdminAuth() {
-  const supabase = await createClient();
-
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  if (!user) {
-    throw new Error("No autenticado. Por favor inicie sesión.");
+function applyBoundedLimit<T>(query: T, maxRows: number): T {
+  if (query && typeof (query as { limit?: unknown }).limit === "function") {
+    return (query as unknown as { limit: (n: number) => T }).limit(maxRows);
   }
-
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("role")
-    .eq("id", user.id)
-    .maybeSingle();
-
-  if (!profile || profile.role !== "admin") {
-    throw new Error("Acceso denegado: Se requieren permisos de administrador.");
-  }
-
-  return { supabase, user };
+  return query;
 }
 
 /**
@@ -208,7 +190,7 @@ export async function requireAdminAuth() {
 export async function getCompanyFullDiagnostic(
   companyId: string
 ): Promise<CompanyFullDiagnostic | null> {
-  await requireAdminAuth();
+  await requireAdminAuth({ requiredPermission: "manage_companies" });
   const adminClient = createAdminClient();
 
   // 1. Fetch Company Profile and Auth/Profile details concurrently
@@ -238,8 +220,9 @@ export async function getCompanyFullDiagnostic(
   }
 
   // 2. Fetch Vacancies, Employees, Invitations, Attendance, Contracts, Payrolls, Tickets, and Documents
+  // Using exact SQL counts and bounded row limits to avoid loading entire tables into Node memory
   const [
-    { data: rawVacancies },
+    { data: rawVacancies, count: totalVacanciesCount },
     { data: rawEmployees },
     { data: rawInvitations },
     { data: rawAttendance, count: totalAttendanceCount },
@@ -248,66 +231,127 @@ export async function getCompanyFullDiagnostic(
     { data: rawTickets },
     { count: auditDocsCount },
   ] = await Promise.all([
-    adminClient
-      .from("vacancies")
-      .select("*")
-      .eq("company_id", companyId)
-      .order("created_at", { ascending: false }),
-    adminClient
-      .from("company_employees")
-      .select("*")
-      .eq("company_id", companyId)
-      .order("created_at", { ascending: false }),
-    adminClient
-      .from("employee_invitations")
-      .select("*")
-      .eq("company_id", companyId)
-      .order("created_at", { ascending: false }),
+    applyBoundedLimit(
+      adminClient
+        .from("vacancies")
+        .select(
+          "id, title, category, location, modality, employment_type, status, is_active, salary_min, salary_max, currency, created_at",
+          { count: "exact" }
+        )
+        .eq("company_id", companyId)
+        .order("created_at", { ascending: false }),
+      50
+    ),
+    applyBoundedLimit(
+      adminClient
+        .from("company_employees")
+        .select(
+          "id, full_name, job_title, department, employee_code, email, phone, status, hire_date, base_salary_monthly, avatar_url",
+          { count: "exact" }
+        )
+        .eq("company_id", companyId)
+        .order("created_at", { ascending: false }),
+      100
+    ),
+    applyBoundedLimit(
+      adminClient
+        .from("employee_invitations")
+        .select(
+          "id, email, full_name, position, status, contract_type, salary, expires_at, created_at, accepted_at",
+          { count: "exact" }
+        )
+        .eq("company_id", companyId)
+        .order("created_at", { ascending: false }),
+      100
+    ),
     adminClient
       .from("company_attendance")
       .select("*", { count: "exact" })
       .eq("company_id", companyId)
       .order("work_date", { ascending: false })
       .limit(25),
-    adminClient
-      .from("company_contracts")
-      .select("*")
-      .eq("company_id", companyId)
-      .order("created_at", { ascending: false }),
-    adminClient
-      .from("company_payrolls")
-      .select("*")
-      .eq("company_id", companyId)
-      .order("payout_date", { ascending: false }),
-    adminClient
-      .from("support_tickets")
-      .select("*")
-      .eq("user_id", companyId)
-      .order("created_at", { ascending: false }),
+    applyBoundedLimit(
+      adminClient
+        .from("company_contracts")
+        .select(
+          "id, folio, job_title, contract_type, department, salary, start_date, end_date, company_signed, employee_signed, status, created_at",
+          { count: "exact" }
+        )
+        .eq("company_id", companyId)
+        .order("created_at", { ascending: false }),
+      50
+    ),
+    applyBoundedLimit(
+      adminClient
+        .from("company_payrolls")
+        .select(
+          "id, period_name, period_type, start_date, end_date, payout_date, status, employees_count, total_gross, total_net",
+          { count: "exact" }
+        )
+        .eq("company_id", companyId)
+        .order("payout_date", { ascending: false }),
+      50
+    ),
+    applyBoundedLimit(
+      adminClient
+        .from("support_tickets")
+        .select(
+          "id, ticket_number, subject, description, category, priority, status, created_at, updated_at",
+          { count: "exact" }
+        )
+        .eq("user_id", companyId)
+        .order("created_at", { ascending: false }),
+      50
+    ),
     adminClient
       .from("profile_documents")
       .select("*", { count: "exact", head: true })
       .eq("owner_id", companyId),
   ]);
 
-  // 3. Applications count associated with those vacancies
+  // 3. Applications count associated with those vacancies using exact count / bounded aggregation
   const vacancyList = rawVacancies || [];
   const vacancyIds = vacancyList.map((v) => v.id);
   const applicationsByVacancy: Record<string, number> = {};
   let totalApplicationsCount = 0;
 
   if (vacancyIds.length > 0) {
-    const { data: rawApps } = await adminClient
+    const appCountProbe = adminClient
       .from("applications")
-      .select("id, vacancy_id")
-      .in("vacancy_id", vacancyIds);
+      .select("*", { count: "exact", head: true }) as unknown as {
+      eq?: (col: string, val: string) => Promise<{ count?: number | null }>;
+      in?: (
+        col: string,
+        vals: string[]
+      ) => Promise<{ data?: Array<{ id?: string; vacancy_id: string }> | null; count?: number | null }>;
+    };
 
-    if (rawApps) {
-      totalApplicationsCount = rawApps.length;
-      rawApps.forEach((app) => {
-        applicationsByVacancy[app.vacancy_id] =
-          (applicationsByVacancy[app.vacancy_id] || 0) + 1;
-      });
+    if (typeof appCountProbe.eq === "function") {
+      const perVacancyCounts = await Promise.all(
+        vacancyIds.map(async (vId) => {
+          const { count } = await (
+            adminClient
+              .from("applications")
+              .select("*", { count: "exact", head: true }) as unknown as {
+              eq: (col: string, val: string) => Promise<{ count?: number | null }>;
+            }
+          ).eq("vacancy_id", vId);
+          return { vId, count: count ?? 0 };
+        })
+      );
+      for (const item of perVacancyCounts) {
+        applicationsByVacancy[item.vId] = item.count;
+        totalApplicationsCount += item.count;
+      }
+    } else if (typeof appCountProbe.in === "function") {
+      const { data: rawApps, count } = await appCountProbe.in("vacancy_id", vacancyIds);
+      if (rawApps) {
+        totalApplicationsCount = count ?? rawApps.length;
+        rawApps.forEach((app) => {
+          applicationsByVacancy[app.vacancy_id] =
+            (applicationsByVacancy[app.vacancy_id] || 0) + 1;
+        });
+      }
     }
   }
 
@@ -554,7 +598,7 @@ export async function getCompanyFullDiagnostic(
     company: companyDiagnosticProfile,
     vacancies: {
       list: formattedVacancies,
-      totalCount: formattedVacancies.length,
+      totalCount: totalVacanciesCount ?? formattedVacancies.length,
       activeCount,
       pausedCount,
       closedCount,

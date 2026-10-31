@@ -392,14 +392,26 @@ describe("Admin Company Support & System Settings Test Suite", () => {
   // ==========================================================================
   describe("Test 4: getDashboardSession impersonation", () => {
     test("respects impersonation cookie when caller is authenticated admin", async () => {
+      const crypto = await import("crypto");
       const adminUserId = "admin-executor-99";
       const impersonatedCompanyId = "comp-impersonated-88";
+      const secret =
+        process.env.AUTH_SECRET ||
+        process.env.IMPERSONATION_SECRET ||
+        process.env.NEXTAUTH_SECRET ||
+        process.env.SUPABASE_SERVICE_ROLE_KEY ||
+        "kanpro-dev-impersonation-hmac-secret";
+      const validSig = crypto
+        .createHmac("sha256", secret)
+        .update(`${adminUserId}:${impersonatedCompanyId}:company`)
+        .digest("hex");
 
-      // Mock cookies with impersonation data
+      // Mock cookies with signed impersonation data
       vi.doMock("next/headers", () => ({
         cookies: vi.fn().mockResolvedValue({
           get: vi.fn((key: string) => {
             if (key === "kanpro_impersonate_user_id") return { value: impersonatedCompanyId };
+            if (key === "kanpro_impersonate_sig") return { value: validSig };
             if (key === "kanpro_impersonate_user_role") return { value: "company" };
             if (key === "kanpro_impersonate_user_name") return { value: "Empresa Aliada Impersonada" };
             if (key === "kanpro_impersonate_user_email") return { value: "admin-acting@aliada.mx" };

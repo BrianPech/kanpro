@@ -287,16 +287,41 @@ export class CandidateContractsService {
     // 2. Actualizar contrato con la firma del empleado y sello de auditoría de red
     const auditLog = clientIp ? `[Sello Digital Colaborador] IP: ${clientIp} | Fecha: ${now}` : undefined;
 
-    const { error: updateErr } = await supabase
-      .from("company_contracts")
-      .update({
-        employee_signed: true,
-        employee_signature_url: input.signatureData,
-        status: "vigente",
-        ...(auditLog ? { notes: auditLog } : {}),
-        updated_at: now,
-      })
-      .eq("id", input.contractId);
+    let updateErr: { message?: string; code?: string } | null = null;
+    if (typeof supabase.rpc === "function") {
+      const rpcRes = await supabase.rpc("sign_employee_contract", {
+        p_contract_id: input.contractId,
+        p_signature_url: input.signatureData,
+        p_notes: auditLog ?? null,
+      });
+      if (rpcRes?.error && rpcRes.error.code !== "PGRST202") {
+        updateErr = rpcRes.error;
+      } else if (!rpcRes || rpcRes.error?.code === "PGRST202") {
+        const fallbackRes = await supabase
+          .from("company_contracts")
+          .update({
+            employee_signed: true,
+            employee_signature_url: input.signatureData,
+            status: "vigente",
+            ...(auditLog ? { notes: auditLog } : {}),
+            updated_at: now,
+          })
+          .eq("id", input.contractId);
+        updateErr = fallbackRes.error;
+      }
+    } else {
+      const fallbackRes = await supabase
+        .from("company_contracts")
+        .update({
+          employee_signed: true,
+          employee_signature_url: input.signatureData,
+          status: "vigente",
+          ...(auditLog ? { notes: auditLog } : {}),
+          updated_at: now,
+        })
+        .eq("id", input.contractId);
+      updateErr = fallbackRes.error;
+    }
 
     if (updateErr) {
       console.error("Error signing candidate contract:", updateErr);

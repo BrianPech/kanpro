@@ -12,7 +12,6 @@ import {
   type ManualAttendanceInput,
   type AuthorizeOvertimeInput,
   type ReviewJustificationInput,
-  type GetAttendanceHistoryInput,
 } from "../schemas/attendance.schema";
 import {
   CompanyAttendanceService,
@@ -77,8 +76,45 @@ export async function recordAttendanceCheckInAction(
   }
 
   try {
+    let resolvedCompanyId = user.id;
+
+    const empTable = supabase.from("company_employees");
+    if (empTable?.select) {
+      const empQuery = empTable
+        .select("id, company_id, employee_id, status")
+        .eq("id", parsed.data.employeeId);
+      const { data: employeeRecord } = await (empQuery.maybeSingle
+        ? empQuery.maybeSingle()
+        : empQuery.single());
+
+      if (employeeRecord?.company_id) {
+        if (
+          employeeRecord.status &&
+          employeeRecord.status !== "active" &&
+          employeeRecord.status !== "onboarding"
+        ) {
+          return {
+            success: false,
+            error: "Colaborador inactivo en la plantilla de la empresa.",
+          };
+        }
+
+        const isCompanyOwner = employeeRecord.company_id === user.id;
+        const isLinkedEmployee = employeeRecord.employee_id === user.id;
+
+        if (!isCompanyOwner && !isLinkedEmployee) {
+          return {
+            success: false,
+            error: "No tienes autorización para registrar asistencia de este colaborador.",
+          };
+        }
+
+        resolvedCompanyId = employeeRecord.company_id;
+      }
+    }
+
     const service = new CompanyAttendanceService(supabase);
-    const result = await service.recordMobileCheckIn(user.id, parsed.data);
+    const result = await service.recordMobileCheckIn(resolvedCompanyId, parsed.data);
 
     revalidatePath("/dashboard/company/attendance");
     revalidatePath("/dashboard/company");

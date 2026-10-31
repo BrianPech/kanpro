@@ -1,32 +1,70 @@
 "use server";
 
-import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { requireAdminAuth } from "@/lib/auth/require-admin";
 import { revalidatePath } from "next/cache";
 import type { AdminSubRole, AdminStaffStatus, AdminPermissionKey, AdminStaffItem } from "@/modules/admin/types/staff";
 
-async function requireAdminAuth() {
-  const supabase = await createClient();
+async function ensureNotLastActiveSuperAdmin(
+  supabaseAdmin: ReturnType<typeof createAdminClient>,
+  targetProfileId: string
+): Promise<void> {
+  const staffTable = supabaseAdmin.from("admin_staff_members") as unknown as {
+    select?: (cols: string) => {
+      eq?: (col: string, val: string) => unknown;
+      then?: unknown;
+    };
+  };
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  if (!user) {
-    throw new Error("No autenticado. Por favor inicie sesión.");
+  if (!staffTable || typeof staffTable.select !== "function") {
+    return;
   }
 
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("role")
-    .eq("id", user.id)
-    .maybeSingle();
-
-  if (!profile || profile.role !== "admin") {
-    throw new Error("Acceso denegado: Se requieren permisos de administrador.");
+  const selectQuery = staffTable.select("profile_id, sub_role, status");
+  if (!selectQuery) {
+    return;
   }
 
-  return { supabase, user };
+  let rows: Array<{ profile_id?: string; sub_role?: string; status?: string }> | null = null;
+
+  if (typeof (selectQuery as { then?: unknown }).then === "function") {
+    const res = await (selectQuery as unknown as Promise<{
+      data?: Array<{ profile_id?: string; sub_role?: string; status?: string }>;
+    }>);
+    rows = res?.data || null;
+  } else if (typeof selectQuery.eq === "function") {
+    const eqRes = selectQuery.eq("sub_role", "super_admin") as {
+      eq?: (col: string, val: string) => Promise<{
+        data?: Array<{ profile_id?: string; sub_role?: string; status?: string }>;
+      }>;
+      then?: unknown;
+    };
+    if (eqRes && typeof eqRes.eq === "function") {
+      const finalRes = await eqRes.eq("status", "active");
+      rows = finalRes?.data || null;
+    } else if (eqRes && typeof eqRes.then === "function") {
+      const finalRes = await (eqRes as unknown as Promise<{
+        data?: Array<{ profile_id?: string; sub_role?: string; status?: string }>;
+      }>);
+      rows = finalRes?.data || null;
+    }
+  }
+
+  if (Array.isArray(rows)) {
+    const activeSuperAdmins = rows.filter(
+      (s) =>
+        (s.sub_role === "super_admin" || !("sub_role" in s)) &&
+        (s.status === "active" || !("status" in s))
+    );
+    const isTargetActiveSuperAdmin = activeSuperAdmins.some(
+      (s) => s.profile_id === targetProfileId
+    );
+    if (isTargetActiveSuperAdmin && activeSuperAdmins.length <= 1) {
+      throw new Error(
+        "Operación denegada: No se puede eliminar ni degradar al único Super Administrador activo."
+      );
+    }
+  }
 }
 
 export async function getAdminStaffMembers(): Promise<AdminStaffItem[]> {
@@ -60,18 +98,14 @@ export async function getAdminStaffMembers(): Promise<AdminStaffItem[]> {
       name: p.full_name || "Administrador K'anPro",
       email: p.email,
       whatsappNumber: p.whatsapp_number || "",
-      subRole: (s?.sub_role as AdminSubRole) || "super_admin",
-      department: s?.department || "Dirección General",
-      permissions: (s?.permissions as AdminPermissionKey[]) || [
-        "manage_users",
-        "manage_companies",
-        "verify_documents",
-        "manage_vacancies",
-        "analytics_access",
-        "system_settings",
-      ],
-      status: (s?.status as AdminStaffStatus) || "active",
-      notes: s?.notes || "Personal registrado",
+      // Fail-closed: orphan admins without record in admin_staff_members get suspended status and empty permissions
+      subRole: (s?.sub_role as AdminSubRole) || "ops_admin",
+      department: s?.department || "Sin asignar",
+      permissions: Array.isArray(s?.permissions)
+        ? (s.permissions as AdminPermissionKey[])
+        : [],
+      status: (s?.status as AdminStaffStatus) || "suspended",
+      notes: s?.notes || "Sin registro activo de staff",
       avatar: p.avatar_url || "",
       createdAt: p.created_at
         ? new Date(p.created_at).toLocaleDateString("es-ES", {
@@ -95,7 +129,7 @@ export async function createAdminStaffMember(formData: {
   permissions: AdminPermissionKey[];
   notes?: string;
 }) {
-  await requireAdminAuth();
+  await requireAdminAuth({ requireSuperAdmin: true });
 
   const cleanEmail = formData.email.trim().toLowerCase();
   const cleanName = formData.name.trim();
@@ -262,8 +296,12 @@ export async function updateAdminStaffMember(
     notes?: string;
   }
 ) {
-  await requireAdminAuth();
+  await requireAdminAuth({ requireSuperAdmin: true });
   const supabaseAdmin = createAdminClient();
+
+  if (formData.subRole !== "super_admin" || formData.status !== "active") {
+    await ensureNotLastActiveSuperAdmin(supabaseAdmin, profileId);
+  }
 
   // Update profile basic info
   const { error: profileErr } = await supabaseAdmin
@@ -305,8 +343,12 @@ export async function updateAdminStaffMember(
 }
 
 export async function toggleAdminStaffStatus(profileId: string, status: AdminStaffStatus) {
-  await requireAdminAuth();
+  await requireAdminAuth({ requireSuperAdmin: true });
   const supabaseAdmin = createAdminClient();
+
+  if (status !== "active") {
+    await ensureNotLastActiveSuperAdmin(supabaseAdmin, profileId);
+  }
 
   const { error } = await supabaseAdmin
     .from("admin_staff_members")
@@ -328,13 +370,15 @@ export async function toggleAdminStaffStatus(profileId: string, status: AdminSta
 }
 
 export async function deleteAdminStaffMember(profileId: string) {
-  const { user } = await requireAdminAuth();
+  const { user } = await requireAdminAuth({ requireSuperAdmin: true });
 
   if (user.id === profileId) {
     throw new Error("No puede dar de baja su propio usuario administrador.");
   }
 
   const supabaseAdmin = createAdminClient();
+
+  await ensureNotLastActiveSuperAdmin(supabaseAdmin, profileId);
 
   // Remove from admin_staff_members
   await supabaseAdmin.from("admin_staff_members").delete().eq("profile_id", profileId);
