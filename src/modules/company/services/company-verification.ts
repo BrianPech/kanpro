@@ -1,5 +1,9 @@
 import { createClient } from "@/lib/supabase/client";
 import type { Database } from "@/types/supabase";
+import {
+  MAX_DOCUMENT_BYTES,
+  optimizeImageForStorage,
+} from "@/lib/storage/optimize-upload";
 
 export type CompanyDocType =
   | "acta_constitutiva"
@@ -78,7 +82,8 @@ export const companyVerificationService = {
     if (data.corporate_email !== undefined) companyPayload.corporate_email = data.corporate_email;
     if (data.contact_phone !== undefined) companyPayload.contact_phone = data.contact_phone;
     if (data.entity_type !== undefined || data.fiscal_regime !== undefined) {
-      companyPayload.entity_type = (data.entity_type || data.fiscal_regime) as any;
+      companyPayload.entity_type = (data.entity_type ||
+        data.fiscal_regime) as Database["public"]["Tables"]["company_profiles"]["Update"]["entity_type"];
     }
 
     if (submitForReview) {
@@ -123,22 +128,35 @@ export const companyVerificationService = {
   async uploadDocument(
     userId: string,
     docType: CompanyDocType,
-    file: File
+    rawFile: File
   ): Promise<CompanyVerificationDoc> {
     const supabase = createClient();
 
-    if (!["application/pdf", "image/jpeg", "image/png", "image/webp"].includes(file.type)) {
+    if (!["application/pdf", "image/jpeg", "image/png", "image/webp"].includes(rawFile.type)) {
       throw new Error("Formato no permitido. Carga un PDF, JPG, PNG o WEBP.");
     }
 
-    // Clean filename
-    const sanitizeName = file.name.replace(/[^a-zA-Z0-9._-]/g, "_");
-    const filePath = `${userId}/${docType}_${Date.now()}_${sanitizeName}`;
+    const { file } = await optimizeImageForStorage(rawFile, {
+      maxWidth: 1600,
+      maxHeight: 1600,
+      quality: 0.82,
+    });
+
+    if (file.size > MAX_DOCUMENT_BYTES) {
+      throw new Error(
+        "El archivo no puede superar 2 MB. Si es un PDF escaneado, comprímelo antes de subir."
+      );
+    }
+
+    const ext =
+      file.name.split(".").pop()?.toLowerCase() ||
+      (file.type === "application/pdf" ? "pdf" : "webp");
+    const filePath = `${userId}/${docType}.${ext}`;
 
     // 1. Upload to Supabase Storage bucket 'profile_documents'
     const { error: uploadErr } = await supabase.storage
       .from("profile_documents")
-      .upload(filePath, file, { upsert: true });
+      .upload(filePath, file, { upsert: true, contentType: file.type });
 
     if (uploadErr) {
       throw new Error(
@@ -153,7 +171,7 @@ export const companyVerificationService = {
     // 3. Check if document record already exists in profile_documents table
     const { data: existingDoc } = await supabase
       .from("profile_documents")
-      .select("id")
+      .select("id, file_url")
       .eq("owner_id", userId)
       .eq("doc_type", docType)
       .maybeSingle();
@@ -178,6 +196,16 @@ export const companyVerificationService = {
         .eq("id", existingDoc.id);
 
       if (updateErr) throw updateErr;
+
+      if (
+        existingDoc.file_url &&
+        existingDoc.file_url !== filePath &&
+        !existingDoc.file_url.startsWith("http")
+      ) {
+        await supabase.storage
+          .from("profile_documents")
+          .remove([existingDoc.file_url]);
+      }
     } else {
       const { data: inserted, error: insertErr } = await supabase
         .from("profile_documents")

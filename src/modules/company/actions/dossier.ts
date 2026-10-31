@@ -39,8 +39,8 @@ export async function uploadDossierDocumentAction(
     return { success: false, error: "El título o nombre del documento es obligatorio." };
   }
 
-  if (file.size > 15 * 1024 * 1024) {
-    return { success: false, error: "El tamaño máximo permitido para documentos es 15 MB." };
+  if (file.size > 2 * 1024 * 1024) {
+    return { success: false, error: "El tamaño máximo permitido para documentos es 2 MB." };
   }
 
   const allowedTypes = [

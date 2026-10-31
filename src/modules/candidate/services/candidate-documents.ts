@@ -1,4 +1,9 @@
 import { createClient } from "@/lib/supabase/client";
+import {
+  MAX_AVATAR_BYTES,
+  MAX_DOCUMENT_BYTES,
+  optimizeImageForStorage,
+} from "@/lib/storage/optimize-upload";
 
 export type CandidateDocumentType =
   | "ine_passport"
@@ -44,19 +49,32 @@ export const candidateDocumentsService = {
   /**
    * Uploads a document to Supabase Storage and records it in `profile_documents`
    */
-  async upload(userId: string, docType: CandidateDocumentType, file: File, allowMultiple = false) {
-    if (file.size > 10 * 1024 * 1024) throw new Error("El archivo no puede superar 10 MB.");
-    if (!["application/pdf", "image/jpeg", "image/png", "image/webp"].includes(file.type)) {
+  async upload(userId: string, docType: CandidateDocumentType, rawFile: File, allowMultiple = false) {
+    if (!["application/pdf", "image/jpeg", "image/png", "image/webp"].includes(rawFile.type)) {
       throw new Error("Formato no permitido. Carga un PDF, JPG, PNG o WEBP.");
     }
 
+    const { file } = await optimizeImageForStorage(rawFile, {
+      maxWidth: 1600,
+      maxHeight: 1600,
+      quality: 0.82,
+    });
+
+    if (file.size > MAX_DOCUMENT_BYTES) {
+      throw new Error("El archivo no puede superar 2 MB. Si es un PDF escaneado, comprímelo antes de subir.");
+    }
+
     const supabase = createClient();
+    const ext = file.name.split(".").pop()?.toLowerCase() || (file.type === "application/pdf" ? "pdf" : "webp");
     const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, "_");
-    const path = `${userId}/${docType}_${Date.now()}_${safeName}`;
+    const path = allowMultiple
+      ? `${userId}/${docType}_${Date.now()}_${safeName}`
+      : `${userId}/${docType}.${ext}`;
 
     // 1. Upload to storage
     const { error: uploadError } = await supabase.storage.from(BUCKET).upload(path, file, {
       upsert: true,
+      contentType: file.type,
     });
     if (uploadError) throw uploadError;
 
@@ -157,23 +175,33 @@ export const candidateDocumentsService = {
   /**
    * Uploads candidate profile photo to the `avatars` bucket and updates `profiles.avatar_url`
    */
-  async uploadAvatar(userId: string, file: File): Promise<string> {
-    if (file.size > 5 * 1024 * 1024) throw new Error("La fotografía no puede superar 5 MB.");
-    if (!["image/jpeg", "image/png", "image/webp"].includes(file.type)) {
+  async uploadAvatar(userId: string, rawFile: File): Promise<string> {
+    if (!["image/jpeg", "image/png", "image/webp"].includes(rawFile.type)) {
       throw new Error("Formato de imagen inválido. Usa JPG, PNG o WEBP.");
     }
 
+    const { file } = await optimizeImageForStorage(rawFile, {
+      maxWidth: 400,
+      maxHeight: 400,
+      quality: 0.82,
+    });
+
+    if (file.size > MAX_AVATAR_BYTES) {
+      throw new Error("La fotografía optimizada no puede superar 1 MB.");
+    }
+
     const supabase = createClient();
-    const fileExt = file.name.split(".").pop() || "jpg";
-    const path = `${userId}/avatar_${Date.now()}.${fileExt}`;
+    const fileExt = file.name.split(".").pop()?.toLowerCase() || "webp";
+    const path = `${userId}/avatar.${fileExt}`;
 
     const { error: uploadError } = await supabase.storage.from("avatars").upload(path, file, {
       upsert: true,
+      contentType: file.type,
     });
     if (uploadError) throw uploadError;
 
     const { data: publicUrlData } = supabase.storage.from("avatars").getPublicUrl(path);
-    const publicUrl = publicUrlData.publicUrl;
+    const publicUrl = `${publicUrlData.publicUrl}?v=${Date.now()}`;
 
     const { error: updateError } = await supabase
       .from("profiles")

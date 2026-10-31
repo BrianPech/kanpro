@@ -47,6 +47,7 @@ import { motion } from "framer-motion";
 import { cn } from "@/lib/utils";
 import { cleanCityName, resolveLocationFromCoords } from "@/config/geo";
 import { CompanyPageHeader } from "./shared/company-page-header";
+import { optimizeImageForStorage } from "@/lib/storage/optimize-upload";
 
 const InstagramIcon = (props: React.SVGProps<SVGSVGElement>) => (
   <svg
@@ -109,66 +110,6 @@ export interface InitialProfile {
   facebook_url?: string | null;
   address_details?: string | null;
   operation_hours?: string | null;
-}
-
-// Client-side image compressor for high-performance uploads
-async function compressImageForUpload(
-  file: File,
-  maxWidth: number,
-  maxHeight: number,
-  quality = 0.85
-): Promise<{ file: File; previewUrl: string }> {
-  if (file.type === "image/svg+xml") {
-    return { file, previewUrl: URL.createObjectURL(file) };
-  }
-
-  return new Promise((resolve) => {
-    const reader = new FileReader();
-    reader.readAsDataURL(file);
-    reader.onload = (event) => {
-      const img = new Image();
-      img.src = event.target?.result as string;
-      img.onload = () => {
-        let { width, height } = img;
-        if (width > maxWidth || height > maxHeight) {
-          const ratio = Math.min(maxWidth / width, maxHeight / height);
-          width = Math.round(width * ratio);
-          height = Math.round(height * ratio);
-        }
-
-        const canvas = document.createElement("canvas");
-        canvas.width = width;
-        canvas.height = height;
-        const ctx = canvas.getContext("2d");
-        if (!ctx) {
-          resolve({ file, previewUrl: URL.createObjectURL(file) });
-          return;
-        }
-
-        ctx.drawImage(img, 0, 0, width, height);
-        const outputType = file.type === "image/png" ? "image/png" : "image/webp";
-        canvas.toBlob(
-          (blob) => {
-            if (!blob) {
-              resolve({ file, previewUrl: URL.createObjectURL(file) });
-              return;
-            }
-            const ext = outputType === "image/webp" ? "webp" : "png";
-            const baseName = file.name.replace(/\.[^/.]+$/, "").replace(/[^a-zA-Z0-9_-]/g, "_");
-            const optimizedFile = new File([blob], `${baseName}.${ext}`, {
-              type: outputType,
-            });
-            const previewUrl = URL.createObjectURL(blob);
-            resolve({ file: optimizedFile, previewUrl });
-          },
-          outputType,
-          quality
-        );
-      };
-      img.onerror = () => resolve({ file, previewUrl: URL.createObjectURL(file) });
-    };
-    reader.onerror = () => resolve({ file, previewUrl: URL.createObjectURL(file) });
-  });
 }
 
 const QUICK_CITIES = [
@@ -314,7 +255,11 @@ export function CompanyProfileForm({
     setIsUploadingLogo(true);
 
     try {
-      const { file: optimizedFile, previewUrl } = await compressImageForUpload(rawFile, 512, 512, 0.88);
+      const { file: optimizedFile, previewUrl } = await optimizeImageForStorage(rawFile, {
+        maxWidth: 400,
+        maxHeight: 400,
+        quality: 0.82,
+      });
       setValue("logo_url", previewUrl);
 
       const supabase = createClient();
@@ -322,8 +267,8 @@ export function CompanyProfileForm({
         data: { user },
       } = await supabase.auth.getUser();
       const currentUserId = user?.id || userId;
-      const fileExt = optimizedFile.name.split(".").pop() || "webp";
-      const filePath = `${currentUserId}/logo_${Date.now()}.${fileExt}`;
+      const fileExt = optimizedFile.name.split(".").pop()?.toLowerCase() || "webp";
+      const filePath = `${currentUserId}/logo.${fileExt}`;
 
       const { error: uploadErr } = await supabase.storage
         .from("avatars")
@@ -340,7 +285,10 @@ export function CompanyProfileForm({
         .getPublicUrl(filePath);
 
       if (urlData?.publicUrl) {
-        setValue("logo_url", urlData.publicUrl, { shouldValidate: true, shouldDirty: true });
+        setValue("logo_url", `${urlData.publicUrl}?v=${Date.now()}`, {
+          shouldValidate: true,
+          shouldDirty: true,
+        });
         toast.success("Logotipo actualizado", {
           description: "La imagen comercial de tu empresa ha sido guardada.",
         });
@@ -377,7 +325,11 @@ export function CompanyProfileForm({
     setIsUploadingBanner(true);
 
     try {
-      const { file: optimizedFile, previewUrl } = await compressImageForUpload(rawFile, 1600, 600, 0.85);
+      const { file: optimizedFile, previewUrl } = await optimizeImageForStorage(rawFile, {
+        maxWidth: 1280,
+        maxHeight: 480,
+        quality: 0.82,
+      });
       setValue("banner_url", previewUrl);
 
       const supabase = createClient();
@@ -385,8 +337,8 @@ export function CompanyProfileForm({
         data: { user },
       } = await supabase.auth.getUser();
       const currentUserId = user?.id || userId;
-      const fileExt = optimizedFile.name.split(".").pop() || "webp";
-      const filePath = `${currentUserId}/banner_${Date.now()}.${fileExt}`;
+      const fileExt = optimizedFile.name.split(".").pop()?.toLowerCase() || "webp";
+      const filePath = `${currentUserId}/banner.${fileExt}`;
 
       const { error: uploadErr } = await supabase.storage
         .from("avatars")
@@ -403,7 +355,10 @@ export function CompanyProfileForm({
         .getPublicUrl(filePath);
 
       if (urlData?.publicUrl) {
-        setValue("banner_url", urlData.publicUrl, { shouldValidate: true, shouldDirty: true });
+        setValue("banner_url", `${urlData.publicUrl}?v=${Date.now()}`, {
+          shouldValidate: true,
+          shouldDirty: true,
+        });
         toast.success("Portada actualizada", {
           description: "La imagen de portada ha sido guardada.",
         });
