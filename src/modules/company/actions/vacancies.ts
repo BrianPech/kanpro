@@ -1,7 +1,7 @@
 "use server";
 
 import { createClient } from "@/lib/supabase/server";
-import { revalidatePath } from "next/cache";
+import * as nextCache from "next/cache";
 import {
   cloneVacancySchema,
   createExpressVacancySchema,
@@ -59,10 +59,17 @@ type CreateVacancyActionResult =
  * Revalida la caché de la página de gestión de vacantes y rutas públicas asociadas.
  */
 export async function revalidateVacancies(): Promise<void> {
-  revalidatePath("/dashboard/company/vacancies");
-  revalidatePath("/dashboard/candidate/discovery");
-  revalidatePath("/dashboard/company");
-  revalidatePath("/");
+  nextCache.revalidatePath("/dashboard/company/vacancies");
+  nextCache.revalidatePath("/dashboard/candidate/discovery");
+  nextCache.revalidatePath("/dashboard/company");
+  nextCache.revalidatePath("/");
+  try {
+    if ("revalidateTag" in nextCache && typeof nextCache.revalidateTag === "function") {
+      nextCache.revalidateTag("active-vacancies", "max");
+    }
+  } catch {
+    // Ignorar fuera del entorno de servidor Next.js
+  }
 }
 
 /**

@@ -1,12 +1,21 @@
+import { cache } from "react"
 import { createClient } from "@/lib/supabase/server"
 import { getImpersonationState } from "@/lib/auth/impersonation"
 import {
   DEFAULT_DEMO_ROLLOUT,
   normalizeDemoRollout,
   type CompanyModuleKey,
+  type DemoRolloutConfig,
 } from "@/modules/company/config/demo-rollout"
 
-export async function getDashboardSession() {
+let rolloutCacheEntry: { data: DemoRolloutConfig; expiresAt: number } | null = null
+const ROLLOUT_CACHE_TTL_MS = 5 * 60 * 1000 // 5 minutes
+
+export function invalidateDemoRolloutMemoryCache(): void {
+  rolloutCacheEntry = null
+}
+
+async function resolveDashboardSession() {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
 
@@ -138,20 +147,30 @@ export async function getDashboardSession() {
     }
 
     if (role === "company" || role === "admin") {
-      try {
-        const { data: rolloutRow } = await supabase
-          .from("system_settings")
-          .select("value")
-          .eq("key", "demo_rollout")
-          .maybeSingle()
+      const now = Date.now()
+      if (!process.env.VITEST && rolloutCacheEntry && rolloutCacheEntry.expiresAt > now) {
+        demoPhase = rolloutCacheEntry.data.activePhase
+        enabledCompanyModules = rolloutCacheEntry.data.enabledModules
+      } else {
+        try {
+          const { data: rolloutRow } = await supabase
+            .from("system_settings")
+            .select("value")
+            .eq("key", "demo_rollout")
+            .maybeSingle()
 
-        if (rolloutRow?.value) {
-          const normalized = normalizeDemoRollout(rolloutRow.value)
-          demoPhase = normalized.activePhase
-          enabledCompanyModules = normalized.enabledModules
+          if (rolloutRow?.value) {
+            const normalized = normalizeDemoRollout(rolloutRow.value)
+            demoPhase = normalized.activePhase
+            enabledCompanyModules = normalized.enabledModules
+            rolloutCacheEntry = {
+              data: normalized,
+              expiresAt: now + ROLLOUT_CACHE_TTL_MS,
+            }
+          }
+        } catch {
+          // Fallback to DEFAULT_DEMO_ROLLOUT
         }
-      } catch {
-        // Fallback to DEFAULT_DEMO_ROLLOUT if system_settings query fails in tests
       }
     }
   }
@@ -166,4 +185,13 @@ export async function getDashboardSession() {
     demoPhase,
     enabledCompanyModules,
   }
+}
+
+const cachedDashboardSession = cache(resolveDashboardSession)
+
+export async function getDashboardSession() {
+  if (process.env.VITEST) {
+    return resolveDashboardSession()
+  }
+  return cachedDashboardSession()
 }

@@ -1,7 +1,8 @@
 "use server";
 
 import { requireAdminAuth } from "@/lib/auth/require-admin";
-import { revalidatePath } from "next/cache";
+import * as nextCache from "next/cache";
+import { invalidateDemoRolloutMemoryCache } from "@/modules/auth/services/dashboard-session";
 import { z } from "zod";
 import type { Json } from "@/types/supabase";
 import type { DemoRolloutConfig } from "@/modules/company/config/demo-rollout";
@@ -87,9 +88,17 @@ export async function saveSystemSettings(settings: Record<string, unknown>) {
     }
   }
 
-  revalidatePath("/dashboard/admin");
-  revalidatePath("/dashboard/admin/settings");
-  revalidatePath("/dashboard/company", "layout");
+  invalidateDemoRolloutMemoryCache();
+  nextCache.revalidatePath("/dashboard/admin");
+  nextCache.revalidatePath("/dashboard/admin/settings");
+  nextCache.revalidatePath("/dashboard/company", "layout");
+  try {
+    if ("revalidateTag" in nextCache && typeof nextCache.revalidateTag === "function") {
+      nextCache.revalidateTag("system-settings", "max");
+    }
+  } catch {
+    // Ignorar fuera del contexto de servidor Next.js (ej. tests unitarios)
+  }
 
   return { success: true };
 }

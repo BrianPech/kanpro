@@ -75,6 +75,7 @@ export const candidateDocumentsService = {
     const { error: uploadError } = await supabase.storage.from(BUCKET).upload(path, file, {
       upsert: true,
       contentType: file.type,
+      cacheControl: "86400",
     });
     if (uploadError) throw uploadError;
 
@@ -197,6 +198,7 @@ export const candidateDocumentsService = {
     const { error: uploadError } = await supabase.storage.from("avatars").upload(path, file, {
       upsert: true,
       contentType: file.type,
+      cacheControl: "31536000",
     });
     if (uploadError) throw uploadError;
 

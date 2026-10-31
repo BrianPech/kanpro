@@ -156,7 +156,11 @@ export const companyVerificationService = {
     // 1. Upload to Supabase Storage bucket 'profile_documents'
     const { error: uploadErr } = await supabase.storage
       .from("profile_documents")
-      .upload(filePath, file, { upsert: true, contentType: file.type });
+      .upload(filePath, file, {
+        upsert: true,
+        contentType: file.type,
+        cacheControl: "86400",
+      });
 
     if (uploadErr) {
       throw new Error(
