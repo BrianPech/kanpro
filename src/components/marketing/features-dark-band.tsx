@@ -5,65 +5,66 @@ import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 import {
   CirclePercent,
-  MessageSquare,
   ShieldCheck,
   MapPin,
   Kanban,
-  Scale,
-  Lock,
-  Headphones,
+  QrCode,
+  CalendarCheck,
+  FileText,
+  Smartphone,
   Sparkles,
+  Users,
 } from "@/components/ui/icons";
 
 export function FeaturesDarkBand() {
   const features = [
     {
-      title: "0% Comisiones por Éxito",
+      title: "Checador QR & Geocercas GPS",
       description:
-        "Sin deducciones de sueldos ni tarifas del 20% al 30% como las agencias de reclutamiento tradicionales.",
-      icon: <CirclePercent className="size-6" />,
+        "Monitoreo en tiempo real de entradas y salidas por sucursal, tolerancia reglamentaria de 15 min y cartel QR oficial imprimible.",
+      icon: <QrCode className="size-6" />,
     },
     {
-      title: "Contacto en 1-Clic por WhatsApp",
+      title: "Expediente Digital 360",
       description:
-        "Inicia conversaciones directas con candidatos preseleccionados con plantillas de entrevista precargadas.",
-      icon: <MessageSquare className="size-6" />,
+        "RFC, CURP, NSS del IMSS, salario integrado (SDI), contratos, historial de puestos y documentos oficiales en un solo lugar.",
+      icon: <FileText className="size-6" />,
     },
     {
-      title: "Expedientes Auditados SAT",
+      title: "Radar de Talento Peninsular",
       description:
-        "Cotejo de RFC, Constancia de Situación Fiscal y Razón Social de 13 puntos para evitar fraudes.",
+        "Búsqueda activa y contacto directo de perfiles en Mérida, Cancún, Playa del Carmen, Tulum, Cozumel y Chetumal sin intermediarios.",
+      icon: <Users className="size-6" />,
+    },
+    {
+      title: "Validación SAT de 13 Puntos",
+      description:
+        "Auditoría legal corporativa con Acta Constitutiva, CSF y RFC para certificar empresas serias y erradicar vacantes fantasma.",
       icon: <ShieldCheck className="size-6" />,
     },
     {
-      title: "Filtro Hiperlocal por Colonia",
+      title: "Vacaciones Dignas Art. 76 LFT",
       description:
-        "Delimita vacantes en Mérida, Cancún y Playa del Carmen para priorizar personal a menos de 3.5 km.",
-      icon: <MapPin className="size-6" />,
+        "Cálculo automatizado de saldo de días hábiles por antigüedad para colaboradores y aprobación en 1 clic para Recursos Humanos.",
+      icon: <CalendarCheck className="size-6" />,
     },
     {
-      title: "Pipeline Kanban en Vivo",
+      title: "Pipeline ATS con Estrellas",
       description:
-        "Controla cada postulación en tiempo real en etapas: en revisión, preseleccionado, citado y contratado.",
+        "Gestión de candidatos por etapas (Por Revisar, Preselección, Entrevistas y Contratados) con notas internas y calificación.",
       icon: <Kanban className="size-6" />,
     },
     {
-      title: "Cumplimiento LFT & NOM-035",
+      title: "0% Comisiones por Éxito",
       description:
-        "Módulos integrados para evaluaciones de clima laboral, actas administrativas y contratos digitales.",
-      icon: <Scale className="size-6" />,
+        "Sin tarifas del 20% al 30% como agencias tradicionales ni deducciones al sueldo del trabajador. Conexión 100% directa.",
+      icon: <CirclePercent className="size-6" />,
     },
     {
-      title: "Protección de Datos LFPDPPP",
+      title: "Portal Móvil del Empleado",
       description:
-        "Documentos sensibles (INE, CURP) cifrados con acceso únicamente bajo autorización del trabajador.",
-      icon: <Lock className="size-6" />,
-    },
-    {
-      title: "Soporte Regional en el Sureste",
-      description:
-        "Asistencia dedicada para empresas y candidatos con equipo basado en Yucatán y Quintana Roo.",
-      icon: <Headphones className="size-6" />,
+        "Checador con cámara web/móvil, firma de contratos digitales y consulta de salarios sin obligar a instalar apps pesadas.",
+      icon: <Smartphone className="size-6" />,
     },
   ];
 

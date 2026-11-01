@@ -69,19 +69,19 @@ export function FeaturesSplit() {
                   <span className="text-muted-foreground">WIZARD EN 4 PASOS</span>
                 </div>
                 <h3 className="text-lg font-bold text-foreground font-sans">
-                  Captura con prestaciones de ley y superiores
+                  Captura con prestaciones de ley y turnos
                 </h3>
                 <p className="text-xs text-muted-foreground leading-relaxed">
-                  Establece el puesto, rango salarial en MXN, colonia exacta de tu sucursal y marca las prestaciones (IMSS, propinas, comedor subsidiado, transporte y uniformes).
+                  Establece el puesto, número de plazas, rango salarial en MXN, turnos (matutino, mixto, nocturno) y catálogo de prestaciones (IMSS, propinas, comedor subsidiado y transporte).
                 </p>
               </div>
 
               <div className="p-3.5 rounded-xl bg-muted/40 border border-border space-y-2 text-xs font-mono">
-                <div className="text-[10px] text-muted-foreground">Prestaciones Seleccionadas:</div>
+                <div className="text-[10px] text-muted-foreground">Prestaciones & Turnos:</div>
                 <div className="flex flex-wrap gap-1">
-                  <span className="bg-foreground text-background px-2 py-0.5 rounded text-[10px] font-bold">IMSS Día 1</span>
+                  <span className="bg-foreground text-background px-2 py-0.5 rounded text-[10px] font-bold">IMSS Ley</span>
                   <span className="bg-foreground text-background px-2 py-0.5 rounded text-[10px] font-bold">Comedor</span>
-                  <span className="bg-foreground text-background px-2 py-0.5 rounded text-[10px] font-bold">Propinas</span>
+                  <span className="bg-foreground text-background px-2 py-0.5 rounded text-[10px] font-bold">Matutino</span>
                 </div>
               </div>
             </div>
@@ -90,23 +90,23 @@ export function FeaturesSplit() {
             <div className="p-6 rounded-2xl border border-border bg-card space-y-5 shadow-2xs flex flex-col justify-between">
               <div className="space-y-3">
                 <div className="flex items-center justify-between pb-2 border-b border-border text-xs font-mono">
-                  <span className="font-bold text-foreground">PASO 02 / PIPELINE</span>
-                  <span className="text-muted-foreground">APPLICATIONS INBOX</span>
+                  <span className="font-bold text-foreground">PASO 02 / SELECCIÓN</span>
+                  <span className="text-muted-foreground">RADAR & ATS</span>
                 </div>
                 <h3 className="text-lg font-bold text-foreground font-sans">
-                  Clasificación y notas internas de candidatos
+                  Radar peninsular y pipeline con estrellas
                 </h3>
                 <p className="text-xs text-muted-foreground leading-relaxed">
-                  Monitorea postulantes ordenados por cercanía geográfica. Organiza estados (Pendientes, En revisión, Preseleccionados o Descartados) y asigna calificaciones internas.
+                  Invita talento calificado en Cancún, Mérida y Riviera Maya desde el radar. Gestiona tu pipeline por etapas (Por Revisar, Preselección, Entrevistas y Contratados) con notas internas.
                 </p>
               </div>
 
               <div className="p-3.5 rounded-xl bg-muted/40 border border-border space-y-2 text-xs font-mono">
                 <div className="flex items-center justify-between">
-                  <span className="font-bold text-foreground">Mauricio Romero</span>
-                  <span className="text-emerald-600 dark:text-emerald-400 font-bold">★ 4.9 · Preseleccionado</span>
+                  <span className="font-bold text-foreground">Sofía Dzib Pech</span>
+                  <span className="text-emerald-600 dark:text-emerald-400 font-bold">★ 5.0 · Preseleccionada</span>
                 </div>
-                <div className="text-[10px] text-muted-foreground">Expediente 100% · Altabrisa (a 1.2 km)</div>
+                <div className="text-[10px] text-muted-foreground">Expediente Verificado · Centro Mérida</div>
               </div>
             </div>
 
@@ -114,14 +114,14 @@ export function FeaturesSplit() {
             <div className="p-6 rounded-2xl border-2 border-foreground bg-card space-y-5 shadow-sm flex flex-col justify-between">
               <div className="space-y-3">
                 <div className="flex items-center justify-between pb-2 border-b border-border text-xs font-mono">
-                  <span className="font-bold text-foreground">PASO 03 / CONTACTO</span>
-                  <span className="text-emerald-600 dark:text-emerald-400 font-bold">SIN INTERMEDIARIOS</span>
+                  <span className="font-bold text-foreground">PASO 03 / OPERACIÓN</span>
+                  <span className="text-emerald-600 dark:text-emerald-400 font-bold">CHECADOR & LFT</span>
                 </div>
                 <h3 className="text-lg font-bold text-foreground font-sans">
-                  Entrevistas directas en WhatsApp en minutos
+                  Checador QR de sucursal y Expediente 360
                 </h3>
                 <p className="text-xs text-muted-foreground leading-relaxed">
-                  Haz clic en el botón de WhatsApp para iniciar conversación con el candidato con la plantilla oficial de tu empresa y agendar la cita presencial de inmediato.
+                  Genera el cartel QR de tu sucursal con geocerca GPS y tolerancia de 15 minutos. Consulta el expediente integral de tu colaborador y gestiona solicitudes de Vacaciones LFT.
                 </p>
               </div>
 
@@ -130,7 +130,7 @@ export function FeaturesSplit() {
                   render={<Link href="/register/company" />}
                   className="w-full h-11 rounded-xl bg-foreground text-background hover:bg-foreground/90 font-mono font-bold text-xs gap-2 cursor-pointer shadow-2xs"
                 >
-                  <span>Publicar Vacante Ahora</span>
+                  <span>Registrar Empresa y Probar</span>
                   <ArrowRight className="size-3.5" />
                 </Button>
               </div>
@@ -145,22 +145,22 @@ export function FeaturesSplit() {
               <div className="space-y-3">
                 <div className="flex items-center justify-between pb-2 border-b border-border text-xs font-mono">
                   <span className="font-bold text-foreground">PASO 01 / CERCANÍA</span>
-                  <span className="text-muted-foreground">FILTRO POR COLONIA</span>
+                  <span className="text-muted-foreground">OFERTAS VERIFICADAS</span>
                 </div>
                 <h3 className="text-lg font-bold text-foreground font-sans">
-                  Empleo a minutos de tu domicilio
+                  Sueldos reales y empresas auditadas SAT
                 </h3>
                 <p className="text-xs text-muted-foreground leading-relaxed">
-                  Filtra ofertas laborales en tu colonia o zona de influencia en Mérida o Quintana Roo. Ahorra 2 horas diarias de transporte público y gastos de pasajes.
+                  Explora vacantes verificadas en tu ciudad o zona en Quintana Roo y Yucatán con salarios transparentes en MXN. Cero ofertas fantasma, sin intermediarios ni comisiones sobre tu sueldo.
                 </p>
               </div>
 
               <div className="p-3.5 rounded-xl bg-muted/40 border border-border space-y-2 text-xs font-mono">
                 <div className="flex items-center gap-1.5 text-foreground font-bold">
                   <MapPin className="size-3.5 text-foreground" />
-                  <span>Radio Máximo: 3.5 km</span>
+                  <span>Sureste: Mérida, Cancún, Riviera Maya</span>
                 </div>
-                <div className="text-[10px] text-muted-foreground">12 vacantes encontradas cerca de tu casa</div>
+                <div className="text-[10px] text-muted-foreground">Salarios en MXN y prestaciones de ley transparentes</div>
               </div>
             </div>
 
@@ -169,20 +169,20 @@ export function FeaturesSplit() {
               <div className="space-y-3">
                 <div className="flex items-center justify-between pb-2 border-b border-border text-xs font-mono">
                   <span className="font-bold text-foreground">PASO 02 / EXPEDIENTE</span>
-                  <span className="text-muted-foreground">NIVEL 0 - 100%</span>
+                  <span className="text-muted-foreground">1-CLIC & PRIVACIDAD</span>
                 </div>
                 <h3 className="text-lg font-bold text-foreground font-sans">
-                  Sube tus papeles una vez y obtén Prioridad
+                  Sube tus documentos una vez y postúlate
                 </h3>
                 <p className="text-xs text-muted-foreground leading-relaxed">
-                  Coteja tu INE, CURP oficial SAT, comprobante domiciliario y cartas de trabajo. Al completar el 100%, tu perfil recibe la insignia de Prioridad Máxima.
+                  Carga tu INE, CURP, comprobante domiciliario y CV en PDF. Tus datos están cifrados y seguros bajo la ley LFPDPPP, permitiéndote aplicar a cualquier vacante en un clic.
                 </p>
               </div>
 
               <div className="p-3.5 rounded-xl bg-muted/40 border border-border space-y-2 text-xs font-mono">
                 <div className="flex items-center justify-between">
                   <span className="font-bold text-foreground">Expediente Certificado</span>
-                  <span className="text-emerald-600 font-bold">100% Completo ✓</span>
+                  <span className="text-emerald-600 font-bold">100% Digital ✓</span>
                 </div>
                 <div className="text-[10px] text-muted-foreground">Protección de Datos LFPDPPP activa</div>
               </div>
@@ -192,14 +192,14 @@ export function FeaturesSplit() {
             <div className="p-6 rounded-2xl border-2 border-foreground bg-card space-y-5 shadow-sm flex flex-col justify-between">
               <div className="space-y-3">
                 <div className="flex items-center justify-between pb-2 border-b border-border text-xs font-mono">
-                  <span className="font-bold text-foreground">PASO 03 / APLICACIÓN</span>
-                  <span className="text-emerald-600 dark:text-emerald-400 font-bold">1 SOLO CLIC</span>
+                  <span className="font-bold text-foreground">PASO 03 / COLABORADOR</span>
+                  <span className="text-emerald-600 dark:text-emerald-400 font-bold">PORTAL DEL EMPLEADO</span>
                 </div>
                 <h3 className="text-lg font-bold text-foreground font-sans">
-                  Postulación inmediata y chat con RRHH
+                  Checador con cámara y Vacaciones LFT
                 </h3>
                 <p className="text-xs text-muted-foreground leading-relaxed">
-                  Aplica con un solo clic. El equipo de contratación de la empresa revisa tu expediente y te escribe por WhatsApp para agendar tu entrevista.
+                  Al ser contratado, tu cuenta se convierte en tu Portal de Colaborador: marca tu asistencia escaneando el QR de tu trabajo, firma contratos digitales y pide tus vacaciones de ley.
                 </p>
               </div>
 
@@ -208,7 +208,7 @@ export function FeaturesSplit() {
                   render={<Link href="/register/candidate" />}
                   className="w-full h-11 rounded-xl bg-foreground text-background hover:bg-foreground/90 font-mono font-bold text-xs gap-2 cursor-pointer shadow-2xs"
                 >
-                  <span>Crear mi Expediente Gratis</span>
+                  <span>Crear mi Cuenta Gratis</span>
                   <ArrowRight className="size-3.5" />
                 </Button>
               </div>

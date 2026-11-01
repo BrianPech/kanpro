@@ -97,78 +97,23 @@ export function getIndividualAttendanceHistory(
       continue;
     }
 
-    // Future days in current month
-    if (d > currentDayNumber) {
-      days.push({
-        date: dateStr,
-        dayOfWeek,
-        dayNumber: d,
-        status: "descanso",
-        checkInTime: null,
-        checkOutTime: null,
-        effectiveHours: 0,
-        delayMinutes: 0,
-        overtimeHours: 0,
-      });
-      continue;
-    }
-
-    // Deterministic distribution for sample employee
-    const seed = (d * 17 + employeeName.length * 3) % 20;
-
-    let status: AttendanceStatus = "presente";
-    let checkIn = "07:55";
-    let checkOut = "17:05";
-    let delay = 0;
-    let ot = 0;
-    let effective = 8.0;
-
-    if (seed === 2 || seed === 8) {
-      status = "retardo";
-      checkIn = "08:22";
-      delay = 22;
-      daysLate++;
-    } else if (seed === 14) {
-      status = "falta_justificada";
-      checkIn = null as any;
-      checkOut = null as any;
-      effective = 0;
-      daysJustified++;
-    } else if (seed === 19 && d < currentDayNumber - 2) {
-      status = "falta_injustificada";
-      checkIn = null as any;
-      checkOut = null as any;
-      effective = 0;
-      daysAbsent++;
-    } else {
-      status = "presente";
-      if (d % 6 === 0) {
-        ot = 2.0;
-        checkOut = "19:00";
-        effective = 10.0;
-        totalOvertimeHours += ot;
-      }
-      daysPresent++;
-    }
-
-    totalEffectiveHours += effective;
-
+    // Past and future days without database check-ins default cleanly to unrecorded/rest
     days.push({
       date: dateStr,
       dayOfWeek,
       dayNumber: d,
-      status,
-      checkInTime: checkIn,
-      checkOutTime: checkOut,
-      effectiveHours: effective,
-      delayMinutes: delay,
-      overtimeHours: ot,
+      status: "descanso",
+      checkInTime: null,
+      checkOutTime: null,
+      effectiveHours: 0,
+      delayMinutes: 0,
+      overtimeHours: 0,
     });
   }
 
   const totalEvaluated = daysPresent + daysLate;
   const individualPunctualityRate =
-    totalEvaluated > 0 ? Math.round((daysPresent / totalEvaluated) * 100) : 95;
+    totalEvaluated > 0 ? Math.round((daysPresent / totalEvaluated) * 100) : 100;
 
   return {
     employeeId,

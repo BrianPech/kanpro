@@ -1,6 +1,7 @@
 import { Navigation14 } from "@/components/blocks/navigation-14";
 import { Hero1 } from "@/components/blocks/hero-1";
 import { FeaturesDarkBand } from "@/components/marketing/features-dark-band";
+import { FeaturesSplit } from "@/components/marketing/features-split";
 import { Comparison8 } from "@/components/blocks/comparison-8";
 import { Faq7 } from "@/components/blocks/faq-7";
 import { CtaBanner } from "@/components/marketing/cta-banner";
@@ -22,6 +23,7 @@ export default function Home() {
         <main className="flex-1">
           <Hero1 />
           <FeaturesDarkBand />
+          <FeaturesSplit />
           <Comparison8 />
           <Faq7 />
           <CtaBanner />

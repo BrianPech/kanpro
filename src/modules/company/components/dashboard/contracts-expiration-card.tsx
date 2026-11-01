@@ -34,54 +34,31 @@ import { CompanyStatusBadge } from "../shared/company-status-badge";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 
-interface ContractItem {
+export interface ContractItem {
   id: string;
   employeeName: string;
-  avatarUrl?: string;
+  avatarUrl?: string | null;
   jobTitle: string;
   department: string;
   endDate: string;
   daysRemaining: number;
   contractType: string;
-  status: "imminent" | "upcoming" | "active";
+  status: "imminent" | "upcoming" | "normal" | "active";
 }
 
-const INITIAL_CONTRACTS: ContractItem[] = [
-  {
-    id: "cnt-1",
-    employeeName: "Sofía Armenta Ruiz",
-    jobTitle: "Cocinera B",
-    department: "Alimentos y Bebidas",
-    endDate: "30 de Octubre, 2026",
-    daysRemaining: 1,
-    contractType: "Determinado (3 Meses)",
-    status: "imminent",
-  },
-  {
-    id: "cnt-2",
-    employeeName: "Rodrigo Cetina Pech",
-    jobTitle: "Auxiliar de Mantenimiento",
-    department: "Operaciones",
-    endDate: "12 de Noviembre, 2026",
-    daysRemaining: 14,
-    contractType: "Determinado (Prueba)",
-    status: "upcoming",
-  },
-  {
-    id: "cnt-3",
-    employeeName: "Valeria Montero Gil",
-    jobTitle: "Recepcionista Nocturna",
-    department: "Front Desk",
-    endDate: "24 de Noviembre, 2026",
-    daysRemaining: 26,
-    contractType: "Determinado (6 Meses)",
-    status: "upcoming",
-  },
-];
+interface ContractsExpirationCardProps {
+  contracts?: ContractItem[];
+}
 
-export function ContractsExpirationCard() {
-  const [contracts, setContracts] = useState<ContractItem[]>(INITIAL_CONTRACTS);
+export function ContractsExpirationCard({
+  contracts: incomingContracts = [],
+}: ContractsExpirationCardProps) {
+  const [contracts, setContracts] = useState<ContractItem[]>(incomingContracts);
   const [selectedContract, setSelectedContract] = useState<ContractItem | null>(null);
+
+  React.useEffect(() => {
+    setContracts(incomingContracts);
+  }, [incomingContracts]);
   const [isRenewModalOpen, setIsRenewModalOpen] = useState(false);
   const [extensionPeriod, setExtensionPeriod] = useState<string>("indeterminado");
   const [newSalary, setNewSalary] = useState<string>("");

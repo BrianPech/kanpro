@@ -2,6 +2,7 @@
 
 import * as React from "react";
 import Link from "next/link";
+import { Sparkles } from "lucide-react";
 import { Plus } from "@/components/ui/icons";
 import { Button } from "@/components/ui/button";
 import { CompanyPageHeader } from "./shared/company-page-header";
@@ -15,6 +16,7 @@ import { ContractsExpirationCard } from "./dashboard/contracts-expiration-card";
 import { IncidentsAttendanceCard } from "./dashboard/incidents-attendance-card";
 import { PayrollSummaryCard } from "./dashboard/payroll-summary-card";
 import { SubscriptionStatusCard } from "./dashboard/subscription-status-card";
+import { CompanyDashboardTour } from "./dashboard/company-dashboard-tour";
 import type { CompanyDashboardData } from "../types/dashboard";
 
 export function DashboardView({
@@ -24,9 +26,15 @@ export function DashboardView({
   openVacanciesList = [],
   applicationsSummary,
   recentCandidates = [],
+  expiringContracts = [],
+  pendingIncidents = [],
+  todayAttendance = [],
   payrollSummary,
   subscriptionSummary,
 }: CompanyDashboardData) {
+  const [isTourOpen, setIsTourOpen] = React.useState(true);
+  const [isTourManual, setIsTourManual] = React.useState(false);
+
   return (
     <div className="w-full space-y-6 sm:space-y-8 font-sans">
       {/* 1. Header unificado con tokens del tema */}
@@ -34,13 +42,27 @@ export function DashboardView({
         title={`Panel de ${companyName}`}
         description="Resumen operativo en tiempo real de plantilla, talento, contratos e incidencias."
       >
-        <Button
-          render={<Link href="/dashboard/company/vacancies/new" />}
-          className="gap-2 cursor-pointer font-medium"
-        >
-          <Plus data-icon="inline-start" />
-          <span>Nueva Vacante</span>
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button
+            variant="outline"
+            onClick={() => {
+              setIsTourManual(true);
+              setIsTourOpen(true);
+            }}
+            className="gap-2 cursor-pointer font-medium"
+            title="Ver guía interactiva de la plataforma"
+          >
+            <Sparkles className="size-4 text-primary" />
+            <span className="hidden sm:inline">Guía de la Plataforma</span>
+          </Button>
+          <Button
+            render={<Link href="/dashboard/company/vacancies/new" />}
+            className="gap-2 cursor-pointer font-medium"
+          >
+            <Plus data-icon="inline-start" />
+            <span>Nueva Vacante</span>
+          </Button>
+        </div>
       </CompanyPageHeader>
 
       {/* 2. Alertas Operativas Críticas */}
@@ -69,12 +91,15 @@ export function DashboardView({
           candidates={recentCandidates}
           totalApplications={applicationsSummary?.total || kpis?.totalApplicationsReceived || 0}
         />
-        <ContractsExpirationCard />
+        <ContractsExpirationCard contracts={expiringContracts} />
       </div>
 
       {/* 7. Asistencia & Nómina */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <IncidentsAttendanceCard />
+        <IncidentsAttendanceCard
+          incidents={pendingIncidents}
+          attendanceList={todayAttendance}
+        />
         <PayrollSummaryCard payroll={payrollSummary} />
       </div>
 
@@ -82,6 +107,16 @@ export function DashboardView({
       {subscriptionSummary && (
         <SubscriptionStatusCard subscription={subscriptionSummary} />
       )}
+
+      {/* 9. Tour Onboarding Intro Disclosure del Panel Principal */}
+      <CompanyDashboardTour
+        open={isTourOpen}
+        setOpen={(open) => {
+          setIsTourOpen(open);
+          if (!open) setIsTourManual(false);
+        }}
+        ignoreDismissal={isTourManual}
+      />
     </div>
   );
 }

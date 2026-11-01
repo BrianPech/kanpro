@@ -29,99 +29,99 @@ export interface Faq7Props {
 const DEFAULT_CATEGORIES: FAQCategory[] = [
   {
     id: "empresas",
-    label: "Empresas y Reclutamiento",
-    description: "Publicación de vacantes, selección y contacto directo.",
+    label: "Empresas & Operación RH",
+    description: "Reclutamiento, radar de talento, checador QR y expediente digital.",
     faqs: [
       {
         question: "¿K'anPro cobra comisión por cada persona contratada?",
         answer:
-          "No. No retenemos comisiones por colocación de personal ni deducimos porcentajes del sueldo del trabajador. La vinculación entre tu negocio y el talento es 100% directa y transparente.",
+          "No. No cobramos comisiones por colocación de personal ni deducimos porcentajes del sueldo del trabajador. La vinculación entre tu negocio y el talento es 100% directa y transparente.",
       },
       {
-        question: "¿Cómo funciona la conexión directa por WhatsApp?",
+        question: "¿Cómo funciona el Checador QR de asistencia y geocercas GPS?",
         answer:
-          "Al revisar a un aspirante en tu panel de reclutamiento, haces clic en el botón de WhatsApp y se abre un chat con el candidato con mensaje prearmado y enlace para agendar entrevista presencial o virtual.",
+          "Desde tu panel de Asistencia generas un Cartel QR oficial para imprimir y colocar en tu sucursal. Los colaboradores escanean el código desde la cámara de su teléfono móvil; el sistema valida su coordenada geográfica, calcula la puntualidad con la tolerancia de 15 minutos por ley y registra retardos o asistencias en tiempo real sin requerir hardware biométrico costoso.",
       },
       {
-        question: "¿Puedo segmentar vacantes por colonias en Mérida o la Riviera Maya?",
+        question: "¿Qué es el Radar de Talento Peninsular y cómo se usa?",
         answer:
-          "Sí. Puedes asignar la ubicación exacta de tu sucursal (Altabrisa, Montejo, Centro, Playa del Carmen, Cancún Huayacán) para priorizar a los candidatos que viven a menos de 3.5 km de tu centro de trabajo.",
+          "Es un motor de búsqueda proactivo que te permite explorar perfiles disponibles en Mérida, Cancún, Playa del Carmen, Tulum, Cozumel y Chetumal. Puedes filtrar por puesto deseado, habilidades y experiencia, e invitar directamente a candidatos calificados a tus vacantes abiertas en un clic.",
+      },
+      {
+        question: "¿Cómo gestiono el Expediente Digital 360 y las Vacaciones LFT de mi plantilla?",
+        answer:
+          "Cada empleado contratado cuenta con un expediente centralizado con sus datos fiscales (RFC, CURP, NSS), salario diario integrado (SDI), contratos y constancias. Además, el módulo de Vacaciones Dignas (Art. 76 LFT) calcula automáticamente los días de descanso acumulados por antigüedad y permite autorizar o denegar solicitudes con un clic.",
       },
       {
         question: "¿Cómo publico mi primera vacante y cuánto tarda en activarse?",
         answer:
-          "El registro de tu empresa y la publicación toman menos de 5 minutos. Una vez validados los datos básicos, la oferta se difunde de inmediato en el catálogo regional.",
+          "El wizard guiado toma 4 pasos: puesto y horario, ubicación y sueldo en MXN, descripción detallada y beneficios (IMSS, propinas, comedor, transporte). Una vez publicada, se indexa al instante en la bolsa peninsular.",
       },
     ],
   },
   {
     id: "candidatos",
-    label: "Candidatos y Empleo",
-    description: "Postulaciones, expediente digital y seguridad para aspirantes.",
+    label: "Candidatos & Colaboradores",
+    description: "Bolsa de trabajo, expediente verificado y portal del empleado.",
     faqs: [
       {
         question: "¿Tiene algún costo registrar mi CV o postularme a vacantes?",
         answer:
-          "No. K'anPro es 100% gratuito para todos los trabajadores y profesionistas. Nunca te cobraremos por crear tu expediente, verificar tus datos ni por postularte a las ofertas.",
+          "No. K'anPro es 100% gratuito para todos los trabajadores y profesionistas. Nunca te cobraremos por crear tu expediente, verificar tus datos ni por postularte a las ofertas de empleo.",
       },
       {
-        question: "¿Cómo me contactan las empresas a las que me postulo?",
+        question: "¿Qué ocurre con mi cuenta una vez que soy contratado por una empresa?",
         answer:
-          "Los reclutadores revisan tu perfil auditado y te envían un mensaje directo por WhatsApp o te llaman por teléfono para agendar la entrevista formal sin intermediarios.",
+          "Tu cuenta evoluciona a tu Portal del Empleado oficial. Desde allí puedes marcar tu asistencia diaria escaneando el código QR de tu sucursal, revisar y firmar tus contratos laborales digitales y consultar tu saldo de vacaciones por ley para solicitar descansos.",
       },
       {
-        question: "¿Qué beneficio tiene completar el expediente al 100%?",
+        question: "¿Cómo sé que una oferta de trabajo es legítima y no un fraude?",
         answer:
-          "Los perfiles con expediente completo (INE, CURP, comprobante de domicilio y constancia fiscal) reciben la insignia de Prioridad Máxima y aparecen en las primeras posiciones de búsqueda para empleadores de la región.",
+          "Todas las empresas empleadoras con el distintivo 'Empresa Verificada' pasaron por una auditoría legal corporativa ante K'anPro, validando su Acta Constitutiva, Razón Social y RFC ante el SAT. Además, todas las vacantes publican su salario real en MXN y prestaciones obligatorias.",
       },
       {
-        question: "¿Puedo buscar empleos cercanos a mi domicilio?",
+        question: "¿Cómo funciona el cálculo de Vacaciones Dignas (Art. 76 LFT)?",
         answer:
-          "Sí. La plataforma ordena automáticamente las ofertas laborales por proximidad a tu colonia en Mérida o Quintana Roo para que ahorres tiempo y dinero en traslados diarios.",
+          "Conforme a la reforma laboral mexicana, acumulas un mínimo de 12 días laborables pagados al cumplir tu primer año, aumentando 2 días por cada año adicional hasta llegar a 20. El sistema calcula tus días automáticamente según tu fecha de ingreso.",
+      },
+      {
+        question: "¿Cómo se protegen mis documentos personales (INE, CURP, comprobantes)?",
+        answer:
+          "Tus documentos se resguardan cifrados conforme a la Ley Federal de Protección de Datos Personales (LFPDPPP). Solo las empresas a cuyas vacantes te postules o que cuenten con tu autorización expresa tienen acceso a cotejar tu documentación.",
       },
     ],
   },
   {
     id: "seguridad",
-    label: "Certeza Jurídica y SAT",
-    description: "Auditoría fiscal de 13 puntos, privacidad y protección de datos.",
+    label: "Certeza Jurídica & SAT",
+    description: "Auditoría legal de 13 puntos, cumplimiento LFT y contratos digitales.",
     faqs: [
       {
-        question: "¿Qué implica la Auditoría Legal de 13 Puntos SAT?",
+        question: "¿Qué es el Sello de Verificación de 13 Requisitos SAT?",
         answer:
-          "Es una verificación que valida el Acta Constitutiva con folio mercantil, RFC con Constancia 32-D vigente, Domicilio Fiscal y Poder Notarial del representante para otorgar a tu negocio el Sello Oficial de Empresa Confiable en la Península.",
+          "Es el proceso de debida diligencia de K'anPro para personas morales y físicas con actividad empresarial: cotejamos denominación social, Acta Constitutiva en PDF, RFC válido de 12 o 13 posiciones, Constancia de Situación Fiscal (CSF) actualizada, domicilio fiscal, identificación oficial y Poder Notarial del representante legal.",
       },
       {
-        question: "¿Cómo se protegen los documentos sensibles (INE, CURP, RFC)?",
+        question: "¿Qué validez tienen los contratos y firmas digitales en la plataforma?",
         answer:
-          "Bajo la normativa mexicana LFPDPPP, los documentos sensibles están cifrados en tránsito y reposo. Las empresas deben solicitar acceso explícito y el candidato autorizarlo directamente desde su teléfono.",
-      },
-      {
-        question: "¿K'anPro reemplaza el contrato laboral formal?",
-        answer:
-          "K'anPro facilita la vinculación directa, el expediente digital y la verificación fiscal. El contrato formal de trabajo y el alta patronal ante el IMSS se formalizan directamente entre la empresa y el trabajador conforme a la Ley Federal del Trabajo.",
+          "Los contratos laborales generados en la plataforma se apegan a los lineamientos de la Ley Federal del Trabajo (tiempo determinado, indeterminado, obra determinada o periodo de prueba) y permiten estampar firma electrónica con registro de fecha, hora y trazabilidad legal.",
       },
     ],
   },
   {
     id: "cobertura",
-    label: "Cobertura y Operación",
-    description: "Ciudades activas, tipos de puesto y canales de soporte.",
+    label: "Cobertura en la Península",
+    description: "Presencia regional, turnos y sectores operativos.",
     faqs: [
       {
         question: "¿En qué ciudades opera actualmente K'anPro?",
         answer:
-          "Operamos activamente en Cancún, Playa del Carmen, Tulum, Mérida y los principales corredores turísticos, comerciales y logísticos de Quintana Roo y Yucatán.",
+          "Operamos activamente en los polos turísticos y urbanos del Sureste: Cancún, Playa del Carmen, Tulum, Cozumel, Chetumal (Quintana Roo) y Mérida (Yucatán), con filtros específicos por zonas y colonias.",
       },
       {
-        question: "¿Qué tipo de puestos y perfiles se vinculan en la plataforma?",
+        question: "¿Qué tipo de puestos y sectores atiende la plataforma?",
         answer:
-          "Abarcamos personal operativo (hotelería, restaurantes, comercio, logística) y perfiles administrativos, técnicos y gerenciales especializados en las dinámicas del Sureste.",
-      },
-      {
-        question: "¿Ofrecen soporte técnico o asesoría personalizada?",
-        answer:
-          "Sí. Nuestro equipo de soporte regional está disponible por WhatsApp y correo electrónico para resolver dudas sobre expedientes, validaciones fiscales y gestión de vacantes.",
+          "Especialmente personal operativo, técnico y administrativo para hotelería, restaurantes, comercio minorista, logística, mantenimiento, construcción y servicios corporativos propios de la economía regional.",
       },
     ],
   },

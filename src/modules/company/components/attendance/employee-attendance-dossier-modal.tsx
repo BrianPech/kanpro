@@ -114,12 +114,53 @@ export function EmployeeAttendanceDossierModal({
 
   const handleExportTimesheet = () => {
     setIsExporting(true);
-    setTimeout(() => {
-      setIsExporting(false);
+    try {
+      const rows = [
+        ["Reporte Oficial de Asistencia - K'anPro"],
+        ["Colaborador", `"${employee.employeeName}"`],
+        ["ID", `"${employee.employeeId}"`],
+        ["Periodo", `"${history.monthName} ${selectedYear}"`],
+        ["Puntualidad", `"${history.individualPunctualityRate}%"`],
+        ["Días Asistidos", String(history.daysPresent)],
+        ["Retardos", String(history.daysLate)],
+        ["Faltas Injustificadas", String(history.daysAbsent)],
+        ["Horas Efectivas", String(history.totalEffectiveHours)],
+        ["Horas Extras", String(history.totalOvertimeHours)],
+        [],
+        ["Fecha", "Día", "Estatus", "Entrada", "Salida", "Horas", "Retardo (min)", "Horas Extra"],
+        ...history.days.map((d) => [
+          d.date,
+          `"${d.dayOfWeek}"`,
+          `"${d.status}"`,
+          `"${d.checkInTime || "--:--"}"`,
+          `"${d.checkOutTime || "--:--"}"`,
+          String(d.effectiveHours || 0),
+          String(d.delayMinutes || 0),
+          String(d.overtimeHours || 0),
+        ]),
+      ];
+      const csvContent =
+        "data:text/csv;charset=utf-8,\uFEFF" +
+        rows.map((e) => e.join(",")).join("\n");
+      const encodedUri = encodeURI(csvContent);
+      const link = document.createElement("a");
+      link.setAttribute("href", encodedUri);
+      link.setAttribute(
+        "download",
+        `Asistencia_${employee.employeeName.replace(/[^a-zA-Z0-9]/g, "_")}_${history.monthName}_${selectedYear}.csv`
+      );
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+
       toast.success("Tarjeta de Asistencia descargada", {
         description: `Se generó el reporte oficial para ${employee.employeeName} (${history.monthName} ${selectedYear}).`,
       });
-    }, 1000);
+    } catch {
+      toast.error("Error al exportar reporte de asistencia");
+    } finally {
+      setIsExporting(false);
+    }
   };
 
   const getStatusColor = (status: AttendanceStatus) => {

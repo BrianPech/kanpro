@@ -23,12 +23,12 @@ export interface Hero1Props {
 
 export function Hero1({
   badgeText = "Nuevo",
-  badgeLabel = "Expediente Digital Verificado en 1 Clic",
-  title = "Vinculación laboral ágil con certeza jurídica en el Sureste",
-  description = "Conectamos empresas líderes con personal operativo y administrativo en Cancún, Mérida y la Riviera Maya. Validación automática de CURP, RFC y referencias laborales.",
-  primaryCtaText = "Publicar Oferta",
+  badgeLabel = "Suite de Reclutamiento & Operación LFT",
+  title = "Vinculación laboral y control de personal con certeza jurídica en el Sureste",
+  description = "La plataforma integral para empresas y colaboradores en Cancún, Mérida y la Riviera Maya: desde vacantes auditadas ante el SAT y radar de talento, hasta el checador QR y expediente digital 360.",
+  primaryCtaText = "Publicar Vacante",
   primaryCtaHref = "/register/company",
-  secondaryCtaText = "Explorar Vacantes",
+  secondaryCtaText = "Explorar Empleos",
   secondaryCtaHref = "/dashboard/candidate/discovery",
   statNumber = "12,000+",
   statLabel = "Candidatos verificados listos para contratación inmediata.",

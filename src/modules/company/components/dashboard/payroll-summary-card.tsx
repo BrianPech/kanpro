@@ -17,36 +17,68 @@ import { toast } from "sonner";
 import { CompanyDashboardData, PayrollSummaryData } from "../../types/dashboard";
 
 interface PayrollSummaryProps {
-  payroll?: PayrollSummaryData | {
-    periodName: string;
-    status: string;
-    estimatedTotal: number;
-    employeesCount: number;
-    paymentDate: string;
-    daysToPay: number;
-  };
+  payroll?: PayrollSummaryData;
 }
 
-const DEFAULT_PAYROLL = {
-  periodName: "1ª Quincena de Octubre 2026",
-  status: "draft" as const,
-  estimatedTotal: 84500,
-  employeesCount: 12,
-  paymentDate: "31 Oct, 2026",
-  daysToPay: 2,
+const EMPTY_PAYROLL: PayrollSummaryData = {
+  periodName: "Periodo Actual",
+  frequency: "quincenal",
+  cutoffDate: new Date().toISOString().split("T")[0],
+  paymentDate: new Date().toISOString().split("T")[0],
+  estimatedTotal: 0,
+  employeesCount: 0,
+  status: "preparacion",
+  daysToPay: 0,
+  averageSalary: 0,
+  departmentBreakdown: [],
 };
 
 export function PayrollSummaryCard({
-  payroll = DEFAULT_PAYROLL,
+  payroll = EMPTY_PAYROLL,
 }: PayrollSummaryProps) {
   const [isExporting, setIsExporting] = useState(false);
 
   const handleExportPayroll = async () => {
     setIsExporting(true);
     try {
-      await new Promise((res) => setTimeout(res, 800));
+      if (payroll.employeesCount === 0 || payroll.estimatedTotal === 0) {
+        toast.info("Sin datos para exportar", {
+          description: "Registra colaboradores con salario base para generar el layout de nómina.",
+        });
+        return;
+      }
+      const rows = [
+        ["Concepto", "Valor"],
+        ["Periodo", `"${payroll.periodName}"`],
+        ["Total Estimado MXN", `"$${payroll.estimatedTotal.toLocaleString()}"`],
+        ["Colaboradores en Nómina", String(payroll.employeesCount)],
+        ["Fecha de Pago", `"${payroll.paymentDate}"`],
+        ["Estatus", `"${payroll.status}"`],
+        [],
+        ["Departamento", "Colaboradores", "Monto MXN", "Porcentaje"],
+        ...(payroll.departmentBreakdown || []).map((d) => [
+          `"${d.department}"`,
+          String(d.headcount),
+          `"$${d.amount.toLocaleString()}"`,
+          `"${d.percentage}%"`,
+        ]),
+      ];
+      const csvContent =
+        "data:text/csv;charset=utf-8,\uFEFF" +
+        rows.map((e) => e.join(",")).join("\n");
+      const encodedUri = encodeURI(csvContent);
+      const link = document.createElement("a");
+      link.setAttribute("href", encodedUri);
+      link.setAttribute(
+        "download",
+        `Nomina_${payroll.periodName.replace(/[^a-zA-Z0-9]/g, "_")}.csv`
+      );
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+
       toast.success("Nómina exportada correctamente", {
-        description: `Se descargó el layout bancario para ${payroll.periodName}.`,
+        description: `Se descargó el reporte de prenómina para ${payroll.periodName}.`,
       });
     } catch {
       toast.error("Error al exportar nómina");

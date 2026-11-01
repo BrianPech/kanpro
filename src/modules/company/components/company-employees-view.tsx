@@ -39,6 +39,7 @@ import {
   Trash2,
   MailCheck,
   Layers,
+  Sparkles,
 } from "@/components/ui/icons";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -99,6 +100,7 @@ import {
 import { getCompanyDepartmentsAction } from "@/modules/company/actions/areas";
 import { EmployeeDossierModal } from "@/modules/company/components/dossier/employee-dossier-modal";
 import { RegisterEmployeeModal } from "@/modules/company/components/employees/register-employee-modal";
+import { EmployeeModuleTour } from "@/modules/company/components/employees/employee-module-tour";
 import { CompanyPageHeader } from "./shared/company-page-header";
 import { CompanyStatusBadge } from "./shared/company-status-badge";
 
@@ -200,6 +202,10 @@ export function CompanyEmployeesView({
 
   // New direct employee modal state
   const [isNewEmployeeModalOpen, setIsNewEmployeeModalOpen] = React.useState(false);
+
+  // Onboarding Intro Disclosure Tour state
+  const [isTourOpen, setIsTourOpen] = React.useState(true);
+  const [isTourManual, setIsTourManual] = React.useState(false);
 
   // Resend invitation link modal state
   const [isResendDialogOpen, setIsResendDialogOpen] = React.useState(false);
@@ -995,6 +1001,19 @@ export function CompanyEmployeesView({
           <Badge variant="outline" className="font-mono">
             {employees.length} colaboradores
           </Badge>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => {
+              setIsTourManual(true);
+              setIsTourOpen(true);
+            }}
+            className="cursor-pointer"
+            title="Ver guía interactiva del módulo"
+          >
+            <Sparkles data-icon="inline-start" className="text-primary size-4" />
+            <span className="hidden sm:inline">Guía del Módulo</span>
+          </Button>
           <Button
             variant="outline"
             size="sm"
@@ -2168,6 +2187,17 @@ export function CompanyEmployeesView({
         isOpen={isNewEmployeeModalOpen}
         onOpenChange={setIsNewEmployeeModalOpen}
         onEmployeeCreated={handleEmployeeCreated}
+      />
+
+      {/* Tour Interactivo Onboarding del Módulo de Empleados */}
+      <EmployeeModuleTour
+        open={isTourOpen}
+        setOpen={(open) => {
+          setIsTourOpen(open);
+          if (!open) setIsTourManual(false);
+        }}
+        onRegisterClick={() => setIsNewEmployeeModalOpen(true)}
+        ignoreDismissal={isTourManual}
       />
     </div>
   );

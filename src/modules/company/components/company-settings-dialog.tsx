@@ -30,7 +30,6 @@ import {
   Zap,
   CheckCircle2,
   FileText,
-  Loader2,
 } from "@/components/ui/icons";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
@@ -71,11 +70,9 @@ import {
   type BillingRecord,
 } from "./billing-subscriptions-table";
 import {
-  updateSubscriptionPlan,
   getCompanyInvoices,
 } from "@/modules/company/actions/settings";
 import {
-  SUBSCRIPTION_PLANS,
   getSubscriptionPlan,
   type SubscriptionPlanId,
 } from "@/config/subscriptions";
@@ -124,7 +121,7 @@ const SETTINGS_SECTIONS = [
     id: "subscription",
     label: "Suscripción y Facturación",
     icon: CreditCard,
-    description: "Planes, vacantes destacadas y CFDI",
+    description: "Acceso anticipado, cupos y comprobantes CFDI",
   },
   {
     id: "notifications",
@@ -201,8 +198,6 @@ export function CompanySettingsModal({
   const [invoices, setInvoices] = React.useState<BillingRecord[]>(
     initialInvoices || []
   );
-  const [isChangingPlan, setIsChangingPlan] = React.useState(false);
-  const [isUpdatingPlan, setIsUpdatingPlan] = React.useState(false);
 
   // Notification Preferences States
   const [notifyEmail, setNotifyEmail] = React.useState(true);
@@ -334,47 +329,6 @@ export function CompanySettingsModal({
       description:
         "Tus vacantes han sido pausadas. Puedes reactivarlas en cualquier momento.",
     });
-  };
-
-  const handleSelectPlan = async (newPlan: SubscriptionPlanId) => {
-    if (!accountInfo.id) return;
-    setIsUpdatingPlan(true);
-    try {
-      await updateSubscriptionPlan(accountInfo.id, newPlan);
-      setSubscriptionPlan(newPlan);
-      const planCfg = getSubscriptionPlan(newPlan);
-      setFeaturedAllowance(planCfg.featuredVacanciesAllowance);
-      setSubscriptionStatus("active");
-
-      setIsChangingPlan(false);
-      toast.success("Plan actualizado con éxito", {
-        description: `Tu cuenta ahora disfruta de los beneficios del ${planCfg.name}.`,
-      });
-
-      // Refresh invoices
-      const freshInvoices = await getCompanyInvoices(accountInfo.id);
-      if (freshInvoices) {
-        setInvoices(
-          freshInvoices.map((inv: any) => ({
-            id: inv.id,
-            plan_name: inv.plan_name || planCfg.name,
-            type: "Factura Fiscal",
-            amount: Number(inv.amount) || 0,
-            currency: inv.currency || "MXN",
-            status: inv.status || "PAGADO",
-            payment_method: inv.payment_method || "Tarjeta / SPEI",
-            created_at: inv.created_at || new Date().toISOString(),
-          }))
-        );
-      }
-    } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : "Intenta nuevamente.";
-      toast.error("Error al actualizar plan", {
-        description: msg,
-      });
-    } finally {
-      setIsUpdatingPlan(false);
-    }
   };
 
   const handleLanguageChange = (val: string | null) => {
@@ -964,7 +918,7 @@ export function CompanySettingsModal({
                           Suscripción y Facturación
                         </h3>
                         <p className="text-xs text-muted-foreground font-medium">
-                          Administra tu plan corporativo, cupos de vacantes destacadas y CFDI.
+                          Administra tu acceso anticipado corporativo, cupos de vacantes destacadas y CFDI.
                         </p>
                       </div>
 
@@ -995,58 +949,30 @@ export function CompanySettingsModal({
                             Plan Activo & Cupos
                           </Label>
                           <p className="text-[11px] text-muted-foreground font-medium">
-                            Nivel de suscripción actual y asignación de vacantes premium.
+                            Nivel de servicio y asignación de vacantes destacadas para tu empresa.
                           </p>
                         </div>
 
                         <div className="p-3.5 rounded-xl border border-border/40 bg-card space-y-3">
                           <div className="flex items-center justify-between gap-3 pb-2.5 border-b border-border/20">
                             <div className="flex items-center gap-2.5">
-                              <div className="size-8 rounded-lg bg-purple-500/10 text-purple-600 dark:text-purple-400 flex items-center justify-center shrink-0">
+                              <div className="size-8 rounded-lg bg-amber-500/10 text-amber-600 dark:text-amber-400 flex items-center justify-center shrink-0">
                                 <Sparkles className="size-4" />
                               </div>
                               <div>
                                 <div className="flex items-center gap-2">
                                   <h4 className="text-xs font-bold text-foreground">
-                                    {getSubscriptionPlan(subscriptionPlan).name}
+                                    Acceso Anticipado
                                   </h4>
-                                  <Badge
-                                    className={cn(
-                                      "border-none text-[10px] font-bold h-4.5 px-1.5 rounded-full",
-                                      subscriptionStatus === "active"
-                                        ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
-                                        : "bg-amber-500/10 text-amber-600 dark:text-amber-400"
-                                    )}
-                                  >
-                                    {subscriptionStatus === "active" ? "Activo" : "Por Regularizar"}
+                                  <Badge className="bg-amber-500/15 text-amber-700 dark:text-amber-300 border-none text-[10px] font-bold h-4.5 px-2 rounded-full">
+                                    Activo • 100% Bonificado
                                   </Badge>
                                 </div>
                                 <p className="text-[10px] text-muted-foreground font-medium mt-0.5">
-                                  {getSubscriptionPlan(subscriptionPlan).price > 0
-                                    ? `${getSubscriptionPlan(subscriptionPlan).priceFormatted} • Facturación periódica activa`
-                                    : "Plan sin costo mensual"}
-                                  {subscriptionPeriodEnd && (
-                                    <>
-                                      {" • Vigencia: "}
-                                      {new Date(subscriptionPeriodEnd).toLocaleDateString("es-MX", {
-                                        day: "numeric",
-                                        month: "short",
-                                        year: "numeric",
-                                      })}
-                                    </>
-                                  )}
+                                  Plan sin costo mensual durante el periodo de pruebas en el Caribe Mexicano.
                                 </p>
                               </div>
                             </div>
-                            <Button
-                              type="button"
-                              variant="outline"
-                              size="sm"
-                              onClick={() => setIsChangingPlan(!isChangingPlan)}
-                              className="h-8 text-xs font-semibold rounded-lg px-3 border-border/40 hover:bg-muted/50 cursor-pointer shrink-0"
-                            >
-                              {isChangingPlan ? "Cerrar planes" : "Cambiar Plan"}
-                            </Button>
                           </div>
 
                           {/* Vacantes Destacadas Allowance */}
@@ -1058,51 +984,6 @@ export function CompanySettingsModal({
                               {featuredUsed} / {featuredAllowance} cupos
                             </span>
                           </div>
-
-                          {/* Selector de Planes Desplegable */}
-                          {isChangingPlan && (
-                            <div className="pt-3 border-t border-border/20 space-y-2.5 animate-in slide-in-from-top-2 duration-200">
-                              <p className="text-[11px] font-bold text-foreground uppercase tracking-wider">
-                                Selecciona el nivel de servicio:
-                              </p>
-                              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
-                                {Object.values(SUBSCRIPTION_PLANS).map((p) => {
-                                  const isSelected = subscriptionPlan === p.id;
-                                  return (
-                                    <div
-                                      key={p.id}
-                                      onClick={() => !isUpdatingPlan && handleSelectPlan(p.id)}
-                                      className={cn(
-                                        "p-3 rounded-xl border cursor-pointer transition-all space-y-1.5",
-                                        isSelected
-                                          ? "border-primary bg-primary/5 ring-1 ring-primary/30"
-                                          : "border-border/40 hover:border-border hover:bg-muted/30"
-                                      )}
-                                    >
-                                      <div className="flex items-center justify-between">
-                                        <span className="text-xs font-bold text-foreground">
-                                          {p.badgeName}
-                                        </span>
-                                        {isSelected && <Check className="size-3 text-primary" />}
-                                      </div>
-                                      <p className="text-[10px] text-primary font-bold">
-                                        {p.priceFormatted}
-                                      </p>
-                                      <p className="text-[9px] text-muted-foreground leading-tight">
-                                        {p.featuredVacanciesLabel}
-                                      </p>
-                                    </div>
-                                  );
-                                })}
-                              </div>
-                              {isUpdatingPlan && (
-                                <div className="flex items-center justify-center gap-2 text-xs text-muted-foreground py-1">
-                                  <Loader2 className="size-3.5 animate-spin" />
-                                  <span>Actualizando plan...</span>
-                                </div>
-                              )}
-                            </div>
-                          )}
                         </div>
                       </div>
 

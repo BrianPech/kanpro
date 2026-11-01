@@ -69,48 +69,77 @@ const DEFAULT_CATEGORIES: ComparisonCategory[] = [
         ],
       },
       {
-        feature: "Publicación de vacantes inicial",
+        feature: "Publicación de vacantes",
         cells: [
-          { status: "yes", note: "Acceso anticipado gratuito" },
+          { status: "yes", note: "Acceso y gestión transparente" },
           { status: "partial", note: "Pago previo obligatorio" },
           { status: "no", note: "Tarifa inicial elevada" },
         ],
       },
       {
-        feature: "Transparencia tarifaria",
+        feature: "Transparencia de sueldos",
         cells: [
-          { status: "yes", note: "Sin costos ocultos ni penalizaciones" },
-          { status: "partial", note: "Planes con renovación forzosa" },
-          { status: "partial", note: "Variables según el perfil" },
+          { status: "yes", note: "Sueldos obligatorios en MXN" },
+          { status: "no", note: "Sueldos ocultos / 'A convenir'" },
+          { status: "partial", note: "Negociación según intermediario" },
         ],
       },
     ],
   },
   {
-    title: "Velocidad y Comunicación Directa",
+    title: "Atracción y Radar de Talento",
     rows: [
+      {
+        feature: "Radar proactivo de candidatos",
+        cells: [
+          { status: "yes", note: "Búsqueda activa e invitación en 1 clic" },
+          { status: "no", note: "Espera pasiva de postulaciones" },
+          { status: "partial", note: "Base interna de agencia con cargo" },
+        ],
+      },
       {
         feature: "Canal de contacto directo",
         cells: [
-          { status: "yes", note: "WhatsApp directo en 1-clic" },
+          { status: "yes", note: "WhatsApp directo sin intermediarios" },
           { status: "no", note: "Buzón web o correo lento" },
-          { status: "no", note: "Intermediario de agencia" },
+          { status: "no", note: "Filtro obligatorio de agencia" },
         ],
       },
       {
-        feature: "Tiempo de primera respuesta",
+        feature: "Filtro hiperlocal por zona",
         cells: [
-          { status: "yes", note: "< 2 horas el mismo día" },
-          { status: "partial", note: "3 a 7 días hábiles" },
-          { status: "partial", note: "2 a 4 semanas" },
+          { status: "yes", note: "Mérida, Cancún, Riviera Maya, Tulum" },
+          { status: "partial", note: "Solo estado o municipio general" },
+          { status: "partial", note: "Búsqueda manual aleatoria" },
+        ],
+      },
+    ],
+  },
+  {
+    title: "Operación Laboral y Cumplimiento LFT",
+    rows: [
+      {
+        feature: "Control de Asistencia & Checador QR",
+        cells: [
+          { status: "yes", note: "Cartel QR oficial y geocercas GPS" },
+          { status: "no", note: "No disponible en portales de empleo" },
+          { status: "partial", note: "Reloj checador físico costoso" },
         ],
       },
       {
-        feature: "Prevención de inasistencia (Ghosting)",
+        feature: "Expediente Digital 360",
         cells: [
-          { status: "yes", note: "Confirmaciones automáticas vía WhatsApp" },
-          { status: "no", note: "Sin seguimiento post-postulación" },
-          { status: "partial", note: "Confirmaciones manuales" },
+          { status: "yes", note: "RFC, CURP, NSS, contratos y salarios" },
+          { status: "no", note: "Solo CV en PDF sin verificar" },
+          { status: "partial", note: "Archiveros físicos en papel" },
+        ],
+      },
+      {
+        feature: "Vacaciones Dignas Art. 76 LFT",
+        cells: [
+          { status: "yes", note: "Cálculo legal automático y solicitudes" },
+          { status: "no", note: "No disponible en portales de empleo" },
+          { status: "partial", note: "Hojas de Excel manuales" },
         ],
       },
     ],
@@ -119,48 +148,27 @@ const DEFAULT_CATEGORIES: ComparisonCategory[] = [
     title: "Certeza Jurídica y Validación SAT",
     rows: [
       {
-        feature: "Auditoría fiscal (32-D SAT & RFC)",
+        feature: "Auditoría fiscal de empresas (13 puntos)",
         cells: [
-          { status: "yes", note: "Cotejo oficial de 13 puntos" },
-          { status: "no", note: "Sin verificación oficial" },
-          { status: "partial", note: "Costo adicional opcional" },
+          { status: "yes", note: "Acta Constitutiva, CSF y RFC cotejados" },
+          { status: "no", note: "Sin verificación (Riesgo de fraude)" },
+          { status: "partial", note: "Validación externa con costo" },
         ],
       },
       {
-        feature: "Expediente digital verificado",
+        feature: "Portal del Colaborador Móvil",
         cells: [
-          { status: "yes", note: "CURP, INE y domicilio cotejados" },
-          { status: "no", note: "CVs en PDF sin comprobación" },
-          { status: "partial", note: "Copias impresas en papel" },
+          { status: "yes", note: "Checador con cámara y contratos web" },
+          { status: "no", note: "Inexistente tras la contratación" },
+          { status: "partial", note: "Apps pesadas de terceros" },
         ],
       },
       {
-        feature: "Protección de datos y certeza legal",
+        feature: "Protección de datos personales",
         cells: [
-          { status: "yes", note: "Cumplimiento LFPDPPP y LFT" },
-          { status: "partial", note: "Responsabilidad del usuario" },
-          { status: "partial", note: "Contratación tercerizada" },
-        ],
-      },
-    ],
-  },
-  {
-    title: "Especialización Territorial",
-    rows: [
-      {
-        feature: "Filtro hiperlocal de cercanía",
-        cells: [
-          { status: "yes", note: "Radio exacto (< 3 km de casa)" },
-          { status: "partial", note: "Solo estado o municipio general" },
-          { status: "partial", note: "Búsqueda manual aleatoria" },
-        ],
-      },
-      {
-        feature: "Cobertura regional en el Sureste",
-        cells: [
-          { status: "yes", note: "Cancún, Mérida y Riviera Maya" },
-          { status: "partial", note: "Generalizado a todo el país" },
-          { status: "partial", note: "Red local fragmentada" },
+          { status: "yes", note: "Cifrado LFPDPPP con consentimiento" },
+          { status: "partial", note: "Información expuesta en la web" },
+          { status: "partial", note: "Compartido con terceros" },
         ],
       },
     ],

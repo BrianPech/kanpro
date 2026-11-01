@@ -38,112 +38,52 @@ import { CompanyStatusBadge } from "../shared/company-status-badge";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 
-interface PendingIncidentItem {
+export interface PendingIncidentItem {
   id: string;
   employeeName: string;
-  avatarUrl?: string;
+  avatarUrl?: string | null;
   department: string;
-  type: "falta_injustificada" | "retardo" | "incapacidad" | "permiso" | "horas_extra" | "vacaciones";
+  type: string;
   typeLabel: string;
   title: string;
   description: string;
   date: string;
   severity: "baja" | "media" | "alta" | "critica";
-  status: "pendiente" | "aprobado" | "rechazado";
+  status: "pendiente" | "aprobado" | "rechazado" | "en_revision";
   hoursRequested?: number;
 }
 
-interface AttendanceTodayItem {
+export interface AttendanceTodayItem {
   id: string;
   employeeName: string;
-  avatarUrl?: string;
+  avatarUrl?: string | null;
   jobTitle: string;
   department: string;
-  checkInTime?: string;
-  status: "puntual" | "retardo" | "ausente";
+  checkInTime?: string | null;
+  status: "presente" | "puntual" | "retardo" | "ausente" | "justificado" | "vacaciones";
   delayMinutes?: number;
 }
 
-const INITIAL_INCIDENTS: PendingIncidentItem[] = [
-  {
-    id: "inc-1",
-    employeeName: "Mateo Canto Solís",
-    department: "Cocina Caliente",
-    type: "permiso",
-    typeLabel: "Permiso con Goce",
-    title: "Permiso por cita médica familiar",
-    description: "Solicita salir 2 horas antes para acompañar a su hijo a consulta clínica del IMSS.",
-    date: "Hoy, 29 Oct",
-    severity: "media",
-    status: "pendiente",
-    hoursRequested: 2,
-  },
-  {
-    id: "inc-2",
-    employeeName: "Ana Laura Poot",
-    department: "Housekeeping",
-    type: "incapacidad",
-    typeLabel: "Incapacidad IMSS",
-    title: "Presentación de certificado de incapacidad",
-    description: "Incapacidad por enfermedad general expedida por el IMSS por 3 días hábiles.",
-    date: "Ayer, 28 Oct",
-    severity: "alta",
-    status: "pendiente",
-  },
-  {
-    id: "inc-3",
-    employeeName: "Carlos Pool Chi",
-    department: "Mantenimiento",
-    type: "horas_extra",
-    typeLabel: "Horas Extra",
-    title: "Autorización de tiempo extraordinario",
-    description: "Reparación de fuga en cisterna principal fuera de turno regular (3 horas).",
-    date: "27 Oct, 2026",
-    severity: "media",
-    status: "pendiente",
-    hoursRequested: 3,
-  },
-];
+interface IncidentsAttendanceCardProps {
+  incidents?: PendingIncidentItem[];
+  attendanceList?: AttendanceTodayItem[];
+}
 
-const INITIAL_ATTENDANCE: AttendanceTodayItem[] = [
-  {
-    id: "att-1",
-    employeeName: "Karla Romero Méndez",
-    jobTitle: "Supervisora de Pisos",
-    department: "Housekeeping",
-    checkInTime: "07:54 AM",
-    status: "puntual",
-  },
-  {
-    id: "att-2",
-    employeeName: "Javier Briceño Canul",
-    jobTitle: "Bartender Principal",
-    department: "Alimentos y Bebidas",
-    checkInTime: "08:18 AM",
-    status: "retardo",
-    delayMinutes: 18,
-  },
-  {
-    id: "att-3",
-    employeeName: "Fernanda Ucán May",
-    jobTitle: "Hostess",
-    department: "Restaurante",
-    checkInTime: "07:58 AM",
-    status: "puntual",
-  },
-  {
-    id: "att-4",
-    employeeName: "Emilio Escalante V.",
-    jobTitle: "Stewart",
-    department: "Steward",
-    status: "ausente",
-  },
-];
-
-export function IncidentsAttendanceCard() {
-  const [incidents, setIncidents] = useState<PendingIncidentItem[]>(INITIAL_INCIDENTS);
-  const [attendanceList] = useState<AttendanceTodayItem[]>(INITIAL_ATTENDANCE);
+export function IncidentsAttendanceCard({
+  incidents: incomingIncidents = [],
+  attendanceList: incomingAttendance = [],
+}: IncidentsAttendanceCardProps) {
+  const [incidents, setIncidents] = useState<PendingIncidentItem[]>(incomingIncidents);
+  const [attendanceList, setAttendanceList] = useState<AttendanceTodayItem[]>(incomingAttendance);
   const [selectedIncident, setSelectedIncident] = useState<PendingIncidentItem | null>(null);
+
+  React.useEffect(() => {
+    setIncidents(incomingIncidents);
+  }, [incomingIncidents]);
+
+  React.useEffect(() => {
+    setAttendanceList(incomingAttendance);
+  }, [incomingAttendance]);
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
   const [isNewIncidentOpen, setIsNewIncidentOpen] = useState(false);
 
@@ -413,8 +353,28 @@ export function IncidentsAttendanceCard() {
                       </div>
 
                       <CompanyStatusBadge
-                        status={isAbsent ? "destructive" : isLate ? "warning" : "success"}
-                        label={isAbsent ? "Ausente" : isLate ? "Retardo" : "Puntual"}
+                        status={
+                          isAbsent
+                            ? "destructive"
+                            : isLate
+                            ? "warning"
+                            : item.status === "justificado"
+                            ? "info"
+                            : item.status === "vacaciones"
+                            ? "neutral"
+                            : "success"
+                        }
+                        label={
+                          isAbsent
+                            ? "Ausente"
+                            : isLate
+                            ? "Retardo"
+                            : item.status === "justificado"
+                            ? "Justificado"
+                            : item.status === "vacaciones"
+                            ? "Vacaciones"
+                            : "Puntual"
+                        }
                       />
                     </div>
                   </div>
