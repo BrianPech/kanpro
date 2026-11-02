@@ -35,6 +35,7 @@ import {
   ChevronRight,
   Briefcase,
 } from "@/components/ui/icons";
+import { CompanySettingsModal } from "@/modules/company/components/company-settings-dialog";
 
 export interface NavUserData {
   name: string;
@@ -54,6 +55,8 @@ export function NavUser({
 }) {
   const { isMobile, setOpenMobile } = useSidebar();
   const router = useRouter();
+  const [isCompanySettingsOpen, setIsCompanySettingsOpen] = React.useState(false);
+  const [companySettingsSection, setCompanySettingsSection] = React.useState("appearance");
 
   const [userData, setUserData] = React.useState<NavUserData>({
     name: initialUser?.name || "Usuario",
@@ -173,7 +176,8 @@ export function NavUser({
         : "/dashboard/admin/settings";
 
   return (
-    <SidebarMenu className={cn(compact && "w-full items-center")}>
+    <>
+      <SidebarMenu className={cn(compact && "w-full items-center")}>
       <SidebarMenuItem className={cn(compact && "w-full flex items-center justify-center")}>
         <DropdownMenu>
           <DropdownMenuTrigger
@@ -308,36 +312,17 @@ export function NavUser({
                   if (isMobile) setOpenMobile(false);
                   router.push(profileHref);
                 }}
-                className="group rounded-xl p-2 text-left cursor-pointer transition-all duration-150 hover:bg-muted/50 focus:bg-muted/50 outline-none select-none"
+                className="group/item rounded-xl p-2.5 text-left cursor-pointer transition-colors duration-150 hover:bg-muted/70 data-[highlighted]:bg-muted/70 outline-none select-none"
               >
                 <div className="flex items-center gap-2.5 w-full">
-                  <div className="size-8 rounded-lg bg-primary/10 text-primary flex items-center justify-center shrink-0 group-hover:bg-primary group-hover:text-primary-foreground transition-colors shadow-2xs">
+                  <div className="size-8.5 rounded-xl bg-blue-500/10 text-blue-600 dark:text-blue-400 flex items-center justify-center shrink-0 transition-transform duration-150 group-hover/item:scale-105 group-data-[highlighted]/item:scale-105 shadow-2xs">
                     <UserIcon className="size-4" />
                   </div>
                   <div className="flex-1 min-w-0">
                     <span className="text-xs font-bold text-foreground block truncate">Mi Perfil</span>
-                    <span className="text-[10px] text-muted-foreground block truncate font-medium">Ver y editar información pública</span>
+                    <span className="text-[11px] text-muted-foreground block truncate font-medium">Ver y editar información pública</span>
                   </div>
-                  <ChevronRight className="size-3.5 text-muted-foreground/30 group-hover:text-foreground group-hover:translate-x-0.5 transition-all ml-auto shrink-0" />
-                </div>
-              </DropdownMenuItem>
-
-              <DropdownMenuItem
-                onClick={() => {
-                  if (isMobile) setOpenMobile(false);
-                  router.push(settingsHref);
-                }}
-                className="group rounded-xl p-2 text-left cursor-pointer transition-all duration-150 hover:bg-muted/50 focus:bg-muted/50 outline-none select-none"
-              >
-                <div className="flex items-center gap-2.5 w-full">
-                  <div className="size-8 rounded-lg bg-muted text-muted-foreground flex items-center justify-center shrink-0 group-hover:bg-foreground group-hover:text-background transition-colors shadow-2xs">
-                    <SettingsIcon className="size-4" />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <span className="text-xs font-bold text-foreground block truncate">Configuración</span>
-                    <span className="text-[10px] text-muted-foreground block truncate font-medium">Preferencias, privacidad y cuenta</span>
-                  </div>
-                  <ChevronRight className="size-3.5 text-muted-foreground/30 group-hover:text-foreground group-hover:translate-x-0.5 transition-all ml-auto shrink-0" />
+                  <ChevronRight className="size-3.5 text-muted-foreground/30 group-hover/item:text-foreground group-data-[highlighted]/item:text-foreground group-hover/item:translate-x-0.5 group-data-[highlighted]/item:translate-x-0.5 transition-all ml-auto shrink-0" />
                 </div>
               </DropdownMenuItem>
 
@@ -345,24 +330,49 @@ export function NavUser({
                 onClick={() => {
                   if (isMobile) setOpenMobile(false);
                   if (userData.role === "company") {
-                    router.push("/dashboard/company/settings?tab=notifications");
+                    setCompanySettingsSection("appearance");
+                    setIsCompanySettingsOpen(true);
+                  } else {
+                    router.push(settingsHref);
+                  }
+                }}
+                className="group/item rounded-xl p-2.5 text-left cursor-pointer transition-colors duration-150 hover:bg-muted/70 data-[highlighted]:bg-muted/70 outline-none select-none"
+              >
+                <div className="flex items-center gap-2.5 w-full">
+                  <div className="size-8.5 rounded-xl bg-slate-500/10 dark:bg-slate-400/10 text-slate-600 dark:text-slate-300 flex items-center justify-center shrink-0 transition-transform duration-150 group-hover/item:scale-105 group-data-[highlighted]/item:scale-105 shadow-2xs">
+                    <SettingsIcon className="size-4" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <span className="text-xs font-bold text-foreground block truncate">Configuración</span>
+                    <span className="text-[11px] text-muted-foreground block truncate font-medium">Preferencias, privacidad y cuenta</span>
+                  </div>
+                  <ChevronRight className="size-3.5 text-muted-foreground/30 group-hover/item:text-foreground group-data-[highlighted]/item:text-foreground group-hover/item:translate-x-0.5 group-data-[highlighted]/item:translate-x-0.5 transition-all ml-auto shrink-0" />
+                </div>
+              </DropdownMenuItem>
+
+              <DropdownMenuItem
+                onClick={() => {
+                  if (isMobile) setOpenMobile(false);
+                  if (userData.role === "company") {
+                    setCompanySettingsSection("notifications");
+                    setIsCompanySettingsOpen(true);
                   } else if (userData.role === "candidate") {
                     router.push("/dashboard/candidate/settings?tab=notifications");
                   } else {
                     router.push("/dashboard/admin/settings");
                   }
                 }}
-                className="group rounded-xl p-2 text-left cursor-pointer transition-all duration-150 hover:bg-muted/50 focus:bg-muted/50 outline-none select-none"
+                className="group/item rounded-xl p-2.5 text-left cursor-pointer transition-colors duration-150 hover:bg-muted/70 data-[highlighted]:bg-muted/70 outline-none select-none"
               >
                 <div className="flex items-center gap-2.5 w-full">
-                  <div className="size-8 rounded-lg bg-indigo-500/10 text-indigo-500 flex items-center justify-center shrink-0 group-hover:bg-indigo-600 group-hover:text-white transition-colors shadow-2xs">
+                  <div className="size-8.5 rounded-xl bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 flex items-center justify-center shrink-0 transition-transform duration-150 group-hover/item:scale-105 group-data-[highlighted]/item:scale-105 shadow-2xs">
                     <BellIcon className="size-4" />
                   </div>
                   <div className="flex-1 min-w-0">
                     <span className="text-xs font-bold text-foreground block truncate">Notificaciones</span>
-                    <span className="text-[10px] text-muted-foreground block truncate font-medium">Avisos de postulaciones y alertas</span>
+                    <span className="text-[11px] text-muted-foreground block truncate font-medium">Avisos de postulaciones y alertas</span>
                   </div>
-                  <ChevronRight className="size-3.5 text-muted-foreground/30 group-hover:text-foreground group-hover:translate-x-0.5 transition-all ml-auto shrink-0" />
+                  <ChevronRight className="size-3.5 text-muted-foreground/30 group-hover/item:text-foreground group-data-[highlighted]/item:text-foreground group-hover/item:translate-x-0.5 group-data-[highlighted]/item:translate-x-0.5 transition-all ml-auto shrink-0" />
                 </div>
               </DropdownMenuItem>
             </DropdownMenuGroup>
@@ -372,15 +382,15 @@ export function NavUser({
             {/* 3. Logout Item */}
             <DropdownMenuItem
               onClick={handleLogout}
-              className="group rounded-xl p-2 text-left cursor-pointer transition-all duration-150 text-rose-600 dark:text-rose-400 hover:bg-rose-500/10 focus:bg-rose-500/10 focus:text-rose-600 outline-none select-none"
+              className="group/item rounded-xl p-2.5 text-left cursor-pointer transition-colors duration-150 text-rose-600 dark:text-rose-400 hover:bg-rose-500/10 data-[highlighted]:bg-rose-500/10 outline-none select-none"
             >
               <div className="flex items-center gap-2.5 w-full">
-                <div className="size-8 rounded-lg bg-rose-500/10 text-rose-600 dark:text-rose-400 flex items-center justify-center shrink-0 group-hover:bg-rose-600 group-hover:text-white transition-colors shadow-2xs">
+                <div className="size-8.5 rounded-xl bg-rose-500/10 text-rose-600 dark:text-rose-400 flex items-center justify-center shrink-0 transition-transform duration-150 group-hover/item:scale-105 group-data-[highlighted]/item:scale-105 shadow-2xs">
                   <LogOutIcon className="size-4" />
                 </div>
                 <div className="flex-1 min-w-0">
                   <span className="text-xs font-bold block truncate">Cerrar Sesión</span>
-                  <span className="text-[10px] text-rose-500/70 block truncate font-medium">Finalizar sesión en este equipo</span>
+                  <span className="text-[11px] text-rose-500/70 block truncate font-medium">Finalizar sesión en este equipo</span>
                 </div>
               </div>
             </DropdownMenuItem>
@@ -388,5 +398,14 @@ export function NavUser({
         </DropdownMenu>
       </SidebarMenuItem>
     </SidebarMenu>
+
+    {userData.role === "company" && (
+      <CompanySettingsModal
+        open={isCompanySettingsOpen}
+        onOpenChange={setIsCompanySettingsOpen}
+        defaultSection={companySettingsSection}
+      />
+    )}
+  </>
   );
 }

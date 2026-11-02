@@ -1,5 +1,10 @@
 import { describe, test, expect, vi, beforeEach } from "vitest";
-import { companyRegisterSchema } from "@/modules/auth/schemas/register.schema";
+import {
+  companyRegisterSchema,
+  companyRegisterCredentialsSchema,
+  companyOnboardingIdentitySchema,
+  companyOnboardingOperationsSchema,
+} from "@/modules/auth/schemas/register.schema";
 import { NextRequest } from "next/server";
 import { updateSession } from "@/lib/supabase/proxy";
 
@@ -124,6 +129,85 @@ describe("Fase 1: Empresa - Registro, Autenticación y Guardias de Acceso", () =
       if (!result.success) {
         const errors = result.error.flatten();
         expect(errors.fieldErrors.password?.[0]).toContain("al menos un número");
+      }
+    });
+  });
+
+  describe("2. Schema de Credenciales Rediseñado (companyRegisterCredentialsSchema)", () => {
+    test("Acepta credenciales válidas con email, password y confirmPassword idénticos", () => {
+      const payload = {
+        email: "talento@empresa.com",
+        password: "Password123!",
+        confirmPassword: "Password123!",
+      };
+      const result = companyRegisterCredentialsSchema.safeParse(payload);
+      expect(result.success).toBe(true);
+    });
+
+    test("Rechaza cuando confirmPassword no coincide con password", () => {
+      const payload = {
+        email: "talento@empresa.com",
+        password: "Password123!",
+        confirmPassword: "DifferentPassword456!",
+      };
+      const result = companyRegisterCredentialsSchema.safeParse(payload);
+      expect(result.success).toBe(false);
+      if (!result.success) {
+        const errors = result.error.flatten();
+        expect(errors.fieldErrors.confirmPassword?.[0]).toContain("no coinciden");
+      }
+    });
+
+    test("Rechaza contraseñas débiles en el schema de credenciales", () => {
+      const payload = {
+        email: "talento@empresa.com",
+        password: "weak",
+        confirmPassword: "weak",
+      };
+      const result = companyRegisterCredentialsSchema.safeParse(payload);
+      expect(result.success).toBe(false);
+    });
+  });
+
+  describe("3. Schemas de Onboarding de Empresa (Identity & Operations)", () => {
+    test("Valida correctamente el nombre de la empresa en Onboarding Identity", () => {
+      const valid = {
+        company_name: "Grupo Hotelero Maya",
+        contact_phone: "9981234567",
+      };
+      expect(companyOnboardingIdentitySchema.safeParse(valid).success).toBe(true);
+
+      const invalid = { company_name: "A" };
+      expect(companyOnboardingIdentitySchema.safeParse(invalid).success).toBe(false);
+    });
+
+    test("Valida sector y ubicación en Onboarding Operations", () => {
+      const valid = {
+        industry: "Hotelería & Turismo",
+        location: "Cancún, Quintana Roo",
+        company_size: "51-200",
+      };
+      expect(companyOnboardingOperationsSchema.safeParse(valid).success).toBe(true);
+
+      const invalid = { industry: "", location: "" };
+      expect(companyOnboardingOperationsSchema.safeParse(invalid).success).toBe(false);
+    });
+
+    test("Acepta dirección detallada y coordenadas geográficas en Onboarding Operations", () => {
+      const validWithCoords = {
+        industry: "Tecnología & Servicios",
+        location: "Mérida, Yucatán",
+        company_size: "11-50",
+        address_details: "Calle 60 #340 x 35 y 37, Centro",
+        latitude: 20.9753,
+        longitude: -89.619,
+      };
+      const result = companyOnboardingOperationsSchema.safeParse(validWithCoords);
+      expect(result.success).toBe(true);
+      if (result.success) {
+        expect(result.data.address_details).toBe("Calle 60 #340 x 35 y 37, Centro");
+        expect(result.data.latitude).toBe(20.9753);
+        expect(result.data.longitude).toBe(-89.619);
       }
     });
   });

@@ -51,6 +51,8 @@ export interface CompanyProfileInitialData {
   instagram_url?: string | null;
   facebook_url?: string | null;
   address_details?: string | null;
+  latitude?: number | null;
+  longitude?: number | null;
   operation_hours?: string | null;
   has_transport?: boolean | null;
   benefit_canteen?: boolean | null;
@@ -92,6 +94,8 @@ export function useCompanyProfileForm(
       instagram_url: initialProfile?.instagram_url || "",
       facebook_url: initialProfile?.facebook_url || "",
       address_details: initialProfile?.address_details || "",
+      latitude: typeof initialProfile?.latitude === "number" ? initialProfile.latitude : undefined,
+      longitude: typeof initialProfile?.longitude === "number" ? initialProfile.longitude : undefined,
       has_transport: !!initialProfile?.has_transport,
       benefit_canteen: !!initialProfile?.benefit_canteen,
       benefit_tips: !!initialProfile?.benefit_tips,

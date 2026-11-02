@@ -84,6 +84,7 @@ export interface CompanySettingsModalProps {
   onOpenChange?: (open: boolean) => void;
   trigger?: React.ReactElement;
   children?: React.ReactNode;
+  defaultSection?: string;
   initialProfile?: {
     id?: string;
     company_name?: string;
@@ -137,11 +138,20 @@ export function CompanySettingsModal({
   trigger,
   initialProfile,
   initialInvoices,
+  defaultSection,
 }: CompanySettingsModalProps) {
   const { theme, setTheme } = useTheme();
   const [mounted, setMounted] = React.useState(false);
-  const [activeSection, setActiveSection] = React.useState("appearance");
+  const [activeSection, setActiveSection] = React.useState(
+    defaultSection || "appearance"
+  );
   const [language, setLanguage] = React.useState("es");
+
+  React.useEffect(() => {
+    if (defaultSection) {
+      setActiveSection(defaultSection);
+    }
+  }, [defaultSection, open]);
 
   // Account Information States
   const [accountInfo, setAccountInfo] = React.useState<{

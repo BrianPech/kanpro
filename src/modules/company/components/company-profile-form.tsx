@@ -2,6 +2,7 @@
 
 import * as React from "react";
 import Link from "next/link";
+import dynamic from "next/dynamic";
 import {
   Building2,
   Globe,
@@ -14,7 +15,6 @@ import {
   Phone,
   Image as ImageIcon,
   ShieldCheck,
-  Navigation,
   FileText,
 } from "@/components/ui/icons";
 import { createClient } from "@/lib/supabase/client";
@@ -45,9 +45,24 @@ import { useCompanyProfileForm } from "../hooks/use-company-profile-form";
 import { toast } from "sonner";
 import { motion } from "framer-motion";
 import { cn } from "@/lib/utils";
-import { cleanCityName, resolveLocationFromCoords } from "@/config/geo";
 import { CompanyPageHeader } from "./shared/company-page-header";
 import { optimizeImageForStorage } from "@/lib/storage/optimize-upload";
+
+const CompanyLocationMap = dynamic(
+  () =>
+    import("@/modules/auth/components/company-location-map").then(
+      (mod) => mod.CompanyLocationMap
+    ),
+  {
+    ssr: false,
+    loading: () => (
+      <div className="w-full h-56 sm:h-64 rounded-2xl border border-border/70 bg-muted/20 flex flex-col items-center justify-center gap-2 text-muted-foreground animate-pulse">
+        <MapPin className="size-5 text-primary/60 animate-bounce" />
+        <span className="text-xs font-semibold">Cargando mapa interactivo...</span>
+      </div>
+    ),
+  }
+);
 
 const InstagramIcon = (props: React.SVGProps<SVGSVGElement>) => (
   <svg
@@ -109,21 +124,26 @@ export interface InitialProfile {
   instagram_url?: string | null;
   facebook_url?: string | null;
   address_details?: string | null;
+  latitude?: number | null;
+  longitude?: number | null;
   operation_hours?: string | null;
 }
 
-const QUICK_CITIES = [
-  "Felipe Carrillo Puerto, Q. Roo",
-  "Playa del Carmen, Q. Roo",
-  "Tulum, Q. Roo",
-  "Cancún, Q. Roo",
-  "Chetumal, Q. Roo",
-  "Bacalar, Q. Roo",
-  "Cozumel, Q. Roo",
-  "Puerto Morelos, Q. Roo",
+const CITIES_LIST = [
   "Mérida, Yucatán",
+  "Cancún, Quintana Roo",
+  "Playa del Carmen, Quintana Roo",
+  "Tulum, Quintana Roo",
+  "Chetumal, Quintana Roo",
   "Valladolid, Yucatán",
+  "Cozumel, Quintana Roo",
+  "Bacalar, Quintana Roo",
+  "Puerto Morelos, Quintana Roo",
+  "Felipe Carrillo Puerto, Quintana Roo",
+  "Campeche, Campeche",
+  "Ciudad del Carmen, Campeche",
   "Progreso, Yucatán",
+  "Otra ciudad del Sureste",
 ];
 
 
@@ -174,65 +194,8 @@ export function CompanyProfileForm({
   const companyName = watch("company_name");
   const location = watch("location");
 
-
-  const [isLocating, setIsLocating] = React.useState(false);
   const [isUploadingLogo, setIsUploadingLogo] = React.useState(false);
   const [isUploadingBanner, setIsUploadingBanner] = React.useState(false);
-
-  // GPS location detection matching Wizard implementation
-  const handleDetectLocation = () => {
-    if (typeof window === "undefined" || !("geolocation" in navigator)) {
-      toast.error("Geolocalización no disponible", {
-        description: "Tu navegador o dispositivo no tiene GPS activo.",
-      });
-      return;
-    }
-
-    setIsLocating(true);
-
-    const onLocationSuccess = async (pos: GeolocationPosition) => {
-      try {
-        const { latitude, longitude } = pos.coords;
-        const resolved = await resolveLocationFromCoords(latitude, longitude);
-        const finalCity = cleanCityName(resolved.city);
-        const finalZone = resolved.zone || "";
-
-        setValue("location", finalCity, { shouldValidate: true, shouldDirty: true });
-        if (finalZone) {
-          setValue("address_details", finalZone, { shouldValidate: true, shouldDirty: true });
-        }
-
-        setIsLocating(false);
-        toast.success("Ubicación GPS detectada", {
-          description: `Se configuró: ${resolved.displayLocation}`,
-        });
-      } catch {
-        setIsLocating(false);
-        toast.error("No se pudo resolver la ubicación exacta", {
-          description: "Selecciona la ciudad de la lista o ingrésala manualmente.",
-        });
-      }
-    };
-
-    const onLocationFailure = (err: GeolocationPositionError) => {
-      setIsLocating(false);
-      if (err.code === err.PERMISSION_DENIED) {
-        toast.error("Permiso de ubicación denegado", {
-          description: "Otorga permiso de ubicación o selecciona la zona manualmente.",
-        });
-      } else {
-        toast.error("No se pudo detectar tu ubicación", {
-          description: "Selecciona tu ciudad y zona en las opciones de abajo.",
-        });
-      }
-    };
-
-    navigator.geolocation.getCurrentPosition(
-      onLocationSuccess,
-      onLocationFailure,
-      { enableHighAccuracy: true, timeout: 8000, maximumAge: 60000 }
-    );
-  };
 
   const handleLogoChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const rawFile = e.target.files?.[0];
@@ -439,21 +402,21 @@ export function CompanyProfileForm({
         {/* ========================================================================= */}
         {/* 2. CARD PRINCIPAL UNIFICADA (HEADER + CONTENT + FOOTER)                   */}
         {/* ========================================================================= */}
-        <Card className="overflow-hidden">
+        <Card className="overflow-hidden p-0 py-0 gap-0 border border-border/60 rounded-3xl shadow-sm bg-card">
           
           {/* ---------------- CARD HEADER: PORTADA, LOGO Y NOMBRE DE EMPRESA -------- */}
-          <CardHeader className="p-0 border-b border-border/60">
+          <CardHeader className="p-0 border-b border-border/60 gap-0 rounded-t-3xl">
             {/* Banner Cover Image */}
-            <div className="relative h-44 sm:h-56 bg-muted/40 overflow-hidden group">
+            <div className="relative w-full h-48 sm:h-64 bg-muted/30 overflow-hidden group">
               {bannerUrl ? (
                 <img
                   src={bannerUrl}
                   alt="Portada de la empresa"
-                  className="w-full h-full object-cover"
+                  className="w-full h-full object-cover object-center block"
                 />
               ) : (
-                <div className="w-full h-full flex flex-col items-center justify-center text-muted-foreground p-4 text-center">
-                  <ImageIcon className="size-9 stroke-[1.2]" />
+                <div className="w-full h-full flex flex-col items-center justify-center text-muted-foreground p-4 text-center bg-muted/40">
+                  <ImageIcon className="size-10 stroke-[1.2]" />
                   <span className="text-xs font-bold uppercase tracking-wider mt-2 text-foreground">
                     Imagen de Portada Comercial
                   </span>
@@ -464,7 +427,7 @@ export function CompanyProfileForm({
               )}
 
               {/* Botón Cambiar Portada */}
-              <div className="absolute top-4 right-4">
+              <div className="absolute top-4 right-4 z-20">
                 <Button
                   type="button"
                   size="sm"
@@ -569,7 +532,7 @@ export function CompanyProfileForm({
           <CardContent className="p-5 sm:p-6 md:p-8 space-y-8 divide-y divide-border/60">
             
             {/* SECCIÓN 1: INFORMACIÓN GENERAL Y MARCA */}
-            <div className="space-y-5">
+            <div className="space-y-5 pb-6 sm:pb-8">
               <div className="flex items-center gap-2.5">
                 <div className="size-8 rounded-xl bg-primary/10 text-primary flex items-center justify-center shrink-0">
                   <Building2 className="size-4" />
@@ -667,7 +630,7 @@ export function CompanyProfileForm({
                 </div>
               </div>
 
-              {/* Bio Comercial / Descripción (Moved UP next to general info) */}
+              {/* Bio Comercial / Descripción */}
               <div className="space-y-1.5 pt-1">
                 <div className="flex items-center justify-between">
                   <label className="text-xs font-bold text-foreground flex items-center gap-1.5">
@@ -698,7 +661,7 @@ export function CompanyProfileForm({
             </div>
 
             {/* SECCIÓN 2: CONTACTO Y CANALES DIGITALES */}
-            <div className="space-y-5 pt-6">
+            <div className="space-y-5 py-6 sm:py-8">
               <div className="flex items-center gap-2.5">
                 <div className="size-8 rounded-xl bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 flex items-center justify-center shrink-0">
                   <Phone className="size-4" />
@@ -791,76 +754,51 @@ export function CompanyProfileForm({
             </div>
 
             {/* SECCIÓN 3: UBICACIÓN Y SEDE OPERATIVA */}
-            <div className="space-y-5 pt-6">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                <div className="flex items-center gap-2.5">
-                  <div className="size-8 rounded-xl bg-rose-500/10 text-rose-600 dark:text-rose-400 flex items-center justify-center shrink-0">
-                    <MapPin className="size-4" />
-                  </div>
-                  <div>
-                    <h3 className="text-sm font-extrabold text-foreground">
-                      Ubicación & Sede Operativa
-                    </h3>
-                    <p className="text-xs text-muted-foreground font-medium">
-                      Dirección física donde opera la sucursal o centro de trabajo.
-                    </p>
-                  </div>
+            <div className="space-y-5 pt-6 sm:pt-8">
+              <div className="flex items-center gap-2.5">
+                <div className="size-8 rounded-xl bg-rose-500/10 text-rose-600 dark:text-rose-400 flex items-center justify-center shrink-0">
+                  <MapPin className="size-4" />
                 </div>
-
-                {/* Botón de Detección GPS Automática */}
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  onClick={handleDetectLocation}
-                  disabled={isLocating}
-                  className="gap-2 font-bold cursor-pointer self-start sm:self-auto"
-                >
-                  {isLocating ? (
-                    <Loader2 className="size-3.5 animate-spin" />
-                  ) : (
-                    <Navigation className="size-3.5" />
-                  )}
-                  <span>{isLocating ? "Detectando por GPS..." : "Autodetectar por GPS"}</span>
-                </Button>
+                <div>
+                  <h3 className="text-sm font-extrabold text-foreground">
+                    Ubicación & Sede Operativa
+                  </h3>
+                  <p className="text-xs text-muted-foreground font-medium">
+                    Selecciona tu ciudad sede y marca en el mapa interactivo la ubicación física exacta de tu empresa o sucursal.
+                  </p>
+                </div>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-5">
-                {/* Ciudad Principal */}
+              <div className="space-y-4">
+                {/* Selector de Ciudad Sede */}
                 <div className="space-y-1.5">
                   <label className="text-xs font-bold text-foreground flex items-center gap-1">
-                    <span>Ciudad Principal / Sede</span>
+                    <span>Ciudad Sede en el Sureste</span>
                     <span className="text-destructive">*</span>
                   </label>
-                  <div className="relative">
-                    <MapPin className="absolute left-3.5 top-1/2 -translate-y-1/2 size-4 text-muted-foreground pointer-events-none" />
-                    <Input
-                      type="text"
-                      placeholder="Ej. Mérida, Yucatán"
-                      {...register("location")}
-                      className="pl-10 w-full"
-                    />
-                  </div>
-
-                  {/* Pills de Ciudades Rápidas */}
-                  <div className="flex flex-wrap gap-1.5 pt-1">
-                    {QUICK_CITIES.map((city) => (
-                      <button
-                        key={city}
-                        type="button"
-                        onClick={() => setValue("location", city, { shouldValidate: true, shouldDirty: true })}
-                        className={cn(
-                          "px-2.5 py-1 rounded-full text-[10px] font-bold transition-all border cursor-pointer",
-                          location === city
-                            ? "bg-primary text-primary-foreground border-primary"
-                            : "bg-muted/40 hover:bg-muted text-muted-foreground border-border/60"
-                        )}
-                      >
-                        {city}
-                      </button>
-                    ))}
-                  </div>
-
+                  <Select
+                    value={watch("location") || "Mérida, Yucatán"}
+                    onValueChange={(val) => {
+                      if (val) {
+                        setValue("location", val, { shouldValidate: true, shouldDirty: true });
+                      }
+                    }}
+                  >
+                    <SelectTrigger className="w-full h-10 px-3.5 rounded-xl bg-card border border-input text-foreground text-xs sm:text-sm shadow-2xs cursor-pointer">
+                      <SelectValue placeholder="Selecciona la ciudad sede" />
+                    </SelectTrigger>
+                    <SelectContent className="rounded-xl border border-border/80 bg-popover text-popover-foreground max-h-64">
+                      {CITIES_LIST.map((city) => (
+                        <SelectItem
+                          key={city}
+                          value={city}
+                          className="text-xs sm:text-sm font-medium cursor-pointer rounded-lg py-2"
+                        >
+                          {city}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                   {errors.location && (
                     <p className="text-xs font-semibold text-destructive">
                       {errors.location.message}
@@ -868,22 +806,52 @@ export function CompanyProfileForm({
                   )}
                 </div>
 
-                {/* Dirección Detallada / Referencias */}
-                <div className="space-y-1.5">
-                  <label className="text-xs font-bold text-foreground">
-                    Dirección Detallada / Referencias
+                {/* Mapa Interactivo con Leaflet + OpenStreetMap + Pin y Geocodificación */}
+                <div className="space-y-1.5 pt-1">
+                  <label className="text-xs font-bold text-foreground flex items-center justify-between">
+                    <span className="flex items-center gap-1">
+                      <MapPin className="size-3.5 text-primary" />
+                      <span>Mapa con Pin Interactivo & Geocodificación</span>
+                    </span>
+                    <span className="text-[10px] text-muted-foreground font-normal">
+                      OpenStreetMap
+                    </span>
                   </label>
-                  <Input
-                    type="text"
-                    placeholder="Ej. Calle 60 #345 x 43 y 45, Col. Centro"
-                    {...register("address_details")}
-                    className="w-full"
+                  <CompanyLocationMap
+                    selectedCity={watch("location") || "Mérida, Yucatán"}
+                    initialAddress={watch("address_details") || ""}
+                    initialCoordinates={
+                      typeof watch("latitude") === "number" && typeof watch("longitude") === "number"
+                        ? [watch("latitude")!, watch("longitude")!]
+                        : typeof initialProfile?.latitude === "number" && typeof initialProfile?.longitude === "number"
+                        ? [initialProfile.latitude, initialProfile.longitude]
+                        : undefined
+                    }
+                    onLocationChange={(res) => {
+                      if (res.address) {
+                        setValue("address_details", res.address, {
+                          shouldValidate: true,
+                          shouldDirty: true,
+                        });
+                      }
+                      if (res.city) {
+                        setValue("location", res.city, {
+                          shouldValidate: true,
+                          shouldDirty: true,
+                        });
+                      }
+                      if (typeof res.latitude === "number" && typeof res.longitude === "number") {
+                        setValue("latitude", res.latitude, {
+                          shouldValidate: true,
+                          shouldDirty: true,
+                        });
+                        setValue("longitude", res.longitude, {
+                          shouldValidate: true,
+                          shouldDirty: true,
+                        });
+                      }
+                    }}
                   />
-                  {errors.address_details && (
-                    <p className="text-xs font-semibold text-destructive">
-                      {errors.address_details.message}
-                    </p>
-                  )}
                 </div>
               </div>
             </div>

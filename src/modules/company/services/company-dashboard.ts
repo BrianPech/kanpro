@@ -705,9 +705,30 @@ export async function getCompanyProfileData() {
       .maybeSingle(),
   ]);
 
+  let lat: number | null = null;
+  let lng: number | null = null;
+
+  if (Array.isArray(companyProfile?.branch_addresses) && companyProfile.branch_addresses.length > 0) {
+    const firstBranch = companyProfile.branch_addresses[0] as Record<string, unknown> | null;
+    if (typeof firstBranch?.latitude === "number" && typeof firstBranch?.longitude === "number") {
+      lat = firstBranch.latitude;
+      lng = firstBranch.longitude;
+    }
+  }
+
+  if (lat === null && companyProfile?.social_links) {
+    const social = companyProfile.social_links as Record<string, unknown> | null;
+    if (typeof social?.latitude === "number" && typeof social?.longitude === "number") {
+      lat = social.latitude;
+      lng = social.longitude;
+    }
+  }
+
   const profile = {
     ...(baseProfile || {}),
     ...(companyProfile || {}),
+    latitude: lat,
+    longitude: lng,
     phone:
       companyProfile?.contact_phone ||
       baseProfile?.whatsapp_number ||

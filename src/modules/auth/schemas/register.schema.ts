@@ -6,11 +6,51 @@ const passwordValidation = z
   .regex(/[A-Z]/, "La contraseña debe contener al menos una letra mayúscula")
   .regex(/[0-9]/, "La contraseña debe contener al menos un número");
 
+export const companyRegisterCredentialsSchema = z
+  .object({
+    email: z.string().trim().toLowerCase().email("Correo electrónico inválido"),
+    password: passwordValidation,
+    confirmPassword: z.string().min(1, "Confirma tu contraseña"),
+  })
+  .refine((data) => data.password === data.confirmPassword, {
+    message: "Las contraseñas no coinciden",
+    path: ["confirmPassword"],
+  });
+
+export const companyOnboardingIdentitySchema = z.object({
+  company_name: z
+    .string()
+    .trim()
+    .min(2, "El nombre de la empresa debe tener al menos 2 caracteres"),
+  contact_phone: z.string().trim().optional(),
+  rfc: z.string().trim().optional(),
+});
+
+export const companyOnboardingOperationsSchema = z.object({
+  industry: z.string().trim().min(1, "Selecciona el sector o giro"),
+  location: z.string().trim().min(2, "Selecciona la ciudad o sede"),
+  company_size: z.string().optional(),
+  address_details: z.string().trim().optional(),
+  latitude: z.number().optional(),
+  longitude: z.number().optional(),
+});
+
 export const companyRegisterSchema = z.object({
-  full_name: z.string().trim().min(2, "El nombre de la empresa es muy corto"),
+  full_name: z.string().trim().min(2, "El nombre de la empresa es muy corto").optional(),
   email: z.string().trim().toLowerCase().email("Correo electrónico inválido"),
   password: passwordValidation,
+  confirmPassword: z.string().optional(),
 });
+
+export type CompanyRegisterCredentialsValues = z.infer<
+  typeof companyRegisterCredentialsSchema
+>;
+export type CompanyOnboardingIdentityValues = z.infer<
+  typeof companyOnboardingIdentitySchema
+>;
+export type CompanyOnboardingOperationsValues = z.infer<
+  typeof companyOnboardingOperationsSchema
+>;
 
 import { normalizeDateToISO, normalizePhone } from "@/lib/formatters";
 

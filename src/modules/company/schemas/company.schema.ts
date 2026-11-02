@@ -34,6 +34,8 @@ export const companyProfileSchema = z.object({
   instagram_url: z.string().optional(),
   facebook_url: z.string().optional(),
   address_details: z.string().optional().or(z.literal("")),
+  latitude: z.number().optional(),
+  longitude: z.number().optional(),
   has_transport: z.boolean().optional(),
   benefit_canteen: z.boolean().optional(),
   benefit_tips: z.boolean().optional(),

@@ -1225,9 +1225,23 @@ export const companyService = {
         benefit_imss: profile.benefit_imss,
         benefit_uniforms: profile.benefit_uniforms,
         benefit_growth: profile.benefit_growth,
+        latitude: profile.latitude ?? null,
+        longitude: profile.longitude ?? null,
       },
       updated_at: new Date().toISOString(),
     };
+
+    if (typeof profile.latitude === "number" && typeof profile.longitude === "number") {
+      companyPayload.branch_addresses = [
+        {
+          branchName: `Matriz - ${profile.company_name.trim()}`,
+          address: profile.address_details || finalLocation,
+          latitude: profile.latitude,
+          longitude: profile.longitude,
+          radiusMeters: 150,
+        },
+      ];
+    }
 
     if (profile.legal_name !== undefined && profile.legal_name.trim() !== "") {
       companyPayload.legal_name = profile.legal_name.trim();

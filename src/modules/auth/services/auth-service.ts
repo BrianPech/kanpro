@@ -56,6 +56,8 @@ export const authService = {
         ? window.location.origin
         : process.env.NEXT_PUBLIC_APP_URL || "";
 
+    const companyTitle = validatedData.full_name?.trim() || "Nueva Empresa";
+
     // 2. Crear usuario en Supabase Auth con metadata de rol 'company'
     const { data: authData, error: authError } = await supabase.auth.signUp({
       email: validatedData.email,
@@ -64,8 +66,8 @@ export const authService = {
         emailRedirectTo: `${origin}/auth/callback?role=company`,
         data: {
           role: "company" satisfies UserRole,
-          full_name: validatedData.full_name,
-          company_name: validatedData.full_name,
+          full_name: companyTitle,
+          company_name: companyTitle,
         },
       },
     });

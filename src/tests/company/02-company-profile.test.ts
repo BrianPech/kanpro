@@ -194,4 +194,24 @@ describe("Fase 2: Empresa - Perfil, Configuración y Persistencia", () => {
       expect(companyB.industry).toBe("Hotelería");
     });
   });
+
+  describe("5. Geocodificación y Coordenadas del Mapa", () => {
+    test("Acepta y persiste coordenadas geográficas (latitude, longitude) en el perfil de empresa", () => {
+      const profileWithCoords = {
+        company_name: "Restaurante La Cueva del Chango",
+        industry: "Restaurantes y Bares",
+        location: "Playa del Carmen, Quintana Roo",
+        address_details: "Calle 38 Nte. Mz. 4 Lote 3, Zazil-ha, 77720 Playa del Carmen",
+        latitude: 20.6358,
+        longitude: -87.0637,
+      };
+
+      const result = companyProfileSchema.safeParse(profileWithCoords);
+      expect(result.success).toBe(true);
+      if (result.success) {
+        expect(result.data.latitude).toBe(20.6358);
+        expect(result.data.longitude).toBe(-87.0637);
+      }
+    });
+  });
 });
