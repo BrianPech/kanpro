@@ -137,6 +137,8 @@ export function useCompanyRegisterForm() {
           phone: identityData.contact_phone?.trim() || undefined,
           rfc: identityData.rfc?.trim() || undefined,
           company_size: operations.company_size,
+          latitude: operations.latitude,
+          longitude: operations.longitude,
         });
 
         // Intentar sincronizar metadata en auth
