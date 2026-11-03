@@ -11,6 +11,14 @@ export function RegisterOptions() {
   const router = useRouter();
   const [selectedRole, setSelectedRole] = React.useState<"candidate" | "company">("candidate");
 
+  const handleCardClick = (role: "candidate" | "company") => {
+    if (selectedRole === role) {
+      router.push(`/register/${role}`);
+    } else {
+      setSelectedRole(role);
+    }
+  };
+
   const handleNext = () => {
     router.push(`/register/${selectedRole}`);
   };
@@ -36,11 +44,12 @@ export function RegisterOptions() {
         {/* Card: Candidato */}
         <button
           type="button"
-          onClick={() => setSelectedRole("candidate")}
+          onClick={() => handleCardClick("candidate")}
+          onKeyDown={(e) => e.key === "Enter" && router.push("/register/candidate")}
           className={cn(
-            "relative flex flex-col items-center text-center p-5 rounded-2xl border-2 transition-all cursor-pointer select-none gap-3 group",
+            "relative flex flex-col items-center text-center p-5 rounded-2xl border-2 transition-all cursor-pointer select-none gap-3 group active:scale-[0.98]",
             selectedRole === "candidate"
-              ? "border-primary bg-primary/5 dark:bg-primary/10 shadow-sm"
+              ? "border-primary bg-primary/5 dark:bg-primary/10 shadow-sm ring-1 ring-primary/20"
               : "border-border/80 bg-card hover:border-border hover:bg-muted/40"
           )}
         >
@@ -74,11 +83,12 @@ export function RegisterOptions() {
         {/* Card: Empresa */}
         <button
           type="button"
-          onClick={() => setSelectedRole("company")}
+          onClick={() => handleCardClick("company")}
+          onKeyDown={(e) => e.key === "Enter" && router.push("/register/company")}
           className={cn(
-            "relative flex flex-col items-center text-center p-5 rounded-2xl border-2 transition-all cursor-pointer select-none gap-3 group",
+            "relative flex flex-col items-center text-center p-5 rounded-2xl border-2 transition-all cursor-pointer select-none gap-3 group active:scale-[0.98]",
             selectedRole === "company"
-              ? "border-primary bg-primary/5 dark:bg-primary/10 shadow-sm"
+              ? "border-primary bg-primary/5 dark:bg-primary/10 shadow-sm ring-1 ring-primary/20"
               : "border-border/80 bg-card hover:border-border hover:bg-muted/40"
           )}
         >

@@ -86,7 +86,7 @@ export function useCandidateRegisterForm() {
     register: form.register,
     handleSubmit: (onValid: SubmitHandler<CandidateRegisterValues>) =>
       form.handleSubmit(onValid, (errors) => {
-        console.error("Errores de validación de Zod:", errors);
+        console.warn("Validación de formulario:", errors);
         const firstErrorKey = Object.keys(errors)[0] as keyof typeof errors | undefined;
         const firstErrorMsg = firstErrorKey ? errors[firstErrorKey]?.message : undefined;
         toast.error("Por favor completa los campos requeridos", {

@@ -424,8 +424,8 @@ function ExpandedMapDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="w-[96vw] max-w-5xl sm:max-w-5xl lg:max-w-6xl h-[88vh] max-h-[92vh] p-4 sm:p-6 flex flex-col gap-3.5 rounded-3xl overflow-hidden bg-background border border-border/80 shadow-2xl">
-        <DialogHeader className="gap-1 pb-1 shrink-0">
+      <DialogContent className="w-[96vw] max-w-5xl sm:max-w-5xl lg:max-w-6xl h-[90dvh] max-h-[94dvh] p-3.5 sm:p-6 flex flex-col gap-3 rounded-2xl sm:rounded-3xl overflow-hidden bg-background border border-border/80 shadow-2xl">
+        <DialogHeader className="gap-1 pb-0.5 shrink-0">
           <DialogTitle className="text-base sm:text-lg font-bold flex items-center gap-2 text-foreground">
             <MapPin className="size-5 text-primary shrink-0" />
             <span>Selector Preciso de Ubicación</span>
@@ -452,7 +452,7 @@ function ExpandedMapDialog({
               onFocus={() => {
                 if (searchResults.length > 0) setShowSearchResults(true);
               }}
-              placeholder="Buscar calle, colonia, fraccionamiento o parque industrial..."
+              placeholder="Buscar calle, colonia, fraccionamiento o parque..."
               className="w-full h-10 pl-9 pr-8 rounded-xl bg-card border border-input text-foreground text-xs shadow-2xs focus-visible:ring-1 focus-visible:ring-primary focus-visible:outline-none transition-all placeholder:text-muted-foreground/70"
             />
             {searchQuery && (
@@ -511,8 +511,8 @@ function ExpandedMapDialog({
           </Button>
         </div>
 
-        {/* Modal Map Canvas - Takes full available space */}
-        <div className="relative flex-1 w-full min-h-[350px] rounded-2xl border border-border/80 overflow-hidden bg-muted/20">
+        {/* Modal Map Canvas - Responsive height */}
+        <div className="relative flex-1 w-full min-h-[220px] sm:min-h-[360px] rounded-2xl border border-border/80 overflow-hidden bg-muted/20">
           <div
             ref={setMapContainerNode}
             className="absolute inset-0 z-0 cursor-crosshair"
@@ -525,18 +525,18 @@ function ExpandedMapDialog({
             </div>
           )}
 
-          <div className="absolute bottom-3 left-3 z-10 bg-background/90 backdrop-blur-sm border border-border/60 rounded-xl px-3 py-1.5 text-[11px] text-foreground font-semibold flex items-center gap-1.5 shadow-xs pointer-events-none select-none">
-            <span className="flex h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
-            <span>Haz clic en cualquier punto para mover el pin</span>
+          <div className="absolute bottom-3 left-3 z-10 bg-background/90 backdrop-blur-sm border border-border/60 rounded-xl px-2.5 sm:px-3 py-1 sm:py-1.5 text-[10px] sm:text-[11px] text-foreground font-semibold flex items-center gap-1.5 shadow-xs pointer-events-none select-none max-w-[70%] sm:max-w-none">
+            <span className="flex h-2 w-2 rounded-full bg-emerald-500 animate-pulse shrink-0" />
+            <span className="truncate">Toca o haz clic para mover el pin</span>
           </div>
 
-          <div className="absolute bottom-3 right-3 z-10 bg-background/90 backdrop-blur-sm border border-border/60 rounded-lg px-2.5 py-1 text-[10px] font-mono text-muted-foreground shadow-xs pointer-events-none select-none">
+          <div className="hidden sm:block absolute bottom-3 right-3 z-10 bg-background/90 backdrop-blur-sm border border-border/60 rounded-lg px-2.5 py-1 text-[10px] font-mono text-muted-foreground shadow-xs pointer-events-none select-none">
             {coords[0].toFixed(5)}, {coords[1].toFixed(5)}
           </div>
         </div>
 
         {/* Modal Footer with Address Preview & Confirm Button */}
-        <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 pt-1 shrink-0 border-t border-border/40">
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2.5 pt-2 shrink-0 border-t border-border/40 sticky bottom-0 bg-background/95 backdrop-blur-md">
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-1.5 text-xs font-bold text-foreground truncate">
               <Building2 className="size-3.5 text-primary shrink-0" />
@@ -716,11 +716,16 @@ export function CompanyLocationMap({
         ? initialCoordinates
         : getCoordsForCity(selectedCity);
 
+    const isTouchDevice =
+      typeof window !== "undefined" &&
+      ("ontouchstart" in window || navigator.maxTouchPoints > 0);
+
     const map = L.map(mapContainerRef.current, {
       center: initialCoords,
       zoom: initialCoordinates ? 16 : 14,
       zoomControl: true,
       scrollWheelZoom: "center",
+      dragging: !isTouchDevice,
     });
 
     L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
@@ -1085,9 +1090,9 @@ export function CompanyLocationMap({
         )}
 
         {/* Floating chip con instrucción de clic o arrastre */}
-        <div className="absolute bottom-2 left-2 z-10 bg-background/90 backdrop-blur-sm border border-border/60 rounded-lg px-2.5 py-1 text-[10px] text-muted-foreground font-semibold flex items-center gap-1.5 shadow-2xs pointer-events-none select-none">
-          <MapPin className="size-3 text-primary" />
-          <span>Haz clic en cualquier punto para mover el pin</span>
+        <div className="absolute bottom-2 left-2 z-10 bg-background/90 backdrop-blur-sm border border-border/60 rounded-lg px-2 sm:px-2.5 py-1 text-[10px] text-muted-foreground font-semibold flex items-center gap-1.5 shadow-2xs pointer-events-none select-none max-w-[85%]">
+          <MapPin className="size-3 text-primary shrink-0" />
+          <span className="truncate">Toca para fijar el pin o usa &ldquo;Ampliar&rdquo;</span>
         </div>
       </div>
 

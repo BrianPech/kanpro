@@ -11,7 +11,7 @@ export default function AuthLayout({
   children: React.ReactNode;
 }) {
   return (
-    <div className="min-h-screen w-full bg-background text-foreground flex flex-col justify-between p-4 sm:p-6 lg:p-8 font-sans selection:bg-primary/20 relative">
+    <div className="min-h-screen w-full bg-background text-foreground flex flex-col justify-between p-4 sm:p-6 lg:p-8 pb-[calc(1rem+env(safe-area-inset-bottom))] font-sans selection:bg-primary/20 relative">
       {/* ── Top Bar: Minimalist Logo & Theme Switcher ── */}
       <header className="flex items-center justify-between w-full max-w-4xl mx-auto select-none shrink-0">
         <Link
@@ -31,13 +31,13 @@ export default function AuthLayout({
         </div>
       </header>
 
-      {/* ── Center Content: Centered without borders or outer box containers ── */}
-      <main className="w-full max-w-[420px] sm:max-w-[440px] mx-auto my-auto py-8 sm:py-12 flex flex-col items-center justify-center">
+      {/* ── Center Content: Responsive container adapted for both simple and complex flows ── */}
+      <main className="w-full max-w-[440px] sm:max-w-lg lg:max-w-xl mx-auto my-auto py-6 sm:py-10 flex flex-col items-center justify-center transition-all duration-200">
         {children}
       </main>
 
       {/* ── Minimalist Footer ── */}
-      <footer className="w-full max-w-4xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-2.5 pt-6 text-xs text-muted-foreground select-none shrink-0">
+      <footer className="w-full max-w-4xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-2.5 pt-4 text-xs text-muted-foreground select-none shrink-0">
         <span>© 2026 K&apos;anPro. México.</span>
         <div className="flex items-center gap-4">
           <Link

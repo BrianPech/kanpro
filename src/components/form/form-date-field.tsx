@@ -77,6 +77,13 @@ export function FormDateField({
     return d;
   }, [defaultMonth]);
 
+  const resolvedMaxIso = React.useMemo(() => {
+    const y = resolvedMaxDate.getFullYear();
+    const m = String(resolvedMaxDate.getMonth() + 1).padStart(2, "0");
+    const d = String(resolvedMaxDate.getDate()).padStart(2, "0");
+    return `${y}-${m}-${d}`;
+  }, [resolvedMaxDate]);
+
   return (
     <div className={cn("flex flex-col gap-1 w-full", className)}>
       <div
@@ -101,21 +108,37 @@ export function FormDateField({
           )}
         </div>
 
-        <DatePicker
-          id={id}
-          value={value}
-          onChange={(isoStr) => onChange(isoStr)}
-          placeholder={placeholder}
-          captionLayout="dropdown"
-          startYear={startYear}
-          endYear={resolvedEndYear}
-          minDate={resolvedMinDate}
-          maxDate={resolvedMaxDate}
-          defaultMonth={resolvedDefaultMonth}
-          variant="ghost"
-          displayFormat={displayFormat}
-          className="w-full h-8 px-0 text-sm font-semibold text-foreground cursor-pointer"
-        />
+        {/* ── Mobile View: Native Date Input (optimizado para táctil, rueda iOS/Android, sin superposiciones) ── */}
+        <div className="block sm:hidden relative w-full">
+          <input
+            id={id}
+            type="date"
+            value={value || ""}
+            onChange={(e) => onChange(e.target.value)}
+            min={min}
+            max={resolvedMaxIso}
+            className="w-full h-8 px-0 text-sm font-semibold bg-transparent border-none text-foreground focus:outline-none cursor-pointer"
+          />
+        </div>
+
+        {/* ── Desktop & Tablet View: Radix Popover DatePicker con dropdowns de mes/año ── */}
+        <div className="hidden sm:block w-full">
+          <DatePicker
+            id={id}
+            value={value}
+            onChange={(isoStr) => onChange(isoStr)}
+            placeholder={placeholder}
+            captionLayout="dropdown"
+            startYear={startYear}
+            endYear={resolvedEndYear}
+            minDate={resolvedMinDate}
+            maxDate={resolvedMaxDate}
+            defaultMonth={resolvedDefaultMonth}
+            variant="ghost"
+            displayFormat={displayFormat}
+            className="w-full h-8 px-0 text-sm font-semibold text-foreground cursor-pointer"
+          />
+        </div>
       </div>
 
       {helperText && !error && (
