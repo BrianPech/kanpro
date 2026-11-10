@@ -56,7 +56,7 @@ export async function getVacanciesByLocation(
         logo_url
       )
     `)
-    .or("status.eq.Activa,status.eq.activa,status.eq.published,is_active.eq.true");
+    .eq("is_active", true);
 
   if (searchQuery) {
     const sanitized = searchQuery.replace(/[(),]/g, " ").trim();

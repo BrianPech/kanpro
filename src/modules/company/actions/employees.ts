@@ -742,6 +742,20 @@ export async function registerDirectEmployeeAction(
     return { success: false, error: "No autorizado. Inicie sesión para continuar." };
   }
 
+  // Verificar que el usuario tenga rol de empresa activa antes de usar privilegios administrativos
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("role, status")
+    .eq("id", user.id)
+    .maybeSingle();
+
+  if (!profile || profile.role !== "company" || profile.status === "suspended") {
+    return {
+      success: false,
+      error: "Acceso denegado: Solo empresas activas pueden registrar colaboradores directamente.",
+    };
+  }
+
   try {
     const adminClient = createAdminClient();
     const result = await CompanyEmployeeService.registerDirectEmployee(

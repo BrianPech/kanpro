@@ -738,6 +738,23 @@ export function ApplicationsInbox() {
         ),
         cell: ({ row }) => {
           const app = row.original;
+
+          if (app.status === "Contratado") {
+            return (
+              <div className="py-1">
+                <span
+                  className={cn(
+                    "inline-flex items-center gap-1.5 h-7 px-2.5 rounded-full text-[10px] font-extrabold border-none shadow-2xs select-none",
+                    getStatusBadgeClass("Contratado")
+                  )}
+                >
+                  <CheckCircle2 className="size-3" />
+                  Contratado
+                </span>
+              </div>
+            );
+          }
+
           return (
             <div className="py-1">
               <Select
@@ -781,12 +798,6 @@ export function ApplicationsInbox() {
                     className="text-xs font-semibold text-purple-600 rounded-lg"
                   >
                     Entrevista
-                  </SelectItem>
-                  <SelectItem
-                    value="Contratado"
-                    className="text-xs font-semibold text-emerald-600 rounded-lg"
-                  >
-                    Contratado
                   </SelectItem>
                   <SelectItem
                     value="Descartado"
@@ -905,15 +916,17 @@ export function ApplicationsInbox() {
 
                   <DropdownMenuSeparator className="my-1 border-border/40" />
 
-                  <DropdownMenuItem
-                    onSelect={() => handleStartHire(app)}
-                    className="cursor-pointer text-xs font-semibold py-2 px-2.5 gap-2 text-primary hover:bg-primary/10"
-                  >
-                    <Sparkles className="size-3.5 text-primary" />
-                    <span>4. Formalizar Contratación</span>
-                  </DropdownMenuItem>
+                  {app.status !== "Contratado" && (
+                    <DropdownMenuItem
+                      onSelect={() => handleStartHire(app)}
+                      className="cursor-pointer text-xs font-semibold py-2 px-2.5 gap-2 text-primary hover:bg-primary/10"
+                    >
+                      <Sparkles className="size-3.5 text-primary" />
+                      <span>4. Formalizar Contratación</span>
+                    </DropdownMenuItem>
+                  )}
 
-                  {app.status !== "Descartado" && (
+                  {app.status !== "Descartado" && app.status !== "Contratado" && (
                     <DropdownMenuItem
                       onSelect={() => handleUpdateStatus(app.id, "Descartado")}
                       className="cursor-pointer text-xs font-semibold py-2 px-2.5 gap-2 text-rose-600 dark:text-rose-400 hover:bg-rose-500/10"

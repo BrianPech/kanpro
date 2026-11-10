@@ -83,21 +83,41 @@ export class CandidateInterviewsService {
       proposedTime: input.proposedTime || null,
     };
 
-    // 2. Actualizar la postulación en la base de datos
-    const { error: updateErr } = await supabase
-      .from("applications")
-      .update({
-        interview_status: newInterviewStatus,
-        interview_details: updatedDetails as unknown as Json,
-        updated_at: now,
-      })
-      .eq("id", input.applicationId);
+    // 2. Actualizar la postulación en la base de datos (prioriza RPC seguro para RLS estricto)
+    let rpcHandled = false;
+    if (typeof supabase.rpc === "function") {
+      const { error: rpcErr } = await supabase.rpc("respond_candidate_interview", {
+        p_application_id: input.applicationId,
+        p_status: newInterviewStatus,
+        p_details: updatedDetails as unknown as Json,
+      });
 
-    if (updateErr) {
-      console.error("Error updating application interview status:", updateErr);
-      throw new Error(
-        updateErr.message || "No se pudo registrar la respuesta a la entrevista."
-      );
+      if (!rpcErr) {
+        rpcHandled = true;
+      } else if (rpcErr.code !== "PGRST202" && !rpcErr.message?.toLowerCase().includes("function")) {
+        console.error("Error updating application interview status via RPC:", rpcErr);
+        throw new Error(
+          rpcErr.message || "No se pudo registrar la respuesta a la entrevista."
+        );
+      }
+    }
+
+    if (!rpcHandled) {
+      const { error: updateErr } = await supabase
+        .from("applications")
+        .update({
+          interview_status: newInterviewStatus,
+          interview_details: updatedDetails as unknown as Json,
+          updated_at: now,
+        })
+        .eq("id", input.applicationId);
+
+      if (updateErr) {
+        console.error("Error updating application interview status:", updateErr);
+        throw new Error(
+          updateErr.message || "No se pudo registrar la respuesta a la entrevista."
+        );
+      }
     }
 
     // 3. Enviar notificación in-app a la empresa empleadora

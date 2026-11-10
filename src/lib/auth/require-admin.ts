@@ -164,7 +164,7 @@ export async function requireAdminAuth(
       const isSuper = staff.sub_role === "super_admin";
       const hasExplicitPerm = Array.isArray(staff.permissions)
         ? staff.permissions.includes(options.requiredPermission)
-        : true;
+        : false;
 
       if (!isSuper && !hasExplicitPerm) {
         throw new Error(

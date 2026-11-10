@@ -69,22 +69,21 @@ export async function saveSystemSettings(settings: Record<string, unknown>) {
   const entries = Object.entries(parsed.data);
   const now = new Date().toISOString();
 
-  for (const [key, value] of entries) {
+  if (entries.length > 0) {
+    const rows = entries.map(([key, value]) => ({
+      key,
+      value: value as NonNullable<Json>,
+      updated_at: now,
+      updated_by: user.id,
+    }));
+
     const { error } = await supabase
       .from("system_settings")
-      .upsert(
-        {
-          key,
-          value: value as NonNullable<Json>,
-          updated_at: now,
-          updated_by: user.id,
-        },
-        { onConflict: "key" }
-      );
+      .upsert(rows, { onConflict: "key" });
 
     if (error) {
-      console.error(`[AdminSettings] Error saving setting [${key}]:`, error);
-      throw new Error(`Error al guardar configuración [${key}]. Operación no completada.`);
+      console.error("[AdminSettings] Error saving system settings batch:", error);
+      throw new Error(`Error al guardar configuración del sistema: ${error.message}`);
     }
   }
 

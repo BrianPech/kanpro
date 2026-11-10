@@ -584,8 +584,14 @@ describe("Admin Company Support & System Settings Test Suite", () => {
                     data: Object.entries(savedSettingsMap).map(([key, value]) => ({ key, value })),
                     error: null,
                   }),
-                upsert: (payload: { key: string; value: any; updated_by: string }) => {
-                  savedSettingsMap[payload.key] = payload.value;
+                upsert: (payload: any) => {
+                  if (Array.isArray(payload)) {
+                    for (const item of payload) {
+                      savedSettingsMap[item.key] = item.value;
+                    }
+                  } else if (payload && payload.key) {
+                    savedSettingsMap[payload.key] = payload.value;
+                  }
                   return Promise.resolve({ error: null });
                 },
               };

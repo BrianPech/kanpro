@@ -465,32 +465,60 @@ export async function sendDirectUserNotification(userId: string, title: string, 
  * Ajusta o acredita publicaciones/créditos a una empresa directamente en Supabase.
  */
 export async function adjustCompanyCredits(companyId: string, creditAmount: number) {
-  const { supabase } = await requireAdminAuth();
+  const { supabase } = await requireAdminAuth({ requiredPermission: "manage_companies" });
 
-  const { data: currentCompany } = await supabase
-    .from("company_profiles")
-    .select("credits_available")
-    .eq("id", companyId)
-    .maybeSingle();
+  let newAmount: number | null = null;
+  let updateError: { message: string } | null = null;
 
-  const current = currentCompany?.credits_available ?? 0;
-  const newAmount = Math.max(0, current + creditAmount);
+  if (typeof (supabase as unknown as { rpc?: unknown }).rpc === "function") {
+    const rpcRes = await (supabase as unknown as {
+      rpc: (fn: string, args: Record<string, unknown>) => Promise<{ data: number | null; error: { message: string; code?: string } | null }>;
+    }).rpc("adjust_company_credits", {
+      p_company_id: companyId,
+      p_amount: creditAmount,
+    });
 
-  const { error } = await supabase
-    .from("company_profiles")
-    .update({
-      credits_available: newAmount,
-      updated_at: new Date().toISOString(),
-    })
-    .eq("id", companyId);
+    if (!rpcRes.error && rpcRes.data !== null) {
+      newAmount = rpcRes.data;
+    } else if (rpcRes.error && rpcRes.error.code !== "PGRST202") {
+      updateError = rpcRes.error;
+    }
+  }
 
-  if (error) {
-    throw new Error(`Error al ajustar créditos en Supabase: ${error.message}`);
+  if (newAmount === null && !updateError) {
+    const { data: currentCompany, error: fetchErr } = await supabase
+      .from("company_profiles")
+      .select("credits_available")
+      .eq("id", companyId)
+      .maybeSingle();
+
+    if (fetchErr) {
+      throw new Error(`Error al consultar créditos: ${fetchErr.message}`);
+    }
+
+    const current = currentCompany?.credits_available ?? 0;
+    newAmount = Math.max(0, current + creditAmount);
+
+    const { error } = await supabase
+      .from("company_profiles")
+      .update({
+        credits_available: newAmount,
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", companyId);
+
+    if (error) {
+      updateError = error;
+    }
+  }
+
+  if (updateError) {
+    throw new Error(`Error al ajustar créditos en Supabase: ${updateError.message}`);
   }
 
   revalidatePath("/dashboard/admin/support");
   revalidatePath("/dashboard/admin/users");
-  return { success: true, newCredits: newAmount };
+  return { success: true, newCredits: newAmount ?? 0 };
 }
 
 /**

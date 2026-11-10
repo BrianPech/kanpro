@@ -1,6 +1,9 @@
 "use server";
 
 import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
+import type { SupabaseClient } from "@supabase/supabase-js";
+import type { Database } from "@/types/supabase";
 import { revalidatePath } from "next/cache";
 import {
   requestDocumentAccessSchema,
@@ -266,10 +269,18 @@ export async function getCandidateCvDocument(
       };
     }
 
+    let storageClient: SupabaseClient<Database> | undefined;
+    try {
+      storageClient = createAdminClient();
+    } catch {
+      // In tests or if service role key is absent, fallback to supabase client
+    }
+
     return await CompanyDocumentAccessService.getCandidateCvDocument(
       supabase,
       user.id,
-      parsed.data
+      parsed.data,
+      storageClient
     );
   } catch (error) {
     console.error("Error retrieving candidate CV document:", error);

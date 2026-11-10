@@ -53,11 +53,17 @@ export function VacancyDetail({
       await initiateWhatsAppConnection({
         candidateId: candidateId || "",
         vacancyId: job.id,
+        companyPhone: job.companyPhone,
+        vacancyTitle: job.title,
         initiatedBy: "candidate",
       });
-    } catch (err: any) {
+    } catch (err: unknown) {
+      const errMsg =
+        err instanceof Error
+          ? err.message
+          : "No se pudo abrir el canal de WhatsApp.";
       toast.error("Error al conectar", {
-        description: err.message || "No se pudo abrir el canal de WhatsApp.",
+        description: errMsg,
       });
     }
   };
@@ -130,14 +136,6 @@ export function VacancyDetail({
       setIsSubmitting(false);
     }
   };
-
-  const whatsappLink = job.companyPhone
-    ? `https://wa.me/${job.companyPhone.replace(/[^0-9]/g, "")}?text=Hola!%20Me%20interesa%20la%20vacante%20de%20${encodeURIComponent(
-        job.title
-      )}%20que%20vi%20en%20K'anPro.`
-    : `https://wa.me/5211234567890?text=Hola!%20Me%20interesa%20la%20vacante%20de%20${encodeURIComponent(
-        job.title
-      )}%20en%20K'anPro.`;
 
   return (
     <div

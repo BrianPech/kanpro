@@ -245,7 +245,20 @@ export class CompanyDocumentAccessService {
   static async getCandidateCvDocument(
     supabase: SupabaseClient<Database>,
     companyId: string,
-    input: GetCandidateCvDocumentInput
+    input: GetCandidateCvDocumentInput,
+    storageClient?: {
+      storage: {
+        from: (bucket: string) => {
+          createSignedUrl: (
+            path: string,
+            expiresIn: number
+          ) => Promise<{
+            data: { signedUrl: string } | null;
+            error: unknown;
+          }>;
+        };
+      };
+    }
   ): Promise<CandidateCvResponse> {
     try {
       // 1. Validar explícitamente que exista una postulación activa en applications
@@ -305,19 +318,47 @@ export class CompanyDocumentAccessService {
         };
       }
 
-      let signedUrl = cvDoc.file_url;
-      if (!cvDoc.file_url.startsWith("http")) {
+      let signedUrl: string | null = null;
+      if (cvDoc.file_url.startsWith("http")) {
+        signedUrl = cvDoc.file_url;
+      } else {
+        const signer = storageClient || supabase;
         try {
-          const { data: signedData } = await supabase.storage
+          const { data: signedData, error: signError } = await signer.storage
             .from("profile_documents")
             .createSignedUrl(cvDoc.file_url, 3600);
 
-          if (signedData?.signedUrl) {
+          if (!signError && signedData?.signedUrl) {
             signedUrl = signedData.signedUrl;
           }
         } catch {
-          // Fallback si Storage genera error
+          // Error en intento primario de firmado
         }
+
+        // Si falló con storageClient y éste es diferente a supabase, intentar fallback con supabase
+        if (!signedUrl && storageClient && (storageClient as unknown) !== supabase) {
+          try {
+            const { data: fallbackData, error: fallbackError } = await supabase.storage
+              .from("profile_documents")
+              .createSignedUrl(cvDoc.file_url, 3600);
+
+            if (!fallbackError && fallbackData?.signedUrl) {
+              signedUrl = fallbackData.signedUrl;
+            }
+          } catch {
+            // Mantener signedUrl como null
+          }
+        }
+      }
+
+      // Si no se pudo obtener URL válida (http o firmada), evitar pasar ruta relativa para no generar 404 en el iframe
+      if (!signedUrl) {
+        return {
+          hasUploadedCv: false,
+          cvUrl: null,
+          fileName: cvDoc.file_name || "Curriculum_Vitae.pdf",
+          uploadedAt: cvDoc.created_at || null,
+        };
       }
 
       return {

@@ -1100,6 +1100,9 @@ isOneToOne: true
             "notify_candidate_contact":
 { Args: { "p_candidate_id": string,"p_company_name": string,"p_vacancy_title": string }; Returns: undefined
                            },
+            "respond_candidate_interview":
+{ Args: { "p_application_id": string,"p_status": string,"p_details"?: Json }; Returns: Json
+                           },
             "sign_employee_contract":
 { Args: { "p_contract_id": string,"p_signature_url": string,"p_notes"?: string | null }; Returns: Json
                            }

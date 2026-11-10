@@ -11,6 +11,7 @@ import {
   EmployeeAttendanceDay,
 } from "../types/attendance";
 import { DEFAULT_GEOFENCE, calculateDistanceInMeters } from "../utils/attendance-utils";
+import { GEO_CONFIG, getCitiesList } from "@/config/geo";
 import type {
   MobileCheckInInput,
   ManualAttendanceInput,
@@ -133,20 +134,62 @@ export class CompanyAttendanceService {
       if (!input.qrToken || !input.qrToken.trim()) {
         throw new Error("Código QR no proporcionado o inválido.");
       }
+
+      let targetLat = DEFAULT_GEOFENCE.latitude;
+      let targetLng = DEFAULT_GEOFENCE.longitude;
+      const maxRadius = DEFAULT_GEOFENCE.radiusMeters;
+
+      if (input.distanceMeters === undefined && input.coordinates) {
+        // Resolver coordenadas dinámicas de la sucursal de la empresa si existen
+        try {
+          const branchTable = this.supabase.from("company_branches") as any;
+          if (branchTable && typeof branchTable.select === "function") {
+            const { data: branch } = await branchTable
+              .select("lat, lng")
+              .eq("company_id", effectiveCompanyId)
+              .not("lat", "is", null)
+              .limit(1)
+              .maybeSingle();
+
+            if (branch?.lat && branch?.lng) {
+              targetLat = Number(branch.lat);
+              targetLng = Number(branch.lng);
+            } else {
+              const compProfileTable = this.supabase.from("company_profiles") as any;
+              if (compProfileTable && typeof compProfileTable.select === "function") {
+                const { data: compProfile } = await compProfileTable
+                  .select("fiscal_address, address_details")
+                  .eq("id", effectiveCompanyId)
+                  .maybeSingle();
+
+                const addr = compProfile?.address_details || compProfile?.fiscal_address || "";
+                const matchedCity = getCitiesList().find((c) => addr.toLowerCase().includes(c.name.toLowerCase()));
+                if (matchedCity && GEO_CONFIG[matchedCity.name]) {
+                  targetLat = GEO_CONFIG[matchedCity.name].coords.lat;
+                  targetLng = GEO_CONFIG[matchedCity.name].coords.lng;
+                }
+              }
+            }
+          }
+        } catch {
+          // Fallback a geocerca estándar si falla la resolución de sucursal
+        }
+      }
+
       const dist =
         input.distanceMeters ??
         (input.coordinates
           ? calculateDistanceInMeters(
               input.coordinates.lat,
               input.coordinates.lng,
-              DEFAULT_GEOFENCE.latitude,
-              DEFAULT_GEOFENCE.longitude
+              targetLat,
+              targetLng
             )
           : undefined);
 
-      if (dist !== undefined && dist > DEFAULT_GEOFENCE.radiusMeters) {
+      if (dist !== undefined && dist > maxRadius) {
         throw new Error(
-          `Fuera de la zona de trabajo autorizada. Distancia: ${Math.round(dist)}m (máximo permitido: ${DEFAULT_GEOFENCE.radiusMeters}m).`
+          `Fuera de la zona de trabajo autorizada. Distancia: ${Math.round(dist)}m (máximo permitido: ${maxRadius}m).`
         );
       }
     }
@@ -377,7 +420,18 @@ export class CompanyAttendanceService {
       return this.buildEmptyAttendanceResponse(todayStr, branchConfig, companyId);
     }
 
-    const [profileRes, employeesRes, attendanceRes, leavesRes] = await Promise.all([
+    const branchTable = this.supabase.from("company_branches") as any;
+    const branchPromise =
+      branchTable && typeof branchTable.select === "function"
+        ? branchTable
+            .select("name, address, lat, lng, is_headquarters")
+            .eq("company_id", companyId)
+            .order("is_headquarters", { ascending: false })
+            .limit(1)
+            .maybeSingle()
+        : Promise.resolve({ data: null, error: null });
+
+    const [profileRes, employeesRes, attendanceRes, leavesRes, branchRes] = await Promise.all([
       this.supabase
         .from("company_profiles")
         .select("company_name, address_details, fiscal_address")
@@ -401,14 +455,28 @@ export class CompanyAttendanceService {
         .eq("status", "aprobada")
         .lte("start_date", todayStr)
         .gte("end_date", todayStr),
+      branchPromise,
     ]);
 
     const companyName = profileRes.data?.company_name || "Mi Empresa";
-    if (profileRes.data?.company_name) {
-      branchConfig.branchName = `Sucursal Principal - ${profileRes.data.company_name}`;
-      if (profileRes.data.address_details || profileRes.data.fiscal_address) {
+    if (branchRes?.data?.lat && branchRes?.data?.lng) {
+      branchConfig.latitude = Number(branchRes.data.lat);
+      branchConfig.longitude = Number(branchRes.data.lng);
+      if (branchRes.data.name) branchConfig.branchName = branchRes.data.name;
+      if (branchRes.data.address) branchConfig.address = branchRes.data.address;
+    } else {
+      if (profileRes.data?.company_name) {
+        branchConfig.branchName = `Sucursal Principal - ${profileRes.data.company_name}`;
+      }
+      if (profileRes.data?.address_details || profileRes.data?.fiscal_address) {
         branchConfig.address =
           profileRes.data.address_details || profileRes.data.fiscal_address || branchConfig.address;
+        const rawAddr = branchConfig.address;
+        const matchedCity = getCitiesList().find((c) => rawAddr.toLowerCase().includes(c.name.toLowerCase()));
+        if (matchedCity && GEO_CONFIG[matchedCity.name]) {
+          branchConfig.latitude = GEO_CONFIG[matchedCity.name].coords.lat;
+          branchConfig.longitude = GEO_CONFIG[matchedCity.name].coords.lng;
+        }
       }
     }
 

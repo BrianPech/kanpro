@@ -43,7 +43,7 @@ import {
 } from "@/components/ui/select";
 import { useCompanyProfileForm } from "../hooks/use-company-profile-form";
 import { toast } from "sonner";
-import { motion } from "framer-motion";
+import { motion } from "motion/react";
 import { cn } from "@/lib/utils";
 import { CompanyPageHeader } from "./shared/company-page-header";
 import { optimizeImageForStorage } from "@/lib/storage/optimize-upload";

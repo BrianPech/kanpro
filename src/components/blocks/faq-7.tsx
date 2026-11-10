@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
-import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
+import { motion, AnimatePresence, useReducedMotion } from "motion/react";
 import { Plus, Sparkles, HelpCircle } from "@/components/ui/icons";
 
 const TRANSITION_EASE = [0.22, 1, 0.36, 1] as const;

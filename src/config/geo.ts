@@ -447,140 +447,14 @@ export function findNearestCityAndZone(lat: number, lng: number): { city: string
 }
 
 /**
- * Accurate Reverse Geocoding with multi-provider fallback.
- * Resolves precise real-world City and Zone/Neighborhood from coordinates.
+ * Accurate Reverse Geocoding with instant local geometric resolver.
+ * Resolves precise real-world City and Zone/Neighborhood from coordinates without external network latency.
  */
 export async function resolveLocationFromCoords(
   lat: number,
   lng: number
 ): Promise<{ city: string; zone: string; displayLocation: string }> {
-  // 1. Try OpenStreetMap Nominatim with high zoom
-  try {
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 4000);
-
-    const res = await fetch(
-      `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&zoom=18&addressdetails=1`,
-      {
-        signal: controller.signal,
-        headers: { "Accept-Language": "es" }
-      }
-    );
-    clearTimeout(timeoutId);
-
-    if (res.ok) {
-      const data = await res.json();
-      if (data && data.address) {
-        const addr = data.address;
-        const rawCity =
-          addr.city ||
-          addr.town ||
-          addr.municipality ||
-          addr.county ||
-          addr.village ||
-          addr.hamlet ||
-          addr.state_district ||
-          "";
-
-        const rawZone =
-          addr.suburb ||
-          addr.neighbourhood ||
-          addr.quarter ||
-          addr.residential ||
-          addr.city_district ||
-          addr.road ||
-          "";
-
-        // Check if rawCity matches any known GEO_CONFIG city (e.g. Felipe Carrillo Puerto, Mérida, Cancún, etc.)
-        const matchedCityKey = Object.keys(GEO_CONFIG).find((k) =>
-          rawCity.toLowerCase().includes(k.toLowerCase()) || k.toLowerCase().includes(rawCity.toLowerCase())
-        );
-
-        if (matchedCityKey && GEO_CONFIG[matchedCityKey]) {
-          let finalZone = Object.keys(GEO_CONFIG[matchedCityKey].zones)[0] || "Centro";
-          
-          if (rawZone) {
-            const matchedZoneKey = Object.keys(GEO_CONFIG[matchedCityKey].zones).find((zk) =>
-              rawZone.toLowerCase().includes(zk.toLowerCase()) || zk.toLowerCase().includes(rawZone.toLowerCase())
-            );
-            if (matchedZoneKey) {
-              finalZone = matchedZoneKey;
-            } else {
-              finalZone = rawZone;
-            }
-          }
-
-          return {
-            city: matchedCityKey,
-            zone: finalZone,
-            displayLocation: `${matchedCityKey} - ${finalZone}`
-          };
-        } else if (rawCity) {
-          // Dynamic city in Quintana Roo or Yucatán
-          const finalZone = rawZone || "Centro";
-          return {
-            city: rawCity,
-            zone: finalZone,
-            displayLocation: `${rawCity} - ${finalZone}`
-          };
-        }
-      }
-    }
-  } catch (e) {
-    // Nominatim failed or timed out, try secondary fallback
-  }
-
-  // 2. Try BigDataCloud Client-side Reverse Geocoder
-  try {
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 4000);
-
-    const bdcRes = await fetch(
-      `https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${lat}&longitude=${lng}&localityLanguage=es`,
-      { signal: controller.signal }
-    );
-    clearTimeout(timeoutId);
-
-    if (bdcRes.ok) {
-      const bdcData = await bdcRes.json();
-      const rawCity = bdcData.city || bdcData.locality || bdcData.principalSubdivision || "";
-      const rawZone = bdcData.localityInfo?.administrative?.[3]?.name || bdcData.localityInfo?.informative?.[0]?.name || "";
-
-      const matchedCityKey = Object.keys(GEO_CONFIG).find((k) =>
-        rawCity.toLowerCase().includes(k.toLowerCase()) || k.toLowerCase().includes(rawCity.toLowerCase())
-      );
-
-      if (matchedCityKey && GEO_CONFIG[matchedCityKey]) {
-        let finalZone = Object.keys(GEO_CONFIG[matchedCityKey].zones)[0] || "Centro";
-        if (rawZone) {
-          const matchedZoneKey = Object.keys(GEO_CONFIG[matchedCityKey].zones).find((zk) =>
-            rawZone.toLowerCase().includes(zk.toLowerCase()) || zk.toLowerCase().includes(rawZone.toLowerCase())
-          );
-          if (matchedZoneKey) {
-            finalZone = matchedZoneKey;
-          } else {
-            finalZone = rawZone;
-          }
-        }
-
-        return {
-          city: matchedCityKey,
-          zone: finalZone,
-          displayLocation: `${matchedCityKey} - ${finalZone}`
-        };
-      } else if (rawCity) {
-        return {
-          city: rawCity,
-          zone: rawZone || "Centro",
-          displayLocation: `${rawCity} - ${rawZone || "Centro"}`
-        };
-      }
-    }
-  } catch (e) {
-    // Fallback to geometric nearest
-  }
-
-  // 3. Fallback: geometric nearest city and zone in Southeast Mexico
+  // Geometric nearest city and zone from GEO_CONFIG
   const nearest = findNearestCityAndZone(lat, lng);
   return {
     city: nearest.city,

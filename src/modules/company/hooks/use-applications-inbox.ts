@@ -65,6 +65,25 @@ interface ApplicationsQueryData {
   applicants: Applicant[];
 }
 
+/**
+ * Valida si una transición de estatus en el inbox es permitida directamente.
+ * La transición a 'Contratado' está estrictamente prohibida vía actualización directa
+ * y exige pasar por el asistente oficial de contratación (HireCandidateWizardModal).
+ */
+export function validateApplicationStatusTransition(newStatus: Applicant["status"]): {
+  allowed: boolean;
+  message?: string;
+} {
+  if (newStatus === "Contratado") {
+    return {
+      allowed: false,
+      message:
+        "Para contratar al candidato debes utilizar el asistente de contratación oficial (Formalizar Contratación) para generar su expediente de colaborador y contrato laboral.",
+    };
+  }
+  return { allowed: true };
+}
+
 export function useApplicationsInbox() {
   const queryClient = useQueryClient();
   // Helper to read initial vacancy_id from URL query string if present
@@ -330,6 +349,13 @@ export function useApplicationsInbox() {
   });
 
   const handleUpdateStatus = async (id: string, newStatus: Applicant["status"]) => {
+    const validation = validateApplicationStatusTransition(newStatus);
+    if (!validation.allowed) {
+      toast.warning("Asistente de contratación requerido", {
+        description: validation.message,
+      });
+      return;
+    }
     await statusMutation.mutateAsync({ id, newStatus });
   };
 

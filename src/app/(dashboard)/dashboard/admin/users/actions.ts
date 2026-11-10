@@ -28,7 +28,7 @@ export async function updateUserRole(userId: string, newRole: "admin" | "candida
 }
 
 export async function toggleUserStatus(userId: string, newStatus: "active" | "inactive" | "suspended") {
-  const { supabase, user } = await requireAdminAuth();
+  const { supabase, user } = await requireAdminAuth({ requiredPermission: "manage_users" });
 
   if (userId === user.id && newStatus !== "active") {
     throw new Error("No puede desactivar o suspender su propia cuenta.");
@@ -37,10 +37,12 @@ export async function toggleUserStatus(userId: string, newStatus: "active" | "in
   const locationNote = newStatus === "suspended" ? "SUSPENDIDO" : newStatus === "inactive" ? "INACTIVO" : null;
 
   const updatePayload: {
+    status?: "active" | "inactive" | "suspended";
     location?: string | null;
     is_verified?: boolean;
     updated_at?: string;
   } = {
+    status: newStatus,
     updated_at: new Date().toISOString(),
   };
 

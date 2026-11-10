@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import { motion } from "framer-motion";
+import { motion } from "motion/react";
 import { Check, Minus, X, Sparkles } from "@/components/ui/icons";
 
 const TRANSITION_EASE = [0.22, 1, 0.36, 1] as const;
