@@ -2,6 +2,7 @@
 
 import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
+import { companyTenantService } from "../services/company-tenant.service";
 
 export type InviteCandidateResult =
   | { success: true; message: string }
@@ -28,19 +29,21 @@ export async function inviteCandidateToVacancyAction(
     return { success: false, error: "No autorizado. Inicie sesión para enviar invitaciones." };
   }
 
+  const { companyId: companyScopeId } = await companyTenantService.resolveActiveCompanyScope(user.id, supabase);
+
   try {
     // 1. Obtener datos de la empresa y la vacante
     const [companyRes, vacancyRes] = await Promise.all([
       supabase
         .from("company_profiles")
         .select("company_name")
-        .eq("id", user.id)
+        .eq("id", companyScopeId)
         .maybeSingle(),
       supabase
         .from("vacancies")
         .select("id, title, company_id")
         .eq("id", vacancyId)
-        .eq("company_id", user.id)
+        .eq("company_id", companyScopeId)
         .maybeSingle(),
     ]);
 

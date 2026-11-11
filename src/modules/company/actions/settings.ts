@@ -2,6 +2,7 @@
 
 import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
+import { companyTenantService } from "../services/company-tenant.service";
 import {
   toggleGlobalRecruitmentSchema,
   updateContactChannelSchema,
@@ -46,7 +47,8 @@ export async function toggleGlobalRecruitment(
     return { success: false, error: "No autorizado. Inicie sesión para continuar." };
   }
 
-  if (user.id !== companyId) {
+  const membershipRole = await companyTenantService.verifyUserMembership(user.id, companyId, supabase);
+  if (!membershipRole) {
     return {
       success: false,
       error: "No tienes permisos para modificar la configuración de esta empresa.",
@@ -98,7 +100,8 @@ export async function updateContactChannel(
     return { success: false, error: "No autorizado. Inicie sesión para continuar." };
   }
 
-  if (user.id !== companyId) {
+  const membershipRole = await companyTenantService.verifyUserMembership(user.id, companyId, supabase);
+  if (!membershipRole) {
     return {
       success: false,
       error: "No tienes permisos para modificar la configuración de esta empresa.",
@@ -149,7 +152,8 @@ export async function updateSubscriptionPlan(
     return { success: false, error: "No autorizado. Inicie sesión para continuar." };
   }
 
-  if (user.id !== companyId) {
+  const membershipRole = await companyTenantService.verifyUserMembership(user.id, companyId, supabase);
+  if (!membershipRole) {
     return {
       success: false,
       error: "No tienes permisos para modificar la suscripción de esta empresa.",
@@ -208,7 +212,8 @@ export async function updateCompanyBranchesAction(
     return { success: false, error: "No autorizado. Inicie sesión para continuar." };
   }
 
-  if (user.id !== companyId) {
+  const membershipRole = await companyTenantService.verifyUserMembership(user.id, companyId, supabase);
+  if (!membershipRole) {
     return {
       success: false,
       error: "No tienes permisos para modificar las sucursales de esta empresa.",

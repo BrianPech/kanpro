@@ -2,6 +2,7 @@
 
 import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
+import { companyTenantService } from "../services/company-tenant.service";
 import {
   createEvaluationSchema,
   deleteEvaluationSchema,
@@ -78,10 +79,12 @@ export async function createEvaluationAction(
     return { success: false, error: "No autorizado. Inicie sesión como empresa." };
   }
 
+  const { companyId: companyScopeId } = await companyTenantService.resolveActiveCompanyScope(user.id, supabase);
+
   try {
     const result = await CompanyEvaluationsService.createEvaluation(
       supabase,
-      user.id,
+      companyScopeId,
       parsed.data
     );
 
@@ -127,10 +130,12 @@ export async function deleteEvaluationAction(
     return { success: false, error: "No autorizado." };
   }
 
+  const { companyId: companyScopeId } = await companyTenantService.resolveActiveCompanyScope(user.id, supabase);
+
   try {
     await CompanyEvaluationsService.deleteEvaluation(
       supabase,
-      user.id,
+      companyScopeId,
       parsed.data.evaluationId
     );
 
@@ -166,10 +171,12 @@ export async function createNom035SurveyAction(
     return { success: false, error: "No autorizado." };
   }
 
+  const { companyId: companyScopeId } = await companyTenantService.resolveActiveCompanyScope(user.id, supabase);
+
   try {
     const result = await CompanyEvaluationsService.createNom035Survey(
       supabase,
-      user.id,
+      companyScopeId,
       parsed.data
     );
 
@@ -215,10 +222,12 @@ export async function deleteNom035SurveyAction(
     return { success: false, error: "No autorizado." };
   }
 
+  const { companyId: companyScopeId } = await companyTenantService.resolveActiveCompanyScope(user.id, supabase);
+
   try {
     await CompanyEvaluationsService.deleteNom035Survey(
       supabase,
-      user.id,
+      companyScopeId,
       parsed.data.surveyId
     );
 

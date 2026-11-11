@@ -1,7 +1,9 @@
 "use server";
 
 import { createClient } from "@/lib/supabase/server";
+import { cookies } from "next/headers";
 import * as nextCache from "next/cache";
+import { ACTIVE_COMPANY_COOKIE } from "../schemas/tenant.schema";
 import {
   cloneVacancySchema,
   createExpressVacancySchema,
@@ -144,9 +146,18 @@ export async function createVacancyAction(
   }
 
   try {
+    let effectiveCompanyId: string | undefined;
+    try {
+      const cookieStore = await cookies();
+      effectiveCompanyId = cookieStore.get(ACTIVE_COMPANY_COOKIE)?.value;
+    } catch {
+      // outside cookie context
+    }
+    const companyScopeId = effectiveCompanyId || user.id;
+
     const vacancy = await CompanyVacanciesService.createVacancy(
       supabase,
-      user.id,
+      companyScopeId,
       parsed.data
     );
 
@@ -234,9 +245,18 @@ export async function createExpressVacancyAction(
   }
 
   try {
+    let effectiveCompanyId: string | undefined;
+    try {
+      const cookieStore = await cookies();
+      effectiveCompanyId = cookieStore.get(ACTIVE_COMPANY_COOKIE)?.value;
+    } catch {
+      // outside cookie context
+    }
+    const companyScopeId = effectiveCompanyId || user.id;
+
     const vacancy = await CompanyVacanciesService.createExpressVacancy(
       supabase,
-      user.id,
+      companyScopeId,
       parsed.data
     );
 

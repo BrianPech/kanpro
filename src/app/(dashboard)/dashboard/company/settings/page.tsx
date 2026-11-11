@@ -1,30 +1,36 @@
 import { CompanySettingsView } from "@/modules/company/components/settings-view";
 import { createClient } from "@/lib/supabase/server";
+import { getDashboardSession } from "@/modules/auth/services/dashboard-session";
 import { redirect } from "next/navigation";
 
 export default async function CompanySettingsPage() {
-  const supabase = await createClient();
+  const [{ activeCompanyId }, supabase] = await Promise.all([
+    getDashboardSession(),
+    createClient(),
+  ]);
   const { data: { user } } = await supabase.auth.getUser();
 
   if (!user) {
     redirect("/login");
   }
 
+  const targetCompanyId = activeCompanyId || user.id;
+
   // Fetch company details, vacancies, and invoices concurrently via Promise.all
   const [profileRes, vacanciesRes, invoicesRes] = await Promise.all([
     supabase
       .from("company_profiles")
       .select("*")
-      .eq("id", user.id)
+      .eq("id", targetCompanyId)
       .maybeSingle(),
     supabase
       .from("vacancies")
       .select("id, is_active")
-      .eq("company_id", user.id),
+      .eq("company_id", targetCompanyId),
     supabase
       .from("company_invoices")
       .select("*")
-      .eq("company_id", user.id)
+      .eq("company_id", targetCompanyId)
       .order("created_at", { ascending: false })
   ]);
 
@@ -40,7 +46,7 @@ export default async function CompanySettingsPage() {
 
   const p = profile;
   const defaultProfile = {
-    id: user.id,
+    id: targetCompanyId,
     company_name: p?.company_name || "Mi Empresa",
     credits_available: p?.credits_available ?? 0,
     contact_channel: (p as { contact_channel?: string } | null)?.contact_channel || "whatsapp",

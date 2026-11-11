@@ -1,5 +1,6 @@
 import * as React from "react"
 import { VacancyFormView } from "@/modules/company/components/vacancy-form-view"
+import { getDashboardSession } from "@/modules/auth/services/dashboard-session"
 import { createClient } from "@/lib/supabase/server"
 import { redirect } from "next/navigation"
 
@@ -11,5 +12,8 @@ export default async function NewVacancyPage() {
     redirect("/login")
   }
 
-  return <VacancyFormView userId={user.id} />
+  const { activeCompanyId } = await getDashboardSession()
+  const targetId = activeCompanyId || user.id
+
+  return <VacancyFormView userId={targetId} />
 }

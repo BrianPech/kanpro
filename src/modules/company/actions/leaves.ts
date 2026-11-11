@@ -2,6 +2,7 @@
 
 import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
+import { companyTenantService } from "../services/company-tenant.service";
 import {
   respondToLeaveRequestSchema,
   createCompanyLeaveSchema,
@@ -50,9 +51,11 @@ export async function respondToCompanyLeaveAction(
     return { success: false, error: "No autorizado. Inicie sesión para continuar." };
   }
 
+  const { companyId: companyScopeId } = await companyTenantService.resolveActiveCompanyScope(user.id, supabase);
+
   try {
     const service = new CompanyLeavesService(supabase);
-    const result = await service.respondToLeaveRequest(user.id, parsed.data);
+    const result = await service.respondToLeaveRequest(companyScopeId, parsed.data);
 
     revalidatePath("/dashboard/company/leaves");
     revalidatePath("/dashboard/company");
@@ -91,9 +94,11 @@ export async function createCompanyLeaveAction(
     return { success: false, error: "No autorizado. Inicie sesión para continuar." };
   }
 
+  const { companyId: companyScopeId } = await companyTenantService.resolveActiveCompanyScope(user.id, supabase);
+
   try {
     const service = new CompanyLeavesService(supabase);
-    const result = await service.createCompanyLeave(user.id, parsed.data);
+    const result = await service.createCompanyLeave(companyScopeId, parsed.data);
 
     revalidatePath("/dashboard/company/leaves");
     revalidatePath("/dashboard/company");

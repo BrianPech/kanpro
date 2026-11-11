@@ -116,7 +116,7 @@ import { DatePicker } from "@/components/ui/date-picker";
 import { CompanyPageHeader } from "./shared/company-page-header";
 import { CompanyStatusBadge } from "./shared/company-status-badge";
 
-export function ApplicationsInbox() {
+export function ApplicationsInbox({ companyId }: { companyId?: string } = {}) {
   const {
     applicants,
     vacancies,
@@ -133,7 +133,7 @@ export function ApplicationsInbox() {
     handleContactApplicant,
     handleExportCSV,
     reloadData,
-  } = useApplicationsInbox();
+  } = useApplicationsInbox({ companyId });
 
   // Filters State
   const [statusFilter, setStatusFilter] = React.useState<string>("all");

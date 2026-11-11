@@ -2,6 +2,7 @@
 
 import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
+import { companyTenantService } from "../services/company-tenant.service";
 import {
   createIncidentSchema,
   updateIncidentStatusSchema,
@@ -59,9 +60,11 @@ export async function createIncidentAction(
     return { success: false, error: "No autorizado. Inicia sesión para registrar la incidencia." };
   }
 
+  const { companyId: companyScopeId } = await companyTenantService.resolveActiveCompanyScope(user.id, supabase);
+
   try {
     const service = new CompanyIncidentsService(supabase);
-    const incident = await service.createIncident(user.id, parsed.data);
+    const incident = await service.createIncident(companyScopeId, parsed.data);
 
     revalidatePath("/dashboard/company/incidents");
     revalidatePath("/dashboard/company");
@@ -99,9 +102,11 @@ export async function updateIncidentStatusAction(
     return { success: false, error: "No autorizado." };
   }
 
+  const { companyId: companyScopeId } = await companyTenantService.resolveActiveCompanyScope(user.id, supabase);
+
   try {
     const service = new CompanyIncidentsService(supabase);
-    const record = await service.updateIncidentStatus(user.id, parsed.data);
+    const record = await service.updateIncidentStatus(companyScopeId, parsed.data);
 
     revalidatePath("/dashboard/company/incidents");
     revalidatePath("/dashboard/company");
@@ -139,9 +144,11 @@ export async function deleteIncidentAction(
     return { success: false, error: "No autorizado." };
   }
 
+  const { companyId: companyScopeId } = await companyTenantService.resolveActiveCompanyScope(user.id, supabase);
+
   try {
     const service = new CompanyIncidentsService(supabase);
-    await service.deleteIncident(user.id, parsed.data.incidentId);
+    await service.deleteIncident(companyScopeId, parsed.data.incidentId);
 
     revalidatePath("/dashboard/company/incidents");
     revalidatePath("/dashboard/company");
@@ -170,9 +177,11 @@ export async function getCompanyIncidentsAction(): Promise<GetCompanyIncidentsAc
     return { success: false, incidents: [], error: "No autorizado." };
   }
 
+  const { companyId: companyScopeId } = await companyTenantService.resolveActiveCompanyScope(user.id, supabase);
+
   try {
     const service = new CompanyIncidentsService(supabase);
-    const incidents = await service.getCompanyIncidents(user.id);
+    const incidents = await service.getCompanyIncidents(companyScopeId);
 
     return {
       success: true,

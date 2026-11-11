@@ -2,6 +2,7 @@
 
 import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
+import { companyTenantService } from "../services/company-tenant.service";
 import {
   saveCompanyVerificationSchema,
   type SaveCompanyVerificationInput,
@@ -40,6 +41,8 @@ export async function saveCompanyVerificationAction(
     };
   }
 
+  const { companyId: companyScopeId } = await companyTenantService.resolveActiveCompanyScope(user.id, supabase);
+
   const data = parsed.data;
 
   try {
@@ -66,20 +69,17 @@ export async function saveCompanyVerificationAction(
     const { error: companyErr } = await supabase
       .from("company_profiles")
       .update(companyPayload)
-      .eq("id", user.id);
+      .eq("id", companyScopeId);
 
     if (companyErr) throw companyErr;
 
-    // Sincronizar datos base del perfil
-    const profilesPayload: Database["public"]["Tables"]["profiles"]["Update"] = {
-      updated_at: new Date().toISOString(),
-    };
-    if (data.company_name) profilesPayload.full_name = data.company_name;
-    if (data.fiscal_address) profilesPayload.location = data.fiscal_address;
-    if (data.contact_phone) profilesPayload.whatsapp_number = data.contact_phone;
-    if (data.terms_accepted) profilesPayload.terms_accepted_at = new Date().toISOString();
-
-    await supabase.from("profiles").update(profilesPayload).eq("id", user.id);
+    // Actualizar términos aceptados del usuario autenticado si aplica
+    if (data.terms_accepted) {
+      await supabase
+        .from("profiles")
+        .update({ terms_accepted_at: new Date().toISOString() })
+        .eq("id", user.id);
+    }
 
     revalidatePath("/dashboard/company/settings/verification");
     revalidatePath("/dashboard/company/settings");

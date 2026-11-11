@@ -1,5 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
+import { getDashboardSession } from "@/modules/auth/services/dashboard-session";
 import {
   CandidateRadarView,
   type CandidateDirectoryItem,
@@ -9,7 +10,10 @@ import {
 export const dynamic = "force-dynamic";
 
 export default async function CandidateRadarPage() {
-  const supabase = await createClient();
+  const [{ activeCompanyId }, supabase] = await Promise.all([
+    getDashboardSession(),
+    createClient(),
+  ]);
   const {
     data: { user },
     error: authError,
@@ -19,11 +23,13 @@ export default async function CandidateRadarPage() {
     redirect("/login");
   }
 
+  const targetCompanyId = activeCompanyId || user.id;
+
   // 1. Obtener perfil de la empresa para determinar ubicación y nombre
   const { data: companyProfile } = await supabase
     .from("company_profiles")
     .select("company_name, fiscal_address")
-    .eq("id", user.id)
+    .eq("id", targetCompanyId)
     .maybeSingle();
 
   const companyAddress = companyProfile?.fiscal_address || "";
@@ -38,7 +44,7 @@ export default async function CandidateRadarPage() {
   const { data: vacanciesData } = await supabase
     .from("vacancies")
     .select("id, title, location")
-    .eq("company_id", user.id)
+    .eq("company_id", targetCompanyId)
     .eq("is_active", true)
     .order("created_at", { ascending: false });
 

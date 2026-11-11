@@ -1,4 +1,5 @@
 import { cache } from "react"
+import { cookies } from "next/headers"
 import { createClient } from "@/lib/supabase/server"
 import { getImpersonationState } from "@/lib/auth/impersonation"
 import {
@@ -7,6 +8,14 @@ import {
   type CompanyModuleKey,
   type DemoRolloutConfig,
 } from "@/modules/company/config/demo-rollout"
+import {
+  companyTenantService,
+  type UserCompanyItem,
+} from "@/modules/company/services/company-tenant.service"
+import {
+  ACTIVE_COMPANY_COOKIE,
+  type CompanyMemberRole,
+} from "@/modules/company/schemas/tenant.schema"
 
 let rolloutCacheEntry: { data: DemoRolloutConfig; expiresAt: number } | null = null
 const ROLLOUT_CACHE_TTL_MS = 5 * 60 * 1000 // 5 minutes
@@ -27,6 +36,10 @@ async function resolveDashboardSession() {
   let targetUserId: string | undefined = undefined
   let demoPhase: 1 | 2 | 3 | 4 = DEFAULT_DEMO_ROLLOUT.activePhase
   let enabledCompanyModules: CompanyModuleKey[] = DEFAULT_DEMO_ROLLOUT.enabledModules
+  let userCompanies: UserCompanyItem[] = []
+  let activeCompany: UserCompanyItem | null = null
+  let activeCompanyId: string | undefined = undefined
+  let activeCompanyRole: CompanyMemberRole | undefined = undefined
 
   if (user) {
     // 1. Authoritative source of truth: database profile
@@ -146,6 +159,38 @@ async function resolveDashboardSession() {
       // Graceful fallback if outside request context or cookies unavailable
     }
 
+    // 4. Resolve multi-tenant companies if role is company
+    if (role === "company") {
+      const effectiveCompanyUserId = targetUserId || user.id
+      try {
+        userCompanies = await companyTenantService.getUserCompanies(effectiveCompanyUserId, supabase)
+
+        let preferredCompanyId: string | undefined = undefined
+        try {
+          const cookieStore = await cookies()
+          preferredCompanyId = cookieStore.get(ACTIVE_COMPANY_COOKIE)?.value
+        } catch {
+          // Graceful fallback outside cookies context
+        }
+
+        if (preferredCompanyId) {
+          activeCompany = userCompanies.find((c) => c.companyId === preferredCompanyId) || null
+        }
+
+        if (!activeCompany && userCompanies.length > 0) {
+          activeCompany = userCompanies[0]
+        }
+
+        if (activeCompany) {
+          activeCompanyId = activeCompany.companyId
+          activeCompanyRole = activeCompany.role
+          plan = `Empresa • ${activeCompany.companyName}`
+        }
+      } catch (compErr) {
+        console.warn("[resolveDashboardSession] Error resolving company tenant context:", compErr)
+      }
+    }
+
     if (role === "company" || role === "admin") {
       const now = Date.now()
       if (!process.env.VITEST && rolloutCacheEntry && rolloutCacheEntry.expiresAt > now) {
@@ -184,6 +229,10 @@ async function resolveDashboardSession() {
     targetUserId,
     demoPhase,
     enabledCompanyModules,
+    userCompanies,
+    activeCompany,
+    activeCompanyId,
+    activeCompanyRole,
   }
 }
 

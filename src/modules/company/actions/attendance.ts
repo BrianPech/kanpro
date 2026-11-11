@@ -2,6 +2,7 @@
 
 import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
+import { companyTenantService } from "../services/company-tenant.service";
 import {
   mobileCheckInSchema,
   manualAttendanceSchema,
@@ -99,7 +100,8 @@ export async function recordAttendanceCheckInAction(
           };
         }
 
-        const isCompanyOwner = employeeRecord.company_id === user.id;
+        const isMember = await companyTenantService.verifyUserMembership(user.id, employeeRecord.company_id, supabase);
+        const isCompanyOwner = employeeRecord.company_id === user.id || !!isMember;
         const isLinkedEmployee = employeeRecord.employee_id === user.id;
 
         if (!isCompanyOwner && !isLinkedEmployee) {
@@ -160,9 +162,11 @@ export async function createManualAttendanceAction(
     return { success: false, error: "No autorizado. Inicie sesión para continuar." };
   }
 
+  const { companyId: companyScopeId } = await companyTenantService.resolveActiveCompanyScope(user.id, supabase);
+
   try {
     const service = new CompanyAttendanceService(supabase);
-    const record = await service.createManualAttendance(user.id, parsed.data);
+    const record = await service.createManualAttendance(companyScopeId, parsed.data);
 
     revalidatePath("/dashboard/company/attendance");
     revalidatePath("/dashboard/company");
@@ -199,9 +203,11 @@ export async function authorizeOvertimeAction(
     return { success: false, error: "No autorizado." };
   }
 
+  const { companyId: companyScopeId } = await companyTenantService.resolveActiveCompanyScope(user.id, supabase);
+
   try {
     const service = new CompanyAttendanceService(supabase);
-    const record = await service.authorizeOvertime(user.id, parsed.data);
+    const record = await service.authorizeOvertime(companyScopeId, parsed.data);
 
     revalidatePath("/dashboard/company/attendance");
     revalidatePath("/dashboard/company/payroll");
@@ -238,10 +244,12 @@ export async function reviewAttendanceJustificationAction(
     return { success: false, error: "No autorizado." };
   }
 
+  const { companyId: companyScopeId } = await companyTenantService.resolveActiveCompanyScope(user.id, supabase);
+
   try {
     const service = new CompanyAttendanceService(supabase);
     const reviewerEmail = user.email || "Recursos Humanos";
-    const record = await service.reviewJustification(user.id, reviewerEmail, parsed.data);
+    const record = await service.reviewJustification(companyScopeId, reviewerEmail, parsed.data);
 
     revalidatePath("/dashboard/company/attendance");
     revalidatePath("/dashboard/company/payroll");
@@ -280,9 +288,11 @@ export async function getEmployeeAttendanceHistoryAction(
     return { success: false, error: "No autorizado." };
   }
 
+  const { companyId: companyScopeId } = await companyTenantService.resolveActiveCompanyScope(user.id, supabase);
+
   try {
     const service = new CompanyAttendanceService(supabase);
-    const history = await service.getEmployeeAttendanceHistory(user.id, parsed.data);
+    const history = await service.getEmployeeAttendanceHistory(companyScopeId, parsed.data);
 
     return {
       success: true,

@@ -2,6 +2,7 @@
 
 import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
+import { companyTenantService } from "../services/company-tenant.service";
 import {
   createDepartmentSchema,
   updateDepartmentSchema,
@@ -39,9 +40,11 @@ export async function getCompanyDepartmentsAction(): Promise<
       return { success: false, error: "Sesión no válida o expirada." };
     }
 
+    const { companyId: companyScopeId } = await companyTenantService.resolveActiveCompanyScope(user.id, supabase);
+
     const departments = await CompanyAreasService.getCompanyDepartments(
       supabase,
-      user.id
+      companyScopeId
     );
 
     return { success: true, data: departments };
@@ -76,9 +79,11 @@ export async function createDepartmentAction(
       return { success: false, error: "Sesión no válida o expirada." };
     }
 
+    const { companyId: companyScopeId } = await companyTenantService.resolveActiveCompanyScope(user.id, supabase);
+
     const newDept = await CompanyAreasService.createDepartment(
       supabase,
-      user.id,
+      companyScopeId,
       validation.data
     );
 
@@ -116,9 +121,11 @@ export async function createPresetDepartmentsAction(
       return { success: false, error: "Sesión no válida o expirada." };
     }
 
+    const { companyId: companyScopeId } = await companyTenantService.resolveActiveCompanyScope(user.id, supabase);
+
     const created = await CompanyAreasService.createPresetDepartments(
       supabase,
-      user.id,
+      companyScopeId,
       validation.data.names
     );
 
@@ -156,9 +163,11 @@ export async function updateDepartmentAction(
       return { success: false, error: "Sesión no válida o expirada." };
     }
 
+    const { companyId: companyScopeId } = await companyTenantService.resolveActiveCompanyScope(user.id, supabase);
+
     const updated = await CompanyAreasService.updateDepartment(
       supabase,
-      user.id,
+      companyScopeId,
       validation.data
     );
 
@@ -194,9 +203,11 @@ export async function deleteDepartmentAction(
       return { success: false, error: "Sesión no válida o expirada." };
     }
 
+    const { companyId: companyScopeId } = await companyTenantService.resolveActiveCompanyScope(user.id, supabase);
+
     const result = await CompanyAreasService.deleteDepartment(
       supabase,
-      user.id,
+      companyScopeId,
       validation.data.id
     );
 

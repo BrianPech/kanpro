@@ -1,5 +1,6 @@
 import * as React from "react";
 import { createClient } from "@/lib/supabase/server";
+import { getDashboardSession } from "@/modules/auth/services/dashboard-session";
 import { getEmployeeDossierById } from "@/modules/company/services/company-dossier";
 import { EmployeeDossierView } from "@/modules/company/components/dossier/employee-dossier-view";
 import { notFound, redirect } from "next/navigation";
@@ -24,7 +25,10 @@ export default async function EmployeeDossierPage({
     redirect("/login");
   }
 
-  const dossier = await getEmployeeDossierById(supabase, id, user.id);
+  const { activeCompanyId } = await getDashboardSession();
+  const targetCompanyId = activeCompanyId || user.id;
+
+  const dossier = await getEmployeeDossierById(supabase, id, targetCompanyId);
 
   if (!dossier) {
     notFound();

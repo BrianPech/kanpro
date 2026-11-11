@@ -2,6 +2,7 @@ import * as React from "react";
 import { createClient } from "@/lib/supabase/server";
 import { getCompanyAttendanceData } from "@/modules/company/services/company-attendance";
 import { AttendanceView } from "@/modules/company/components/attendance-view";
+import { getDashboardSession } from "@/modules/auth/services/dashboard-session";
 
 export const dynamic = "force-dynamic";
 
@@ -18,16 +19,21 @@ export default async function CompanyAttendancePage({ searchParams }: CompanyAtt
   const resolvedParams = searchParams ? await searchParams : undefined;
   const targetDate = resolvedParams?.date;
 
-  const supabase = await createClient();
+  const [{ activeCompanyId }, supabase] = await Promise.all([
+    getDashboardSession(),
+    createClient(),
+  ]);
+
   const {
     data: { user },
   } = await supabase.auth.getUser();
 
-  const data = await getCompanyAttendanceData(supabase, user?.id || "", targetDate);
+  const targetCompanyId = activeCompanyId || user?.id || "";
+  const data = await getCompanyAttendanceData(supabase, targetCompanyId, targetDate);
 
   return (
     <AttendanceView
-      companyId={data.companyId || user?.id || ""}
+      companyId={data.companyId || targetCompanyId}
       initialRecords={data.records}
       initialStats={data.stats}
       branchConfig={data.branchConfig}

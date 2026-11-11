@@ -1,6 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import { CompanyEmployeesView } from "@/modules/company/components/company-employees-view";
+import { getDashboardSession } from "@/modules/auth/services/dashboard-session";
 
 export const metadata = {
   title: "Plantilla de Empleados | K'anPro",
@@ -17,6 +18,9 @@ export default async function CompanyEmployeesPage() {
   if (!user) {
     redirect("/login");
   }
+
+  const { activeCompanyId } = await getDashboardSession();
+  const targetCompanyId = activeCompanyId || user.id;
 
   // 1. Fetch direct company employees from public.company_employees
   const { data: directEmployees, error: directError } = await supabase
@@ -45,7 +49,7 @@ export default async function CompanyEmployeesPage() {
       termination_date,
       created_at
     `)
-    .eq("company_id", user.id)
+    .eq("company_id", targetCompanyId)
     .order("created_at", { ascending: false });
 
   if (directError) {
@@ -56,7 +60,7 @@ export default async function CompanyEmployeesPage() {
   const { data: userVacs } = await supabase
     .from("vacancies")
     .select("id")
-    .or(`company_id.eq.${user.id},recruiter_id.eq.${user.id}`);
+    .or(`company_id.eq.${targetCompanyId},recruiter_id.eq.${targetCompanyId}`);
 
   const vacIds = (userVacs || []).map((v) => v.id);
 
@@ -205,7 +209,7 @@ export default async function CompanyEmployeesPage() {
   const { data: rawDepartments } = await supabase
     .from("company_departments")
     .select("id, name, color")
-    .eq("company_id", user.id)
+    .eq("company_id", targetCompanyId)
     .eq("is_active", true)
     .order("name", { ascending: true });
 
@@ -217,7 +221,7 @@ export default async function CompanyEmployeesPage() {
 
   return (
     <CompanyEmployeesView
-      userId={user.id}
+      userId={targetCompanyId}
       initialEmployees={combinedEmployees}
       initialInvitations={invitations}
       companyDepartments={companyDepartments}

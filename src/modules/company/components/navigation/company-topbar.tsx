@@ -24,6 +24,8 @@ import {
 } from "@/components/ui/breadcrumb";
 import { NotificationBell } from "@/modules/notifications/components/notification-bell";
 import { CompanyTopbarUser } from "./company-topbar-user";
+import { CompanySwitcher } from "./company-switcher";
+import type { UserCompanyItem } from "@/modules/company/services/company-tenant.service";
 
 const companyRouteNames: Record<string, string> = {
   "/dashboard/company": "Dashboard",
@@ -50,11 +52,15 @@ export function DashboardTopbar({
   userInitials,
   plan: _plan,
   role = "company",
+  companies = [],
+  activeCompanyId,
 }: {
   userName?: string;
   userInitials?: string;
   plan?: string;
   role?: "company" | "candidate" | "admin";
+  companies?: UserCompanyItem[];
+  activeCompanyId?: string;
 }) {
   const pathname = usePathname();
   const supabase = createClient();
@@ -113,6 +119,13 @@ export function DashboardTopbar({
 
       {/* Right Area: Action, Notifications & Mobile User Avatar */}
       <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
+        {role === "company" && (
+          <CompanySwitcher
+            companies={companies}
+            activeCompanyId={activeCompanyId}
+            className="flex max-w-[130px] sm:max-w-[240px]"
+          />
+        )}
         {role === "company" && isRoot && (
           <div className="flex items-center gap-1.5 sm:gap-2">
             <Button

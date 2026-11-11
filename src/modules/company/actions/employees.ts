@@ -3,6 +3,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { revalidatePath } from "next/cache";
+import { companyTenantService } from "../services/company-tenant.service";
 import {
   getInvitationByToken,
   acceptEmployeeInvitation,
@@ -156,10 +157,12 @@ export async function createCompanyEmployeeAction(
     return { success: false, error: "No autorizado. Inicie sesión para continuar." };
   }
 
+  const { companyId: companyScopeId } = await companyTenantService.resolveActiveCompanyScope(user.id, supabase);
+
   try {
     const employee = await CompanyEmployeeService.createEmployee(
       supabase,
-      user.id,
+      companyScopeId,
       parsed.data
     );
 
@@ -201,10 +204,12 @@ export async function updateCompanyEmployeeAction(
     return { success: false, error: "No autorizado. Inicie sesión para continuar." };
   }
 
+  const { companyId: companyScopeId } = await companyTenantService.resolveActiveCompanyScope(user.id, supabase);
+
   try {
     await CompanyEmployeeService.updateEmployee(
       supabase,
-      user.id,
+      companyScopeId,
       employeeId,
       data
     );
@@ -252,10 +257,12 @@ export async function terminateCompanyEmployeeAction(
     return { success: false, error: "No autorizado. Inicie sesión para continuar." };
   }
 
+  const { companyId: companyScopeId } = await companyTenantService.resolveActiveCompanyScope(user.id, supabase);
+
   try {
     await CompanyEmployeeService.terminateEmployee(
       supabase,
-      user.id,
+      companyScopeId,
       parsed.data
     );
 
@@ -296,10 +303,12 @@ export async function reactivateCompanyEmployeeAction(
     return { success: false, error: "No autorizado. Inicie sesión para continuar." };
   }
 
+  const { companyId: companyScopeId } = await companyTenantService.resolveActiveCompanyScope(user.id, supabase);
+
   try {
     await CompanyEmployeeService.reactivateEmployee(
       supabase,
-      user.id,
+      companyScopeId,
       parsed.data.employeeId
     );
 
@@ -341,10 +350,12 @@ export async function updateEmployeeStartDate(
     return { success: false, error: "No autorizado. Inicia sesión para continuar." };
   }
 
+  const { companyId: companyScopeId } = await companyTenantService.resolveActiveCompanyScope(user.id, supabase);
+
   try {
     await CompanyEmployeeService.updateEmployeeStartDate(
       supabase,
-      user.id,
+      companyScopeId,
       parsed.data.employeeId,
       parsed.data.startDate
     );
@@ -385,11 +396,13 @@ export async function assignEmployeeDepartmentAction(
     return { success: false, error: "No autorizado. Inicia sesión para continuar." };
   }
 
+  const { companyId: companyScopeId } = await companyTenantService.resolveActiveCompanyScope(user.id, supabase);
+
   try {
     const targetDepartment = parsed.data.department?.trim() || null;
     await CompanyEmployeeService.assignEmployeeDepartment(
       supabase,
-      user.id,
+      companyScopeId,
       parsed.data.employeeId,
       targetDepartment
     );
@@ -457,10 +470,12 @@ export async function createEmployeeInvitationAction(
     return { success: false, error: "No autorizado. Inicie sesión para continuar." };
   }
 
+  const { companyId: companyScopeId } = await companyTenantService.resolveActiveCompanyScope(user.id, supabase);
+
   try {
     const result = await CompanyEmployeeService.createEmployeeInvitation(
       supabase,
-      user.id,
+      companyScopeId,
       parsed.data
     );
 
@@ -504,10 +519,12 @@ export async function bulkImportEmployeesAction(
     return { success: false, error: "No autorizado. Inicie sesión para continuar." };
   }
 
+  const { companyId: companyScopeId } = await companyTenantService.resolveActiveCompanyScope(user.id, supabase);
+
   try {
     const results = await CompanyEmployeeService.bulkImportEmployees(
       supabase,
-      user.id,
+      companyScopeId,
       parsed.data
     );
 
@@ -540,7 +557,9 @@ export async function getCompanyInvitationsAction() {
     throw new Error("No autorizado.");
   }
 
-  return CompanyEmployeeService.getCompanyInvitations(supabase, user.id);
+  const { companyId: companyScopeId } = await companyTenantService.resolveActiveCompanyScope(user.id, supabase);
+
+  return CompanyEmployeeService.getCompanyInvitations(supabase, companyScopeId);
 }
 
 /**
@@ -563,10 +582,12 @@ export async function resendEmployeeInvitationAction(
     return { success: false, error: "No autorizado." };
   }
 
+  const { companyId: companyScopeId } = await companyTenantService.resolveActiveCompanyScope(user.id, supabase);
+
   try {
     const result = await CompanyEmployeeService.resendEmployeeInvitation(
       supabase,
-      user.id,
+      companyScopeId,
       invitationId
     );
 
@@ -604,10 +625,12 @@ export async function cancelEmployeeInvitationAction(
     return { success: false, error: "No autorizado." };
   }
 
+  const { companyId: companyScopeId } = await companyTenantService.resolveActiveCompanyScope(user.id, supabase);
+
   try {
     await CompanyEmployeeService.cancelEmployeeInvitation(
       supabase,
-      user.id,
+      companyScopeId,
       invitationId
     );
 
@@ -694,10 +717,12 @@ export async function hireCandidateAction(
     return { success: false, error: "No autorizado. Inicie sesión para continuar." };
   }
 
+  const { companyId: companyScopeId } = await companyTenantService.resolveActiveCompanyScope(user.id, supabase);
+
   try {
     const result = await CompanyEmployeeService.hireCandidate(
       supabase,
-      user.id,
+      companyScopeId,
       parsed.data
     );
 
@@ -756,11 +781,13 @@ export async function registerDirectEmployeeAction(
     };
   }
 
+  const { companyId: companyScopeId } = await companyTenantService.resolveActiveCompanyScope(user.id, supabase);
+
   try {
     const adminClient = createAdminClient();
     const result = await CompanyEmployeeService.registerDirectEmployee(
       adminClient,
-      user.id,
+      companyScopeId,
       parsed.data
     );
 

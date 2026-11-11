@@ -12,6 +12,7 @@ import {
 } from "../schemas/register.schema";
 import { authService } from "../services/auth-service";
 import { companyService } from "@/modules/company/services/company-service";
+import { createCompanyAction } from "@/modules/company/actions/tenant-actions";
 import { createClient } from "@/lib/supabase/client";
 
 export function useCompanyRegisterForm() {
@@ -128,31 +129,18 @@ export function useCompanyRegisterForm() {
       } = await supabase.auth.getUser();
       const targetUserId = user?.id || registeredUserId;
 
-      if (targetUserId) {
-        await companyService.updateProfile(targetUserId, {
-          company_name: companyName,
-          industry: operations.industry,
-          location: operations.location,
-          address_details: operations.address_details || undefined,
-          phone: identityData.contact_phone?.trim() || undefined,
-          rfc: identityData.rfc?.trim() || undefined,
-          company_size: operations.company_size,
-          latitude: operations.latitude,
-          longitude: operations.longitude,
-        });
+      const res = await createCompanyAction({
+        company_name: companyName,
+        industry: operations.industry,
+        location: operations.location,
+        address_details: operations.address_details || undefined,
+        contact_phone: identityData.contact_phone?.trim() || undefined,
+        rfc: identityData.rfc?.trim() || undefined,
+        company_size: operations.company_size,
+      });
 
-        // Intentar sincronizar metadata en auth
-        try {
-          await supabase.auth.updateUser({
-            data: {
-              company_name: companyName,
-              full_name: companyName,
-              whatsapp_number: identityData.contact_phone?.trim() || "",
-            },
-          });
-        } catch {
-          // Ignorar si falla actualización secundaria de auth
-        }
+      if (!res.success) {
+        throw new Error(res.error);
       }
 
       toast.success("¡Espacio de empresa configurado!", {

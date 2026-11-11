@@ -2,6 +2,7 @@
 
 import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
+import { companyTenantService } from "../services/company-tenant.service";
 import {
   adjustBonusesSchema,
   dispersePayrollSchema,
@@ -62,9 +63,11 @@ export async function adjustEmployeeBonusesAction(
     return { success: false, error: "No autorizado. Inicia sesión para continuar." };
   }
 
+  const { companyId: companyScopeId } = await companyTenantService.resolveActiveCompanyScope(user.id, supabase);
+
   try {
     const service = new CompanyPayrollService(supabase);
-    const result = await service.adjustEmployeeBonuses(user.id, parsed.data);
+    const result = await service.adjustEmployeeBonuses(companyScopeId, parsed.data);
 
     revalidatePath("/dashboard/company/payroll");
     revalidatePath("/dashboard/company");
@@ -101,9 +104,11 @@ export async function disperseCompanyPayrollAction(
     return { success: false, error: "No autorizado." };
   }
 
+  const { companyId: companyScopeId } = await companyTenantService.resolveActiveCompanyScope(user.id, supabase);
+
   try {
     const service = new CompanyPayrollService(supabase);
-    const result = await service.disperseCompanyPayroll(user.id, parsed.data);
+    const result = await service.disperseCompanyPayroll(companyScopeId, parsed.data);
 
     revalidatePath("/dashboard/company/payroll");
     revalidatePath("/dashboard/company");
@@ -147,9 +152,11 @@ export async function updateEmployeeBankDetailsAction(
     return { success: false, error: "No autorizado." };
   }
 
+  const { companyId: companyScopeId } = await companyTenantService.resolveActiveCompanyScope(user.id, supabase);
+
   try {
     const service = new CompanyPayrollService(supabase);
-    await service.updateEmployeeBankDetails(user.id, parsed.data);
+    await service.updateEmployeeBankDetails(companyScopeId, parsed.data);
 
     revalidatePath("/dashboard/company/payroll");
     revalidatePath("/dashboard/company/employees");
@@ -186,9 +193,11 @@ export async function stampPayrollPeriodAction(
     return { success: false, error: "No autorizado." };
   }
 
+  const { companyId: companyScopeId } = await companyTenantService.resolveActiveCompanyScope(user.id, supabase);
+
   try {
     const service = new CompanyPayrollService(supabase);
-    const result = await service.stampPayrollPeriod(user.id, parsed.data);
+    const result = await service.stampPayrollPeriod(companyScopeId, parsed.data);
 
     revalidatePath("/dashboard/company/payroll");
     revalidatePath("/dashboard/company");
@@ -224,9 +233,11 @@ export async function closePayrollPeriodAction(
     return { success: false, error: "No autorizado." };
   }
 
+  const { companyId: companyScopeId } = await companyTenantService.resolveActiveCompanyScope(user.id, supabase);
+
   try {
     const service = new CompanyPayrollService(supabase);
-    const payroll = await service.closePayrollPeriod(user.id, parsed.data);
+    const payroll = await service.closePayrollPeriod(companyScopeId, parsed.data);
 
     revalidatePath("/dashboard/company/payroll");
     revalidatePath("/dashboard/company");

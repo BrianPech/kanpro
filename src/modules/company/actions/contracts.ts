@@ -3,6 +3,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
 import { headers } from "next/headers";
+import { companyTenantService } from "../services/company-tenant.service";
 import {
   createContractSchema,
   renewContractSchema,
@@ -60,10 +61,12 @@ export async function createContractAction(
     return { success: false, error: "No autorizado. Inicie sesión para continuar." };
   }
 
+  const { companyId: companyScopeId } = await companyTenantService.resolveActiveCompanyScope(user.id, supabase);
+
   try {
     const result = await CompanyContractService.createContract(
       supabase,
-      user.id,
+      companyScopeId,
       parsed.data
     );
 
@@ -108,8 +111,10 @@ export async function renewContractAction(
     return { success: false, error: "No autorizado. Inicie sesión para continuar." };
   }
 
+  const { companyId: companyScopeId } = await companyTenantService.resolveActiveCompanyScope(user.id, supabase);
+
   try {
-    await CompanyContractService.renewContract(supabase, user.id, parsed.data);
+    await CompanyContractService.renewContract(supabase, companyScopeId, parsed.data);
 
     revalidatePath("/dashboard/company/contracts");
     revalidatePath("/dashboard/company");
@@ -147,6 +152,8 @@ export async function signContractAction(
     return { success: false, error: "No autorizado. Inicie sesión para continuar." };
   }
 
+  const { companyId: companyScopeId } = await companyTenantService.resolveActiveCompanyScope(user.id, supabase);
+
   try {
     const headersList = await headers();
     const forwardedFor = headersList.get("x-forwarded-for");
@@ -154,7 +161,8 @@ export async function signContractAction(
       ? forwardedFor.split(",")[0].trim()
       : (headersList.get("x-real-ip") || "127.0.0.1");
 
-    await CompanyContractService.signContract(supabase, user.id, parsed.data, clientIp);
+    const signerId = parsed.data.signerRole === "representante_legal" ? companyScopeId : user.id;
+    await CompanyContractService.signContract(supabase, signerId, parsed.data, clientIp);
 
     revalidatePath("/dashboard/company/contracts");
     revalidatePath("/dashboard/company");
@@ -192,10 +200,12 @@ export async function deleteContractAction(
     return { success: false, error: "No autorizado. Inicie sesión para continuar." };
   }
 
+  const { companyId: companyScopeId } = await companyTenantService.resolveActiveCompanyScope(user.id, supabase);
+
   try {
     await CompanyContractService.deleteContract(
       supabase,
-      user.id,
+      companyScopeId,
       parsed.data.contractId
     );
 

@@ -599,16 +599,43 @@ isOneToOne: false
       referencedColumns: ["id"]
     }
                   ]
-                },"company_profiles": {
+                },"company_members": {
                   Row: {
-                    "address_details": string | null,"banner_url": string | null,"branch_addresses": Json | null,"company_name": string,"company_size": string | null,"contact_phone": string | null,"corporate_email": string | null,"created_at": string,"credits_available": number,"description": string | null,"entity_type": Database["public"]['Enums']["company_entity_type"],"featured_vacancies_allowance": number,"featured_vacancies_used": number,"fiscal_address": string,"id": string,"imss_patronal_registry": string | null,"industry": string,"legal_name": string | null,"legal_rep_name": string | null,"logo_url": string | null,"operation_hours": string | null,"rating": number | null,"repse_registry": string | null,"rfc": string,"social_links": Json | null,"subscription_period_end": string | null,"subscription_plan": string,"subscription_status": string,"updated_at": string,"verification_status": Database["public"]['Enums']["verification_status"] | null,"website_url": string | null
+                    "company_id": string,"created_at": string,"id": string,"role": "owner" | "admin" | "recruiter" | "viewer","updated_at": string,"user_id": string
                   }
                   ComputedFields: never
                   Insert: {
-                    "address_details"?: string | null,"banner_url"?: string | null,"branch_addresses"?: Json | null,"company_name": string,"company_size"?: string | null,"contact_phone"?: string | null,"corporate_email"?: string | null,"created_at"?: string,"credits_available"?: number,"description"?: string | null,"entity_type"?: Database["public"]['Enums']["company_entity_type"],"featured_vacancies_allowance"?: number,"featured_vacancies_used"?: number,"fiscal_address": string,"id": string,"imss_patronal_registry"?: string | null,"industry": string,"legal_name"?: string | null,"legal_rep_name"?: string | null,"logo_url"?: string | null,"operation_hours"?: string | null,"rating"?: number | null,"repse_registry"?: string | null,"rfc": string,"social_links"?: Json | null,"subscription_period_end"?: string | null,"subscription_plan"?: string,"subscription_status"?: string,"updated_at"?: string,"verification_status"?: Database["public"]['Enums']["verification_status"] | null,"website_url"?: string | null
+                    "company_id": string,"created_at"?: string,"id"?: string,"role"?: "owner" | "admin" | "recruiter" | "viewer","updated_at"?: string,"user_id": string
                   }
                   Update: {
-                    "address_details"?: string | null,"banner_url"?: string | null,"branch_addresses"?: Json | null,"company_name"?: string,"company_size"?: string | null,"contact_phone"?: string | null,"corporate_email"?: string | null,"created_at"?: string,"credits_available"?: number,"description"?: string | null,"entity_type"?: Database["public"]['Enums']["company_entity_type"],"featured_vacancies_allowance"?: number,"featured_vacancies_used"?: number,"fiscal_address"?: string,"id"?: string,"imss_patronal_registry"?: string | null,"industry"?: string,"legal_name"?: string | null,"legal_rep_name"?: string | null,"logo_url"?: string | null,"operation_hours"?: string | null,"rating"?: number | null,"repse_registry"?: string | null,"rfc"?: string,"social_links"?: Json | null,"subscription_period_end"?: string | null,"subscription_plan"?: string,"subscription_status"?: string,"updated_at"?: string,"verification_status"?: Database["public"]['Enums']["verification_status"] | null,"website_url"?: string | null
+                    "company_id"?: string,"created_at"?: string,"id"?: string,"role"?: "owner" | "admin" | "recruiter" | "viewer","updated_at"?: string,"user_id"?: string
+                  }
+                  Relationships: [
+                    {
+                      foreignKeyName: "company_members_company_id_fkey"
+                      columns: ["company_id"]
+                      isOneToOne: false
+                      referencedRelation: "company_profiles"
+                      referencedColumns: ["id"]
+                    },
+                    {
+                      foreignKeyName: "company_members_user_id_fkey"
+                      columns: ["user_id"]
+                      isOneToOne: false
+                      referencedRelation: "profiles"
+                      referencedColumns: ["id"]
+                    }
+                  ]
+                },"company_profiles": {
+                  Row: {
+                    "address_details": string | null,"banner_url": string | null,"branch_addresses": Json | null,"company_name": string,"company_size": string | null,"contact_phone": string | null,"corporate_email": string | null,"created_at": string,"credits_available": number,"description": string | null,"entity_type": Database["public"]['Enums']["company_entity_type"],"featured_vacancies_allowance": number,"featured_vacancies_used": number,"fiscal_address": string,"id": string,"imss_patronal_registry": string | null,"industry": string,"legal_name": string | null,"legal_rep_name": string | null,"logo_url": string | null,"operation_hours": string | null,"owner_id": string | null,"rating": number | null,"repse_registry": string | null,"rfc": string,"social_links": Json | null,"subscription_period_end": string | null,"subscription_plan": string,"subscription_status": string,"updated_at": string,"verification_status": Database["public"]['Enums']["verification_status"] | null,"website_url": string | null
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "address_details"?: string | null,"banner_url"?: string | null,"branch_addresses"?: Json | null,"company_name": string,"company_size"?: string | null,"contact_phone"?: string | null,"corporate_email"?: string | null,"created_at"?: string,"credits_available"?: number,"description"?: string | null,"entity_type"?: Database["public"]['Enums']["company_entity_type"],"featured_vacancies_allowance"?: number,"featured_vacancies_used"?: number,"fiscal_address": string,"id"?: string,"imss_patronal_registry"?: string | null,"industry": string,"legal_name"?: string | null,"legal_rep_name"?: string | null,"logo_url"?: string | null,"operation_hours"?: string | null,"owner_id"?: string | null,"rating"?: number | null,"repse_registry"?: string | null,"rfc": string,"social_links"?: Json | null,"subscription_period_end"?: string | null,"subscription_plan"?: string,"subscription_status"?: string,"updated_at"?: string,"verification_status"?: Database["public"]['Enums']["verification_status"] | null,"website_url"?: string | null
+                  }
+                  Update: {
+                    "address_details"?: string | null,"banner_url"?: string | null,"branch_addresses"?: Json | null,"company_name"?: string,"company_size"?: string | null,"contact_phone"?: string | null,"corporate_email"?: string | null,"created_at"?: string,"credits_available"?: number,"description"?: string | null,"entity_type"?: Database["public"]['Enums']["company_entity_type"],"featured_vacancies_allowance"?: number,"featured_vacancies_used"?: number,"fiscal_address"?: string,"id"?: string,"imss_patronal_registry"?: string | null,"industry"?: string,"legal_name"?: string | null,"legal_rep_name"?: string | null,"logo_url"?: string | null,"operation_hours"?: string | null,"owner_id"?: string | null,"rating"?: number | null,"repse_registry"?: string | null,"rfc"?: string,"social_links"?: Json | null,"subscription_period_end"?: string | null,"subscription_plan"?: string,"subscription_status"?: string,"updated_at"?: string,"verification_status"?: Database["public"]['Enums']["verification_status"] | null,"website_url"?: string | null
                   }
                   Relationships: [
                     {

@@ -1262,12 +1262,12 @@ export const companyService = {
       updated_at: new Date().toISOString(),
     };
 
-    const [baseRes, updateRes] = await Promise.all([
-      supabase.from("profiles").update(profileUpdates).eq("id", userId),
-      supabase.from("company_profiles").update(companyPayload).eq("id", userId).select("id"),
-    ]);
+    const updateRes = await supabase
+      .from("company_profiles")
+      .update(companyPayload)
+      .eq("id", userId)
+      .select("id");
 
-    if (baseRes.error) throw baseRes.error;
     if (updateRes.error) throw updateRes.error;
 
     if (!updateRes.data || updateRes.data.length === 0) {

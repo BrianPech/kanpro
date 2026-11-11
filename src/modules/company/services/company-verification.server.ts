@@ -5,7 +5,9 @@ import {
   CompanyVerificationDoc,
 } from "./company-verification";
 
-export async function getCompanyVerificationServerData(): Promise<{
+export async function getCompanyVerificationServerData(
+  targetCompanyId?: string
+): Promise<{
   companyId: string;
   verificationData: CompanyVerificationData;
 } | null> {
@@ -15,6 +17,19 @@ export async function getCompanyVerificationServerData(): Promise<{
   } = await supabase.auth.getUser();
 
   if (!user) return null;
+
+  let effectiveCompanyId = targetCompanyId;
+  if (!effectiveCompanyId) {
+    try {
+      const { cookies } = await import("next/headers");
+      const cookieStore = await cookies();
+      effectiveCompanyId = cookieStore.get("kanpro_active_company")?.value;
+    } catch {
+      // outside cookie context
+    }
+  }
+
+  const companyScopeId = effectiveCompanyId || user.id;
 
   const { data: baseProfile } = await supabase
     .from("profiles")
@@ -27,13 +42,13 @@ export async function getCompanyVerificationServerData(): Promise<{
     .select(
       "company_name, legal_name, rfc, fiscal_address, industry, legal_rep_name, corporate_email, contact_phone, verification_status, entity_type"
     )
-    .eq("id", user.id)
+    .eq("id", companyScopeId)
     .maybeSingle();
 
   const { data: docsData } = await supabase
     .from("profile_documents")
     .select("*")
-    .eq("owner_id", user.id);
+    .or(`owner_id.eq.${companyScopeId},owner_id.eq.${user.id}`);
 
   const docsMap: Record<CompanyDocType, CompanyVerificationDoc | null> = {
     acta_constitutiva: null,

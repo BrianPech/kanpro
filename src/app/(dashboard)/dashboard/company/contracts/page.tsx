@@ -1,5 +1,6 @@
 import * as React from "react";
 import { getCompanyDashboardData } from "@/modules/company/services/company-dashboard";
+import { getDashboardSession } from "@/modules/auth/services/dashboard-session";
 import {
   ContractsView,
   ContractRecord,
@@ -10,8 +11,9 @@ import {
 import { createClient } from "@/lib/supabase/server";
 
 export default async function CompanyContractsPage() {
+  const { activeCompanyId } = await getDashboardSession();
   const [data, supabase] = await Promise.all([
-    getCompanyDashboardData(),
+    getCompanyDashboardData(activeCompanyId),
     createClient(),
   ]);
 
@@ -19,12 +21,14 @@ export default async function CompanyContractsPage() {
     data: { user },
   } = await supabase.auth.getUser();
 
+  const targetCompanyId = activeCompanyId || user?.id;
+
   let realContracts: ContractRecord[] = [];
   let realTerminations: TerminationRecord[] = [];
   let activeEmployees: ActiveEmployeeOption[] = [];
   let companyInfo: CompanyLegalInfo | undefined = undefined;
 
-  if (user) {
+  if (user && targetCompanyId) {
     const [contractsRes, terminationsRes, activeEmpsRes, companyProfileRes] = await Promise.all([
       supabase
         .from("company_contracts")
@@ -58,7 +62,7 @@ export default async function CompanyContractsPage() {
             )
           )
         `)
-        .eq("company_id", user.id)
+        .eq("company_id", targetCompanyId)
         .order("created_at", { ascending: false }),
 
       supabase
@@ -76,7 +80,7 @@ export default async function CompanyContractsPage() {
           base_salary_monthly,
           updated_at
         `)
-        .eq("company_id", user.id)
+        .eq("company_id", targetCompanyId)
         .eq("status", "terminated")
         .order("termination_date", { ascending: false, nullsFirst: false }),
 
@@ -93,14 +97,14 @@ export default async function CompanyContractsPage() {
           curp,
           base_salary_monthly
         `)
-        .eq("company_id", user.id)
+        .eq("company_id", targetCompanyId)
         .neq("status", "terminated")
         .order("full_name", { ascending: true }),
 
       supabase
         .from("company_profiles")
         .select("company_name, legal_name, rfc, fiscal_address, legal_rep_name")
-        .eq("id", user.id)
+        .eq("id", targetCompanyId)
         .maybeSingle(),
     ]);
 

@@ -13,11 +13,26 @@ import {
 } from "../types/dashboard";
 import { getSubscriptionPlan, SUBSCRIPTION_PLANS } from "@/config/subscriptions";
 
-export async function getCompanyDashboardData(): Promise<CompanyDashboardData> {
+export async function getCompanyDashboardData(targetCompanyId?: string): Promise<CompanyDashboardData> {
   const supabase = await createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
+
+  let effectiveCompanyId = targetCompanyId;
+  if (!effectiveCompanyId) {
+    try {
+      const { cookies } = await import("next/headers");
+      const cookieStore = await cookies();
+      effectiveCompanyId = cookieStore.get("kanpro_active_company")?.value;
+    } catch {
+      // outside cookie context
+    }
+  }
+
+  if (!effectiveCompanyId && user?.id) {
+    effectiveCompanyId = user.id;
+  }
 
   let companyName = "Mi Empresa";
   let isCompanyEarlyAccess = true;
@@ -130,6 +145,8 @@ export async function getCompanyDashboardData(): Promise<CompanyDashboardData> {
     monday.setDate(now.getDate() - dayOfWeek);
     const mondayStr = monday.toISOString().split("T")[0];
 
+    const companyScopeId = effectiveCompanyId || user.id;
+
     // 1. Fetch Company Profile, Vacancies, Employees, Contracts, Attendance & Incidents in parallel
     const [companyRes, vacanciesRes, employeesRes, contractsRes, attendanceRes, incidentsRes] = await Promise.all([
       supabase
@@ -147,12 +164,12 @@ export async function getCompanyDashboardData(): Promise<CompanyDashboardData> {
             is_early_access
           )
         `)
-        .eq("id", user.id)
+        .eq("id", companyScopeId)
         .maybeSingle(),
       supabase
         .from("vacancies")
         .select("id, title, location, zone, salary_min, salary_max, category, created_at, is_active, status")
-        .eq("company_id", user.id)
+        .eq("company_id", companyScopeId)
         .order("created_at", { ascending: false }),
       supabase
         .from("company_employees")
@@ -180,7 +197,7 @@ export async function getCompanyDashboardData(): Promise<CompanyDashboardData> {
             )
           )
         `)
-        .eq("company_id", user.id)
+        .eq("company_id", companyScopeId)
         .order("created_at", { ascending: false }),
       supabase
         .from("company_contracts")
@@ -201,18 +218,18 @@ export async function getCompanyDashboardData(): Promise<CompanyDashboardData> {
             avatar_url
           )
         `)
-        .eq("company_id", user.id)
+        .eq("company_id", companyScopeId)
         .eq("status", "vigente"),
       supabase
         .from("company_attendance")
         .select("*")
-        .eq("company_id", user.id)
+        .eq("company_id", companyScopeId)
         .gte("work_date", mondayStr)
         .lte("work_date", todayStr),
       supabase
         .from("company_incidents")
         .select("*")
-        .eq("company_id", user.id)
+        .eq("company_id", companyScopeId)
         .order("incident_date", { ascending: false })
         .limit(50),
     ]);
@@ -272,7 +289,7 @@ export async function getCompanyDashboardData(): Promise<CompanyDashboardData> {
       supabase
         .from("applications")
         .select("id, status, vacancy_id, vacancies!inner(company_id)")
-        .eq("vacancies.company_id", user.id),
+        .eq("vacancies.company_id", companyScopeId),
       supabase
         .from("applications")
         .select(`
@@ -298,7 +315,7 @@ export async function getCompanyDashboardData(): Promise<CompanyDashboardData> {
             )
           )
         `)
-        .eq("vacancies.company_id", user.id)
+        .eq("vacancies.company_id", companyScopeId)
         .order("applied_at", { ascending: false })
         .limit(8),
     ]);
@@ -684,7 +701,7 @@ export async function getCompanyDashboardData(): Promise<CompanyDashboardData> {
   };
 }
 
-export async function getCompanyProfileData() {
+export async function getCompanyProfileData(targetCompanyId?: string) {
   const supabase = await createClient();
   const {
     data: { user },
@@ -692,11 +709,24 @@ export async function getCompanyProfileData() {
 
   if (!user) return null;
 
+  let effectiveCompanyId = targetCompanyId;
+  if (!effectiveCompanyId) {
+    try {
+      const { cookies } = await import("next/headers");
+      const cookieStore = await cookies();
+      effectiveCompanyId = cookieStore.get("kanpro_active_company")?.value;
+    } catch {
+      // outside cookie context
+    }
+  }
+
+  const companyScopeId = effectiveCompanyId || user.id;
+
   const [{ data: companyProfile }, { data: baseProfile }] = await Promise.all([
     supabase
       .from("company_profiles")
       .select("*")
-      .eq("id", user.id)
+      .eq("id", companyScopeId)
       .maybeSingle(),
     supabase
       .from("profiles")

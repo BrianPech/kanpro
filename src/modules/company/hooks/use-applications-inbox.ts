@@ -84,7 +84,7 @@ export function validateApplicationStatusTransition(newStatus: Applicant["status
   return { allowed: true };
 }
 
-export function useApplicationsInbox() {
+export function useApplicationsInbox(options?: { companyId?: string }) {
   const queryClient = useQueryClient();
   // Helper to read initial vacancy_id from URL query string if present
   const getInitialVacancyId = () => {
@@ -148,7 +148,7 @@ export function useApplicationsInbox() {
     };
   }, [supabase]);
 
-  const queryKey = ["company-applications"];
+  const queryKey = ["company-applications", options?.companyId || "default"];
 
   const { data, isLoading, refetch } = useQuery<ApplicationsQueryData>({
     queryKey,
@@ -158,9 +158,11 @@ export function useApplicationsInbox() {
         throw new Error("Usuario no autenticado");
       }
 
+      const targetCompanyId = options?.companyId || user.id;
+
       const [vacList, apps] = await Promise.all([
-        companyService.getVacancies(user.id).catch(() => []),
-        companyService.getApplications(user.id).catch(() => []),
+        companyService.getVacancies(targetCompanyId).catch(() => []),
+        companyService.getApplications(targetCompanyId).catch(() => []),
       ]);
 
       const normalizeStatus = (rawStatus: string): Applicant["status"] => {
