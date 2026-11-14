@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import { Controller, useWatch, type UseFormReturn } from "react-hook-form";
 import {
   Phone,
   MessageSquare,
@@ -23,8 +24,7 @@ import { type VacancyWizardValues } from "../../schemas/vacancy-wizard.schema";
 import { cn } from "@/lib/utils";
 
 interface Step4PublicationProps {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  form: any;
+  form: UseFormReturn<VacancyWizardValues>;
   onOpenPreviewDrawer?: () => void;
   isEditing?: boolean;
 }
@@ -34,12 +34,15 @@ export function Step4Publication({
   onOpenPreviewDrawer,
   isEditing = false,
 }: Step4PublicationProps) {
-  const values: VacancyWizardValues = form.state.values;
+  const [contactPhone, title] = useWatch({
+    control: form.control,
+    name: ["contact_phone", "title"],
+  });
 
-  const cleanPhone = (values.contact_phone || "").replace(/\D/g, "");
+  const cleanPhone = (contactPhone || "").replace(/\D/g, "");
   const whatsappTestUrl = cleanPhone
     ? `https://wa.me/52${cleanPhone}?text=${encodeURIComponent(
-        `¡Hola! Vi la vacante de ${values.title || "este puesto"} en K'anPro y me interesa postularme.`
+        `¡Hola! Vi la vacante de ${title || "este puesto"} en K'anPro y me interesa postularme.`
       )}`
     : "";
 
@@ -59,10 +62,11 @@ export function Step4Publication({
       {/* 1. Canal de Postulación & Contacto WhatsApp */}
       <div className="space-y-4">
         {/* Selector de Canal Preferente */}
-        <form.Field name="preferred_contact_method">
-          {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
-          {(field: any) => {
-            const activeMethod = field.state.value || "whatsapp";
+        <Controller
+          control={form.control}
+          name="preferred_contact_method"
+          render={({ field }) => {
+            const activeMethod = field.value || "whatsapp";
 
             return (
               <Field className="space-y-2.5">
@@ -97,7 +101,7 @@ export function Step4Publication({
                       <button
                         key={m.value}
                         type="button"
-                        onClick={() => field.handleChange(m.value)}
+                        onClick={() => field.onChange(m.value)}
                         className={cn(
                           "p-3.5 sm:p-4 rounded-2xl border text-left flex flex-col justify-between gap-3 transition-all cursor-pointer select-none",
                           isSelected
@@ -135,13 +139,14 @@ export function Step4Publication({
               </Field>
             );
           }}
-        </form.Field>
+        />
 
         {/* Input de Teléfono WhatsApp */}
-        <form.Field name="contact_phone">
-          {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
-          {(field: any) => (
-            <Field data-invalid={Boolean(field.state.meta.errors?.length)} className="space-y-2">
+        <Controller
+          control={form.control}
+          name="contact_phone"
+          render={({ field, fieldState }) => (
+            <Field data-invalid={Boolean(fieldState.error)} className="space-y-2">
               <FieldLabel htmlFor="contact_phone" className="text-sm font-semibold text-foreground">
                 WhatsApp del Reclutador (10 dígitos) <span className="text-rose-500">*</span>
               </FieldLabel>
@@ -153,8 +158,8 @@ export function Step4Publication({
                   id="contact_phone"
                   type="tel"
                   inputMode="tel"
-                  value={field.state.value || ""}
-                  onChange={(e) => field.handleChange(e.target.value)}
+                  value={field.value || ""}
+                  onChange={(e) => field.onChange(e.target.value)}
                   placeholder="999 123 4567"
                   className="w-full pl-20 pr-3.5 font-mono text-sm"
                   maxLength={15}
@@ -163,8 +168,8 @@ export function Step4Publication({
               <FieldDescription className="text-xs text-muted-foreground">
                 Número oficial donde los candidatos enviarán sus postulaciones y dudas del puesto.
               </FieldDescription>
-              {field.state.meta.errors?.[0] && (
-                <FieldError>{field.state.meta.errors[0]}</FieldError>
+              {fieldState.error?.message && (
+                <FieldError>{fieldState.error.message}</FieldError>
               )}
 
               {whatsappTestUrl && (
@@ -186,7 +191,7 @@ export function Step4Publication({
               )}
             </Field>
           )}
-        </form.Field>
+        />
       </div>
 
       {/* 2. Banner de Vista Previa con Drawer de shadcn */}

@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import { Controller, type UseFormReturn } from "react-hook-form";
 import { Minus, Plus, Briefcase } from "@/components/ui/icons";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -21,12 +22,12 @@ import {
   VACANCY_CATEGORIES,
   EMPLOYMENT_TYPES,
   SHIFT_SCHEDULES,
+  type VacancyWizardValues,
 } from "../../schemas/vacancy-wizard.schema";
 import { getCompanyDepartmentsAction } from "../../actions/areas";
 
 interface Step1BasicProps {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  form: any;
+  form: UseFormReturn<VacancyWizardValues>;
 }
 
 export function Step1Basic({ form }: Step1BasicProps) {
@@ -56,22 +57,23 @@ export function Step1Basic({ form }: Step1BasicProps) {
       </div>
 
       {/* 1. Título del Puesto / Oferta */}
-      <form.Field name="title">
-        {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
-        {(field: any) => (
-          <Field data-invalid={Boolean(field.state.meta.errors?.length)} className="space-y-2">
+      <Controller
+        control={form.control}
+        name="title"
+        render={({ field, fieldState }) => (
+          <Field data-invalid={Boolean(fieldState.error)} className="space-y-2">
             <div className="flex items-center justify-between">
               <FieldLabel htmlFor="title" className="text-sm font-semibold text-foreground">
                 Título del Puesto / Oferta <span className="text-rose-500">*</span>
               </FieldLabel>
               <span className="text-xs text-muted-foreground font-mono font-medium">
-                {field.state.value?.length || 0}/80
+                {field.value?.length || 0}/80
               </span>
             </div>
             <Input
               id="title"
-              value={field.state.value || ""}
-              onChange={(e) => field.handleChange(e.target.value)}
+              value={field.value || ""}
+              onChange={(e) => field.onChange(e.target.value)}
               placeholder="Ej. Cocinero B (Línea Caliente), Recepcionista de Hotel, Mesero..."
               className="w-full"
               maxLength={80}
@@ -79,20 +81,21 @@ export function Step1Basic({ form }: Step1BasicProps) {
             <FieldDescription className="text-xs text-muted-foreground">
               Usa un nombre claro y específico para que los candidatos locales encuentren tu oferta rápidamente.
             </FieldDescription>
-            {field.state.meta.errors?.[0] && (
-              <FieldError>{field.state.meta.errors[0]}</FieldError>
+            {fieldState.error?.message && (
+              <FieldError>{fieldState.error.message}</FieldError>
             )}
           </Field>
         )}
-      </form.Field>
+      />
 
       {/* 2. Categoría y Tipo de Jornada en 2 Columnas */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-5 sm:gap-6">
         {/* Categoría Laboral */}
-        <form.Field name="category">
-          {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
-          {(field: any) => (
-            <Field data-invalid={Boolean(field.state.meta.errors?.length)} className="space-y-2">
+        <Controller
+          control={form.control}
+          name="category"
+          render={({ field, fieldState }) => (
+            <Field data-invalid={Boolean(fieldState.error)} className="space-y-2">
               <div className="flex items-center justify-between">
                 <FieldLabel className="text-sm font-semibold text-foreground">
                   Área / Categoría <span className="text-rose-500">*</span>
@@ -107,8 +110,8 @@ export function Step1Basic({ form }: Step1BasicProps) {
                 </a>
               </div>
               <Select
-                value={field.state.value || "Alimentos y Bebidas"}
-                onValueChange={(val) => field.handleChange(val)}
+                value={field.value || "Alimentos y Bebidas"}
+                onValueChange={(val) => field.onChange(val)}
               >
                 <SelectTrigger
                   aria-label="Categoría o Área de la vacante"
@@ -148,24 +151,25 @@ export function Step1Basic({ form }: Step1BasicProps) {
                   ))}
                 </SelectContent>
               </Select>
-              {field.state.meta.errors?.[0] && (
-                <FieldError>{field.state.meta.errors[0]}</FieldError>
+              {fieldState.error?.message && (
+                <FieldError>{fieldState.error.message}</FieldError>
               )}
             </Field>
           )}
-        </form.Field>
+        />
 
         {/* Tipo de Jornada */}
-        <form.Field name="employment_type">
-          {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
-          {(field: any) => (
-            <Field data-invalid={Boolean(field.state.meta.errors?.length)} className="space-y-2">
+        <Controller
+          control={form.control}
+          name="employment_type"
+          render={({ field, fieldState }) => (
+            <Field data-invalid={Boolean(fieldState.error)} className="space-y-2">
               <FieldLabel className="text-sm font-semibold text-foreground">
                 Tipo de Jornada <span className="text-rose-500">*</span>
               </FieldLabel>
               <Select
-                value={field.state.value || "Tiempo Completo"}
-                onValueChange={(val) => field.handleChange(val)}
+                value={field.value || "Tiempo Completo"}
+                onValueChange={(val) => field.onChange(val)}
               >
                 <SelectTrigger
                   aria-label="Tipo de jornada laboral"
@@ -185,27 +189,28 @@ export function Step1Basic({ form }: Step1BasicProps) {
                   ))}
                 </SelectContent>
               </Select>
-              {field.state.meta.errors?.[0] && (
-                <FieldError>{field.state.meta.errors[0]}</FieldError>
+              {fieldState.error?.message && (
+                <FieldError>{fieldState.error.message}</FieldError>
               )}
             </Field>
           )}
-        </form.Field>
+        />
       </div>
 
       {/* 3. Horario / Turno y Plazas Disponibles en 2 Columnas */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-5 sm:gap-6">
         {/* Horario / Turno */}
-        <form.Field name="shift_schedule">
-          {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
-          {(field: any) => (
-            <Field data-invalid={Boolean(field.state.meta.errors?.length)} className="space-y-2">
+        <Controller
+          control={form.control}
+          name="shift_schedule"
+          render={({ field, fieldState }) => (
+            <Field data-invalid={Boolean(fieldState.error)} className="space-y-2">
               <FieldLabel className="text-sm font-semibold text-foreground">
                 Horario / Turno de Trabajo <span className="text-rose-500">*</span>
               </FieldLabel>
               <Select
-                value={field.state.value || "Matutino (Mañana)"}
-                onValueChange={(val) => field.handleChange(val)}
+                value={field.value || "Matutino (Mañana)"}
+                onValueChange={(val) => field.onChange(val)}
               >
                 <SelectTrigger
                   aria-label="Horario o turno de trabajo"
@@ -225,21 +230,22 @@ export function Step1Basic({ form }: Step1BasicProps) {
                   ))}
                 </SelectContent>
               </Select>
-              {field.state.meta.errors?.[0] && (
-                <FieldError>{field.state.meta.errors[0]}</FieldError>
+              {fieldState.error?.message && (
+                <FieldError>{fieldState.error.message}</FieldError>
               )}
             </Field>
           )}
-        </form.Field>
+        />
 
         {/* Plazas Disponibles: Control Normalizado */}
-        <form.Field name="positions_available">
-          {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
-          {(field: any) => {
-            const count = Math.max(1, Number(field.state.value) || 1);
+        <Controller
+          control={form.control}
+          name="positions_available"
+          render={({ field, fieldState }) => {
+            const count = Math.max(1, Number(field.value) || 1);
 
             return (
-              <Field data-invalid={Boolean(field.state.meta.errors?.length)} className="space-y-2">
+              <Field data-invalid={Boolean(fieldState.error)} className="space-y-2">
                 <FieldLabel className="text-sm font-semibold text-foreground">
                   Número de Plazas Disponibles
                 </FieldLabel>
@@ -248,7 +254,7 @@ export function Step1Basic({ form }: Step1BasicProps) {
                     type="button"
                     variant="ghost"
                     size="icon"
-                    onClick={() => field.handleChange(Math.max(1, count - 1))}
+                    onClick={() => field.onChange(Math.max(1, count - 1))}
                     disabled={count <= 1}
                     className="cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed"
                     aria-label="Reducir plazas"
@@ -269,7 +275,7 @@ export function Step1Basic({ form }: Step1BasicProps) {
                     type="button"
                     variant="ghost"
                     size="icon"
-                    onClick={() => field.handleChange(count + 1)}
+                    onClick={() => field.onChange(count + 1)}
                     disabled={count >= 50}
                     className="cursor-pointer"
                     aria-label="Aumentar plazas"
@@ -277,13 +283,13 @@ export function Step1Basic({ form }: Step1BasicProps) {
                     <Plus className="size-4" />
                   </Button>
                 </div>
-                {field.state.meta.errors?.[0] && (
-                  <FieldError>{field.state.meta.errors[0]}</FieldError>
+                {fieldState.error?.message && (
+                  <FieldError>{fieldState.error.message}</FieldError>
                 )}
               </Field>
             );
           }}
-        </form.Field>
+        />
       </div>
     </div>
   );

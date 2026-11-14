@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import { useRouter } from "next/navigation";
-import { useForm } from "@tanstack/react-form";
+import { useForm, useWatch } from "react-hook-form";
 import {
   ArrowLeft,
   ArrowRight,
@@ -144,14 +144,15 @@ export function VacancyWizardContainer({
     return null;
   });
 
-  // TanStack Form Instance
-  const form = useForm({
+  // React Hook Form Instance
+  const form = useForm<VacancyWizardValues>({
     defaultValues: {
       ...DEFAULT_WIZARD_VALUES,
       ...initialValues,
-    } as VacancyWizardValues,
-    onSubmit: async () => {},
+    },
   });
+
+  const formValues = useWatch({ control: form.control }) as VacancyWizardValues;
 
   // Load company profile for default values (phone, name, verified status, location)
   React.useEffect(() => {
@@ -201,13 +202,13 @@ export function VacancyWizardContainer({
           });
 
           // Pre-fill phone if available and form is empty
-          if (comp?.contact_phone && !form.getFieldValue("contact_phone")) {
-            form.setFieldValue("contact_phone", comp.contact_phone);
+          if (comp?.contact_phone && !form.getValues("contact_phone")) {
+            form.setValue("contact_phone", comp.contact_phone);
           }
 
           // Pre-fill location & zone if form is creating a new vacancy and using default or dirty street address
           if (!isEditing) {
-            const currentLoc = form.getFieldValue("location");
+            const currentLoc = form.getValues("location");
             const isStreetAddress =
               /^(calle|av\.|avenida|carretera|carr\.|diag\.|diagonal|sm\b|mz\b|lote|c\.)/i.test(
                 currentLoc || ""
@@ -218,8 +219,8 @@ export function VacancyWizardContainer({
               currentLoc === "Mérida" ||
               isStreetAddress
             ) {
-              form.setFieldValue("location", cleanCity);
-              form.setFieldValue("zone", cleanZone);
+              form.setValue("location", cleanCity);
+              form.setValue("zone", cleanZone);
             }
           }
         }
@@ -247,56 +248,35 @@ export function VacancyWizardContainer({
 
   // Trigger auto-save whenever form state changes
   React.useEffect(() => {
-    saveDraftDebounced(form.state.values);
-  }, [form.state.values, saveDraftDebounced]);
+    saveDraftDebounced(formValues);
+  }, [formValues, saveDraftDebounced]);
 
   // Validate current step before advancing
   const validateStep = (step: number): boolean => {
-    const values = form.state.values;
+    const values = form.getValues();
+    form.clearErrors();
 
-    if (step === 1) {
-      const res = step1Schema.safeParse(values);
-      if (!res.success) {
-        const firstErr =
-          res.error.issues[0]?.message || "Completa los campos del puesto";
-        toast.error("Paso 1 incompleto", { description: firstErr });
-        return false;
-      }
-      return true;
-    }
+    const stepSchemas = {
+      1: { schema: step1Schema, title: "Paso 1 incompleto", fallback: "Completa los campos del puesto" },
+      2: { schema: step2Schema, title: "Paso 2 incompleto", fallback: "Verifica la ubicación y salarios" },
+      3: { schema: step3Schema, title: "Paso 3 incompleto", fallback: "Escribe una descripción adecuada" },
+      4: { schema: step4Schema, title: "Paso 4 incompleto", fallback: "Ingresa un número de WhatsApp válido" },
+    } as const;
 
-    if (step === 2) {
-      const res = step2Schema.safeParse(values);
-      if (!res.success) {
-        const firstErr =
-          res.error.issues[0]?.message || "Verifica la ubicación y salarios";
-        toast.error("Paso 2 incompleto", { description: firstErr });
-        return false;
-      }
-      return true;
-    }
+    const entry = stepSchemas[step as keyof typeof stepSchemas];
+    if (!entry) return true;
 
-    if (step === 3) {
-      const res = step3Schema.safeParse(values);
-      if (!res.success) {
-        const firstErr =
-          res.error.issues[0]?.message || "Escribe una descripción adecuada";
-        toast.error("Paso 3 incompleto", { description: firstErr });
-        return false;
+    const res = entry.schema.safeParse(values);
+    if (!res.success) {
+      for (const issue of res.error.issues) {
+        const fieldName = issue.path[0];
+        if (typeof fieldName === "string") {
+          form.setError(fieldName as keyof VacancyWizardValues, { message: issue.message });
+        }
       }
-      return true;
-    }
-
-    if (step === 4) {
-      const res = step4Schema.safeParse(values);
-      if (!res.success) {
-        const firstErr =
-          res.error.issues[0]?.message ||
-          "Ingresa un número de WhatsApp válido";
-        toast.error("Paso 4 incompleto", { description: firstErr });
-        return false;
-      }
-      return true;
+      const firstErr = res.error.issues[0]?.message || entry.fallback;
+      toast.error(entry.title, { description: firstErr });
+      return false;
     }
 
     return true;
@@ -350,7 +330,7 @@ export function VacancyWizardContainer({
 
   // Submit to Supabase
   const handleFinalSubmit = async (publishNow: boolean = true) => {
-    const values = form.state.values;
+    const values = form.getValues();
     const fullValidation = vacancyWizardSchema.safeParse(values);
     if (!fullValidation.success) {
       const err =
@@ -415,7 +395,6 @@ export function VacancyWizardContainer({
   };
 
   // Live preview item derived from current form values for the Drawer
-  const formValues = form.state.values;
   const previewVacancyData: VacancyPreviewItem = React.useMemo(() => {
     return {
       id: vacancyId || "preview-new-vacancy",
@@ -515,11 +494,10 @@ export function VacancyWizardContainer({
               type="button"
               size="sm"
               onClick={() => {
-                Object.keys(savedDraft).forEach((key) => {
-                  form.setFieldValue(
-                    key as keyof VacancyWizardValues,
-                    savedDraft[key as keyof VacancyWizardValues]
-                  );
+                form.reset({
+                  ...DEFAULT_WIZARD_VALUES,
+                  ...initialValues,
+                  ...savedDraft,
                 });
                 setSavedDraft(null);
                 toast.success("Borrador restaurado en el formulario");

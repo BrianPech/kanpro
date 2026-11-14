@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import { Controller, useWatch, type UseFormReturn } from "react-hook-form";
 import {
   DollarSign,
   MapPin,
@@ -31,6 +32,7 @@ import {
 } from "@/components/ui/select";
 import {
   PRESET_BENEFITS,
+  type VacancyWizardValues,
 } from "../../schemas/vacancy-wizard.schema";
 import {
   getCitiesList,
@@ -43,8 +45,7 @@ import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 
 interface Step2CompensationProps {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  form: any;
+  form: UseFormReturn<VacancyWizardValues>;
   companyLocation?: string;
   companyCity?: string;
   companyZone?: string;
@@ -74,20 +75,21 @@ export function Step2Compensation({
       : GEO_CONFIG[resolvedCompanyCity]?.state || "Yucatán"
   }`;
 
-  const currentCityValue = form.state?.values?.location || form.getFieldValue("location") || resolvedCompanyCity;
+  const watchedLocation = useWatch({ control: form.control, name: "location" });
+  const currentCityValue = watchedLocation || resolvedCompanyCity;
 
   const [useProfileLocation, setUseProfileLocation] = React.useState<boolean>(() => {
-    const curr = form.getFieldValue("location");
+    const curr = form.getValues("location");
     return !curr || curr === resolvedCompanyCity || curr === companyLocation;
   });
 
   // Sync to company profile location when loaded if profile mode is active
   React.useEffect(() => {
     if (companyCity && companyCity !== "Mérida") {
-      const curr = form.getFieldValue("location");
+      const curr = form.getValues("location");
       if (!curr || curr === "Mérida, Yucatán" || curr === "Mérida" || curr === companyLocation) {
-        form.setFieldValue("location", resolvedCompanyCity);
-        form.setFieldValue("zone", resolvedCompanyZone);
+        form.setValue("location", resolvedCompanyCity);
+        form.setValue("zone", resolvedCompanyZone);
       }
     }
   }, [companyCity, companyZone, resolvedCompanyCity, resolvedCompanyZone, companyLocation, form]);
@@ -107,24 +109,27 @@ export function Step2Compensation({
     return Array.from(set);
   }, [currentCityValue]);
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const handleAddCustomBenefit = (field: any) => {
+  const handleAddCustomBenefit = (
+    current: string[],
+    onChange: (val: string[]) => void
+  ) => {
     const trimmed = customBenefit.trim();
     if (!trimmed) return;
-    const current = field.state.value || [];
     if (!current.includes(trimmed)) {
-      field.handleChange([...current, trimmed]);
+      onChange([...current, trimmed]);
     }
     setCustomBenefit("");
   };
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const toggleBenefit = (field: any, benefit: string) => {
-    const current: string[] = field.state.value || [];
+  const toggleBenefit = (
+    current: string[],
+    onChange: (val: string[]) => void,
+    benefit: string
+  ) => {
     if (current.includes(benefit)) {
-      field.handleChange(current.filter((b: string) => b !== benefit));
+      onChange(current.filter((b) => b !== benefit));
     } else {
-      field.handleChange([...current, benefit]);
+      onChange([...current, benefit]);
     }
   };
 
@@ -132,15 +137,16 @@ export function Step2Compensation({
     setUseProfileLocation(true);
     setIsCustomCityInput(false);
     setIsCustomZoneInput(false);
-    form.setFieldValue("location", resolvedCompanyCity);
-    form.setFieldValue("zone", resolvedCompanyZone);
+    form.setValue("location", resolvedCompanyCity);
+    form.setValue("zone", resolvedCompanyZone);
   };
 
   const handleSelectCustomLocation = () => {
     setUseProfileLocation(false);
   };
 
-  const handleCitySelectChange = (newCity: string) => {
+  const handleCitySelectChange = (newCity: string | null) => {
+    if (!newCity) return;
     if (newCity === "__custom__") {
       setIsCustomCityInput(true);
       setCustomCityText("");
@@ -148,12 +154,12 @@ export function Step2Compensation({
     }
 
     setIsCustomCityInput(false);
-    form.setFieldValue("location", newCity);
+    form.setValue("location", newCity);
 
     // Update dynamic zone for the new city
     const newZones = getZonesForCity(newCity);
     const defaultZone = newZones[0] || (newCity === "Mérida" ? "Centro Mérida" : "Centro");
-    form.setFieldValue("zone", defaultZone);
+    form.setValue("zone", defaultZone);
     setIsCustomZoneInput(false);
 
     if (newCity !== resolvedCompanyCity) {
@@ -164,29 +170,30 @@ export function Step2Compensation({
   const handleCustomCityApply = () => {
     const trimmed = customCityText.trim();
     if (!trimmed) return;
-    form.setFieldValue("location", trimmed);
+    form.setValue("location", trimmed);
     const newZones = getZonesForCity(trimmed);
-    form.setFieldValue("zone", newZones[0] || "Centro");
+    form.setValue("zone", newZones[0] || "Centro");
     setIsCustomZoneInput(false);
     setUseProfileLocation(false);
   };
 
-  const handleZoneSelectChange = (newZone: string) => {
+  const handleZoneSelectChange = (newZone: string | null) => {
+    if (!newZone) return;
     if (newZone === "Otra Zona") {
       setIsCustomZoneInput(true);
       setCustomZoneText("");
-      form.setFieldValue("zone", "Otra Zona");
+      form.setValue("zone", "Otra Zona");
       return;
     }
 
     setIsCustomZoneInput(false);
-    form.setFieldValue("zone", newZone);
+    form.setValue("zone", newZone);
   };
 
   const handleCustomZoneApply = () => {
     const trimmed = customZoneText.trim();
     if (!trimmed) return;
-    form.setFieldValue("zone", trimmed);
+    form.setValue("zone", trimmed);
   };
 
   const handleDetectGPS = () => {
@@ -203,8 +210,8 @@ export function Step2Compensation({
       try {
         const { latitude, longitude } = pos.coords;
         const resolved = await resolveLocationFromCoords(latitude, longitude);
-        form.setFieldValue("location", resolved.city);
-        form.setFieldValue("zone", resolved.zone);
+        form.setValue("location", resolved.city);
+        form.setValue("zone", resolved.zone);
         setIsCustomCityInput(false);
         setIsCustomZoneInput(false);
         setUseProfileLocation(false);
@@ -342,10 +349,11 @@ export function Step2Compensation({
         {/* Ciudad y Zona en 2 Columnas */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-5 sm:gap-6 pt-1">
           {/* Ciudad o Municipio */}
-          <form.Field name="location">
-            {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
-            {(field: any) => (
-              <Field data-invalid={Boolean(field.state.meta.errors?.length)} className="space-y-2">
+          <Controller
+            control={form.control}
+            name="location"
+            render={({ field, fieldState }) => (
+              <Field data-invalid={Boolean(fieldState.error)} className="space-y-2">
                 <div className="flex items-center justify-between">
                   <FieldLabel htmlFor="location" className="text-sm font-semibold text-foreground">
                     Ciudad o Municipio <span className="text-rose-500">*</span>
@@ -355,7 +363,7 @@ export function Step2Compensation({
                       type="button"
                       onClick={() => {
                         setIsCustomCityInput(false);
-                        field.handleChange("Mérida");
+                        field.onChange("Mérida");
                       }}
                       className="text-xs font-bold text-primary hover:underline cursor-pointer"
                     >
@@ -366,7 +374,7 @@ export function Step2Compensation({
 
                 {!isCustomCityInput ? (
                   <Select
-                    value={field.state.value || resolvedCompanyCity}
+                    value={field.value || resolvedCompanyCity}
                     onValueChange={handleCitySelectChange}
                   >
                     <SelectTrigger
@@ -454,22 +462,23 @@ export function Step2Compensation({
                   </div>
                 )}
 
-                {field.state.meta.errors?.[0] && (
-                  <FieldError>{field.state.meta.errors[0]}</FieldError>
+                {fieldState.error?.message && (
+                  <FieldError>{fieldState.error.message}</FieldError>
                 )}
               </Field>
             )}
-          </form.Field>
+          />
 
           {/* Zona o Área */}
-          <form.Field name="zone">
-            {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
-            {(field: any) => {
-              const activeVal = field.state.value || availableZones[0] || "Centro";
+          <Controller
+            control={form.control}
+            name="zone"
+            render={({ field, fieldState }) => {
+              const activeVal = field.value || availableZones[0] || "Centro";
               const isListed = availableZones.includes(activeVal);
 
               return (
-                <Field data-invalid={Boolean(field.state.meta.errors?.length)} className="space-y-2">
+                <Field data-invalid={Boolean(fieldState.error)} className="space-y-2">
                   <div className="flex items-center justify-between">
                     <FieldLabel className="text-sm font-semibold text-foreground">
                       Zona / Área de Trabajo <span className="text-rose-500">*</span>
@@ -479,7 +488,7 @@ export function Step2Compensation({
                         type="button"
                         onClick={() => {
                           setIsCustomZoneInput(false);
-                          field.handleChange(availableZones[0] || "Centro");
+                          field.onChange(availableZones[0] || "Centro");
                         }}
                         className="text-xs font-bold text-primary hover:underline cursor-pointer"
                       >
@@ -518,7 +527,7 @@ export function Step2Compensation({
                         value={customZoneText || (!isListed ? activeVal : "")}
                         onChange={(e) => {
                           setCustomZoneText(e.target.value);
-                          field.handleChange(e.target.value);
+                          field.onChange(e.target.value);
                         }}
                         placeholder="Ej. Fraccionamiento Los Álamos, Supermanzana 15..."
                         className="w-full"
@@ -535,13 +544,13 @@ export function Step2Compensation({
                     </div>
                   )}
 
-                  {field.state.meta.errors?.[0] && (
-                    <FieldError>{field.state.meta.errors[0]}</FieldError>
+                  {fieldState.error?.message && (
+                    <FieldError>{fieldState.error.message}</FieldError>
                   )}
                 </Field>
               );
             }}
-          </form.Field>
+          />
         </div>
 
         {/* GPS Quick Detect Footer */}
@@ -584,10 +593,11 @@ export function Step2Compensation({
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-5 sm:gap-6">
           {/* Sueldo Mínimo */}
-          <form.Field name="salary_min">
-            {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
-            {(field: any) => (
-              <Field data-invalid={Boolean(field.state.meta.errors?.length)} className="space-y-2">
+          <Controller
+            control={form.control}
+            name="salary_min"
+            render={({ field, fieldState }) => (
+              <Field data-invalid={Boolean(fieldState.error)} className="space-y-2">
                 <FieldLabel htmlFor="salary_min" className="text-sm font-semibold text-foreground">
                   Sueldo Mínimo
                 </FieldLabel>
@@ -598,24 +608,25 @@ export function Step2Compensation({
                     type="number"
                     inputMode="numeric"
                     step={500}
-                    value={field.state.value ?? ""}
-                    onChange={(e) => field.handleChange(e.target.value ? Number(e.target.value) : null)}
+                    value={field.value ?? ""}
+                    onChange={(e) => field.onChange(e.target.value ? Number(e.target.value) : null)}
                     placeholder="10,000"
                     className="w-full pl-7 pr-3 font-mono font-bold"
                   />
                 </div>
-                {field.state.meta.errors?.[0] && (
-                  <FieldError>{field.state.meta.errors[0]}</FieldError>
+                {fieldState.error?.message && (
+                  <FieldError>{fieldState.error.message}</FieldError>
                 )}
               </Field>
             )}
-          </form.Field>
+          />
 
           {/* Sueldo Máximo */}
-          <form.Field name="salary_max">
-            {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
-            {(field: any) => (
-              <Field data-invalid={Boolean(field.state.meta.errors?.length)} className="space-y-2">
+          <Controller
+            control={form.control}
+            name="salary_max"
+            render={({ field, fieldState }) => (
+              <Field data-invalid={Boolean(fieldState.error)} className="space-y-2">
                 <FieldLabel htmlFor="salary_max" className="text-sm font-semibold text-foreground">
                   Sueldo Máximo
                 </FieldLabel>
@@ -626,25 +637,26 @@ export function Step2Compensation({
                     type="number"
                     inputMode="numeric"
                     step={500}
-                    value={field.state.value ?? ""}
-                    onChange={(e) => field.handleChange(e.target.value ? Number(e.target.value) : null)}
+                    value={field.value ?? ""}
+                    onChange={(e) => field.onChange(e.target.value ? Number(e.target.value) : null)}
                     placeholder="14,000"
                     className="w-full pl-7 pr-3 font-mono font-bold"
                   />
                 </div>
-                {field.state.meta.errors?.[0] && (
-                  <FieldError>{field.state.meta.errors[0]}</FieldError>
+                {fieldState.error?.message && (
+                  <FieldError>{fieldState.error.message}</FieldError>
                 )}
               </Field>
             )}
-          </form.Field>
+          />
         </div>
 
         {/* Frecuencia de Pago */}
-        <form.Field name="payment_frequency">
-          {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
-          {(field: any) => (
-            <Field data-invalid={Boolean(field.state.meta.errors?.length)} className="space-y-2 pt-1">
+        <Controller
+          control={form.control}
+          name="payment_frequency"
+          render={({ field, fieldState }) => (
+            <Field data-invalid={Boolean(fieldState.error)} className="space-y-2 pt-1">
               <FieldLabel className="text-sm font-semibold text-foreground">
                 Frecuencia de Pago
               </FieldLabel>
@@ -654,12 +666,12 @@ export function Step2Compensation({
                   { value: "quincenal", label: "Quincenal" },
                   { value: "mensual", label: "Mensual" },
                 ].map((freq) => {
-                  const isSelected = field.state.value === freq.value;
+                  const isSelected = field.value === freq.value;
                   return (
                     <button
                       key={freq.value}
                       type="button"
-                      onClick={() => field.handleChange(freq.value)}
+                      onClick={() => field.onChange(freq.value)}
                       className={cn(
                         "h-9 rounded-3xl font-bold text-xs transition-all border cursor-pointer select-none",
                         isSelected
@@ -674,14 +686,15 @@ export function Step2Compensation({
               </div>
             </Field>
           )}
-        </form.Field>
+        />
       </div>
 
       {/* 3. Prestaciones y Beneficios */}
-      <form.Field name="benefits">
-        {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
-        {(field: any) => {
-          const selectedBenefits: string[] = field.state.value || [];
+      <Controller
+        control={form.control}
+        name="benefits"
+        render={({ field }) => {
+          const selectedBenefits: string[] = field.value || [];
 
           return (
             <Field className="space-y-4 pt-4 border-t border-border/60">
@@ -705,7 +718,7 @@ export function Step2Compensation({
                     <button
                       key={benefit}
                       type="button"
-                      onClick={() => toggleBenefit(field, benefit)}
+                      onClick={() => toggleBenefit(selectedBenefits, field.onChange, benefit)}
                       className={cn(
                         "px-3.5 py-2 rounded-xl text-xs font-semibold border flex items-center gap-2 transition-all cursor-pointer select-none shadow-2xs",
                         isChecked
@@ -728,7 +741,7 @@ export function Step2Compensation({
                   onKeyDown={(e) => {
                     if (e.key === "Enter") {
                       e.preventDefault();
-                      handleAddCustomBenefit(field);
+                      handleAddCustomBenefit(selectedBenefits, field.onChange);
                     }
                   }}
                   placeholder="Escribe otro beneficio adicional y presiona Enter..."
@@ -737,7 +750,7 @@ export function Step2Compensation({
                 <Button
                   type="button"
                   variant="outline"
-                  onClick={() => handleAddCustomBenefit(field)}
+                  onClick={() => handleAddCustomBenefit(selectedBenefits, field.onChange)}
                   disabled={!customBenefit.trim()}
                   className="shrink-0 cursor-pointer font-bold"
                 >
@@ -748,7 +761,7 @@ export function Step2Compensation({
             </Field>
           );
         }}
-      </form.Field>
+      />
     </div>
   );
 }

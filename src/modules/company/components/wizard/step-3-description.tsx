@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import { Controller, type UseFormReturn } from "react-hook-form";
 import { FileText, Award, GraduationCap, Plus, X, Tag, Sparkles } from "@/components/ui/icons";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -22,6 +23,7 @@ import { RichTextEditor } from "@/components/ui/rich-text-editor";
 import {
   EXPERIENCE_LEVELS,
   EDUCATION_LEVELS,
+  type VacancyWizardValues,
 } from "../../schemas/vacancy-wizard.schema";
 
 const SUGGESTED_SKILLS = [
@@ -36,36 +38,37 @@ const SUGGESTED_SKILLS = [
 ];
 
 interface Step3DescriptionProps {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  form: any;
+  form: UseFormReturn<VacancyWizardValues>;
 }
 
 export function Step3Description({ form }: Step3DescriptionProps) {
   const [skillInput, setSkillInput] = React.useState("");
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const handleAddSkill = (field: any) => {
+  const handleAddSkill = (current: string[], onChange: (val: string[]) => void) => {
     const trimmed = skillInput.trim();
     if (!trimmed) return;
-    const current: string[] = field.state.value || [];
     if (!current.includes(trimmed)) {
-      field.handleChange([...current, trimmed]);
+      onChange([...current, trimmed]);
     }
     setSkillInput("");
   };
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const handleAddSuggestedSkill = (field: any, skill: string) => {
-    const current: string[] = field.state.value || [];
+  const handleAddSuggestedSkill = (
+    current: string[],
+    onChange: (val: string[]) => void,
+    skill: string
+  ) => {
     if (!current.includes(skill)) {
-      field.handleChange([...current, skill]);
+      onChange([...current, skill]);
     }
   };
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const handleRemoveSkill = (field: any, skillToRemove: string) => {
-    const current: string[] = field.state.value || [];
-    field.handleChange(current.filter((s: string) => s !== skillToRemove));
+  const handleRemoveSkill = (
+    current: string[],
+    onChange: (val: string[]) => void,
+    skillToRemove: string
+  ) => {
+    onChange(current.filter((s) => s !== skillToRemove));
   };
 
   return (
@@ -82,10 +85,11 @@ export function Step3Description({ form }: Step3DescriptionProps) {
       </div>
 
       {/* 1. Editor Enriquecido de Descripción */}
-      <form.Field name="description">
-        {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
-        {(field: any) => (
-          <Field data-invalid={Boolean(field.state.meta.errors?.length)} className="space-y-2">
+      <Controller
+        control={form.control}
+        name="description"
+        render={({ field, fieldState }) => (
+          <Field data-invalid={Boolean(fieldState.error)} className="space-y-2">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <FieldLabel htmlFor="description" className="text-sm font-semibold text-foreground">
@@ -98,8 +102,8 @@ export function Step3Description({ form }: Step3DescriptionProps) {
             </div>
             <div className="rounded-2xl border border-border/80 overflow-hidden shadow-2xs">
               <RichTextEditor
-                value={field.state.value || ""}
-                onChange={(html) => field.handleChange(html)}
+                value={field.value || ""}
+                onChange={(html) => field.onChange(html)}
                 placeholder="Describe detalladamente las funciones principales, responsabilidades del puesto y el perfil general del candidato..."
                 minHeight="220px"
               />
@@ -107,20 +111,21 @@ export function Step3Description({ form }: Step3DescriptionProps) {
             <FieldDescription className="text-xs text-muted-foreground">
               Una descripción organizada y clara con viñetas facilita la postulación de candidatos idóneos.
             </FieldDescription>
-            {field.state.meta.errors?.[0] && (
-              <FieldError>{field.state.meta.errors[0]}</FieldError>
+            {fieldState.error?.message && (
+              <FieldError>{fieldState.error.message}</FieldError>
             )}
           </Field>
         )}
-      </form.Field>
+      />
 
       {/* 2. Experiencia y Escolaridad en 2 Columnas */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-5 sm:gap-6 pt-2 border-t border-border/60">
         {/* Experiencia Laboral */}
-        <form.Field name="experience_required">
-          {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
-          {(field: any) => (
-            <Field data-invalid={Boolean(field.state.meta.errors?.length)} className="space-y-2">
+        <Controller
+          control={form.control}
+          name="experience_required"
+          render={({ field, fieldState }) => (
+            <Field data-invalid={Boolean(fieldState.error)} className="space-y-2">
               <div className="flex items-center gap-2">
                 <Award className="size-3.5 text-muted-foreground" />
                 <FieldLabel className="text-sm font-semibold text-foreground">
@@ -128,8 +133,8 @@ export function Step3Description({ form }: Step3DescriptionProps) {
                 </FieldLabel>
               </div>
               <Select
-                value={field.state.value || "Sin experiencia previa"}
-                onValueChange={(val) => field.handleChange(val)}
+                value={field.value || "Sin experiencia previa"}
+                onValueChange={(val) => field.onChange(val)}
               >
                 <SelectTrigger
                   aria-label="Experiencia laboral requerida"
@@ -149,18 +154,19 @@ export function Step3Description({ form }: Step3DescriptionProps) {
                   ))}
                 </SelectContent>
               </Select>
-              {field.state.meta.errors?.[0] && (
-                <FieldError>{field.state.meta.errors[0]}</FieldError>
+              {fieldState.error?.message && (
+                <FieldError>{fieldState.error.message}</FieldError>
               )}
             </Field>
           )}
-        </form.Field>
+        />
 
         {/* Nivel de Estudios */}
-        <form.Field name="education_level">
-          {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
-          {(field: any) => (
-            <Field data-invalid={Boolean(field.state.meta.errors?.length)} className="space-y-2">
+        <Controller
+          control={form.control}
+          name="education_level"
+          render={({ field, fieldState }) => (
+            <Field data-invalid={Boolean(fieldState.error)} className="space-y-2">
               <div className="flex items-center gap-2">
                 <GraduationCap className="size-3.5 text-muted-foreground" />
                 <FieldLabel className="text-sm font-semibold text-foreground">
@@ -168,8 +174,8 @@ export function Step3Description({ form }: Step3DescriptionProps) {
                 </FieldLabel>
               </div>
               <Select
-                value={field.state.value || "Indistinto"}
-                onValueChange={(val) => field.handleChange(val)}
+                value={field.value || "Indistinto"}
+                onValueChange={(val) => field.onChange(val)}
               >
                 <SelectTrigger
                   aria-label="Nivel de estudios mínimo"
@@ -189,19 +195,20 @@ export function Step3Description({ form }: Step3DescriptionProps) {
                   ))}
                 </SelectContent>
               </Select>
-              {field.state.meta.errors?.[0] && (
-                <FieldError>{field.state.meta.errors[0]}</FieldError>
+              {fieldState.error?.message && (
+                <FieldError>{fieldState.error.message}</FieldError>
               )}
             </Field>
           )}
-        </form.Field>
+        />
       </div>
 
       {/* 3. Habilidades y Competencias Clave */}
-      <form.Field name="skills">
-        {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
-        {(field: any) => {
-          const skillsList: string[] = field.state.value || [];
+      <Controller
+        control={form.control}
+        name="skills"
+        render={({ field }) => {
+          const skillsList: string[] = field.value || [];
 
           return (
             <Field className="space-y-3 pt-2 border-t border-border/60">
@@ -229,7 +236,7 @@ export function Step3Description({ form }: Step3DescriptionProps) {
                       <span>{skill}</span>
                       <button
                         type="button"
-                        onClick={() => handleRemoveSkill(field, skill)}
+                        onClick={() => handleRemoveSkill(skillsList, field.onChange, skill)}
                         className="text-muted-foreground hover:text-rose-500 cursor-pointer"
                         aria-label={`Eliminar ${skill}`}
                       >
@@ -253,7 +260,7 @@ export function Step3Description({ form }: Step3DescriptionProps) {
                       type="button"
                       variant="outline"
                       size="sm"
-                      onClick={() => handleAddSuggestedSkill(field, suggestion)}
+                      onClick={() => handleAddSuggestedSkill(skillsList, field.onChange, suggestion)}
                       className="h-7 px-2.5 rounded-lg text-xs font-medium text-muted-foreground hover:text-primary hover:border-primary/50 transition-all cursor-pointer"
                     >
                       + {suggestion}
@@ -270,7 +277,7 @@ export function Step3Description({ form }: Step3DescriptionProps) {
                   onKeyDown={(e) => {
                     if (e.key === "Enter") {
                       e.preventDefault();
-                      handleAddSkill(field);
+                      handleAddSkill(skillsList, field.onChange);
                     }
                   }}
                   placeholder="Escribe otra habilidad o competencia y presiona Enter..."
@@ -279,7 +286,7 @@ export function Step3Description({ form }: Step3DescriptionProps) {
                 <Button
                   type="button"
                   variant="outline"
-                  onClick={() => handleAddSkill(field)}
+                  onClick={() => handleAddSkill(skillsList, field.onChange)}
                   disabled={!skillInput.trim()}
                   className="shrink-0 cursor-pointer font-bold"
                 >
@@ -290,7 +297,7 @@ export function Step3Description({ form }: Step3DescriptionProps) {
             </Field>
           );
         }}
-      </form.Field>
+      />
     </div>
   );
 }
