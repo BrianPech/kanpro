@@ -43,21 +43,41 @@ export class CompanyVacanciesService {
     }
   }
 
+  private static async resolveRecruiterId(
+    supabase: SupabaseClient<Database>,
+    companyId: string,
+    recruiterId?: string
+  ): Promise<string> {
+    if (recruiterId) return recruiterId;
+    if (supabase.auth?.getUser) {
+      const { data } = await supabase.auth.getUser();
+      if (data?.user?.id) return data.user.id;
+    }
+    return companyId;
+  }
+
   /**
    * Crea una vacante completa desde los datos del wizard.
    */
   public static async createVacancy(
     supabase: SupabaseClient<Database>,
     companyId: string,
-    data: VacancyWizardValues
+    data: VacancyWizardValues,
+    recruiterId?: string
   ): Promise<VacancyRow> {
     if (data.is_active) {
       await CompanyVacanciesService.checkActiveVacancyLimit(supabase, companyId);
     }
 
+    const resolvedRecruiterId = await CompanyVacanciesService.resolveRecruiterId(
+      supabase,
+      companyId,
+      recruiterId
+    );
+
     const payload: VacancyInsert = {
       company_id: companyId,
-      recruiter_id: companyId,
+      recruiter_id: resolvedRecruiterId,
       title: data.title.trim(),
       category: data.category,
       employment_type: data.employment_type,
@@ -155,9 +175,16 @@ export class CompanyVacanciesService {
   public static async createExpressVacancy(
     supabase: SupabaseClient<Database>,
     companyId: string,
-    params: CreateExpressVacancyInput
+    params: CreateExpressVacancyInput,
+    recruiterId?: string
   ): Promise<VacancyRow> {
     await CompanyVacanciesService.checkActiveVacancyLimit(supabase, companyId);
+
+    const resolvedRecruiterId = await CompanyVacanciesService.resolveRecruiterId(
+      supabase,
+      companyId,
+      recruiterId
+    );
 
     // Obtener ubicación de la empresa
     const { data: companyProfile } = await supabase
@@ -170,7 +197,7 @@ export class CompanyVacanciesService {
 
     const payload: VacancyInsert = {
       company_id: companyId,
-      recruiter_id: companyId,
+      recruiter_id: resolvedRecruiterId,
       title: params.title.trim(),
       zone: params.zone.trim(),
       category: params.category.trim(),

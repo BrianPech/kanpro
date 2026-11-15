@@ -1296,10 +1296,11 @@ export const companyService = {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   async createVacancy(companyId: string, vacancy: any, injectedSupabase?: SupabaseClient<Database>) {
     const supabase = injectedSupabase || (await import("@/lib/supabase/client")).createClient();
+    const authUser = supabase.auth?.getUser ? (await supabase.auth.getUser()).data?.user : null;
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const { error } = await (supabase.from("vacancies") as any).insert({
       company_id: companyId,
-      recruiter_id: companyId,
+      recruiter_id: vacancy.recruiter_id || authUser?.id || companyId,
       title: vacancy.title,
       description: vacancy.description || vacancy.requirements || "",
       requirements: vacancy.requirements || vacancy.description || "",

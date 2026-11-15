@@ -158,7 +158,8 @@ export async function createVacancyAction(
     const vacancy = await CompanyVacanciesService.createVacancy(
       supabase,
       companyScopeId,
-      parsed.data
+      parsed.data,
+      user.id
     );
 
     await revalidateVacancies();
@@ -257,7 +258,8 @@ export async function createExpressVacancyAction(
     const vacancy = await CompanyVacanciesService.createExpressVacancy(
       supabase,
       companyScopeId,
-      parsed.data
+      parsed.data,
+      user.id
     );
 
     await revalidateVacancies();
