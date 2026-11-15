@@ -6,6 +6,7 @@ import { toast } from "sonner";
 import {
   DropdownMenu,
   DropdownMenuContent,
+  DropdownMenuGroup,
   DropdownMenuItem,
   DropdownMenuLabel,
   DropdownMenuSeparator,
@@ -157,64 +158,66 @@ export function CompanySwitcher({
         sideOffset={6}
         className="w-72 p-1.5 rounded-xl shadow-lg border-border/80"
       >
-        <DropdownMenuLabel className="text-[11px] font-semibold text-muted-foreground uppercase px-2 py-1 tracking-wider">
-          Mis Organizaciones ({companies.length})
-        </DropdownMenuLabel>
-        <DropdownMenuSeparator className="my-1" />
+        <DropdownMenuGroup>
+          <DropdownMenuLabel className="text-[11px] font-semibold text-muted-foreground uppercase px-2 py-1 tracking-wider">
+            Mis Organizaciones ({companies.length})
+          </DropdownMenuLabel>
+          <DropdownMenuSeparator className="my-1" />
 
-        <div className="max-h-60 overflow-y-auto space-y-0.5">
-          {companies.map((comp) => {
-            const isSelected = comp.companyId === activeCompany?.companyId;
-            const isSwitchingThis = targetSwitchingId === comp.companyId;
-            const compInitials = comp.companyName.substring(0, 2).toUpperCase();
+          <div className="max-h-60 overflow-y-auto space-y-0.5">
+            {companies.map((comp) => {
+              const isSelected = comp.companyId === activeCompany?.companyId;
+              const isSwitchingThis = targetSwitchingId === comp.companyId;
+              const compInitials = comp.companyName.substring(0, 2).toUpperCase();
 
-            return (
-              <DropdownMenuItem
-                key={comp.companyId}
-                disabled={isPending}
-                onClick={() => handleSwitchCompany(comp.companyId)}
-                className={cn(
-                  "flex items-center gap-2.5 p-2 rounded-lg cursor-pointer transition-colors",
-                  isSelected && "bg-primary/10 text-primary font-medium"
-                )}
-              >
-                <Avatar className="size-7 rounded-md shrink-0 border border-border/50">
-                  {comp.logoUrl ? (
-                    <AvatarImage src={comp.logoUrl} alt={comp.companyName} />
-                  ) : null}
-                  <AvatarFallback className="rounded-md text-[10px] font-bold bg-muted text-foreground">
-                    {compInitials}
-                  </AvatarFallback>
-                </Avatar>
+              return (
+                <DropdownMenuItem
+                  key={comp.companyId}
+                  disabled={isPending}
+                  onClick={() => handleSwitchCompany(comp.companyId)}
+                  className={cn(
+                    "flex items-center gap-2.5 p-2 rounded-lg cursor-pointer transition-colors",
+                    isSelected && "bg-primary/10 text-primary font-medium"
+                  )}
+                >
+                  <Avatar className="size-7 rounded-md shrink-0 border border-border/50">
+                    {comp.logoUrl ? (
+                      <AvatarImage src={comp.logoUrl} alt={comp.companyName} />
+                    ) : null}
+                    <AvatarFallback className="rounded-md text-[10px] font-bold bg-muted text-foreground">
+                      {compInitials}
+                    </AvatarFallback>
+                  </Avatar>
 
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center justify-between gap-1">
-                    <p className="text-xs font-semibold truncate text-foreground">
-                      {comp.companyName}
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center justify-between gap-1">
+                      <p className="text-xs font-semibold truncate text-foreground">
+                        {comp.companyName}
+                      </p>
+                      <Badge
+                        variant="outline"
+                        className="text-[9px] font-bold px-1 py-0 uppercase shrink-0 text-muted-foreground"
+                      >
+                        {roleLabels[comp.role] || comp.role}
+                      </Badge>
+                    </div>
+                    <p className="text-[10px] text-muted-foreground truncate">
+                      {comp.industry || "General"}
                     </p>
-                    <Badge
-                      variant="outline"
-                      className="text-[9px] font-bold px-1 py-0 uppercase shrink-0 text-muted-foreground"
-                    >
-                      {roleLabels[comp.role] || comp.role}
-                    </Badge>
                   </div>
-                  <p className="text-[10px] text-muted-foreground truncate">
-                    {comp.industry || "General"}
-                  </p>
-                </div>
 
-                <div className="size-4 flex items-center justify-center shrink-0">
-                  {isSwitchingThis ? (
-                    <Loader2 className="size-3.5 animate-spin text-primary" />
-                  ) : isSelected ? (
-                    <Check className="size-3.5 text-primary" />
-                  ) : null}
-                </div>
-              </DropdownMenuItem>
-            );
-          })}
-        </div>
+                  <div className="size-4 flex items-center justify-center shrink-0">
+                    {isSwitchingThis ? (
+                      <Loader2 className="size-3.5 animate-spin text-primary" />
+                    ) : isSelected ? (
+                      <Check className="size-3.5 text-primary" />
+                    ) : null}
+                  </div>
+                </DropdownMenuItem>
+              );
+            })}
+          </div>
+        </DropdownMenuGroup>
 
         <DropdownMenuSeparator className="my-1" />
 

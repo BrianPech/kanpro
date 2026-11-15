@@ -1,4 +1,5 @@
 import * as React from "react";
+import { redirect } from "next/navigation";
 import { SidebarProvider, SidebarInset } from "@/components/ui/sidebar";
 import { CompanySidebar } from "@/modules/company/components/navigation/company-sidebar";
 import { getDashboardSession } from "@/modules/auth/services/dashboard-session";
@@ -24,6 +25,10 @@ export default async function CompanyDashboardLayout({
     activeCompany,
     activeCompanyId,
   } = await getDashboardSession();
+
+  if (role === "company" && (!userCompanies || userCompanies.length === 0)) {
+    redirect("/onboarding");
+  }
 
   const isLegacyOwnerName = Boolean(
     role === "company" &&

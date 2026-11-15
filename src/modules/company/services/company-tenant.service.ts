@@ -236,6 +236,46 @@ export class CompanyTenantService {
     // 3. Fallback histórico
     return { companyId: userId, role: "owner" };
   }
+
+  /**
+   * Actualiza el nombre personal del titular en profiles y sincroniza metadata de auth.
+   */
+  async updateOwnerPersonalName(
+    userId: string,
+    fullName: string,
+    supabase: SupabaseClient<Database>
+  ): Promise<{ fullName: string }> {
+    if (!userId) {
+      throw new Error("Usuario no autenticado");
+    }
+
+    const newFullName = fullName.trim();
+
+    const { error: profileErr } = await supabase
+      .from("profiles")
+      .update({
+        full_name: newFullName,
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", userId);
+
+    if (profileErr) {
+      throw new Error(profileErr.message);
+    }
+
+    try {
+      await supabase.auth.updateUser({
+        data: {
+          full_name: newFullName,
+          name: newFullName,
+        },
+      });
+    } catch {
+      // Ignorar fallback secundario si no tiene permisos
+    }
+
+    return { fullName: newFullName };
+  }
 }
 
 export const companyTenantService = new CompanyTenantService();

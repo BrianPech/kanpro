@@ -8,7 +8,7 @@ export default async function CompanyDashboardPage() {
   const { userCompanies } = await getDashboardSession()
 
   if (userCompanies && userCompanies.length === 0) {
-    redirect("/dashboard/company/new")
+    redirect("/onboarding")
   }
 
   const data = await getCompanyDashboardData()

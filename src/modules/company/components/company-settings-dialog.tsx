@@ -2,6 +2,7 @@
 
 import * as React from "react";
 import { useTheme } from "next-themes";
+import { getActiveCompanyContextAction } from "@/modules/company/actions/tenant-actions";
 import {
   X,
   Sun,
@@ -245,6 +246,9 @@ export function CompanySettingsModal({
           data: { user },
         } = await supabase.auth.getUser();
         if (user) {
+          const scopeRes = await getActiveCompanyContextAction();
+          const companyScopeId = scopeRes.success ? scopeRes.data.companyId : user.id;
+
           const [profileRes, companyRes, invoicesRes] = await Promise.all([
             supabase
               .from("profiles")
@@ -254,12 +258,12 @@ export function CompanySettingsModal({
             supabase
               .from("company_profiles")
               .select("*")
-              .eq("id", user.id)
+              .eq("id", companyScopeId)
               .maybeSingle(),
             supabase
               .from("company_invoices")
               .select("*")
-              .eq("company_id", user.id)
+              .eq("company_id", companyScopeId)
               .order("created_at", { ascending: false }),
           ]);
 

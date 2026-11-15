@@ -87,7 +87,9 @@ export async function updateSession(request: NextRequest) {
     pathname === '/candidate' ||
     pathname.startsWith('/candidate/') ||
     pathname === '/company' ||
-    pathname.startsWith('/company/')
+    pathname.startsWith('/company/') ||
+    pathname === '/onboarding' ||
+    pathname.startsWith('/onboarding/')
 
   if (!user) {
     if (isProtectedRoute) {

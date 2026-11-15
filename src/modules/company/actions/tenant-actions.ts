@@ -149,44 +149,54 @@ export async function updateOwnerPersonalNameAction(
       return { success: false, error: "Sesión no autenticada." };
     }
 
-    const newFullName = parsed.data.fullName.trim();
-
-    // 1. Actualizar profiles
-    const { error: profileErr } = await supabase
-      .from("profiles")
-      .update({
-        full_name: newFullName,
-        updated_at: new Date().toISOString(),
-      })
-      .eq("id", user.id);
-
-    if (profileErr) {
-      throw new Error(profileErr.message);
-    }
-
-    // 2. Sincronizar metadata en auth
-    try {
-      await supabase.auth.updateUser({
-        data: {
-          full_name: newFullName,
-          name: newFullName,
-        },
-      });
-    } catch {
-      // Ignorar fallback secundario si no tiene permisos de admin
-    }
+    const result = await companyTenantService.updateOwnerPersonalName(
+      user.id,
+      parsed.data.fullName,
+      supabase
+    );
 
     revalidatePath("/dashboard/company", "layout");
+    revalidatePath("/onboarding");
 
     return {
       success: true,
-      data: { fullName: newFullName },
+      data: result,
     };
   } catch (err: unknown) {
     console.error("[updateOwnerPersonalNameAction] Error:", err);
     return {
       success: false,
       error: err instanceof Error ? err.message : "Error al actualizar el nombre del titular.",
+    };
+  }
+}
+
+/**
+ * Devuelve el ID y rol de la empresa activa en la sesión actual para hooks/componentes cliente.
+ */
+export async function getActiveCompanyContextAction(): Promise<
+  ActionResult<{ companyId: string; role: string }>
+> {
+  try {
+    const supabase = await createClient();
+    const {
+      data: { user },
+      error: authError,
+    } = await supabase.auth.getUser();
+
+    if (authError || !user) {
+      return { success: false, error: "Sesión no autenticada." };
+    }
+
+    const scope = await companyTenantService.resolveActiveCompanyScope(user.id, supabase);
+    return {
+      success: true,
+      data: scope,
+    };
+  } catch (err: unknown) {
+    return {
+      success: false,
+      error: err instanceof Error ? err.message : "No se pudo resolver la empresa activa.",
     };
   }
 }

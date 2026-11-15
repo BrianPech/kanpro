@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import { getActiveCompanyContextAction } from "../actions/tenant-actions";
 import {
   useReactTable,
   getCoreRowModel,
@@ -147,19 +148,21 @@ export function VacanciesManager({ userId }: { userId: string }) {
     try {
       setLoadingProfile(true);
       const supabase = createClient();
+      const scopeRes = await getActiveCompanyContextAction();
+      const companyScopeId = scopeRes.success ? scopeRes.data.companyId : userId;
 
       const { data: baseProfile } = await supabase
         .from("profiles")
         .select("full_name, location")
         .eq("id", userId)
-        .single();
+        .maybeSingle();
 
       const { data: compProfile } = await supabase
         .from("company_profiles")
         .select(
           "company_name, contact_phone, fiscal_address, logo_url, verification_status"
         )
-        .eq("id", userId)
+        .eq("id", companyScopeId)
         .maybeSingle();
 
       const company_name =

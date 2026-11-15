@@ -58,22 +58,7 @@ export async function GET(request: NextRequest) {
           console.error("Error updating profile role:", upsertErr);
         }
 
-        if (assignedRole === "company") {
-          const companyName =
-            (data.user.user_metadata?.company_name ||
-              data.user.user_metadata?.full_name ||
-              "Nueva Empresa") as string;
-          await supabase.from("company_profiles").upsert(
-            {
-              id: data.user.id,
-              company_name: companyName,
-              fiscal_address: "Mérida, Yucatán",
-              industry: "General",
-              rfc: "XAXX010101000",
-            },
-            { onConflict: "id" }
-          );
-        } else if (assignedRole === "candidate") {
+        if (assignedRole === "candidate") {
           await supabase.from("candidate_profiles").upsert(
             { id: data.user.id },
             { onConflict: "id" }
@@ -91,6 +76,19 @@ export async function GET(request: NextRequest) {
         role === "admin" || role === "company" || role === "candidate"
           ? role
           : "candidate";
+
+      if (targetRole === "company") {
+        const { count } = await supabase
+          .from("company_members")
+          .select("id", { count: "exact", head: true })
+          .eq("user_id", data.user.id);
+
+        if (!count || count === 0) {
+          return NextResponse.redirect(
+            new URL("/onboarding", requestUrl.origin)
+          );
+        }
+      }
 
       // 3. If redirectTo is present and valid, redirect directly to redirectTo
       if (redirectToParam) {

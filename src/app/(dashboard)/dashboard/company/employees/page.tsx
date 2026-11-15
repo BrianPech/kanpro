@@ -188,7 +188,7 @@ export default async function CompanyEmployeesPage() {
       accepted_at,
       created_at
     `)
-    .eq("company_id", user.id)
+    .eq("company_id", targetCompanyId)
     .order("created_at", { ascending: false });
 
   const invitations = (rawInvitations || []).map((inv) => {

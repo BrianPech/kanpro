@@ -19,6 +19,7 @@ import {
   type AuthorizedCandidateDocumentsResponse,
   type CandidateCvResponse,
 } from "../services/company-document-access";
+import { companyTenantService } from "../services/company-tenant.service";
 
 type RequestDocumentAccessActionResult =
   | {
@@ -72,9 +73,12 @@ export async function requestDocumentAccess(
   }
 
   try {
+    const { companyId: companyScopeId } =
+      await companyTenantService.resolveActiveCompanyScope(user.id, supabase);
+
     const result = await CompanyDocumentAccessService.requestDocumentAccess(
       supabase,
-      user.id,
+      companyScopeId,
       parsed.data
     );
 
@@ -185,8 +189,17 @@ export async function getDocumentAccessStatus(applicationId: string) {
     : application.vacancies;
 
   const isCandidate = application.candidate_id === user.id;
-  const isCompany =
-    Boolean(vacancy && (vacancy.company_id === user.id || vacancy.recruiter_id === user.id));
+  let isCompany = Boolean(
+    vacancy && (vacancy.company_id === user.id || vacancy.recruiter_id === user.id)
+  );
+  if (!isCompany && vacancy?.company_id) {
+    const memberRole = await companyTenantService.verifyUserMembership(
+      user.id,
+      vacancy.company_id,
+      supabase
+    );
+    isCompany = Boolean(memberRole);
+  }
 
   if (!isCandidate && !isCompany) {
     return null;
@@ -195,7 +208,7 @@ export async function getDocumentAccessStatus(applicationId: string) {
   return await CompanyDocumentAccessService.getDocumentAccessStatus(
     supabase,
     parsed.data.applicationId,
-    isCompany ? user.id : undefined
+    isCompany ? vacancy?.company_id || user.id : undefined
   );
 }
 
@@ -225,9 +238,12 @@ export async function getAuthorizedCandidateDocuments(
     return { authorized: false, documents: [] };
   }
 
+  const { companyId: companyScopeId } =
+    await companyTenantService.resolveActiveCompanyScope(user.id, supabase);
+
   return await CompanyDocumentAccessService.getAuthorizedCandidateDocuments(
     supabase,
-    user.id,
+    companyScopeId,
     parsed.data
   );
 }
@@ -276,9 +292,12 @@ export async function getCandidateCvDocument(
       // In tests or if service role key is absent, fallback to supabase client
     }
 
+    const { companyId: companyScopeId } =
+      await companyTenantService.resolveActiveCompanyScope(user.id, supabase);
+
     return await CompanyDocumentAccessService.getCandidateCvDocument(
       supabase,
-      user.id,
+      companyScopeId,
       parsed.data,
       storageClient
     );

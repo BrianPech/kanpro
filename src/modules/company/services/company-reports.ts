@@ -6,6 +6,7 @@ import {
   ReportDefinition,
 } from "../types/reports";
 import { calculateLFTVacationDays } from "../utils/vacation-calculator";
+import { companyTenantService } from "./company-tenant.service";
 
 export async function getCompanyReportsData(): Promise<CompanyReportsData> {
   const supabase = await createClient();
@@ -36,6 +37,11 @@ export async function getCompanyReportsData(): Promise<CompanyReportsData> {
     return emptyResult;
   }
 
+  const { companyId: companyScopeId } = await companyTenantService.resolveActiveCompanyScope(
+    user.id,
+    supabase
+  );
+
   // Fetch all related entities from Supabase in parallel
   const [
     companyProfileRes,
@@ -47,7 +53,7 @@ export async function getCompanyReportsData(): Promise<CompanyReportsData> {
     supabase
       .from("company_profiles")
       .select("company_name, legal_name, rfc, fiscal_address")
-      .eq("id", user.id)
+      .eq("id", companyScopeId)
       .maybeSingle(),
     supabase
       .from("company_employees")
@@ -73,7 +79,7 @@ export async function getCompanyReportsData(): Promise<CompanyReportsData> {
         termination_reason,
         created_at
       `)
-      .eq("company_id", user.id)
+      .eq("company_id", companyScopeId)
       .order("created_at", { ascending: false }),
     supabase
       .from("company_contracts")
@@ -96,7 +102,7 @@ export async function getCompanyReportsData(): Promise<CompanyReportsData> {
           full_name
         )
       `)
-      .eq("company_id", user.id)
+      .eq("company_id", companyScopeId)
       .order("created_at", { ascending: false }),
     supabase
       .from("company_evaluations")
@@ -118,7 +124,7 @@ export async function getCompanyReportsData(): Promise<CompanyReportsData> {
         status,
         created_at
       `)
-      .eq("company_id", user.id)
+      .eq("company_id", companyScopeId)
       .order("evaluation_date", { ascending: false }),
     supabase
       .from("vacancies")
@@ -138,7 +144,7 @@ export async function getCompanyReportsData(): Promise<CompanyReportsData> {
           status
         )
       `)
-      .eq("company_id", user.id)
+      .eq("company_id", companyScopeId)
       .order("created_at", { ascending: false }),
   ]);
 

@@ -1,5 +1,6 @@
 import { useState, useCallback } from "react";
 import { createClient } from "@/lib/supabase/client";
+import { getActiveCompanyContextAction } from "../actions/tenant-actions";
 import type { Database } from "@/types/supabase";
 
 export type VacancyRow = Database["public"]["Tables"]["vacancies"]["Row"];
@@ -34,12 +35,15 @@ export function useVacancyManager() {
         throw new Error("Debe iniciar sesión como empresa para publicar ofertas.");
       }
 
+      const scopeRes = await getActiveCompanyContextAction();
+      const companyScopeId = scopeRes.success ? scopeRes.data.companyId : user.id;
+
       // Fetch company profile & subscription plan
       const { data: companyProfile, error: profileError } = await supabase
         .from("company_profiles")
         .select("fiscal_address, subscription_plan" as any)
-        .eq("id", user.id)
-        .single();
+        .eq("id", companyScopeId)
+        .maybeSingle();
 
       const cp = companyProfile as any;
       let companyLocation = cp?.fiscal_address || null;
@@ -49,7 +53,7 @@ export function useVacancyManager() {
           .from("profiles")
           .select("location")
           .eq("id", user.id)
-          .single();
+          .maybeSingle();
         companyLocation = generalProfile?.location || null;
       }
 
@@ -67,7 +71,7 @@ export function useVacancyManager() {
         const { count: activeCount } = await supabase
           .from("vacancies")
           .select("id", { count: "exact", head: true })
-          .eq("company_id", user.id)
+          .eq("company_id", companyScopeId)
           .eq("is_active", true);
 
         if ((activeCount || 0) >= maxAllowed) {
@@ -80,7 +84,7 @@ export function useVacancyManager() {
       const { data, error: insertError } = await supabase
         .from("vacancies")
         .insert({
-          company_id: user.id,
+          company_id: companyScopeId,
           recruiter_id: user.id,
           title: params.title,
           zone: params.zone,
@@ -123,10 +127,13 @@ export function useVacancyManager() {
       if (isActive) {
         const { data: { user } } = await supabase.auth.getUser();
         if (user) {
+          const scopeRes = await getActiveCompanyContextAction();
+          const companyScopeId = scopeRes.success ? scopeRes.data.companyId : user.id;
+
           const { data: compProfile } = await supabase
             .from("company_profiles")
             .select("subscription_plan")
-            .eq("id", user.id)
+            .eq("id", companyScopeId)
             .maybeSingle();
 
           const plan = compProfile?.subscription_plan || "basic";
@@ -138,7 +145,7 @@ export function useVacancyManager() {
             const { count: activeCount } = await supabase
               .from("vacancies")
               .select("id", { count: "exact", head: true })
-              .eq("company_id", user.id)
+              .eq("company_id", companyScopeId)
               .eq("is_active", true);
 
             if ((activeCount || 0) >= maxAllowed) {
