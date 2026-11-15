@@ -201,8 +201,8 @@ export function NavUser({
               />
             }
           >
-            <Avatar className={cn(compact ? "size-8.5" : "size-8", "rounded-xl ring-1 ring-border/50 shrink-0")}>
-              <AvatarImage src={userData.avatar} alt={userData.name} className="object-cover" />
+            <Avatar className={cn(compact ? "size-8.5" : "size-8", "rounded-xl shrink-0 after:hidden")}>
+              <AvatarImage src={userData.avatar} alt={userData.name} className="rounded-xl object-cover" />
               <AvatarFallback className="rounded-xl bg-primary/10 text-primary font-bold text-xs">
                 {initials}
               </AvatarFallback>
@@ -236,8 +236,8 @@ export function NavUser({
             {/* 1. Header Card: Mini Dossier del Usuario */}
             <div className="p-3 rounded-xl bg-muted/40 border border-border/40 text-left">
               <div className="flex items-center gap-3">
-                <Avatar className="size-10 rounded-xl ring-2 ring-primary/25 border border-border/50 shadow-2xs shrink-0">
-                  <AvatarImage src={userData.avatar} alt={userData.name} className="object-cover" />
+                <Avatar className="size-10 rounded-xl shrink-0 after:hidden">
+                  <AvatarImage src={userData.avatar} alt={userData.name} className="rounded-xl object-cover" />
                   <AvatarFallback className="rounded-xl bg-primary/10 text-primary font-black text-xs">
                     {initials}
                   </AvatarFallback>

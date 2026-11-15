@@ -1,147 +1,93 @@
 "use client";
 
-import * as React from "react";
+import React from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { ArrowRight, UserCheck, Building2, Check, Sparkles } from "@/components/ui/icons";
-import { Button } from "@/components/ui/button";
-import { cn } from "@/lib/utils";
+import { HugeiconsIcon } from "@hugeicons/react";
+import {
+  ArrowRight01Icon,
+  Briefcase01Icon,
+  Building03Icon,
+  UserAccountIcon,
+} from "@hugeicons/core-free-icons";
+
+const PROFILE_OPTIONS = [
+  {
+    id: "independent",
+    title: "Profesional independiente",
+    description: "Ofrece tus servicios y trabaja por cuenta propia.",
+    href: "/register/candidate?profile=independent",
+    icon: UserAccountIcon,
+  },
+  {
+    id: "company",
+    title: "Empresa",
+    description: "Publica vacantes y gestiona a tu equipo.",
+    href: "/register/company",
+    icon: Building03Icon,
+  },
+  {
+    id: "candidate",
+    title: "Candidato",
+    description: "Encuentra oportunidades de empleo y postúlate a vacantes.",
+    href: "/register/candidate",
+    icon: Briefcase01Icon,
+  },
+] as const;
 
 export function RegisterOptions() {
-  const router = useRouter();
-  const [selectedRole, setSelectedRole] = React.useState<"candidate" | "company">("candidate");
-
-  const handleCardClick = (role: "candidate" | "company") => {
-    if (selectedRole === role) {
-      router.push(`/register/${role}`);
-    } else {
-      setSelectedRole(role);
-    }
-  };
-
-  const handleNext = () => {
-    router.push(`/register/${selectedRole}`);
-  };
-
   return (
-    <div className="w-full flex flex-col items-center gap-6">
-      {/* ── Header ── */}
-      <header className="flex flex-col gap-1.5 items-center text-center w-full">
-        <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-primary/10 text-primary text-xs font-bold tracking-wide select-none">
-          <Sparkles className="size-3.5" />
-          <span>Únete a K&apos;anPro</span>
-        </div>
-        <h1 className="text-2xl sm:text-3xl font-extrabold text-foreground tracking-tight">
-          Selecciona tu Perfil
+    <div className="w-full max-w-[1056px] flex flex-col items-center gap-10">
+      {/* Título e instrucciones */}
+      <div className="flex flex-col items-center text-center gap-3 max-w-[760px]">
+        <h1 className="text-[32px] sm:text-[44px] font-semibold leading-[1.18] sm:leading-[52px] tracking-[-1px] sm:tracking-[-1.4px] text-foreground">
+          Crea tu cuenta de Kanpro
         </h1>
-        <p className="text-xs sm:text-sm text-muted-foreground max-w-sm leading-relaxed">
-          Elige si te registras como candidato en búsqueda de empleo o como empresa empleadora.
+        <p className="text-[16px] font-normal leading-[24px] text-muted-foreground">
+          Elige el perfil que mejor describe lo que quieres hacer.
         </p>
-      </header>
-
-      {/* ── Roles Selector ── */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5 w-full">
-        {/* Card: Candidato */}
-        <button
-          type="button"
-          onClick={() => handleCardClick("candidate")}
-          onKeyDown={(e) => e.key === "Enter" && router.push("/register/candidate")}
-          className={cn(
-            "relative flex flex-col items-center text-center p-5 rounded-2xl border-2 transition-all cursor-pointer select-none gap-3 group active:scale-[0.98]",
-            selectedRole === "candidate"
-              ? "border-primary bg-primary/5 dark:bg-primary/10 shadow-sm ring-1 ring-primary/20"
-              : "border-border/80 bg-card hover:border-border hover:bg-muted/40"
-          )}
-        >
-          {selectedRole === "candidate" && (
-            <div className="absolute top-3 right-3 size-5 rounded-full bg-primary text-primary-foreground flex items-center justify-center shadow-xs">
-              <Check className="size-3 stroke-[3]" />
-            </div>
-          )}
-
-          <div
-            className={cn(
-              "size-14 rounded-2xl flex items-center justify-center transition-colors shadow-2xs",
-              selectedRole === "candidate"
-                ? "bg-primary text-primary-foreground"
-                : "bg-muted text-muted-foreground group-hover:text-foreground"
-            )}
-          >
-            <UserCheck className="size-7" />
-          </div>
-
-          <div className="space-y-1">
-            <h3 className="text-base font-bold text-foreground">
-              Candidato
-            </h3>
-            <p className="text-xs text-muted-foreground leading-relaxed">
-              Postúlate a vacantes y destaca tu perfil profesional.
-            </p>
-          </div>
-        </button>
-
-        {/* Card: Empresa */}
-        <button
-          type="button"
-          onClick={() => handleCardClick("company")}
-          onKeyDown={(e) => e.key === "Enter" && router.push("/register/company")}
-          className={cn(
-            "relative flex flex-col items-center text-center p-5 rounded-2xl border-2 transition-all cursor-pointer select-none gap-3 group active:scale-[0.98]",
-            selectedRole === "company"
-              ? "border-primary bg-primary/5 dark:bg-primary/10 shadow-sm ring-1 ring-primary/20"
-              : "border-border/80 bg-card hover:border-border hover:bg-muted/40"
-          )}
-        >
-          {selectedRole === "company" && (
-            <div className="absolute top-3 right-3 size-5 rounded-full bg-primary text-primary-foreground flex items-center justify-center shadow-xs">
-              <Check className="size-3 stroke-[3]" />
-            </div>
-          )}
-
-          <div
-            className={cn(
-              "size-14 rounded-2xl flex items-center justify-center transition-colors shadow-2xs",
-              selectedRole === "company"
-                ? "bg-primary text-primary-foreground"
-                : "bg-muted text-muted-foreground group-hover:text-foreground"
-            )}
-          >
-            <Building2 className="size-7" />
-          </div>
-
-          <div className="space-y-1">
-            <h3 className="text-base font-bold text-foreground">
-              Empresa
-            </h3>
-            <p className="text-xs text-muted-foreground leading-relaxed">
-              Publica ofertas laborales y contrata el mejor talento.
-            </p>
-          </div>
-        </button>
       </div>
 
-      {/* ── Action Button: Continuar ── */}
-      <Button
-        onClick={handleNext}
-        className="w-full h-12 rounded-xl bg-primary hover:bg-primary/90 text-primary-foreground font-bold text-sm sm:text-base shadow-xs transition-all duration-200 flex items-center justify-center gap-2 cursor-pointer active:scale-[0.99]"
-      >
-        <span>
-          Continuar como {selectedRole === "candidate" ? "Candidato" : "Empresa"}
-        </span>
-        <ArrowRight className="size-4" />
-      </Button>
-
-      {/* ── Navigation Links ── */}
-      <div className="text-center pt-2 border-t border-border/80 w-full">
-        <p className="text-xs sm:text-sm text-muted-foreground font-medium">
-          ¿Ya tienes una cuenta?{" "}
+      {/* Perfiles de registro */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 w-full">
+        {PROFILE_OPTIONS.map((profile) => (
           <Link
-            href="/login"
-            className="text-foreground font-bold hover:text-primary underline ml-1 transition-colors"
+            key={profile.id}
+            href={profile.href}
+            className="group bg-card border border-border rounded-[16px] p-6 min-h-[248px] flex flex-col justify-between gap-5 transition-colors hover:border-link/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
           >
-            Inicia Sesión
+            <div className="flex flex-col gap-5">
+              <div className="size-[52px] rounded-[12px] bg-[#ddf4ef] dark:bg-[#203c37] text-link flex items-center justify-center shrink-0">
+                <HugeiconsIcon
+                  icon={profile.icon}
+                  size={26}
+                  strokeWidth={1.75}
+                />
+              </div>
+
+              <div className="flex flex-col gap-1.5">
+                <h2 className="text-[20px] font-semibold leading-[28px] text-foreground">
+                  {profile.title}
+                </h2>
+                <p className="text-[16px] font-normal leading-[24px] text-muted-foreground">
+                  {profile.description}
+                </p>
+              </div>
+            </div>
+
+            <div className="flex flex-col gap-5">
+              <div className="h-px w-full bg-border" />
+              <div className="min-h-[44px] flex items-center justify-between text-[14px] font-semibold leading-[20px] text-link">
+                <span>Continuar</span>
+                <HugeiconsIcon
+                  icon={ArrowRight01Icon}
+                  size={18}
+                  strokeWidth={2}
+                  className="transition-transform group-hover:translate-x-0.5"
+                />
+              </div>
+            </div>
           </Link>
-        </p>
+        ))}
       </div>
     </div>
   );

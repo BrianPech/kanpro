@@ -1,59 +1,47 @@
-import { useState, useMemo } from "react";
+import { useState } from "react";
 import { useForm, type SubmitHandler } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import {
-  companyRegisterCredentialsSchema,
-  type CompanyRegisterCredentialsValues,
-} from "../schemas/register.schema";
+import { z } from "zod";
+import { companyRegisterSchema } from "../schemas/register.schema";
 import { authService } from "../services/auth-service";
+
+const companyCredentialsSchema = companyRegisterSchema.pick({
+  email: true,
+  password: true,
+});
+
+type CompanyCredentialsValues = z.infer<typeof companyCredentialsSchema>;
 
 export function useCompanyRegisterForm() {
   const router = useRouter();
   const [showPassword, setShowPassword] = useState(false);
-  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [isSocialSubmitting, setIsSocialSubmitting] = useState(false);
 
-  const credentialsForm = useForm<CompanyRegisterCredentialsValues>({
-    resolver: zodResolver(companyRegisterCredentialsSchema),
+  const credentialsForm = useForm<CompanyCredentialsValues>({
+    resolver: zodResolver(companyCredentialsSchema),
     defaultValues: {
       email: "",
       password: "",
-      confirmPassword: "",
     },
     mode: "onTouched",
   });
 
-  const passwordValue = credentialsForm.watch("password") || "";
-  const confirmPasswordValue = credentialsForm.watch("confirmPassword") || "";
-
-  const passwordCriteria = useMemo(() => {
-    return {
-      hasMinLength: passwordValue.length >= 8,
-      hasUppercase: /[A-Z]/.test(passwordValue),
-      hasNumber: /[0-9]/.test(passwordValue),
-    };
-  }, [passwordValue]);
-
-  const passwordsMatch = useMemo(() => {
-    if (!confirmPasswordValue) return true;
-    return passwordValue === confirmPasswordValue;
-  }, [passwordValue, confirmPasswordValue]);
-
-  const onRegisterSubmit: SubmitHandler<CompanyRegisterCredentialsValues> = async (data) => {
+  const onRegisterSubmit: SubmitHandler<CompanyCredentialsValues> = async (
+    data
+  ) => {
     try {
       setIsSubmitting(true);
       const response = await authService.signUpCompany({
         email: data.email,
         password: data.password,
-        confirmPassword: data.confirmPassword,
       });
 
       if (!response.session) {
         toast.success("Cuenta creada con éxito", {
-          description: "Revisa tu correo electrónico para confirmar tu cuenta y continuar.",
+          description:
+            "Revisa tu correo electrónico para confirmar tu cuenta y continuar.",
         });
         router.push(`/verify-email?email=${encodeURIComponent(data.email)}`);
         return;
@@ -81,31 +69,12 @@ export function useCompanyRegisterForm() {
     }
   };
 
-  const handleOAuthRegister = async (provider: "google") => {
-    try {
-      setIsSocialSubmitting(true);
-      await authService.signInWithOAuth(provider, "company", "/onboarding");
-    } catch (err: unknown) {
-      console.error("Error en registro con Google:", err);
-      const msg = err instanceof Error ? err.message : "No se pudo conectar con Google";
-      toast.error("Error al registrarse con Google", { description: msg });
-    } finally {
-      setIsSocialSubmitting(false);
-    }
-  };
-
   return {
     credentialsRegister: credentialsForm.register,
     credentialsErrors: credentialsForm.formState.errors,
     isSubmitting,
-    isSocialSubmitting,
-    handleOAuthRegister,
     showPassword,
     setShowPassword,
-    showConfirmPassword,
-    setShowConfirmPassword,
-    passwordCriteria,
-    passwordsMatch,
     handleRegisterSubmit: credentialsForm.handleSubmit(onRegisterSubmit),
   };
 }

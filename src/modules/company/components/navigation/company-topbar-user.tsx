@@ -33,12 +33,14 @@ export interface CompanyTopbarUserProps {
   initialName?: string;
   initialInitials?: string;
   className?: string;
+  showName?: boolean;
 }
 
 export function CompanyTopbarUser({
   initialName,
   initialInitials,
   className,
+  showName = false,
 }: CompanyTopbarUserProps) {
   const router = useRouter();
   const [isSettingsOpen, setIsSettingsOpen] = React.useState(false);
@@ -86,8 +88,12 @@ export function CompanyTopbarUser({
             .maybeSingle();
 
           if (companyProfile) {
-            if (companyProfile.company_name) name = companyProfile.company_name;
-            if (companyProfile.logo_url) avatar = companyProfile.logo_url;
+            if (companyProfile.company_name && !showName) {
+              name = companyProfile.company_name;
+            }
+            if (companyProfile.logo_url && !showName) {
+              avatar = companyProfile.logo_url;
+            }
             isVerified = companyProfile.verification_status === "approved";
           }
 
@@ -100,7 +106,7 @@ export function CompanyTopbarUser({
     }
 
     fetchUserData();
-  }, [initialName]);
+  }, [initialName, showName]);
 
   const handleLogout = () => {
     window.location.href = "/auth/logout";
@@ -126,23 +132,42 @@ export function CompanyTopbarUser({
           <button
             type="button"
             className={cn(
-              "relative size-8 rounded-full ring-1.5 ring-border/80 hover:ring-primary/60 focus-visible:ring-primary focus-visible:ring-2 focus-visible:outline-none transition-all cursor-pointer shrink-0 select-none overflow-hidden",
+              showName
+                ? "flex items-center gap-2 rounded-[12px] pr-2 hover:bg-background/60 transition-colors cursor-pointer shrink-0 select-none focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:outline-none"
+                : "relative size-8 rounded-full ring-1.5 ring-border/80 hover:ring-primary/60 focus-visible:ring-primary focus-visible:ring-2 focus-visible:outline-none transition-all cursor-pointer shrink-0 select-none overflow-hidden",
               className
             )}
             aria-label="Abrir menú de usuario"
           />
         }
       >
-        <Avatar className="size-full rounded-full">
+        <Avatar
+          className={
+            showName
+              ? "size-[44px] rounded-[12px] shrink-0 after:hidden"
+              : "size-full rounded-full after:hidden"
+          }
+        >
           <AvatarImage
             src={userData.avatar}
             alt={userData.name}
-            className="object-cover"
+            className={showName ? "rounded-[12px] object-cover" : "object-cover"}
           />
-          <AvatarFallback className="bg-primary/10 text-primary font-extrabold text-[11px]">
+          <AvatarFallback
+            className={
+              showName
+                ? "rounded-[12px] bg-sidebar-accent text-link font-bold text-[15px]"
+                : "bg-primary/10 text-primary font-extrabold text-[11px]"
+            }
+          >
             {initials}
           </AvatarFallback>
         </Avatar>
+        {showName && (
+          <span className="hidden sm:inline text-[14px] font-medium leading-[19px] text-foreground whitespace-nowrap">
+            {userData.name}
+          </span>
+        )}
       </DropdownMenuTrigger>
 
       <DropdownMenuContent
@@ -154,11 +179,11 @@ export function CompanyTopbarUser({
         {/* 1. Header Card: Mini Dossier del Usuario */}
         <div className="p-3 rounded-xl bg-muted/40 border border-border/40 text-left">
           <div className="flex items-center gap-3">
-            <Avatar className="size-10 rounded-xl ring-2 ring-primary/25 border border-border/50 shadow-2xs shrink-0">
+            <Avatar className="size-10 rounded-xl shrink-0 after:hidden">
               <AvatarImage
                 src={userData.avatar}
                 alt={userData.name}
-                className="object-cover"
+                className="rounded-xl object-cover"
               />
               <AvatarFallback className="rounded-xl bg-primary/10 text-primary font-black text-xs">
                 {initials}

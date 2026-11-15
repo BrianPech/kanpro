@@ -1,59 +1,39 @@
 "use client";
 
-import { usePathname } from "next/navigation";
-import Link from "next/link";
-import {
-  Bell,
-  UserPlus,
-  Plus,
-  FileSpreadsheet,
-} from "@/components/ui/icons";
 import * as React from "react";
-
+import Link from "next/link";
+import { usePathname } from "next/navigation";
+import { Bell, ChevronRight } from "@/components/ui/icons";
 import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
 import { SidebarTrigger } from "@/components/ui/sidebar";
-import { Separator } from "@/components/ui/separator";
-import {
-  Breadcrumb,
-  BreadcrumbItem,
-  BreadcrumbLink,
-  BreadcrumbList,
-  BreadcrumbPage,
-  BreadcrumbSeparator,
-} from "@/components/ui/breadcrumb";
 import { NotificationBell } from "@/modules/notifications/components/notification-bell";
 import { CompanyTopbarUser } from "./company-topbar-user";
-import { CompanySwitcher } from "./company-switcher";
 import type { UserCompanyItem } from "@/modules/company/services/company-tenant.service";
 
 const companyRouteNames: Record<string, string> = {
-  "/dashboard/company": "Dashboard",
-  "/dashboard/company/attendance": "Asistencia y Checador",
-  "/dashboard/company/incidents": "Incidencias Laborales",
-  "/dashboard/company/contracts": "Contratos y Vencimientos",
-  "/dashboard/company/leaves": "Vacaciones y Permisos",
-  "/dashboard/company/evaluations": "Evaluaciones 360",
-  "/dashboard/company/payroll": "Nómina y Dispersión",
-  "/dashboard/company/reports": "Centro de Reportes",
-  "/dashboard/company/vacancies": "Mis Vacantes",
-  "/dashboard/company/vacancies/new": "Publicar Oferta",
-  "/dashboard/company/applications": "Postulantes",
-  "/dashboard/company/employees": "Empleados",
-  "/dashboard/company/profile": "Perfil Corporativo",
-  "/dashboard/company/areas": "Áreas & Departamentos",
-  "/dashboard/company/verification": "Verificación de Empresa",
+  "/dashboard/company": "Inicio",
+  "/dashboard/company/employees": "Plantilla",
+  "/dashboard/company/attendance": "Asistencia",
+  "/dashboard/company/leaves": "Permisos y vacaciones",
+  "/dashboard/company/incidents": "Incidencias",
+  "/dashboard/company/contracts": "Contratos",
+  "/dashboard/company/payroll": "Nómina",
+  "/dashboard/company/vacancies": "Vacantes",
+  "/dashboard/company/vacancies/new": "Nueva vacante",
+  "/dashboard/company/applications": "Postulaciones",
+  "/dashboard/company/radar": "Radar de talento",
+  "/dashboard/company/areas": "Áreas",
+  "/dashboard/company/evaluations": "Evaluaciones",
+  "/dashboard/company/reports": "Reportes",
   "/dashboard/company/settings": "Configuración",
-  "/dashboard/company/radar": "Radar de Talento",
+  "/dashboard/company/profile": "Perfil de empresa",
+  "/dashboard/company/verification": "Verificación",
 };
 
 export function DashboardTopbar({
   userName,
   userInitials,
-  plan: _plan,
-  role = "company",
-  companies = [],
-  activeCompanyId,
 }: {
   userName?: string;
   userInitials?: string;
@@ -63,141 +43,69 @@ export function DashboardTopbar({
   activeCompanyId?: string;
 }) {
   const pathname = usePathname();
-  const supabase = createClient();
   const [userId, setUserId] = React.useState<string | null>(null);
 
   React.useEffect(() => {
+    const supabase = createClient();
     async function loadUser() {
-      const { data: { user } } = await supabase.auth.getUser();
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
       if (user) {
         setUserId(user.id);
       }
     }
-    loadUser();
-  }, [supabase]);
+    void loadUser();
+  }, []);
 
-  const currentTitle = companyRouteNames[pathname] || (pathname.includes("/vacancies/") ? "Detalle de Vacante" : "Portal Empresa");
-  const isRoot = pathname === "/dashboard/company";
-  const isEmployeesPage = pathname === "/dashboard/company/employees";
-  const isAreasPage = pathname === "/dashboard/company/areas";
+  const currentTitle =
+    companyRouteNames[pathname] ||
+    (pathname.includes("/vacancies/") ? "Detalle de vacante" : "Inicio");
 
   return (
-    <header className="flex h-16 shrink-0 items-center justify-between gap-2 border-b border-border bg-background/95 backdrop-blur-md px-4 md:px-6 transition-all">
-      {/* Left Area: Sidebar Trigger & Breadcrumbs */}
-      <div className="flex items-center gap-2 min-w-0">
-        <SidebarTrigger className="-ml-1 h-8 w-8 hover:bg-muted hidden md:flex shrink-0" />
-        <Separator
-          orientation="vertical"
-          className="mr-2 data-vertical:h-4 data-vertical:self-auto hidden md:block shrink-0"
-        />
-        <Breadcrumb className="min-w-0">
-          <BreadcrumbList className="min-w-0 flex-nowrap">
-            {isRoot ? (
-              <BreadcrumbItem className="min-w-0">
-                <BreadcrumbPage className="font-bold text-sm sm:text-base text-foreground truncate">
-                  Dashboard
-                </BreadcrumbPage>
-              </BreadcrumbItem>
-            ) : (
-              <>
-                <BreadcrumbItem className="hidden md:block shrink-0">
-                  <BreadcrumbLink render={<Link href="/dashboard/company" />} className="text-xs text-muted-foreground font-medium">
-                    Empresa
-                  </BreadcrumbLink>
-                </BreadcrumbItem>
-                <BreadcrumbSeparator className="hidden md:block text-muted-foreground/40 shrink-0" />
-                <BreadcrumbItem className="min-w-0">
-                  <BreadcrumbPage className="font-bold text-sm sm:text-base text-foreground truncate">
-                    {currentTitle}
-                  </BreadcrumbPage>
-                </BreadcrumbItem>
-              </>
-            )}
-          </BreadcrumbList>
-        </Breadcrumb>
+    <header className="flex h-16 shrink-0 items-center justify-between gap-2 bg-sidebar px-4 md:px-8">
+      {/* Ruta actual + trigger móvil */}
+      <div className="flex items-center gap-2.5 min-w-0">
+        <SidebarTrigger className="md:hidden -ml-1 size-9 hover:bg-background/60 shrink-0" />
+        <nav
+          aria-label="Ruta actual"
+          className="flex items-center gap-2.5 text-[14px] leading-[19px] min-w-0"
+        >
+          <Link
+            href="/dashboard/company"
+            className="font-medium text-muted-foreground hover:text-foreground transition-colors whitespace-nowrap"
+          >
+            Empresas
+          </Link>
+          <ChevronRight className="size-4 text-muted-foreground shrink-0" />
+          <span className="font-semibold text-foreground truncate">
+            {currentTitle}
+          </span>
+        </nav>
       </div>
 
-      {/* Right Area: Action, Notifications & Mobile User Avatar */}
-      <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
-        {role === "company" && (
-          <CompanySwitcher
-            companies={companies}
-            activeCompanyId={activeCompanyId}
-            className="flex max-w-[130px] sm:max-w-[240px]"
-          />
-        )}
-        {role === "company" && isRoot && (
-          <div className="flex items-center gap-1.5 sm:gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              render={<Link href="/dashboard/company/reports" />}
-              className="font-semibold px-2.5 sm:px-3 text-xs cursor-pointer"
-            >
-              <FileSpreadsheet data-icon="inline-start" />
-              <span className="hidden sm:inline">Reportes</span>
-            </Button>
-            <Button
-              size="sm"
-              render={<Link href="/dashboard/company/employees?action=new" />}
-              className="font-semibold px-2.5 sm:px-3 text-xs cursor-pointer"
-            >
-              <UserPlus data-icon="inline-start" />
-              <span className="hidden sm:inline">Registrar Empleado</span>
-              <span className="sm:hidden">Registrar</span>
-            </Button>
-          </div>
-        )}
-
-        {role === "company" && isEmployeesPage && (
-          <Button
-            size="sm"
-            onClick={() => {
-              window.dispatchEvent(new CustomEvent("open-register-employee-modal"));
-            }}
-            className="font-semibold px-2.5 sm:px-3 text-xs cursor-pointer"
-            data-testid="register-employee-btn"
-          >
-            <UserPlus data-icon="inline-start" />
-            <span className="hidden sm:inline">Registrar Empleado</span>
-            <span className="sm:hidden">Registrar</span>
-          </Button>
-        )}
-
-        {role === "company" && isAreasPage && (
-          <Button
-            size="sm"
-            onClick={() => {
-              window.dispatchEvent(new CustomEvent("open-create-area-modal"));
-            }}
-            className="font-semibold px-2.5 sm:px-3 text-xs cursor-pointer"
-            data-testid="create-area-btn"
-          >
-            <Plus data-icon="inline-start" />
-            <span className="hidden sm:inline">Nueva Área</span>
-            <span className="sm:hidden">Área</span>
-          </Button>
-        )}
-
+      {/* Controles globales: Notificaciones y Menú de cuenta */}
+      <div className="flex items-center gap-2 shrink-0">
         {userId ? (
           <NotificationBell userId={userId} />
         ) : (
           <Button
             variant="ghost"
             size="icon"
-            className="relative size-8 text-muted-foreground hover:bg-muted cursor-pointer"
+            aria-label="Notificaciones"
+            className="relative size-[44px] rounded-[8px] text-foreground hover:bg-background/60 cursor-pointer"
           >
-            <Bell className="size-4" />
+            <Bell className="size-5" />
           </Button>
         )}
 
-        {/* Avatar y Dropdown de Usuario visible en vista móvil */}
-        <div className="flex md:hidden items-center ml-0.5">
-          <CompanyTopbarUser
-            initialName={userName}
-            initialInitials={userInitials}
-          />
-        </div>
+        <div className="h-6 w-px bg-border mx-1" aria-hidden="true" />
+
+        <CompanyTopbarUser
+          initialName={userName}
+          initialInitials={userInitials}
+          showName
+        />
       </div>
     </header>
   );

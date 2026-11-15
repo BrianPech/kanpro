@@ -1,542 +1,330 @@
 "use client";
 
 import * as React from "react";
+import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { toast } from "sonner";
+import { HugeiconsIcon } from "@hugeicons/react";
 import {
-  LayoutDashboard,
-  KanproIsotype,
-  Building2,
-  Briefcase,
-  Users,
-  UserCheck,
-  ShieldCheck,
-  Settings,
-  HelpCircle,
-  Clock,
-  ShieldAlert,
-  FileCheck2,
-  CreditCard,
-  Star,
-  FileSpreadsheet,
-  UserPlus,
-  Plus,
-  Layers,
-  ChevronRight,
-  Lock,
-} from "@/components/ui/icons";
+  Alert02Icon,
+  BarChartIcon,
+  Briefcase01Icon,
+  Building03Icon,
+  Calendar03Icon,
+  CheckmarkBadge01Icon,
+  Clock01Icon,
+  CompassIcon,
+  File02Icon,
+  HelpCircleIcon,
+  Home01Icon,
+  InboxIcon,
+  Invoice01Icon,
+  Layers01Icon,
+  Settings01Icon,
+  StarIcon,
+  UserGroupIcon,
+} from "@hugeicons/core-free-icons";
+import { Lock } from "@/components/ui/icons";
 import {
   getLockedModuleBadge,
   isCompanyRouteAllowed,
 } from "@/modules/company/config/demo-rollout";
-
 import {
   Sidebar,
   SidebarContent,
   SidebarFooter,
   SidebarGroup,
-  SidebarGroupContent,
+  SidebarGroupLabel,
   SidebarHeader,
   SidebarMenu,
-  SidebarMenuButton,
   SidebarMenuItem,
   useSidebar,
 } from "@/components/ui/sidebar";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { NavUser } from "@/components/shared/nav-user";
+import { CompanySwitcher } from "./company-switcher";
+import type { UserCompanyItem } from "@/modules/company/services/company-tenant.service";
 import { cn } from "@/lib/utils";
-import { CompanySettingsModal } from "../company-settings-dialog";
 
-export interface SubMenuItem {
+type HugeIconType = typeof Home01Icon;
+
+interface NavItem {
   title: string;
   url: string;
-  icon: React.ElementType;
-  description?: string;
-  badge?: string;
+  icon: HugeIconType;
 }
 
-export interface PrimarySection {
+interface NavGroup {
   id: string;
   label: string;
-  shortLabel: string;
-  icon: React.ElementType;
-  description: string;
-  action?: {
-    label: string;
-    url: string;
-    icon: React.ElementType;
-  };
-  items: SubMenuItem[];
+  items: NavItem[];
 }
 
-export const companySections: PrimarySection[] = [
+const COMPANY_NAV_GROUPS: NavGroup[] = [
   {
-    id: "analytics",
-    label: "Inicio & Analítica",
-    shortLabel: "Inicio",
-    icon: LayoutDashboard,
-    description: "Métricas operativas y centros de reportes ejecutivos.",
+    id: "empresa",
+    label: "Empresa",
     items: [
+      { title: "Inicio", url: "/dashboard/company", icon: Home01Icon },
       {
-        title: "Dashboard General",
-        url: "/dashboard/company",
-        icon: LayoutDashboard,
-        description: "Resumen de empleados, alertas y actividades.",
-      },
-      {
-        title: "Centro de Reportes",
-        url: "/dashboard/company/reports",
-        icon: FileSpreadsheet,
-        description: "Exportaciones de nómina, asistencias y personal.",
-      },
-    ],
-  },
-  {
-    id: "people",
-    label: "Gestión de Personal",
-    shortLabel: "Personal",
-    icon: Users,
-    description: "Administración de empleados, expedientes y contratos.",
-    action: {
-      label: "+ Registrar Empleado",
-      url: "/dashboard/company/employees?action=new",
-      icon: UserPlus,
-    },
-    items: [
-      {
-        title: "Plantilla de Empleados",
+        title: "Plantilla",
         url: "/dashboard/company/employees",
-        icon: UserCheck,
-        description: "Directorio completo de empleados activos e inactivos.",
+        icon: UserGroupIcon,
       },
       {
-        title: "Contratos & Bajas",
-        url: "/dashboard/company/contracts",
-        icon: FileCheck2,
-        description: "Seguimiento de contratos, periodos de prueba y renovaciones.",
-      },
-      {
-        title: "Evaluaciones 360",
-        url: "/dashboard/company/evaluations",
-        icon: Star,
-        description: "Desempeño, competencias y feedback continuo.",
-      },
-    ],
-  },
-  {
-    id: "operations",
-    label: "Operaciones & Asistencia",
-    shortLabel: "Operaciones",
-    icon: Clock,
-    description: "Control horario, checador, ausencias e incidencias.",
-    items: [
-      {
-        title: "Asistencia & Checador",
+        title: "Asistencia",
         url: "/dashboard/company/attendance",
-        icon: Clock,
-        description: "Marcajes biométricos, retardos y turnos en tiempo real.",
+        icon: Clock01Icon,
       },
       {
-        title: "Vacaciones & Permisos",
+        title: "Permisos y vacaciones",
         url: "/dashboard/company/leaves",
-        icon: Layers,
-        description: "Solicitudes de descanso, días económicos y aprobaciones.",
+        icon: Calendar03Icon,
       },
       {
-        title: "Incidencias Laborales",
+        title: "Incidencias",
         url: "/dashboard/company/incidents",
-        icon: ShieldAlert,
-        description: "Justificantes, faltas, actas administrativas y notas.",
+        icon: Alert02Icon,
       },
+      {
+        title: "Contratos",
+        url: "/dashboard/company/contracts",
+        icon: File02Icon,
+      },
+      { title: "Nómina", url: "/dashboard/company/payroll", icon: Invoice01Icon },
     ],
   },
   {
-    id: "payroll",
-    label: "Compensaciones",
-    shortLabel: "Nómina",
-    icon: CreditCard,
-    description: "Cálculo y dispersión de salarios y recibos fiscales.",
-    items: [
-      {
-        title: "Nómina & Pagos",
-        url: "/dashboard/company/payroll",
-        icon: CreditCard,
-        description: "Periodos de nómina, dispersiones bancarias y recibos.",
-      },
-    ],
-  },
-  {
-    id: "company",
-    label: "Mi Empresa",
-    shortLabel: "Empresa",
-    icon: Building2,
-    description: "Configuración corporativa, datos fiscales y acreditaciones.",
-    items: [
-      {
-        title: "Perfil Corporativo",
-        url: "/dashboard/company/profile",
-        icon: Building2,
-        description: "Razón social, logo, sucursales y datos de contacto.",
-      },
-      {
-        title: "Áreas & Departamentos",
-        url: "/dashboard/company/areas",
-        icon: Layers,
-        description: "Estructura organizacional, departamentos y áreas operativas.",
-      },
-      {
-        title: "Sello de Verificación",
-        url: "/dashboard/company/verification",
-        icon: ShieldCheck,
-        description: "Expediente digital y verificación de certeza laboral.",
-      },
-    ],
-  },
-  {
-    id: "recruitment",
+    id: "reclutamiento",
     label: "Reclutamiento",
-    shortLabel: "Talento",
-    icon: Briefcase,
-    description: "Atracción de talento, vacantes y selección de candidatos.",
-    action: {
-      label: "+ Publicar Vacante",
-      url: "/dashboard/company/vacancies/new",
-      icon: Plus,
-    },
     items: [
       {
-        title: "Mis Vacantes",
+        title: "Vacantes",
         url: "/dashboard/company/vacancies",
-        icon: Briefcase,
-        description: "Convocatorias abiertas, borradores y archivo.",
+        icon: Briefcase01Icon,
       },
       {
-        title: "Postulantes & Selección",
+        title: "Postulaciones",
         url: "/dashboard/company/applications",
-        icon: Users,
-        description: "Pipeline de candidatos y seguimiento de entrevistas.",
+        icon: InboxIcon,
+      },
+      {
+        title: "Radar de talento",
+        url: "/dashboard/company/radar",
+        icon: CompassIcon,
+      },
+    ],
+  },
+  {
+    id: "administracion",
+    label: "Administración",
+    items: [
+      { title: "Áreas", url: "/dashboard/company/areas", icon: Layers01Icon },
+      {
+        title: "Evaluaciones",
+        url: "/dashboard/company/evaluations",
+        icon: StarIcon,
+      },
+      {
+        title: "Reportes",
+        url: "/dashboard/company/reports",
+        icon: BarChartIcon,
+      },
+      {
+        title: "Configuración",
+        url: "/dashboard/company/settings",
+        icon: Settings01Icon,
+      },
+      {
+        title: "Perfil de empresa",
+        url: "/dashboard/company/profile",
+        icon: Building03Icon,
+      },
+      {
+        title: "Verificación",
+        url: "/dashboard/company/verification",
+        icon: CheckmarkBadge01Icon,
       },
     ],
   },
 ];
 
-export interface CompanySidebarProps extends React.ComponentProps<typeof Sidebar> {
+export interface CompanySidebarProps
+  extends React.ComponentProps<typeof Sidebar> {
   enabledModules?: string[];
+  companies?: UserCompanyItem[];
+  activeCompanyId?: string;
 }
 
 export function CompanySidebar({
   className,
   enabledModules,
+  companies = [],
+  activeCompanyId,
   ...props
 }: CompanySidebarProps) {
   const pathname = usePathname();
-  const { isMobile, setOpenMobile, setOpen } = useSidebar();
+  const { isMobile, setOpenMobile } = useSidebar();
+
   const isItemActive = React.useCallback(
     (url: string) => {
       if (url === "/dashboard/company") {
         return pathname === url;
       }
-      return pathname === url || (url !== "#" && pathname.startsWith(url + "/"));
+      return pathname === url || pathname.startsWith(`${url}/`);
     },
     [pathname]
   );
 
-  const currentSectionId = React.useMemo(() => {
-    for (const section of companySections) {
-      if (section.items.some((item) => isItemActive(item.url))) {
-        return section.id;
-      }
-    }
-    return companySections[0].id;
-  }, [isItemActive]);
-
-  const [selectedSectionId, setActiveSectionId] = React.useState<string | null>(null);
-  const [prevSectionId, setPrevSectionId] = React.useState<string>(currentSectionId);
-
-  if (prevSectionId !== currentSectionId) {
-    setPrevSectionId(currentSectionId);
-    setActiveSectionId(null);
-  }
-
-  const activeSectionId = selectedSectionId ?? currentSectionId;
-
-  const activeSection =
-    companySections.find((s) => s.id === activeSectionId) || companySections[0];
+  const handleNavClick = () => {
+    if (isMobile) setOpenMobile(false);
+  };
 
   return (
     <Sidebar
-      collapsible="icon"
+      collapsible="offcanvas"
       {...props}
       className={cn(
-        "p-0 overflow-hidden *:data-[sidebar=sidebar]:flex-row",
+        "border-none bg-sidebar text-sidebar-foreground select-none",
         className
       )}
     >
-      {/* 1. SIDEBAR PRIMARIA: Barra Compacta de Iconos (Categorías Principales) */}
-      <Sidebar
-        collapsible="none"
-        className="w-14 border-r border-sidebar-border bg-sidebar shrink-0 flex flex-col justify-between select-none"
-      >
-        {/* Header con Isotipo K'anPro */}
-        <SidebarHeader className="h-14 flex items-center justify-center p-0 border-none shrink-0">
-          <SidebarMenu className="w-full items-center">
-            <SidebarMenuItem className="w-full flex items-center justify-center">
-              <SidebarMenuButton
-                size="icon"
-                render={<Link href="/dashboard/company" />}
-                tooltip={{
-                  children: "K'anPro Portal Empresa",
-                  hidden: false,
-                  side: "right",
-                  sideOffset: 12,
-                }}
-                onClick={() => {
-                  setActiveSectionId("analytics");
-                  if (isMobile) setOpenMobile(false);
-                }}
-                className="size-10 p-0 flex items-center justify-center rounded-xl bg-primary text-primary-foreground hover:bg-primary/90 shadow-xs cursor-pointer has-[>svg:first-child]:pl-0 has-[>svg:last-child]:pr-0"
-              >
-                <KanproIsotype className="size-5 shrink-0" variant="white" />
-                <span className="sr-only">K&apos;anPro Empresa</span>
-              </SidebarMenuButton>
-            </SidebarMenuItem>
-          </SidebarMenu>
-        </SidebarHeader>
+      {/* Marca y selector de empresa */}
+      <SidebarHeader className="px-5 pt-0 pb-3 gap-3 bg-sidebar">
+        <div className="min-h-[64px] flex items-center pt-[5px]">
+          <Link
+            href="/dashboard/company"
+            onClick={handleNavClick}
+            aria-label="K'anPro - Inicio"
+            className="relative h-[43.667px] w-[117.087px] shrink-0"
+          >
+            <Image
+              src="/images/kanpro-mark-light.svg"
+              alt=""
+              width={34}
+              height={38}
+              priority
+              className="absolute left-0 top-0 h-[38.261px] w-[34.435px] dark:hidden"
+            />
+            <Image
+              src="/images/kanpro-mark-dark.svg"
+              alt=""
+              width={34}
+              height={38}
+              priority
+              className="absolute left-0 top-0 h-[38.261px] w-[34.435px] hidden dark:block"
+            />
+            <span className="absolute left-[42.09px] top-[14.67px] text-[24.232px] font-semibold leading-none whitespace-nowrap">
+              <span className="text-[#0b0b0b] dark:text-white">an </span>
+              <span className="text-link">Pro</span>
+            </span>
+          </Link>
+        </div>
 
-        {/* Contenido: Iconos de las Categorías Principales */}
-        <SidebarContent className="flex-1 py-3 px-0 overflow-hidden flex flex-col items-center">
-          <SidebarGroup className="p-0 w-full flex flex-col items-center">
-            <SidebarGroupContent className="w-full flex flex-col items-center">
-              <SidebarMenu className="gap-2 items-center w-full">
-                {companySections.map((section) => {
-                  const isActive = activeSection.id === section.id;
-                  const firstAllowedItem = section.items.find((it) =>
-                    isCompanyRouteAllowed(it.url, enabledModules)
-                  );
-                  const allLocked = !firstAllowedItem;
+        <CompanySwitcher
+          variant="sidebar"
+          companies={companies}
+          activeCompanyId={activeCompanyId}
+        />
 
-                  return (
-                    <SidebarMenuItem key={section.id} className="w-full flex items-center justify-center">
-                      <SidebarMenuButton
-                        size="icon"
-                        render={
-                          firstAllowedItem ? (
-                            <Link href={firstAllowedItem.url} />
-                          ) : undefined
-                        }
-                        tooltip={{
-                          children: allLocked
-                            ? `${section.label} (Próximamente)`
-                            : section.label,
-                          hidden: false,
-                          side: "right",
-                          sideOffset: 12,
-                        }}
-                        onClick={() => {
-                          setActiveSectionId(section.id);
-                          setOpen(true);
-                          if (isMobile && firstAllowedItem) setOpenMobile(false);
-                        }}
-                        isActive={isActive}
-                        className={cn(
-                          "size-10 p-0 flex items-center justify-center rounded-xl transition-all duration-150 relative cursor-pointer has-[>svg:first-child]:pl-0 has-[>svg:last-child]:pr-0",
-                          isActive
-                            ? "bg-sidebar-accent text-sidebar-accent-foreground font-bold shadow-xs hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
-                            : "text-muted-foreground hover:bg-sidebar-accent/60 hover:text-sidebar-foreground",
-                          allLocked && !isActive && "opacity-60"
-                        )}
-                      >
-                        <section.icon className="size-5 shrink-0" />
-                        <span className="sr-only">{section.label}</span>
-                      </SidebarMenuButton>
-                    </SidebarMenuItem>
-                  );
-                })}
-              </SidebarMenu>
-            </SidebarGroupContent>
-          </SidebarGroup>
-        </SidebarContent>
+        <div className="h-px w-full bg-border mt-1" />
+      </SidebarHeader>
 
-        {/* Footer: Configuración & Menú Compacto de Usuario */}
-        <SidebarFooter className="p-0 pb-3 space-y-2 flex flex-col items-center w-full border-none shrink-0">
-          <SidebarMenu className="w-full items-center">
-            <SidebarMenuItem className="w-full flex items-center justify-center">
-              <CompanySettingsModal
-                trigger={
-                  <SidebarMenuButton
-                    size="icon"
-                    tooltip={{
-                      children: "Configuración de Empresa",
-                      hidden: false,
-                      side: "right",
-                      sideOffset: 12,
-                    }}
-                    className="size-10 p-0 flex items-center justify-center rounded-xl text-muted-foreground hover:bg-sidebar-accent hover:text-sidebar-foreground cursor-pointer has-[>svg:first-child]:pl-0 has-[>svg:last-child]:pr-0"
-                  >
-                    <Settings className="size-5 shrink-0" />
-                    <span className="sr-only">Configuración</span>
-                  </SidebarMenuButton>
-                }
-              />
-            </SidebarMenuItem>
-          </SidebarMenu>
-
-          <div className="w-full flex items-center justify-center">
-            <NavUser compact={true} />
-          </div>
-        </SidebarFooter>
-      </Sidebar>
-
-      {/* 2. SIDEBAR SECUNDARIA: Panel de Sub-Opciones del Módulo Seleccionado */}
-      <Sidebar
-        collapsible="none"
-        className="w-auto flex-1 min-w-0 bg-sidebar flex flex-col justify-between"
-      >
-        {/* Header Secundario: Título de Categoría */}
-        <SidebarHeader className="px-3.5 py-3.5 pb-2 shrink-0 border-b-0">
-          <div className="flex items-center gap-2.5 min-w-0">
-            <div className="p-1.5 rounded-lg bg-primary/10 text-primary shrink-0">
-              <activeSection.icon className="size-4" />
-            </div>
-            <div className="min-w-0">
-              <h2 className="text-xs font-bold text-foreground truncate tracking-tight">
-                {activeSection.label}
-              </h2>
-              <p className="text-[10px] text-muted-foreground truncate font-medium">
-                {activeSection.shortLabel}
-              </p>
-            </div>
-          </div>
-        </SidebarHeader>
-
-        {/* Contenido: Lista de Sub-Opciones */}
-        <SidebarContent className="p-0 overflow-hidden flex-1 min-h-0">
-          <ScrollArea className="h-full w-full px-2.5 py-2">
-            <SidebarGroup className="p-0">
-              <SidebarGroupContent>
-                <SidebarMenu className="gap-1">
-                  {activeSection.items.map((item) => {
-                    const isActive = isItemActive(item.url);
-                    const lockBadge = getLockedModuleBadge(item.url, enabledModules);
-                    const isLocked = Boolean(lockBadge);
-                    const displayBadge = lockBadge || item.badge;
+      {/* Navegación principal */}
+      <SidebarContent className="bg-sidebar overflow-hidden">
+        <ScrollArea className="h-full px-5">
+          <div className="flex flex-col gap-4 pb-4">
+            {COMPANY_NAV_GROUPS.map((group) => (
+              <SidebarGroup key={group.id} className="p-0 gap-0.5">
+                <SidebarGroupLabel className="h-auto px-0 pb-1 text-[12px] font-semibold leading-[15px] text-muted-foreground">
+                  {group.label}
+                </SidebarGroupLabel>
+                <SidebarMenu className="gap-0.5">
+                  {group.items.map((item) => {
+                    const active = isItemActive(item.url);
+                    const allowed = isCompanyRouteAllowed(
+                      item.url,
+                      enabledModules
+                    );
+                    const lockedBadge = !allowed
+                      ? getLockedModuleBadge(item.url)
+                      : null;
 
                     return (
-                      <SidebarMenuItem key={item.title}>
-                        <SidebarMenuButton
-                          render={isLocked ? undefined : <Link href={item.url} />}
-                          isActive={isActive && !isLocked}
-                          tooltip={isLocked ? `${item.title} (${lockBadge})` : item.title}
-                          onClick={(e) => {
-                            if (isLocked) {
-                              e.preventDefault();
-                              toast.info(`${item.title} se habilitará en la ${lockBadge} de la DEMO.`);
-                              return;
-                            }
-                            if (isMobile) setOpenMobile(false);
-                          }}
-                          className={cn(
-                            "h-auto py-2 px-2.5 rounded-xl gap-2.5 items-start transition-all cursor-pointer",
-                            isLocked
-                              ? "opacity-65 text-muted-foreground hover:bg-sidebar-accent/30"
-                              : isActive
-                              ? "bg-sidebar-accent text-sidebar-accent-foreground font-bold shadow-xs ring-1 ring-border/40"
-                              : "text-muted-foreground hover:bg-sidebar-accent/50 hover:text-sidebar-foreground"
-                          )}
-                        >
-                          <div
+                      <SidebarMenuItem key={item.url}>
+                        {allowed ? (
+                          <Link
+                            href={item.url}
+                            onClick={handleNavClick}
                             className={cn(
-                              "size-6 rounded-lg flex items-center justify-center shrink-0 mt-0.5 transition-colors",
-                              isLocked
-                                ? "bg-amber-500/10 text-amber-600 dark:text-amber-400"
-                                : isActive
-                                ? "bg-primary text-primary-foreground"
-                                : "bg-sidebar-accent/80 text-muted-foreground"
+                              "flex items-center gap-2 min-h-[36px] w-full pl-2.5 pr-2 py-2 rounded-[8px] text-[14px] font-medium leading-[19px] transition-colors",
+                              active
+                                ? "bg-sidebar-accent text-link"
+                                : "text-foreground hover:bg-background/60 dark:hover:bg-background/30"
                             )}
                           >
-                            {isLocked ? (
-                              <Lock className="size-3.5" />
-                            ) : (
-                              <item.icon className="size-3.5" />
+                            <HugeiconsIcon
+                              icon={item.icon}
+                              size={20}
+                              strokeWidth={1.75}
+                              className="shrink-0"
+                            />
+                            <span className="flex-1 truncate">{item.title}</span>
+                            {active && (
+                              <span
+                                aria-hidden="true"
+                                className="h-4 w-[2px] rounded-full bg-link shrink-0"
+                              />
                             )}
-                          </div>
-
-                          <div className="flex-1 min-w-0 text-left">
-                            <div className="flex items-center justify-between gap-1">
-                              <span className="text-xs font-semibold truncate text-foreground">
-                                {item.title}
-                              </span>
-                              {displayBadge && (
-                                <Badge
-                                  variant="outline"
-                                  className={cn(
-                                    "text-[9px] font-extrabold uppercase px-1.5 py-0 tracking-wide shrink-0",
-                                    isLocked
-                                      ? "border-amber-500/30 bg-amber-500/10 text-amber-700 dark:text-amber-300"
-                                      : "border-primary/20 bg-primary/5 text-primary"
-                                  )}
-                                >
-                                  {displayBadge}
-                                </Badge>
-                              )}
-                            </div>
-                            {item.description && (
-                              <p className="text-[10px] text-muted-foreground/80 line-clamp-1 font-normal mt-0.5 leading-tight">
-                                {item.description}
-                              </p>
-                            )}
-                          </div>
-
-                          {isActive && !isLocked && (
-                            <ChevronRight className="size-3.5 text-primary ml-auto self-center shrink-0" />
-                          )}
-                        </SidebarMenuButton>
+                          </Link>
+                        ) : (
+                          <button
+                            type="button"
+                            onClick={() =>
+                              toast.info(`${item.title} (${lockedBadge})`, {
+                                description:
+                                  "Este módulo no está habilitado para tu cuenta actual.",
+                              })
+                            }
+                            className="flex items-center gap-2 min-h-[36px] w-full pl-2.5 pr-2 py-2 rounded-[8px] text-[14px] font-medium leading-[19px] text-muted-foreground opacity-70 hover:bg-background/40 transition-colors cursor-pointer text-left"
+                          >
+                            <HugeiconsIcon
+                              icon={item.icon}
+                              size={20}
+                              strokeWidth={1.75}
+                              className="shrink-0"
+                            />
+                            <span className="flex-1 truncate">{item.title}</span>
+                            <Lock className="size-3.5 shrink-0" />
+                          </button>
+                        )}
                       </SidebarMenuItem>
                     );
                   })}
                 </SidebarMenu>
-              </SidebarGroupContent>
-            </SidebarGroup>
+              </SidebarGroup>
+            ))}
+          </div>
+        </ScrollArea>
+      </SidebarContent>
 
-            {/* Acción Primaria Contextual */}
-            {activeSection.action &&
-              isCompanyRouteAllowed(activeSection.action.url, enabledModules) && (
-                <div className="mt-4 pt-3 border-t border-sidebar-border/60">
-                  <Button
-                    size="sm"
-                    render={<Link href={activeSection.action.url} />}
-                    onClick={() => {
-                      if (isMobile) setOpenMobile(false);
-                    }}
-                    className="w-full font-semibold text-xs cursor-pointer"
-                  >
-                    <activeSection.action.icon data-icon="inline-start" />
-                    <span>{activeSection.action.label}</span>
-                  </Button>
-                </div>
-              )}
-          </ScrollArea>
-        </SidebarContent>
-
-        {/* Footer Secundario: Soporte & Enlaces de Asistencia */}
-        <SidebarFooter className="border-t-0 p-2.5 shrink-0 bg-sidebar/80">
-          <SidebarMenu>
-            <SidebarMenuItem>
-              <SidebarMenuButton
-                size="sm"
-                render={<Link href="/help" />}
-                className="h-8 rounded-lg px-2 text-xs text-muted-foreground hover:text-foreground hover:bg-sidebar-accent/50 cursor-pointer"
-              >
-                <HelpCircle className="size-3.5 shrink-0 text-muted-foreground" />
-                <span className="truncate">Soporte & Guías K&apos;anPro</span>
-              </SidebarMenuButton>
-            </SidebarMenuItem>
-          </SidebarMenu>
-        </SidebarFooter>
-      </Sidebar>
+      {/* Pie lateral: Centro de ayuda */}
+      <SidebarFooter className="px-5 pt-2 pb-5 bg-sidebar gap-2">
+        <div className="h-px w-full bg-border" />
+        <Link
+          href="/contact"
+          onClick={handleNavClick}
+          className="flex items-center gap-2 min-h-[36px] w-full pl-2.5 pr-2 py-2 rounded-[8px] text-[14px] font-medium leading-[19px] text-foreground hover:bg-background/60 dark:hover:bg-background/30 transition-colors"
+        >
+          <HugeiconsIcon
+            icon={HelpCircleIcon}
+            size={20}
+            strokeWidth={1.75}
+            className="shrink-0"
+          />
+          <span className="truncate">Centro de ayuda</span>
+        </Link>
+      </SidebarFooter>
     </Sidebar>
   );
 }

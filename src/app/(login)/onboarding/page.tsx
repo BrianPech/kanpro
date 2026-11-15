@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { companyTenantService } from "@/modules/company/services/company-tenant.service";
+import { AuthShell } from "@/modules/auth/components/auth-shell";
 import { CompanyOnboardingFlow } from "@/modules/auth/components/company-onboarding-flow";
 
 export const metadata = {
@@ -58,9 +59,11 @@ export default async function OnboardingPage() {
   const initialStep: 1 | 2 = hasValidName ? 2 : 1;
 
   return (
-    <CompanyOnboardingFlow
-      initialStep={initialStep}
-      initialFullName={hasValidName ? rawName : ""}
-    />
+    <AuthShell>
+      <CompanyOnboardingFlow
+        initialStep={initialStep}
+        initialFullName={hasValidName ? rawName : ""}
+      />
+    </AuthShell>
   );
 }

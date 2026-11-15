@@ -17,6 +17,13 @@ Before implementing changes:
 - Preserve existing public interfaces and behavior.
 - Avoid unnecessary dependencies and large refactors.
 
+## Diseño de interfaces en Figma
+
+Antes de diseñar o modificar una interfaz de Kanpro en Figma, consulta las
+secciones pertinentes de las [Apple Human Interface Guidelines](https://developer.apple.com/design/human-interface-guidelines/).
+Aplica sus principios de UX y accesibilidad al sistema de diseño de Kanpro.
+En la entrega, enlaza las secciones que guiaron las decisiones.
+
 ## Parallel Agent Development
 
 Multiple coding agents may work on Kanpro simultaneously.

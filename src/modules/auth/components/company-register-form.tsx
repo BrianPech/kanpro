@@ -1,22 +1,12 @@
 "use client";
 
 import React from "react";
-import {
-  Eye,
-  EyeOff,
-  Loader2,
-  Mail,
-  Lock,
-  ArrowRight,
-  Check,
-  Circle,
-  User,
-} from "@/components/ui/icons";
 import Link from "next/link";
+import { ChevronLeft, Eye, EyeOff, Loader2 } from "@/components/ui/icons";
 import { Button } from "@/components/ui/button";
-import { FormTextField } from "@/components/form";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { useCompanyRegisterForm } from "../hooks/use-company-register-form";
-import { cn } from "@/lib/utils";
 
 export function CompanyRegisterForm() {
   const {
@@ -25,219 +15,125 @@ export function CompanyRegisterForm() {
     isSubmitting,
     showPassword,
     setShowPassword,
-    showConfirmPassword,
-    setShowConfirmPassword,
-    passwordCriteria,
-    passwordsMatch,
     handleRegisterSubmit,
   } = useCompanyRegisterForm();
 
   return (
-    <div className="w-full flex flex-col items-center gap-5 select-none">
-      {/* ── Brand Header (Título + Subtítulo con link) ── */}
-      <div className="flex flex-col items-center text-center gap-1.5 w-full">
-        <h1 className="text-2xl sm:text-3xl font-extrabold text-foreground tracking-tight">
-          Registro de Empresa
+    <div className="w-full max-w-[432px] flex flex-col gap-6">
+      {/* Encabezado del registro */}
+      <div className="flex flex-col items-center text-center gap-2">
+        <h1 className="text-[28px] sm:text-[32px] font-semibold leading-[40px] tracking-[-0.8px] text-foreground">
+          Crea tu cuenta de empresa
         </h1>
-        <p className="text-xs sm:text-sm text-muted-foreground">
-          ¿Ya tienes una cuenta?{" "}
-          <Link
-            href="/login"
-            className="text-foreground font-semibold underline underline-offset-4 hover:text-primary transition-colors"
-          >
-            Iniciar sesión
-          </Link>
+        <p className="text-[16px] font-normal leading-[24px] text-muted-foreground">
+          Ingresa tu correo y crea una contraseña.
         </p>
       </div>
 
+      {/* Formulario */}
       <form
         onSubmit={handleRegisterSubmit}
-        className="w-full flex flex-col items-center gap-3.5"
+        className="flex flex-col gap-6 w-full"
         noValidate
       >
-        {/* Correo Corporativo */}
-        <div className="w-full space-y-1">
-          <FormTextField
-            id="email"
-            label="Email Corporativo"
-            hintText="contacto@empresa.com"
-            type="email"
-            required
-            registerProps={credentialsRegister("email")}
-            error={credentialsErrors.email?.message}
-            prefixIcon={<Mail className="size-4" />}
-          />
-        </div>
+        <div className="flex flex-col gap-5 w-full">
+          {/* Correo electrónico */}
+          <div className="flex flex-col gap-1.5">
+            <Label
+              htmlFor="email"
+              className="text-[14px] font-semibold leading-[20px] text-foreground"
+            >
+              Correo electrónico
+            </Label>
+            <Input
+              id="email"
+              type="email"
+              placeholder="nombre@empresa.mx"
+              autoComplete="email"
+              aria-invalid={Boolean(credentialsErrors.email)}
+              className="h-[52px] rounded-[8px] border-input bg-card px-[14px] text-[16px] leading-[24px] text-foreground placeholder:text-muted-foreground focus-visible:ring-2 focus-visible:ring-ring/30"
+              {...credentialsRegister("email")}
+            />
+            {credentialsErrors.email?.message ? (
+              <p className="text-xs font-semibold text-destructive">
+                {credentialsErrors.email.message}
+              </p>
+            ) : (
+              <p className="text-[14px] font-normal leading-[20px] text-muted-foreground">
+                Usa el correo del dueño de la empresa o un correo corporativo.
+              </p>
+            )}
+          </div>
 
-        {/* Contraseña Segura */}
-        <div className="w-full space-y-1.5">
-          <FormTextField
-            id="password"
-            label="Contraseña"
-            hintText="••••••••"
-            type={showPassword ? "text" : "password"}
-            required
-            registerProps={credentialsRegister("password")}
-            error={credentialsErrors.password?.message}
-            prefixIcon={<Lock className="size-4" />}
-            suffixIcon={
+          {/* Contraseña */}
+          <div className="flex flex-col gap-1.5">
+            <Label
+              htmlFor="password"
+              className="text-[14px] font-semibold leading-[20px] text-foreground"
+            >
+              Contraseña
+            </Label>
+            <div className="relative">
+              <Input
+                id="password"
+                type={showPassword ? "text" : "password"}
+                placeholder="Crea una contraseña"
+                autoComplete="new-password"
+                aria-invalid={Boolean(credentialsErrors.password)}
+                className="h-[52px] rounded-[8px] border-input bg-card pl-[14px] pr-[52px] text-[16px] leading-[24px] text-foreground placeholder:text-muted-foreground focus-visible:ring-2 focus-visible:ring-ring/30"
+                {...credentialsRegister("password")}
+              />
               <button
                 type="button"
                 onClick={() => setShowPassword(!showPassword)}
-                className="text-muted-foreground hover:text-foreground transition-colors p-1 cursor-pointer"
                 aria-label={
                   showPassword ? "Ocultar contraseña" : "Mostrar contraseña"
                 }
+                className="absolute right-1 top-1/2 -translate-y-1/2 size-[44px] flex items-center justify-center text-foreground/80 hover:text-foreground transition-colors cursor-pointer rounded-[6px]"
               >
                 {showPassword ? (
-                  <EyeOff className="size-4" />
+                  <EyeOff className="size-5" />
                 ) : (
-                  <Eye className="size-4" />
+                  <Eye className="size-5" />
                 )}
               </button>
-            }
-          />
-
-          {/* Dynamic Password Checklist */}
-          <div className="flex flex-wrap items-center gap-x-3 gap-y-1 pt-0.5 px-0.5 text-[11px] select-none">
-            <span
-              className={cn(
-                "flex items-center gap-1 transition-colors",
-                passwordCriteria.hasMinLength
-                  ? "text-emerald-600 dark:text-emerald-400 font-semibold"
-                  : "text-muted-foreground"
-              )}
-            >
-              {passwordCriteria.hasMinLength ? (
-                <Check className="size-3 text-emerald-600 dark:text-emerald-400" />
-              ) : (
-                <Circle className="size-2 text-muted-foreground/60 fill-current" />
-              )}
-              Mínimo 8 caracteres
-            </span>
-
-            <span
-              className={cn(
-                "flex items-center gap-1 transition-colors",
-                passwordCriteria.hasUppercase
-                  ? "text-emerald-600 dark:text-emerald-400 font-semibold"
-                  : "text-muted-foreground"
-              )}
-            >
-              {passwordCriteria.hasUppercase ? (
-                <Check className="size-3 text-emerald-600 dark:text-emerald-400" />
-              ) : (
-                <Circle className="size-2 text-muted-foreground/60 fill-current" />
-              )}
-              1 mayúscula
-            </span>
-
-            <span
-              className={cn(
-                "flex items-center gap-1 transition-colors",
-                passwordCriteria.hasNumber
-                  ? "text-emerald-600 dark:text-emerald-400 font-semibold"
-                  : "text-muted-foreground"
-              )}
-            >
-              {passwordCriteria.hasNumber ? (
-                <Check className="size-3 text-emerald-600 dark:text-emerald-400" />
-              ) : (
-                <Circle className="size-2 text-muted-foreground/60 fill-current" />
-              )}
-              1 número
-            </span>
+            </div>
+            {credentialsErrors.password?.message ? (
+              <p className="text-xs font-semibold text-destructive">
+                {credentialsErrors.password.message}
+              </p>
+            ) : (
+              <p className="text-[14px] font-normal leading-[20px] text-muted-foreground">
+                Mínimo 8 caracteres, una mayúscula y un número.
+              </p>
+            )}
           </div>
         </div>
 
-        {/* Confirmar Contraseña */}
-        <div className="w-full space-y-1">
-          <FormTextField
-            id="confirmPassword"
-            label="Confirmar contraseña"
-            hintText="••••••••"
-            type={showConfirmPassword ? "text" : "password"}
-            required
-            registerProps={credentialsRegister("confirmPassword")}
-            error={credentialsErrors.confirmPassword?.message}
-            prefixIcon={<Lock className="size-4" />}
-            suffixIcon={
-              <button
-                type="button"
-                onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                className="text-muted-foreground hover:text-foreground transition-colors p-1 cursor-pointer"
-                aria-label={
-                  showConfirmPassword
-                    ? "Ocultar confirmación"
-                    : "Mostrar confirmación"
-                }
-              >
-                {showConfirmPassword ? (
-                  <EyeOff className="size-4" />
-                ) : (
-                  <Eye className="size-4" />
-                )}
-              </button>
-            }
-          />
-          {!passwordsMatch && (
-            <p className="text-[11px] text-destructive px-0.5">
-              Las contraseñas deben ser idénticas.
-            </p>
-          )}
-        </div>
-
-        {/* Botón Principal (Create Account) */}
+        {/* Botón principal */}
         <Button
           type="submit"
           disabled={isSubmitting}
-          className="w-full h-11 mt-1 rounded-xl bg-primary hover:bg-primary/90 text-primary-foreground font-bold text-sm shadow-xs transition-all duration-200 flex items-center justify-center gap-2 cursor-pointer active:scale-[0.99] disabled:opacity-50 disabled:pointer-events-none"
+          className="w-full h-[43px] rounded-[8px] bg-primary text-primary-foreground hover:bg-primary-hover text-[14px] font-semibold leading-[19px] cursor-pointer gap-2 transition-colors"
         >
           {isSubmitting ? (
             <>
-              <Loader2 className="size-4 animate-spin text-primary-foreground/80" />
-              <span>Creando cuenta de empresa...</span>
+              <Loader2 className="size-4 animate-spin" />
+              <span>Creando cuenta...</span>
             </>
           ) : (
-            <>
-              <span>Crear Cuenta</span>
-              <ArrowRight className="size-4" />
-            </>
+            <span>Continuar</span>
           )}
         </Button>
 
-        {/* Aviso Legal */}
-        <p className="text-[11px] text-muted-foreground text-center leading-relaxed px-1 mt-1">
-          Al continuar, aceptas nuestros{" "}
-          <Link
-            href="/terms"
-            className="text-foreground underline underline-offset-2 hover:text-primary transition-colors"
-          >
-            Términos de Servicio
-          </Link>{" "}
-          y{" "}
-          <Link
-            href="/privacy"
-            className="text-foreground underline underline-offset-2 hover:text-primary transition-colors"
-          >
-            Aviso de Privacidad
-          </Link>
-          .
-        </p>
-
-        {/* Enlace alternativo para candidatos */}
-        <div className="flex flex-col items-center gap-2 pt-2 border-t border-border/60 w-full text-center">
-          <p className="text-xs text-muted-foreground flex items-center justify-center gap-1">
-            <User className="size-3.5 text-muted-foreground" />
-            <span>¿Buscas empleo en el Sureste?</span>
-            <Link
-              href="/register/candidate"
-              className="text-foreground font-semibold hover:text-primary underline ml-0.5 transition-colors"
-            >
-              Regístrate como Candidato
-            </Link>
-          </p>
-        </div>
+        {/* Volver a elegir perfil */}
+        <Link
+          href="/register"
+          className="min-h-[44px] w-full inline-flex items-center justify-center gap-2 text-[14px] font-semibold leading-[20px] text-link hover:underline underline-offset-4 transition-colors"
+        >
+          <ChevronLeft className="size-4 shrink-0" />
+          <span>Volver a elegir perfil</span>
+        </Link>
       </form>
     </div>
   );
