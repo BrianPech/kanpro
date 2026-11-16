@@ -5,7 +5,7 @@ import { getCompanyDashboardData } from "@/modules/company/services/company-dash
 import { DashboardView } from "@/modules/company/components/dashboard-view"
 
 export default async function CompanyDashboardPage() {
-  const { userCompanies } = await getDashboardSession()
+  const { userCompanies, enabledCompanyModules } = await getDashboardSession()
 
   if (userCompanies && userCompanies.length === 0) {
     redirect("/onboarding")
@@ -13,5 +13,5 @@ export default async function CompanyDashboardPage() {
 
   const data = await getCompanyDashboardData()
 
-  return <DashboardView {...data} />
+  return <DashboardView {...data} enabledModules={enabledCompanyModules} />
 }

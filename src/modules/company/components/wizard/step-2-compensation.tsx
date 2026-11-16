@@ -2,31 +2,13 @@
 
 import * as React from "react";
 import { Controller, useWatch, type UseFormReturn } from "react-hook-form";
-import {
-  DollarSign,
-  MapPin,
-  Gift,
-  Plus,
-  Check,
-  Building2,
-  CheckCircle2,
-  Navigation,
-  Loader2,
-} from "@/components/ui/icons";
+import { Check, Plus } from "@/components/ui/icons";
 import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
-import {
-  Field,
-  FieldLabel,
-  FieldDescription,
-  FieldError,
-} from "@/components/ui/field";
+import { Field, FieldError } from "@/components/ui/field";
 import {
   Select,
   SelectContent,
-  SelectGroup,
   SelectItem,
-  SelectLabel,
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
@@ -34,14 +16,7 @@ import {
   PRESET_BENEFITS,
   type VacancyWizardValues,
 } from "../../schemas/vacancy-wizard.schema";
-import {
-  getCitiesList,
-  getZonesForCity,
-  cleanCityName,
-  resolveLocationFromCoords,
-  GEO_CONFIG,
-} from "@/config/geo";
-import { toast } from "sonner";
+import { cleanCityName, getCitiesList, getZonesForCity } from "@/config/geo";
 import { cn } from "@/lib/utils";
 
 interface Step2CompensationProps {
@@ -52,713 +27,548 @@ interface Step2CompensationProps {
   companyName?: string;
 }
 
+const FEATURED_BENEFITS: { value: string; label: string }[] = [
+  {
+    value: "Prestaciones de Ley (IMSS, Infonavit, Aguinaldo)",
+    label: "Prestaciones de ley",
+  },
+  { value: "Uniformes incluidos", label: "Uniformes incluidos" },
+  { value: "Vales de despensa", label: "Vales de despensa" },
+];
+
 export function Step2Compensation({
   form,
   companyLocation = "Mérida, Yucatán",
   companyCity = "Mérida",
   companyZone = "Centro Mérida",
-  companyName = "Tu Empresa",
 }: Step2CompensationProps) {
+  const [showAllBenefits, setShowAllBenefits] = React.useState(false);
   const [customBenefit, setCustomBenefit] = React.useState("");
-  const [isLocating, setIsLocating] = React.useState(false);
-  const [isCustomCityInput, setIsCustomCityInput] = React.useState(false);
-  const [customCityText, setCustomCityText] = React.useState("");
-  const [isCustomZoneInput, setIsCustomZoneInput] = React.useState(false);
-  const [customZoneText, setCustomZoneText] = React.useState("");
 
-  // Clean company defaults
-  const resolvedCompanyCity = cleanCityName(companyCity || companyLocation || "Mérida");
-  const resolvedCompanyZone = companyZone || (resolvedCompanyCity === "Mérida" ? "Centro Mérida" : "Centro");
-  const companyLocationDisplay = `${resolvedCompanyCity}, ${
-    GEO_CONFIG[resolvedCompanyCity]?.state === "Quintana Roo"
-      ? "Q. Roo"
-      : GEO_CONFIG[resolvedCompanyCity]?.state || "Yucatán"
-  }`;
+  const resolvedCompanyLocation = companyLocation || "Mérida, Yucatán";
+  const resolvedCompanyCity = cleanCityName(
+    companyCity || resolvedCompanyLocation || "Mérida"
+  );
+  const resolvedCompanyZone = companyZone || "Centro Mérida";
 
-  const watchedLocation = useWatch({ control: form.control, name: "location" });
-  const currentCityValue = watchedLocation || resolvedCompanyCity;
-
-  const [useProfileLocation, setUseProfileLocation] = React.useState<boolean>(() => {
-    const curr = form.getValues("location");
-    return !curr || curr === resolvedCompanyCity || curr === companyLocation;
+  const [currentLocation, currentZone] = useWatch({
+    control: form.control,
+    name: ["location", "zone"],
   });
 
-  // Sync to company profile location when loaded if profile mode is active
+  const matchesCompanyLocation = React.useMemo(() => {
+    const loc = (currentLocation || "").trim().toLowerCase();
+    const zone = (currentZone || "").trim().toLowerCase();
+    const compLoc = resolvedCompanyLocation.trim().toLowerCase();
+    const compCity = resolvedCompanyCity.trim().toLowerCase();
+    const compZone = resolvedCompanyZone.trim().toLowerCase();
+    return (loc === compLoc || loc === compCity) && zone === compZone;
+  }, [
+    currentLocation,
+    currentZone,
+    resolvedCompanyLocation,
+    resolvedCompanyCity,
+    resolvedCompanyZone,
+  ]);
+
+  const [locationMode, setLocationMode] = React.useState<"company" | "other">(
+    () => (matchesCompanyLocation || !currentLocation ? "company" : "other")
+  );
+  const [isCustomZone, setIsCustomZone] = React.useState(false);
+
   React.useEffect(() => {
-    if (companyCity && companyCity !== "Mérida") {
-      const curr = form.getValues("location");
-      if (!curr || curr === "Mérida, Yucatán" || curr === "Mérida" || curr === companyLocation) {
-        form.setValue("location", resolvedCompanyCity);
+    if (locationMode === "company") {
+      if (currentLocation !== resolvedCompanyLocation) {
+        form.setValue("location", resolvedCompanyLocation);
+      }
+      if (currentZone !== resolvedCompanyZone) {
         form.setValue("zone", resolvedCompanyZone);
       }
     }
-  }, [companyCity, companyZone, resolvedCompanyCity, resolvedCompanyZone, companyLocation, form]);
+  }, [
+    locationMode,
+    resolvedCompanyLocation,
+    resolvedCompanyZone,
+    currentLocation,
+    currentZone,
+    form,
+  ]);
 
-  // Cities grouped by state
-  const cities = React.useMemo(() => getCitiesList(), []);
-  const qrooCities = React.useMemo(() => cities.filter((c) => c.state === "Quintana Roo"), [cities]);
-  const yucCities = React.useMemo(() => cities.filter((c) => c.state === "Yucatán"), [cities]);
-  const campCities = React.useMemo(() => cities.filter((c) => c.state === "Campeche"), [cities]);
-  const nacCities = React.useMemo(() => cities.filter((c) => c.state === "Nacional"), [cities]);
+  const citiesList = React.useMemo(() => getCitiesList(), []);
 
-  // Dynamic zones for current selected city
-  const availableZones = React.useMemo(() => {
-    const rawZones = getZonesForCity(currentCityValue);
-    const set = new Set(rawZones);
-    set.add("Otra Zona");
-    return Array.from(set);
-  }, [currentCityValue]);
-
-  const handleAddCustomBenefit = (
-    current: string[],
-    onChange: (val: string[]) => void
-  ) => {
-    const trimmed = customBenefit.trim();
-    if (!trimmed) return;
-    if (!current.includes(trimmed)) {
-      onChange([...current, trimmed]);
+  const baseZones = React.useMemo(() => {
+    const cityForZones = cleanCityName(currentLocation || resolvedCompanyCity);
+    const list = new Set<string>(getZonesForCity(cityForZones));
+    if (locationMode === "company" && resolvedCompanyZone) {
+      list.add(resolvedCompanyZone);
     }
-    setCustomBenefit("");
-  };
+    return Array.from(list);
+  }, [currentLocation, locationMode, resolvedCompanyCity, resolvedCompanyZone]);
 
-  const toggleBenefit = (
-    current: string[],
-    onChange: (val: string[]) => void,
-    benefit: string
-  ) => {
-    if (current.includes(benefit)) {
-      onChange(current.filter((b) => b !== benefit));
-    } else {
-      onChange([...current, benefit]);
+  const zoneOptions = React.useMemo(() => {
+    const list = new Set<string>(baseZones);
+    if (currentZone && currentZone !== "Otra Zona" && !isCustomZone) {
+      list.add(currentZone);
     }
-  };
+    list.add("Otra Zona");
+    return Array.from(list);
+  }, [baseZones, currentZone, isCustomZone]);
 
-  const handleSelectProfileLocation = () => {
-    setUseProfileLocation(true);
-    setIsCustomCityInput(false);
-    setIsCustomZoneInput(false);
-    form.setValue("location", resolvedCompanyCity);
-    form.setValue("zone", resolvedCompanyZone);
-  };
-
-  const handleSelectCustomLocation = () => {
-    setUseProfileLocation(false);
-  };
-
-  const handleCitySelectChange = (newCity: string | null) => {
-    if (!newCity) return;
-    if (newCity === "__custom__") {
-      setIsCustomCityInput(true);
-      setCustomCityText("");
-      return;
-    }
-
-    setIsCustomCityInput(false);
-    form.setValue("location", newCity);
-
-    // Update dynamic zone for the new city
-    const newZones = getZonesForCity(newCity);
-    const defaultZone = newZones[0] || (newCity === "Mérida" ? "Centro Mérida" : "Centro");
-    form.setValue("zone", defaultZone);
-    setIsCustomZoneInput(false);
-
-    if (newCity !== resolvedCompanyCity) {
-      setUseProfileLocation(false);
-    }
-  };
-
-  const handleCustomCityApply = () => {
-    const trimmed = customCityText.trim();
-    if (!trimmed) return;
-    form.setValue("location", trimmed);
-    const newZones = getZonesForCity(trimmed);
-    form.setValue("zone", newZones[0] || "Centro");
-    setIsCustomZoneInput(false);
-    setUseProfileLocation(false);
-  };
-
-  const handleZoneSelectChange = (newZone: string | null) => {
-    if (!newZone) return;
-    if (newZone === "Otra Zona") {
-      setIsCustomZoneInput(true);
-      setCustomZoneText("");
-      form.setValue("zone", "Otra Zona");
-      return;
-    }
-
-    setIsCustomZoneInput(false);
-    form.setValue("zone", newZone);
-  };
-
-  const handleCustomZoneApply = () => {
-    const trimmed = customZoneText.trim();
-    if (!trimmed) return;
-    form.setValue("zone", trimmed);
-  };
-
-  const handleDetectGPS = () => {
-    if (typeof window === "undefined" || !("geolocation" in navigator)) {
-      toast.error("Geolocalización no disponible", {
-        description: "Tu navegador o dispositivo no tiene GPS activo.",
+  const handleSelectLocationMode = (mode: "company" | "other") => {
+    setLocationMode(mode);
+    setIsCustomZone(false);
+    if (mode === "company") {
+      form.setValue("location", resolvedCompanyLocation, {
+        shouldValidate: true,
       });
-      return;
+      form.setValue("zone", resolvedCompanyZone, { shouldValidate: true });
     }
-
-    setIsLocating(true);
-
-    const onLocationSuccess = async (pos: GeolocationPosition) => {
-      try {
-        const { latitude, longitude } = pos.coords;
-        const resolved = await resolveLocationFromCoords(latitude, longitude);
-        form.setValue("location", resolved.city);
-        form.setValue("zone", resolved.zone);
-        setIsCustomCityInput(false);
-        setIsCustomZoneInput(false);
-        setUseProfileLocation(false);
-        setIsLocating(false);
-        toast.success("Ubicación GPS detectada", {
-          description: `Se configuró: ${resolved.displayLocation}`,
-        });
-      } catch {
-        setIsLocating(false);
-        toast.error("No se pudo resolver la ubicación exacta", {
-          description: "Selecciona la ciudad y zona de la lista.",
-        });
-      }
-    };
-
-    const onLocationFailure = (err: GeolocationPositionError) => {
-      setIsLocating(false);
-      if (err.code === err.PERMISSION_DENIED) {
-        toast.error("Permiso de ubicación denegado", {
-          description: "Otorga permiso de ubicación o selecciona la zona manualmente.",
-        });
-      } else {
-        toast.error("No se pudo detectar tu ubicación", {
-          description: "Selecciona tu ciudad y zona en el menú desplegable.",
-        });
-      }
-    };
-
-    navigator.geolocation.getCurrentPosition(
-      onLocationSuccess,
-      onLocationFailure,
-      { enableHighAccuracy: true, timeout: 8000, maximumAge: 60000 }
-    );
   };
+
+  const handleCityChange = (
+    nextCity: string,
+    onCityChange: (val: string) => void
+  ) => {
+    onCityChange(nextCity);
+    const cleaned = cleanCityName(nextCity);
+    const nextCityZones = getZonesForCity(cleaned);
+    const existingZone = form.getValues("zone");
+    if (
+      existingZone &&
+      !isCustomZone &&
+      nextCityZones.length > 0 &&
+      !nextCityZones.includes(existingZone)
+    ) {
+      form.setValue("zone", nextCityZones[0], { shouldValidate: true });
+    }
+  };
+
+  const extraBenefits = React.useMemo(
+    () =>
+      PRESET_BENEFITS.filter(
+        (b) => !FEATURED_BENEFITS.some((fb) => fb.value === b)
+      ),
+    []
+  );
 
   return (
-    <div className="space-y-5 sm:space-y-6">
-      {/* Encabezado del Paso */}
-      <div className="flex items-center gap-2.5 pb-2 border-b border-border/60">
-        <div className="size-8 rounded-xl bg-primary/10 text-primary flex items-center justify-center shrink-0">
-          <MapPin className="size-4" />
-        </div>
-        <div>
-          <h3 className="text-sm font-bold text-foreground">Ubicación y Esquema Salarial</h3>
-          <p className="text-xs text-muted-foreground">Lugar de trabajo, compensación y prestaciones</p>
-        </div>
+    <div className="flex flex-col gap-[20px]">
+      <div className="flex flex-col gap-[4px]">
+        <h2 className="text-[20px] font-semibold leading-[28px] tracking-[-0.015em] text-foreground">
+          Ubicación y condiciones
+        </h2>
+        <p className="text-[13px] font-normal leading-[18px] text-muted-foreground">
+          Indica dónde se trabaja y qué ofrece la empresa.
+        </p>
       </div>
 
-      {/* 1. Ubicación del Puesto */}
-      <div className="space-y-3.5 sm:space-y-4">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-1.5">
-            <span className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
-              Sede o Sucursal
-            </span>
-          </div>
-          <span className="text-xs font-semibold text-muted-foreground truncate max-w-[180px]">
-            {companyName}
-          </span>
-        </div>
-
-        {/* Tarjetas de Selección de Modalidad de Ubicación */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
+      {/* Ubicación del puesto */}
+      <div className="flex flex-col gap-[8px]">
+        <span className="text-[14px] font-medium leading-[20px] text-foreground">
+          Ubicación del puesto
+        </span>
+        <div className="flex flex-wrap items-center gap-[16px]">
           <button
             type="button"
-            onClick={handleSelectProfileLocation}
-            className={cn(
-              "p-3.5 sm:p-4 rounded-2xl border text-left flex items-start gap-3 transition-all cursor-pointer select-none",
-              useProfileLocation
-                ? "bg-primary/5 border-primary text-foreground shadow-2xs ring-1 ring-primary/30"
-                : "bg-input/30 hover:bg-input/60 text-muted-foreground border-border/80"
-            )}
+            onClick={() => handleSelectLocationMode("company")}
+            className="inline-flex items-center gap-[8px] text-[14px] font-normal text-foreground cursor-pointer"
           >
-            <div
+            <span
               className={cn(
-                "size-8 sm:size-9 rounded-xl flex items-center justify-center shrink-0 text-xs font-bold transition-colors",
-                useProfileLocation
-                  ? "bg-primary text-primary-foreground"
-                  : "bg-muted text-muted-foreground"
+                "size-[16px] rounded-full border flex items-center justify-center transition-colors",
+                locationMode === "company"
+                  ? "border-link"
+                  : "border-muted-foreground/60"
               )}
             >
-              <Building2 className="size-4" />
-            </div>
-            <div className="min-w-0 flex-1">
-              <div className="flex items-center gap-1.5">
-                <span className="text-xs sm:text-sm font-bold text-foreground truncate">
-                  Ubicación Principal
-                </span>
-                {useProfileLocation && (
-                  <CheckCircle2 className="size-3.5 sm:size-4 text-primary shrink-0" />
-                )}
-              </div>
-              <p className="text-xs text-muted-foreground truncate font-medium mt-0.5">
-                {companyLocationDisplay} • {resolvedCompanyZone}
-              </p>
-            </div>
+              {locationMode === "company" && (
+                <span className="size-[8px] rounded-full bg-link" />
+              )}
+            </span>
+            <span>Usar la de la empresa</span>
           </button>
 
           <button
             type="button"
-            onClick={handleSelectCustomLocation}
-            className={cn(
-              "p-3.5 sm:p-4 rounded-2xl border text-left flex items-start gap-3 transition-all cursor-pointer select-none",
-              !useProfileLocation
-                ? "bg-primary/5 border-primary text-foreground shadow-2xs ring-1 ring-primary/30"
-                : "bg-input/30 hover:bg-input/60 text-muted-foreground border-border/80"
-            )}
+            onClick={() => handleSelectLocationMode("other")}
+            className="inline-flex items-center gap-[8px] text-[14px] font-normal text-foreground cursor-pointer"
           >
-            <div
+            <span
               className={cn(
-                "size-8 sm:size-9 rounded-xl flex items-center justify-center shrink-0 text-xs font-bold transition-colors",
-                !useProfileLocation
-                  ? "bg-primary text-primary-foreground"
-                  : "bg-muted text-muted-foreground"
+                "size-[16px] rounded-full border flex items-center justify-center transition-colors",
+                locationMode === "other"
+                  ? "border-link"
+                  : "border-muted-foreground/60"
               )}
             >
-              <Navigation className="size-4" />
-            </div>
-            <div className="min-w-0 flex-1">
-              <div className="flex items-center gap-1.5">
-                <span className="text-xs sm:text-sm font-bold text-foreground truncate">
-                  Otra Sucursal / Municipio
-                </span>
-                {!useProfileLocation && (
-                  <CheckCircle2 className="size-3.5 sm:size-4 text-primary shrink-0" />
-                )}
-              </div>
-              <p className="text-xs text-muted-foreground truncate font-medium mt-0.5">
-                Para sucursales en otra zona o ciudad
-              </p>
-            </div>
+              {locationMode === "other" && (
+                <span className="size-[8px] rounded-full bg-link" />
+              )}
+            </span>
+            <span>Otra ubicación</span>
           </button>
-        </div>
-
-        {/* Ciudad y Zona en 2 Columnas */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-5 sm:gap-6 pt-1">
-          {/* Ciudad o Municipio */}
-          <Controller
-            control={form.control}
-            name="location"
-            render={({ field, fieldState }) => (
-              <Field data-invalid={Boolean(fieldState.error)} className="space-y-2">
-                <div className="flex items-center justify-between">
-                  <FieldLabel htmlFor="location" className="text-sm font-semibold text-foreground">
-                    Ciudad o Municipio <span className="text-rose-500">*</span>
-                  </FieldLabel>
-                  {isCustomCityInput && (
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setIsCustomCityInput(false);
-                        field.onChange("Mérida");
-                      }}
-                      className="text-xs font-bold text-primary hover:underline cursor-pointer"
-                    >
-                      Volver a lista
-                    </button>
-                  )}
-                </div>
-
-                {!isCustomCityInput ? (
-                  <Select
-                    value={field.value || resolvedCompanyCity}
-                    onValueChange={handleCitySelectChange}
-                  >
-                    <SelectTrigger
-                      aria-label="Ciudad o Municipio de la vacante"
-                      className="w-full"
-                    >
-                      <SelectValue placeholder="Selecciona Ciudad o Municipio" />
-                    </SelectTrigger>
-                    <SelectContent className="max-h-72">
-                      <SelectGroup>
-                        <SelectLabel className="text-[11px] font-extrabold text-primary uppercase tracking-wider px-2 py-1.5">
-                          Quintana Roo
-                        </SelectLabel>
-                        {qrooCities.map((c) => (
-                          <SelectItem key={c.name} value={c.name} className="text-xs cursor-pointer py-2">
-                            {c.name}
-                          </SelectItem>
-                        ))}
-                      </SelectGroup>
-
-                      <SelectGroup>
-                        <SelectLabel className="text-[11px] font-extrabold text-primary uppercase tracking-wider px-2 py-1.5">
-                          Yucatán
-                        </SelectLabel>
-                        {yucCities.map((c) => (
-                          <SelectItem key={c.name} value={c.name} className="text-xs cursor-pointer py-2">
-                            {c.name}
-                          </SelectItem>
-                        ))}
-                      </SelectGroup>
-
-                      <SelectGroup>
-                        <SelectLabel className="text-[11px] font-extrabold text-primary uppercase tracking-wider px-2 py-1.5">
-                          Campeche
-                        </SelectLabel>
-                        {campCities.map((c) => (
-                          <SelectItem key={c.name} value={c.name} className="text-xs cursor-pointer py-2">
-                            {c.name}
-                          </SelectItem>
-                        ))}
-                      </SelectGroup>
-
-                      <SelectGroup>
-                        <SelectLabel className="text-[11px] font-extrabold text-primary uppercase tracking-wider px-2 py-1.5">
-                          Nacional
-                        </SelectLabel>
-                        {nacCities.map((c) => (
-                          <SelectItem key={c.name} value={c.name} className="text-xs cursor-pointer py-2">
-                            {c.name}
-                          </SelectItem>
-                        ))}
-                      </SelectGroup>
-
-                      <SelectGroup>
-                        <SelectItem value="__custom__" className="text-xs font-bold text-primary cursor-pointer border-t border-border/40 mt-1 py-2.5">
-                          ✍️ Escribir otra ciudad...
-                        </SelectItem>
-                      </SelectGroup>
-                    </SelectContent>
-                  </Select>
-                ) : (
-                  <div className="flex gap-2">
-                    <Input
-                      value={customCityText}
-                      onChange={(e) => setCustomCityText(e.target.value)}
-                      onBlur={handleCustomCityApply}
-                      onKeyDown={(e) => {
-                        if (e.key === "Enter") {
-                          e.preventDefault();
-                          handleCustomCityApply();
-                        }
-                      }}
-                      placeholder="Escribe la ciudad o municipio..."
-                      className="w-full"
-                      autoFocus
-                    />
-                    <Button
-                      type="button"
-                      variant="outline"
-                      onClick={handleCustomCityApply}
-                      className="shrink-0 cursor-pointer font-bold"
-                    >
-                      Aplicar
-                    </Button>
-                  </div>
-                )}
-
-                {fieldState.error?.message && (
-                  <FieldError>{fieldState.error.message}</FieldError>
-                )}
-              </Field>
-            )}
-          />
-
-          {/* Zona o Área */}
-          <Controller
-            control={form.control}
-            name="zone"
-            render={({ field, fieldState }) => {
-              const activeVal = field.value || availableZones[0] || "Centro";
-              const isListed = availableZones.includes(activeVal);
-
-              return (
-                <Field data-invalid={Boolean(fieldState.error)} className="space-y-2">
-                  <div className="flex items-center justify-between">
-                    <FieldLabel className="text-sm font-semibold text-foreground">
-                      Zona / Área de Trabajo <span className="text-rose-500">*</span>
-                    </FieldLabel>
-                    {(isCustomZoneInput || !isListed) && (
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setIsCustomZoneInput(false);
-                          field.onChange(availableZones[0] || "Centro");
-                        }}
-                        className="text-xs font-bold text-primary hover:underline cursor-pointer"
-                      >
-                        Volver a lista
-                      </button>
-                    )}
-                  </div>
-
-                  {!isCustomZoneInput && isListed ? (
-                    <Select
-                      value={activeVal}
-                      onValueChange={handleZoneSelectChange}
-                    >
-                      <SelectTrigger
-                        aria-label="Zona o Colonia de la vacante"
-                        className="w-full"
-                      >
-                        <SelectValue placeholder="Selecciona la zona" />
-                      </SelectTrigger>
-                      <SelectContent className="max-h-72">
-                        <SelectGroup>
-                          <SelectLabel className="text-[10px] font-extrabold text-muted-foreground uppercase tracking-wider px-2 py-1.5">
-                            Zonas disponibles en {currentCityValue || "la ciudad"}
-                          </SelectLabel>
-                          {availableZones.map((z) => (
-                            <SelectItem key={z} value={z} className="text-xs cursor-pointer py-2">
-                              {z}
-                            </SelectItem>
-                          ))}
-                        </SelectGroup>
-                      </SelectContent>
-                    </Select>
-                  ) : (
-                    <div className="flex gap-2">
-                      <Input
-                        value={customZoneText || (!isListed ? activeVal : "")}
-                        onChange={(e) => {
-                          setCustomZoneText(e.target.value);
-                          field.onChange(e.target.value);
-                        }}
-                        placeholder="Ej. Fraccionamiento Los Álamos, Supermanzana 15..."
-                        className="w-full"
-                        autoFocus
-                      />
-                      <Button
-                        type="button"
-                        variant="outline"
-                        onClick={handleCustomZoneApply}
-                        className="shrink-0 cursor-pointer font-bold"
-                      >
-                        Aplicar
-                      </Button>
-                    </div>
-                  )}
-
-                  {fieldState.error?.message && (
-                    <FieldError>{fieldState.error.message}</FieldError>
-                  )}
-                </Field>
-              );
-            }}
-          />
-        </div>
-
-        {/* GPS Quick Detect Footer */}
-        <div className="flex justify-end">
-          <Button
-            type="button"
-            variant="ghost"
-            onClick={handleDetectGPS}
-            disabled={isLocating}
-            className="h-8 px-3 text-xs font-bold text-primary hover:text-primary/90 hover:bg-primary/5 rounded-xl flex items-center gap-1.5 cursor-pointer"
-          >
-            {isLocating ? (
-              <>
-                <Loader2 className="size-3.5 animate-spin" />
-                <span>Detectando GPS...</span>
-              </>
-            ) : (
-              <>
-                <Navigation className="size-3.5" />
-                <span>Detectar sucursal con GPS</span>
-              </>
-            )}
-          </Button>
         </div>
       </div>
 
-      {/* 2. Propuesta Salarial */}
-      <div className="space-y-4 pt-4 border-t border-border/60">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <DollarSign className="size-4 text-emerald-600 dark:text-emerald-400" />
-            <span className="text-sm font-semibold text-foreground">
-              Propuesta Salarial (Pesos Mexicanos MXN)
-            </span>
-          </div>
-          <span className="text-xs text-muted-foreground font-semibold">
-            Rango neto o bruto
-          </span>
-        </div>
-
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-5 sm:gap-6">
-          {/* Sueldo Mínimo */}
-          <Controller
-            control={form.control}
-            name="salary_min"
-            render={({ field, fieldState }) => (
-              <Field data-invalid={Boolean(fieldState.error)} className="space-y-2">
-                <FieldLabel htmlFor="salary_min" className="text-sm font-semibold text-foreground">
-                  Sueldo Mínimo
-                </FieldLabel>
-                <div className="relative">
-                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm font-bold text-muted-foreground">$</span>
-                  <Input
-                    id="salary_min"
-                    type="number"
-                    inputMode="numeric"
-                    step={500}
-                    value={field.value ?? ""}
-                    onChange={(e) => field.onChange(e.target.value ? Number(e.target.value) : null)}
-                    placeholder="10,000"
-                    className="w-full pl-7 pr-3 font-mono font-bold"
-                  />
-                </div>
-                {fieldState.error?.message && (
-                  <FieldError>{fieldState.error.message}</FieldError>
-                )}
-              </Field>
-            )}
-          />
-
-          {/* Sueldo Máximo */}
-          <Controller
-            control={form.control}
-            name="salary_max"
-            render={({ field, fieldState }) => (
-              <Field data-invalid={Boolean(fieldState.error)} className="space-y-2">
-                <FieldLabel htmlFor="salary_max" className="text-sm font-semibold text-foreground">
-                  Sueldo Máximo
-                </FieldLabel>
-                <div className="relative">
-                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm font-bold text-muted-foreground">$</span>
-                  <Input
-                    id="salary_max"
-                    type="number"
-                    inputMode="numeric"
-                    step={500}
-                    value={field.value ?? ""}
-                    onChange={(e) => field.onChange(e.target.value ? Number(e.target.value) : null)}
-                    placeholder="14,000"
-                    className="w-full pl-7 pr-3 font-mono font-bold"
-                  />
-                </div>
-                {fieldState.error?.message && (
-                  <FieldError>{fieldState.error.message}</FieldError>
-                )}
-              </Field>
-            )}
-          />
-        </div>
-
-        {/* Frecuencia de Pago */}
+      {/* Ciudad o municipio y Zona de trabajo */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-[16px] items-start">
         <Controller
           control={form.control}
-          name="payment_frequency"
+          name="location"
           render={({ field, fieldState }) => (
-            <Field data-invalid={Boolean(fieldState.error)} className="space-y-2 pt-1">
-              <FieldLabel className="text-sm font-semibold text-foreground">
-                Frecuencia de Pago
-              </FieldLabel>
-              <div className="grid grid-cols-3 gap-2.5">
-                {[
-                  { value: "semanal", label: "Semanal" },
-                  { value: "quincenal", label: "Quincenal" },
-                  { value: "mensual", label: "Mensual" },
-                ].map((freq) => {
-                  const isSelected = field.value === freq.value;
-                  return (
-                    <button
-                      key={freq.value}
-                      type="button"
-                      onClick={() => field.onChange(freq.value)}
-                      className={cn(
-                        "h-9 rounded-3xl font-bold text-xs transition-all border cursor-pointer select-none",
-                        isSelected
-                          ? "bg-primary text-primary-foreground border-primary shadow-xs"
-                          : "bg-input/30 hover:bg-input/60 text-muted-foreground border-border"
-                      )}
+            <Field
+              data-invalid={Boolean(fieldState.error)}
+              className="gap-[6px]"
+            >
+              <label
+                htmlFor="vacancy-location"
+                className="text-[14px] font-medium leading-[20px] text-foreground"
+              >
+                Ciudad o municipio
+              </label>
+              <Input
+                id="vacancy-location"
+                list="kanpro-cities-list"
+                value={field.value || ""}
+                readOnly={locationMode === "company"}
+                onChange={(e) => {
+                  if (locationMode === "company") setLocationMode("other");
+                  handleCityChange(e.target.value, field.onChange);
+                }}
+                placeholder="Ej. Mérida, Yucatán"
+                className={cn(
+                  "h-[44px] rounded-[8px] border-input bg-card px-[12px] text-[14px] font-normal",
+                  locationMode === "company" && "opacity-80 cursor-default"
+                )}
+              />
+              <datalist id="kanpro-cities-list">
+                {citiesList.map((city) => (
+                  <option key={city.name} value={city.label} />
+                ))}
+              </datalist>
+              {fieldState.error?.message && (
+                <FieldError>{fieldState.error.message}</FieldError>
+              )}
+            </Field>
+          )}
+        />
+
+        <Controller
+          control={form.control}
+          name="zone"
+          render={({ field, fieldState }) => (
+            <Field
+              data-invalid={Boolean(fieldState.error)}
+              className="gap-[6px]"
+            >
+              <span className="text-[14px] font-medium leading-[20px] text-foreground">
+                Zona de trabajo
+              </span>
+              <Select
+                disabled={locationMode === "company"}
+                value={
+                  isCustomZone
+                    ? "Otra Zona"
+                    : field.value || resolvedCompanyZone
+                }
+                onValueChange={(val) => {
+                  if (!val) return;
+                  if (val === "Otra Zona") {
+                    setLocationMode("other");
+                    setIsCustomZone(true);
+                    field.onChange("");
+                    return;
+                  }
+                  setIsCustomZone(false);
+                  if (locationMode === "company" && val !== resolvedCompanyZone) {
+                    setLocationMode("other");
+                  }
+                  field.onChange(val);
+                }}
+              >
+                <SelectTrigger className="h-[44px] w-full rounded-[8px] border-input bg-card px-[12px] text-[14px] font-normal">
+                  <SelectValue placeholder="Selecciona zona" />
+                </SelectTrigger>
+                <SelectContent className="rounded-[12px] border-border bg-popover shadow-lg max-h-[260px]">
+                  {zoneOptions.map((z) => (
+                    <SelectItem
+                      key={z}
+                      value={z}
+                      className="text-[14px] font-normal rounded-[8px] cursor-pointer"
                     >
-                      {freq.label}
-                    </button>
-                  );
-                })}
-              </div>
+                      {z}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+
+              {isCustomZone && (
+                <Input
+                  value={field.value || ""}
+                  onChange={(e) => field.onChange(e.target.value)}
+                  placeholder="Escribe el nombre de la zona o colonia"
+                  className="h-[44px] rounded-[8px] border-input bg-card px-[12px] text-[14px] font-normal mt-[4px]"
+                />
+              )}
+
+              {fieldState.error?.message && (
+                <FieldError>{fieldState.error.message}</FieldError>
+              )}
             </Field>
           )}
         />
       </div>
 
-      {/* 3. Prestaciones y Beneficios */}
+      {/* Sueldo mínimo, Sueldo máximo, Frecuencia de pago */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-[12px]">
+        <Controller
+          control={form.control}
+          name="salary_min"
+          render={({ field, fieldState }) => (
+            <Field
+              data-invalid={Boolean(fieldState.error)}
+              className="gap-[6px]"
+            >
+              <label
+                htmlFor="vacancy-salary-min"
+                className="text-[14px] font-medium leading-[20px] text-foreground"
+              >
+                Sueldo mínimo (opcional)
+              </label>
+              <div className="relative flex items-center">
+                <span className="absolute left-[12px] text-[14px] text-muted-foreground pointer-events-none">
+                  $
+                </span>
+                <Input
+                  id="vacancy-salary-min"
+                  type="number"
+                  min={0}
+                  value={field.value ?? ""}
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    field.onChange(val === "" ? null : Number(val));
+                  }}
+                  placeholder="5500"
+                  className="h-[44px] rounded-[8px] border-input bg-card pl-[24px] pr-[48px] text-[14px] font-normal tabular-nums"
+                />
+                <span className="absolute right-[12px] text-[12px] font-medium text-muted-foreground pointer-events-none">
+                  MXN
+                </span>
+              </div>
+              {fieldState.error?.message && (
+                <FieldError>{fieldState.error.message}</FieldError>
+              )}
+            </Field>
+          )}
+        />
+
+        <Controller
+          control={form.control}
+          name="salary_max"
+          render={({ field, fieldState }) => (
+            <Field
+              data-invalid={Boolean(fieldState.error)}
+              className="gap-[6px]"
+            >
+              <label
+                htmlFor="vacancy-salary-max"
+                className="text-[14px] font-medium leading-[20px] text-foreground"
+              >
+                Sueldo máximo (opcional)
+              </label>
+              <div className="relative flex items-center">
+                <span className="absolute left-[12px] text-[14px] text-muted-foreground pointer-events-none">
+                  $
+                </span>
+                <Input
+                  id="vacancy-salary-max"
+                  type="number"
+                  min={0}
+                  value={field.value ?? ""}
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    field.onChange(val === "" ? null : Number(val));
+                  }}
+                  placeholder="6500"
+                  className="h-[44px] rounded-[8px] border-input bg-card pl-[24px] pr-[48px] text-[14px] font-normal tabular-nums"
+                />
+                <span className="absolute right-[12px] text-[12px] font-medium text-muted-foreground pointer-events-none">
+                  MXN
+                </span>
+              </div>
+              {fieldState.error?.message && (
+                <FieldError>{fieldState.error.message}</FieldError>
+              )}
+            </Field>
+          )}
+        />
+
+        <Controller
+          control={form.control}
+          name="payment_frequency"
+          render={({ field }) => (
+            <Field className="gap-[6px]">
+              <span className="text-[14px] font-medium leading-[20px] text-foreground">
+                Frecuencia de pago
+              </span>
+              <Select
+                value={field.value || "quincenal"}
+                onValueChange={(val) => field.onChange(val)}
+              >
+                <SelectTrigger className="h-[44px] w-full rounded-[8px] border-input bg-card px-[12px] text-[14px] font-normal">
+                  <SelectValue placeholder="Frecuencia" />
+                </SelectTrigger>
+                <SelectContent className="rounded-[12px] border-border bg-popover shadow-lg">
+                  <SelectItem
+                    value="semanal"
+                    className="text-[14px] font-normal rounded-[8px] cursor-pointer"
+                  >
+                    Semanal
+                  </SelectItem>
+                  <SelectItem
+                    value="quincenal"
+                    className="text-[14px] font-normal rounded-[8px] cursor-pointer"
+                  >
+                    Quincenal
+                  </SelectItem>
+                  <SelectItem
+                    value="mensual"
+                    className="text-[14px] font-normal rounded-[8px] cursor-pointer"
+                  >
+                    Mensual
+                  </SelectItem>
+                </SelectContent>
+              </Select>
+            </Field>
+          )}
+        />
+      </div>
+
+      {/* Prestaciones (opcional) */}
       <Controller
         control={form.control}
         name="benefits"
         render={({ field }) => {
-          const selectedBenefits: string[] = field.value || [];
+          const selected: string[] = Array.isArray(field.value)
+            ? field.value
+            : [];
+
+          const toggleBenefit = (value: string) => {
+            if (selected.includes(value)) {
+              field.onChange(selected.filter((item) => item !== value));
+            } else {
+              field.onChange([...selected, value]);
+            }
+          };
+
+          const addCustom = () => {
+            const trimmed = customBenefit.trim();
+            if (!trimmed) return;
+            if (!selected.includes(trimmed)) {
+              field.onChange([...selected, trimmed]);
+            }
+            setCustomBenefit("");
+          };
 
           return (
-            <Field className="space-y-4 pt-4 border-t border-border/60">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <Gift className="size-4 text-primary" />
-                  <FieldLabel className="text-sm font-semibold text-foreground">
-                    Prestaciones y Beneficios ({selectedBenefits.length} seleccionados)
-                  </FieldLabel>
-                </div>
-              </div>
-              <FieldDescription className="text-xs text-muted-foreground">
-                Haz clic en las prestaciones que ofrece tu empresa para destacarlas en la oferta:
-              </FieldDescription>
+            <div className="flex flex-col gap-[10px]">
+              <span className="text-[14px] font-medium leading-[20px] text-foreground">
+                Prestaciones (opcional)
+              </span>
 
-              {/* Matriz de Chips de Beneficios */}
-              <div className="flex flex-wrap gap-2.5 pt-1">
-                {PRESET_BENEFITS.map((benefit) => {
-                  const isChecked = selectedBenefits.includes(benefit);
+              <div className="flex flex-wrap items-center gap-x-[18px] gap-y-[10px]">
+                {FEATURED_BENEFITS.map((item) => {
+                  const checked = selected.includes(item.value);
                   return (
                     <button
-                      key={benefit}
+                      key={item.value}
                       type="button"
-                      onClick={() => toggleBenefit(selectedBenefits, field.onChange, benefit)}
-                      className={cn(
-                        "px-3.5 py-2 rounded-xl text-xs font-semibold border flex items-center gap-2 transition-all cursor-pointer select-none shadow-2xs",
-                        isChecked
-                          ? "bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border-emerald-500/50 shadow-xs ring-1 ring-emerald-500/20"
-                          : "bg-input/30 hover:bg-input/60 text-foreground border-border/80"
-                      )}
+                      onClick={() => toggleBenefit(item.value)}
+                      className="inline-flex items-center gap-[8px] text-[14px] font-normal text-foreground cursor-pointer"
                     >
-                      {isChecked && <Check className="size-3.5 stroke-[3] text-emerald-600 dark:text-emerald-400" />}
-                      <span>{benefit}</span>
+                      <span
+                        className={cn(
+                          "size-[16px] rounded-[4px] border flex items-center justify-center transition-colors shrink-0",
+                          checked
+                            ? "bg-primary border-primary text-primary-foreground"
+                            : "border-input bg-card"
+                        )}
+                      >
+                        {checked && <Check className="size-[11px] stroke-[3]" />}
+                      </span>
+                      <span>{item.label}</span>
                     </button>
                   );
                 })}
               </div>
 
-              {/* Agregar Beneficio Personalizado */}
-              <div className="flex gap-2.5 pt-2">
-                <Input
-                  value={customBenefit}
-                  onChange={(e) => setCustomBenefit(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter") {
-                      e.preventDefault();
-                      handleAddCustomBenefit(selectedBenefits, field.onChange);
-                    }
-                  }}
-                  placeholder="Escribe otro beneficio adicional y presiona Enter..."
-                  className="w-full text-xs font-medium"
-                />
-                <Button
+              {showAllBenefits && (
+                <div className="flex flex-col gap-[10px] pt-[6px]">
+                  <div className="flex flex-wrap gap-x-[16px] gap-y-[8px]">
+                    {extraBenefits.map((benefit) => {
+                      const checked = selected.includes(benefit);
+                      return (
+                        <button
+                          key={benefit}
+                          type="button"
+                          onClick={() => toggleBenefit(benefit)}
+                          className="inline-flex items-center gap-[8px] text-[13px] font-normal text-foreground cursor-pointer"
+                        >
+                          <span
+                            className={cn(
+                              "size-[16px] rounded-[4px] border flex items-center justify-center transition-colors shrink-0",
+                              checked
+                                ? "bg-primary border-primary text-primary-foreground"
+                                : "border-input bg-card"
+                            )}
+                          >
+                            {checked && (
+                              <Check className="size-[11px] stroke-[3]" />
+                            )}
+                          </span>
+                          <span>{benefit}</span>
+                        </button>
+                      );
+                    })}
+                  </div>
+
+                  <div className="flex items-center gap-[8px] max-w-[360px]">
+                    <Input
+                      value={customBenefit}
+                      onChange={(e) => setCustomBenefit(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") {
+                          e.preventDefault();
+                          addCustom();
+                        }
+                      }}
+                      placeholder="Agregar otra prestación..."
+                      className="h-[38px] rounded-[8px] border-input bg-card text-[13px]"
+                    />
+                    <button
+                      type="button"
+                      onClick={addCustom}
+                      className="h-[38px] px-[12px] rounded-[8px] border border-control-border bg-card text-[13px] font-medium text-foreground hover:bg-muted/60 inline-flex items-center gap-1 cursor-pointer shrink-0"
+                    >
+                      <Plus className="size-[14px]" />
+                      <span>Agregar</span>
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              <div>
+                <button
                   type="button"
-                  variant="outline"
-                  onClick={() => handleAddCustomBenefit(selectedBenefits, field.onChange)}
-                  disabled={!customBenefit.trim()}
-                  className="shrink-0 cursor-pointer font-bold"
+                  onClick={() => setShowAllBenefits((prev) => !prev)}
+                  className="text-[13px] font-medium text-link hover:underline cursor-pointer"
                 >
-                  <Plus className="size-4 mr-1" />
-                  <span>Agregar</span>
-                </Button>
+                  {showAllBenefits
+                    ? "Ocultar prestaciones adicionales"
+                    : "Ver todas las prestaciones"}
+                </button>
               </div>
-            </Field>
+            </div>
           );
         }}
       />

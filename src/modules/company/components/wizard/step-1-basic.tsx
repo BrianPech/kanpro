@@ -2,15 +2,8 @@
 
 import * as React from "react";
 import { Controller, type UseFormReturn } from "react-hook-form";
-import { Minus, Plus, Briefcase } from "@/components/ui/icons";
 import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
-import {
-  Field,
-  FieldLabel,
-  FieldDescription,
-  FieldError,
-} from "@/components/ui/field";
+import { Field, FieldError } from "@/components/ui/field";
 import {
   Select,
   SelectContent,
@@ -43,44 +36,45 @@ export function Step1Basic({ form }: Step1BasicProps) {
     });
   }, []);
 
+  const categoryOptions = React.useMemo(() => {
+    const merged = new Set<string>(VACANCY_CATEGORIES);
+    companyAreas.forEach((area) => {
+      if (area.name?.trim()) merged.add(area.name.trim());
+    });
+    return Array.from(merged);
+  }, [companyAreas]);
+
   return (
-    <div className="space-y-5 sm:space-y-6">
-      {/* Encabezado del Paso */}
-      <div className="flex items-center gap-2.5 pb-2 border-b border-border/60">
-        <div className="size-8 rounded-xl bg-primary/10 text-primary flex items-center justify-center shrink-0">
-          <Briefcase className="size-4" />
-        </div>
-        <div>
-          <h3 className="text-sm font-bold text-foreground">Información del Puesto</h3>
-          <p className="text-xs text-muted-foreground">Datos esenciales del rol, tipo de contrato y plazas</p>
-        </div>
+    <div className="flex flex-col gap-[20px]">
+      <div className="flex flex-col gap-[4px]">
+        <h2 className="text-[20px] font-semibold leading-[28px] tracking-[-0.015em] text-foreground">
+          Datos del puesto
+        </h2>
+        <p className="text-[13px] font-normal leading-[18px] text-muted-foreground">
+          Define el puesto y cuántas personas buscas.
+        </p>
       </div>
 
-      {/* 1. Título del Puesto / Oferta */}
+      {/* Nombre del puesto */}
       <Controller
         control={form.control}
         name="title"
         render={({ field, fieldState }) => (
-          <Field data-invalid={Boolean(fieldState.error)} className="space-y-2">
-            <div className="flex items-center justify-between">
-              <FieldLabel htmlFor="title" className="text-sm font-semibold text-foreground">
-                Título del Puesto / Oferta <span className="text-rose-500">*</span>
-              </FieldLabel>
-              <span className="text-xs text-muted-foreground font-mono font-medium">
-                {field.value?.length || 0}/80
-              </span>
-            </div>
+          <Field data-invalid={Boolean(fieldState.error)} className="gap-[6px]">
+            <label
+              htmlFor="vacancy-title"
+              className="text-[14px] font-medium leading-[20px] text-foreground"
+            >
+              Nombre del puesto
+            </label>
             <Input
-              id="title"
+              id="vacancy-title"
               value={field.value || ""}
               onChange={(e) => field.onChange(e.target.value)}
-              placeholder="Ej. Cocinero B (Línea Caliente), Recepcionista de Hotel, Mesero..."
-              className="w-full"
+              placeholder="Ej. Recepcionista de hotel"
               maxLength={80}
+              className="h-[44px] rounded-[8px] border-input bg-card px-[12px] text-[14px] font-normal"
             />
-            <FieldDescription className="text-xs text-muted-foreground">
-              Usa un nombre claro y específico para que los candidatos locales encuentren tu oferta rápidamente.
-            </FieldDescription>
             {fieldState.error?.message && (
               <FieldError>{fieldState.error.message}</FieldError>
             )}
@@ -88,63 +82,32 @@ export function Step1Basic({ form }: Step1BasicProps) {
         )}
       />
 
-      {/* 2. Categoría y Tipo de Jornada en 2 Columnas */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-5 sm:gap-6">
-        {/* Categoría Laboral */}
+      {/* Categoría y Plazas disponibles */}
+      <div className="grid grid-cols-1 sm:grid-cols-[1fr_200px] gap-[16px] items-start">
         <Controller
           control={form.control}
           name="category"
           render={({ field, fieldState }) => (
-            <Field data-invalid={Boolean(fieldState.error)} className="space-y-2">
-              <div className="flex items-center justify-between">
-                <FieldLabel className="text-sm font-semibold text-foreground">
-                  Área / Categoría <span className="text-rose-500">*</span>
-                </FieldLabel>
-                <a
-                  href="/dashboard/company/areas"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-[11px] font-semibold text-primary hover:underline"
-                >
-                  + Gestionar áreas
-                </a>
-              </div>
+            <Field
+              data-invalid={Boolean(fieldState.error)}
+              className="gap-[6px]"
+            >
+              <span className="text-[14px] font-medium leading-[20px] text-foreground">
+                Categoría
+              </span>
               <Select
-                value={field.value || "Alimentos y Bebidas"}
+                value={field.value || "Hotelería y Turismo"}
                 onValueChange={(val) => field.onChange(val)}
               >
-                <SelectTrigger
-                  aria-label="Categoría o Área de la vacante"
-                  className="w-full"
-                >
+                <SelectTrigger className="h-[44px] w-full rounded-[8px] border-input bg-card px-[12px] text-[14px] font-normal">
                   <SelectValue placeholder="Selecciona una categoría" />
                 </SelectTrigger>
-                <SelectContent className="max-h-72">
-                  {companyAreas.length > 0 && (
-                    <>
-                      <div className="px-2.5 py-1.5 text-[10px] font-extrabold uppercase tracking-wider text-primary">
-                        Áreas de tu Empresa
-                      </div>
-                      {companyAreas.map((area) => (
-                        <SelectItem
-                          key={`area-${area.id}`}
-                          value={area.name}
-                          className="text-xs cursor-pointer py-2 text-primary font-bold"
-                        >
-                          ✦ {area.name}
-                        </SelectItem>
-                      ))}
-                      <div className="my-1 border-t border-border/40" />
-                      <div className="px-2.5 py-1.5 text-[10px] font-extrabold uppercase tracking-wider text-muted-foreground">
-                        Categorías Generales
-                      </div>
-                    </>
-                  )}
-                  {VACANCY_CATEGORIES.map((cat) => (
+                <SelectContent className="rounded-[12px] border-border bg-popover shadow-lg">
+                  {categoryOptions.map((cat) => (
                     <SelectItem
                       key={cat}
                       value={cat}
-                      className="text-xs cursor-pointer py-2"
+                      className="text-[14px] font-normal rounded-[8px] cursor-pointer"
                     >
                       {cat}
                     </SelectItem>
@@ -158,31 +121,68 @@ export function Step1Basic({ form }: Step1BasicProps) {
           )}
         />
 
-        {/* Tipo de Jornada */}
+        <Controller
+          control={form.control}
+          name="positions_available"
+          render={({ field, fieldState }) => (
+            <Field
+              data-invalid={Boolean(fieldState.error)}
+              className="gap-[6px]"
+            >
+              <label
+                htmlFor="vacancy-positions"
+                className="text-[14px] font-medium leading-[20px] text-foreground"
+              >
+                Plazas disponibles
+              </label>
+              <Input
+                id="vacancy-positions"
+                type="number"
+                min={1}
+                value={field.value ?? 1}
+                onChange={(e) => {
+                  const val = parseInt(e.target.value, 10);
+                  field.onChange(Number.isNaN(val) ? 1 : Math.max(1, val));
+                }}
+                className="h-[44px] rounded-[8px] border-input bg-card px-[12px] text-[14px] font-normal tabular-nums"
+              />
+              <span className="text-[12px] leading-[16px] text-muted-foreground">
+                Mínimo 1 plaza
+              </span>
+              {fieldState.error?.message && (
+                <FieldError>{fieldState.error.message}</FieldError>
+              )}
+            </Field>
+          )}
+        />
+      </div>
+
+      {/* Tipo de jornada y Horario o turno */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-[16px]">
         <Controller
           control={form.control}
           name="employment_type"
           render={({ field, fieldState }) => (
-            <Field data-invalid={Boolean(fieldState.error)} className="space-y-2">
-              <FieldLabel className="text-sm font-semibold text-foreground">
-                Tipo de Jornada <span className="text-rose-500">*</span>
-              </FieldLabel>
+            <Field
+              data-invalid={Boolean(fieldState.error)}
+              className="gap-[6px]"
+            >
+              <span className="text-[14px] font-medium leading-[20px] text-foreground">
+                Tipo de jornada
+              </span>
               <Select
                 value={field.value || "Tiempo Completo"}
                 onValueChange={(val) => field.onChange(val)}
               >
-                <SelectTrigger
-                  aria-label="Tipo de jornada laboral"
-                  className="w-full"
-                >
-                  <SelectValue placeholder="Selecciona la jornada" />
+                <SelectTrigger className="h-[44px] w-full rounded-[8px] border-input bg-card px-[12px] text-[14px] font-normal">
+                  <SelectValue placeholder="Selecciona tipo de jornada" />
                 </SelectTrigger>
-                <SelectContent>
+                <SelectContent className="rounded-[12px] border-border bg-popover shadow-lg">
                   {EMPLOYMENT_TYPES.map((type) => (
                     <SelectItem
                       key={type}
                       value={type}
-                      className="text-xs cursor-pointer py-2"
+                      className="text-[14px] font-normal rounded-[8px] cursor-pointer"
                     >
                       {type}
                     </SelectItem>
@@ -195,35 +195,31 @@ export function Step1Basic({ form }: Step1BasicProps) {
             </Field>
           )}
         />
-      </div>
 
-      {/* 3. Horario / Turno y Plazas Disponibles en 2 Columnas */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-5 sm:gap-6">
-        {/* Horario / Turno */}
         <Controller
           control={form.control}
           name="shift_schedule"
           render={({ field, fieldState }) => (
-            <Field data-invalid={Boolean(fieldState.error)} className="space-y-2">
-              <FieldLabel className="text-sm font-semibold text-foreground">
-                Horario / Turno de Trabajo <span className="text-rose-500">*</span>
-              </FieldLabel>
+            <Field
+              data-invalid={Boolean(fieldState.error)}
+              className="gap-[6px]"
+            >
+              <span className="text-[14px] font-medium leading-[20px] text-foreground">
+                Horario o turno
+              </span>
               <Select
-                value={field.value || "Matutino (Mañana)"}
+                value={field.value || "Vespertino (Tarde)"}
                 onValueChange={(val) => field.onChange(val)}
               >
-                <SelectTrigger
-                  aria-label="Horario o turno de trabajo"
-                  className="w-full"
-                >
-                  <SelectValue placeholder="Selecciona el turno" />
+                <SelectTrigger className="h-[44px] w-full rounded-[8px] border-input bg-card px-[12px] text-[14px] font-normal">
+                  <SelectValue placeholder="Selecciona horario" />
                 </SelectTrigger>
-                <SelectContent>
+                <SelectContent className="rounded-[12px] border-border bg-popover shadow-lg">
                   {SHIFT_SCHEDULES.map((shift) => (
                     <SelectItem
                       key={shift}
                       value={shift}
-                      className="text-xs cursor-pointer py-2"
+                      className="text-[14px] font-normal rounded-[8px] cursor-pointer"
                     >
                       {shift}
                     </SelectItem>
@@ -235,60 +231,6 @@ export function Step1Basic({ form }: Step1BasicProps) {
               )}
             </Field>
           )}
-        />
-
-        {/* Plazas Disponibles: Control Normalizado */}
-        <Controller
-          control={form.control}
-          name="positions_available"
-          render={({ field, fieldState }) => {
-            const count = Math.max(1, Number(field.value) || 1);
-
-            return (
-              <Field data-invalid={Boolean(fieldState.error)} className="space-y-2">
-                <FieldLabel className="text-sm font-semibold text-foreground">
-                  Número de Plazas Disponibles
-                </FieldLabel>
-                <div className="flex items-center justify-between h-9 w-full rounded-3xl border border-input bg-input/50 px-2 transition-colors">
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => field.onChange(Math.max(1, count - 1))}
-                    disabled={count <= 1}
-                    className="cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed"
-                    aria-label="Reducir plazas"
-                  >
-                    <Minus className="size-4" />
-                  </Button>
-
-                  <div className="flex items-center gap-1.5 select-none">
-                    <span className="font-mono font-bold text-sm text-foreground">
-                      {count}
-                    </span>
-                    <span className="text-xs text-muted-foreground font-medium">
-                      {count === 1 ? "vacante disponible" : "vacantes disponibles"}
-                    </span>
-                  </div>
-
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => field.onChange(count + 1)}
-                    disabled={count >= 50}
-                    className="cursor-pointer"
-                    aria-label="Aumentar plazas"
-                  >
-                    <Plus className="size-4" />
-                  </Button>
-                </div>
-                {fieldState.error?.message && (
-                  <FieldError>{fieldState.error.message}</FieldError>
-                )}
-              </Field>
-            );
-          }}
         />
       </div>
     </div>

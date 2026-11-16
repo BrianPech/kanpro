@@ -6,15 +6,23 @@ import {
   getCoreRowModel,
   getSortedRowModel,
   getFilteredRowModel,
+  getPaginationRowModel,
   flexRender,
   type ColumnDef,
   type SortingState,
 } from "@tanstack/react-table";
+import { HugeiconsIcon } from "@hugeicons/react";
+import {
+  HelpCircleIcon,
+  Mail01Icon,
+  UserCheck01Icon,
+  UserGroupIcon,
+  UserRemove01Icon,
+} from "@hugeicons/core-free-icons";
+import { ChevronLeft, ChevronRight, Plus } from "lucide-react";
 import {
   Users,
   Search,
-  MapPin,
-  Calendar,
   MessageSquare,
   UserCheck,
   MoreHorizontal,
@@ -27,8 +35,6 @@ import {
   Download,
   X,
   ArrowUpDown,
-  ArrowUp,
-  ArrowDown,
   Eye,
   Phone,
   Clock,
@@ -39,12 +45,10 @@ import {
   Trash2,
   MailCheck,
   Layers,
-  Sparkles,
 } from "@/components/ui/icons";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Card } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
@@ -101,8 +105,6 @@ import { getCompanyDepartmentsAction } from "@/modules/company/actions/areas";
 import { EmployeeDossierModal } from "@/modules/company/components/dossier/employee-dossier-modal";
 import { RegisterEmployeeModal } from "@/modules/company/components/employees/register-employee-modal";
 import { EmployeeModuleTour } from "@/modules/company/components/employees/employee-module-tour";
-import { CompanyPageHeader } from "./shared/company-page-header";
-import { CompanyStatusBadge } from "./shared/company-status-badge";
 
 export interface EmployeeInvitationItem {
   id: string;
@@ -168,7 +170,7 @@ export function CompanyEmployeesView({
     React.useState<CompanyDepartmentItem[]>(companyDepartments);
   const [searchQuery, setSearchQuery] = React.useState("");
   const [categoryFilter, setCategoryFilter] = React.useState<string>("all");
-  const [statusFilter, setStatusFilter] = React.useState<"all" | "Contratado" | "Baja" | "invitaciones">("all");
+  const [statusFilter, setStatusFilter] = React.useState<"Contratado" | "Baja" | "invitaciones">("Contratado");
   const [sorting, setSorting] = React.useState<SortingState>([
     { id: "hired_date", desc: true },
   ]);
@@ -390,8 +392,7 @@ export function CompanyEmployeesView({
     return employees.filter((emp) => {
       const matchesCategory =
         categoryFilter === "all" || emp.vacancy_category === categoryFilter;
-      const matchesStatus =
-        statusFilter === "all" || emp.status === statusFilter;
+      const matchesStatus = emp.status === statusFilter;
       return matchesCategory && matchesStatus;
     });
   }, [employees, categoryFilter, statusFilter]);
@@ -410,13 +411,12 @@ export function CompanyEmployeesView({
 
   const isFiltered =
     searchQuery.trim().length > 0 ||
-    categoryFilter !== "all" ||
-    statusFilter !== "all";
+    categoryFilter !== "all";
 
   const handleClearFilters = () => {
     setSearchQuery("");
     setCategoryFilter("all");
-    setStatusFilter("all");
+    setStatusFilter("Contratado");
     setSorting([{ id: "hired_date", desc: true }]);
   };
 
@@ -447,9 +447,10 @@ export function CompanyEmployeesView({
       if (diffMonths < 12) return `${diffMonths} meses`;
       const years = Math.floor(diffMonths / 12);
       const remMonths = diffMonths % 12;
-      return remMonths > 0
-        ? `${years}a ${remMonths}m`
-        : `${years} ${years === 1 ? "año" : "años"}`;
+      const yearLabel = `${years} ${years === 1 ? "año" : "años"}`;
+      if (remMonths === 0) return yearLabel;
+      const monthLabel = `${remMonths} ${remMonths === 1 ? "mes" : "meses"}`;
+      return `${yearLabel}, ${monthLabel}`;
     } catch {
       return "";
     }
@@ -635,49 +636,47 @@ export function CompanyEmployeesView({
         header: ({ column }) => (
           <button
             type="button"
-            className="flex items-center gap-1.5 font-extrabold text-[11px] uppercase tracking-wider text-muted-foreground hover:text-foreground transition-colors cursor-pointer select-none py-1 group"
+            className="flex items-center gap-[8px] text-[14px] font-semibold leading-[19px] text-foreground hover:opacity-80 transition-opacity cursor-pointer select-none"
             onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
           >
             <span>Empleado</span>
             {column.getIsSorted() === "asc" ? (
-              <ArrowUp className="size-3.5 text-primary" />
+              <span className="text-link">↑</span>
             ) : column.getIsSorted() === "desc" ? (
-              <ArrowDown className="size-3.5 text-primary" />
+              <span className="text-link">↓</span>
             ) : (
-              <ArrowUpDown className="size-3.5 opacity-40 group-hover:opacity-80 transition-opacity" />
+              <ArrowUpDown className="size-3.5 opacity-40" />
             )}
           </button>
         ),
         cell: ({ row }) => {
           const emp = row.original;
           return (
-            <div className="flex items-center gap-3 py-1">
+            <div className="flex items-center gap-[10px] py-1 min-w-0">
               <Avatar
                 onClick={() => handleOpenDossier(emp)}
-                className="size-9 rounded-xl border border-border/40 shrink-0 cursor-pointer hover:ring-2 hover:ring-primary/40 transition-all"
+                className="size-[36px] rounded-[12px] bg-sidebar-accent shrink-0 cursor-pointer after:hidden"
               >
                 <AvatarImage
                   src={emp.avatar_url || undefined}
                   alt={emp.full_name}
-                  className="object-cover"
+                  className="rounded-[12px] object-cover"
                 />
-                <AvatarFallback className="rounded-xl font-extrabold text-xs bg-primary/10 text-primary">
+                <AvatarFallback className="rounded-[12px] font-semibold text-[12px] leading-[16px] bg-sidebar-accent text-link">
                   {getInitials(emp.full_name)}
                 </AvatarFallback>
               </Avatar>
-              <div className="min-w-0">
+              <div className="min-w-0 flex flex-col gap-px">
                 <button
                   type="button"
                   onClick={() => handleOpenDossier(emp)}
-                  className="text-xs sm:text-sm font-bold text-foreground hover:text-primary transition-colors truncate block text-left cursor-pointer"
+                  className="text-[14px] font-semibold leading-[20px] text-foreground hover:text-link transition-colors truncate block text-left cursor-pointer"
                 >
                   {emp.full_name}
                 </button>
-                {emp.phone && (
-                  <p className="text-[11px] text-muted-foreground font-mono truncate">
-                    {emp.phone}
-                  </p>
-                )}
+                <p className="text-[12px] font-normal leading-[16px] text-muted-foreground truncate">
+                  {emp.email || emp.phone || "Sin contacto"}
+                </p>
               </div>
             </div>
           );
@@ -689,30 +688,25 @@ export function CompanyEmployeesView({
         header: ({ column }) => (
           <button
             type="button"
-            className="flex items-center gap-1.5 font-extrabold text-[11px] uppercase tracking-wider text-muted-foreground hover:text-foreground transition-colors cursor-pointer select-none py-1 group"
+            className="flex items-center gap-1.5 text-[13px] font-semibold leading-[18px] text-muted-foreground hover:text-foreground transition-colors cursor-pointer select-none"
             onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
           >
-            <span>Puesto & Área</span>
+            <span>Puesto y área</span>
             {column.getIsSorted() === "asc" ? (
-              <ArrowUp className="size-3.5 text-primary" />
+              <span className="text-link">↑</span>
             ) : column.getIsSorted() === "desc" ? (
-              <ArrowDown className="size-3.5 text-primary" />
-            ) : (
-              <ArrowUpDown className="size-3.5 opacity-40 group-hover:opacity-80 transition-opacity" />
-            )}
+              <span className="text-link">↓</span>
+            ) : null}
           </button>
         ),
         cell: ({ row }) => {
           const emp = row.original;
           const currentArea = emp.department?.trim() || emp.vacancy_category?.trim();
           const hasArea = Boolean(currentArea && currentArea !== "Sin área");
-          const deptMatch = departmentsList.find(
-            (d) => d.name.toLowerCase() === currentArea?.toLowerCase()
-          );
 
           return (
-            <div className="space-y-1 py-1">
-              <p className="text-xs font-bold text-foreground line-clamp-1">
+            <div className="flex flex-col gap-px py-1 min-w-0">
+              <p className="text-[14px] font-medium leading-[20px] text-foreground truncate">
                 {emp.vacancy_title?.trim() ? emp.vacancy_title : "Sin puesto asignado"}
               </p>
               <button
@@ -721,26 +715,10 @@ export function CompanyEmployeesView({
                   e.stopPropagation();
                   handleOpenAreaDialog(emp);
                 }}
-                className="group/badge inline-flex items-center gap-1.5 cursor-pointer text-left"
+                className="text-[12px] font-normal leading-[16px] text-muted-foreground hover:text-link transition-colors truncate text-left cursor-pointer"
                 title="Haga clic para cambiar o asignar área"
               >
-                <Badge
-                  variant="outline"
-                  className={cn(
-                    "text-[10px] font-semibold px-2 py-0.5 border-border/40 transition-colors group-hover/badge:border-primary/60 group-hover/badge:bg-primary/5",
-                    hasArea
-                      ? "bg-muted/40 text-foreground"
-                      : "bg-muted/20 text-muted-foreground border-dashed"
-                  )}
-                >
-                  {deptMatch?.color && (
-                    <span
-                      className="size-2 rounded-full shrink-0 mr-1"
-                      style={{ backgroundColor: deptMatch.color }}
-                    />
-                  )}
-                  <span>{hasArea ? currentArea : "Asignar área +"}</span>
-                </Badge>
+                {hasArea ? currentArea : "Asignar área +"}
               </button>
             </div>
           );
@@ -749,64 +727,40 @@ export function CompanyEmployeesView({
       {
         accessorKey: "location",
         id: "location",
-        header: ({ column }) => (
-          <button
-            type="button"
-            className="flex items-center gap-1.5 font-extrabold text-[11px] uppercase tracking-wider text-muted-foreground hover:text-foreground transition-colors cursor-pointer select-none py-1 group"
-            onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
-          >
-            <span>Ubicación</span>
-            {column.getIsSorted() === "asc" ? (
-              <ArrowUp className="size-3.5 text-primary" />
-            ) : column.getIsSorted() === "desc" ? (
-              <ArrowDown className="size-3.5 text-primary" />
-            ) : (
-              <ArrowUpDown className="size-3.5 opacity-40 group-hover:opacity-80 transition-opacity" />
-            )}
-          </button>
+        header: () => (
+          <span className="text-[13px] font-semibold leading-[18px] text-muted-foreground">
+            Ubicación
+          </span>
         ),
         cell: ({ row }) => {
           const emp = row.original;
           return (
-            <div className="flex items-center gap-1.5 text-xs text-muted-foreground font-medium py-1">
-              <MapPin className="size-3.5 text-primary shrink-0" />
-              <span className="truncate">{emp.location}</span>
-            </div>
+            <span className="text-[13px] font-normal leading-[18px] text-foreground truncate block">
+              {emp.location || "Sin ubicación"}
+            </span>
           );
         },
       },
       {
         accessorKey: "hired_date",
         id: "hired_date",
-        header: ({ column }) => (
-          <button
-            type="button"
-            className="flex items-center gap-1.5 font-extrabold text-[11px] uppercase tracking-wider text-muted-foreground hover:text-foreground transition-colors cursor-pointer select-none py-1 group"
-            onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
-          >
-            <span>Ingreso & Antigüedad</span>
-            {column.getIsSorted() === "asc" ? (
-              <ArrowUp className="size-3.5 text-primary" />
-            ) : column.getIsSorted() === "desc" ? (
-              <ArrowDown className="size-3.5 text-primary" />
-            ) : (
-              <ArrowUpDown className="size-3.5 opacity-40 group-hover:opacity-80 transition-opacity" />
-            )}
-          </button>
+        header: () => (
+          <span className="text-[13px] font-semibold leading-[18px] text-muted-foreground">
+            Ingreso y antigüedad
+          </span>
         ),
         cell: ({ row }) => {
           const emp = row.original;
           const tenure = getTenure(emp.hired_date);
           return (
-            <div className="space-y-0.5 py-1">
-              <div className="flex items-center gap-1.5 text-xs font-semibold text-foreground">
-                <Calendar className="size-3 text-muted-foreground shrink-0" />
-                <span>{formatDate(emp.hired_date)}</span>
-              </div>
+            <div className="flex flex-col gap-px py-1">
+              <span className="text-[13px] font-medium leading-[18px] text-foreground">
+                {formatDate(emp.hired_date)}
+              </span>
               {tenure && (
-                <p className="text-[10px] text-muted-foreground font-medium pl-4.5">
+                <span className="text-[12px] font-normal leading-[16px] text-muted-foreground">
                   {tenure}
-                </p>
+                </span>
               )}
             </div>
           );
@@ -815,31 +769,26 @@ export function CompanyEmployeesView({
       {
         accessorKey: "status",
         id: "status",
-        header: ({ column }) => (
-          <button
-            type="button"
-            className="flex items-center gap-1.5 font-extrabold text-[11px] uppercase tracking-wider text-muted-foreground hover:text-foreground transition-colors cursor-pointer select-none py-1 group"
-            onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
-          >
-            <span>Estatus</span>
-            {column.getIsSorted() === "asc" ? (
-              <ArrowUp className="size-3.5 text-primary" />
-            ) : column.getIsSorted() === "desc" ? (
-              <ArrowDown className="size-3.5 text-primary" />
-            ) : (
-              <ArrowUpDown className="size-3.5 opacity-40 group-hover:opacity-80 transition-opacity" />
-            )}
-          </button>
+        header: () => (
+          <span className="text-[13px] font-semibold leading-[18px] text-muted-foreground block text-center">
+            Estado
+          </span>
         ),
         cell: ({ row }) => {
           const emp = row.original;
           const isActive = emp.status === "Contratado";
           return (
-            <div className="py-1">
-              <CompanyStatusBadge
-                status={isActive ? "activo" : "inactivo"}
-                label={isActive ? "Activo" : "Baja"}
-              />
+            <div className="flex justify-center py-1">
+              <span
+                className={cn(
+                  "inline-flex items-center justify-center rounded-[8px] px-[12px] py-[6px] text-[12px] font-medium leading-[17px] min-w-[72px]",
+                  isActive
+                    ? "bg-success text-success-foreground"
+                    : "bg-destructive/15 text-destructive"
+                )}
+              >
+                {isActive ? "Activo" : "Baja"}
+              </span>
             </div>
           );
         },
@@ -847,7 +796,7 @@ export function CompanyEmployeesView({
       {
         id: "actions",
         header: () => (
-          <span className="font-extrabold text-[11px] uppercase tracking-wider text-muted-foreground block text-right pr-2">
+          <span className="text-[13px] font-semibold leading-[18px] text-muted-foreground block text-center">
             Acciones
           </span>
         ),
@@ -855,36 +804,17 @@ export function CompanyEmployeesView({
           const emp = row.original;
           return (
             <div
-              className="flex items-center justify-end gap-1 py-1"
+              className="flex items-center justify-center py-1"
               onClick={(e) => e.stopPropagation()}
             >
-              {emp.phone && emp.status === "Contratado" && (
-                <a
-                  href={getWhatsAppLink(emp)}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="size-8 rounded-lg bg-primary/10 text-primary hover:bg-primary/20 flex items-center justify-center transition-colors cursor-pointer"
-                  title="Enviar mensaje WhatsApp"
-                >
-                  <MessageSquare className="size-3.5 stroke-[2.5]" />
-                </a>
-              )}
-
-              {/* Open Expediente 360 Sheet */}
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => handleOpenDossier(emp)}
-                className="size-8 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted p-1 cursor-pointer transition-colors"
-                title="Ver Expediente Digital 360"
-              >
-                <Eye className="size-4" />
-              </Button>
-
               <DropdownMenu>
                 <DropdownMenuTrigger
                   render={
-                    <button className="size-8 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted p-1 cursor-pointer transition-colors flex items-center justify-center" />
+                    <button
+                      type="button"
+                      aria-label={`Más acciones de ${emp.full_name}`}
+                      className="size-[40px] rounded-[8px] bg-muted text-foreground hover:bg-muted/80 cursor-pointer transition-colors flex items-center justify-center"
+                    />
                   }
                 >
                   <MoreHorizontal className="size-4" />
@@ -970,11 +900,17 @@ export function CompanyEmployeesView({
       sorting,
       globalFilter: searchQuery,
     },
+    initialState: {
+      pagination: {
+        pageSize: 10,
+      },
+    },
     onSortingChange: setSorting,
     onGlobalFilterChange: setSearchQuery,
     getCoreRowModel: getCoreRowModel(),
     getSortedRowModel: getSortedRowModel(),
     getFilteredRowModel: getFilteredRowModel(),
+    getPaginationRowModel: getPaginationRowModel(),
     globalFilterFn: (row, _columnId, filterValue) => {
       const query = String(filterValue || "").toLowerCase();
       const emp = row.original;
@@ -989,268 +925,255 @@ export function CompanyEmployeesView({
   });
 
   const tableRows = table.getRowModel().rows;
+  const totalFilteredRows = table.getFilteredRowModel().rows.length;
+  const { pageIndex, pageSize } = table.getState().pagination;
+  const pageCount = table.getPageCount();
+  const rangeStart = totalFilteredRows === 0 ? 0 : pageIndex * pageSize + 1;
+  const rangeEnd = Math.min(totalFilteredRows, (pageIndex + 1) * pageSize);
 
   return (
-    <div className="space-y-6 w-full pb-16 font-sans">
-      {/* 1. Header Unificado */}
-      <CompanyPageHeader
-        title="Plantilla de Empleados"
-        description="Directorio completo de colaboradores, estatus laboral, expedientes y contratos."
-      >
-        <div className="flex items-center gap-2">
-          <Badge variant="outline" className="font-mono">
-            {employees.length} colaboradores
-          </Badge>
-          <Button
-            variant="outline"
-            size="sm"
+    <div className="flex flex-col gap-6 w-full pb-16">
+      {/* 1. Header */}
+      <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+        <div className="flex flex-col gap-1">
+          <h1 className="text-[32px] font-semibold leading-[40px] tracking-tight text-foreground">
+            Plantilla de empleados
+          </h1>
+          <p className="text-[14px] font-normal leading-[20px] text-muted-foreground">
+            Consulta colaboradores, su estatus laboral y sus expedientes.
+          </p>
+        </div>
+
+        <div className="flex items-center gap-[8px] flex-wrap">
+          <button
+            type="button"
             onClick={() => {
               setIsTourManual(true);
               setIsTourOpen(true);
             }}
-            className="cursor-pointer"
+            className="h-[44px] px-[14px] rounded-[8px] bg-card border border-control-border text-[14px] font-semibold leading-[20px] text-foreground inline-flex items-center justify-center gap-[8px] hover:bg-accent transition-colors cursor-pointer"
             title="Ver guía interactiva del módulo"
           >
-            <Sparkles data-icon="inline-start" className="text-primary size-4" />
-            <span className="hidden sm:inline">Guía del Módulo</span>
-          </Button>
-          <Button
-            variant="outline"
-            size="sm"
+            <HugeiconsIcon icon={HelpCircleIcon} size={16} strokeWidth={1.8} />
+            <span>Guía del módulo</span>
+          </button>
+
+          <button
+            type="button"
             onClick={handleExportCSV}
-            className="cursor-pointer"
+            className="h-[44px] px-[14px] rounded-[8px] bg-card border border-control-border text-[14px] font-semibold leading-[20px] text-foreground inline-flex items-center justify-center gap-[8px] hover:bg-accent transition-colors cursor-pointer"
           >
-            <Download data-icon="inline-start" className="text-muted-foreground" />
-            <span>Exportar</span>
-          </Button>
-          <Button
-            size="sm"
+            <Download className="size-4" />
+            <span>Exportar CSV</span>
+          </button>
+
+          <button
+            type="button"
             onClick={() => setIsNewEmployeeModalOpen(true)}
-            className="cursor-pointer font-medium"
+            className="h-[44px] px-[14px] rounded-[8px] bg-primary text-primary-foreground text-[14px] font-semibold leading-[20px] inline-flex items-center justify-center gap-[8px] hover:opacity-90 transition-opacity cursor-pointer"
           >
-            <UserPlus data-icon="inline-start" />
-            <span>Registrar Empleado</span>
-          </Button>
+            <Plus className="size-4" />
+            <span>Registrar empleado</span>
+          </button>
         </div>
-      </CompanyPageHeader>
-
-      {/* 2. Top Summary KPI Cards */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4">
-        <Card className="p-4 sm:p-5 flex flex-col justify-between">
-          <div className="flex items-center justify-between">
-            <span className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider">
-              Total Colaboradores
-            </span>
-            <div className="size-8 rounded-lg bg-primary/10 text-primary flex items-center justify-center">
-              <Users className="size-4" />
-            </div>
-          </div>
-          <div className="mt-2">
-            <h3 className="text-2xl font-extrabold text-foreground font-mono">
-              {metrics.total}
-            </h3>
-            <p className="text-[10px] font-semibold text-muted-foreground mt-0.5">
-              {metrics.categoriesCount} {metrics.categoriesCount === 1 ? "área activa" : "áreas activas"}
-            </p>
-          </div>
-        </Card>
-
-        <Card className="p-4 sm:p-5 flex flex-col justify-between">
-          <div className="flex items-center justify-between">
-            <span className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider">
-              Activos
-            </span>
-            <div className="size-8 rounded-lg bg-primary/10 text-primary flex items-center justify-center">
-              <UserCheck className="size-4" />
-            </div>
-          </div>
-          <div className="mt-2">
-            <h3 className="text-2xl font-extrabold text-foreground font-mono">
-              {metrics.active}
-            </h3>
-            <p className="text-[10px] font-semibold text-muted-foreground mt-0.5">
-              En plantilla laboral
-            </p>
-          </div>
-        </Card>
-
-        <Card className="p-4 sm:p-5 flex flex-col justify-between">
-          <div className="flex items-center justify-between">
-            <span className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider">
-              Invitaciones
-            </span>
-            <div className="size-8 rounded-lg bg-muted text-muted-foreground flex items-center justify-center">
-              <Clock className="size-4" />
-            </div>
-          </div>
-          <div className="mt-2">
-            <h3 className="text-2xl font-extrabold text-foreground font-mono">
-              {metrics.pendingInvitations}
-            </h3>
-            <p className="text-[10px] font-semibold text-muted-foreground mt-0.5">
-              Por completar expediente
-            </p>
-          </div>
-        </Card>
-
-        <Card className="p-4 sm:p-5 flex flex-col justify-between">
-          <div className="flex items-center justify-between">
-            <span className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider">
-              Bajas
-            </span>
-            <div className="size-8 rounded-lg bg-destructive/10 text-destructive flex items-center justify-center">
-              <UserX className="size-4" />
-            </div>
-          </div>
-          <div className="mt-2">
-            <h3 className="text-2xl font-extrabold text-destructive font-mono">
-              {metrics.terminated}
-            </h3>
-            <p className="text-[10px] font-semibold text-muted-foreground mt-0.5">
-              Historial de finiquitos
-            </p>
-          </div>
-        </Card>
       </div>
 
-      {/* Master TanStack DataTable Card */}
-      <Card className="overflow-hidden">
-        
-        {/* Toolbar & Filters Header */}
-        <div className="p-4 sm:p-5 border-b border-border space-y-3.5 bg-muted/20">
-          
-          {/* Fila 1: Input de búsqueda alineado con los botones de Registrar Empleado y Exportar */}
-          <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
-            
-            {/* Input de búsqueda con filtro global */}
-            <div className="relative flex-1">
-              <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-muted-foreground size-4 pointer-events-none" />
-              <Input
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Buscar por empleado, puesto, ubicación o teléfono..."
-                className="pl-10 pr-9 w-full h-9 rounded-3xl bg-input/50 border-input text-xs sm:text-sm"
-              />
-              {searchQuery && (
-                <button
-                  type="button"
-                  onClick={() => setSearchQuery("")}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground cursor-pointer"
-                  aria-label="Limpiar búsqueda"
-                >
-                  <X className="size-3.5" />
-                </button>
+      {/* 2. Top Summary KPI Cards */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
+        <div className="bg-card border border-border rounded-[16px] p-4 flex flex-col gap-[8px]">
+          <div className="flex items-start justify-between gap-2">
+            <span className="text-[14px] font-medium leading-[19px] text-muted-foreground">
+              Colaboradores
+            </span>
+            <span className="size-[34px] rounded-[8px] bg-sidebar-accent text-link flex items-center justify-center shrink-0">
+              <HugeiconsIcon icon={UserGroupIcon} size={18} strokeWidth={1.8} />
+            </span>
+          </div>
+          <span className="text-[28px] font-bold leading-[39px] text-foreground tabular-nums">
+            {metrics.total}
+          </span>
+          <span className="text-[12px] font-medium leading-[17px] text-muted-foreground">
+            {metrics.categoriesCount}{" "}
+            {metrics.categoriesCount === 1 ? "área activa" : "áreas activas"}
+          </span>
+        </div>
+
+        <div className="bg-card border border-border rounded-[16px] p-4 flex flex-col gap-[8px]">
+          <div className="flex items-start justify-between gap-2">
+            <span className="text-[14px] font-medium leading-[19px] text-muted-foreground">
+              Activos
+            </span>
+            <span className="size-[34px] rounded-[8px] bg-success text-success-foreground flex items-center justify-center shrink-0">
+              <HugeiconsIcon icon={UserCheck01Icon} size={18} strokeWidth={1.8} />
+            </span>
+          </div>
+          <span className="text-[28px] font-bold leading-[39px] text-foreground tabular-nums">
+            {metrics.active}
+          </span>
+          <span className="text-[12px] font-medium leading-[17px] text-muted-foreground">
+            En plantilla laboral
+          </span>
+        </div>
+
+        <div className="bg-card border border-border rounded-[16px] p-4 flex flex-col gap-[8px]">
+          <div className="flex items-start justify-between gap-2">
+            <span className="text-[14px] font-medium leading-[19px] text-muted-foreground">
+              Invitaciones
+            </span>
+            <span className="size-[34px] rounded-[8px] bg-sidebar-accent text-link flex items-center justify-center shrink-0">
+              <HugeiconsIcon icon={Mail01Icon} size={18} strokeWidth={1.8} />
+            </span>
+          </div>
+          <span className="text-[28px] font-bold leading-[39px] text-foreground tabular-nums">
+            {metrics.pendingInvitations}
+          </span>
+          <span className="text-[12px] font-medium leading-[17px] text-muted-foreground">
+            Pendientes de completar
+          </span>
+        </div>
+
+        <div className="bg-card border border-border rounded-[16px] p-4 flex flex-col gap-[8px]">
+          <div className="flex items-start justify-between gap-2">
+            <span className="text-[14px] font-medium leading-[19px] text-muted-foreground">
+              Bajas
+            </span>
+            <span className="size-[34px] rounded-[8px] bg-muted text-muted-foreground flex items-center justify-center shrink-0">
+              <HugeiconsIcon icon={UserRemove01Icon} size={18} strokeWidth={1.8} />
+            </span>
+          </div>
+          <span className="text-[28px] font-bold leading-[39px] text-foreground tabular-nums">
+            {metrics.terminated}
+          </span>
+          <span className="text-[12px] font-medium leading-[17px] text-muted-foreground">
+            Historial de bajas
+          </span>
+        </div>
+      </div>
+
+      {/* 3. Directorio Card */}
+      <div className="bg-card border border-border rounded-[16px] overflow-hidden">
+        {/* Controls */}
+        <div className="p-4 flex flex-col gap-[12px]">
+          <h2 className="text-[20px] font-semibold leading-[28px] text-foreground">
+            Directorio
+          </h2>
+
+          {/* Tabs */}
+          <div className="flex items-center gap-[8px] flex-wrap">
+            <button
+              type="button"
+              onClick={() => setStatusFilter("Contratado")}
+              className={cn(
+                "px-[14px] py-[8px] rounded-[8px] text-[14px] font-semibold leading-[20px] transition-colors cursor-pointer",
+                statusFilter === "Contratado"
+                  ? "bg-sidebar-accent text-link"
+                  : "bg-muted text-foreground hover:bg-muted/80"
               )}
-            </div>
+            >
+              Activos · {metrics.active}
+            </button>
+            <button
+              type="button"
+              onClick={() => setStatusFilter("invitaciones")}
+              className={cn(
+                "px-[14px] py-[8px] rounded-[8px] text-[14px] font-semibold leading-[20px] transition-colors cursor-pointer",
+                statusFilter === "invitaciones"
+                  ? "bg-sidebar-accent text-link"
+                  : "bg-muted text-foreground hover:bg-muted/80"
+              )}
+            >
+              Invitaciones · {metrics.pendingInvitations}
+            </button>
+            <button
+              type="button"
+              onClick={() => setStatusFilter("Baja")}
+              className={cn(
+                "px-[14px] py-[8px] rounded-[8px] text-[14px] font-semibold leading-[20px] transition-colors cursor-pointer",
+                statusFilter === "Baja"
+                  ? "bg-sidebar-accent text-link"
+                  : "bg-muted text-foreground hover:bg-muted/80"
+              )}
+            >
+              Bajas · {metrics.terminated}
+            </button>
           </div>
 
-          {/* Filter Row: Status Tabs + Department Filter + Reset */}
-          <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 pt-1 border-t border-border/30">
-            
-            {/* Status Segmented Tabs */}
-            <div className="inline-flex p-1 rounded-xl bg-muted/60 border border-border/40 shrink-0">
-              <button
-                type="button"
-                onClick={() => setStatusFilter("all")}
-                className={cn(
-                  "px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer",
-                  statusFilter === "all"
-                    ? "bg-background text-foreground shadow-2xs"
-                    : "text-muted-foreground hover:text-foreground"
-                )}
+          {/* Search & Area Filter */}
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-end gap-[12px]">
+            <div className="flex flex-col gap-[4px] flex-1 max-w-[504px]">
+              <label
+                htmlFor="employees-search"
+                className="text-[14px] font-medium leading-[20px] text-foreground"
               >
-                Todos ({metrics.total})
-              </button>
-              <button
-                type="button"
-                onClick={() => setStatusFilter("Contratado")}
-                className={cn(
-                  "px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5",
-                  statusFilter === "Contratado"
-                    ? "bg-background text-foreground shadow-2xs"
-                    : "text-muted-foreground hover:text-foreground"
+                Buscar empleados
+              </label>
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground size-4 pointer-events-none" />
+                <input
+                  id="employees-search"
+                  type="text"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  placeholder="Nombre, puesto, ubicación o teléfono"
+                  className="h-[44px] w-full rounded-[8px] border border-input bg-card pl-[36px] pr-[34px] text-[14px] text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+                />
+                {searchQuery && (
+                  <button
+                    type="button"
+                    onClick={() => setSearchQuery("")}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground cursor-pointer"
+                    aria-label="Limpiar búsqueda"
+                  >
+                    <X className="size-3.5" />
+                  </button>
                 )}
-              >
-                <span className="size-1.5 rounded-full bg-primary inline-block" />
-                <span>Activos ({metrics.active})</span>
-              </button>
-              <button
-                type="button"
-                onClick={() => setStatusFilter("invitaciones")}
-                className={cn(
-                  "px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5",
-                  statusFilter === "invitaciones"
-                    ? "bg-background text-foreground shadow-2xs"
-                    : "text-muted-foreground hover:text-foreground"
-                )}
-              >
-                <Clock className="size-3 text-muted-foreground" />
-                <span>Invitaciones ({metrics.pendingInvitations})</span>
-                {metrics.pendingInvitations > 0 && (
-                  <span className="size-1.5 rounded-full bg-primary inline-block animate-pulse" />
-                )}
-              </button>
-              <button
-                type="button"
-                onClick={() => setStatusFilter("Baja")}
-                className={cn(
-                  "px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5",
-                  statusFilter === "Baja"
-                    ? "bg-background text-destructive shadow-2xs"
-                    : "text-muted-foreground hover:text-foreground"
-                )}
-              >
-                <span className="size-1.5 rounded-full bg-destructive inline-block" />
-                <span>Bajas ({metrics.terminated})</span>
-              </button>
-            </div>
-
-            {/* Department Filter & Reset Button */}
-            <div className="flex items-center gap-2">
-              <div className="w-full sm:w-[220px]">
-                <Select
-                  value={categoryFilter}
-                  onValueChange={(val) => setCategoryFilter(val || "all")}
-                >
-                  <SelectTrigger className="w-full h-9 rounded-3xl bg-input/50 text-xs font-semibold">
-                    <SelectValue placeholder="Todas las áreas">
-                      {categoryFilter === "all"
-                        ? `Todas las áreas (${employees.length})`
-                        : categoryFilter}
-                    </SelectValue>
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem
-                      value="all"
-                      className="text-xs font-semibold cursor-pointer"
-                    >
-                      Todas las áreas ({employees.length})
-                    </SelectItem>
-                    {categories.map((cat) => (
-                      <SelectItem
-                        key={cat}
-                        value={cat}
-                        className="text-xs font-semibold cursor-pointer"
-                      >
-                        {cat}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
               </div>
-
-              {isFiltered && (
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={handleClearFilters}
-                  className="h-9 px-2.5 text-xs font-bold text-muted-foreground hover:text-foreground gap-1 cursor-pointer shrink-0"
-                >
-                  <RotateCcw className="size-3.5" />
-                  <span className="hidden sm:inline">Limpiar</span>
-                </Button>
-              )}
             </div>
+
+            <div className="flex flex-col gap-[4px] w-full sm:w-[234px]">
+              <span className="text-[14px] font-medium leading-[20px] text-foreground">
+                Área
+              </span>
+              <Select
+                value={categoryFilter}
+                onValueChange={(val) => setCategoryFilter(val || "all")}
+              >
+                <SelectTrigger className="w-full h-[44px] rounded-[8px] border border-input bg-card px-3 text-[14px] font-normal text-foreground">
+                  <SelectValue placeholder="Todas las áreas">
+                    {categoryFilter === "all" ? "Todas las áreas" : categoryFilter}
+                  </SelectValue>
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem
+                    value="all"
+                    className="text-[13px] font-medium cursor-pointer"
+                  >
+                    Todas las áreas ({employees.length})
+                  </SelectItem>
+                  {categories.map((cat) => (
+                    <SelectItem
+                      key={cat}
+                      value={cat}
+                      className="text-[13px] font-medium cursor-pointer"
+                    >
+                      {cat}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            {isFiltered && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={handleClearFilters}
+                className="h-[44px] px-3 text-[13px] font-medium text-muted-foreground hover:text-foreground gap-1.5 cursor-pointer shrink-0"
+              >
+                <RotateCcw className="size-3.5" />
+                <span>Limpiar</span>
+              </Button>
+            )}
           </div>
         </div>
 
@@ -1702,13 +1625,13 @@ export function CompanyEmployeesView({
               {/* Desktop Full TanStack Table View (>= md) */}
               <div className="hidden md:block overflow-x-auto">
                 <Table className="w-full">
-                  <TableHeader className="bg-muted/30 border-b border-border/40">
+                  <TableHeader className="bg-muted border-b border-border">
                     {table.getHeaderGroups().map((headerGroup) => (
-                      <TableRow key={headerGroup.id} className="hover:bg-transparent">
+                      <TableRow key={headerGroup.id} className="hover:bg-transparent border-none">
                         {headerGroup.headers.map((header) => (
                           <TableHead
                             key={header.id}
-                            className="py-3 px-4 sm:px-6"
+                            className="py-3 px-4 h-auto"
                           >
                             {header.isPlaceholder
                               ? null
@@ -1721,18 +1644,18 @@ export function CompanyEmployeesView({
                       </TableRow>
                     ))}
                   </TableHeader>
-                  <TableBody className="divide-y divide-border/30">
+                  <TableBody className="divide-y divide-border">
                     {tableRows.map((row) => (
                       <TableRow
                         key={row.id}
                         onClick={() => handleOpenDossier(row.original)}
                         className={cn(
-                          "hover:bg-muted/30 transition-colors group cursor-pointer",
-                          row.original.status === "Baja" && "opacity-70 bg-muted/5"
+                          "hover:bg-muted/40 transition-colors cursor-pointer min-h-[60px] border-border",
+                          row.original.status === "Baja" && "opacity-75"
                         )}
                       >
                         {row.getVisibleCells().map((cell) => (
-                          <TableCell key={cell.id} className="py-3 px-4 sm:px-6">
+                          <TableCell key={cell.id} className="py-[9px] px-4">
                             {flexRender(
                               cell.column.columnDef.cell,
                               cell.getContext()
@@ -1745,20 +1668,41 @@ export function CompanyEmployeesView({
                 </Table>
               </div>
 
-              {/* Table Footer Summary */}
-              <div className="p-3.5 px-4 sm:px-6 border-t border-border/30 bg-muted/10 flex items-center justify-between text-xs text-muted-foreground font-medium">
-                <span>
-                  Mostrando <strong>{tableRows.length}</strong> de{" "}
-                  <strong>{employees.length}</strong> empleados
+              {/* Pagination Footer */}
+              <div className="p-4 border-t border-border flex flex-wrap items-center justify-between gap-3">
+                <span className="text-[13px] font-normal leading-[18px] text-muted-foreground">
+                  {rangeStart}–{rangeEnd} de {totalFilteredRows}{" "}
+                  {statusFilter === "Contratado" ? "empleados activos" : "bajas"}
                 </span>
-                <span className="text-[11px] text-muted-foreground/80">
-                  Actualizado en tiempo real
-                </span>
+
+                <div className="flex items-center gap-[8px]">
+                  <button
+                    type="button"
+                    onClick={() => table.previousPage()}
+                    disabled={!table.getCanPreviousPage()}
+                    aria-label="Página anterior"
+                    className="size-[36px] rounded-[8px] bg-muted text-foreground inline-flex items-center justify-center hover:bg-muted/80 transition-colors cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
+                  >
+                    <ChevronLeft className="size-4" />
+                  </button>
+                  <span className="text-[13px] font-medium leading-[18px] text-foreground px-1">
+                    Página {pageIndex + 1} de {Math.max(1, pageCount)}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => table.nextPage()}
+                    disabled={!table.getCanNextPage()}
+                    aria-label="Página siguiente"
+                    className="size-[36px] rounded-[8px] bg-muted text-foreground inline-flex items-center justify-center hover:bg-muted/80 transition-colors cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
+                  >
+                    <ChevronRight className="size-4" />
+                  </button>
+                </div>
               </div>
             </>
           )}
         </div>
-      </Card>
+      </div>
 
       {/* Modal de Detalles del Empleado (Expediente Digital 360) */}
       <EmployeeDossierModal

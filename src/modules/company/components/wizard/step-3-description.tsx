@@ -2,16 +2,9 @@
 
 import * as React from "react";
 import { Controller, type UseFormReturn } from "react-hook-form";
-import { FileText, Award, GraduationCap, Plus, X, Tag, Sparkles } from "@/components/ui/icons";
+import { X } from "@/components/ui/icons";
 import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import {
-  Field,
-  FieldLabel,
-  FieldDescription,
-  FieldError,
-} from "@/components/ui/field";
+import { Field, FieldError } from "@/components/ui/field";
 import {
   Select,
   SelectContent,
@@ -19,23 +12,11 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { RichTextEditor } from "@/components/ui/rich-text-editor";
 import {
   EXPERIENCE_LEVELS,
   EDUCATION_LEVELS,
   type VacancyWizardValues,
 } from "../../schemas/vacancy-wizard.schema";
-
-const SUGGESTED_SKILLS = [
-  "Atención al cliente",
-  "Puntualidad",
-  "Trabajo en equipo",
-  "Manejo de caja",
-  "Comunicación asertiva",
-  "Resolución de problemas",
-  "Organización",
-  "Actitud de servicio",
-];
 
 interface Step3DescriptionProps {
   form: UseFormReturn<VacancyWizardValues>;
@@ -44,23 +25,16 @@ interface Step3DescriptionProps {
 export function Step3Description({ form }: Step3DescriptionProps) {
   const [skillInput, setSkillInput] = React.useState("");
 
-  const handleAddSkill = (current: string[], onChange: (val: string[]) => void) => {
+  const handleAddSkill = (
+    current: string[],
+    onChange: (val: string[]) => void
+  ) => {
     const trimmed = skillInput.trim();
     if (!trimmed) return;
     if (!current.includes(trimmed)) {
       onChange([...current, trimmed]);
     }
     setSkillInput("");
-  };
-
-  const handleAddSuggestedSkill = (
-    current: string[],
-    onChange: (val: string[]) => void,
-    skill: string
-  ) => {
-    if (!current.includes(skill)) {
-      onChange([...current, skill]);
-    }
   };
 
   const handleRemoveSkill = (
@@ -72,45 +46,42 @@ export function Step3Description({ form }: Step3DescriptionProps) {
   };
 
   return (
-    <div className="space-y-5 sm:space-y-6">
-      {/* Encabezado del Paso */}
-      <div className="flex items-center gap-2.5 pb-2 border-b border-border/60">
-        <div className="size-8 rounded-xl bg-primary/10 text-primary flex items-center justify-center shrink-0">
-          <FileText className="size-4" />
-        </div>
-        <div>
-          <h3 className="text-sm font-bold text-foreground">Descripción & Requisitos</h3>
-          <p className="text-xs text-muted-foreground">Funciones del puesto, nivel de experiencia y habilidades</p>
-        </div>
+    <div className="flex flex-col gap-[20px]">
+      <div className="flex flex-col gap-[4px]">
+        <h2 className="text-[20px] font-semibold leading-[28px] tracking-[-0.015em] text-foreground">
+          Descripción y requisitos
+        </h2>
+        <p className="text-[13px] font-normal leading-[18px] text-muted-foreground">
+          Explica las funciones y el perfil que necesitas.
+        </p>
       </div>
 
-      {/* 1. Editor Enriquecido de Descripción */}
+      {/* Descripción de la vacante */}
       <Controller
         control={form.control}
         name="description"
         render={({ field, fieldState }) => (
-          <Field data-invalid={Boolean(fieldState.error)} className="space-y-2">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <FieldLabel htmlFor="description" className="text-sm font-semibold text-foreground">
-                  Funciones & Responsabilidades <span className="text-rose-500">*</span>
-                </FieldLabel>
-              </div>
-              <span className="text-[11px] text-muted-foreground font-medium">
-                Markdown
-              </span>
-            </div>
-            <div className="rounded-2xl border border-border/80 overflow-hidden shadow-2xs">
-              <RichTextEditor
-                value={field.value || ""}
-                onChange={(html) => field.onChange(html)}
-                placeholder="Describe detalladamente las funciones principales, responsabilidades del puesto y el perfil general del candidato..."
-                minHeight="220px"
-              />
-            </div>
-            <FieldDescription className="text-xs text-muted-foreground">
-              Una descripción organizada y clara con viñetas facilita la postulación de candidatos idóneos.
-            </FieldDescription>
+          <Field
+            data-invalid={Boolean(fieldState.error)}
+            className="gap-[6px]"
+          >
+            <label
+              htmlFor="vacancy-description"
+              className="text-[14px] font-medium leading-[20px] text-foreground"
+            >
+              Descripción de la vacante
+            </label>
+            <textarea
+              id="vacancy-description"
+              value={field.value || ""}
+              onChange={(e) => field.onChange(e.target.value)}
+              placeholder="Describe las actividades principales, responsabilidades y ambiente de trabajo..."
+              rows={4}
+              className="w-full min-h-[112px] rounded-[8px] border border-input bg-card px-[12px] py-[10px] text-[14px] leading-[20px] text-foreground placeholder:text-muted-foreground outline-none focus:border-link transition-colors resize-y"
+            />
+            <span className="text-[12px] leading-[16px] text-muted-foreground">
+              Incluye las funciones principales del puesto.
+            </span>
             {fieldState.error?.message && (
               <FieldError>{fieldState.error.message}</FieldError>
             )}
@@ -118,38 +89,34 @@ export function Step3Description({ form }: Step3DescriptionProps) {
         )}
       />
 
-      {/* 2. Experiencia y Escolaridad en 2 Columnas */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-5 sm:gap-6 pt-2 border-t border-border/60">
-        {/* Experiencia Laboral */}
+      {/* Experiencia requerida y Nivel de estudios */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-[16px]">
         <Controller
           control={form.control}
           name="experience_required"
           render={({ field, fieldState }) => (
-            <Field data-invalid={Boolean(fieldState.error)} className="space-y-2">
-              <div className="flex items-center gap-2">
-                <Award className="size-3.5 text-muted-foreground" />
-                <FieldLabel className="text-sm font-semibold text-foreground">
-                  Experiencia Laboral Requerida
-                </FieldLabel>
-              </div>
+            <Field
+              data-invalid={Boolean(fieldState.error)}
+              className="gap-[6px]"
+            >
+              <span className="text-[14px] font-medium leading-[20px] text-foreground">
+                Experiencia requerida
+              </span>
               <Select
                 value={field.value || "Sin experiencia previa"}
                 onValueChange={(val) => field.onChange(val)}
               >
-                <SelectTrigger
-                  aria-label="Experiencia laboral requerida"
-                  className="w-full"
-                >
-                  <SelectValue placeholder="Selecciona la experiencia" />
+                <SelectTrigger className="h-[44px] w-full rounded-[8px] border-input bg-card px-[12px] text-[14px] font-normal">
+                  <SelectValue placeholder="Selecciona experiencia" />
                 </SelectTrigger>
-                <SelectContent>
-                  {EXPERIENCE_LEVELS.map((exp) => (
+                <SelectContent className="rounded-[12px] border-border bg-popover shadow-lg">
+                  {EXPERIENCE_LEVELS.map((lvl) => (
                     <SelectItem
-                      key={exp}
-                      value={exp}
-                      className="text-xs cursor-pointer py-2"
+                      key={lvl}
+                      value={lvl}
+                      className="text-[14px] font-normal rounded-[8px] cursor-pointer"
                     >
-                      {exp}
+                      {lvl}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -161,34 +128,30 @@ export function Step3Description({ form }: Step3DescriptionProps) {
           )}
         />
 
-        {/* Nivel de Estudios */}
         <Controller
           control={form.control}
           name="education_level"
           render={({ field, fieldState }) => (
-            <Field data-invalid={Boolean(fieldState.error)} className="space-y-2">
-              <div className="flex items-center gap-2">
-                <GraduationCap className="size-3.5 text-muted-foreground" />
-                <FieldLabel className="text-sm font-semibold text-foreground">
-                  Nivel de Estudios Mínimo
-                </FieldLabel>
-              </div>
+            <Field
+              data-invalid={Boolean(fieldState.error)}
+              className="gap-[6px]"
+            >
+              <span className="text-[14px] font-medium leading-[20px] text-foreground">
+                Nivel de estudios
+              </span>
               <Select
                 value={field.value || "Indistinto"}
                 onValueChange={(val) => field.onChange(val)}
               >
-                <SelectTrigger
-                  aria-label="Nivel de estudios mínimo"
-                  className="w-full"
-                >
-                  <SelectValue placeholder="Selecciona el nivel de estudios" />
+                <SelectTrigger className="h-[44px] w-full rounded-[8px] border-input bg-card px-[12px] text-[14px] font-normal">
+                  <SelectValue placeholder="Selecciona nivel de estudios" />
                 </SelectTrigger>
-                <SelectContent>
+                <SelectContent className="rounded-[12px] border-border bg-popover shadow-lg">
                   {EDUCATION_LEVELS.map((edu) => (
                     <SelectItem
                       key={edu}
                       value={edu}
-                      className="text-xs cursor-pointer py-2"
+                      className="text-[14px] font-normal rounded-[8px] cursor-pointer"
                     >
                       {edu}
                     </SelectItem>
@@ -203,98 +166,63 @@ export function Step3Description({ form }: Step3DescriptionProps) {
         />
       </div>
 
-      {/* 3. Habilidades y Competencias Clave */}
+      {/* Habilidades (opcional) */}
       <Controller
         control={form.control}
         name="skills"
         render={({ field }) => {
-          const skillsList: string[] = field.value || [];
+          const currentSkills: string[] = Array.isArray(field.value)
+            ? field.value
+            : [];
 
           return (
-            <Field className="space-y-3 pt-2 border-t border-border/60">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <Tag className="size-4 text-primary" />
-                  <FieldLabel className="text-sm font-semibold text-foreground">
-                    Habilidades & Competencias Clave ({skillsList.length} agregadas)
-                  </FieldLabel>
-                </div>
-              </div>
-              <FieldDescription className="text-xs text-muted-foreground">
-                Agrega palabras clave sobre las competencias deseadas para mejorar la coincidencia con los candidatos:
-              </FieldDescription>
-
-              {/* Chips de Habilidades Seleccionadas */}
-              {skillsList.length > 0 && (
-                <div className="flex flex-wrap gap-2 pt-1">
-                  {skillsList.map((skill) => (
-                    <Badge
+            <div className="flex flex-col gap-[8px]">
+              <label
+                htmlFor="vacancy-skills-input"
+                className="text-[14px] font-medium leading-[20px] text-foreground"
+              >
+                Habilidades (opcional)
+              </label>
+              <Input
+                id="vacancy-skills-input"
+                value={skillInput}
+                onChange={(e) => setSkillInput(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    e.preventDefault();
+                    handleAddSkill(currentSkills, field.onChange);
+                  }
+                }}
+                placeholder="Escribe una habilidad y presiona Enter"
+                className="h-[44px] rounded-[8px] border-input bg-card px-[12px] text-[14px] font-normal"
+              />
+              {currentSkills.length > 0 && (
+                <div className="flex flex-wrap gap-[8px] pt-[2px]">
+                  {currentSkills.map((skill) => (
+                    <span
                       key={skill}
-                      variant="secondary"
-                      className="px-3 py-1.5 font-bold text-xs gap-2 bg-input/40 border border-border/80 text-foreground shadow-2xs"
+                      className="inline-flex items-center gap-[6px] h-[30px] px-[10px] rounded-[8px] bg-muted text-foreground text-[13px] font-normal"
                     >
                       <span>{skill}</span>
                       <button
                         type="button"
-                        onClick={() => handleRemoveSkill(skillsList, field.onChange, skill)}
-                        className="text-muted-foreground hover:text-rose-500 cursor-pointer"
-                        aria-label={`Eliminar ${skill}`}
+                        onClick={() =>
+                          handleRemoveSkill(
+                            currentSkills,
+                            field.onChange,
+                            skill
+                          )
+                        }
+                        aria-label={`Quitar ${skill}`}
+                        className="text-muted-foreground hover:text-foreground cursor-pointer"
                       >
-                        <X className="size-3.5" />
+                        <X className="size-[12px]" />
                       </button>
-                    </Badge>
+                    </span>
                   ))}
                 </div>
               )}
-
-              {/* Sugerencias Rápidas */}
-              <div className="space-y-1.5 pt-1">
-                <span className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider flex items-center gap-1">
-                  <Sparkles className="size-3 text-primary" />
-                  <span>Sugerencias Populares (clic para agregar):</span>
-                </span>
-                <div className="flex flex-wrap gap-1.5">
-                  {SUGGESTED_SKILLS.filter((s) => !skillsList.includes(s)).map((suggestion) => (
-                    <Button
-                      key={suggestion}
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      onClick={() => handleAddSuggestedSkill(skillsList, field.onChange, suggestion)}
-                      className="h-7 px-2.5 rounded-lg text-xs font-medium text-muted-foreground hover:text-primary hover:border-primary/50 transition-all cursor-pointer"
-                    >
-                      + {suggestion}
-                    </Button>
-                  ))}
-                </div>
-              </div>
-
-              {/* Campo para Escribir Nueva Habilidad */}
-              <div className="flex gap-2.5 pt-1">
-                <Input
-                  value={skillInput}
-                  onChange={(e) => setSkillInput(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter") {
-                      e.preventDefault();
-                      handleAddSkill(skillsList, field.onChange);
-                    }
-                  }}
-                  placeholder="Escribe otra habilidad o competencia y presiona Enter..."
-                  className="w-full text-xs font-medium"
-                />
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() => handleAddSkill(skillsList, field.onChange)}
-                  disabled={!skillInput.trim()}
-                  className="shrink-0 cursor-pointer font-bold"
-                >
-                  <Plus className="size-4 mr-1" />
-                  <span>Agregar</span>
-                </Button>
-              </div>
-            </Field>
+            </div>
           );
         }}
       />

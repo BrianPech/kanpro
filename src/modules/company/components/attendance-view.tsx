@@ -13,40 +13,28 @@ import {
 } from "@tanstack/react-table";
 import {
   Clock,
-  UserCheck,
-  UserX,
-  AlertTriangle,
   Search,
-  Download,
   Calendar,
-  Filter,
-  CheckCircle2,
   ChevronRight,
   ChevronLeft,
   Plus,
-  ArrowLeft,
-  Building2,
-  TrendingUp,
-  Smartphone,
-  QrCode,
-  MapPin,
-  FileSpreadsheet,
-  FileText,
   Sparkles,
-  ShieldCheck,
   Eye,
   ShieldAlert,
   ArrowUpDown,
-  ArrowUp,
-  ArrowDown,
   RotateCcw,
   MoreHorizontal,
   X,
-  SlidersHorizontal,
 } from "@/components/ui/icons";
-import Link from "next/link";
-import { Card } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
+import { HugeiconsIcon } from "@hugeicons/react";
+import {
+  Alert02Icon,
+  CancelCircleIcon,
+  Clock01Icon,
+  Download01Icon,
+  QrCodeIcon,
+  UserCheck01Icon,
+} from "@hugeicons/core-free-icons";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -80,15 +68,6 @@ import {
   DropdownMenuTrigger,
   DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-  DialogFooter,
-} from "@/components/ui/dialog";
-import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 
@@ -101,7 +80,6 @@ import {
   EmployeeSelectOption,
 } from "../types/attendance";
 import {
-  createManualAttendanceAction,
   authorizeOvertimeAction,
   reviewAttendanceJustificationAction,
 } from "../actions/attendance";
@@ -110,8 +88,10 @@ import { BranchQrKioskModal } from "./attendance/branch-qr-kiosk-modal";
 import { EmployeeAttendanceDossierModal } from "./attendance/employee-attendance-dossier-modal";
 import { JustificationReviewModal } from "./attendance/justification-review-modal";
 import { OvertimeApprovalModal } from "./attendance/overtime-approval-modal";
-import { CompanyPageHeader } from "./shared/company-page-header";
-import { CompanyStatusBadge } from "./shared/company-status-badge";
+import {
+  ManualAttendanceModal,
+  type ManualAttendanceInitialSelection,
+} from "./attendance/manual-attendance-modal";
 
 interface AttendanceViewProps {
   companyId?: string;
@@ -159,6 +139,8 @@ export function AttendanceView({
   const [isMobileSheetOpen, setIsMobileSheetOpen] = React.useState(false);
   const [isQrKioskOpen, setIsQrKioskOpen] = React.useState(false);
   const [isManualModalOpen, setIsManualModalOpen] = React.useState(false);
+  const [manualInitialSelection, setManualInitialSelection] =
+    React.useState<ManualAttendanceInitialSelection | null>(null);
   const [selectedEmployeeForDossier, setSelectedEmployeeForDossier] =
     React.useState<AttendanceRecord | null>(null);
   const [selectedRecordForJustification, setSelectedRecordForJustification] =
@@ -166,14 +148,6 @@ export function AttendanceView({
   const [selectedRecordForOvertime, setSelectedRecordForOvertime] =
     React.useState<AttendanceRecord | null>(null);
   const [isExporting, setIsExporting] = React.useState(false);
-
-  // Manual Check-in Form
-  const [selectedEmployeeId, setSelectedEmployeeId] = React.useState<string>("");
-  const [manualName, setManualName] = React.useState("");
-  const [manualTime, setManualTime] = React.useState("08:00");
-  const [manualStatus, setManualStatus] =
-    React.useState<AttendanceStatus>("presente");
-  const [isSubmittingManual, setIsSubmittingManual] = React.useState(false);
 
   const getInitials = (name: string) => {
     return name
@@ -255,7 +229,7 @@ export function AttendanceView({
           description: res.error || "No se pudo guardar la resolución.",
         });
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error("Error reviewing justification:", err);
       toast.error("Error de comunicación con el servidor");
     }
@@ -297,78 +271,9 @@ export function AttendanceView({
           description: res.error || "No se pudo guardar la autorización.",
         });
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error("Error authorizing overtime:", err);
       toast.error("Error de comunicación con el servidor");
-    }
-  };
-
-  const handleAddManualCheckIn = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!selectedEmployeeId) {
-      toast.error("Por favor selecciona un empleado de la plantilla.");
-      return;
-    }
-
-    const selectedEmp = employees.find((emp) => emp.id === selectedEmployeeId);
-    const empName = selectedEmp?.name || manualName || "Empleado";
-
-    setIsSubmittingManual(true);
-
-    try {
-      const res = await createManualAttendanceAction({
-        employeeId: selectedEmployeeId,
-        workDate,
-        checkInTime:
-          manualStatus === "falta_injustificada" ||
-          manualStatus === "falta_justificada"
-            ? null
-            : manualTime,
-        status: manualStatus,
-        delayMinutes: manualStatus === "retardo" ? 20 : 0,
-      });
-
-      if (res.success && res.record) {
-        const raw = res.record;
-        const newRecord: AttendanceRecord = {
-          id: raw.id,
-          employeeId: raw.employee_id,
-          employeeName: empName,
-          avatarUrl: selectedEmp?.avatarUrl || null,
-          jobTitle: selectedEmp?.jobTitle || "Empleado",
-          department: selectedEmp?.department || "Operaciones",
-          workDate,
-          scheduledCheckIn: raw.scheduled_check_in,
-          scheduledCheckOut: raw.scheduled_check_out,
-          checkInTime: raw.check_in_time,
-          checkOutTime: raw.check_out_time,
-          breakStartTime: raw.break_start_time,
-          breakEndTime: raw.break_end_time,
-          checkInMethod: "manual",
-          delayMinutes: raw.delay_minutes || 0,
-          status: raw.status as AttendanceStatus,
-          overtimeHours: Number(raw.overtime_hours) || 0,
-        };
-
-        handleRecordCreated(newRecord);
-        toast.success("Registro de checador manual guardado", {
-          description: `Se registró en la base de datos para ${empName}.`,
-        });
-
-        setSelectedEmployeeId("");
-        setManualName("");
-        setIsManualModalOpen(false);
-        router.refresh();
-      } else {
-        toast.error("Error al guardar asistencia manual", {
-          description: res.error || "No se pudo guardar el registro.",
-        });
-      }
-    } catch (err: any) {
-      console.error("Error saving manual checkin:", err);
-      toast.error("Error de comunicación con el servidor");
-    } finally {
-      setIsSubmittingManual(false);
     }
   };
 
@@ -430,54 +335,58 @@ export function AttendanceView({
     }
   };
 
-  const getStatusBadge = (status: AttendanceStatus, delayMinutes?: number) => {
+  const getStatusPill = (status: AttendanceStatus) => {
     switch (status) {
       case "presente":
-        return <CompanyStatusBadge status="activo" label="Puntual" />;
+        return (
+          <span className="inline-flex items-center justify-center rounded-[8px] px-[12px] py-[6px] min-w-[104px] text-[12px] font-medium leading-[17px] bg-success text-success-foreground">
+            Presente
+          </span>
+        );
       case "retardo":
-        return <CompanyStatusBadge status="pausado" label={`Retardo (+${delayMinutes || 15}m)`} />;
+        return (
+          <span className="inline-flex items-center justify-center rounded-[8px] px-[12px] py-[6px] min-w-[104px] text-[12px] font-medium leading-[17px] bg-warning text-warning-foreground">
+            Retardo
+          </span>
+        );
       case "falta_justificada":
-        return <CompanyStatusBadge status="revision" label="Falta Justificada" />;
-      case "falta_injustificada":
-        return <CompanyStatusBadge status="inactivo" label="Falta Injustificada" />;
+        return (
+          <span className="inline-flex items-center justify-center rounded-[8px] px-[12px] py-[6px] min-w-[104px] text-[12px] font-medium leading-[17px] bg-[#e6f1fb] text-[#255276] dark:bg-[#213748] dark:text-[#abd6f5]">
+            Justificada
+          </span>
+        );
       case "vacaciones":
-        return <CompanyStatusBadge status="revision" label="Vacaciones LFT" />;
+        return (
+          <span className="inline-flex items-center justify-center rounded-[8px] px-[12px] py-[6px] min-w-[104px] text-[12px] font-medium leading-[17px] bg-[#e6f1fb] text-[#255276] dark:bg-[#213748] dark:text-[#abd6f5]">
+            Vacaciones
+          </span>
+        );
+      case "falta_injustificada":
+        return (
+          <span className="inline-flex items-center justify-center rounded-[8px] px-[12px] py-[6px] min-w-[104px] text-[12px] font-medium leading-[17px] bg-[#fcebe9] text-[#a6302a] dark:bg-[#3e2220] dark:text-[#f29b94]">
+            Ausencia
+          </span>
+        );
       default:
-        return <CompanyStatusBadge status="neutral" label="Descanso" />;
+        return (
+          <span className="inline-flex items-center justify-center rounded-[8px] px-[12px] py-[6px] min-w-[104px] text-[12px] font-medium leading-[17px] bg-muted text-muted-foreground">
+            Descanso
+          </span>
+        );
     }
   };
 
-  const getMethodBadge = (method: AttendanceRecord["checkInMethod"]) => {
+  const getMethodLabel = (method: AttendanceRecord["checkInMethod"], hasCheckIn: boolean) => {
+    if (!hasCheckIn) return "—";
     switch (method) {
-      case "gps":
-        return (
-          <Badge
-            variant="outline"
-            className="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 border-emerald-500/25 px-2 py-0.5"
-          >
-            <MapPin className="size-3" />
-            <span>GPS Geocerca</span>
-          </Badge>
-        );
       case "qr":
-        return (
-          <Badge
-            variant="outline"
-            className="inline-flex items-center gap-1 text-[11px] font-bold text-indigo-600 dark:text-indigo-400 bg-indigo-500/10 border-indigo-500/25 px-2 py-0.5"
-          >
-            <QrCode className="size-3" />
-            <span>QR Sucursal</span>
-          </Badge>
-        );
+        return "QR";
+      case "gps":
+        return "GPS";
+      case "manual":
+        return "Manual";
       default:
-        return (
-          <Badge
-            variant="outline"
-            className="inline-flex items-center gap-1 text-[11px] font-bold text-muted-foreground bg-muted/40 border-border/40 px-2 py-0.5"
-          >
-            <span>Manual RH</span>
-          </Badge>
-        );
+        return "—";
     }
   };
 
@@ -539,51 +448,48 @@ export function AttendanceView({
         header: ({ column }) => (
           <button
             type="button"
-            className="flex items-center gap-1.5 font-extrabold text-[11px] uppercase tracking-wider text-muted-foreground hover:text-foreground transition-colors cursor-pointer select-none py-1 group"
+            className="flex items-center gap-[6px] text-[13px] font-semibold leading-[18px] text-muted-foreground hover:text-foreground transition-colors cursor-pointer select-none"
             onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
           >
             <span>Empleado</span>
             {column.getIsSorted() === "asc" ? (
-              <ArrowUp className="size-3.5 text-primary" />
+              <span className="text-link">↑</span>
             ) : column.getIsSorted() === "desc" ? (
-              <ArrowDown className="size-3.5 text-primary" />
+              <span className="text-link">↓</span>
             ) : (
-              <ArrowUpDown className="size-3.5 opacity-40 group-hover:opacity-80 transition-opacity" />
+              <ArrowUpDown className="size-3.5 opacity-40" />
             )}
           </button>
         ),
         cell: ({ row }) => {
           const item = row.original;
           return (
-            <div className="flex items-center gap-3 py-1 min-w-[210px]">
+            <div className="flex items-center gap-[10px] py-1 min-w-[200px]">
               <Avatar
                 onClick={() => setSelectedEmployeeForDossier(item)}
-                className="size-10 rounded-2xl border border-border/40 shrink-0 cursor-pointer hover:ring-2 hover:ring-primary/40 transition-all shadow-2xs"
+                className="size-[36px] rounded-[12px] bg-sidebar-accent shrink-0 cursor-pointer after:hidden"
               >
-                <AvatarImage src={item.avatarUrl || ""} alt={item.employeeName} />
-                <AvatarFallback className="rounded-2xl font-extrabold text-xs bg-primary/10 text-primary">
+                <AvatarImage
+                  src={item.avatarUrl || ""}
+                  alt={item.employeeName}
+                  className="rounded-[12px] object-cover"
+                />
+                <AvatarFallback className="rounded-[12px] font-semibold text-[12px] leading-[16px] bg-sidebar-accent text-link">
                   {getInitials(item.employeeName)}
                 </AvatarFallback>
               </Avatar>
 
-              <div className="min-w-0 space-y-0.5">
+              <div className="min-w-0 flex flex-col gap-px">
                 <button
                   type="button"
                   onClick={() => setSelectedEmployeeForDossier(item)}
-                  className="text-xs sm:text-sm font-bold text-foreground hover:text-primary transition-colors truncate block text-left cursor-pointer"
+                  className="text-[14px] font-semibold leading-[20px] text-foreground hover:text-link transition-colors truncate block text-left cursor-pointer"
                 >
                   {item.employeeName}
                 </button>
-                <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground font-medium truncate">
-                  <span className="truncate">{item.jobTitle}</span>
-                  <span>•</span>
-                  <Badge
-                    variant="outline"
-                    className="text-[10px] font-semibold px-1.5 py-0 border-border/30 bg-muted/40"
-                  >
-                    {item.department}
-                  </Badge>
-                </div>
+                <p className="text-[12px] font-normal leading-[16px] text-muted-foreground truncate">
+                  {item.department || item.jobTitle}
+                </p>
               </div>
             </div>
           );
@@ -592,183 +498,117 @@ export function AttendanceView({
       {
         accessorKey: "scheduledCheckIn",
         id: "schedule",
-        header: ({ column }) => (
-          <button
-            type="button"
-            className="flex items-center gap-1.5 font-extrabold text-[11px] uppercase tracking-wider text-muted-foreground hover:text-foreground transition-colors cursor-pointer select-none py-1 group"
-            onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
-          >
-            <span>Horario Pactado</span>
-            {column.getIsSorted() === "asc" ? (
-              <ArrowUp className="size-3.5 text-primary" />
-            ) : column.getIsSorted() === "desc" ? (
-              <ArrowDown className="size-3.5 text-primary" />
-            ) : (
-              <ArrowUpDown className="size-3.5 opacity-40 group-hover:opacity-80 transition-opacity" />
-            )}
-          </button>
+        header: () => (
+          <span className="text-[13px] font-semibold leading-[18px] text-muted-foreground">
+            Horario pactado
+          </span>
         ),
         cell: ({ row }) => {
           const item = row.original;
           return (
-            <div className="py-1">
-              <span className="font-mono text-xs font-bold text-foreground block">
-                {item.scheduledCheckIn} - {item.scheduledCheckOut}
-              </span>
-              <span className="text-[10px] text-muted-foreground font-semibold">
-                Jornada Regular
-              </span>
-            </div>
+            <span className="text-[13px] font-normal leading-[18px] text-foreground tabular-nums whitespace-nowrap">
+              {item.scheduledCheckIn}–{item.scheduledCheckOut}
+            </span>
           );
         },
       },
       {
         accessorKey: "checkInTime",
         id: "checkInTime",
-        header: ({ column }) => (
-          <button
-            type="button"
-            className="flex items-center gap-1.5 font-extrabold text-[11px] uppercase tracking-wider text-muted-foreground hover:text-foreground transition-colors cursor-pointer select-none py-1 group"
-            onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
-          >
-            <span>Entrada / Salida Real</span>
-            {column.getIsSorted() === "asc" ? (
-              <ArrowUp className="size-3.5 text-primary" />
-            ) : column.getIsSorted() === "desc" ? (
-              <ArrowDown className="size-3.5 text-primary" />
-            ) : (
-              <ArrowUpDown className="size-3.5 opacity-40 group-hover:opacity-80 transition-opacity" />
-            )}
-          </button>
+        header: () => (
+          <span className="text-[13px] font-semibold leading-[18px] text-muted-foreground">
+            Entrada / salida real
+          </span>
         ),
         cell: ({ row }) => {
           const item = row.original;
+          if (!item.checkInTime && !item.checkOutTime) {
+            return (
+              <span className="text-[13px] font-normal leading-[18px] text-muted-foreground">
+                —
+              </span>
+            );
+          }
           return (
-            <div className="py-1 space-y-0.5">
-              <div className="flex items-center gap-2 font-mono text-xs">
-                <span className="font-extrabold text-foreground">
-                  {item.checkInTime || "--:--"}
-                </span>
-                <span className="text-muted-foreground font-bold">→</span>
-                <span className="font-semibold text-muted-foreground">
-                  {item.checkOutTime || "--:--"}
-                </span>
-              </div>
-              {item.checkInLocation && (
-                <span className="text-[10px] font-semibold text-emerald-600 dark:text-emerald-400 block">
-                  GPS: {item.checkInLocation.distanceToBranchMeters}m de sucursal
-                </span>
-              )}
-            </div>
+            <span className="text-[13px] font-medium leading-[18px] text-foreground tabular-nums whitespace-nowrap">
+              {item.checkInTime || "--:--"}–{item.checkOutTime || "--:--"}
+            </span>
           );
         },
       },
       {
         accessorKey: "checkInMethod",
         id: "checkInMethod",
-        header: ({ column }) => (
-          <button
-            type="button"
-            className="flex items-center gap-1.5 font-extrabold text-[11px] uppercase tracking-wider text-muted-foreground hover:text-foreground transition-colors cursor-pointer select-none py-1 group"
-            onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
-          >
-            <span>Método</span>
-            {column.getIsSorted() === "asc" ? (
-              <ArrowUp className="size-3.5 text-primary" />
-            ) : column.getIsSorted() === "desc" ? (
-              <ArrowDown className="size-3.5 text-primary" />
-            ) : (
-              <ArrowUpDown className="size-3.5 opacity-40 group-hover:opacity-80 transition-opacity" />
-            )}
-          </button>
+        header: () => (
+          <span className="text-[13px] font-semibold leading-[18px] text-muted-foreground">
+            Método
+          </span>
         ),
         cell: ({ row }) => {
-          return <div className="py-1">{getMethodBadge(row.original.checkInMethod)}</div>;
+          const item = row.original;
+          const label = getMethodLabel(item.checkInMethod, Boolean(item.checkInTime));
+          return (
+            <span
+              className={cn(
+                "text-[13px] font-normal leading-[18px]",
+                label === "—" ? "text-muted-foreground" : "text-foreground"
+              )}
+            >
+              {label}
+            </span>
+          );
         },
       },
       {
         accessorKey: "overtimeHours",
         id: "overtimeHours",
-        header: ({ column }) => (
-          <button
-            type="button"
-            className="flex items-center gap-1.5 font-extrabold text-[11px] uppercase tracking-wider text-muted-foreground hover:text-foreground transition-colors cursor-pointer select-none py-1 group"
-            onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
-          >
-            <span>Horas Extra</span>
-            {column.getIsSorted() === "asc" ? (
-              <ArrowUp className="size-3.5 text-primary" />
-            ) : column.getIsSorted() === "desc" ? (
-              <ArrowDown className="size-3.5 text-primary" />
-            ) : (
-              <ArrowUpDown className="size-3.5 opacity-40 group-hover:opacity-80 transition-opacity" />
-            )}
-          </button>
+        header: () => (
+          <span className="text-[13px] font-semibold leading-[18px] text-muted-foreground">
+            Horas extra
+          </span>
         ),
         cell: ({ row }) => {
           const item = row.original;
-          const hasOvertime = item.overtimeHours > 0;
-
-          if (!hasOvertime) {
+          if (!item.overtimeHours || item.overtimeHours <= 0) {
             return (
-              <span className="text-xs font-mono text-muted-foreground/60 py-1 block">
-                0.0h
+              <span className="text-[13px] font-normal leading-[18px] text-muted-foreground">
+                —
               </span>
             );
           }
 
+          const isApproved = item.overtimeStatus === "autorizado";
           return (
-            <div className="py-1">
-              <Button
-                size="sm"
-                variant="outline"
-                onClick={() => setSelectedRecordForOvertime(item)}
-                className={cn(
-                  "h-7 px-2.5 rounded-lg text-xs font-bold flex items-center gap-1 cursor-pointer transition-all",
-                  item.overtimeStatus === "autorizado"
-                    ? "bg-indigo-500/15 text-indigo-700 dark:text-indigo-300 border-indigo-500/30"
-                    : "bg-indigo-500/10 text-indigo-600 hover:bg-indigo-500/20 border-indigo-500/30"
-                )}
-              >
-                <Sparkles className="size-3" />
-                <span>{`+${item.overtimeHours}h (${item.overtimeStatus === "autorizado" ? "Autorizado" : "Revisar"})`}</span>
-              </Button>
-            </div>
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                setSelectedRecordForOvertime(item);
+              }}
+              className={cn(
+                "text-[13px] leading-[18px] cursor-pointer hover:underline whitespace-nowrap",
+                isApproved ? "text-foreground font-normal" : "text-link font-medium"
+              )}
+            >
+              {item.overtimeHours} h · {isApproved ? "Aprobada" : "Revisar"}
+            </button>
           );
         },
       },
       {
         accessorKey: "status",
         id: "status",
-        header: ({ column }) => (
-          <button
-            type="button"
-            className="flex items-center gap-1.5 font-extrabold text-[11px] uppercase tracking-wider text-muted-foreground hover:text-foreground transition-colors cursor-pointer select-none py-1 group"
-            onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
-          >
-            <span>Estatus Asistencia</span>
-            {column.getIsSorted() === "asc" ? (
-              <ArrowUp className="size-3.5 text-primary" />
-            ) : column.getIsSorted() === "desc" ? (
-              <ArrowDown className="size-3.5 text-primary" />
-            ) : (
-              <ArrowUpDown className="size-3.5 opacity-40 group-hover:opacity-80 transition-opacity" />
-            )}
-          </button>
+        header: () => (
+          <span className="text-[13px] font-semibold leading-[18px] text-muted-foreground">
+            Estatus
+          </span>
         ),
-        cell: ({ row }) => {
-          const item = row.original;
-          return (
-            <div className="py-1">
-              {getStatusBadge(item.status, item.delayMinutes)}
-            </div>
-          );
-        },
+        cell: ({ row }) => getStatusPill(row.original.status),
       },
       {
         id: "actions",
         header: () => (
-          <span className="font-extrabold text-[11px] uppercase tracking-wider text-muted-foreground block text-right pr-2">
+          <span className="text-[13px] font-semibold leading-[18px] text-muted-foreground block text-center">
             Acciones
           </span>
         ),
@@ -779,45 +619,18 @@ export function AttendanceView({
             item.status === "falta_justificada";
 
           return (
-            <div className="flex items-center justify-end gap-1 py-1">
-              {/* Justification Quick Action */}
-              {isAbsent && (
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={() => setSelectedRecordForJustification(item)}
-                  className={cn(
-                    "h-8 px-2.5 rounded-lg text-xs font-bold flex items-center gap-1 cursor-pointer",
-                    item.status === "falta_justificada"
-                      ? "border-blue-500/30 text-blue-600 bg-blue-500/10 hover:bg-blue-500/20"
-                      : "border-destructive/30 text-destructive hover:bg-destructive/10"
-                  )}
-                  title="Revisar o Registrar Justificación Médica / LFT"
-                >
-                  <ShieldAlert className="size-3.5" />
-                  <span className="hidden xl:inline">
-                    {item.status === "falta_justificada"
-                      ? "Ver Justificante"
-                      : "Justificar"}
-                  </span>
-                </Button>
-              )}
-
-              {/* Dossier Quick Action Button */}
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => setSelectedEmployeeForDossier(item)}
-                className="size-8 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted p-1 cursor-pointer transition-colors"
-                title="Ver Kardex / Calendario Mensual de Asistencia"
-              >
-                <Eye className="size-4" />
-              </Button>
-
+            <div
+              className="flex items-center justify-center py-1"
+              onClick={(e) => e.stopPropagation()}
+            >
               <DropdownMenu>
                 <DropdownMenuTrigger
                   render={
-                    <button className="size-8 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted p-1 cursor-pointer transition-colors flex items-center justify-center" />
+                    <button
+                      type="button"
+                      aria-label={`Más acciones de ${item.employeeName}`}
+                      className="size-[40px] rounded-[8px] bg-muted text-foreground hover:bg-muted/80 cursor-pointer transition-colors flex items-center justify-center"
+                    />
                   }
                 >
                   <MoreHorizontal className="size-4" />
@@ -860,9 +673,12 @@ export function AttendanceView({
 
                   <DropdownMenuItem
                     onSelect={() => {
-                      setManualName(item.employeeName);
-                      setManualTime(item.checkInTime || "08:00");
-                      setManualStatus(item.status);
+                      setManualInitialSelection({
+                        employeeId: item.employeeId,
+                        name: item.employeeName,
+                        checkInTime: item.checkInTime || "08:00",
+                        status: item.status,
+                      });
                       setIsManualModalOpen(true);
                     }}
                     className="cursor-pointer text-xs font-semibold py-2 px-2.5 gap-2 text-muted-foreground hover:text-foreground"
@@ -894,359 +710,357 @@ export function AttendanceView({
     getPaginationRowModel: getPaginationRowModel(),
     initialState: {
       pagination: {
-        pageSize: 15,
+        pageSize: 10,
       },
     },
   });
 
   const tableRows = table.getRowModel().rows;
+  const totalFilteredRows = filteredRecords.length;
+  const pageIndex = table.getState().pagination.pageIndex;
+  const pageCount = Math.max(1, table.getPageCount());
+  const rangeStart = totalFilteredRows === 0 ? 0 : pageIndex * 10 + 1;
+  const rangeEnd = Math.min((pageIndex + 1) * 10, totalFilteredRows);
 
   return (
-    <div className="space-y-6 w-full pb-16 font-sans animate-in fade-in duration-300">
-      {/* 1. Header Unificado */}
-      <CompanyPageHeader
-        title="Control de Asistencia & Checador"
-        description={`Monitoreo de entradas por GPS, QR del establecimiento, retardos automáticos y justificaciones • ${companyName} (${workDate}).`}
-      >
-        <div className="flex items-center gap-2 flex-wrap">
-          <Badge variant="outline" className="font-mono">
-            {records.length} Empleados
-          </Badge>
+    <div className="flex flex-col gap-[24px] w-full pb-12 font-sans animate-in fade-in duration-300">
+      {/* 1. Header */}
+      <div className="flex flex-col lg:flex-row lg:items-start justify-between gap-4">
+        <div className="flex flex-col gap-[8px]">
+          <h1 className="text-[32px] font-semibold leading-[40px] tracking-[-0.02em] text-foreground">
+            Asistencia
+          </h1>
+          <p className="text-[14px] font-normal leading-[20px] text-muted-foreground">
+            Consulta entradas, salidas e incidencias por fecha.
+          </p>
+        </div>
 
-          <div className="flex items-center gap-2 bg-input/50 rounded-3xl px-3 h-9">
-            <Calendar className="size-3.5 text-muted-foreground" />
-            <input
-              type="date"
-              value={workDate}
-              onChange={(e) => {
-                if (e.target.value) {
-                  router.push(`/dashboard/company/attendance?date=${e.target.value}`);
-                }
-              }}
-              className="bg-transparent text-xs font-semibold text-foreground outline-none cursor-pointer"
-            />
-          </div>
-
+        <div className="flex items-center gap-[8px] flex-wrap shrink-0">
           <Button
             variant="outline"
-            size="sm"
             onClick={() => setIsQrKioskOpen(true)}
-            className="cursor-pointer"
+            className="h-[44px] px-[16px] rounded-[8px] border-control-border bg-card text-foreground text-[14px] font-medium hover:bg-muted/60 gap-[8px] cursor-pointer"
           >
-            <QrCode data-icon="inline-start" className="text-indigo-600 dark:text-indigo-400" />
-            <span>Cartel QR</span>
+            <HugeiconsIcon icon={QrCodeIcon} size={16} strokeWidth={1.8} />
+            <span>QR de sucursal</span>
           </Button>
 
           <Button
-            variant="outline"
-            size="sm"
             onClick={() => setIsManualModalOpen(true)}
-            className="cursor-pointer"
+            className="h-[44px] px-[16px] rounded-[8px] bg-primary text-primary-foreground text-[14px] font-medium hover:bg-primary/90 gap-[8px] cursor-pointer"
           >
-            <Plus data-icon="inline-start" />
-            <span>Entrada Manual</span>
-          </Button>
-
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={handleExport}
-            disabled={isExporting}
-            className="cursor-pointer"
-          >
-            <Download data-icon="inline-start" className="text-emerald-600 dark:text-emerald-400" />
-            <span>{isExporting ? "Generando..." : "Exportar CSV"}</span>
-          </Button>
-
-          <Button
-            size="sm"
-            onClick={() => setIsMobileSheetOpen(true)}
-            className="cursor-pointer font-medium"
-          >
-            <Smartphone data-icon="inline-start" />
-            <span>Checador Móvil</span>
+            <Plus className="size-[16px]" />
+            <span>Registrar entrada manual</span>
           </Button>
         </div>
-      </CompanyPageHeader>
-
-      {/* 2. Top Summary KPI Cards */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4">
-        <Card className="p-4 sm:p-5 flex flex-col justify-between">
-          <div className="flex items-center justify-between">
-            <span className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider">
-              Puntualidad del Turno
-            </span>
-            <Badge className="bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-none text-[10px] font-extrabold px-2 py-0.2">
-              Tolerancia 15m
-            </Badge>
-          </div>
-          <div className="mt-2">
-            <h3 className="text-2xl font-extrabold text-foreground font-mono">
-              {stats.punctualityRate}%
-            </h3>
-            <p className="text-[10px] font-semibold text-muted-foreground mt-0.5">
-              Índice de puntualidad global
-            </p>
-          </div>
-        </Card>
-
-        <Card className="p-4 sm:p-5 flex flex-col justify-between">
-          <div className="flex items-center justify-between">
-            <span className="text-[11px] font-bold text-emerald-600 dark:text-emerald-400 uppercase tracking-wider">
-              Presentes Hoy
-            </span>
-            <div className="size-8 rounded-lg bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center">
-              <UserCheck className="size-4" />
-            </div>
-          </div>
-          <div className="mt-2">
-            <h3 className="text-2xl font-extrabold text-emerald-600 dark:text-emerald-400 font-mono">
-              {stats.presentCount}
-            </h3>
-            <p className="text-[10px] font-semibold text-muted-foreground mt-0.5">
-              Entradas registradas puntualmente
-            </p>
-          </div>
-        </Card>
-
-        <Card className="p-4 sm:p-5 flex flex-col justify-between">
-          <div className="flex items-center justify-between">
-            <span className="text-[11px] font-bold text-amber-600 dark:text-amber-400 uppercase tracking-wider">
-              Llegadas Tarde
-            </span>
-            <div className="size-8 rounded-lg bg-amber-500/10 text-amber-600 dark:text-amber-400 flex items-center justify-center">
-              <Clock className="size-4" />
-            </div>
-          </div>
-          <div className="mt-2">
-            <h3 className="text-2xl font-extrabold text-foreground font-mono">
-              {stats.lateCount}
-            </h3>
-            <p className="text-[10px] font-semibold text-muted-foreground mt-0.5">
-              Fuera de tolerancia LFT
-            </p>
-          </div>
-        </Card>
-
-        <Card className="p-4 sm:p-5 flex flex-col justify-between">
-          <div className="flex items-center justify-between">
-            <span className="text-[11px] font-bold text-destructive uppercase tracking-wider">
-              Ausencias
-            </span>
-            <div className="size-8 rounded-lg bg-destructive/10 text-destructive flex items-center justify-center">
-              <UserX className="size-4" />
-            </div>
-          </div>
-          <div className="mt-2">
-            <h3 className="text-2xl font-extrabold text-destructive font-mono">
-              {stats.unjustifiedAbsences + stats.justifiedAbsences}
-            </h3>
-            <p className="text-[10px] font-semibold text-muted-foreground mt-0.5">
-              {`${stats.justifiedAbsences} justificadas • ${stats.unjustifiedAbsences} injustificadas`}
-            </p>
-          </div>
-        </Card>
       </div>
 
-      {/* 3. Master TanStack DataTable Card */}
-      <Card className="overflow-hidden">
-        
-        {/* Unified Toolbar & Filters inside Card Header */}
-        <div className="p-4 sm:p-5 border-b border-border space-y-3.5 bg-muted/20">
-          
-          {/* Top Row: Search & Info */}
-          <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
-            
-            {/* Search Input */}
-            <div className="relative flex-1 max-w-lg">
-              <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-muted-foreground size-4 pointer-events-none" />
-              <Input
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Buscar por empleado, puesto, turno o método de registro..."
-                className="pl-10 pr-9 w-full"
-              />
-              {searchQuery && (
-                <button
-                  onClick={() => setSearchQuery("")}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground cursor-pointer"
-                >
-                  <X className="size-3.5" />
-                </button>
-              )}
+      {/* 2. Top Summary KPI Cards */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-[16px]">
+        <div className="bg-card border border-border rounded-[16px] p-[16px] flex flex-col gap-[8px]">
+          <div className="flex items-center justify-between gap-2">
+            <span className="text-[14px] font-medium leading-[20px] text-muted-foreground">
+              Puntualidad
+            </span>
+            <div className="size-[32px] rounded-[8px] bg-sidebar-accent text-link flex items-center justify-center shrink-0">
+              <HugeiconsIcon icon={Clock01Icon} size={18} strokeWidth={1.8} />
             </div>
+          </div>
+          <span className="text-[24px] font-semibold leading-[32px] text-foreground tabular-nums">
+            {stats.punctualityRate} %
+          </span>
+          <span className="text-[12px] font-normal leading-[16px] text-muted-foreground">
+            Tolerancia de 15 minutos
+          </span>
+        </div>
 
-            {/* Quick Sort Helper */}
-            <div className="hidden sm:flex items-center gap-1.5 text-xs text-muted-foreground font-medium">
-              <ArrowUpDown className="size-3.5 text-primary" />
-              <span>Haz clic en los encabezados para ordenar</span>
+        <div className="bg-card border border-border rounded-[16px] p-[16px] flex flex-col gap-[8px]">
+          <div className="flex items-center justify-between gap-2">
+            <span className="text-[14px] font-medium leading-[20px] text-muted-foreground">
+              Presentes
+            </span>
+            <div className="size-[32px] rounded-[8px] bg-success text-success-foreground flex items-center justify-center shrink-0">
+              <HugeiconsIcon icon={UserCheck01Icon} size={18} strokeWidth={1.8} />
+            </div>
+          </div>
+          <span className="text-[24px] font-semibold leading-[32px] text-foreground tabular-nums">
+            {stats.presentCount}
+          </span>
+          <span className="text-[12px] font-normal leading-[16px] text-muted-foreground">
+            Entradas puntuales
+          </span>
+        </div>
+
+        <div className="bg-card border border-border rounded-[16px] p-[16px] flex flex-col gap-[8px]">
+          <div className="flex items-center justify-between gap-2">
+            <span className="text-[14px] font-medium leading-[20px] text-muted-foreground">
+              Retardos
+            </span>
+            <div className="size-[32px] rounded-[8px] bg-warning text-warning-foreground flex items-center justify-center shrink-0">
+              <HugeiconsIcon icon={Alert02Icon} size={18} strokeWidth={1.8} />
+            </div>
+          </div>
+          <span className="text-[24px] font-semibold leading-[32px] text-foreground tabular-nums">
+            {stats.lateCount}
+          </span>
+          <span className="text-[12px] font-normal leading-[16px] text-muted-foreground">
+            Fuera de tolerancia
+          </span>
+        </div>
+
+        <div className="bg-card border border-border rounded-[16px] p-[16px] flex flex-col gap-[8px]">
+          <div className="flex items-center justify-between gap-2">
+            <span className="text-[14px] font-medium leading-[20px] text-muted-foreground">
+              Ausencias
+            </span>
+            <div className="size-[32px] rounded-[8px] bg-[#fcebe9] text-[#a6302a] dark:bg-[#3e2220] dark:text-[#f29b94] flex items-center justify-center shrink-0">
+              <HugeiconsIcon icon={CancelCircleIcon} size={18} strokeWidth={1.8} />
+            </div>
+          </div>
+          <span className="text-[24px] font-semibold leading-[32px] text-foreground tabular-nums">
+            {stats.unjustifiedAbsences + stats.justifiedAbsences}
+          </span>
+          <span className="text-[12px] font-normal leading-[16px] text-muted-foreground">
+            {stats.justifiedAbsences} justificadas · {stats.unjustifiedAbsences} sin justificar
+          </span>
+        </div>
+      </div>
+
+      {/* 3. Registros de asistencia Card */}
+      <div className="bg-card border border-border rounded-[16px] overflow-hidden flex flex-col">
+        {/* Card Header & Filters */}
+        <div className="p-[20px] flex flex-col gap-[20px] border-b border-border">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <h2 className="text-[20px] font-semibold leading-[28px] tracking-[-0.015em] text-foreground">
+              Registros de asistencia
+            </h2>
+
+            <div className="flex items-center gap-[8px]">
+              <Button
+                variant="outline"
+                onClick={handleExport}
+                disabled={isExporting}
+                className="h-[44px] px-[16px] rounded-[8px] border-control-border bg-card text-foreground text-[14px] font-medium hover:bg-muted/60 gap-[8px] cursor-pointer"
+              >
+                <HugeiconsIcon icon={Download01Icon} size={16} strokeWidth={1.8} />
+                <span>{isExporting ? "Exportando..." : "Exportar CSV"}</span>
+              </Button>
             </div>
           </div>
 
-          {/* Filter Row: Status Segmented Tabs + Dept Select + Method Select + Clear */}
-          <div className="flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-3 pt-1 border-t border-border/30">
-            
-            {/* Status Segmented Tabs */}
-            <div className="inline-flex p-1 rounded-xl bg-muted/60 border border-border/40 shrink-0 flex-wrap gap-1">
-              <button
-                type="button"
-                onClick={() => setStatusFilter("all")}
-                className={cn(
-                  "px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer",
-                  statusFilter === "all"
-                    ? "bg-background text-foreground shadow-2xs"
-                    : "text-muted-foreground hover:text-foreground"
-                )}
+          {/* Filters Row */}
+          <div className="flex flex-col lg:flex-row lg:items-end gap-[12px]">
+            {/* Fecha */}
+            <div className="flex flex-col gap-[6px] w-full sm:w-[190px] shrink-0">
+              <label
+                htmlFor="attendance-work-date"
+                className="text-[14px] font-medium leading-[20px] text-foreground"
               >
-                Todos ({records.length})
-              </button>
-              <button
-                type="button"
-                onClick={() => setStatusFilter("presente")}
-                className={cn(
-                  "px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5",
-                  statusFilter === "presente"
-                    ? "bg-background text-emerald-600 dark:text-emerald-400 shadow-2xs"
-                    : "text-muted-foreground hover:text-foreground"
-                )}
-              >
-                <span className="size-1.5 rounded-full bg-emerald-500 inline-block" />
-                <span>Puntuales ({stats.presentCount})</span>
-              </button>
-              <button
-                type="button"
-                onClick={() => setStatusFilter("retardo")}
-                className={cn(
-                  "px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5",
-                  statusFilter === "retardo"
-                    ? "bg-background text-amber-600 dark:text-amber-400 shadow-2xs"
-                    : "text-muted-foreground hover:text-foreground"
-                )}
-              >
-                <span className="size-1.5 rounded-full bg-amber-500 inline-block" />
-                <span>Retardos ({stats.lateCount})</span>
-              </button>
-              <button
-                type="button"
-                onClick={() => setStatusFilter("ausencias")}
-                className={cn(
-                  "px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5",
-                  statusFilter === "ausencias"
-                    ? "bg-background text-destructive shadow-2xs"
-                    : "text-muted-foreground hover:text-foreground"
-                )}
-              >
-                <span className="size-1.5 rounded-full bg-destructive inline-block" />
-                <span>Ausencias ({stats.unjustifiedAbsences + stats.justifiedAbsences})</span>
-              </button>
-              <button
-                type="button"
-                onClick={() => setStatusFilter("overtime")}
-                className={cn(
-                  "px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5",
-                  statusFilter === "overtime"
-                    ? "bg-background text-indigo-600 dark:text-indigo-400 shadow-2xs"
-                    : "text-muted-foreground hover:text-foreground"
-                )}
-              >
-                <Sparkles className="size-3 text-indigo-500" />
-                <span>Horas Extra</span>
-              </button>
+                Fecha
+              </label>
+              <div className="relative h-[44px] rounded-[8px] border border-input bg-card px-[12px] flex items-center gap-[8px]">
+                <Calendar className="size-[16px] text-muted-foreground shrink-0 pointer-events-none" />
+                <input
+                  id="attendance-work-date"
+                  type="date"
+                  value={workDate}
+                  onChange={(e) => {
+                    if (e.target.value) {
+                      router.push(`/dashboard/company/attendance?date=${e.target.value}`);
+                    }
+                  }}
+                  className="w-full bg-transparent text-[14px] font-normal text-foreground outline-none cursor-pointer"
+                />
+              </div>
             </div>
 
-            {/* Selectors Group */}
-            <div className="flex items-center gap-2 flex-wrap sm:flex-nowrap">
-              {/* Department Select */}
-              <div className="w-full sm:w-[200px]">
-                <Select
-                  value={deptFilter}
-                  onValueChange={(val) => setDeptFilter(val || "all")}
-                >
-                  <SelectTrigger className="h-9 w-full rounded-xl border-border/50 bg-background text-xs font-semibold">
-                    <SelectValue placeholder="Todos los departamentos">
-                      {deptFilter === "all"
-                        ? `Departamentos (${departmentsList.length})`
-                        : deptFilter}
-                    </SelectValue>
-                  </SelectTrigger>
-                  <SelectContent className="rounded-xl border-border/50 bg-popover shadow-lg">
-                    <SelectItem
-                      value="all"
-                      className="text-xs font-semibold rounded-lg cursor-pointer"
-                    >
-                      Todos los departamentos ({departmentsList.length})
-                    </SelectItem>
-                    {departmentsList.map((d) => (
-                      <SelectItem
-                        key={d}
-                        value={d}
-                        className="text-xs font-semibold rounded-lg cursor-pointer"
-                      >
-                        {d}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+            {/* Buscar registros */}
+            <div className="flex flex-col gap-[6px] flex-1 min-w-0">
+              <label
+                htmlFor="attendance-search-input"
+                className="text-[14px] font-medium leading-[20px] text-foreground"
+              >
+                Buscar registros
+              </label>
+              <div className="relative">
+                <Search className="absolute left-[12px] top-1/2 -translate-y-1/2 text-muted-foreground size-[16px] pointer-events-none" />
+                <Input
+                  id="attendance-search-input"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  placeholder="Empleado, puesto o turno"
+                  className="h-[44px] pl-[36px] pr-[36px] rounded-[8px] border-input bg-card text-[14px] font-normal placeholder:text-muted-foreground"
+                />
+                {searchQuery && (
+                  <button
+                    type="button"
+                    onClick={() => setSearchQuery("")}
+                    aria-label="Limpiar búsqueda"
+                    className="absolute right-[12px] top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground cursor-pointer"
+                  >
+                    <X className="size-[16px]" />
+                  </button>
+                )}
               </div>
+            </div>
 
-              {/* Method Select */}
-              <div className="w-full sm:w-[170px]">
-                <Select
-                  value={methodFilter}
-                  onValueChange={(val) => setMethodFilter(val || "all")}
-                >
-                  <SelectTrigger className="h-9 w-full rounded-xl border-border/50 bg-background text-xs font-semibold">
-                    <SelectValue placeholder="Método">
-                      {methodFilter === "all"
-                        ? "Todos los métodos"
-                        : methodFilter === "gps"
-                        ? "GPS Geocerca"
-                        : methodFilter === "qr"
-                        ? "QR Sucursal"
-                        : "Manual RH"}
-                    </SelectValue>
-                  </SelectTrigger>
-                  <SelectContent className="rounded-xl border-border/50 bg-popover shadow-lg">
+            {/* Área */}
+            <div className="flex flex-col gap-[6px] w-full sm:w-[210px] shrink-0">
+              <span className="text-[14px] font-medium leading-[20px] text-foreground">
+                Área
+              </span>
+              <Select
+                value={deptFilter}
+                onValueChange={(val) => setDeptFilter(val || "all")}
+              >
+                <SelectTrigger className="h-[44px] w-full rounded-[8px] border-input bg-card px-[12px] text-[14px] font-normal">
+                  <SelectValue placeholder="Todas las áreas">
+                    {deptFilter === "all" ? "Todas las áreas" : deptFilter}
+                  </SelectValue>
+                </SelectTrigger>
+                <SelectContent className="rounded-[12px] border-border bg-popover shadow-lg">
+                  <SelectItem
+                    value="all"
+                    className="text-[14px] font-normal rounded-[8px] cursor-pointer"
+                  >
+                    Todas las áreas
+                  </SelectItem>
+                  {departmentsList.map((d) => (
                     <SelectItem
-                      value="all"
-                      className="text-xs font-semibold rounded-lg cursor-pointer"
+                      key={d}
+                      value={d}
+                      className="text-[14px] font-normal rounded-[8px] cursor-pointer"
                     >
-                      Todos los métodos
+                      {d}
                     </SelectItem>
-                    <SelectItem
-                      value="gps"
-                      className="text-xs font-semibold rounded-lg cursor-pointer text-emerald-600"
-                    >
-                      GPS Geocerca
-                    </SelectItem>
-                    <SelectItem
-                      value="qr"
-                      className="text-xs font-semibold rounded-lg cursor-pointer text-indigo-600"
-                    >
-                      QR Sucursal
-                    </SelectItem>
-                    <SelectItem
-                      value="manual"
-                      className="text-xs font-semibold rounded-lg cursor-pointer text-muted-foreground"
-                    >
-                      Manual RH
-                    </SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
 
-              {isFiltered && (
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={handleClearFilters}
-                  className="h-9 px-2.5 text-xs font-bold text-muted-foreground hover:text-foreground gap-1 cursor-pointer shrink-0"
-                >
-                  <RotateCcw className="size-3.5" />
-                  <span className="hidden sm:inline">Limpiar</span>
-                </Button>
+            {/* Método */}
+            <div className="flex flex-col gap-[6px] w-full sm:w-[210px] shrink-0">
+              <span className="text-[14px] font-medium leading-[20px] text-foreground">
+                Método
+              </span>
+              <Select
+                value={methodFilter}
+                onValueChange={(val) => setMethodFilter(val || "all")}
+              >
+                <SelectTrigger className="h-[44px] w-full rounded-[8px] border-input bg-card px-[12px] text-[14px] font-normal">
+                  <SelectValue placeholder="Todos los métodos">
+                    {methodFilter === "all"
+                      ? "Todos los métodos"
+                      : methodFilter === "gps"
+                      ? "GPS Geocerca"
+                      : methodFilter === "qr"
+                      ? "QR Sucursal"
+                      : "Manual RH"}
+                  </SelectValue>
+                </SelectTrigger>
+                <SelectContent className="rounded-[12px] border-border bg-popover shadow-lg">
+                  <SelectItem
+                    value="all"
+                    className="text-[14px] font-normal rounded-[8px] cursor-pointer"
+                  >
+                    Todos los métodos
+                  </SelectItem>
+                  <SelectItem
+                    value="qr"
+                    className="text-[14px] font-normal rounded-[8px] cursor-pointer"
+                  >
+                    QR Sucursal
+                  </SelectItem>
+                  <SelectItem
+                    value="gps"
+                    className="text-[14px] font-normal rounded-[8px] cursor-pointer"
+                  >
+                    GPS Geocerca
+                  </SelectItem>
+                  <SelectItem
+                    value="manual"
+                    className="text-[14px] font-normal rounded-[8px] cursor-pointer"
+                  >
+                    Manual RH
+                  </SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            {isFiltered && (
+              <Button
+                variant="ghost"
+                onClick={handleClearFilters}
+                className="h-[44px] px-[12px] rounded-[8px] text-[13px] font-medium text-muted-foreground hover:text-foreground gap-1.5 cursor-pointer shrink-0"
+              >
+                <RotateCcw className="size-3.5" />
+                <span>Limpiar</span>
+              </Button>
+            )}
+          </div>
+
+          {/* Status Segmented Tabs */}
+          <div className="flex items-center gap-[4px] flex-wrap">
+            <button
+              type="button"
+              onClick={() => setStatusFilter("all")}
+              className={cn(
+                "h-[36px] px-[12px] rounded-[8px] text-[14px] font-medium leading-[20px] transition-colors cursor-pointer",
+                statusFilter === "all"
+                  ? "bg-sidebar-accent text-link"
+                  : "text-foreground hover:bg-muted"
               )}
-            </div>
+            >
+              Todos · {records.length}
+            </button>
+            <button
+              type="button"
+              onClick={() => setStatusFilter("presente")}
+              className={cn(
+                "h-[36px] px-[12px] rounded-[8px] text-[14px] font-medium leading-[20px] transition-colors cursor-pointer",
+                statusFilter === "presente"
+                  ? "bg-sidebar-accent text-link"
+                  : "text-foreground hover:bg-muted"
+              )}
+            >
+              Presentes · {stats.presentCount}
+            </button>
+            <button
+              type="button"
+              onClick={() => setStatusFilter("retardo")}
+              className={cn(
+                "h-[36px] px-[12px] rounded-[8px] text-[14px] font-medium leading-[20px] transition-colors cursor-pointer",
+                statusFilter === "retardo"
+                  ? "bg-sidebar-accent text-link"
+                  : "text-foreground hover:bg-muted"
+              )}
+            >
+              Retardos · {stats.lateCount}
+            </button>
+            <button
+              type="button"
+              onClick={() => setStatusFilter("ausencias")}
+              className={cn(
+                "h-[36px] px-[12px] rounded-[8px] text-[14px] font-medium leading-[20px] transition-colors cursor-pointer",
+                statusFilter === "ausencias"
+                  ? "bg-sidebar-accent text-link"
+                  : "text-foreground hover:bg-muted"
+              )}
+            >
+              Ausencias · {stats.unjustifiedAbsences + stats.justifiedAbsences}
+            </button>
+            <button
+              type="button"
+              onClick={() => setStatusFilter("overtime")}
+              className={cn(
+                "h-[36px] px-[12px] rounded-[8px] text-[14px] font-medium leading-[20px] transition-colors cursor-pointer",
+                statusFilter === "overtime"
+                  ? "bg-sidebar-accent text-link"
+                  : "text-foreground hover:bg-muted"
+              )}
+            >
+              Horas extra
+            </button>
           </div>
         </div>
 
@@ -1298,16 +1112,16 @@ export function AttendanceView({
           ) : (
             <div className="overflow-x-auto">
               <Table className="w-full">
-                <TableHeader className="bg-muted/30 border-b border-border/40">
+                <TableHeader className="bg-muted border-b border-border">
                   {table.getHeaderGroups().map((headerGroup) => (
                     <TableRow
                       key={headerGroup.id}
-                      className="hover:bg-transparent"
+                      className="hover:bg-transparent border-0"
                     >
                       {headerGroup.headers.map((header) => (
                         <TableHead
                           key={header.id}
-                          className="py-3 px-4 sm:px-6"
+                          className="h-[44px] py-[8px] px-[16px]"
                         >
                           {header.isPlaceholder
                             ? null
@@ -1320,16 +1134,16 @@ export function AttendanceView({
                     </TableRow>
                   ))}
                 </TableHeader>
-                <TableBody className="divide-y divide-border/30">
+                <TableBody>
                   {tableRows.map((row) => (
                     <TableRow
                       key={row.id}
-                      className="hover:bg-muted/25 transition-colors group"
+                      className="border-b border-border hover:bg-muted/40 transition-colors"
                     >
                       {row.getVisibleCells().map((cell) => (
                         <TableCell
                           key={cell.id}
-                          className="py-3 px-4 sm:px-6"
+                          className="min-h-[60px] py-[8px] px-[16px]"
                         >
                           {flexRender(
                             cell.column.columnDef.cell,
@@ -1343,46 +1157,39 @@ export function AttendanceView({
               </Table>
 
               {/* Table Footer with Summary and Pagination */}
-              <div className="p-3.5 px-4 sm:px-6 border-t border-border/30 bg-muted/10 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-muted-foreground font-medium">
-                <span>
-                  Mostrando <strong>{tableRows.length}</strong> de{" "}
-                  <strong>{filteredRecords.length}</strong> empleados
+              <div className="px-[16px] py-[16px] flex flex-col sm:flex-row items-center justify-between gap-3">
+                <span className="text-[14px] font-normal leading-[20px] text-muted-foreground">
+                  {rangeStart}–{rangeEnd} de {totalFilteredRows} registros
                 </span>
 
-                {/* Pagination Controls */}
-                {table.getPageCount() > 1 && (
-                  <div className="flex items-center gap-1.5">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => table.previousPage()}
-                      disabled={!table.getCanPreviousPage()}
-                      className="h-8 px-2.5 rounded-lg text-xs"
-                    >
-                      <ChevronLeft className="size-3.5 mr-1" />
-                      <span>Anterior</span>
-                    </Button>
-                    <span className="px-2 font-semibold">
-                      Página {table.getState().pagination.pageIndex + 1} de{" "}
-                      {table.getPageCount()}
-                    </span>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => table.nextPage()}
-                      disabled={!table.getCanNextPage()}
-                      className="h-8 px-2.5 rounded-lg text-xs"
-                    >
-                      <span>Siguiente</span>
-                      <ChevronRight className="size-3.5 ml-1" />
-                    </Button>
-                  </div>
-                )}
+                <div className="flex items-center gap-[8px]">
+                  <button
+                    type="button"
+                    onClick={() => table.previousPage()}
+                    disabled={!table.getCanPreviousPage()}
+                    aria-label="Página anterior"
+                    className="size-[36px] rounded-[8px] bg-muted text-foreground flex items-center justify-center hover:bg-muted/80 disabled:opacity-40 disabled:pointer-events-none cursor-pointer transition-colors"
+                  >
+                    <ChevronLeft className="size-[16px]" />
+                  </button>
+                  <span className="text-[14px] font-normal leading-[20px] text-foreground px-[4px]">
+                    Página {pageIndex + 1} de {pageCount}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => table.nextPage()}
+                    disabled={!table.getCanNextPage()}
+                    aria-label="Página siguiente"
+                    className="size-[36px] rounded-[8px] bg-muted text-foreground flex items-center justify-center hover:bg-muted/80 disabled:opacity-40 disabled:pointer-events-none cursor-pointer transition-colors"
+                  >
+                    <ChevronRight className="size-[16px]" />
+                  </button>
+                </div>
               </div>
             </div>
           )}
         </div>
-      </Card>
+      </div>
 
       {/* Modal 1: Mobile Check-in Sheet */}
       <MobileCheckInSheet
@@ -1426,135 +1233,18 @@ export function AttendanceView({
       />
 
       {/* Modal: Entrada Manual RH */}
-      <Dialog open={isManualModalOpen} onOpenChange={setIsManualModalOpen}>
-        <DialogContent className="sm:max-w-[460px] rounded-3xl p-6 bg-card border-border/80 shadow-2xl">
-          <form onSubmit={handleAddManualCheckIn} className="space-y-4">
-            <DialogHeader className="space-y-1.5 text-left">
-              <DialogTitle className="text-lg font-extrabold text-foreground flex items-center gap-2">
-                <Clock className="size-5 text-primary" />
-                <span>Registrar Entrada Manual RH</span>
-              </DialogTitle>
-              <DialogDescription className="text-xs text-muted-foreground">
-                Añade o ajusta la marca de checador para un empleado del turno.
-              </DialogDescription>
-            </DialogHeader>
-
-            <div className="space-y-3.5 pt-1">
-              <div className="space-y-1.5">
-                <Label className="text-xs font-bold text-foreground">
-                  Empleado de la Plantilla *
-                </Label>
-                {employees.length > 0 ? (
-                  <Select
-                    value={selectedEmployeeId}
-                    onValueChange={(val) => {
-                      if (val) {
-                        setSelectedEmployeeId(val);
-                        const emp = employees.find((e) => e.id === val);
-                        if (emp) setManualName(emp.name);
-                      }
-                    }}
-                  >
-                    <SelectTrigger className="h-9 text-xs font-medium">
-                      <SelectValue placeholder="Selecciona un empleado..." />
-                    </SelectTrigger>
-                    <SelectContent className="max-h-56">
-                      {employees.map((emp) => (
-                        <SelectItem key={emp.id} value={emp.id} className="text-xs font-medium">
-                          {emp.name} — {emp.jobTitle} ({emp.department})
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                ) : (
-                  <Input
-                    id="att-manual-name"
-                    placeholder="Nombre del empleado"
-                    value={manualName}
-                    onChange={(e) => setManualName(e.target.value)}
-                    className="h-9 text-xs font-medium"
-                    required
-                  />
-                )}
-              </div>
-
-              <div className="grid grid-cols-2 gap-3">
-                <div className="space-y-1.5">
-                  <Label
-                    htmlFor="att-manual-time"
-                    className="text-xs font-bold text-foreground"
-                  >
-                    Hora de Entrada
-                  </Label>
-                  <Input
-                    id="att-manual-time"
-                    type="time"
-                    value={manualTime}
-                    onChange={(e) => setManualTime(e.target.value)}
-                    disabled={
-                      manualStatus === "falta_injustificada" ||
-                      manualStatus === "falta_justificada"
-                    }
-                    className="h-9 text-xs font-medium"
-                  />
-                </div>
-
-                <div className="space-y-1.5">
-                  <Label className="text-xs font-bold text-foreground">
-                    Estatus
-                  </Label>
-                  <Select
-                    value={manualStatus}
-                    onValueChange={(val) =>
-                      val && setManualStatus(val as AttendanceStatus)
-                    }
-                  >
-                    <SelectTrigger className="h-9 text-xs font-medium">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent className="rounded-xl">
-                      <SelectItem value="presente" className="text-xs font-semibold text-emerald-600">
-                        Puntual
-                      </SelectItem>
-                      <SelectItem value="retardo" className="text-xs font-semibold text-amber-600">
-                        Retardo
-                      </SelectItem>
-                      <SelectItem
-                        value="falta_injustificada"
-                        className="text-xs font-semibold text-rose-600"
-                      >
-                        Falta Injustificada
-                      </SelectItem>
-                      <SelectItem
-                        value="falta_justificada"
-                        className="text-xs font-semibold text-blue-600"
-                      >
-                        Falta Justificada
-                      </SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-            </div>
-
-            <DialogFooter className="flex flex-col-reverse sm:flex-row gap-2 pt-3 border-t border-border">
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => setIsManualModalOpen(false)}
-              >
-                Cancelar
-              </Button>
-              <Button
-                type="submit"
-                disabled={isSubmittingManual || (!selectedEmployeeId && !manualName.trim())}
-              >
-                {isSubmittingManual ? "Guardando..." : "Guardar Registro"}
-              </Button>
-            </DialogFooter>
-          </form>
-        </DialogContent>
-      </Dialog>
+      <ManualAttendanceModal
+        isOpen={isManualModalOpen}
+        onOpenChange={(open) => {
+          setIsManualModalOpen(open);
+          if (!open) setManualInitialSelection(null);
+        }}
+        employees={employees}
+        existingRecords={records}
+        workDate={workDate}
+        initialSelection={manualInitialSelection}
+        onRecordCreated={handleRecordCreated}
+      />
     </div>
   );
 }

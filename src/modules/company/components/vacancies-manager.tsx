@@ -17,32 +17,32 @@ import {
   Plus,
   Search,
   Briefcase,
-  MapPin,
-  CheckCircle2,
   MoreHorizontal,
   Eye,
   Edit2,
   Trash2,
-  FileDown,
   X,
-  Calendar,
   Copy,
   Users,
   AlertCircle,
   ArrowUpDown,
-  ArrowUp,
-  ArrowDown,
   RotateCcw,
   PauseCircle,
   PlayCircle,
   ChevronLeft,
   ChevronRight,
   Loader2,
-  SlidersHorizontal,
 } from "@/components/ui/icons";
+import { HugeiconsIcon } from "@hugeicons/react";
+import {
+  Add01Icon,
+  Briefcase01Icon,
+  CheckmarkBadge01Icon,
+  Clock01Icon,
+  Download01Icon,
+  InboxIcon,
+} from "@hugeicons/core-free-icons";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -88,31 +88,61 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { createClient } from "@/lib/supabase/client";
 import { useVacancyManager, type VacancyRow } from "@/modules/company/hooks/use-vacancy-manager";
 import { cloneVacancyAction } from "../actions/vacancies";
-import { VacancyPreviewDrawer } from "./vacancy-preview-drawer";
-import { CompanyPageHeader } from "./shared/company-page-header";
-import { CompanyStatusBadge } from "./shared/company-status-badge";
-import {
-  Drawer,
-  DrawerClose,
-  DrawerContent,
-  DrawerDescription,
-  DrawerFooter,
-  DrawerHeader,
-  DrawerTitle,
-} from "@/components/ui/drawer";
 
 export interface VacancyItem extends VacancyRow {
   applicants_count?: number;
 }
 
+type VacancyStatusKey = "active" | "paused" | "draft" | "closed";
+
+function getVacancyStatusKey(v: VacancyItem): VacancyStatusKey {
+  const raw = (v.status || "").toLowerCase();
+  if (raw.includes("borrador") || raw === "draft") return "draft";
+  if (raw.includes("cerrad") || raw === "closed") return "closed";
+  if (v.is_active || raw === "activa") return "active";
+  return "paused";
+}
+
+const STATUS_PILL_CONFIG: Record<
+  VacancyStatusKey,
+  { label: string; className: string }
+> = {
+  active: {
+    label: "Activa",
+    className: "bg-success text-success-foreground",
+  },
+  paused: {
+    label: "Pausada",
+    className: "bg-warning text-warning-foreground",
+  },
+  draft: {
+    label: "Borrador",
+    className:
+      "bg-[#e8f2fb] text-[#184c78] dark:bg-[#213748] dark:text-[#abd6f5]",
+  },
+  closed: {
+    label: "Cerrada",
+    className: "bg-muted text-muted-foreground",
+  },
+};
+
+interface CompanyProfileSummary {
+  company_name: string;
+  phone: string;
+  logo_url: string | null;
+  location: string;
+  is_validated: boolean;
+}
+
 export function VacanciesManager({ userId }: { userId: string }) {
+  const router = useRouter();
   const [vacancies, setVacancies] = React.useState<VacancyItem[]>([]);
-  const [previewVacancy, setPreviewVacancy] = React.useState<VacancyItem | null>(null);
   const [searchQuery, setSearchQuery] = React.useState("");
   const [deletingVacancyId, setDeletingVacancyId] = React.useState<string | null>(null);
   const [isDeleting, setIsDeleting] = React.useState(false);
@@ -122,10 +152,11 @@ export function VacanciesManager({ userId }: { userId: string }) {
   }, [vacancies, deletingVacancyId]);
 
   // Filters state (all unified inside the table header)
-  const [statusFilter, setStatusFilter] = React.useState<"all" | "active" | "paused">("all");
+  const [statusFilter, setStatusFilter] = React.useState<
+    "all" | VacancyStatusKey
+  >("all");
   const [categoryFilter, setCategoryFilter] = React.useState<string>("all");
   const [locationFilter, setLocationFilter] = React.useState<string>("all");
-  const [isMobileFilterDrawerOpen, setIsMobileFilterDrawerOpen] = React.useState(false);
 
   // TanStack sorting & selection state
   const [sorting, setSorting] = React.useState<SortingState>([
@@ -134,7 +165,9 @@ export function VacanciesManager({ userId }: { userId: string }) {
   const [rowSelection, setRowSelection] = React.useState<RowSelectionState>({});
 
   // States for company profile checking
-  const [profile, setProfile] = React.useState<any>(null);
+  const [profile, setProfile] = React.useState<CompanyProfileSummary | null>(
+    null
+  );
   const [loadingProfile, setLoadingProfile] = React.useState(true);
 
   const {
@@ -170,9 +203,7 @@ export function VacanciesManager({ userId }: { userId: string }) {
       const phone = compProfile?.contact_phone || "configurado";
       const location =
         compProfile?.fiscal_address || baseProfile?.location || "";
-      const is_validated =
-        (compProfile?.verification_status as any) === "verified" ||
-        (compProfile?.verification_status as any) === "approved";
+      const is_validated = compProfile?.verification_status === "approved";
 
       setProfile({
         company_name,
@@ -197,7 +228,7 @@ export function VacanciesManager({ userId }: { userId: string }) {
         .select("vacancy_id");
 
       const countsMap: Record<string, number> = {};
-      appCounts?.forEach((app: any) => {
+      appCounts?.forEach((app: { vacancy_id: string | null }) => {
         if (app.vacancy_id) {
           countsMap[app.vacancy_id] = (countsMap[app.vacancy_id] || 0) + 1;
         }
@@ -238,19 +269,10 @@ export function VacanciesManager({ userId }: { userId: string }) {
               ? {
                   ...v,
                   is_active: nextState,
-                  status: nextState ? "Activa" : "Cerrada",
+                  status: nextState ? "Activa" : "Pausada",
                 }
               : v
           )
-        );
-        setPreviewVacancy((prev) =>
-          prev && prev.id === vacancyId
-            ? {
-                ...prev,
-                is_active: nextState,
-                status: nextState ? "Activa" : "Cerrada",
-              }
-            : prev
         );
         toast.success(
           nextState ? "Vacante activada con éxito" : "Vacante pausada",
@@ -263,6 +285,32 @@ export function VacanciesManager({ userId }: { userId: string }) {
       }
     } catch (err: unknown) {
       toast.error("Error al actualizar la vacante", {
+        description: (err as Error).message,
+      });
+    }
+  }, [toggleVacancyStatus]);
+
+  const handleCloseVacancy = React.useCallback(async (vacancyId: string) => {
+    try {
+      const success = await toggleVacancyStatus(vacancyId, false, "Cerrada");
+      if (success) {
+        setVacancies((prev) =>
+          prev.map((v) =>
+            v.id === vacancyId
+              ? {
+                  ...v,
+                  is_active: false,
+                  status: "Cerrada",
+                }
+              : v
+          )
+        );
+        toast.success("Vacante marcada como cerrada", {
+          description: "El proceso de selección quedó cerrado.",
+        });
+      }
+    } catch (err: unknown) {
+      toast.error("Error al cerrar la vacante", {
         description: (err as Error).message,
       });
     }
@@ -331,9 +379,9 @@ export function VacanciesManager({ userId }: { userId: string }) {
           ? `${ids.length} vacantes marcadas como cerradas`
           : `${ids.length} vacantes activadas con éxito`
       );
-    } catch (err: any) {
+    } catch (err: unknown) {
       toast.error("Error al actualizar vacantes seleccionadas", {
-        description: err.message,
+        description: err instanceof Error ? err.message : "Error inesperado",
       });
     }
   };
@@ -341,21 +389,30 @@ export function VacanciesManager({ userId }: { userId: string }) {
   // Metrics summary
   const metrics = React.useMemo(() => {
     const total = vacancies.length;
-    const active = vacancies.filter((v) => v.is_active).length;
-    const paused = total - active;
+    let active = 0;
+    let paused = 0;
+    let draft = 0;
+    let closed = 0;
+
+    vacancies.forEach((v) => {
+      const key = getVacancyStatusKey(v);
+      if (key === "active") active += 1;
+      else if (key === "paused") paused += 1;
+      else if (key === "draft") draft += 1;
+      else if (key === "closed") closed += 1;
+    });
+
     const totalApplicants = vacancies.reduce(
       (acc, v) => acc + (v.applicants_count || 0),
       0
-    );
-    const categoriesSet = new Set(
-      vacancies.map((v) => v.category).filter(Boolean)
     );
     return {
       total,
       active,
       paused,
+      draft,
+      closed,
       totalApplicants,
-      categoriesCount: categoriesSet.size,
     };
   }, [vacancies]);
 
@@ -396,9 +453,7 @@ export function VacanciesManager({ userId }: { userId: string }) {
         v.location === locationFilter;
 
       const matchesStatus =
-        statusFilter === "all" ||
-        (statusFilter === "active" && v.is_active) ||
-        (statusFilter === "paused" && !v.is_active);
+        statusFilter === "all" || getVacancyStatusKey(v) === statusFilter;
 
       return (
         matchesSearch && matchesCategory && matchesLocation && matchesStatus
@@ -411,10 +466,6 @@ export function VacanciesManager({ userId }: { userId: string }) {
     categoryFilter !== "all" ||
     locationFilter !== "all" ||
     statusFilter !== "all";
-
-  const activeSecondaryFiltersCount =
-    (categoryFilter !== "all" ? 1 : 0) +
-    (locationFilter !== "all" ? 1 : 0);
 
   const handleClearFilters = () => {
     setCategoryFilter("all");
@@ -432,7 +483,7 @@ export function VacanciesManager({ userId }: { userId: string }) {
     });
 
     if (min != null && max != null) {
-      return `${formatter.format(min)} - ${formatter.format(max)}`;
+      return `${formatter.format(min)}–${formatter.format(max)}`;
     } else if (min != null) {
       return `Desde ${formatter.format(min)}`;
     } else if (max != null) {
@@ -538,47 +589,30 @@ export function VacanciesManager({ userId }: { userId: string }) {
       {
         accessorKey: "title",
         id: "title",
-        header: ({ column }) => (
-          <button
-            type="button"
-            className="flex items-center gap-1.5 font-extrabold text-[11px] uppercase tracking-wider text-muted-foreground hover:text-foreground transition-colors cursor-pointer select-none py-1 group"
-            onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
-          >
-            <span>Puesto / Categoría</span>
-            {column.getIsSorted() === "asc" ? (
-              <ArrowUp className="size-3.5 text-primary" />
-            ) : column.getIsSorted() === "desc" ? (
-              <ArrowDown className="size-3.5 text-primary" />
-            ) : (
-              <ArrowUpDown className="size-3.5 opacity-40 group-hover:opacity-80 transition-opacity" />
-            )}
-          </button>
+        header: () => (
+          <span className="text-[12px] font-medium leading-[16px] text-muted-foreground">
+            Puesto y categoría
+          </span>
         ),
         cell: ({ row }) => {
           const vacancy = row.original;
+          const displayTitle =
+            vacancy.title.length > 38
+              ? `${vacancy.title.slice(0, 38).trimEnd()}…`
+              : vacancy.title;
           return (
-            <div className="space-y-0.5 py-1 min-w-[200px]">
-              <button
-                type="button"
-                onClick={() => setPreviewVacancy(vacancy)}
-                className="font-bold text-xs sm:text-sm text-foreground hover:text-primary transition-colors line-clamp-1 block text-left cursor-pointer"
-                title="Ver detalles de la vacante"
+            <div className="flex flex-col gap-[2px] max-w-[260px] min-w-0">
+              <Link
+                href={`/dashboard/company/vacancies/${vacancy.id}`}
+                onClick={(e) => e.stopPropagation()}
+                className="text-[14px] font-semibold leading-[20px] text-link hover:underline text-left truncate block cursor-pointer"
+                title={vacancy.title}
               >
-                {vacancy.title}
-              </button>
-              <div className="flex items-center gap-2">
-                <Badge
-                  variant="outline"
-                  className="text-[10px] font-semibold px-2 py-0 border-border/30 bg-muted/40"
-                >
-                  {vacancy.category || "General"}
-                </Badge>
-                {vacancy.employment_type && (
-                  <span className="text-[10px] text-muted-foreground">
-                    • {vacancy.employment_type}
-                  </span>
-                )}
-              </div>
+                {displayTitle}
+              </Link>
+              <span className="text-[12px] font-normal leading-[16px] text-muted-foreground truncate">
+                {vacancy.category || "General"}
+              </span>
             </div>
           );
         },
@@ -586,110 +620,84 @@ export function VacanciesManager({ userId }: { userId: string }) {
       {
         accessorKey: "zone",
         id: "zone",
-        header: ({ column }) => (
-          <button
-            type="button"
-            className="flex items-center gap-1.5 font-extrabold text-[11px] uppercase tracking-wider text-muted-foreground hover:text-foreground transition-colors cursor-pointer select-none py-1 group"
-            onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
-          >
-            <span>Ubicación</span>
-            {column.getIsSorted() === "asc" ? (
-              <ArrowUp className="size-3.5 text-primary" />
-            ) : column.getIsSorted() === "desc" ? (
-              <ArrowDown className="size-3.5 text-primary" />
-            ) : (
-              <ArrowUpDown className="size-3.5 opacity-40 group-hover:opacity-80 transition-opacity" />
-            )}
-          </button>
+        header: () => (
+          <span className="text-[12px] font-medium leading-[16px] text-muted-foreground">
+            Ubicación
+          </span>
         ),
         cell: ({ row }) => {
           const vacancy = row.original;
-          const zoneText = vacancy.zone || vacancy.location || "Riviera Maya";
+          const zoneText = vacancy.zone || vacancy.location || "—";
           return (
-            <div className="space-y-0.5 py-1 text-xs">
-              <div className="flex items-center gap-1.5 text-muted-foreground font-medium">
-                <MapPin className="size-3.5 text-primary shrink-0" />
-                <span className="truncate max-w-[170px] text-foreground font-semibold">
-                  {zoneText}
-                </span>
-              </div>
-              <span className="text-[10px] text-muted-foreground pl-5 block">
-                {vacancy.modality || "Presencial"}
-              </span>
-            </div>
+            <span className="text-[14px] font-normal leading-[20px] text-foreground truncate block max-w-[170px]">
+              {zoneText}
+            </span>
           );
         },
       },
       {
         accessorKey: "salary_min",
         id: "salary_min",
-        header: ({ column }) => (
-          <button
-            type="button"
-            className="flex items-center gap-1.5 font-extrabold text-[11px] uppercase tracking-wider text-muted-foreground hover:text-foreground transition-colors cursor-pointer select-none py-1 group"
-            onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
-          >
-            <span>Sueldo Ofrecido</span>
-            {column.getIsSorted() === "asc" ? (
-              <ArrowUp className="size-3.5 text-primary" />
-            ) : column.getIsSorted() === "desc" ? (
-              <ArrowDown className="size-3.5 text-primary" />
-            ) : (
-              <ArrowUpDown className="size-3.5 opacity-40 group-hover:opacity-80 transition-opacity" />
-            )}
-          </button>
+        header: () => (
+          <span className="text-[12px] font-medium leading-[16px] text-muted-foreground">
+            Sueldo mensual
+          </span>
         ),
         cell: ({ row }) => {
           const vacancy = row.original;
           return (
-            <div className="py-1">
-              <span className="font-mono text-xs font-bold text-foreground block">
-                {formatSalary(vacancy.salary_min, vacancy.salary_max)}
-              </span>
-              <span className="text-[10px] text-muted-foreground font-medium">
-                MXN Mensual
-              </span>
-            </div>
+            <span className="text-[14px] font-normal leading-[20px] text-foreground tabular-nums whitespace-nowrap">
+              {formatSalary(vacancy.salary_min, vacancy.salary_max)}
+            </span>
           );
         },
       },
       {
         accessorKey: "applicants_count",
         id: "applicants_count",
-        header: ({ column }) => (
-          <button
-            type="button"
-            className="flex items-center gap-1.5 font-extrabold text-[11px] uppercase tracking-wider text-muted-foreground hover:text-foreground transition-colors cursor-pointer select-none py-1 group"
-            onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
-          >
-            <span>Postulaciones</span>
-            {column.getIsSorted() === "asc" ? (
-              <ArrowUp className="size-3.5 text-primary" />
-            ) : column.getIsSorted() === "desc" ? (
-              <ArrowDown className="size-3.5 text-primary" />
-            ) : (
-              <ArrowUpDown className="size-3.5 opacity-40 group-hover:opacity-80 transition-opacity" />
-            )}
-          </button>
+        header: () => (
+          <span className="text-[12px] font-medium leading-[16px] text-muted-foreground">
+            Postulaciones
+          </span>
         ),
         cell: ({ row }) => {
           const count = row.original.applicants_count ?? 0;
           return (
-            <div className="py-1">
-              <Link
-                href={`/dashboard/company/applications?vacancy_id=${row.original.id}`}
-                className={cn(
-                  "inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl text-xs font-bold font-mono transition-colors",
-                  count > 0
-                    ? "bg-primary/10 text-primary hover:bg-primary/20"
-                    : "bg-muted/40 text-muted-foreground hover:bg-muted"
-                )}
-                title="Ver candidatos postulados"
-              >
-                <Users className="size-3.5" />
-                <span>{count}</span>
-              </Link>
-            </div>
+            <Link
+              href={`/dashboard/company/applications?vacancy_id=${row.original.id}`}
+              onClick={(e) => e.stopPropagation()}
+              className={cn(
+                "text-[14px] font-semibold leading-[20px] tabular-nums hover:underline inline-block",
+                count > 0 ? "text-link" : "text-muted-foreground font-normal"
+              )}
+              title="Ver candidatos postulados"
+            >
+              {count}
+            </Link>
+          );
+        },
+      },
+      {
+        accessorKey: "is_active",
+        id: "is_active",
+        header: () => (
+          <span className="text-[12px] font-medium leading-[16px] text-muted-foreground">
+            Estado
+          </span>
+        ),
+        cell: ({ row }) => {
+          const vacancy = row.original;
+          const statusKey = getVacancyStatusKey(vacancy);
+          const pill = STATUS_PILL_CONFIG[statusKey];
+          return (
+            <span
+              className={cn(
+                "inline-flex items-center justify-center h-[28px] px-[12px] rounded-[8px] text-[13px] font-medium leading-[18px] whitespace-nowrap",
+                pill.className
+              )}
+            >
+              {pill.label}
+            </span>
           );
         },
       },
@@ -699,76 +707,29 @@ export function VacanciesManager({ userId }: { userId: string }) {
         header: ({ column }) => (
           <button
             type="button"
-            className="flex items-center gap-1.5 font-extrabold text-[11px] uppercase tracking-wider text-muted-foreground hover:text-foreground transition-colors cursor-pointer select-none py-1 group"
+            className="flex items-center gap-[4px] text-[12px] font-medium leading-[16px] text-muted-foreground hover:text-foreground transition-colors cursor-pointer select-none"
             onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
           >
             <span>Publicación</span>
-            {column.getIsSorted() === "asc" ? (
-              <ArrowUp className="size-3.5 text-primary" />
-            ) : column.getIsSorted() === "desc" ? (
-              <ArrowDown className="size-3.5 text-primary" />
-            ) : (
-              <ArrowUpDown className="size-3.5 opacity-40 group-hover:opacity-80 transition-opacity" />
-            )}
+            <ArrowUpDown className="size-[12px] text-link" />
           </button>
         ),
         cell: ({ row }) => {
           const vacancy = row.original;
+          const statusKey = getVacancyStatusKey(vacancy);
           return (
-            <div className="flex items-center gap-1.5 text-xs font-semibold text-muted-foreground py-1">
-              <Calendar className="size-3 text-muted-foreground shrink-0" />
-              <span>{formatDate(vacancy.created_at)}</span>
-            </div>
-          );
-        },
-      },
-      {
-        accessorKey: "is_active",
-        id: "is_active",
-        header: ({ column }) => (
-          <button
-            type="button"
-            className="flex items-center gap-1.5 font-extrabold text-[11px] uppercase tracking-wider text-muted-foreground hover:text-foreground transition-colors cursor-pointer select-none py-1 group"
-            onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
-          >
-            <span>Estatus</span>
-            {column.getIsSorted() === "asc" ? (
-              <ArrowUp className="size-3.5 text-primary" />
-            ) : column.getIsSorted() === "desc" ? (
-              <ArrowDown className="size-3.5 text-primary" />
-            ) : (
-              <ArrowUpDown className="size-3.5 opacity-40 group-hover:opacity-80 transition-opacity" />
-            )}
-          </button>
-        ),
-        cell: ({ row }) => {
-          const vacancy = row.original;
-          const isActive = vacancy.is_active;
-          return (
-            <div className="py-1">
-              <button
-                type="button"
-                onClick={() => handleToggleActive(vacancy.id, isActive)}
-                className="cursor-pointer transition-transform hover:scale-105 select-none"
-                title={
-                  isActive
-                    ? "Clic para pausar vacante"
-                    : "Clic para activar vacante"
-                }
-              >
-                <CompanyStatusBadge
-                  status={isActive ? "activo" : "pausado"}
-                  label={isActive ? "Activa" : "Pausada"}
-                />
-              </button>
-            </div>
+            <span className="text-[13px] font-normal leading-[18px] text-muted-foreground whitespace-nowrap">
+              {statusKey === "draft"
+                ? "Sin publicar"
+                : formatDate(vacancy.created_at)}
+            </span>
           );
         },
       },
       {
         id: "actions",
         header: () => (
-          <span className="font-extrabold text-[11px] uppercase tracking-wider text-muted-foreground block text-right pr-2">
+          <span className="text-[12px] font-medium leading-[16px] text-muted-foreground block text-right pr-1">
             Acciones
           </span>
         ),
@@ -776,59 +737,33 @@ export function VacanciesManager({ userId }: { userId: string }) {
           const vacancy = row.original;
           return (
             <div
-              className="flex items-center justify-end gap-1 py-1"
+              className="flex items-center justify-end"
               onClick={(e) => e.stopPropagation()}
             >
-              {/* Eye Button: View Vacancy Details in Drawer */}
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setPreviewVacancy(vacancy);
-                }}
-                className="size-8 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted p-1 cursor-pointer transition-colors"
-                title="Ver detalles de la vacante"
-              >
-                <Eye className="size-4" />
-              </Button>
-
-              {/* View Applicants Shortcut */}
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={(e) => e.stopPropagation()}
-                render={
-                  <Link
-                    href={`/dashboard/company/applications?vacancy_id=${vacancy.id}`}
-                  />
-                }
-                className="size-8 rounded-lg text-primary hover:bg-primary/10 p-1 cursor-pointer transition-colors"
-                title="Ver candidatos postulados"
-              >
-                <Users className="size-4" />
-              </Button>
-
               <DropdownMenu>
                 <DropdownMenuTrigger
                   render={
                     <button
+                      type="button"
                       onClick={(e) => e.stopPropagation()}
-                      className="size-8 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted p-1 cursor-pointer transition-colors flex items-center justify-center"
+                      aria-label="Acciones de vacante"
+                      className="size-[36px] rounded-[8px] bg-muted text-foreground hover:bg-muted/80 cursor-pointer transition-colors flex items-center justify-center"
                     />
                   }
                 >
-                  <MoreHorizontal className="size-4" />
+                  <MoreHorizontal className="size-[16px]" />
                 </DropdownMenuTrigger>
                 <DropdownMenuContent
                   align="end"
                   className="rounded-xl border border-border/50 bg-popover min-w-[190px] shadow-lg p-1.5"
                 >
                   <DropdownMenuItem
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setPreviewVacancy(vacancy);
-                    }}
+                    onClick={(e) => e.stopPropagation()}
+                    render={
+                      <Link
+                        href={`/dashboard/company/vacancies/${vacancy.id}`}
+                      />
+                    }
                     className="cursor-pointer text-xs font-semibold rounded-lg hover:bg-muted py-2 px-2.5 gap-2 text-foreground"
                   >
                     <Eye className="size-3.5 text-primary" />
@@ -894,10 +829,22 @@ export function VacanciesManager({ userId }: { userId: string }) {
                     )}
                   </DropdownMenuItem>
 
+                  {getVacancyStatusKey(vacancy) !== "closed" && (
+                    <DropdownMenuItem
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleCloseVacancy(vacancy.id);
+                      }}
+                      className="cursor-pointer text-xs font-semibold rounded-lg hover:bg-muted py-2 px-2.5 gap-2"
+                    >
+                      <X className="size-3.5 text-muted-foreground" />
+                      <span>Cerrar vacante</span>
+                    </DropdownMenuItem>
+                  )}
+
                   <DropdownMenuItem
                     onClick={(e) => {
                       e.stopPropagation();
-                      setPreviewVacancy(null);
                       setDeletingVacancyId(vacancy.id);
                     }}
                     className="cursor-pointer text-xs font-semibold text-rose-600 dark:text-rose-400 rounded-lg hover:bg-rose-500/10 focus:bg-rose-500/10 py-2 px-2.5 gap-2"
@@ -912,7 +859,7 @@ export function VacanciesManager({ userId }: { userId: string }) {
         },
       },
     ],
-    [handleCloneVacancy, handleToggleActive]
+    [handleCloneVacancy, handleCloseVacancy, handleToggleActive]
   );
 
   // TanStack Table Instance
@@ -945,441 +892,297 @@ export function VacanciesManager({ userId }: { userId: string }) {
   const tableRows = table.getRowModel().rows;
 
   return (
-    <div className="space-y-6 w-full pb-16 font-sans">
-      {/* 1. Header Unificado */}
-      <CompanyPageHeader
-        title="Mis Vacantes Laborales"
-        description="Gestiona tus convocatorias de empleo, postulantes y estado de publicación en la plataforma."
-      >
-        <div className="flex items-center gap-2">
-          <Badge variant="outline" className="font-mono">
-            {metrics.total}
-          </Badge>
-          {!loadingProfile && profile?.is_validated && (
-            <Badge variant="outline" className="bg-emerald-500/10 border-emerald-500/30 text-emerald-600 dark:text-emerald-400 gap-1">
-              <CheckCircle2 className="size-3" />
-              <span>Verificada</span>
-            </Badge>
-          )}
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={handleExportCSV}
-            className="cursor-pointer"
-          >
-            <FileDown data-icon="inline-start" className="text-emerald-600 dark:text-emerald-400" />
-            <span>Exportar CSV</span>
-          </Button>
-          <Button
-            size="sm"
-            render={<Link href="/dashboard/company/vacancies/new" />}
-            className="cursor-pointer font-medium"
-          >
-            <Plus data-icon="inline-start" />
-            <span>Publicar Oferta</span>
-          </Button>
+    <div className="flex flex-col gap-[24px] w-full pb-12 font-sans">
+      {/* 1. Header */}
+      <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
+        <div className="flex flex-col gap-[8px]">
+          <h1 className="text-[32px] font-semibold leading-[40px] tracking-[-0.02em] text-foreground">
+            Vacantes
+          </h1>
+          <p className="text-[14px] font-normal leading-[20px] text-muted-foreground">
+            Gestiona tus publicaciones y consulta las postulaciones de cada
+            vacante.
+          </p>
         </div>
-      </CompanyPageHeader>
+
+        <Button
+          render={<Link href="/dashboard/company/vacancies/new" />}
+          className="h-[44px] px-[16px] rounded-[8px] bg-primary text-primary-foreground text-[14px] font-medium hover:bg-primary/90 gap-[8px] cursor-pointer shrink-0"
+        >
+          <HugeiconsIcon icon={Add01Icon} size={16} strokeWidth={1.8} />
+          <span>Publicar vacante</span>
+        </Button>
+      </div>
 
       {/* 2. Top Summary KPI Cards */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4">
-        <Card className="p-4 sm:p-5 flex flex-col justify-between">
-          <div className="flex items-center justify-between">
-            <span className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider">
-              Total Ofertas
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-[16px]">
+        <div className="bg-card border border-border rounded-[16px] p-[16px] flex flex-col gap-[8px]">
+          <div className="flex items-center justify-between gap-2">
+            <span className="text-[14px] font-medium leading-[20px] text-muted-foreground">
+              Vacantes totales
             </span>
-            <div className="size-8 rounded-lg bg-primary/10 text-primary flex items-center justify-center">
-              <Briefcase className="size-4" />
+            <div className="size-[32px] rounded-[8px] bg-sidebar-accent text-link flex items-center justify-center shrink-0">
+              <HugeiconsIcon icon={Briefcase01Icon} size={18} strokeWidth={1.8} />
             </div>
           </div>
-          <div className="mt-2">
-            <h3 className="text-2xl font-extrabold text-foreground font-mono">
-              {metrics.total}
-            </h3>
-            <p className="text-[10px] font-semibold text-muted-foreground mt-0.5">
-              Convocatorias registradas
-            </p>
-          </div>
-        </Card>
+          <span className="text-[24px] font-semibold leading-[32px] text-foreground tabular-nums">
+            {metrics.total}
+          </span>
+          <span className="text-[12px] font-normal leading-[16px] text-muted-foreground">
+            Todos los estados
+          </span>
+        </div>
 
-        <Card className="p-4 sm:p-5 flex flex-col justify-between">
-          <div className="flex items-center justify-between">
-            <span className="text-[11px] font-bold text-emerald-600 dark:text-emerald-400 uppercase tracking-wider">
+        <div className="bg-card border border-border rounded-[16px] p-[16px] flex flex-col gap-[8px]">
+          <div className="flex items-center justify-between gap-2">
+            <span className="text-[14px] font-medium leading-[20px] text-muted-foreground">
               Activas
             </span>
-            <div className="size-8 rounded-lg bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center">
-              <CheckCircle2 className="size-4" />
+            <div className="size-[32px] rounded-[8px] bg-success text-success-foreground flex items-center justify-center shrink-0">
+              <HugeiconsIcon
+                icon={CheckmarkBadge01Icon}
+                size={18}
+                strokeWidth={1.8}
+              />
             </div>
           </div>
-          <div className="mt-2">
-            <h3 className="text-2xl font-extrabold text-emerald-600 dark:text-emerald-400 font-mono">
-              {metrics.active}
-            </h3>
-            <p className="text-[10px] font-semibold text-muted-foreground mt-0.5">
-              Visibles para candidatos
-            </p>
-          </div>
-        </Card>
+          <span className="text-[24px] font-semibold leading-[32px] text-foreground tabular-nums">
+            {metrics.active}
+          </span>
+          <span className="text-[12px] font-normal leading-[16px] text-muted-foreground">
+            Publicadas y visibles
+          </span>
+        </div>
 
-        <Card className="p-4 sm:p-5 flex flex-col justify-between">
-          <div className="flex items-center justify-between">
-            <span className="text-[11px] font-bold text-amber-600 dark:text-amber-400 uppercase tracking-wider">
+        <div className="bg-card border border-border rounded-[16px] p-[16px] flex flex-col gap-[8px]">
+          <div className="flex items-center justify-between gap-2">
+            <span className="text-[14px] font-medium leading-[20px] text-muted-foreground">
               Pausadas
             </span>
-            <div className="size-8 rounded-lg bg-amber-500/10 text-amber-600 dark:text-amber-400 flex items-center justify-center">
-              <AlertCircle className="size-4" />
+            <div className="size-[32px] rounded-[8px] bg-warning text-warning-foreground flex items-center justify-center shrink-0">
+              <HugeiconsIcon icon={Clock01Icon} size={18} strokeWidth={1.8} />
             </div>
           </div>
-          <div className="mt-2">
-            <h3 className="text-2xl font-extrabold text-foreground font-mono">
-              {metrics.paused}
-            </h3>
-            <p className="text-[10px] font-semibold text-muted-foreground mt-0.5">
-              Temporalmente ocultas
-            </p>
-          </div>
-        </Card>
+          <span className="text-[24px] font-semibold leading-[32px] text-foreground tabular-nums">
+            {metrics.paused}
+          </span>
+          <span className="text-[12px] font-normal leading-[16px] text-muted-foreground">
+            Fuera de publicación
+          </span>
+        </div>
 
-        <Card className="p-4 sm:p-5 flex flex-col justify-between">
-          <div className="flex items-center justify-between">
-            <span className="text-[11px] font-bold text-indigo-600 dark:text-indigo-400 uppercase tracking-wider">
-              Postulantes
+        <div className="bg-card border border-border rounded-[16px] p-[16px] flex flex-col gap-[8px]">
+          <div className="flex items-center justify-between gap-2">
+            <span className="text-[14px] font-medium leading-[20px] text-muted-foreground">
+              Postulaciones
             </span>
-            <div className="size-8 rounded-lg bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 flex items-center justify-center">
-              <Users className="size-4" />
+            <div className="size-[32px] rounded-[8px] bg-sidebar-accent text-link flex items-center justify-center shrink-0">
+              <HugeiconsIcon icon={InboxIcon} size={18} strokeWidth={1.8} />
             </div>
           </div>
-          <div className="mt-2">
-            <h3 className="text-2xl font-extrabold text-foreground font-mono">
-              {metrics.totalApplicants}
-            </h3>
-            <p className="text-[10px] font-semibold text-muted-foreground mt-0.5">
-              Candidatos recibidos
-            </p>
-          </div>
-        </Card>
+          <span className="text-[24px] font-semibold leading-[32px] text-foreground tabular-nums">
+            {metrics.totalApplicants}
+          </span>
+          <span className="text-[12px] font-normal leading-[16px] text-muted-foreground">
+            Recibidas en tus vacantes
+          </span>
+        </div>
       </div>
 
       {/* Profile Incomplete Warning Banner */}
       {isProfileIncomplete && !loadingProfile && (
         <Alert
           variant="destructive"
-          className="bg-amber-500/10 border-amber-500/30 text-amber-900 dark:text-amber-200 p-5 rounded-2xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-xs"
+          className="bg-warning border-warning text-warning-foreground p-4 rounded-[12px] flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4"
         >
-          <div className="flex items-start gap-3.5">
-            <AlertCircle className="size-5 text-amber-600 shrink-0 mt-0.5" />
+          <div className="flex items-start gap-3">
+            <AlertCircle className="size-5 text-warning-foreground shrink-0 mt-0.5" />
             <div className="space-y-0.5">
-              <AlertTitle className="text-sm font-bold text-amber-900 dark:text-amber-200">
+              <AlertTitle className="text-[14px] font-semibold text-warning-foreground">
                 Perfil de Empresa Incompleto
               </AlertTitle>
-              <AlertDescription className="text-xs font-medium text-amber-800 dark:text-amber-300/90 leading-relaxed">
-                Completa los datos esenciales de tu negocio (Nombre, WhatsApp y Dirección) para publicar vacantes verificadas.
+              <AlertDescription className="text-[13px] text-warning-foreground/90 leading-relaxed">
+                Completa los datos esenciales de tu negocio (Nombre, WhatsApp y
+                Dirección) para publicar vacantes verificadas.
               </AlertDescription>
             </div>
           </div>
           <Button
             size="sm"
             render={<Link href="/dashboard/company/profile" />}
-            className="h-8 rounded-xl bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs shrink-0 px-4"
+            className="h-[36px] rounded-[8px] bg-card border border-control-border text-foreground hover:bg-accent font-semibold text-[13px] shrink-0 px-3"
           >
-            Completar Perfil
+            Completar perfil
           </Button>
         </Alert>
       )}
 
-      {/* 3. Master TanStack DataTable Card */}
-      <Card className="overflow-hidden">
-        
-        {/* Unified Toolbar & Filters inside Card Header */}
-        <div className="p-3 sm:p-5 border-b border-border space-y-2 sm:space-y-3.5 bg-muted/20">
-          
-          {/* === MOBILE FILTERS VIEW (sm:hidden) === */}
-          <div className="flex flex-col gap-2 sm:hidden">
-            {/* Row 1: Search Input + Filter Drawer Button */}
-            <div className="flex items-center gap-2">
-              <div className="relative flex-1 group">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground/80 group-focus-within:text-primary size-4 pointer-events-none transition-colors" />
+      {/* 3. Listado de vacantes Card */}
+      <div className="bg-card border border-border rounded-[16px] overflow-hidden flex flex-col">
+        {/* Card Header & Filters */}
+        <div className="p-[20px] flex flex-col gap-[20px] border-b border-border">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <h2 className="text-[20px] font-semibold leading-[28px] tracking-[-0.015em] text-foreground">
+              Listado de vacantes
+            </h2>
+
+            <Button
+              variant="outline"
+              onClick={handleExportCSV}
+              className="h-[44px] px-[16px] rounded-[8px] border-control-border bg-card text-foreground text-[14px] font-medium hover:bg-muted/60 gap-[8px] cursor-pointer"
+            >
+              <HugeiconsIcon icon={Download01Icon} size={16} strokeWidth={1.8} />
+              <span>Exportar CSV</span>
+            </Button>
+          </div>
+
+          {/* Filters Row */}
+          <div className="flex flex-col lg:flex-row lg:items-end gap-[12px]">
+            {/* Buscar vacantes */}
+            <div className="flex flex-col gap-[6px] flex-1 min-w-0">
+              <label
+                htmlFor="vacancies-search-input"
+                className="text-[14px] font-medium leading-[20px] text-foreground"
+              >
+                Buscar vacantes
+              </label>
+              <div className="relative">
+                <Search className="absolute left-[12px] top-1/2 -translate-y-1/2 text-muted-foreground size-[16px] pointer-events-none" />
                 <Input
+                  id="vacancies-search-input"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  placeholder="Buscar vacante..."
-                  className="pl-9 pr-8 text-xs font-semibold"
+                  placeholder="Puesto, categoría, zona o sueldo"
+                  className="h-[44px] pl-[36px] pr-[36px] rounded-[8px] border-input bg-card text-[14px] font-normal placeholder:text-muted-foreground"
                 />
                 {searchQuery && (
                   <button
                     type="button"
                     onClick={() => setSearchQuery("")}
-                    className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground cursor-pointer p-1 rounded-md hover:bg-muted/60"
                     aria-label="Borrar búsqueda"
+                    className="absolute right-[12px] top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground cursor-pointer"
                   >
-                    <X className="size-3.5" />
+                    <X className="size-[16px]" />
                   </button>
                 )}
               </div>
+            </div>
 
-              {/* Mobile Filters Trigger Button */}
+            {/* Categoría */}
+            <div className="flex flex-col gap-[6px] w-full sm:w-[220px] shrink-0">
+              <span className="text-[14px] font-medium leading-[20px] text-foreground">
+                Categoría
+              </span>
+              <Select
+                value={categoryFilter}
+                onValueChange={(val) => setCategoryFilter(val || "all")}
+              >
+                <SelectTrigger className="h-[44px] w-full rounded-[8px] border-input bg-card px-[12px] text-[14px] font-normal">
+                  <SelectValue placeholder="Todas las categorías">
+                    {categoryFilter === "all"
+                      ? "Todas las categorías"
+                      : categoryFilter}
+                  </SelectValue>
+                </SelectTrigger>
+                <SelectContent className="rounded-[12px] border-border bg-popover shadow-lg">
+                  <SelectItem
+                    value="all"
+                    className="text-[14px] font-normal rounded-[8px] cursor-pointer"
+                  >
+                    Todas las categorías
+                  </SelectItem>
+                  {categoriesList.map((cat) => (
+                    <SelectItem
+                      key={cat}
+                      value={cat}
+                      className="text-[14px] font-normal rounded-[8px] cursor-pointer"
+                    >
+                      {cat}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Zona */}
+            <div className="flex flex-col gap-[6px] w-full sm:w-[220px] shrink-0">
+              <span className="text-[14px] font-medium leading-[20px] text-foreground">
+                Zona
+              </span>
+              <Select
+                value={locationFilter}
+                onValueChange={(val) => setLocationFilter(val || "all")}
+              >
+                <SelectTrigger className="h-[44px] w-full rounded-[8px] border-input bg-card px-[12px] text-[14px] font-normal">
+                  <SelectValue placeholder="Todas las zonas">
+                    {locationFilter === "all"
+                      ? "Todas las zonas"
+                      : locationFilter}
+                  </SelectValue>
+                </SelectTrigger>
+                <SelectContent className="rounded-[12px] border-border bg-popover shadow-lg">
+                  <SelectItem
+                    value="all"
+                    className="text-[14px] font-normal rounded-[8px] cursor-pointer"
+                  >
+                    Todas las zonas
+                  </SelectItem>
+                  {locationsList.map((loc) => (
+                    <SelectItem
+                      key={loc}
+                      value={loc}
+                      className="text-[14px] font-normal rounded-[8px] cursor-pointer"
+                    >
+                      {loc}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            {isFiltered && (
               <Button
-                type="button"
-                variant={activeSecondaryFiltersCount > 0 ? "default" : "outline"}
-                size="sm"
-                onClick={() => setIsMobileFilterDrawerOpen(true)}
-                className="gap-1.5 shrink-0 cursor-pointer"
-                aria-label="Abrir filtros de categoría y zona"
+                variant="ghost"
+                onClick={handleClearFilters}
+                className="h-[44px] px-[12px] rounded-[8px] text-[13px] font-medium text-muted-foreground hover:text-foreground gap-1.5 cursor-pointer shrink-0"
               >
-                <SlidersHorizontal className="size-3.5 shrink-0" />
-                <span className="text-xs">Filtros</span>
-                {activeSecondaryFiltersCount > 0 && (
-                  <span className="size-4.5 rounded-full bg-white text-primary text-[10px] font-black flex items-center justify-center shrink-0 shadow-2xs">
-                    {activeSecondaryFiltersCount}
-                  </span>
-                )}
+                <RotateCcw className="size-3.5" />
+                <span>Limpiar</span>
               </Button>
-            </div>
-
-            {/* Row 2: Horizontally Scrollable Strip for Status Pills and Active Filter Chips */}
-            <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar py-0.5 -mx-1 px-1 select-none">
-              {/* Status Pills */}
-              <button
-                type="button"
-                onClick={() => setStatusFilter("all")}
-                className={cn(
-                  "px-2.5 py-1 rounded-lg text-xs font-bold shrink-0 transition-all cursor-pointer active:scale-95",
-                  statusFilter === "all"
-                    ? "bg-foreground text-background shadow-2xs font-extrabold"
-                    : "bg-muted/70 text-muted-foreground hover:text-foreground border border-border/30"
-                )}
-              >
-                Todas ({metrics.total})
-              </button>
-              <button
-                type="button"
-                onClick={() => setStatusFilter("active")}
-                className={cn(
-                  "px-2.5 py-1 rounded-lg text-xs font-bold shrink-0 transition-all cursor-pointer flex items-center gap-1.5 active:scale-95",
-                  statusFilter === "active"
-                    ? "bg-emerald-600 text-white shadow-2xs font-extrabold"
-                    : "bg-muted/70 text-muted-foreground hover:text-foreground border border-border/30"
-                )}
-              >
-                <span className={cn("size-1.5 rounded-full inline-block", statusFilter === "active" ? "bg-white" : "bg-emerald-500")} />
-                <span>Activas ({metrics.active})</span>
-              </button>
-              <button
-                type="button"
-                onClick={() => setStatusFilter("paused")}
-                className={cn(
-                  "px-2.5 py-1 rounded-lg text-xs font-bold shrink-0 transition-all cursor-pointer flex items-center gap-1.5 active:scale-95",
-                  statusFilter === "paused"
-                    ? "bg-amber-600 text-white shadow-2xs font-extrabold"
-                    : "bg-muted/70 text-muted-foreground hover:text-foreground border border-border/30"
-                )}
-              >
-                <span className={cn("size-1.5 rounded-full inline-block", statusFilter === "paused" ? "bg-white" : "bg-amber-500")} />
-                <span>Pausadas ({metrics.paused})</span>
-              </button>
-
-              {/* Active Category Chip (Removable) */}
-              {categoryFilter !== "all" && (
-                <button
-                  type="button"
-                  onClick={() => setCategoryFilter("all")}
-                  className="inline-flex items-center gap-1 px-2 py-1 rounded-lg text-xs font-bold bg-primary/10 text-primary border border-primary/25 shrink-0 cursor-pointer active:scale-95 hover:bg-primary/20 transition-all"
-                  aria-label={`Eliminar filtro de categoría ${categoryFilter}`}
-                >
-                  <span className="truncate max-w-[120px]">{categoryFilter}</span>
-                  <X className="size-3 shrink-0" />
-                </button>
-              )}
-
-              {/* Active Location Chip (Removable) */}
-              {locationFilter !== "all" && (
-                <button
-                  type="button"
-                  onClick={() => setLocationFilter("all")}
-                  className="inline-flex items-center gap-1 px-2 py-1 rounded-lg text-xs font-bold bg-primary/10 text-primary border border-primary/25 shrink-0 cursor-pointer active:scale-95 hover:bg-primary/20 transition-all"
-                  aria-label={`Eliminar filtro de zona ${locationFilter}`}
-                >
-                  <MapPin className="size-3 shrink-0" />
-                  <span className="truncate max-w-[100px]">{locationFilter}</span>
-                  <X className="size-3 shrink-0" />
-                </button>
-              )}
-
-              {/* Clear All Button if any filter active */}
-              {isFiltered && (
-                <button
-                  type="button"
-                  onClick={handleClearFilters}
-                  className="inline-flex items-center gap-1 px-2 py-1 rounded-lg text-xs font-bold text-rose-600 dark:text-rose-400 bg-rose-500/10 hover:bg-rose-500/15 shrink-0 cursor-pointer active:scale-95 transition-all"
-                  aria-label="Restablecer todos los filtros"
-                >
-                  <RotateCcw className="size-3" />
-                  <span>Limpiar</span>
-                </button>
-              )}
-            </div>
+            )}
           </div>
 
-          {/* === DESKTOP FILTERS VIEW (hidden sm:block) === */}
-          <div className="hidden sm:block space-y-3.5">
-            {/* Top Row: Search Input & Quick Sort Helper */}
-            <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
-              <div className="relative flex-1 max-w-lg group">
-                <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-muted-foreground/80 group-focus-within:text-primary size-4 pointer-events-none transition-colors" />
-                <Input
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  placeholder="Buscar por puesto, categoría, zona o sueldo..."
-                  className="pl-10 pr-9 text-xs sm:text-sm font-semibold"
-                />
-                {searchQuery && (
-                  <button
-                    onClick={() => setSearchQuery("")}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground cursor-pointer p-1 rounded-md hover:bg-muted/60"
-                  >
-                    <X className="size-3.5" />
-                  </button>
+          {/* Status Segmented Tabs */}
+          <div className="flex items-center gap-[8px] flex-wrap">
+            {(
+              [
+                { key: "all", label: `Todas · ${metrics.total}` },
+                { key: "active", label: `Activas · ${metrics.active}` },
+                { key: "paused", label: `Pausadas · ${metrics.paused}` },
+                { key: "draft", label: `Borradores · ${metrics.draft}` },
+                { key: "closed", label: `Cerradas · ${metrics.closed}` },
+              ] as const
+            ).map((tab) => (
+              <button
+                key={tab.key}
+                type="button"
+                onClick={() => setStatusFilter(tab.key)}
+                className={cn(
+                  "h-[36px] px-[12px] rounded-[8px] text-[14px] font-medium leading-[20px] transition-colors cursor-pointer",
+                  statusFilter === tab.key
+                    ? "bg-sidebar-accent text-link"
+                    : "bg-muted text-foreground hover:bg-muted/80"
                 )}
-              </div>
-
-              {/* Quick Sort Helper */}
-              <div className="flex items-center gap-1.5 text-xs text-muted-foreground font-medium">
-                <ArrowUpDown className="size-3.5 text-primary" />
-                <span>Haz clic en los encabezados para ordenar</span>
-              </div>
-            </div>
-
-            {/* Filter Row: Status Segmented Pills + Category + Zone + Clear */}
-            <div className="flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-3 pt-1 border-t border-border/30">
-              {/* Status Segmented Tabs */}
-              <div className="inline-flex p-1 rounded-xl bg-muted/60 border border-border/40 shrink-0">
-                <button
-                  type="button"
-                  onClick={() => setStatusFilter("all")}
-                  className={cn(
-                    "px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer",
-                    statusFilter === "all"
-                      ? "bg-background text-foreground shadow-2xs"
-                      : "text-muted-foreground hover:text-foreground"
-                  )}
-                >
-                  Todas ({metrics.total})
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setStatusFilter("active")}
-                  className={cn(
-                    "px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5",
-                    statusFilter === "active"
-                      ? "bg-background text-emerald-600 dark:text-emerald-400 shadow-2xs"
-                      : "text-muted-foreground hover:text-foreground"
-                  )}
-                >
-                  <span className="size-1.5 rounded-full bg-emerald-500 inline-block" />
-                  <span>Activas ({metrics.active})</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setStatusFilter("paused")}
-                  className={cn(
-                    "px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5",
-                    statusFilter === "paused"
-                      ? "bg-background text-amber-600 dark:text-amber-400 shadow-2xs"
-                      : "text-muted-foreground hover:text-foreground"
-                  )}
-                >
-                  <span className="size-1.5 rounded-full bg-amber-500 inline-block" />
-                  <span>Pausadas ({metrics.paused})</span>
-                </button>
-              </div>
-
-              {/* Selectors Group */}
-              <div className="flex items-center gap-2 flex-wrap sm:flex-nowrap">
-                {/* Category Select */}
-                <div className="w-full sm:w-[200px]">
-                  <Select
-                    value={categoryFilter}
-                    onValueChange={(val) => setCategoryFilter(val || "all")}
-                  >
-                    <SelectTrigger className="w-full text-xs font-semibold">
-                      <SelectValue placeholder="Todas las categorías">
-                        {categoryFilter === "all"
-                          ? `Todas las categorías (${categoriesList.length})`
-                          : categoryFilter}
-                      </SelectValue>
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem
-                        value="all"
-                        className="text-xs font-semibold cursor-pointer"
-                      >
-                        Todas las categorías ({vacancies.length})
-                      </SelectItem>
-                      {categoriesList.map((cat) => (
-                        <SelectItem
-                          key={cat}
-                          value={cat}
-                          className="text-xs font-semibold cursor-pointer"
-                        >
-                          {cat}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                {/* Location Select */}
-                <div className="w-full sm:w-[180px]">
-                  <Select
-                    value={locationFilter}
-                    onValueChange={(val) => setLocationFilter(val || "all")}
-                  >
-                    <SelectTrigger className="w-full text-xs font-semibold">
-                      <SelectValue placeholder="Todas las zonas">
-                        {locationFilter === "all"
-                          ? "Todas las zonas"
-                          : locationFilter}
-                      </SelectValue>
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem
-                        value="all"
-                        className="text-xs font-semibold cursor-pointer"
-                      >
-                        Todas las zonas
-                      </SelectItem>
-                      {locationsList.map((loc) => (
-                        <SelectItem
-                          key={loc}
-                          value={loc}
-                          className="text-xs font-semibold cursor-pointer"
-                        >
-                          {loc}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                {isFiltered && (
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={handleClearFilters}
-                    className="h-9 px-2.5 text-xs font-bold text-muted-foreground hover:text-foreground gap-1 cursor-pointer shrink-0"
-                  >
-                    <RotateCcw className="size-3.5" />
-                    <span className="hidden sm:inline">Limpiar</span>
-                  </Button>
-                )}
-              </div>
-            </div>
+              >
+                {tab.label}
+              </button>
+            ))}
           </div>
 
           {/* Batch Actions Bar (when rows are selected) */}
           {selectedRowIds.length > 0 && (
-            <div className="p-2.5 px-3.5 bg-primary/10 border border-primary/20 rounded-2xl flex items-center justify-between flex-wrap gap-2 animate-in fade-in-50 duration-200">
-              <span className="text-xs font-bold text-primary">
+            <div className="p-3 bg-sidebar-accent/50 border border-border rounded-[12px] flex items-center justify-between flex-wrap gap-2 animate-in fade-in-50 duration-200">
+              <span className="text-[13px] font-semibold text-link">
                 {selectedRowIds.length}{" "}
                 {selectedRowIds.length === 1
                   ? "vacante seleccionada"
@@ -1391,7 +1194,7 @@ export function VacanciesManager({ userId }: { userId: string }) {
                   size="sm"
                   variant="outline"
                   onClick={() => handleBatchStatusChange(selectedRowIds, "Activa")}
-                  className="h-8 px-2.5 rounded-xl text-xs font-bold text-emerald-600 dark:text-emerald-400 border-emerald-500/30 hover:bg-emerald-500/10 cursor-pointer"
+                  className="h-[34px] px-3 rounded-[8px] text-[13px] font-medium text-success-foreground border-border bg-card hover:bg-muted cursor-pointer"
                 >
                   <PlayCircle className="size-3.5 mr-1" />
                   <span>Activar</span>
@@ -1400,7 +1203,7 @@ export function VacanciesManager({ userId }: { userId: string }) {
                   size="sm"
                   variant="outline"
                   onClick={() => handleBatchStatusChange(selectedRowIds, "Pausada")}
-                  className="h-8 px-2.5 rounded-xl text-xs font-bold text-amber-600 dark:text-amber-400 border-amber-500/30 hover:bg-amber-500/10 cursor-pointer"
+                  className="h-[34px] px-3 rounded-[8px] text-[13px] font-medium text-warning-foreground border-border bg-card hover:bg-muted cursor-pointer"
                 >
                   <PauseCircle className="size-3.5 mr-1" />
                   <span>Pausar</span>
@@ -1409,7 +1212,7 @@ export function VacanciesManager({ userId }: { userId: string }) {
                   size="sm"
                   variant="ghost"
                   onClick={() => setRowSelection({})}
-                  className="h-8 px-2.5 rounded-xl text-xs font-semibold text-muted-foreground hover:text-foreground cursor-pointer"
+                  className="h-[34px] px-3 rounded-[8px] text-[13px] font-medium text-muted-foreground hover:text-foreground cursor-pointer"
                 >
                   Deseleccionar
                 </Button>
@@ -1419,18 +1222,18 @@ export function VacanciesManager({ userId }: { userId: string }) {
         </div>
 
         {/* 4. Table Body & Empty State */}
-        <div className="relative min-h-[300px]">
+        <div className="relative min-h-[260px]">
           {isLoading ? (
-            <div className="p-6 space-y-3">
-              <Skeleton className="h-10 w-full rounded-xl" />
-              <Skeleton className="h-14 w-full rounded-xl" />
-              <Skeleton className="h-14 w-full rounded-xl" />
-              <Skeleton className="h-14 w-full rounded-xl" />
+            <div className="p-5 space-y-3">
+              <Skeleton className="h-10 w-full rounded-[8px]" />
+              <Skeleton className="h-14 w-full rounded-[8px]" />
+              <Skeleton className="h-14 w-full rounded-[8px]" />
+              <Skeleton className="h-14 w-full rounded-[8px]" />
             </div>
           ) : tableRows.length === 0 ? (
             <Empty className="py-16">
               <EmptyHeader>
-                <EmptyMedia variant="icon" className="bg-primary/10 text-primary">
+                <EmptyMedia variant="icon" className="bg-sidebar-accent text-link">
                   <Briefcase className="size-5" />
                 </EmptyMedia>
                 <EmptyTitle>
@@ -1440,7 +1243,7 @@ export function VacanciesManager({ userId }: { userId: string }) {
                 </EmptyTitle>
                 <EmptyDescription>
                   {isFiltered
-                    ? "No hay ofertas de empleo que coincidan con la búsqueda o filtros aplicados. Intenta restablecer los filtros."
+                    ? "No hay ofertas de empleo que coincidan con la búsqueda o filtros aplicados."
                     : "Comienza a reclutar talento local publicando tu primera oferta de empleo en K'anPro."}
                 </EmptyDescription>
               </EmptyHeader>
@@ -1450,19 +1253,19 @@ export function VacanciesManager({ userId }: { userId: string }) {
                     variant="outline"
                     size="sm"
                     onClick={handleClearFilters}
-                    className="rounded-xl font-bold text-xs h-9 px-4 cursor-pointer border-border/50 gap-1.5"
+                    className="rounded-[8px] font-medium text-[13px] h-[36px] px-4 cursor-pointer border-control-border gap-1.5"
                   >
                     <RotateCcw className="size-3.5" />
-                    <span>Restablecer Filtros</span>
+                    <span>Restablecer filtros</span>
                   </Button>
                 ) : (
                   <Button
                     size="sm"
                     render={<Link href="/dashboard/company/vacancies/new" />}
-                    className="rounded-xl font-bold text-xs h-9 px-4 cursor-pointer gap-1.5 bg-primary text-primary-foreground"
+                    className="rounded-[8px] font-medium text-[13px] h-[36px] px-4 cursor-pointer gap-1.5 bg-primary text-primary-foreground"
                   >
                     <Plus className="size-3.5" />
-                    <span>Crear Primera Vacante</span>
+                    <span>Publicar vacante</span>
                   </Button>
                 )}
               </EmptyContent>
@@ -1470,16 +1273,16 @@ export function VacanciesManager({ userId }: { userId: string }) {
           ) : (
             <div className="overflow-x-auto">
               <Table className="w-full">
-                <TableHeader className="bg-muted/30 border-b border-border/40">
+                <TableHeader className="bg-muted border-b border-border">
                   {table.getHeaderGroups().map((headerGroup) => (
                     <TableRow
                       key={headerGroup.id}
-                      className="hover:bg-transparent"
+                      className="hover:bg-transparent border-0"
                     >
                       {headerGroup.headers.map((header) => (
                         <TableHead
                           key={header.id}
-                          className="py-3 px-4 sm:px-6"
+                          className="h-[44px] py-[8px] px-[16px]"
                         >
                           {header.isPlaceholder
                             ? null
@@ -1492,7 +1295,7 @@ export function VacanciesManager({ userId }: { userId: string }) {
                     </TableRow>
                   ))}
                 </TableHeader>
-                <TableBody className="divide-y divide-border/30">
+                <TableBody>
                   {tableRows.map((row) => (
                     <TableRow
                       key={row.id}
@@ -1507,17 +1310,14 @@ export function VacanciesManager({ userId }: { userId: string }) {
                           return;
                         }
                         if (deletingVacancyId !== null) return;
-                        setPreviewVacancy(row.original);
+                        router.push(`/dashboard/company/vacancies/${row.original.id}`);
                       }}
-                      className={cn(
-                        "hover:bg-muted/30 transition-colors group cursor-pointer",
-                        !row.original.is_active && "opacity-75 bg-muted/5"
-                      )}
+                      className="border-b border-border hover:bg-muted/40 transition-colors cursor-pointer"
                     >
                       {row.getVisibleCells().map((cell) => (
                         <TableCell
                           key={cell.id}
-                          className="py-3 px-4 sm:px-6"
+                          className="min-h-[60px] py-[10px] px-[16px]"
                         >
                           {flexRender(
                             cell.column.columnDef.cell,
@@ -1531,46 +1331,44 @@ export function VacanciesManager({ userId }: { userId: string }) {
               </Table>
 
               {/* Table Footer with Summary and Pagination */}
-              <div className="p-3.5 px-4 sm:px-6 border-t border-border/30 bg-muted/10 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-muted-foreground font-medium">
-                <span>
-                  Mostrando <strong>{tableRows.length}</strong> de{" "}
-                  <strong>{filteredVacancies.length}</strong> vacantes
+              <div className="px-[16px] py-[14px] flex flex-col sm:flex-row items-center justify-between gap-3">
+                <span className="text-[13px] font-normal leading-[18px] text-muted-foreground">
+                  {filteredVacancies.length}{" "}
+                  {filteredVacancies.length === 1 ? "vacante" : "vacantes"} ·
+                  Sueldos en MXN
                 </span>
 
-                {/* Pagination Controls */}
                 {table.getPageCount() > 1 && (
-                  <div className="flex items-center gap-1.5">
-                    <Button
-                      variant="outline"
-                      size="sm"
+                  <div className="flex items-center gap-[8px]">
+                    <button
+                      type="button"
                       onClick={() => table.previousPage()}
                       disabled={!table.getCanPreviousPage()}
-                      className="h-8 px-2.5 rounded-lg text-xs"
+                      aria-label="Página anterior"
+                      className="size-[36px] rounded-[8px] bg-muted text-foreground flex items-center justify-center hover:bg-muted/80 disabled:opacity-40 disabled:pointer-events-none cursor-pointer transition-colors"
                     >
-                      <ChevronLeft className="size-3.5 mr-1" />
-                      <span>Anterior</span>
-                    </Button>
-                    <span className="px-2 font-semibold">
+                      <ChevronLeft className="size-[16px]" />
+                    </button>
+                    <span className="text-[13px] font-normal leading-[18px] text-foreground px-[4px]">
                       Página {table.getState().pagination.pageIndex + 1} de{" "}
                       {table.getPageCount()}
                     </span>
-                    <Button
-                      variant="outline"
-                      size="sm"
+                    <button
+                      type="button"
                       onClick={() => table.nextPage()}
                       disabled={!table.getCanNextPage()}
-                      className="h-8 px-2.5 rounded-lg text-xs"
+                      aria-label="Página siguiente"
+                      className="size-[36px] rounded-[8px] bg-muted text-foreground flex items-center justify-center hover:bg-muted/80 disabled:opacity-40 disabled:pointer-events-none cursor-pointer transition-colors"
                     >
-                      <span>Siguiente</span>
-                      <ChevronRight className="size-3.5 ml-1" />
-                    </Button>
+                      <ChevronRight className="size-[16px]" />
+                    </button>
                   </div>
                 )}
               </div>
             </div>
           )}
         </div>
-      </Card>
+      </div>
 
       {/* Alert Dialog for Confirming Deletion */}
       <AlertDialog
@@ -1635,219 +1433,6 @@ export function VacanciesManager({ userId }: { userId: string }) {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-
-      {/* Vacancy Preview Drawer */}
-      <VacancyPreviewDrawer
-        vacancy={previewVacancy}
-        open={!!previewVacancy && deletingVacancyId === null}
-        onOpenChange={(open) => !open && setPreviewVacancy(null)}
-        onToggleActive={handleToggleActive}
-        formatSalary={formatSalary}
-        formatDate={formatDate}
-      />
-
-      {/* Mobile Filter Drawer */}
-      <Drawer
-        open={isMobileFilterDrawerOpen}
-        onOpenChange={setIsMobileFilterDrawerOpen}
-        showSwipeHandle
-        swipeDirection="down"
-      >
-        <DrawerContent className="[--drawer-inset:0px] max-h-[85vh] rounded-t-[28px] rounded-b-none border-x-0 border-b-0 border-t border-border/70 bg-card text-card-foreground shadow-2xl overflow-hidden flex flex-col">
-          <DrawerHeader className="px-5 pt-3 pb-3 border-b border-border/40 flex flex-row items-center justify-between shrink-0">
-            <div className="text-left">
-              <DrawerTitle className="text-base font-extrabold tracking-tight text-foreground">
-                Filtros de Vacantes
-              </DrawerTitle>
-              <DrawerDescription className="text-xs text-muted-foreground mt-0.5">
-                Refina por estado, categoría y ubicación
-              </DrawerDescription>
-            </div>
-            <DrawerClose
-              render={
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="size-8 rounded-full text-muted-foreground hover:text-foreground hover:bg-muted shrink-0 cursor-pointer"
-                  aria-label="Cerrar filtros"
-                />
-              }
-            >
-              <X className="size-4" />
-            </DrawerClose>
-          </DrawerHeader>
-
-          {/* Drawer Body */}
-          <div className="flex-1 overflow-y-auto overscroll-contain px-5 py-4 space-y-5">
-            {/* Estado de la Oferta */}
-            <div className="space-y-2">
-              <span className="text-xs font-extrabold uppercase tracking-wider text-muted-foreground block">
-                Estado de la Oferta
-              </span>
-              <div className="grid grid-cols-3 gap-2">
-                <button
-                  type="button"
-                  onClick={() => setStatusFilter("all")}
-                  className={cn(
-                    "p-2.5 rounded-xl border text-xs font-bold text-center transition-all cursor-pointer active:scale-95",
-                    statusFilter === "all"
-                      ? "bg-primary text-primary-foreground border-primary shadow-xs"
-                      : "bg-muted/40 border-border/40 text-muted-foreground hover:text-foreground"
-                  )}
-                >
-                  Todas ({metrics.total})
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setStatusFilter("active")}
-                  className={cn(
-                    "p-2.5 rounded-xl border text-xs font-bold text-center transition-all cursor-pointer active:scale-95",
-                    statusFilter === "active"
-                      ? "bg-emerald-600 text-white border-emerald-600 shadow-xs"
-                      : "bg-muted/40 border-border/40 text-muted-foreground hover:text-foreground"
-                  )}
-                >
-                  Activas ({metrics.active})
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setStatusFilter("paused")}
-                  className={cn(
-                    "p-2.5 rounded-xl border text-xs font-bold text-center transition-all cursor-pointer active:scale-95",
-                    statusFilter === "paused"
-                      ? "bg-amber-600 text-white border-amber-600 shadow-xs"
-                      : "bg-muted/40 border-border/40 text-muted-foreground hover:text-foreground"
-                  )}
-                >
-                  Pausadas ({metrics.paused})
-                </button>
-              </div>
-            </div>
-
-            {/* Categorías */}
-            <div className="space-y-2">
-              <div className="flex items-center justify-between">
-                <span className="text-xs font-extrabold uppercase tracking-wider text-muted-foreground block">
-                  Categoría
-                </span>
-                {categoryFilter !== "all" && (
-                  <button
-                    type="button"
-                    onClick={() => setCategoryFilter("all")}
-                    className="text-[11px] font-bold text-primary hover:underline cursor-pointer"
-                  >
-                    Restablecer
-                  </button>
-                )}
-              </div>
-              <div className="flex flex-wrap gap-1.5 max-h-[160px] overflow-y-auto p-1 -m-1">
-                <button
-                  type="button"
-                  onClick={() => setCategoryFilter("all")}
-                  className={cn(
-                    "px-3 py-1.5 rounded-xl border text-xs font-bold transition-all cursor-pointer active:scale-95",
-                    categoryFilter === "all"
-                      ? "bg-primary text-primary-foreground border-primary shadow-xs"
-                      : "bg-muted/40 border-border/40 text-muted-foreground hover:text-foreground"
-                  )}
-                >
-                  Todas las categorías ({vacancies.length})
-                </button>
-                {categoriesList.map((cat) => (
-                  <button
-                    key={cat}
-                    type="button"
-                    onClick={() => setCategoryFilter(cat)}
-                    className={cn(
-                      "px-3 py-1.5 rounded-xl border text-xs font-bold transition-all cursor-pointer active:scale-95",
-                      categoryFilter === cat
-                        ? "bg-primary text-primary-foreground border-primary shadow-xs"
-                        : "bg-muted/40 border-border/40 text-muted-foreground hover:text-foreground"
-                    )}
-                  >
-                    {cat}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {/* Ubicación / Zona */}
-            <div className="space-y-2">
-              <div className="flex items-center justify-between">
-                <span className="text-xs font-extrabold uppercase tracking-wider text-muted-foreground block">
-                  Zona / Ubicación
-                </span>
-                {locationFilter !== "all" && (
-                  <button
-                    type="button"
-                    onClick={() => setLocationFilter("all")}
-                    className="text-[11px] font-bold text-primary hover:underline cursor-pointer"
-                  >
-                    Restablecer
-                  </button>
-                )}
-              </div>
-              <div className="flex flex-wrap gap-1.5 max-h-[140px] overflow-y-auto p-1 -m-1">
-                <button
-                  type="button"
-                  onClick={() => setLocationFilter("all")}
-                  className={cn(
-                    "px-3 py-1.5 rounded-xl border text-xs font-bold transition-all cursor-pointer active:scale-95",
-                    locationFilter === "all"
-                      ? "bg-primary text-primary-foreground border-primary shadow-xs"
-                      : "bg-muted/40 border-border/40 text-muted-foreground hover:text-foreground"
-                  )}
-                >
-                  Todas las zonas
-                </button>
-                {locationsList.map((loc) => (
-                  <button
-                    key={loc}
-                    type="button"
-                    onClick={() => setLocationFilter(loc)}
-                    className={cn(
-                      "px-3 py-1.5 rounded-xl border text-xs font-bold transition-all cursor-pointer active:scale-95 flex items-center gap-1",
-                      locationFilter === loc
-                        ? "bg-primary text-primary-foreground border-primary shadow-xs"
-                        : "bg-muted/40 border-border/40 text-muted-foreground hover:text-foreground"
-                    )}
-                  >
-                    <MapPin className="size-3 shrink-0" />
-                    <span>{loc}</span>
-                  </button>
-                ))}
-              </div>
-            </div>
-          </div>
-
-          {/* Drawer Footer */}
-          <DrawerFooter className="p-4 border-t border-border/40 bg-muted/10 gap-2.5 flex-row items-center justify-between pb-[calc(1rem+env(safe-area-inset-bottom,0px))] shrink-0">
-            {isFiltered ? (
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={handleClearFilters}
-                className="h-10 px-3.5 rounded-xl text-xs font-bold text-rose-600 dark:text-rose-400 border-rose-500/20 hover:bg-rose-500/10 cursor-pointer"
-              >
-                <RotateCcw className="size-3.5 mr-1" />
-                Limpiar todo
-              </Button>
-            ) : (
-              <div className="text-xs text-muted-foreground font-medium">
-                Sin filtros aplicados
-              </div>
-            )}
-
-            <Button
-              size="sm"
-              onClick={() => setIsMobileFilterDrawerOpen(false)}
-              className="h-10 px-5 rounded-xl text-xs font-bold bg-primary text-primary-foreground hover:bg-primary/90 shadow-xs cursor-pointer ml-auto"
-            >
-              Ver {filteredVacancies.length} {filteredVacancies.length === 1 ? "vacante" : "vacantes"}
-            </Button>
-          </DrawerFooter>
-        </DrawerContent>
-      </Drawer>
     </div>
   );
 }

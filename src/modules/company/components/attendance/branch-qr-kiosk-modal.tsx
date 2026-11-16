@@ -1,35 +1,29 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
+import { HugeiconsIcon } from "@hugeicons/react";
 import {
-  QrCode,
-  Printer,
-  Building2,
-  MapPin,
-  ShieldCheck,
-  RefreshCw,
-  Copy,
-  Check,
-  Maximize2,
-  Minimize2,
-  Tv,
-  Clock,
-  Sparkles,
-  ExternalLink,
-} from "@/components/ui/icons";
+  Cancel01Icon,
+  Copy01Icon,
+  Maximize01Icon,
+  Minimize01Icon,
+  PrinterIcon,
+} from "@hugeicons/core-free-icons";
+import { QrCode } from "@/components/ui/icons";
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
   DialogDescription,
-  DialogFooter,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
+import { cn } from "@/lib/utils";
 import { GeofenceConfig } from "../../types/attendance";
 import { generateQrSvg } from "../../utils/qrcode";
+
+type PaperFormat = "carta" | "a4";
 
 interface BranchQrKioskModalProps {
   isOpen: boolean;
@@ -46,20 +40,14 @@ export function BranchQrKioskModal({
   companyName,
   companyId,
 }: BranchQrKioskModalProps) {
-  const [tokenVersion, setTokenVersion] = useState(
+  const [tokenVersion, setTokenVersion] = useState(() =>
     Date.now().toString().slice(-4)
   );
+  const [paperFormat, setPaperFormat] = useState<PaperFormat>("carta");
   const [isCopied, setIsCopied] = useState(false);
   const [qrSvg, setQrSvg] = useState<string>("");
-  const [origin, setOrigin] = useState<string>("");
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [currentTime, setCurrentTime] = useState("");
-
-  useEffect(() => {
-    if (typeof window !== "undefined") {
-      setOrigin(window.location.origin);
-    }
-  }, []);
 
   // Live real-time clock for projection mode
   useEffect(() => {
@@ -69,7 +57,6 @@ export function BranchQrKioskModal({
         now.toLocaleTimeString("es-MX", {
           hour: "2-digit",
           minute: "2-digit",
-          second: "2-digit",
           hour12: false,
         })
       );
@@ -100,7 +87,7 @@ export function BranchQrKioskModal({
   }, [isFullscreen]);
 
   const effectiveOrigin =
-    origin || (typeof window !== "undefined" ? window.location.origin : "");
+    typeof window !== "undefined" ? window.location.origin : "";
 
   const qrCodeData = `${effectiveOrigin}/checkin?c=${encodeURIComponent(
     companyId || ""
@@ -114,20 +101,163 @@ export function BranchQrKioskModal({
       .catch((err) => console.error("Error generating QR SVG:", err));
   }, [qrCodeData]);
 
+  const handleOpenChange = (open: boolean) => {
+    if (!open) {
+      setIsCopied(false);
+    }
+    onOpenChange(open);
+  };
+
   const handlePrint = () => {
-    toast.success("Enviando a impresión...", {
-      description: "Se ha preparado el Cartel Oficial de Checador QR.",
-    });
-    setTimeout(() => {
+    if (typeof document === "undefined" || !qrSvg) {
+      toast.error("Espera un momento a que se genere el código QR.");
+      return;
+    }
+
+    const escapeHtml = (value: string) =>
+      value
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#39;");
+
+    const pageSize = paperFormat === "carta" ? "letter portrait" : "A4 portrait";
+    const iframe = document.createElement("iframe");
+    iframe.style.position = "fixed";
+    iframe.style.right = "0";
+    iframe.style.bottom = "0";
+    iframe.style.width = "0";
+    iframe.style.height = "0";
+    iframe.style.border = "0";
+    iframe.setAttribute("aria-hidden", "true");
+    document.body.appendChild(iframe);
+
+    const doc = iframe.contentDocument || iframe.contentWindow?.document;
+    if (!doc) {
+      iframe.remove();
       window.print();
-    }, 400);
+      return;
+    }
+
+    doc.open();
+    doc.write(`<!DOCTYPE html>
+<html lang="es">
+  <head>
+    <meta charset="utf-8" />
+    <title>QR de sucursal - ${escapeHtml(branchConfig.branchName)}</title>
+    <style>
+      @page {
+        size: ${pageSize};
+        margin: 16mm;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      html, body {
+        margin: 0;
+        padding: 0;
+        width: 100%;
+        height: 100%;
+        background: #ffffff;
+        color: #0a0a0a;
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+      }
+      body {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 24px;
+      }
+      .poster {
+        width: 100%;
+        max-width: 520px;
+        border: 1px solid #d9d9d9;
+        border-radius: 16px;
+        padding: 48px 36px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 20px;
+        text-align: center;
+        background: #ffffff;
+      }
+      .company {
+        margin: 0;
+        font-size: 16px;
+        font-weight: 600;
+        line-height: 24px;
+        color: #3d3d3d;
+      }
+      .title {
+        margin: 0;
+        font-size: 32px;
+        font-weight: 700;
+        line-height: 40px;
+        color: #0a0a0a;
+      }
+      .qr {
+        width: 280px;
+        height: 280px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+      .qr svg {
+        width: 100%;
+        height: 100%;
+      }
+      .hint {
+        margin: 0;
+        font-size: 16px;
+        line-height: 24px;
+        color: #3d3d3d;
+      }
+      .token {
+        margin: 0;
+        font-size: 13px;
+        line-height: 18px;
+        color: #5e6561;
+      }
+    </style>
+  </head>
+  <body>
+    <main class="poster">
+      <p class="company">${escapeHtml(companyName)} · ${escapeHtml(branchConfig.branchName)}</p>
+      <h1 class="title">Registra tu asistencia</h1>
+      <div class="qr">${qrSvg}</div>
+      <p class="hint">Escanea el código al iniciar o terminar tu turno.</p>
+      <p class="token">Token V${escapeHtml(tokenVersion)}</p>
+    </main>
+  </body>
+</html>`);
+    doc.close();
+
+    const cleanup = () => {
+      setTimeout(() => {
+        iframe.remove();
+      }, 500);
+    };
+
+    const win = iframe.contentWindow;
+    if (win) {
+      win.onafterprint = cleanup;
+      setTimeout(() => {
+        win.focus();
+        win.print();
+      }, 100);
+    } else {
+      cleanup();
+    }
   };
 
   const handleCopyLink = () => {
     navigator.clipboard.writeText(qrCodeData);
     setIsCopied(true);
-    toast.success("Enlace web de Kiosco copiado");
-    setTimeout(() => setIsCopied(false), 2000);
+    setTimeout(() => setIsCopied(false), 3000);
   };
 
   const handleRegenerateToken = () => {
@@ -158,113 +288,143 @@ export function BranchQrKioskModal({
     }
   };
 
+  const posterPaperClass =
+    paperFormat === "carta"
+      ? "w-[260px] h-[336px]"
+      : "w-[248px] h-[350px]";
+
+  const posterContent = (
+    <div
+      id="branch-qr-printable-poster"
+      className={cn(
+        "bg-white border border-[#d9d9d9] flex flex-col gap-[10px] items-center justify-center overflow-hidden p-[18px] shrink-0",
+        posterPaperClass
+      )}
+    >
+      <p className="font-semibold leading-[18px] text-[#3d3d3d] text-[12px] text-center w-full truncate">
+        {companyName} · {branchConfig.branchName}
+      </p>
+      <p className="font-semibold leading-[27px] text-[#0a0a0a] text-[21px] text-center w-full">
+        Registra tu asistencia
+      </p>
+      <div className="size-[146px] shrink-0 flex items-center justify-center">
+        {qrSvg ? (
+          <div
+            dangerouslySetInnerHTML={{ __html: qrSvg }}
+            className="size-full flex items-center justify-center [&>svg]:w-full [&>svg]:h-full"
+          />
+        ) : (
+          <div className="size-full rounded-[8px] border border-dashed border-[#d9d9d9] flex flex-col items-center justify-center text-[#737373] text-[11px] gap-1.5">
+            <QrCode className="size-8 animate-pulse text-[#00786f]" />
+            <span>Generando QR...</span>
+          </div>
+        )}
+      </div>
+      <p className="font-normal leading-[18px] text-[#3d3d3d] text-[12px] text-center w-full">
+        Escanea el código al iniciar o terminar tu turno.
+      </p>
+      <p className="font-normal leading-[17px] text-[#3d3d3d] text-[11px] text-center w-full">
+        Token V{tokenVersion}
+      </p>
+    </div>
+  );
+
+  const companyInitials = companyName
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((word) => word[0]?.toUpperCase() || "")
+    .join("") || "KP";
+
   // Fullscreen Tablet/Monitor Projection View
   if (isFullscreen) {
     return (
-      <div className="fixed inset-0 z-[100] bg-slate-950 text-white flex flex-col justify-between items-center p-6 sm:p-10 select-none animate-in fade-in duration-300">
-        {/* Top Header Bar */}
-        <div className="w-full flex items-center justify-between border-b border-slate-800/80 pb-4">
-          <div className="flex items-center gap-3">
-            <div className="size-10 rounded-xl bg-indigo-600/20 text-indigo-400 flex items-center justify-center border border-indigo-500/30">
-              <Building2 className="size-5" />
+      <div className="fixed inset-0 z-[100] bg-background text-foreground flex flex-col px-6 sm:px-12 lg:px-16 py-8 select-none overflow-y-auto animate-in fade-in duration-300">
+        {/* Top Header */}
+        <div className="w-full max-w-[1312px] mx-auto flex items-center justify-between gap-4 pb-6 border-b border-border">
+          <div className="flex items-center gap-[14px] min-w-0">
+            <div className="size-[52px] rounded-[12px] bg-sidebar-accent text-link flex items-center justify-center text-[19px] font-semibold leading-[23px] shrink-0">
+              {companyInitials}
             </div>
-            <div>
-              <h2 className="text-lg font-black tracking-tight text-white">
+            <div className="flex flex-col gap-[3px] min-w-0">
+              <h2 className="text-[22px] font-semibold leading-[27px] text-foreground truncate">
                 {companyName}
               </h2>
-              <div className="flex items-center gap-2 text-xs text-slate-400 font-medium">
-                <MapPin className="size-3 text-indigo-400" />
-                <span>{branchConfig.branchName}</span>
-              </div>
+              <p className="text-[15px] font-medium leading-[18px] text-muted-foreground truncate">
+                {branchConfig.branchName}
+              </p>
             </div>
           </div>
 
-          <div className="flex items-center gap-2">
-            <Badge className="bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 text-xs font-bold px-3 py-1 rounded-full flex items-center gap-1.5">
-              <span className="size-2 rounded-full bg-emerald-400 animate-pulse" />
-              <span>Kiosco Activo • En Línea</span>
-            </Badge>
-
+          <div className="flex items-center gap-[12px] shrink-0">
             <Button
-              size="sm"
-              variant="outline"
-              onClick={handleRegenerateToken}
-              className="h-8 px-2.5 rounded-xl border-slate-800 bg-slate-900 text-xs text-slate-300 hover:text-white"
-              title="Renovar token QR"
-            >
-              <RefreshCw className="size-3 mr-1" />
-              <span>Token V{tokenVersion}</span>
-            </Button>
-
-            <Button
-              size="sm"
+              type="button"
               variant="outline"
               onClick={toggleFullscreen}
-              className="h-8 px-3 rounded-xl border-slate-700 bg-slate-800 text-xs font-bold text-white hover:bg-slate-700 flex items-center gap-1.5"
+              className="h-[44px] px-[16px] rounded-[8px] border-control-border bg-card text-foreground text-[14px] font-semibold hover:bg-muted/60 gap-[8px] cursor-pointer"
             >
-              <Minimize2 className="size-3.5" />
-              <span>Salir (ESC)</span>
+              <HugeiconsIcon icon={Minimize01Icon} size={16} strokeWidth={1.8} />
+              <span>Salir de proyección</span>
             </Button>
+            <span className="hidden sm:inline text-[13px] font-medium leading-[16px] text-muted-foreground">
+              Esc
+            </span>
           </div>
         </div>
 
-        {/* Central QR and Clock Display */}
-        <div className="flex flex-col items-center justify-center text-center space-y-5 my-auto max-w-lg">
-          {/* Live Clock Display */}
-          <div className="space-y-0.5">
-            <div className="font-mono text-4xl sm:text-5xl font-extrabold tracking-tight text-indigo-400 drop-shadow-sm flex items-center justify-center gap-2">
-              <Clock className="size-6 text-indigo-400/80" />
-              <span>{currentTime}</span>
+        {/* Central Content */}
+        <div className="w-full max-w-[1312px] mx-auto my-auto py-8 grid grid-cols-1 lg:grid-cols-[1fr_auto] items-center gap-10 lg:gap-16">
+          {/* Left Instructions & Clock */}
+          <div className="flex flex-col gap-[24px] items-start max-w-[652px]">
+            <div className="flex items-center gap-[9px]">
+              <span className="size-[9px] rounded-full bg-link shrink-0" />
+              <span className="text-[17px] font-semibold leading-[21px] text-link">
+                Marcaje de asistencia
+              </span>
             </div>
-            <p className="text-xs text-slate-400 font-medium">
-              Hora Oficial del Establecimiento
+
+            <h1 className="text-[44px] sm:text-[56px] lg:text-[68px] font-semibold leading-[1.15] lg:leading-[83px] tracking-[-0.02em] text-foreground">
+              Registra tu asistencia
+            </h1>
+
+            <p className="text-[20px] lg:text-[26px] font-normal leading-[1.3] lg:leading-[32px] text-muted-foreground max-w-[550px]">
+              Escanea el código con tu celular al iniciar o terminar tu turno.
             </p>
+
+            <div className="flex flex-col gap-[4px] items-start">
+              <span className="text-[42px] font-semibold leading-[51px] text-foreground tabular-nums">
+                {currentTime || "00:00"}
+              </span>
+              <span className="text-[14px] font-medium leading-[17px] text-muted-foreground">
+                Hora local de la sede
+              </span>
+            </div>
           </div>
 
-          {/* High-Contrast QR Card */}
-          <div className="p-6 rounded-3xl bg-white text-slate-900 shadow-2xl border-4 border-indigo-500/40 relative">
-            <div className="size-64 sm:size-72 p-2 bg-white rounded-2xl flex items-center justify-center relative overflow-hidden">
+          {/* Right QR Surface */}
+          <div className="flex flex-col gap-[16px] items-center justify-self-center lg:justify-self-end">
+            <div className="bg-white rounded-[16px] p-[12px] size-[300px] sm:size-[380px] lg:size-[440px] flex items-center justify-center shadow-xs">
               {qrSvg ? (
                 <div
                   dangerouslySetInnerHTML={{ __html: qrSvg }}
                   className="size-full flex items-center justify-center [&>svg]:w-full [&>svg]:h-full"
                 />
               ) : (
-                <div className="flex flex-col items-center justify-center text-slate-400 text-xs font-semibold gap-2">
-                  <QrCode className="size-10 animate-pulse text-indigo-500" />
-                  <span>Cargando Checador...</span>
+                <div className="flex flex-col items-center justify-center text-[#737373] text-[14px] font-medium gap-2">
+                  <QrCode className="size-10 animate-pulse text-[#00786f]" />
+                  <span>Generando QR...</span>
                 </div>
               )}
-              <div className="absolute size-9 rounded-xl bg-indigo-600 text-white flex items-center justify-center shadow-lg border-2 border-white">
-                <ShieldCheck className="size-5" />
-              </div>
             </div>
-
-            <div className="mt-3 text-center space-y-0.5">
-              <span className="text-xs font-black text-slate-800 block">
-                Checador Oficial de Asistencia
-              </span>
-              <span className="text-[11px] font-bold text-indigo-600 block">
-                Token Dinámico: V{tokenVersion} • Radio: {branchConfig.radiusMeters}m
-              </span>
-            </div>
+            <button
+              type="button"
+              onClick={handleRegenerateToken}
+              title="Clic para renovar el token del QR"
+              className="text-[15px] font-medium leading-[18px] text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
+            >
+              Token V{tokenVersion}
+            </button>
           </div>
-
-          {/* Projection Guidance */}
-          <div className="space-y-1">
-            <h3 className="text-base sm:text-lg font-extrabold text-white">
-              Apunta con la cámara de tu celular para registrar Entrada o Salida
-            </h3>
-            <p className="text-xs text-slate-400 font-medium max-w-md">
-              Abre tu cámara o ingresa a tu portal K&apos;anPro para checar automáticamente tu turno laboral con geolocalización.
-            </p>
-          </div>
-        </div>
-
-        {/* Bottom Status Bar */}
-        <div className="w-full flex items-center justify-between text-[11px] text-slate-500 border-t border-slate-800/80 pt-3">
-          <span>{branchConfig.address || "Punto de checador oficial"}</span>
-          <span>Presiona [ESC] o el botón superior para salir de proyección</span>
         </div>
       </div>
     );
@@ -277,6 +437,10 @@ export function BranchQrKioskModal({
         dangerouslySetInnerHTML={{
           __html: `
             @media print {
+              @page {
+                size: ${paperFormat === "carta" ? "letter portrait" : "A4 portrait"};
+                margin: 12mm;
+              }
               body * {
                 visibility: hidden !important;
               }
@@ -291,183 +455,160 @@ export function BranchQrKioskModal({
                 width: 100vw !important;
                 min-height: 100vh !important;
                 margin: 0 !important;
-                padding: 2.5rem 2rem !important;
+                padding: 3rem 2rem !important;
                 background: #ffffff !important;
-                color: #0f172a !important;
+                color: #0a0a0a !important;
                 display: flex !important;
                 flex-direction: column !important;
-                justify-content: space-between !important;
+                justify-content: center !important;
                 align-items: center !important;
+                gap: 1.5rem !important;
                 box-sizing: border-box !important;
                 border: none !important;
                 box-shadow: none !important;
                 z-index: 9999999 !important;
               }
-              .no-print {
-                display: none !important;
+              #branch-qr-printable-poster svg {
+                width: 320px !important;
+                height: 320px !important;
               }
             }
           `,
         }}
       />
 
-      <Dialog open={isOpen} onOpenChange={onOpenChange}>
-        <DialogContent className="sm:max-w-[500px] p-6 text-center max-h-[90vh] overflow-y-auto">
-          <DialogHeader className="space-y-1.5 text-center">
-            <div className="mx-auto size-12 rounded-2xl bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 flex items-center justify-center mb-1">
-              <QrCode className="size-6" />
-            </div>
-            <DialogTitle className="text-xl font-extrabold text-foreground tracking-tight">
-              Cartel QR de Sucursal
+      <Dialog open={isOpen} onOpenChange={handleOpenChange}>
+        <DialogContent
+          showCloseButton={false}
+          className="sm:max-w-[784px] p-[24px] rounded-[16px] bg-card border border-border shadow-[0px_12px_40px_0px_rgba(0,0,0,0.28)] gap-[18px] max-h-[92vh] overflow-y-auto"
+        >
+          <DialogHeader className="gap-[4px] text-left">
+            <DialogTitle className="text-[26px] font-semibold leading-[32px] tracking-[-0.015em] text-foreground">
+              QR de sucursal
             </DialogTitle>
-            <DialogDescription className="text-xs text-muted-foreground font-medium">
-              Imprime en hoja Carta/A4 o proyecta en pantalla completa para que los empleados registren su asistencia.
+            <DialogDescription className="text-[14px] font-normal leading-[20px] text-muted-foreground">
+              Prepara el cartel que tu equipo usa para registrar entradas y
+              salidas.
             </DialogDescription>
           </DialogHeader>
 
-          {/* Printable Poster Card (Also used by window.print()) */}
-          <div
-            id="branch-qr-printable-poster"
-            className="p-5 sm:p-6 rounded-2xl bg-white text-slate-900 border-2 border-indigo-500/30 space-y-4 shadow-md max-w-sm mx-auto text-center"
-          >
-            {/* Header: Logo / Company / Branch */}
-            <div className="space-y-1 border-b border-slate-200 pb-2.5 w-full">
-              <div className="flex items-center justify-center gap-1.5 text-xs font-black text-indigo-700 uppercase tracking-widest">
-                <Building2 className="size-4 shrink-0" />
-                <span className="truncate">{companyName}</span>
+          <div className="grid grid-cols-1 md:grid-cols-[1fr_262px] gap-[20px] items-start">
+            {/* Preview Area */}
+            <div className="bg-muted rounded-[12px] p-[16px] flex flex-col gap-[12px] items-center">
+              <span className="text-[13px] font-medium leading-[19px] text-muted-foreground">
+                Vista previa · {paperFormat === "carta" ? "Carta" : "A4"}
+              </span>
+              {posterContent}
+            </div>
+
+            {/* Settings & Options Column */}
+            <div className="flex flex-col gap-[16px] items-start w-full">
+              <div className="flex flex-col gap-[4px] w-full">
+                <span className="text-[12px] font-medium leading-[18px] text-muted-foreground">
+                  Sucursal
+                </span>
+                <span className="text-[17px] font-semibold leading-[23px] text-foreground">
+                  {branchConfig.branchName}
+                </span>
               </div>
-              <p className="text-[11px] font-bold text-slate-600 truncate">
-                {branchConfig.branchName}
-              </p>
-              {branchConfig.address && (
-                <p className="text-[9px] text-slate-400 truncate">
-                  {branchConfig.address}
-                </p>
-              )}
-            </div>
 
-            {/* Poster Title */}
-            <div className="space-y-0.5">
-              <h3 className="text-base sm:text-lg font-black text-slate-900 tracking-tight leading-snug">
-                Checador Oficial de Asistencia - Escanea tu Entrada o Salida
-              </h3>
-              <p className="text-[10px] text-slate-500 font-semibold">
-                Registro digital oficial de jornada laboral en tiempo real
-              </p>
-            </div>
+              <div className="h-px w-full bg-border" />
 
-            {/* Centered Large QR Graphic Container */}
-            <div className="relative mx-auto size-48 sm:size-52 p-2 bg-white rounded-2xl border-2 border-slate-900 flex items-center justify-center shadow-inner overflow-hidden">
-              {qrSvg ? (
-                <div
-                  dangerouslySetInnerHTML={{ __html: qrSvg }}
-                  className="size-full flex items-center justify-center [&>svg]:w-full [&>svg]:h-full"
-                />
-              ) : (
-                <div className="flex flex-col items-center justify-center text-muted-foreground text-xs font-semibold gap-2">
-                  <QrCode className="size-8 animate-pulse text-indigo-500" />
-                  <span>Generando código QR...</span>
+              <div className="flex flex-col gap-[8px] w-full">
+                <span className="text-[14px] font-semibold leading-[20px] text-foreground">
+                  Formato de papel
+                </span>
+                <div className="flex items-center gap-[8px]">
+                  <button
+                    type="button"
+                    onClick={() => setPaperFormat("carta")}
+                    className={cn(
+                      "h-[40px] w-[102px] rounded-[8px] text-[14px] font-semibold leading-[20px] flex items-center justify-center transition-colors cursor-pointer",
+                      paperFormat === "carta"
+                        ? "bg-sidebar-accent border border-link text-link"
+                        : "bg-muted border border-transparent text-foreground hover:bg-muted/80"
+                    )}
+                  >
+                    Carta
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setPaperFormat("a4")}
+                    className={cn(
+                      "h-[40px] w-[102px] rounded-[8px] text-[14px] font-semibold leading-[20px] flex items-center justify-center transition-colors cursor-pointer",
+                      paperFormat === "a4"
+                        ? "bg-sidebar-accent border border-link text-link"
+                        : "bg-muted border border-transparent text-foreground hover:bg-muted/80"
+                    )}
+                  >
+                    A4
+                  </button>
                 </div>
-              )}
-              <div className="absolute size-7 rounded-md bg-indigo-600 text-white flex items-center justify-center shadow-xs border border-white">
-                <ShieldCheck className="size-3.5" />
+                <span className="text-[12px] font-normal leading-[18px] text-muted-foreground">
+                  {paperFormat === "carta"
+                    ? "216 × 279 mm · Vertical"
+                    : "210 × 297 mm · Vertical"}
+                </span>
               </div>
-            </div>
 
-            {/* Token Badge */}
-            <div className="text-[10px] font-mono font-bold text-indigo-600">
-              Token de Seguridad: V{tokenVersion} • Cobertura: {branchConfig.radiusMeters}m
-            </div>
+              <div className="h-px w-full bg-border" />
 
-            {/* 2 Step Instructions */}
-            <div className="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 space-y-1.5 text-left">
-              <div className="text-[10px] font-black text-slate-800 uppercase tracking-wider text-center border-b border-slate-200 pb-1">
-                Instrucciones de Registro
+              <div className="flex flex-col gap-[8px] w-full">
+                <span className="text-[14px] font-semibold leading-[20px] text-foreground">
+                  Otras opciones
+                </span>
+                <button
+                  type="button"
+                  onClick={toggleFullscreen}
+                  className="h-[40px] w-full px-[10px] rounded-[8px] border border-control-border bg-transparent text-[13px] font-medium leading-[19px] text-foreground flex items-center gap-[8px] hover:bg-muted/60 transition-colors cursor-pointer"
+                >
+                  <HugeiconsIcon
+                    icon={Maximize01Icon}
+                    size={16}
+                    strokeWidth={1.8}
+                  />
+                  <span>Proyectar en pantalla</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={handleCopyLink}
+                  className="h-[40px] w-full px-[10px] rounded-[8px] border border-control-border bg-transparent text-[13px] font-medium leading-[19px] text-foreground flex items-center gap-[8px] hover:bg-muted/60 transition-colors cursor-pointer"
+                >
+                  <HugeiconsIcon
+                    icon={Copy01Icon}
+                    size={16}
+                    strokeWidth={1.8}
+                  />
+                  <span>Copiar enlace</span>
+                </button>
+                {isCopied && (
+                  <span className="text-[12px] font-medium leading-[16px] text-link">
+                    Enlace copiado
+                  </span>
+                )}
               </div>
-              <div className="flex items-start gap-2 text-[11px] text-slate-700 leading-tight">
-                <span className="size-4 rounded-full bg-indigo-600 text-white flex items-center justify-center font-bold text-[10px] shrink-0 mt-0.5">
-                  1
-                </span>
-                <span>
-                  <strong>Abre tu cámara o entra a tu portal K&apos;anPro</strong> en tu celular.
-                </span>
-              </div>
-              <div className="flex items-start gap-2 text-[11px] text-slate-700 leading-tight">
-                <span className="size-4 rounded-full bg-indigo-600 text-white flex items-center justify-center font-bold text-[10px] shrink-0 mt-0.5">
-                  2
-                </span>
-                <span>
-                  <strong>Escanea este código</strong> al iniciar o finalizar tu turno laboral.
-                </span>
-              </div>
-            </div>
-
-            {/* LFT Legal Notice */}
-            <div className="pt-2 border-t border-slate-200 text-center space-y-0.5">
-              <p className="text-[9px] text-slate-500 leading-relaxed font-medium">
-                <strong>Nota legal:</strong> Registro oficial de jornada de trabajo conforme al Artículo 132 Fracción I y concordantes de la Ley Federal del Trabajo (LFT). La constancia electrónica acredita el cumplimiento del horario laboral pactado.
-              </p>
-              <p className="text-[8px] text-slate-400 font-bold tracking-tight">
-                K&apos;anPro HRMS • Validez Patronal Oficial
-              </p>
             </div>
           </div>
 
-          {/* Action Tools */}
-          <div className="flex items-center justify-center gap-2 pt-1 flex-wrap">
-            <Button
-              size="sm"
-              variant="outline"
-              onClick={toggleFullscreen}
-              className="text-xs font-bold h-8 px-2.5 rounded-xl border-indigo-500/30 text-indigo-600 dark:text-indigo-400 hover:bg-indigo-500/10"
-            >
-              <Tv className="size-3.5 mr-1.5" />
-              <span>Proyectar en Pantalla</span>
-            </Button>
-
-            <Button
-              size="sm"
-              variant="ghost"
-              onClick={handleRegenerateToken}
-              className="text-xs font-bold text-muted-foreground hover:text-foreground h-8 px-2.5"
-            >
-              <RefreshCw className="size-3 mr-1" />
-              Renovar Token
-            </Button>
-
-            <Button
-              size="sm"
-              variant="ghost"
-              onClick={handleCopyLink}
-              className="text-xs font-bold text-muted-foreground hover:text-foreground h-8 px-2.5"
-            >
-              {isCopied ? (
-                <Check className="size-3 mr-1 text-emerald-600" />
-              ) : (
-                <Copy className="size-3 mr-1" />
-              )}
-              {isCopied ? "Copiado" : "Copiar Enlace"}
-            </Button>
-          </div>
-
-          <DialogFooter className="flex flex-col-reverse sm:flex-row gap-2 pt-3 border-t border-border/40">
+          <div className="flex items-center justify-end gap-[8px] pt-[12px] border-t border-border">
             <Button
               type="button"
               variant="outline"
-              onClick={() => onOpenChange(false)}
-              className="rounded-xl text-xs font-bold h-10 px-4"
+              onClick={() => handleOpenChange(false)}
+              className="h-[44px] min-w-[104px] px-[16px] rounded-[8px] border-control-border bg-card text-foreground text-[14px] font-semibold hover:bg-muted/60 gap-[8px] cursor-pointer"
             >
-              Cerrar
+              <HugeiconsIcon icon={Cancel01Icon} size={16} strokeWidth={1.8} />
+              <span>Cerrar</span>
             </Button>
             <Button
               type="button"
               onClick={handlePrint}
-              className="rounded-xl text-xs font-bold h-10 px-5 bg-indigo-600 hover:bg-indigo-700 text-white shadow-xs flex items-center justify-center gap-1.5"
+              className="h-[44px] min-w-[154px] px-[16px] rounded-[8px] bg-primary text-primary-foreground text-[14px] font-semibold hover:bg-primary/90 gap-[8px] cursor-pointer"
             >
-              <Printer className="size-4" />
-              <span>Imprimir Cartel (A4 / Carta)</span>
+              <HugeiconsIcon icon={PrinterIcon} size={16} strokeWidth={1.8} />
+              <span>Imprimir cartel</span>
             </Button>
-          </DialogFooter>
+          </div>
         </DialogContent>
       </Dialog>
     </>

@@ -6,25 +6,10 @@ import { useForm, useWatch } from "react-hook-form";
 import {
   ArrowLeft,
   ArrowRight,
-  Send,
-  Save,
   RotateCcw,
-  Loader2,
   Check,
-  Eye,
 } from "@/components/ui/icons";
 import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
-import {
-  Stepper,
-  StepperNav,
-  StepperItem,
-  StepperTrigger,
-  StepperIndicator,
-  StepperTitle,
-  StepperPanel,
-  StepperContent,
-} from "@/components/reui/stepper";
 import {
   VacancyPreviewDrawer,
   type VacancyPreviewItem,
@@ -46,7 +31,6 @@ import { Step4Publication } from "./step-4-publication";
 import { createClient } from "@/lib/supabase/client";
 import { useDebouncedCallback } from "@tanstack/react-pacer";
 import {
-  revalidateVacancies,
   createVacancyAction,
   updateVacancyAction,
 } from "../../actions/vacancies";
@@ -58,23 +42,23 @@ import Link from "next/link";
 const DRAFT_STORAGE_KEY = "kanpro_vacancy_draft_v2";
 
 export const WIZARD_STEPS = [
-  {
-    id: 1,
-    label: "Puesto",
-  },
-  {
-    id: 2,
-    label: "Ubicación & Sueldo",
-  },
-  {
-    id: 3,
-    label: "Descripción",
-  },
-  {
-    id: 4,
-    label: "Publicación",
-  },
-];
+  { id: 1, label: "Puesto" },
+  { id: 2, label: "Condiciones" },
+  { id: 3, label: "Requisitos" },
+  { id: 4, label: "Publicación" },
+] as const;
+
+const FREQUENCY_DISPLAY: Record<string, string> = {
+  semanal: "por semana",
+  quincenal: "por quincena",
+  mensual: "por mes",
+};
+
+const CONTACT_DISPLAY: Record<string, string> = {
+  whatsapp: "WhatsApp",
+  platform: "Bandeja Kanpro",
+  both: "WhatsApp y bandeja Kanpro",
+};
 
 interface RawCompanyProfile {
   company_name?: string;
@@ -122,6 +106,7 @@ export function VacancyWizardContainer({
   const [currentStep, setCurrentStep] = React.useState<number>(1);
   const [maxAccessibleStep, setMaxAccessibleStep] = React.useState<number>(1);
   const [isSubmitting, setIsSubmitting] = React.useState(false);
+  const [submitError, setSubmitError] = React.useState<string | null>(null);
   const [showPreviewDrawer, setShowPreviewDrawer] = React.useState(false);
   const [companyProfile, setCompanyProfile] = React.useState<CompanyProfileState | null>(null);
   const [savedDraft, setSavedDraft] = React.useState<VacancyWizardValues | null>(() => {
@@ -179,18 +164,18 @@ export function VacancyWizardContainer({
 
         if (comp || prof) {
           const rawLoc =
-            prof?.location ||
             comp?.fiscal_address ||
-            comp?.address_details;
+            comp?.address_details ||
+            prof?.location;
           const parsed = parseLocation(rawLoc);
           const cleanCity = parsed.city || "Mérida";
           const cleanZone =
             parsed.zone ||
             (cleanCity === "Mérida" ? "Centro Mérida" : "Centro");
           const stateName = GEO_CONFIG[cleanCity]?.state;
-          const stateDisplay =
-            stateName === "Quintana Roo" ? "Q. Roo" : stateName || "Yucatán";
-          const resolvedLocationDisplay = `${cleanCity}, ${stateDisplay}`;
+          const resolvedLocationDisplay = stateName
+            ? `${cleanCity}, ${stateName === "Quintana Roo" ? "Q. Roo" : stateName}`
+            : rawLoc?.trim() || cleanCity;
 
           setCompanyProfile({
             ...comp,
@@ -219,7 +204,7 @@ export function VacancyWizardContainer({
               currentLoc === "Mérida" ||
               isStreetAddress
             ) {
-              form.setValue("location", cleanCity);
+              form.setValue("location", resolvedLocationDisplay);
               form.setValue("zone", cleanZone);
             }
           }
@@ -341,6 +326,7 @@ export function VacancyWizardContainer({
     }
 
     setIsSubmitting(true);
+    setSubmitError(null);
     try {
       const wizardData: VacancyWizardValues = {
         ...values,
@@ -385,10 +371,8 @@ export function VacancyWizardContainer({
       const message =
         err instanceof Error
           ? err.message
-          : "Ocurrió un error inesperado al conectar con el servidor.";
-      toast.error("Error al guardar la vacante", {
-        description: message,
-      });
+          : "Tus datos se conservaron. Reintenta o guarda un borrador.";
+      setSubmitError(message);
     } finally {
       setIsSubmitting(false);
     }
@@ -420,73 +404,108 @@ export function VacancyWizardContainer({
     };
   }, [formValues, vacancyId]);
 
-  return (
-    <div className="w-full max-w-4xl mx-auto space-y-4 sm:space-y-6 animate-in fade-in duration-300 pb-24 sm:pb-16 font-sans">
-      {/* 1. Header Toolbar */}
-      <div className="flex items-center justify-between gap-3">
-        <Link
-          href="/dashboard/company/vacancies"
-          className="inline-flex items-center gap-1.5 text-xs font-bold text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
-        >
-          <ArrowLeft className="size-4 shrink-0" />
-          <span className="hidden xs:inline sm:inline">Volver a Mis Vacantes</span>
-          <span className="xs:hidden sm:hidden">Vacantes</span>
-        </Link>
+  const shiftShort = (formValues.shift_schedule || "")
+    .replace(/\s*\([^)]*\)/g, "")
+    .trim();
 
-        <div className="flex items-center gap-2">
-          {/* Botón de Vista Previa Drawer */}
+  const summarySalary = React.useMemo(() => {
+    const min = formValues.salary_min;
+    const max = formValues.salary_max;
+    const freq =
+      FREQUENCY_DISPLAY[formValues.payment_frequency || "quincenal"] ||
+      "por quincena";
+    if (min != null && max != null) {
+      return `${formatSalaryDisplay(min)} – ${formatSalaryDisplay(max)} MXN ${freq}`;
+    }
+    if (min != null) {
+      return `Desde ${formatSalaryDisplay(min)} MXN ${freq}`;
+    }
+    if (max != null) {
+      return `Hasta ${formatSalaryDisplay(max)} MXN ${freq}`;
+    }
+    return "A convenir";
+  }, [
+    formValues.salary_min,
+    formValues.salary_max,
+    formValues.payment_frequency,
+  ]);
+
+  const summaryLocation = React.useMemo(() => {
+    const parts = [formValues.zone, formValues.location].filter(Boolean);
+    return parts.length > 0 ? parts.join(", ") : "Por definir";
+  }, [formValues.zone, formValues.location]);
+
+  const summaryBenefits = React.useMemo(() => {
+    const list = Array.isArray(formValues.benefits) ? formValues.benefits : [];
+    if (list.length === 0) return null;
+    const normalized = list.map((b) =>
+      b.startsWith("Prestaciones de Ley") ? "Prestaciones de ley" : b
+    );
+    if (normalized.length === 1) return normalized[0];
+    if (normalized.length === 2) {
+      return `${normalized[0]} y ${normalized[1].toLowerCase()}`;
+    }
+    return `${normalized.slice(0, 2).join(", ")} y ${normalized.length - 2} más`;
+  }, [formValues.benefits]);
+
+  const summarySkills = React.useMemo(() => {
+    const list = Array.isArray(formValues.skills) ? formValues.skills : [];
+    if (list.length === 0) return null;
+    if (list.length === 1) return list[0];
+    if (list.length === 2) return `${list[0]} y ${list[1].toLowerCase()}`;
+    return `${list.slice(0, 2).join(", ")} y ${list.length - 2} más`;
+  }, [formValues.skills]);
+
+  return (
+    <div className="w-full flex flex-col gap-[20px] pb-12 font-sans">
+      {/* 1. Header */}
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div className="flex flex-col gap-[6px]">
+          <h1 className="text-[32px] font-semibold leading-[40px] tracking-[-0.02em] text-foreground">
+            {isEditing ? "Editar vacante" : "Nueva vacante"}
+          </h1>
+          <p className="text-[14px] font-normal leading-[20px] text-muted-foreground">
+            Paso {currentStep} de 4 · {WIZARD_STEPS[currentStep - 1]?.label}
+          </p>
+        </div>
+
+        {!isEditing && (
           <Button
             type="button"
-            variant="outline"
+            variant="ghost"
             size="sm"
-            onClick={() => setShowPreviewDrawer(true)}
-            className="cursor-pointer gap-1.5"
+            onClick={handleClearDraft}
+            className="text-muted-foreground hover:text-foreground gap-1.5 cursor-pointer"
           >
-            <Eye className="size-3.5 text-primary" />
-            <span>Vista Previa</span>
+            <RotateCcw className="size-3.5" />
+            <span>Limpiar borrador</span>
           </Button>
-
-          {!isEditing && (
-            <Button
-              type="button"
-              variant="ghost"
-              size="sm"
-              onClick={handleClearDraft}
-              className="text-muted-foreground hover:text-rose-500 gap-1.5 cursor-pointer"
-              title="Restablecer formulario a valores iniciales"
-            >
-              <RotateCcw className="size-3.5" />
-              <span className="hidden sm:inline">Limpiar</span>
-            </Button>
-          )}
-        </div>
+        )}
       </div>
 
-      {/* Draft Recovery Alert (Optional & Dismissible) */}
+      {/* Draft Recovery Alert */}
       {savedDraft && !isEditing && (
-        <div className="p-3.5 sm:p-4 bg-primary/5 border border-primary/20 rounded-2xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-xs font-semibold">
-          <div className="space-y-0.5 min-w-0 flex-1">
-            <p className="text-foreground font-bold flex items-center gap-1.5 truncate">
-              <RotateCcw className="size-3.5 text-primary shrink-0" />
-              <span className="truncate">Borrador previo: &ldquo;{savedDraft.title || "Sin título"}&rdquo;</span>
-            </p>
-            <p className="text-muted-foreground text-[11px] line-clamp-2">
-              ¿Deseas recuperar los datos de tu sesión previa o continuar desde cero?
-            </p>
+        <div className="p-3.5 bg-sidebar-accent/50 border border-border rounded-[12px] flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-[13px]">
+          <div className="flex flex-col gap-0.5 min-w-0">
+            <span className="font-semibold text-foreground truncate">
+              Borrador previo: &ldquo;{savedDraft.title || "Sin título"}&rdquo;
+            </span>
+            <span className="text-[12px] text-muted-foreground">
+              ¿Deseas recuperar los datos de tu sesión previa o empezar de cero?
+            </span>
           </div>
-          <div className="flex items-center gap-2 w-full sm:w-auto shrink-0 justify-end">
+          <div className="flex items-center gap-2 shrink-0">
             <Button
               type="button"
-              size="sm"
               variant="outline"
+              size="sm"
               onClick={() => {
                 try {
                   localStorage.removeItem(DRAFT_STORAGE_KEY);
                 } catch {}
                 setSavedDraft(null);
-                toast.info("Borrador previo descartado");
               }}
-              className="h-8 text-xs font-semibold rounded-xl cursor-pointer flex-1 sm:flex-none"
+              className="h-[34px] rounded-[8px] border-control-border bg-card text-[13px] font-medium cursor-pointer"
             >
               Descartar
             </Button>
@@ -500,265 +519,295 @@ export function VacancyWizardContainer({
                   ...savedDraft,
                 });
                 setSavedDraft(null);
-                toast.success("Borrador restaurado en el formulario");
+                toast.success("Borrador restaurado");
               }}
-              className="h-8 text-xs font-bold rounded-xl bg-primary text-primary-foreground cursor-pointer gap-1.5 flex-1 sm:flex-none"
+              className="h-[34px] rounded-[8px] bg-primary text-primary-foreground text-[13px] font-medium cursor-pointer"
             >
-              <Check className="size-3.5" />
-              <span>Restaurar</span>
+              Restaurar
             </Button>
           </div>
         </div>
       )}
 
-      {/* 2. Stepper Adaptativo (Mobile-first + Desktop) */}
-      <Stepper
-        value={currentStep}
-        onValueChange={handleStepChange}
-        className="space-y-4 sm:space-y-6"
-      >
-        {/* Vista Móvil (< sm): Barra de progreso de 4 segmentos interactiva */}
-        <div className="block sm:hidden bg-card border border-border/70 rounded-2xl p-3 shadow-2xs space-y-2">
-          <div className="flex items-center justify-between text-xs">
-            <div className="flex items-center gap-1.5 min-w-0">
-              <span className="size-2 rounded-full bg-primary inline-block animate-pulse shrink-0" />
-              <span className="font-bold text-foreground truncate">
-                Paso {currentStep} de 4:{" "}
-                <span className="text-primary font-extrabold">
-                  {currentStep === 4 && isEditing
-                    ? "Actualización"
-                    : WIZARD_STEPS[currentStep - 1]?.label}
-                </span>
+      {/* 2. Stepper Pills */}
+      <div className="flex items-center gap-[8px] flex-wrap">
+        {WIZARD_STEPS.map((step) => {
+          const isCompleted = currentStep > step.id;
+          const isCurrent = currentStep === step.id;
+          const isAccessible = step.id <= maxAccessibleStep;
+
+          return (
+            <button
+              key={step.id}
+              type="button"
+              disabled={!isAccessible}
+              onClick={() => handleStepChange(step.id)}
+              className={cn(
+                "h-[34px] px-[12px] rounded-[8px] text-[13px] font-medium leading-[18px] inline-flex items-center gap-[6px] transition-colors",
+                isCurrent
+                  ? "bg-sidebar-accent text-link font-semibold"
+                  : isCompleted
+                  ? "bg-muted text-foreground hover:bg-muted/80 cursor-pointer"
+                  : "bg-muted text-muted-foreground",
+                !isAccessible && !isCurrent && "cursor-default"
+              )}
+            >
+              {isCompleted ? (
+                <Check className="size-[13px] stroke-[2.5]" />
+              ) : (
+                <span>{step.id}</span>
+              )}
+              <span>{step.label}</span>
+            </button>
+          );
+        })}
+      </div>
+
+      {/* 3. Two-Column Layout */}
+      <div className="grid grid-cols-1 lg:grid-cols-[1fr_320px] gap-[20px] items-start">
+        {/* Left: Form Card */}
+        <form
+          onSubmit={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+          }}
+          className="bg-card border border-border rounded-[16px] p-[24px] flex flex-col gap-[20px]"
+        >
+          {currentStep === 1 && <Step1Basic form={form} />}
+          {currentStep === 2 && (
+            <Step2Compensation
+              form={form}
+              companyLocation={
+                companyProfile?.resolvedLocation || "Mérida, Yucatán"
+              }
+              companyCity={companyProfile?.resolvedCity || "Mérida"}
+              companyZone={companyProfile?.resolvedZone || "Centro Mérida"}
+              companyName={companyProfile?.company_name || "Tu Empresa"}
+            />
+          )}
+          {currentStep === 3 && <Step3Description form={form} />}
+          {currentStep === 4 && (
+            <Step4Publication
+              form={form}
+              isEditing={isEditing}
+              onOpenPreviewDrawer={() => setShowPreviewDrawer(true)}
+            />
+          )}
+
+          {/* Step 4 Status / Error Banners */}
+          {currentStep === 4 && isSubmitting && (
+            <div className="bg-[#e8f2fb] text-[#184c78] dark:bg-[#193044] dark:text-[#abd6f5] rounded-[12px] p-[14px] flex flex-col gap-[2px]">
+              <span className="text-[14px] font-semibold leading-[20px]">
+                {isEditing
+                  ? "Actualizando tu vacante..."
+                  : "Publicando tu vacante..."}
+              </span>
+              <span className="text-[13px] leading-[18px] opacity-90">
+                Estamos guardando el anuncio. Esta acción solo se envía una vez.
               </span>
             </div>
-            <span className="text-[11px] font-mono font-bold text-muted-foreground shrink-0 ml-2">
-              {Math.round((currentStep / 4) * 100)}%
-            </span>
-          </div>
+          )}
 
-          {/* Segmented Touch Progress */}
-          <div className="grid grid-cols-4 gap-1.5 h-2 rounded-full bg-muted/50 p-0.5">
-            {WIZARD_STEPS.map((step) => {
-              const isCompleted = currentStep > step.id;
-              const isCurrent = currentStep === step.id;
-              const isAccessible = step.id <= maxAccessibleStep;
-
-              return (
-                <button
-                  key={step.id}
-                  type="button"
-                  disabled={!isAccessible}
-                  onClick={() => handleStepChange(step.id)}
-                  aria-label={`Ir al paso ${step.id}: ${step.label}`}
-                  className={cn(
-                    "h-full rounded-full transition-all duration-300 select-none",
-                    isCurrent
-                      ? "bg-primary shadow-xs"
-                      : isCompleted
-                      ? "bg-primary/60"
-                      : "bg-muted-foreground/20",
-                    isAccessible ? "cursor-pointer hover:opacity-80 active:scale-95" : "cursor-default"
-                  )}
-                />
-              );
-            })}
-          </div>
-        </div>
-
-        {/* Vista Escritorio (sm+): StepperNav tradicional con círculos y títulos */}
-        <div className="hidden sm:block py-2">
-          <StepperNav className="flex items-center justify-between max-w-xl mx-auto px-4 gap-2">
-            {WIZARD_STEPS.map((step) => {
-              const isCompleted = currentStep > step.id;
-              const isCurrent = currentStep === step.id;
-              const isAccessible = step.id <= maxAccessibleStep;
-
-              return (
-                <StepperItem
-                  key={step.id}
-                  step={step.id}
-                  completed={isCompleted}
-                  disabled={!isAccessible}
-                  className="flex-1 flex flex-col items-center"
-                >
-                  <StepperTrigger
-                    className={cn(
-                      "flex flex-col items-center gap-2 p-1.5 rounded-xl transition-all cursor-pointer select-none group w-full",
-                      !isAccessible && "cursor-not-allowed opacity-45"
-                    )}
-                  >
-                    {/* Circular Indicator */}
-                    <StepperIndicator
-                      className={cn(
-                        "size-9 sm:size-10 rounded-full font-bold text-xs sm:text-sm flex items-center justify-center transition-all shadow-2xs border-2 shrink-0",
-                        isCurrent
-                          ? "bg-foreground text-background border-foreground ring-4 ring-foreground/10"
-                          : isCompleted
-                          ? "bg-foreground text-background border-foreground"
-                          : "bg-muted text-muted-foreground border-transparent"
-                      )}
-                    >
-                      {isCompleted ? (
-                        <Check className="size-4 stroke-[3]" />
-                      ) : (
-                        <span>{step.id}</span>
-                      )}
-                    </StepperIndicator>
-
-                    {/* Step Title Underneath */}
-                    <StepperTitle
-                      className={cn(
-                        "text-xs sm:text-sm text-center leading-tight transition-colors whitespace-nowrap",
-                        isCurrent
-                          ? "text-foreground font-bold"
-                          : isCompleted
-                          ? "text-foreground/90 font-semibold"
-                          : "text-muted-foreground font-normal"
-                      )}
-                    >
-                      {step.id === 4 && isEditing ? "Actualización" : step.label}
-                    </StepperTitle>
-                  </StepperTrigger>
-                </StepperItem>
-              );
-            })}
-          </StepperNav>
-        </div>
-
-        {/* 3. Main Form Card Container */}
-        <Card className="p-4 sm:p-8 md:p-10">
-          <form
-            onSubmit={(e) => {
-              e.preventDefault();
-              e.stopPropagation();
-            }}
-            className="space-y-6"
-          >
-            <StepperPanel>
-              {/* Step 1: Puesto y Datos Básicos */}
-              <StepperContent value={1}>
-                <Step1Basic form={form} />
-              </StepperContent>
-
-              {/* Step 2: Ubicación & Compensación */}
-              <StepperContent value={2}>
-                <Step2Compensation
-                  form={form}
-                  companyLocation={
-                    companyProfile?.resolvedLocation || "Mérida, Yucatán"
-                  }
-                  companyCity={companyProfile?.resolvedCity || "Mérida"}
-                  companyZone={companyProfile?.resolvedZone || "Centro Mérida"}
-                  companyName={companyProfile?.company_name || "Tu Empresa"}
-                />
-              </StepperContent>
-
-              {/* Step 3: Descripción & Requisitos */}
-              <StepperContent value={3}>
-                <Step3Description form={form} />
-              </StepperContent>
-
-              {/* Step 4: Contacto & Publicación / Actualización */}
-              <StepperContent value={4}>
-                <Step4Publication
-                  form={form}
-                  isEditing={isEditing}
-                  onOpenPreviewDrawer={() => setShowPreviewDrawer(true)}
-                />
-              </StepperContent>
-            </StepperPanel>
-
-            {/* 4. Wizard Footer Action Controls */}
-            <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 sm:gap-4 pt-5 sm:pt-6 border-t border-border">
-              {/* Steps 1, 2, 3: Botón continuar full-width en mobile + botón volver abajo */}
-              {currentStep < 4 ? (
-                <>
-                  <Button
-                    type="button"
-                    onClick={handleNextStep}
-                    className="font-bold text-sm gap-2 cursor-pointer w-full sm:w-auto order-1 sm:order-2 justify-center"
-                  >
-                    <span>Continuar al Paso {currentStep + 1}</span>
-                    <ArrowRight className="size-4" />
-                  </Button>
-
-                  {currentStep > 1 ? (
-                    <Button
-                      type="button"
-                      variant="outline"
-                      onClick={handlePrevStep}
-                      disabled={isSubmitting}
-                      className="font-bold text-xs gap-2 cursor-pointer w-full sm:w-auto order-2 sm:order-1 justify-center"
-                    >
-                      <ArrowLeft className="size-4" />
-                      <span>Paso Anterior</span>
-                    </Button>
-                  ) : (
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      render={<Link href="/dashboard/company/vacancies" />}
-                      className="font-semibold text-xs text-muted-foreground hover:text-foreground cursor-pointer w-full sm:w-auto order-2 sm:order-1 justify-center"
-                    >
-                      Cancelar
-                    </Button>
-                  )}
-                </>
-              ) : (
-                /* Step 4: Botón Publicar full-width arriba + fila secundaria simétrica */
-                <>
-                  {/* Botón Principal (Publicar / Actualizar) */}
-                  <Button
-                    type="button"
-                    disabled={isSubmitting}
-                    onClick={() => handleFinalSubmit(true)}
-                    className="font-bold text-sm gap-2 cursor-pointer w-full sm:w-auto order-1 sm:order-2 justify-center"
-                  >
-                    {isSubmitting ? (
-                      <>
-                        <Loader2 className="size-4 animate-spin" />
-                        <span>{isEditing ? "Actualizando..." : "Publicando..."}</span>
-                      </>
-                    ) : (
-                      <>
-                        <Send className="size-4" />
-                        <span>{isEditing ? "Actualizar Vacante" : "Publicar Oferta Ahora"}</span>
-                      </>
-                    )}
-                  </Button>
-
-                  {/* Acciones Secundarias (Paso Anterior + Guardar Borrador) */}
-                  <div className="grid grid-cols-2 sm:flex items-center gap-2 sm:gap-3 w-full sm:w-auto order-2 sm:order-1">
-                    <Button
-                      type="button"
-                      variant="outline"
-                      onClick={handlePrevStep}
-                      disabled={isSubmitting}
-                      className="font-bold text-xs gap-1.5 cursor-pointer justify-center"
-                    >
-                      <ArrowLeft className="size-3.5" />
-                      <span>Anterior</span>
-                    </Button>
-
-                    <Button
-                      type="button"
-                      variant="outline"
-                      disabled={isSubmitting}
-                      onClick={() => handleFinalSubmit(false)}
-                      className="font-bold text-xs gap-1.5 cursor-pointer justify-center"
-                    >
-                      <Save className="size-3.5 text-muted-foreground" />
-                      <span className="truncate">{isEditing ? "Guardar" : "Borrador"}</span>
-                    </Button>
-                  </div>
-                </>
-              )}
+          {currentStep === 4 && submitError && !isSubmitting && (
+            <div className="bg-[#fcebe9] text-[#a6302a] dark:bg-[#3e2220] dark:text-[#f29b94] rounded-[12px] p-[14px] flex flex-col gap-[2px]">
+              <span className="text-[14px] font-semibold leading-[20px]">
+                No se pudo publicar la vacante
+              </span>
+              <span className="text-[13px] leading-[18px] opacity-90">
+                Tus datos se conservaron. Reintenta o guarda un borrador.
+              </span>
             </div>
-          </form>
-        </Card>
-      </Stepper>
+          )}
 
-      {/* 5. Vacancy Preview Drawer (Reutilizado para el Wizard) */}
+          {/* Footer Navigation */}
+          <div className="pt-[16px] border-t border-border flex flex-wrap items-center justify-between gap-[12px]">
+            {currentStep === 1 ? (
+              <Button
+                type="button"
+                variant="outline"
+                render={<Link href="/dashboard/company/vacancies" />}
+                className="h-[44px] px-[16px] rounded-[8px] border-control-border bg-card text-foreground text-[14px] font-semibold hover:bg-muted/60 cursor-pointer"
+              >
+                Cancelar
+              </Button>
+            ) : (
+              <Button
+                type="button"
+                variant="outline"
+                onClick={handlePrevStep}
+                disabled={isSubmitting}
+                className="h-[44px] px-[16px] rounded-[8px] border-control-border bg-card text-foreground text-[14px] font-semibold hover:bg-muted/60 gap-[8px] cursor-pointer"
+              >
+                <ArrowLeft className="size-[16px]" />
+                <span>Anterior</span>
+              </Button>
+            )}
+
+            {currentStep < 4 ? (
+              <Button
+                type="button"
+                onClick={handleNextStep}
+                className="h-[44px] px-[18px] rounded-[8px] bg-primary text-primary-foreground text-[14px] font-semibold hover:bg-primary/90 gap-[8px] cursor-pointer"
+              >
+                <span>Continuar</span>
+                <ArrowRight className="size-[16px]" />
+              </Button>
+            ) : (
+              <div className="flex flex-wrap items-center gap-[8px]">
+                <Button
+                  type="button"
+                  variant="outline"
+                  disabled={isSubmitting}
+                  onClick={() => handleFinalSubmit(false)}
+                  className="h-[44px] px-[16px] rounded-[8px] border-control-border bg-card text-foreground text-[14px] font-semibold hover:bg-muted/60 cursor-pointer"
+                >
+                  Guardar borrador
+                </Button>
+                <Button
+                  type="button"
+                  disabled={isSubmitting}
+                  onClick={() => handleFinalSubmit(true)}
+                  className="h-[44px] min-w-[146px] px-[18px] rounded-[8px] bg-primary text-primary-foreground text-[14px] font-semibold hover:bg-primary/90 cursor-pointer"
+                >
+                  {isSubmitting
+                    ? "Publicando..."
+                    : submitError
+                    ? "Reintentar"
+                    : isEditing
+                    ? "Actualizar vacante"
+                    : "Publicar vacante"}
+                </Button>
+              </div>
+            )}
+          </div>
+        </form>
+
+        {/* Right: Live Summary / Preview Card */}
+        <aside className="bg-card border border-border rounded-[16px] p-[20px] flex flex-col gap-[16px] lg:sticky lg:top-6">
+          <div className="pb-[12px] border-b border-border">
+            <h3 className="text-[18px] font-semibold leading-[24px] text-foreground">
+              {currentStep === 4
+                ? "Vista previa del anuncio"
+                : "Resumen de la vacante"}
+            </h3>
+          </div>
+
+          <div className="flex flex-col gap-[4px]">
+            <p className="text-[20px] font-semibold leading-[26px] text-foreground break-words">
+              {formValues.title?.trim() || "Nombre del puesto"}
+            </p>
+            <p className="text-[13px] font-normal leading-[18px] text-muted-foreground">
+              {companyProfile?.company_name || "Tu Empresa"}
+            </p>
+          </div>
+
+          <div className="flex flex-col gap-[12px]">
+            <div className="flex flex-col gap-[2px]">
+              <span className="text-[12px] font-normal leading-[16px] text-muted-foreground">
+                Jornada
+              </span>
+              <span className="text-[14px] font-medium leading-[20px] text-foreground">
+                {formValues.employment_type || "Tiempo Completo"}
+                {shiftShort ? ` · ${shiftShort}` : ""}
+              </span>
+            </div>
+
+            <div className="flex flex-col gap-[2px]">
+              <span className="text-[12px] font-normal leading-[16px] text-muted-foreground">
+                Plazas disponibles
+              </span>
+              <span className="text-[14px] font-medium leading-[20px] text-foreground">
+                {formValues.positions_available || 1}{" "}
+                {(formValues.positions_available || 1) === 1
+                  ? "plaza"
+                  : "plazas"}
+              </span>
+            </div>
+
+            {currentStep >= 2 && (
+              <>
+                <div className="flex flex-col gap-[2px]">
+                  <span className="text-[12px] font-normal leading-[16px] text-muted-foreground">
+                    Ubicación
+                  </span>
+                  <span className="text-[14px] font-medium leading-[20px] text-foreground">
+                    {summaryLocation}
+                  </span>
+                </div>
+
+                <div className="flex flex-col gap-[2px]">
+                  <span className="text-[12px] font-normal leading-[16px] text-muted-foreground">
+                    Sueldo
+                  </span>
+                  <span className="text-[14px] font-medium leading-[20px] text-foreground">
+                    {summarySalary}
+                  </span>
+                </div>
+              </>
+            )}
+
+            {currentStep >= 3 && formValues.description?.trim() && (
+              <div className="flex flex-col gap-[2px]">
+                <span className="text-[12px] font-normal leading-[16px] text-muted-foreground">
+                  Descripción
+                </span>
+                <span className="text-[14px] font-normal leading-[20px] text-foreground line-clamp-4">
+                  {formValues.description.replace(/<[^>]+>/g, " ").trim()}
+                </span>
+              </div>
+            )}
+
+            {currentStep === 4 && (
+              <>
+                {summaryBenefits && (
+                  <div className="flex flex-col gap-[2px]">
+                    <span className="text-[12px] font-normal leading-[16px] text-muted-foreground">
+                      Prestaciones
+                    </span>
+                    <span className="text-[14px] font-medium leading-[20px] text-foreground">
+                      {summaryBenefits}
+                    </span>
+                  </div>
+                )}
+
+                <div className="flex flex-col gap-[2px]">
+                  <span className="text-[12px] font-normal leading-[16px] text-muted-foreground">
+                    Perfil
+                  </span>
+                  <span className="text-[14px] font-medium leading-[20px] text-foreground">
+                    {formValues.experience_required || "Sin experiencia previa"}{" "}
+                    · {formValues.education_level || "Indistinto"}
+                  </span>
+                </div>
+
+                {summarySkills && (
+                  <div className="flex flex-col gap-[2px]">
+                    <span className="text-[12px] font-normal leading-[16px] text-muted-foreground">
+                      Habilidades
+                    </span>
+                    <span className="text-[14px] font-medium leading-[20px] text-foreground">
+                      {summarySkills}
+                    </span>
+                  </div>
+                )}
+
+                <div className="flex flex-col gap-[2px]">
+                  <span className="text-[12px] font-normal leading-[16px] text-muted-foreground">
+                    Postulación
+                  </span>
+                  <span className="text-[14px] font-medium leading-[20px] text-foreground">
+                    {CONTACT_DISPLAY[
+                      formValues.preferred_contact_method || "both"
+                    ] || "WhatsApp y bandeja Kanpro"}
+                  </span>
+                </div>
+              </>
+            )}
+          </div>
+        </aside>
+      </div>
+
+      {/* Vacancy Preview Drawer */}
       <VacancyPreviewDrawer
         vacancy={previewVacancyData}
         open={showPreviewDrawer}

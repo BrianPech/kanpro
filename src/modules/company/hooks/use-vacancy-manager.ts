@@ -119,7 +119,11 @@ export function useVacancyManager() {
   /**
    * Cambia el estado de una vacante (Métrica Norte de Vacante Cubierta).
    */
-  const toggleVacancyStatus = useCallback(async (vacancyId: string, isActive: boolean): Promise<boolean> => {
+  const toggleVacancyStatus = useCallback(async (
+    vacancyId: string,
+    isActive: boolean,
+    nextStatus?: "Activa" | "Pausada" | "Cerrada"
+  ): Promise<boolean> => {
     setLoading(true);
     setError(null);
 
@@ -159,7 +163,7 @@ export function useVacancyManager() {
         .from("vacancies")
         .update({
           is_active: isActive,
-          status: isActive ? "Activa" : "Cerrada", // La sincronización en BD actualiza la columna equivalente
+          status: nextStatus ?? (isActive ? "Activa" : "Pausada"),
         })
         .eq("id", vacancyId);
 

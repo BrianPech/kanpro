@@ -2,7 +2,6 @@
 
 import * as React from "react";
 import {
-  UserPlus,
   Mail,
   Eye,
   EyeOff,
@@ -10,13 +9,13 @@ import {
   Loader2,
   AlertCircle,
 } from "@/components/ui/icons";
+import { HugeiconsIcon } from "@hugeicons/react";
+import { CheckmarkCircle02Icon } from "@hugeicons/core-free-icons";
 import {
   Dialog,
   DialogContent,
-  DialogHeader,
   DialogTitle,
   DialogDescription,
-  DialogFooter,
 } from "@/components/ui/dialog";
 import {
   AlertDialog,
@@ -28,11 +27,6 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
   Select,
@@ -49,6 +43,7 @@ import { getCompanyDepartmentsAction } from "../../actions/areas";
 interface RegisterEmployeeModalProps {
   isOpen: boolean;
   onOpenChange: (open: boolean) => void;
+  companyName?: string;
   onEmployeeCreated?: (employee: {
     id: string;
     employee_id?: string | null;
@@ -62,24 +57,36 @@ interface RegisterEmployeeModalProps {
   }) => void;
 }
 
+interface RegisteredSummary {
+  fullName: string;
+  email: string;
+  department: string;
+  forcePasswordChange: boolean;
+}
+
 export function RegisterEmployeeModal({
   isOpen,
   onOpenChange,
+  companyName,
   onEmployeeCreated,
 }: RegisterEmployeeModalProps) {
-  const [activeTab, setActiveTab] = React.useState<string>("register");
+  const [activeTab, setActiveTab] = React.useState<"register" | "invite">("register");
   const [isSubmitting, setIsSubmitting] = React.useState(false);
 
-  // Tab 1: Invitar Empleado
-  const [inviteEmails, setInviteEmails] = React.useState("");
-
-  // Tab 2: Registrar Empleado
+  // Tab 1: Registrar empleado
   const [fullName, setFullName] = React.useState("");
   const [email, setEmail] = React.useState("");
   const [department, setDepartment] = React.useState("");
   const [password, setPassword] = React.useState("");
   const [confirmPassword, setConfirmPassword] = React.useState("");
   const [forcePasswordChange, setForcePasswordChange] = React.useState(true);
+
+  // Tab 2: Invitar por correo
+  const [inviteEmails, setInviteEmails] = React.useState("");
+
+  // Confirmation step
+  const [registeredSummary, setRegisteredSummary] =
+    React.useState<RegisteredSummary | null>(null);
 
   // Departments list from company
   const [availableDepartments, setAvailableDepartments] = React.useState<
@@ -114,10 +121,32 @@ export function RegisterEmployeeModal({
     description: "",
   });
 
+  const resetForm = () => {
+    setFullName("");
+    setEmail("");
+    setDepartment("");
+    setPassword("");
+    setConfirmPassword("");
+    setForcePasswordChange(true);
+    setInviteEmails("");
+    setRegisteredSummary(null);
+    setShowPassword(false);
+    setShowConfirmPassword(false);
+  };
+
   const handleClose = () => {
     if (isSubmitting) return;
+    resetForm();
     onOpenChange(false);
   };
+
+  const isRegisterFormValid =
+    fullName.trim().length >= 3 &&
+    /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim()) &&
+    password.length >= 8 &&
+    confirmPassword === password;
+
+  const isInviteFormValid = inviteEmails.trim().length > 0;
 
   const handleRegisterSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -152,13 +181,14 @@ export function RegisterEmployeeModal({
 
     setIsSubmitting(true);
     try {
+      const cleanDept = department && department !== "none" ? department.trim() : "";
       const res = await registerDirectEmployeeAction({
         full_name: fullName.trim(),
         email: email.trim(),
         password,
         confirm_password: confirmPassword,
         force_password_change: forcePasswordChange,
-        department: department && department !== "none" ? department.trim() : undefined,
+        department: cleanDept || undefined,
       });
 
       if (!res.success) {
@@ -187,23 +217,16 @@ export function RegisterEmployeeModal({
         return;
       }
 
-      toast.success("¡Empleado registrado exitosamente!", {
-        description: `${fullName.trim()} se ha incorporado a tu plantilla de empleados.`,
-      });
-
       if (onEmployeeCreated && res.data?.employee) {
         onEmployeeCreated(res.data.employee);
       }
 
-      // Reset form
-      setFullName("");
-      setEmail("");
-      setDepartment("");
-      setPassword("");
-      setConfirmPassword("");
-      setForcePasswordChange(true);
-
-      onOpenChange(false);
+      setRegisteredSummary({
+        fullName: fullName.trim(),
+        email: email.trim(),
+        department: cleanDept,
+        forcePasswordChange,
+      });
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : "Error inesperado al registrar.";
       setAlertState({
@@ -217,356 +240,462 @@ export function RegisterEmployeeModal({
     }
   };
 
+  const handleInviteSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!isInviteFormValid) return;
+
+    const emails = inviteEmails
+      .split(/[\n,;]+/)
+      .map((item) => item.trim())
+      .filter(Boolean);
+
+    if (emails.length === 0) return;
+
+    toast.info("Invitaciones preparadas", {
+      description: `Se procesarán ${emails.length} ${emails.length === 1 ? "invitación" : "invitaciones"} por correo.`,
+    });
+    handleClose();
+  };
+
+  const orgSuffix = companyName ? ` en ${companyName}` : "";
+  const orgJoinSuffix = companyName ? ` a ${companyName}` : "";
+
   return (
     <>
-      <Dialog open={isOpen} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-xl max-h-[90vh] overflow-y-auto rounded-4xl p-6">
-        <DialogHeader className="space-y-1.5 pb-2 border-b border-border/40">
-          <div className="flex items-center gap-2.5">
-            <div className="size-10 rounded-2xl bg-primary/10 text-primary flex items-center justify-center shrink-0">
-              <UserPlus className="size-5" />
-            </div>
-            <div>
-              <DialogTitle className="text-xl font-bold tracking-tight">
-                Alta de Empleados
-              </DialogTitle>
-              <DialogDescription className="text-xs text-muted-foreground">
-                Invita a nuevos empleados por correo electrónico o créalos directamente con sus credenciales de acceso.
-              </DialogDescription>
-            </div>
-          </div>
-        </DialogHeader>
-
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="pt-2">
-          <TabsList className="grid grid-cols-2 w-full h-11 p-1 rounded-2xl bg-muted/60 border border-border/40">
-            <TabsTrigger
-              value="invite"
-              className="rounded-xl text-xs font-bold gap-2 cursor-pointer transition-all data-active:bg-background data-active:text-foreground data-active:shadow-2xs"
-            >
-              <Mail className="size-4" />
-              <span>Invitar Empleado</span>
-            </TabsTrigger>
-            <TabsTrigger
-              value="register"
-              className="rounded-xl text-xs font-bold gap-2 cursor-pointer transition-all data-active:bg-background data-active:text-foreground data-active:shadow-2xs"
-            >
-              <UserPlus className="size-4" />
-              <span>Registrar Empleado</span>
-            </TabsTrigger>
-          </TabsList>
-
-          {/* TAB 1: INVITAR EMPLEADO */}
-          <TabsContent value="invite" className="mt-4 space-y-5">
-            <div className="space-y-2">
-              <Label htmlFor="invite_emails" className="text-xs font-bold text-foreground">
-                Correos electrónicos de los empleados a invitar
-              </Label>
-              <Textarea
-                id="invite_emails"
-                value={inviteEmails}
-                onChange={(e) => setInviteEmails(e.target.value)}
-                placeholder={"ejemplo1@empresa.com, ejemplo2@empresa.com\no escribe una lista de correos separados por coma o salto de línea..."}
-                className="min-h-[160px] rounded-2xl p-3.5 bg-input/50 border-input text-xs sm:text-sm font-medium focus-visible:ring-1 focus-visible:ring-primary resize-y"
-              />
-              <p className="text-[11px] text-muted-foreground">
-                Escribe uno o varios correos electrónicos separados por comas o saltos de línea para enviar las invitaciones de registro.
-              </p>
-            </div>
-
-            <DialogFooter className="pt-3 border-t border-border/40 gap-2 sm:gap-0">
-              <Button
-                type="button"
-                variant="outline"
-                onClick={handleClose}
-                className="rounded-4xl font-semibold text-xs h-9 cursor-pointer"
-              >
-                Cancelar
-              </Button>
-              <Button
-                type="button"
-                className="rounded-4xl font-bold text-xs h-9 bg-primary text-primary-foreground hover:bg-primary/90 shadow-xs flex items-center gap-1.5 cursor-pointer px-5"
-              >
-                <Send className="size-3.5" />
-                <span>Invitar</span>
-              </Button>
-            </DialogFooter>
-          </TabsContent>
-
-          {/* TAB 2: REGISTRAR EMPLEADO */}
-          <TabsContent value="register" className="mt-4">
-            <form onSubmit={handleRegisterSubmit} className="space-y-4">
-              <div className="space-y-3.5">
-                {/* Nombre */}
-                <div className="space-y-1.5">
-                  <Label htmlFor="full_name" className="text-xs font-semibold">
-                    Nombre Completo <span className="text-destructive">*</span>
-                  </Label>
-                  <Input
-                    id="full_name"
-                    type="text"
-                    placeholder="Ej. Ana Sofía Morales"
-                    value={fullName}
-                    onChange={(e) => setFullName(e.target.value)}
-                    disabled={isSubmitting}
-                    className="h-9 rounded-3xl bg-input/50 border-input text-xs sm:text-sm font-medium"
-                  />
-                </div>
-
-                {/* Email */}
-                <div className="space-y-1.5">
-                  <Label htmlFor="email" className="text-xs font-semibold">
-                    Correo Electrónico <span className="text-destructive">*</span>
-                  </Label>
-                  <Input
-                    id="email"
-                    type="email"
-                    placeholder="ana.morales@empresa.com"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    disabled={isSubmitting}
-                    className="h-9 rounded-3xl bg-input/50 border-input text-xs sm:text-sm font-medium"
-                  />
-                </div>
-
-                {/* Área o Departamento */}
-                <div className="space-y-1.5">
-                  <div className="flex items-center justify-between">
-                    <Label htmlFor="employee_dept" className="text-xs font-semibold">
-                      Área o Departamento <span className="text-muted-foreground font-normal">(Opcional)</span>
-                    </Label>
-                    <a
-                      href="/dashboard/company/areas"
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-[11px] font-semibold text-primary hover:underline"
-                    >
-                      + Gestionar áreas
-                    </a>
-                  </div>
-                  <Select
-                    value={department}
-                    onValueChange={(val) => setDepartment(val ?? "")}
-                    disabled={isSubmitting}
-                  >
-                    <SelectTrigger
-                      id="employee_dept"
-                      className="w-full text-xs sm:text-sm font-semibold cursor-pointer"
-                    >
-                      <SelectValue placeholder="Selecciona el área para este colaborador..." />
-                    </SelectTrigger>
-                    <SelectContent
-                      alignItemWithTrigger={false}
-                      side="bottom"
-                      sideOffset={6}
-                      className="w-(--anchor-width) min-w-[320px] sm:min-w-[420px] rounded-2xl p-2 border border-border/70 shadow-2xl bg-popover/98 backdrop-blur-md max-h-72"
-                    >
-                      <SelectItem
-                        value="none"
-                        className="py-2.5 px-3.5 rounded-xl text-xs sm:text-sm font-medium cursor-pointer my-0.5 focus:bg-accent transition-colors"
-                      >
-                        <span className="text-muted-foreground italic">Sin área asignada</span>
-                      </SelectItem>
-                      {availableDepartments.map((d) => (
-                        <SelectItem
-                          key={d.id}
-                          value={d.name}
-                          className="py-2.5 px-3.5 rounded-xl text-xs sm:text-sm font-semibold cursor-pointer my-0.5 focus:bg-accent transition-colors"
-                        >
-                          <div className="flex items-center gap-2.5">
-                            <span
-                              className="size-3 rounded-full shrink-0 shadow-2xs ring-1 ring-border/20"
-                              style={{ backgroundColor: d.color || "#6366f1" }}
-                            />
-                            <span className="text-foreground">{d.name}</span>
-                          </div>
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                {/* Contraseñas en Grid */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
-                  {/* Contraseña */}
-                  <div className="space-y-1.5">
-                    <Label htmlFor="password" className="text-xs font-semibold">
-                      Contraseña <span className="text-destructive">*</span>
-                    </Label>
-                    <div className="relative">
-                      <Input
-                        id="password"
-                        type={showPassword ? "text" : "password"}
-                        placeholder="••••••••••••"
-                        value={password}
-                        onChange={(e) => setPassword(e.target.value)}
-                        disabled={isSubmitting}
-                        className="h-9 pr-9 rounded-3xl bg-input/50 border-input text-xs sm:text-sm font-medium"
-                      />
-                      <button
-                        type="button"
-                        onClick={() => setShowPassword(!showPassword)}
-                        className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground cursor-pointer"
-                        aria-label={showPassword ? "Ocultar contraseña" : "Ver contraseña"}
-                      >
-                        {showPassword ? (
-                          <EyeOff className="size-4" />
-                        ) : (
-                          <Eye className="size-4" />
-                        )}
-                      </button>
-                    </div>
-                  </div>
-
-                  {/* Confirmar Contraseña */}
-                  <div className="space-y-1.5">
-                    <Label htmlFor="confirm_password" className="text-xs font-semibold">
-                      Confirmar Contraseña <span className="text-destructive">*</span>
-                    </Label>
-                    <div className="relative">
-                      <Input
-                        id="confirm_password"
-                        type={showConfirmPassword ? "text" : "password"}
-                        placeholder="••••••••••••"
-                        value={confirmPassword}
-                        onChange={(e) => setConfirmPassword(e.target.value)}
-                        disabled={isSubmitting}
-                        className="h-9 pr-9 rounded-3xl bg-input/50 border-input text-xs sm:text-sm font-medium"
-                      />
-                      <button
-                        type="button"
-                        onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                        className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground cursor-pointer"
-                        aria-label={showConfirmPassword ? "Ocultar confirmación" : "Ver confirmación"}
-                      >
-                        {showConfirmPassword ? (
-                          <EyeOff className="size-4" />
-                        ) : (
-                          <Eye className="size-4" />
-                        )}
-                      </button>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Checkbox: Forzar modificación de contraseña */}
-                <div className="flex items-start gap-3 rounded-2xl border border-border/50 bg-muted/20 p-3.5 mt-2">
-                  <Checkbox
-                    id="force_password_change"
-                    checked={forcePasswordChange}
-                    onCheckedChange={(checked) => setForcePasswordChange(Boolean(checked))}
-                    disabled={isSubmitting}
-                    className="mt-0.5"
-                  />
-                  <div className="space-y-0.5">
-                    <Label
-                      htmlFor="force_password_change"
-                      className="text-xs font-bold text-foreground cursor-pointer"
-                    >
-                      Forzar modificación de contraseña
-                    </Label>
-                    <p className="text-[11px] text-muted-foreground leading-relaxed">
-                      Indicarle al usuario creado que debe cambiar su contraseña obligatoriamente en su primer inicio de sesión.
-                    </p>
-                  </div>
-                </div>
+      <Dialog
+        open={isOpen}
+        onOpenChange={(open) => {
+          if (!open) {
+            handleClose();
+          } else {
+            onOpenChange(true);
+          }
+        }}
+      >
+        <DialogContent
+          showCloseButton={false}
+          className={cn(
+            "max-h-[90vh] overflow-y-auto rounded-[16px] border border-border bg-card p-[24px] shadow-[0px_12px_38px_0px_rgba(0,0,0,0.28)] gap-[18px] ring-0",
+            registeredSummary ? "sm:max-w-[480px]" : "sm:max-w-[560px]"
+          )}
+        >
+          {registeredSummary ? (
+            <div className="flex flex-col gap-[18px] w-full">
+              <div className="flex flex-col gap-[8px] items-start">
+                <HugeiconsIcon
+                  icon={CheckmarkCircle02Icon}
+                  size={32}
+                  strokeWidth={1.8}
+                  className="text-link"
+                />
+                <DialogTitle className="text-[25px] font-semibold leading-[31px] text-foreground">
+                  Empleado registrado
+                </DialogTitle>
+                <DialogDescription className="text-[14px] font-normal leading-[20px] text-muted-foreground">
+                  {registeredSummary.fullName} ya forma parte de{" "}
+                  {companyName || "tu empresa"}.
+                </DialogDescription>
               </div>
 
-              <DialogFooter className="pt-3 border-t border-border/40 gap-2 sm:gap-0">
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={handleClose}
-                  disabled={isSubmitting}
-                  className="rounded-4xl font-semibold text-xs h-9 cursor-pointer"
-                >
-                  Cancelar
-                </Button>
-                <Button
-                  type="submit"
-                  disabled={isSubmitting}
-                  className="rounded-4xl font-bold text-xs h-9 bg-primary text-primary-foreground hover:bg-primary/90 shadow-xs flex items-center gap-1.5 cursor-pointer px-5"
-                >
-                  {isSubmitting ? (
-                    <>
-                      <Loader2 className="size-3.5 animate-spin" />
-                      <span>Registrando...</span>
-                    </>
-                  ) : (
-                    <>
-                      <UserPlus className="size-3.5" />
-                      <span>Crear</span>
-                    </>
-                  )}
-                </Button>
-              </DialogFooter>
-            </form>
-          </TabsContent>
-        </Tabs>
-      </DialogContent>
-    </Dialog>
+              <div className="bg-muted rounded-[10px] p-[12px] flex flex-col gap-[5px] w-full">
+                <p className="text-[14px] font-medium leading-[20px] text-foreground">
+                  Área · {registeredSummary.department || "Sin área asignada"}
+                </p>
+                <p className="text-[13px] font-normal leading-[19px] text-muted-foreground">
+                  Correo de acceso · {registeredSummary.email}
+                </p>
+                {registeredSummary.forcePasswordChange && (
+                  <p className="text-[13px] font-normal leading-[19px] text-muted-foreground">
+                    {registeredSummary.fullName.split(" ")[0]} deberá cambiar la
+                    contraseña al iniciar sesión.
+                  </p>
+                )}
+              </div>
 
-    {/* Alert Dialog para Notificación de Conflicto (Opción A) o Error */}
-    <AlertDialog
-      open={alertState.isOpen}
-      onOpenChange={(open) => setAlertState((prev) => ({ ...prev, isOpen: open }))}
-    >
-      <AlertDialogContent className="z-[70] rounded-4xl max-w-md p-6 border-border/60 shadow-2xl bg-card text-card-foreground">
-        <AlertDialogHeader>
-          <div className="flex items-center gap-3">
-            <div
-              className={cn(
-                "size-10 rounded-2xl flex items-center justify-center shrink-0",
-                alertState.type === "user_exists"
-                  ? "bg-primary/10 text-primary"
-                  : "bg-destructive/10 text-destructive"
-              )}
-            >
-              {alertState.type === "user_exists" ? (
-                <Mail className="size-5" />
+              <div className="flex items-center justify-end w-full">
+                <button
+                  type="button"
+                  onClick={handleClose}
+                  className="h-[44px] px-[20px] rounded-[8px] bg-primary text-primary-foreground text-[14px] font-semibold leading-[20px] hover:opacity-90 transition-opacity cursor-pointer"
+                >
+                  Volver a Plantilla
+                </button>
+              </div>
+            </div>
+          ) : (
+            <div className="flex flex-col gap-[18px] w-full">
+              {/* Encabezado */}
+              <div className="flex flex-col gap-[4px]">
+                <DialogTitle className="text-[24px] font-semibold leading-[30px] text-foreground">
+                  Agregar a tu equipo
+                </DialogTitle>
+                <DialogDescription className="text-[14px] font-normal leading-[20px] text-muted-foreground">
+                  {activeTab === "register"
+                    ? `Crea el acceso del empleado y asígnale un área${orgSuffix}.`
+                    : `Invita a personas a unirse${orgJoinSuffix} con su cuenta de Kanpro.`}
+                </DialogDescription>
+              </div>
+
+              {/* Tabs */}
+              <div className="bg-muted p-[4px] rounded-[10px] grid grid-cols-2 gap-[8px] w-full">
+                <button
+                  type="button"
+                  onClick={() => setActiveTab("register")}
+                  className={cn(
+                    "h-[40px] rounded-[7px] text-[14px] leading-[20px] flex items-center justify-center transition-colors cursor-pointer",
+                    activeTab === "register"
+                      ? "bg-sidebar-accent text-link font-semibold"
+                      : "text-muted-foreground hover:text-foreground font-medium"
+                  )}
+                >
+                  Registrar empleado
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setActiveTab("invite")}
+                  className={cn(
+                    "h-[40px] rounded-[7px] text-[14px] leading-[20px] flex items-center justify-center transition-colors cursor-pointer",
+                    activeTab === "invite"
+                      ? "bg-sidebar-accent text-link font-semibold"
+                      : "text-muted-foreground hover:text-foreground font-medium"
+                  )}
+                >
+                  Invitar por correo
+                </button>
+              </div>
+
+              {/* Tab 1: Registrar empleado */}
+              {activeTab === "register" ? (
+                <form onSubmit={handleRegisterSubmit} className="flex flex-col gap-[18px]">
+                  <div className="flex flex-col gap-[14px]">
+                    {/* Nombre completo */}
+                    <div className="flex flex-col gap-[6px]">
+                      <label
+                        htmlFor="full_name"
+                        className="text-[14px] font-medium leading-[20px] text-foreground"
+                      >
+                        Nombre completo
+                      </label>
+                      <input
+                        id="full_name"
+                        type="text"
+                        placeholder="Ej. Andrea Canul"
+                        value={fullName}
+                        onChange={(e) => setFullName(e.target.value)}
+                        disabled={isSubmitting}
+                        className="h-[44px] w-full rounded-[8px] border border-input bg-card px-[12px] text-[14px] text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring disabled:opacity-50"
+                      />
+                    </div>
+
+                    {/* Correo electrónico */}
+                    <div className="flex flex-col gap-[6px]">
+                      <label
+                        htmlFor="email"
+                        className="text-[14px] font-medium leading-[20px] text-foreground"
+                      >
+                        Correo electrónico
+                      </label>
+                      <input
+                        id="email"
+                        type="email"
+                        placeholder="nombre@empresa.mx"
+                        value={email}
+                        onChange={(e) => setEmail(e.target.value)}
+                        disabled={isSubmitting}
+                        className="h-[44px] w-full rounded-[8px] border border-input bg-card px-[12px] text-[14px] text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring disabled:opacity-50"
+                      />
+                    </div>
+
+                    {/* Área de trabajo */}
+                    <div className="flex flex-col gap-[6px]">
+                      <label
+                        htmlFor="employee_dept"
+                        className="text-[14px] font-medium leading-[20px] text-foreground"
+                      >
+                        Área de trabajo
+                      </label>
+                      <Select
+                        value={department}
+                        onValueChange={(val) => setDepartment(val ?? "")}
+                        disabled={isSubmitting}
+                      >
+                        <SelectTrigger
+                          id="employee_dept"
+                          className="h-[44px] w-full rounded-[8px] border border-input bg-card px-[12px] text-[14px] font-normal text-foreground cursor-pointer"
+                        >
+                          <SelectValue placeholder="Selecciona un área" />
+                        </SelectTrigger>
+                        <SelectContent
+                          alignItemWithTrigger={false}
+                          side="bottom"
+                          sideOffset={6}
+                          className="w-(--anchor-width) min-w-[280px] rounded-[12px] p-1.5 border border-border shadow-xl bg-card max-h-64"
+                        >
+                          <SelectItem
+                            value="none"
+                            className="py-2 px-3 rounded-[8px] text-[13px] font-medium cursor-pointer"
+                          >
+                            <span className="text-muted-foreground">Sin área asignada</span>
+                          </SelectItem>
+                          {availableDepartments.map((d) => (
+                            <SelectItem
+                              key={d.id}
+                              value={d.name}
+                              className="py-2 px-3 rounded-[8px] text-[13px] font-medium cursor-pointer"
+                            >
+                              {d.name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    {/* Contraseña de acceso */}
+                    <div className="flex flex-col gap-[6px]">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-[12px]">
+                        <div className="flex flex-col gap-[6px]">
+                          <label
+                            htmlFor="password"
+                            className="text-[14px] font-medium leading-[20px] text-foreground"
+                          >
+                            Contraseña inicial
+                          </label>
+                          <div className="relative">
+                            <input
+                              id="password"
+                              type={showPassword ? "text" : "password"}
+                              placeholder="Crea una contraseña"
+                              value={password}
+                              onChange={(e) => setPassword(e.target.value)}
+                              disabled={isSubmitting}
+                              className="h-[44px] w-full rounded-[8px] border border-input bg-card pl-[12px] pr-[36px] text-[14px] text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring disabled:opacity-50"
+                            />
+                            <button
+                              type="button"
+                              onClick={() => setShowPassword(!showPassword)}
+                              className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground cursor-pointer"
+                              aria-label={
+                                showPassword ? "Ocultar contraseña" : "Ver contraseña"
+                              }
+                            >
+                              {showPassword ? (
+                                <EyeOff className="size-4" />
+                              ) : (
+                                <Eye className="size-4" />
+                              )}
+                            </button>
+                          </div>
+                        </div>
+
+                        <div className="flex flex-col gap-[6px]">
+                          <label
+                            htmlFor="confirm_password"
+                            className="text-[14px] font-medium leading-[20px] text-foreground"
+                          >
+                            Confirmar contraseña
+                          </label>
+                          <div className="relative">
+                            <input
+                              id="confirm_password"
+                              type={showConfirmPassword ? "text" : "password"}
+                              placeholder="Repite la contraseña"
+                              value={confirmPassword}
+                              onChange={(e) => setConfirmPassword(e.target.value)}
+                              disabled={isSubmitting}
+                              className="h-[44px] w-full rounded-[8px] border border-input bg-card pl-[12px] pr-[36px] text-[14px] text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring disabled:opacity-50"
+                            />
+                            <button
+                              type="button"
+                              onClick={() =>
+                                setShowConfirmPassword(!showConfirmPassword)
+                              }
+                              className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground cursor-pointer"
+                              aria-label={
+                                showConfirmPassword
+                                  ? "Ocultar confirmación"
+                                  : "Ver confirmación"
+                              }
+                            >
+                              {showConfirmPassword ? (
+                                <EyeOff className="size-4" />
+                              ) : (
+                                <Eye className="size-4" />
+                              )}
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                      <p className="text-[12px] font-normal leading-[18px] text-muted-foreground">
+                        Mínimo 8 caracteres.
+                      </p>
+                    </div>
+
+                    {/* Checkbox */}
+                    <div className="flex items-center gap-[10px]">
+                      <Checkbox
+                        id="force_password_change"
+                        checked={forcePasswordChange}
+                        onCheckedChange={(checked) =>
+                          setForcePasswordChange(Boolean(checked))
+                        }
+                        disabled={isSubmitting}
+                        className="size-[18px] rounded-[4px]"
+                      />
+                      <label
+                        htmlFor="force_password_change"
+                        className="text-[13px] font-medium leading-[19px] text-foreground cursor-pointer select-none"
+                      >
+                        Exigir cambio de contraseña en el primer inicio de sesión
+                      </label>
+                    </div>
+                  </div>
+
+                  <div className="h-px bg-border w-full" />
+
+                  <div className="flex items-center justify-end gap-[8px]">
+                    <button
+                      type="button"
+                      onClick={handleClose}
+                      disabled={isSubmitting}
+                      className="h-[44px] px-[18px] rounded-[8px] bg-card border border-control-border text-[14px] font-semibold leading-[20px] text-foreground hover:bg-accent transition-colors cursor-pointer disabled:opacity-50"
+                    >
+                      Cancelar
+                    </button>
+                    <button
+                      type="submit"
+                      disabled={isSubmitting || !isRegisterFormValid}
+                      className={cn(
+                        "h-[44px] px-[18px] rounded-[8px] text-[14px] font-semibold leading-[20px] inline-flex items-center justify-center gap-2 transition-colors",
+                        isRegisterFormValid && !isSubmitting
+                          ? "bg-primary text-primary-foreground hover:opacity-90 cursor-pointer"
+                          : "bg-muted text-muted-foreground cursor-not-allowed"
+                      )}
+                    >
+                      {isSubmitting ? (
+                        <>
+                          <Loader2 className="size-4 animate-spin" />
+                          <span>Registrando...</span>
+                        </>
+                      ) : (
+                        <span>Registrar empleado</span>
+                      )}
+                    </button>
+                  </div>
+                </form>
               ) : (
-                <AlertCircle className="size-5" />
+                /* Tab 2: Invitar por correo */
+                <form onSubmit={handleInviteSubmit} className="flex flex-col gap-[18px]">
+                  <div className="flex flex-col gap-[8px]">
+                    <label
+                      htmlFor="invite_emails"
+                      className="text-[14px] font-medium leading-[20px] text-foreground"
+                    >
+                      Correos electrónicos
+                    </label>
+                    <textarea
+                      id="invite_emails"
+                      value={inviteEmails}
+                      onChange={(e) => setInviteEmails(e.target.value)}
+                      placeholder="Ej. nombre@empresa.mx"
+                      className="min-h-[104px] w-full rounded-[8px] border border-input bg-card p-[12px] text-[14px] text-foreground placeholder:text-muted-foreground resize-y focus:outline-none focus:ring-2 focus:ring-ring"
+                    />
+                    <p className="text-[13px] font-normal leading-[19px] text-muted-foreground">
+                      Escribe uno o varios correos, separados por comas o saltos de línea.
+                    </p>
+                  </div>
+
+                  <div className="flex items-center justify-end gap-[8px]">
+                    <button
+                      type="button"
+                      onClick={handleClose}
+                      className="h-[44px] px-[18px] rounded-[8px] bg-card border border-control-border text-[14px] font-semibold leading-[20px] text-foreground hover:bg-accent transition-colors cursor-pointer"
+                    >
+                      Cancelar
+                    </button>
+                    <button
+                      type="submit"
+                      disabled={!isInviteFormValid}
+                      className={cn(
+                        "h-[44px] px-[18px] rounded-[8px] text-[14px] font-semibold leading-[20px] inline-flex items-center justify-center transition-colors",
+                        isInviteFormValid
+                          ? "bg-primary text-primary-foreground hover:opacity-90 cursor-pointer"
+                          : "bg-muted text-muted-foreground cursor-not-allowed"
+                      )}
+                    >
+                      Enviar invitaciones
+                    </button>
+                  </div>
+                </form>
               )}
             </div>
-            <AlertDialogTitle className="text-base font-extrabold text-foreground">
-              {alertState.title}
-            </AlertDialogTitle>
-          </div>
-          <AlertDialogDescription className="text-xs text-muted-foreground pt-2 leading-relaxed">
-            {alertState.description}
-          </AlertDialogDescription>
-        </AlertDialogHeader>
-
-        <AlertDialogFooter className="gap-2 pt-3">
-          {alertState.type === "user_exists" ? (
-            <>
-              <AlertDialogCancel className="h-9 rounded-4xl text-xs font-semibold cursor-pointer">
-                Permanecer aquí
-              </AlertDialogCancel>
-              <AlertDialogAction
-                onClick={() => {
-                  const emailToInvite = alertState.conflictEmail || email.trim();
-                  if (emailToInvite) {
-                    setInviteEmails((prev) =>
-                      prev.trim() ? `${prev.trim()}\n${emailToInvite}` : emailToInvite
-                    );
-                  }
-                  setActiveTab("invite");
-                  setAlertState((prev) => ({ ...prev, isOpen: false }));
-                }}
-                className="h-9 rounded-4xl text-xs font-bold bg-primary text-primary-foreground hover:bg-primary/90 shadow-xs cursor-pointer flex items-center gap-1.5"
-              >
-                <Send className="size-3.5" />
-                <span>Ir a Invitar Empleado</span>
-              </AlertDialogAction>
-            </>
-          ) : (
-            <AlertDialogCancel className="h-9 rounded-4xl text-xs font-semibold cursor-pointer">
-              Entendido
-            </AlertDialogCancel>
           )}
-        </AlertDialogFooter>
-      </AlertDialogContent>
-    </AlertDialog>
-  </>
+        </DialogContent>
+      </Dialog>
+
+      {/* Alert Dialog para Notificación de Conflicto o Error */}
+      <AlertDialog
+        open={alertState.isOpen}
+        onOpenChange={(open) =>
+          setAlertState((prev) => ({ ...prev, isOpen: open }))
+        }
+      >
+        <AlertDialogContent className="z-[70] rounded-[16px] max-w-md p-6 border-border shadow-2xl bg-card text-card-foreground">
+          <AlertDialogHeader>
+            <div className="flex items-center gap-3">
+              <div
+                className={cn(
+                  "size-10 rounded-[10px] flex items-center justify-center shrink-0",
+                  alertState.type === "user_exists"
+                    ? "bg-sidebar-accent text-link"
+                    : "bg-destructive/10 text-destructive"
+                )}
+              >
+                {alertState.type === "user_exists" ? (
+                  <Mail className="size-5" />
+                ) : (
+                  <AlertCircle className="size-5" />
+                )}
+              </div>
+              <AlertDialogTitle className="text-[18px] font-semibold text-foreground">
+                {alertState.title}
+              </AlertDialogTitle>
+            </div>
+            <AlertDialogDescription className="text-[14px] text-muted-foreground pt-2 leading-relaxed">
+              {alertState.description}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+
+          <AlertDialogFooter className="gap-2 pt-3">
+            {alertState.type === "user_exists" ? (
+              <>
+                <AlertDialogCancel className="h-[40px] rounded-[8px] text-[13px] font-semibold cursor-pointer">
+                  Permanecer aquí
+                </AlertDialogCancel>
+                <AlertDialogAction
+                  onClick={() => {
+                    const emailToInvite = alertState.conflictEmail || email.trim();
+                    if (emailToInvite) {
+                      setInviteEmails((prev) =>
+                        prev.trim() ? `${prev.trim()}\n${emailToInvite}` : emailToInvite
+                      );
+                    }
+                    setActiveTab("invite");
+                    setAlertState((prev) => ({ ...prev, isOpen: false }));
+                  }}
+                  className="h-[40px] rounded-[8px] text-[13px] font-semibold bg-primary text-primary-foreground hover:opacity-90 cursor-pointer flex items-center gap-1.5"
+                >
+                  <Send className="size-3.5" />
+                  <span>Ir a Invitar Empleado</span>
+                </AlertDialogAction>
+              </>
+            ) : (
+              <AlertDialogCancel className="h-[40px] rounded-[8px] text-[13px] font-semibold cursor-pointer">
+                Entendido
+              </AlertDialogCancel>
+            )}
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </>
   );
 }

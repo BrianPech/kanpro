@@ -2,23 +2,52 @@
 
 import React, { useState } from "react";
 import Link from "next/link";
+import { toast } from "sonner";
 import { HugeiconsIcon } from "@hugeicons/react";
 import {
-  Alert02Icon,
   Briefcase01Icon,
   Calendar03Icon,
+  Clock01Icon,
+  File02Icon,
   InboxIcon,
+  Invoice01Icon,
+  StarIcon,
   UserGroupIcon,
 } from "@hugeicons/core-free-icons";
+import { Lock } from "@/components/ui/icons";
+import {
+  getLockedModuleBadge,
+  isCompanyRouteAllowed,
+} from "@/modules/company/config/demo-rollout";
 import type { CompanyDashboardData } from "../types/dashboard";
 import { CompanyDashboardTour } from "./dashboard/company-dashboard-tour";
 
 const QUICK_ACTIONS = [
-  { label: "Registrar empleado", href: "/dashboard/company/employees?action=new" },
-  { label: "Ver asistencia", href: "/dashboard/company/attendance" },
-  { label: "Generar contrato", href: "/dashboard/company/contracts" },
-  { label: "Preparar nómina", href: "/dashboard/company/payroll" },
-  { label: "Matriz 9-Box", href: "/dashboard/company/evaluations" },
+  {
+    label: "Registrar empleado",
+    href: "/dashboard/company/employees?action=new",
+    icon: UserGroupIcon,
+  },
+  {
+    label: "Ver asistencia",
+    href: "/dashboard/company/attendance",
+    icon: Clock01Icon,
+  },
+  {
+    label: "Generar contrato",
+    href: "/dashboard/company/contracts",
+    icon: File02Icon,
+  },
+  {
+    label: "Preparar nómina",
+    href: "/dashboard/company/payroll",
+    icon: Invoice01Icon,
+  },
+  {
+    label: "Matriz 9-Box",
+    href: "/dashboard/company/evaluations",
+    icon: StarIcon,
+  },
 ] as const;
 
 const PAYROLL_STATUS_LABELS: Record<CompanyDashboardData["payrollSummary"]["status"], string> = {
@@ -59,28 +88,6 @@ function formatRelativeDay(value: string): string {
   return formatShortDate(value);
 }
 
-function buildAttentionMessage(data: CompanyDashboardData): string {
-  const { expiringContractsCount, pendingIncidentsCount } = data.kpis;
-  const parts: string[] = [];
-
-  if (expiringContractsCount > 0) {
-    parts.push(
-      `${expiringContractsCount} ${expiringContractsCount === 1 ? "contrato próximo" : "contratos próximos"} a vencer`,
-    );
-  }
-  if (pendingIncidentsCount > 0) {
-    parts.push(
-      `${pendingIncidentsCount} ${pendingIncidentsCount === 1 ? "incidencia" : "incidencias"} por revisar`,
-    );
-  }
-
-  if (parts.length > 0) {
-    return `${parts.join(" y ")}.`;
-  }
-
-  return data.alerts[0]?.description || data.alerts[0]?.title || "Revisa los elementos operativos pendientes.";
-}
-
 function SectionCardHeader({
   title,
   href,
@@ -103,11 +110,14 @@ function SectionCardHeader({
   );
 }
 
-export function DashboardView(props: CompanyDashboardData) {
+interface DashboardViewProps extends CompanyDashboardData {
+  enabledModules?: string[];
+}
+
+export function DashboardView(props: DashboardViewProps) {
   const {
     companyName = "Mi Empresa",
     kpis,
-    alerts = [],
     openVacanciesList = [],
     applicationsSummary,
     recentCandidates = [],
@@ -115,6 +125,7 @@ export function DashboardView(props: CompanyDashboardData) {
     todayAttendance = [],
     payrollSummary,
     subscriptionSummary,
+    enabledModules,
   } = props;
 
   const [isTourOpen, setIsTourOpen] = useState(false);
@@ -123,9 +134,6 @@ export function DashboardView(props: CompanyDashboardData) {
   const todayAttendanceCount = todayAttendance.filter(
     (item) => item.status === "presente" || item.status === "retardo" || Boolean(item.checkInTime),
   ).length;
-
-  const showAttentionBanner =
-    kpis.expiringContractsCount > 0 || kpis.pendingIncidentsCount > 0 || alerts.length > 0;
 
   const stageItems = [
     { label: "Nuevas", count: applicationsSummary?.pending ?? 0 },
@@ -209,40 +217,6 @@ export function DashboardView(props: CompanyDashboardData) {
           </Link>
         </div>
       </div>
-
-      {/* Pendientes de atención */}
-      {showAttentionBanner && (
-        <div className="bg-warning rounded-[12px] p-4 flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-          <div className="flex items-start gap-3">
-            <div className="size-8 shrink-0 flex items-center justify-center text-warning-foreground">
-              <HugeiconsIcon icon={Alert02Icon} size={20} strokeWidth={1.8} />
-            </div>
-            <div className="flex flex-col gap-0.5">
-              <p className="text-[15px] font-semibold leading-[20px] text-warning-foreground">
-                Pendientes de atención
-              </p>
-              <p className="text-[13px] leading-[18px] text-warning-foreground/90">
-                {buildAttentionMessage(props)}
-              </p>
-            </div>
-          </div>
-
-          <div className="flex items-center gap-2 flex-wrap shrink-0">
-            <Link
-              href="/dashboard/company/contracts"
-              className="h-[44px] px-3 rounded-[8px] bg-card border border-control-border text-[14px] font-semibold text-foreground inline-flex items-center justify-center hover:bg-accent transition-colors"
-            >
-              Ver contratos
-            </Link>
-            <Link
-              href="/dashboard/company/incidents"
-              className="h-[44px] px-3 rounded-[8px] bg-card border border-control-border text-[14px] font-semibold text-foreground inline-flex items-center justify-center hover:bg-accent transition-colors"
-            >
-              Ver incidencias
-            </Link>
-          </div>
-        </div>
-      )}
 
       {/* Indicadores */}
       <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
@@ -485,15 +459,53 @@ export function DashboardView(props: CompanyDashboardData) {
           Acciones rápidas
         </h2>
         <div className="flex flex-wrap items-center gap-2.5">
-          {QUICK_ACTIONS.map((action) => (
-            <Link
-              key={action.href}
-              href={action.href}
-              className="h-[40px] px-3.5 rounded-[8px] bg-card border border-control-border text-[13px] font-semibold text-foreground inline-flex items-center justify-center hover:bg-accent transition-colors"
-            >
-              {action.label}
-            </Link>
-          ))}
+          {QUICK_ACTIONS.map((action) => {
+            const allowed = isCompanyRouteAllowed(action.href, enabledModules);
+            const lockedBadge = !allowed
+              ? getLockedModuleBadge(action.href)
+              : null;
+
+            if (!allowed) {
+              return (
+                <button
+                  key={action.href}
+                  type="button"
+                  onClick={() =>
+                    toast.info(`${action.label} (${lockedBadge})`, {
+                      description:
+                        "Este módulo no está habilitado para tu cuenta actual.",
+                    })
+                  }
+                  className="h-[40px] px-3.5 rounded-[8px] bg-muted/50 border border-border text-[13px] font-semibold text-muted-foreground opacity-75 inline-flex items-center justify-center gap-2 hover:bg-muted transition-colors cursor-not-allowed"
+                >
+                  <HugeiconsIcon
+                    icon={action.icon}
+                    size={16}
+                    strokeWidth={1.8}
+                    className="shrink-0"
+                  />
+                  <span>{action.label}</span>
+                  <Lock className="size-3.5 shrink-0" />
+                </button>
+              );
+            }
+
+            return (
+              <Link
+                key={action.href}
+                href={action.href}
+                className="h-[40px] px-3.5 rounded-[8px] bg-card border border-control-border text-[13px] font-semibold text-foreground inline-flex items-center justify-center gap-2 hover:bg-accent transition-colors"
+              >
+                <HugeiconsIcon
+                  icon={action.icon}
+                  size={16}
+                  strokeWidth={1.8}
+                  className="shrink-0"
+                />
+                <span>{action.label}</span>
+              </Link>
+            );
+          })}
         </div>
       </section>
 
