@@ -95,13 +95,21 @@ export async function getCompanyVerificationServerData(
     normalizedStatus = "unsubmitted";
   }
 
+  const accountHolderName =
+    (typeof user.user_metadata?.full_name === "string" &&
+      user.user_metadata.full_name.trim()) ||
+    (typeof user.user_metadata?.name === "string" &&
+      user.user_metadata.name.trim()) ||
+    baseProfile?.full_name?.trim() ||
+    "";
+
   const verificationData: CompanyVerificationData = {
     legal_name: companyProfile?.legal_name || "",
     company_name: companyProfile?.company_name || baseProfile?.full_name || "",
     rfc: companyProfile?.rfc || "",
     fiscal_address: companyProfile?.fiscal_address || baseProfile?.location || "",
     industry: companyProfile?.industry || "",
-    legal_rep_name: companyProfile?.legal_rep_name || "",
+    legal_rep_name: companyProfile?.legal_rep_name || accountHolderName,
     corporate_email: companyProfile?.corporate_email || baseProfile?.email || "",
     contact_phone: companyProfile?.contact_phone || baseProfile?.whatsapp_number || "",
     fiscal_regime: (companyProfile?.entity_type as "persona_moral" | "persona_fisica") || "persona_moral",

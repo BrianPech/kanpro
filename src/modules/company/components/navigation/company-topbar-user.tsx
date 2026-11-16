@@ -13,18 +13,13 @@ import {
   DropdownMenuContent,
   DropdownMenuGroup,
   DropdownMenuItem,
-  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Badge } from "@/components/ui/badge";
 import {
-  UserIcon,
   SettingsIcon,
   BellIcon,
   LogOutIcon,
   Building2Icon,
-  ShieldCheckIcon,
-  ChevronRight,
 } from "@/components/ui/icons";
 import { cn } from "@/lib/utils";
 import { CompanySettingsModal } from "../company-settings-dialog";
@@ -174,74 +169,38 @@ export function CompanyTopbarUser({
         align="end"
         side="bottom"
         sideOffset={8}
-        className="w-72 rounded-2xl p-2 shadow-2xl border border-border/50 bg-popover/95 backdrop-blur-md z-50"
+        className="w-[280px] rounded-[16px] p-0 shadow-xl border border-border bg-card overflow-hidden z-50"
       >
-        {/* 1. Header Card: Mini Dossier del Usuario */}
-        <div className="p-3 rounded-xl bg-muted/40 border border-border/40 text-left">
-          <div className="flex items-center gap-3">
-            <Avatar className="size-10 rounded-xl shrink-0 after:hidden">
-              <AvatarImage
-                src={userData.avatar}
-                alt={userData.name}
-                className="rounded-xl object-cover"
-              />
-              <AvatarFallback className="rounded-xl bg-primary/10 text-primary font-black text-xs">
-                {initials}
-              </AvatarFallback>
-            </Avatar>
-            <div className="min-w-0 flex-1">
-              <span className="truncate font-extrabold text-xs text-foreground block">
-                {userData.name}
-              </span>
-              <span className="truncate text-[11px] text-muted-foreground block font-medium mt-0.5">
-                {userData.email}
-              </span>
-            </div>
-          </div>
-
-          {/* Sub-barra de Rol / Estado */}
-          <div className="mt-2.5 pt-2 border-t border-border/30 flex items-center justify-between gap-1 text-[10px]">
-            <Badge
-              variant="outline"
-              className="text-[10px] font-bold bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20 px-2 py-0.5 gap-1"
-            >
-              <Building2Icon className="size-3" />
-              <span>Empresa</span>
-            </Badge>
-
-            {userData.isVerified ? (
-              <span className="text-emerald-600 dark:text-emerald-400 font-bold flex items-center gap-1">
-                <ShieldCheckIcon className="size-3" />
-                <span>Verificada</span>
-              </span>
-            ) : (
-              <span className="text-muted-foreground font-semibold">
-                Portal Reclutador
-              </span>
-            )}
+        {/* Header: User Summary */}
+        <div className="px-[16px] py-[14px] border-b border-border flex items-center gap-[12px] text-left">
+          <Avatar className="size-[40px] rounded-[8px] shrink-0 after:hidden">
+            <AvatarImage
+              src={userData.avatar}
+              alt={userData.name}
+              className="rounded-[8px] object-cover"
+            />
+            <AvatarFallback className="rounded-[8px] bg-sidebar-accent text-link font-semibold text-[13px]">
+              {initials}
+            </AvatarFallback>
+          </Avatar>
+          <div className="min-w-0 flex-1">
+            <span className="truncate font-semibold text-[14px] leading-[20px] text-foreground block">
+              {userData.name}
+            </span>
+            <span className="truncate text-[12px] leading-[16px] text-muted-foreground block font-normal">
+              {userData.email}
+            </span>
           </div>
         </div>
 
-        {/* 2. Menu Navigation Items */}
-        <DropdownMenuGroup className="space-y-0.5 my-1">
+        {/* Navigation Items */}
+        <DropdownMenuGroup className="p-[8px] flex flex-col gap-[2px]">
           <DropdownMenuItem
             onClick={() => router.push("/dashboard/company/profile")}
-            className="group/item rounded-xl p-2.5 text-left cursor-pointer transition-colors duration-150 hover:bg-muted/70 data-[highlighted]:bg-muted/70 outline-none select-none"
+            className="h-[40px] px-[10px] rounded-[8px] flex items-center gap-[10px] text-[14px] font-medium leading-[20px] text-foreground hover:bg-muted/60 focus:bg-muted/60 cursor-pointer outline-none select-none"
           >
-            <div className="flex items-center gap-2.5 w-full">
-              <div className="size-8.5 rounded-xl bg-blue-500/10 text-blue-600 dark:text-blue-400 flex items-center justify-center shrink-0 transition-transform duration-150 group-hover/item:scale-105 group-data-[highlighted]/item:scale-105 shadow-2xs">
-                <UserIcon className="size-4" />
-              </div>
-              <div className="flex-1 min-w-0">
-                <span className="text-xs font-bold text-foreground block truncate">
-                  Mi Perfil
-                </span>
-                <span className="text-[11px] text-muted-foreground block truncate font-medium">
-                  Ver y editar información pública
-                </span>
-              </div>
-              <ChevronRight className="size-3.5 text-muted-foreground/30 group-hover/item:text-foreground group-data-[highlighted]/item:text-foreground group-hover/item:translate-x-0.5 group-data-[highlighted]/item:translate-x-0.5 transition-all ml-auto shrink-0" />
-            </div>
+            <Building2Icon className="size-[16px] text-muted-foreground shrink-0" />
+            <span className="truncate">Perfil de empresa</span>
           </DropdownMenuItem>
 
           <DropdownMenuItem
@@ -249,22 +208,10 @@ export function CompanyTopbarUser({
               setSettingsSection("appearance");
               setIsSettingsOpen(true);
             }}
-            className="group/item rounded-xl p-2.5 text-left cursor-pointer transition-colors duration-150 hover:bg-muted/70 data-[highlighted]:bg-muted/70 outline-none select-none"
+            className="h-[40px] px-[10px] rounded-[8px] flex items-center gap-[10px] text-[14px] font-medium leading-[20px] text-foreground hover:bg-muted/60 focus:bg-muted/60 cursor-pointer outline-none select-none"
           >
-            <div className="flex items-center gap-2.5 w-full">
-              <div className="size-8.5 rounded-xl bg-slate-500/10 dark:bg-slate-400/10 text-slate-600 dark:text-slate-300 flex items-center justify-center shrink-0 transition-transform duration-150 group-hover/item:scale-105 group-data-[highlighted]/item:scale-105 shadow-2xs">
-                <SettingsIcon className="size-4" />
-              </div>
-              <div className="flex-1 min-w-0">
-                <span className="text-xs font-bold text-foreground block truncate">
-                  Configuración
-                </span>
-                <span className="text-[11px] text-muted-foreground block truncate font-medium">
-                  Preferencias, privacidad y cuenta
-                </span>
-              </div>
-              <ChevronRight className="size-3.5 text-muted-foreground/30 group-hover/item:text-foreground group-data-[highlighted]/item:text-foreground group-hover/item:translate-x-0.5 group-data-[highlighted]/item:translate-x-0.5 transition-all ml-auto shrink-0" />
-            </div>
+            <SettingsIcon className="size-[16px] text-muted-foreground shrink-0" />
+            <span className="truncate">Configuración</span>
           </DropdownMenuItem>
 
           <DropdownMenuItem
@@ -272,46 +219,23 @@ export function CompanyTopbarUser({
               setSettingsSection("notifications");
               setIsSettingsOpen(true);
             }}
-            className="group/item rounded-xl p-2.5 text-left cursor-pointer transition-colors duration-150 hover:bg-muted/70 data-[highlighted]:bg-muted/70 outline-none select-none"
+            className="h-[40px] px-[10px] rounded-[8px] flex items-center gap-[10px] text-[14px] font-medium leading-[20px] text-foreground hover:bg-muted/60 focus:bg-muted/60 cursor-pointer outline-none select-none"
           >
-            <div className="flex items-center gap-2.5 w-full">
-              <div className="size-8.5 rounded-xl bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 flex items-center justify-center shrink-0 transition-transform duration-150 group-hover/item:scale-105 group-data-[highlighted]/item:scale-105 shadow-2xs">
-                <BellIcon className="size-4" />
-              </div>
-              <div className="flex-1 min-w-0">
-                <span className="text-xs font-bold text-foreground block truncate">
-                  Notificaciones
-                </span>
-                <span className="text-[11px] text-muted-foreground block truncate font-medium">
-                  Avisos de postulaciones y alertas
-                </span>
-              </div>
-              <ChevronRight className="size-3.5 text-muted-foreground/30 group-hover/item:text-foreground group-data-[highlighted]/item:text-foreground group-hover/item:translate-x-0.5 group-data-[highlighted]/item:translate-x-0.5 transition-all ml-auto shrink-0" />
-            </div>
+            <BellIcon className="size-[16px] text-muted-foreground shrink-0" />
+            <span className="truncate">Preferencias de notificaciones</span>
           </DropdownMenuItem>
         </DropdownMenuGroup>
 
-        <DropdownMenuSeparator className="my-1 border-t border-border/40" />
-
-        {/* 3. Logout Item */}
-        <DropdownMenuItem
-          onClick={handleLogout}
-          className="group/item rounded-xl p-2.5 text-left cursor-pointer transition-colors duration-150 text-rose-600 dark:text-rose-400 hover:bg-rose-500/10 data-[highlighted]:bg-rose-500/10 outline-none select-none"
-        >
-          <div className="flex items-center gap-2.5 w-full">
-            <div className="size-8.5 rounded-xl bg-rose-500/10 text-rose-600 dark:text-rose-400 flex items-center justify-center shrink-0 transition-transform duration-150 group-hover/item:scale-105 group-data-[highlighted]/item:scale-105 shadow-2xs">
-              <LogOutIcon className="size-4" />
-            </div>
-            <div className="flex-1 min-w-0">
-              <span className="text-xs font-bold block truncate">
-                Cerrar Sesión
-              </span>
-              <span className="text-[11px] text-rose-500/70 block truncate font-medium">
-                Finalizar sesión en este equipo
-              </span>
-            </div>
-          </div>
-        </DropdownMenuItem>
+        {/* Logout */}
+        <div className="border-t border-border p-[8px]">
+          <DropdownMenuItem
+            onClick={handleLogout}
+            className="h-[40px] px-[10px] rounded-[8px] flex items-center gap-[10px] text-[14px] font-medium leading-[20px] text-destructive hover:bg-destructive/10 focus:bg-destructive/10 cursor-pointer outline-none select-none"
+          >
+            <LogOutIcon className="size-[16px] shrink-0" />
+            <span className="truncate">Cerrar sesión</span>
+          </DropdownMenuItem>
+        </div>
       </DropdownMenuContent>
     </DropdownMenu>
 

@@ -1,48 +1,20 @@
 "use client";
 
 import * as React from "react";
+import Link from "next/link";
 import { motion } from "motion/react";
 import {
+  ArrowRight,
   Building2,
-  ShieldCheck,
-  FileText,
-  UploadCloud,
-  CheckCircle2,
-  AlertCircle,
-  Clock,
-  Eye,
-  Trash2,
-  Loader2,
-  Save,
-  Send,
-  FileCheck,
-  Lock,
   ExternalLink,
-  UserCheck,
-  Mail,
-  Phone,
-  MapPin,
-  Briefcase,
-  Edit3,
+  FileText,
+  Trash2,
+  Users,
 } from "@/components/ui/icons";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import {
-  Card,
-  CardHeader,
-  CardContent,
-  CardFooter,
-} from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Progress } from "@/components/ui/progress";
-import { Badge } from "@/components/ui/badge";
-import {
-  Alert,
-  AlertTitle,
-  AlertDescription,
-  AlertAction,
-} from "@/components/ui/alert";
 import {
   Select,
   SelectContent,
@@ -56,6 +28,7 @@ import {
   DialogHeader,
   DialogTitle,
   DialogDescription,
+  DialogFooter,
 } from "@/components/ui/dialog";
 import {
   CompanyDocType,
@@ -66,19 +39,14 @@ import {
 import { saveCompanyVerificationAction } from "../actions/verification";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
-import { CompanyPageHeader } from "./shared/company-page-header";
 
 interface CompanyVerificationViewProps {
   userId: string;
   initialData: CompanyVerificationData;
 }
 
-const FISCAL_REGIME_LABELS: Record<string, string> = {
-  persona_moral: "Persona Moral (Sociedades / Empresas - RFC de 12 dígitos)",
-  persona_fisica: "Persona Física con Actividad Empresarial (RFC de 13 dígitos)",
-};
-
 const INDUSTRY_OPTIONS = [
+  "Hotelería y turismo",
   "Hotelería, Turismo y Gastronomía",
   "Comercio y Retail",
   "Construcción e Inmobiliaria",
@@ -89,6 +57,33 @@ const INDUSTRY_OPTIONS = [
   "Educación & Capacitación",
   "Transporte & Logística",
   "Otro Sector Económico",
+];
+
+const DOC_ITEMS: Array<{
+  docType: CompanyDocType;
+  title: string;
+  shortLabel: string;
+}> = [
+  {
+    docType: "acta_constitutiva",
+    title: "Acta constitutiva",
+    shortLabel: "Acta constitutiva",
+  },
+  {
+    docType: "constancia_situacion_fiscal",
+    title: "Constancia de situación fiscal",
+    shortLabel: "Constancia fiscal",
+  },
+  {
+    docType: "legal_rep_id",
+    title: "Identificación oficial del representante",
+    shortLabel: "Identificación oficial",
+  },
+  {
+    docType: "legal_power",
+    title: "Poder notarial",
+    shortLabel: "Poder notarial",
+  },
 ];
 
 export function CompanyVerificationView({
@@ -108,7 +103,6 @@ export function CompanyVerificationView({
   const [contactPhone, setContactPhone] = React.useState(initialData.contact_phone || "");
   const [termsAccepted, setTermsAccepted] = React.useState(initialData.terms_accepted || false);
 
-  // Status & Documents State
   const [verificationStatus, setVerificationStatus] = React.useState<
     "pending" | "approved" | "rejected" | "unsubmitted"
   >(initialData.verification_status || "unsubmitted");
@@ -117,18 +111,74 @@ export function CompanyVerificationView({
     Record<CompanyDocType, CompanyVerificationDoc | null>
   >(initialData.documents);
 
-  // Loading States
   const [isSaving, setIsSaving] = React.useState(false);
   const [isSubmitting, setIsSubmitting] = React.useState(false);
   const [uploadingDocType, setUploadingDocType] = React.useState<CompanyDocType | null>(null);
   const [isLoadingPreview, setIsLoadingPreview] = React.useState(false);
+  const [editModal, setEditModal] = React.useState<"company" | "contact" | null>(null);
+  const [uploadModalDoc, setUploadModalDoc] = React.useState<{
+    docType: CompanyDocType;
+    title: string;
+  } | null>(null);
+  const [pendingUploadFile, setPendingUploadFile] = React.useState<File | null>(null);
+  const uploadModalInputRef = React.useRef<HTMLInputElement | null>(null);
 
-  // Modal State
+  const [draftCompany, setDraftCompany] = React.useState({
+    fiscalRegime: fiscalRegime,
+    legalName: legalName,
+    companyName: companyName,
+    rfc: rfc,
+    industry: industry,
+    fiscalAddress: fiscalAddress,
+  });
+
+  const [draftContact, setDraftContact] = React.useState({
+    legalRepName: legalRepName,
+    contactPhone: contactPhone,
+    corporateEmail: corporateEmail,
+  });
+
+  const openCompanyEditModal = () => {
+    setDraftCompany({
+      fiscalRegime,
+      legalName,
+      companyName,
+      rfc,
+      industry,
+      fiscalAddress,
+    });
+    setEditModal("company");
+  };
+
+  const openContactEditModal = () => {
+    setDraftContact({
+      legalRepName,
+      contactPhone,
+      corporateEmail,
+    });
+    setEditModal("contact");
+  };
+
+  const openUploadModal = (docType: CompanyDocType, title: string) => {
+    setPendingUploadFile(null);
+    setUploadModalDoc({ docType, title });
+  };
+
   const [previewDoc, setPreviewDoc] = React.useState<{
+    docType: CompanyDocType;
     title: string;
     url: string;
     fileName: string;
   } | null>(null);
+
+  const fileInputRefs = React.useRef<Record<CompanyDocType, HTMLInputElement | null>>({
+    acta_constitutiva: null,
+    constancia_situacion_fiscal: null,
+    legal_rep_id: null,
+    legal_power: null,
+  });
+
+  const consentRef = React.useRef<HTMLDivElement | null>(null);
 
   const isPendingReview = verificationStatus === "pending";
   const isApproved = verificationStatus === "approved";
@@ -139,33 +189,81 @@ export function CompanyVerificationView({
     const cleaned = rfc.trim().toUpperCase();
     if (fiscalRegime === "persona_moral") {
       return cleaned.length === 12 && /^[A-Z&Ñ]{3}\d{6}[A-Z0-9]{3}$/.test(cleaned);
-    } else {
-      return cleaned.length === 13 && /^[A-Z&Ñ]{4}\d{6}[A-Z0-9]{3}$/.test(cleaned);
     }
+    return cleaned.length === 13 && /^[A-Z&Ñ]{4}\d{6}[A-Z0-9]{3}$/.test(cleaned);
   }, [rfc, fiscalRegime]);
 
-  // Calculate Progress (13 mandatory items)
   const itemsChecklist = [
-    { label: "1. Denominación / Razón social", isComplete: !!legalName.trim() },
-    { label: "2. Acta constitutiva", isComplete: !!documents.acta_constitutiva },
-    { label: `3. RFC (${fiscalRegime === "persona_moral" ? "12" : "13"} caract.)`, isComplete: isRfcValid },
-    { label: "4. Constancia Situación Fiscal", isComplete: !!documents.constancia_situacion_fiscal },
-    { label: "5. Domicilio fiscal completo", isComplete: !!fiscalAddress.trim() },
-    { label: "6. Nombre comercial", isComplete: !!companyName.trim() },
-    { label: "7. Giro económico", isComplete: !!industry.trim() },
-    { label: "8. Nombre del rep. legal", isComplete: !!legalRepName.trim() },
-    { label: "9. Identificación rep. legal", isComplete: !!documents.legal_rep_id },
-    { label: "10. Poder Notarial", isComplete: !!documents.legal_power },
-    { label: "11. Correo corporativo", isComplete: !!corporateEmail.trim() },
-    { label: "12. Teléfono de contacto", isComplete: !!contactPhone.trim() },
-    { label: "13. Términos y Privacidad", isComplete: termsAccepted },
+    { label: "Razón social", isComplete: !!legalName.trim() },
+    { label: "Acta constitutiva", isComplete: !!documents.acta_constitutiva },
+    { label: "RFC", isComplete: isRfcValid },
+    { label: "Constancia fiscal", isComplete: !!documents.constancia_situacion_fiscal },
+    { label: "Domicilio fiscal", isComplete: !!fiscalAddress.trim() },
+    { label: "Nombre comercial", isComplete: !!companyName.trim() },
+    { label: "Actividad económica", isComplete: !!industry.trim() },
+    { label: "Representante legal", isComplete: !!legalRepName.trim() },
+    { label: "Identificación oficial", isComplete: !!documents.legal_rep_id },
+    { label: "Poder notarial", isComplete: !!documents.legal_power },
+    { label: "Correo corporativo", isComplete: !!corporateEmail.trim() },
+    { label: "Teléfono", isComplete: !!contactPhone.trim() },
+    { label: "Consentimiento", isComplete: termsAccepted },
   ];
 
   const completedCount = itemsChecklist.filter((item) => item.isComplete).length;
   const totalCount = itemsChecklist.length;
   const progressPercent = Math.round((completedCount / totalCount) * 100);
+  const missingCount = totalCount - completedCount;
 
-  // File Upload Handler
+  const companyDataComplete =
+    !!legalName.trim() &&
+    isRfcValid &&
+    !!fiscalAddress.trim() &&
+    !!companyName.trim() &&
+    !!industry.trim();
+
+  const contactDataComplete =
+    !!legalRepName.trim() && !!corporateEmail.trim() && !!contactPhone.trim();
+
+  const pendingChips = React.useMemo(() => {
+    const chips: Array<{ key: "company" | "contact" | "terms" | CompanyDocType; label: string }> = [];
+    if (!companyDataComplete) {
+      chips.push({ key: "company", label: "Datos de la empresa" });
+    }
+    if (!contactDataComplete) {
+      chips.push({ key: "contact", label: "Representante y contacto" });
+    }
+    for (const docItem of DOC_ITEMS) {
+      if (!documents[docItem.docType]) {
+        chips.push({ key: docItem.docType, label: docItem.shortLabel });
+      }
+    }
+    if (!termsAccepted) {
+      chips.push({ key: "terms", label: "Consentimiento" });
+    }
+    return chips;
+  }, [companyDataComplete, contactDataComplete, documents, termsAccepted]);
+
+  const handlePendingChipClick = (
+    key: "company" | "contact" | "terms" | CompanyDocType
+  ) => {
+    if (key === "company") {
+      openCompanyEditModal();
+      return;
+    }
+    if (key === "contact") {
+      openContactEditModal();
+      return;
+    }
+    if (key === "terms") {
+      consentRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
+      return;
+    }
+    const found = DOC_ITEMS.find((d) => d.docType === key);
+    if (found) {
+      openUploadModal(found.docType, found.title);
+    }
+  };
+
   const handleFileUpload = async (docType: CompanyDocType, file: File) => {
     if (file.size > 10 * 1024 * 1024) {
       toast.error("Archivo demasiado grande", {
@@ -201,7 +299,6 @@ export function CompanyVerificationView({
     }
   };
 
-  // File Delete Handler
   const handleDeleteDoc = async (docType: CompanyDocType) => {
     if (isReadOnly) {
       toast.warning("Expediente bloqueado", {
@@ -222,6 +319,7 @@ export function CompanyVerificationView({
         ...prev,
         [docType]: null,
       }));
+      setPreviewDoc(null);
 
       toast.info("Documento eliminado", {
         description: "El archivo se ha removido de tu expediente digital.",
@@ -234,8 +332,11 @@ export function CompanyVerificationView({
     }
   };
 
-  // Preview Handler with Signed URL
-  const handlePreviewDoc = async (title: string, doc: CompanyVerificationDoc) => {
+  const handlePreviewDoc = async (
+    docType: CompanyDocType,
+    title: string,
+    doc: CompanyVerificationDoc
+  ) => {
     setIsLoadingPreview(true);
     try {
       const signedUrl = await companyVerificationService.getSignedDocumentUrl(doc.file_url);
@@ -246,6 +347,7 @@ export function CompanyVerificationView({
         return;
       }
       setPreviewDoc({
+        docType,
         title,
         url: signedUrl,
         fileName: doc.file_name,
@@ -260,26 +362,6 @@ export function CompanyVerificationView({
     }
   };
 
-  // Unlock dossier for editing if user wishes to update before audit completes
-  const handleUnlockForEdit = async () => {
-    setIsSaving(true);
-    try {
-      await companyVerificationService.unlockForEditing(userId);
-      setVerificationStatus("unsubmitted");
-      toast.info("Expediente habilitado para edición", {
-        description: "Ahora puedes actualizar o corregir tus datos fiscales y documentos antes de volver a enviarlo a revisión.",
-      });
-    } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : "No se pudo cambiar el estado del expediente.";
-      toast.error("Error al desbloquear expediente", {
-        description: msg,
-      });
-    } finally {
-      setIsSaving(false);
-    }
-  };
-
-  // Save Draft Handler via Server Action
   const handleSaveDraft = async () => {
     setIsSaving(true);
     try {
@@ -315,7 +397,6 @@ export function CompanyVerificationView({
     }
   };
 
-  // Submit for Verification Handler via Server Action
   const handleSubmitVerification = async () => {
     if (completedCount < totalCount) {
       const missingItems = itemsChecklist
@@ -323,7 +404,7 @@ export function CompanyVerificationView({
         .map((item) => item.label);
 
       toast.error("Requisitos incompletos", {
-        description: `Debes completar los 13 puntos obligatorios. Pendientes: ${missingItems.slice(0, 3).join(", ")}${missingItems.length > 3 ? "..." : ""}`,
+        description: `Debes completar los ${totalCount} requisitos. Pendientes: ${missingItems.slice(0, 3).join(", ")}${missingItems.length > 3 ? "..." : ""}`,
       });
       return;
     }
@@ -364,608 +445,755 @@ export function CompanyVerificationView({
     }
   };
 
+  const statusPill = isApproved
+    ? { label: "Verificada", className: "bg-success text-success-foreground" }
+    : isPendingReview
+    ? {
+        label: "En revisión",
+        className:
+          "bg-[#e8f2fb] text-[#184c78] dark:bg-[#213748] dark:text-[#abd6f5]",
+      }
+    : verificationStatus === "rejected"
+    ? { label: "Rechazada", className: "bg-destructive/15 text-destructive" }
+    : { label: "Borrador", className: "bg-muted text-muted-foreground" };
+
+  const progressHeading = isApproved
+    ? "Expediente aprobado"
+    : isPendingReview
+    ? "Expediente enviado"
+    : completedCount === totalCount
+    ? "Expediente listo"
+    : "Completa los requisitos pendientes";
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 12 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.25 }}
-      className="space-y-6 w-full font-sans"
+      className="flex flex-col gap-[24px] w-full pb-12 font-sans"
     >
-      <CompanyPageHeader
-        title="Verificación de Empresa"
-        description="Expediente digital de validación legal y fiscal corporativa ante K'anPro."
-        badge={
-          <Badge
-            variant="outline"
-            className="text-xs font-bold"
-          >
-            🔒 Confidencial SAT / K&apos;anPro
-          </Badge>
-        }
-      />
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-[16px]">
+        <div>
+          <h1 className="text-[32px] font-semibold leading-[40px] tracking-[-0.02em] text-foreground">
+            Verificación de empresa
+          </h1>
+          <p className="text-[14px] font-normal leading-[20px] text-muted-foreground mt-[4px]">
+            {companyName?.trim() || "Tu empresa"} · Expediente de verificación
+          </p>
+        </div>
 
-      {/* ========================================================================= */}
-      {/* 1. SHADCN ALERT: ESTADO GLOBAL DEL EXPEDIENTE                             */}
-      {/* ========================================================================= */}
-      {verificationStatus === "approved" && (
-        <Alert className="rounded-2xl border-emerald-500/30 bg-emerald-500/10 text-emerald-800 dark:text-emerald-300 p-4 sm:p-5 shadow-2xs">
-          <ShieldCheck className="size-5 text-emerald-600 dark:text-emerald-400" />
-          <div className="space-y-0.5">
-            <AlertTitle className="text-sm font-extrabold">
-              ¡Empresa Verificada Oficialmente!
-            </AlertTitle>
-            <AlertDescription className="text-xs text-emerald-700 dark:text-emerald-300/90 leading-relaxed">
-              Tu expediente legal ha sido auditado y aprobado. Tus vacantes cuentan con la insignia de confianza corporativa activa en K&apos;anPro.
-            </AlertDescription>
+        <span
+          className={cn(
+            "inline-flex items-center rounded-[8px] px-[12px] py-[6px] text-[12px] font-medium leading-[16px] shrink-0 self-start",
+            statusPill.className
+          )}
+        >
+          {statusPill.label}
+        </span>
+      </div>
+
+      {/* Progress Card */}
+      <div className="bg-card border border-border rounded-[16px] p-[20px] flex flex-col gap-[12px]">
+        <div className="flex flex-wrap items-center justify-between gap-[12px]">
+          <h2 className="text-[18px] font-semibold leading-[24px] tracking-[-0.01em] text-foreground">
+            {progressHeading}
+          </h2>
+          <span className="text-[14px] font-medium leading-[20px] text-link tabular-nums">
+            {completedCount} de {totalCount} requisitos completos
+          </span>
+        </div>
+
+        <div className="h-[6px] w-full rounded-full bg-muted overflow-hidden">
+          <div
+            className="h-full rounded-full bg-primary transition-all duration-300"
+            style={{ width: `${progressPercent}%` }}
+          />
+        </div>
+
+        {isApproved ? (
+          <p className="text-[13px] font-normal leading-[18px] text-muted-foreground">
+            Tu empresa cuenta con el sello oficial de verificación.
+          </p>
+        ) : isPendingReview ? (
+          <p className="text-[13px] font-normal leading-[18px] text-muted-foreground">
+            Te avisaremos cuando haya una actualización de la revisión.
+          </p>
+        ) : completedCount === totalCount ? (
+          <p className="text-[13px] font-normal leading-[18px] text-muted-foreground">
+            Revisa el resumen antes de enviar el expediente.
+          </p>
+        ) : (
+          <div className="flex flex-wrap items-center gap-[8px] pt-[4px]">
+            {pendingChips.map((chip) => (
+              <button
+                key={chip.key}
+                type="button"
+                onClick={() => handlePendingChipClick(chip.key)}
+                className="h-[32px] px-[12px] rounded-[8px] border border-control-border bg-card hover:bg-muted/50 text-[13px] font-medium text-link inline-flex items-center gap-[6px] transition-colors cursor-pointer"
+              >
+                <span>{chip.label}</span>
+                <ArrowRight className="size-[14px]" />
+              </button>
+            ))}
           </div>
-        </Alert>
-      )}
+        )}
+      </div>
 
-      {verificationStatus === "pending" && (
-        <Alert className="rounded-2xl border-amber-500/30 bg-amber-500/10 text-amber-800 dark:text-amber-300 p-4 sm:p-5 shadow-2xs">
-          <Clock className="size-5 text-amber-600 dark:text-amber-400 animate-pulse" />
-          <div className="space-y-0.5">
-            <AlertTitle className="text-sm font-extrabold">
-              Expediente Digital en Auditoría
-            </AlertTitle>
-            <AlertDescription className="text-xs text-amber-700 dark:text-amber-300/90 leading-relaxed">
-              El equipo legal está revisando tus documentos corporativos. Si necesitas realizar ajustes o correcciones, puedes habilitar la edición de tu expediente.
-            </AlertDescription>
-          </div>
-          <AlertAction className="static sm:absolute sm:top-4 sm:right-4 mt-3 sm:mt-0">
-            <Button
-              size="sm"
-              variant="outline"
-              onClick={handleUnlockForEdit}
-              disabled={isSaving || isSubmitting}
-              className="gap-1.5 font-bold border-amber-500/40 text-amber-900 dark:text-amber-200 hover:bg-amber-500/20 cursor-pointer"
-            >
-              <Edit3 className="size-3.5" />
-              <span>Editar Expediente</span>
-            </Button>
-          </AlertAction>
-        </Alert>
-      )}
-
-      {verificationStatus === "rejected" && (
-        <Alert variant="destructive" className="rounded-2xl p-4 sm:p-5 shadow-2xs">
-          <AlertCircle className="size-5" />
-          <div className="space-y-0.5">
-            <AlertTitle className="text-sm font-extrabold">
-              Acción Requerida en tu Expediente
-            </AlertTitle>
-            <AlertDescription className="text-xs leading-relaxed">
-              Algunos documentos o datos requieren corrección. Por favor revisa los campos señalados y vuelve a enviar tu expediente.
-            </AlertDescription>
-          </div>
-        </Alert>
-      )}
-
-      {verificationStatus === "unsubmitted" && (
-        <Alert className="rounded-2xl border border-border/80 bg-muted/40 p-4 sm:p-5 shadow-2xs">
-          <Building2 className="size-5 text-primary" />
-          <div className="space-y-0.5">
-            <AlertTitle className="text-sm font-bold text-foreground">
-              Verificación Legal de Cuenta (Persona Moral / Física)
-            </AlertTitle>
-            <AlertDescription className="text-xs text-muted-foreground leading-relaxed">
-              Completa los 13 requisitos legales obligatorios y adjunta los documentos oficiales en PDF para obtener la insignia de confianza.
-            </AlertDescription>
-          </div>
-        </Alert>
-      )}
-
-      {/* ========================================================================= */}
-      {/* 2. CARD PRINCIPAL UNIFICADA (HEADER + CONTENT + FOOTER)                   */}
-      {/* ========================================================================= */}
-      <Card className="overflow-hidden">
-        
-        {/* ---------------- CARD HEADER: TÍTULO, BADGE Y BARRA DE PROGRESO -------- */}
-        <CardHeader className="p-5 sm:p-6 md:p-8 border-b border-border space-y-4">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-            <div className="space-y-1">
-              <div className="flex items-center gap-2.5 flex-wrap">
-                <h2 className="text-lg sm:text-xl font-black text-foreground tracking-tight flex items-center gap-2.5">
-                  <FileCheck className="size-5 text-primary" />
-                  Expediente de Validación Corporativa
-                </h2>
-                <Badge
-                  variant="outline"
-                  className="bg-primary/10 text-primary border-primary/20 font-bold px-2.5 py-0.5 rounded-full text-[10px]"
-                >
-                  🔒 Confidencial SAT / K&apos;anPro
-                </Badge>
-              </div>
-              <p className="text-xs text-muted-foreground font-medium leading-relaxed">
-                Información legal requerida por la normativa laboral para otorgar el distintivo de empresa verificada.
-              </p>
-            </div>
-
-            <div className="shrink-0 flex items-center gap-2">
-              <span className="text-xs sm:text-sm font-extrabold text-foreground bg-muted/60 px-3 py-1.5 rounded-full border border-border/60">
-                {completedCount} de {totalCount} ({progressPercent}%)
-              </span>
-            </div>
+      {/* Main 2-Column Layout */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-[20px] items-start">
+        {/* Left: Documentos */}
+        <div className="lg:col-span-7 bg-card border border-border rounded-[16px] p-[20px] flex flex-col gap-[16px]">
+          <div>
+            <h2 className="text-[18px] font-semibold leading-[24px] tracking-[-0.01em] text-foreground">
+              Documentos
+            </h2>
+            <p className="text-[13px] font-normal leading-[18px] text-muted-foreground mt-[2px]">
+              Adjunta archivos legibles en PDF, JPG o PNG. Máximo 10 MB por archivo.
+            </p>
           </div>
 
-          {/* Progress Bar */}
-          <div className="space-y-2 pt-1">
-            <Progress value={progressPercent} className="h-2 bg-muted/60 rounded-full" />
-            
-            {/* Dynamic 13-item Mini Checklist Grid */}
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-1.5 pt-2">
-              {itemsChecklist.map((item, index) => (
+          <div className="divide-y divide-border">
+            {DOC_ITEMS.map(({ docType, title }) => {
+              const doc = documents[docType];
+              const isUploading = uploadingDocType === docType;
+
+              return (
                 <div
-                  key={index}
-                  className={cn(
-                    "flex items-center gap-1.5 px-2 py-1 rounded-full border text-[11px] font-semibold truncate transition-colors",
-                    item.isComplete
-                      ? "bg-emerald-500/10 border-emerald-500/20 text-emerald-700 dark:text-emerald-300"
-                      : "bg-muted/30 border-border/40 text-muted-foreground"
-                  )}
-                  title={item.label}
+                  key={docType}
+                  className="py-[14px] first:pt-0 last:pb-0 flex flex-col sm:flex-row sm:items-center justify-between gap-[12px]"
                 >
-                  {item.isComplete ? (
-                    <CheckCircle2 className="size-3.5 text-emerald-600 dark:text-emerald-400 shrink-0" />
-                  ) : (
-                    <span className="size-3.5 rounded-full border border-border/60 flex items-center justify-center text-[8px] text-muted-foreground shrink-0 font-bold">
-                      {index + 1}
-                    </span>
-                  )}
-                  <span className="truncate">{item.label}</span>
-                </div>
-              ))}
-            </div>
-          </div>
-        </CardHeader>
+                  <div className="min-w-0">
+                    <p className="text-[14px] font-semibold leading-[20px] text-foreground">
+                      {title}
+                    </p>
+                    <p className="text-[13px] font-normal leading-[18px] text-muted-foreground truncate">
+                      {doc ? doc.file_name : "Archivo pendiente"}
+                    </p>
+                  </div>
 
-        {/* ---------------- CARD CONTENT: ORGANIZED SECTIONS ---------------- */}
-        <CardContent className="p-5 sm:p-6 md:p-8 space-y-8 divide-y divide-border/60">
-          
-          {/* SECCIÓN 1: DATOS FISCALES Y DE IDENTIDAD */}
-          <div className="space-y-5">
-            <div className="flex items-center gap-2.5">
-              <div className="size-8 rounded-xl bg-primary/10 text-primary flex items-center justify-center shrink-0">
-                <Building2 className="size-4" />
-              </div>
-              <div>
-                <h3 className="text-sm font-extrabold text-foreground">
-                  Sección 1: Datos Fiscales y de Identidad Corporativa
-                </h3>
-                <p className="text-xs text-muted-foreground font-medium">
-                  Información oficial registrada ante el Servicio de Administración Tributaria (SAT).
-                </p>
-              </div>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-5">
-              {/* Régimen Fiscal */}
-              <div className="space-y-1.5">
-                <label className="text-xs font-bold text-foreground flex items-center gap-1">
-                  <span>Régimen Fiscal</span>
-                  <span className="text-destructive">*</span>
-                </label>
-                <Select
-                  value={fiscalRegime}
-                  onValueChange={(val) => {
-                    if (val === "persona_moral" || val === "persona_fisica") {
-                      setFiscalRegime(val);
-                      if (val === "persona_moral" && rfc.length > 12) {
-                        setRfc(rfc.substring(0, 12));
-                      }
-                    }
-                  }}
-                  disabled={isReadOnly}
-                >
-                  <SelectTrigger className="w-full">
-                    <SelectValue placeholder="Selecciona el régimen">
-                      {(val: string | null) => (val && FISCAL_REGIME_LABELS[val]) || val || "Selecciona el régimen"}
-                    </SelectValue>
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="persona_moral">
-                      Persona Moral (Empresa / Sociedad - RFC 12 dígitos)
-                    </SelectItem>
-                    <SelectItem value="persona_fisica">
-                      Persona Física con Actividad Empresarial (RFC 13 dígitos)
-                    </SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              {/* 1. Denominación o Razón Social */}
-              <div className="space-y-1.5">
-                <label className="text-xs font-bold text-foreground flex items-center gap-1">
-                  <span>1. Denominación / Razón Social</span>
-                  <span className="text-destructive">*</span>
-                </label>
-                <div className="relative">
-                  <Building2 className="absolute left-3.5 top-1/2 -translate-y-1/2 size-4 text-muted-foreground pointer-events-none" />
-                  <Input
-                    type="text"
-                    placeholder="Ej. Operadora Turística Maya S.A. de C.V."
-                    value={legalName}
-                    onChange={(e) => setLegalName(e.target.value)}
-                    disabled={isReadOnly}
-                    className="pl-10 w-full"
-                  />
-                </div>
-              </div>
-
-              {/* 6. Nombre Comercial */}
-              <div className="space-y-1.5">
-                <label className="text-xs font-bold text-foreground flex items-center gap-1">
-                  <span>6. Nombre Comercial de la Marca</span>
-                  <span className="text-destructive">*</span>
-                </label>
-                <div className="relative">
-                  <Briefcase className="absolute left-3.5 top-1/2 -translate-y-1/2 size-4 text-muted-foreground pointer-events-none" />
-                  <Input
-                    type="text"
-                    placeholder="Ej. Hotel Riviera Maya"
-                    value={companyName}
-                    onChange={(e) => setCompanyName(e.target.value)}
-                    disabled={isReadOnly}
-                    className="pl-10 w-full"
-                  />
-                </div>
-              </div>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-5">
-              {/* 3. RFC */}
-              <div className="space-y-1.5">
-                <div className="flex items-center justify-between">
-                  <label className="text-xs font-bold text-foreground flex items-center gap-1">
-                    <span>3. RFC Fiscal</span>
-                    <span className="text-destructive">*</span>
-                  </label>
-                  <span className="text-[10px] text-muted-foreground font-bold">
-                    {fiscalRegime === "persona_moral" ? "12 Caracteres" : "13 Caracteres"}
-                  </span>
-                </div>
-                <div className="relative">
-                  <FileCheck className="absolute left-3.5 top-1/2 -translate-y-1/2 size-4 text-muted-foreground pointer-events-none" />
-                  <Input
-                    type="text"
-                    placeholder={fiscalRegime === "persona_moral" ? "OHR120315ABC" : "GARM850612ABC"}
-                    value={rfc}
-                    onChange={(e) => setRfc(e.target.value.toUpperCase().replace(/[^A-Z0-9&Ñ]/g, ""))}
-                    maxLength={fiscalRegime === "persona_moral" ? 12 : 13}
-                    disabled={isReadOnly}
-                    className={cn(
-                      "pl-10 w-full font-mono font-bold uppercase tracking-wider",
-                      rfc.trim().length > 0 && !isRfcValid && "border-destructive text-destructive"
+                  <div className="flex items-center gap-[10px] shrink-0">
+                    {doc ? (
+                      <span className="inline-flex items-center rounded-full bg-success text-success-foreground px-[10px] py-[4px] text-[12px] font-medium leading-[16px]">
+                        Adjunto
+                      </span>
+                    ) : (
+                      <span className="inline-flex items-center rounded-full bg-warning text-warning-foreground px-[10px] py-[4px] text-[12px] font-medium leading-[16px]">
+                        Pendiente
+                      </span>
                     )}
-                  />
-                </div>
-                {rfc.trim().length > 0 && !isRfcValid && (
-                  <p className="text-[11px] text-destructive font-semibold">
-                    RFC inválido ({fiscalRegime === "persona_moral" ? "12 caracteres para Persona Moral" : "13 caracteres para Persona Física"}).
-                  </p>
-                )}
-              </div>
 
-              {/* 7. Giro o Actividad Económica */}
-              <div className="space-y-1.5">
-                <label className="text-xs font-bold text-foreground flex items-center gap-1">
-                  <span>7. Giro / Actividad Económica</span>
-                  <span className="text-destructive">*</span>
-                </label>
-                <Select
-                  value={industry}
-                  onValueChange={(val) => setIndustry(val || "")}
-                  disabled={isReadOnly}
-                >
-                  <SelectTrigger className="w-full">
-                    <SelectValue placeholder="Selecciona el sector" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {INDUSTRY_OPTIONS.map((opt) => (
-                      <SelectItem key={opt} value={opt}>
-                        {opt}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
+                    {doc ? (
+                      <Button
+                        type="button"
+                        variant="outline"
+                        disabled={isLoadingPreview}
+                        onClick={() => handlePreviewDoc(docType, title, doc)}
+                        className="h-[36px] px-[14px] rounded-[8px] border-control-border bg-card text-[14px] font-medium text-foreground hover:bg-muted/50 cursor-pointer"
+                      >
+                        Ver archivo
+                      </Button>
+                    ) : (
+                      <Button
+                        type="button"
+                        variant="outline"
+                        disabled={isReadOnly || isUploading}
+                        onClick={() => openUploadModal(docType, title)}
+                        className="h-[36px] px-[14px] rounded-[8px] border-control-border bg-card text-[14px] font-medium text-foreground hover:bg-muted/50 cursor-pointer"
+                      >
+                        {isUploading ? "Subiendo..." : "Adjuntar"}
+                      </Button>
+                    )}
 
-              {/* 8. Representante Legal */}
-              <div className="space-y-1.5">
-                <label className="text-xs font-bold text-foreground flex items-center gap-1">
-                  <span>8. Representante Legal</span>
-                  <span className="text-destructive">*</span>
-                </label>
-                <div className="relative">
-                  <UserCheck className="absolute left-3.5 top-1/2 -translate-y-1/2 size-4 text-muted-foreground pointer-events-none" />
-                  <Input
-                    type="text"
-                    placeholder="Nombre y Apellidos completos"
-                    value={legalRepName}
-                    onChange={(e) => setLegalRepName(e.target.value)}
-                    disabled={isReadOnly}
-                    className="pl-10 w-full"
-                  />
+                    {!isReadOnly && (
+                      <input
+                        ref={(el) => {
+                          fileInputRefs.current[docType] = el;
+                        }}
+                        type="file"
+                        aria-label={`Archivo para ${title}`}
+                        accept=".pdf,.png,.jpg,.jpeg"
+                        onChange={(e) => {
+                          const file = e.target.files?.[0];
+                          if (file) void handleFileUpload(docType, file);
+                          e.target.value = "";
+                        }}
+                        className="hidden"
+                      />
+                    )}
+                  </div>
                 </div>
-              </div>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-5">
-              {/* 5. Domicilio Fiscal */}
-              <div className="space-y-1.5 md:col-span-1">
-                <label className="text-xs font-bold text-foreground flex items-center gap-1">
-                  <span>5. Domicilio Fiscal Completo</span>
-                  <span className="text-destructive">*</span>
-                </label>
-                <div className="relative">
-                  <MapPin className="absolute left-3.5 top-1/2 -translate-y-1/2 size-4 text-muted-foreground pointer-events-none" />
-                  <Input
-                    type="text"
-                    placeholder="Calle, Número, Colonia, C.P., Ciudad y Estado"
-                    value={fiscalAddress}
-                    onChange={(e) => setFiscalAddress(e.target.value)}
-                    disabled={isReadOnly}
-                    className="pl-10 w-full"
-                  />
-                </div>
-              </div>
-
-              {/* 11. Correo Electrónico Corporativo */}
-              <div className="space-y-1.5 md:col-span-1">
-                <label className="text-xs font-bold text-foreground flex items-center gap-1">
-                  <span>11. Correo Corporativo</span>
-                  <span className="text-destructive">*</span>
-                </label>
-                <div className="relative">
-                  <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 size-4 text-blue-600 dark:text-blue-400 pointer-events-none" />
-                  <Input
-                    type="email"
-                    placeholder="contacto@empresa.com"
-                    value={corporateEmail}
-                    onChange={(e) => setCorporateEmail(e.target.value)}
-                    disabled={isReadOnly}
-                    className="pl-10 w-full"
-                  />
-                </div>
-              </div>
-
-              {/* 12. Teléfono de Contacto */}
-              <div className="space-y-1.5 md:col-span-1">
-                <label className="text-xs font-bold text-foreground flex items-center gap-1">
-                  <span>12. Teléfono de Contacto</span>
-                  <span className="text-destructive">*</span>
-                </label>
-                <div className="relative">
-                  <Phone className="absolute left-3.5 top-1/2 -translate-y-1/2 size-4 text-emerald-600 dark:text-emerald-400 pointer-events-none" />
-                  <Input
-                    type="tel"
-                    placeholder="+52 999 123 4567"
-                    value={contactPhone}
-                    onChange={(e) => setContactPhone(e.target.value)}
-                    disabled={isReadOnly}
-                    className="pl-10 w-full"
-                  />
-                </div>
-              </div>
-            </div>
+              );
+            })}
           </div>
+        </div>
 
-          {/* SECCIÓN 2: DOCUMENTOS OFICIALES */}
-          <div className="space-y-5 pt-6">
-            <div className="flex items-center gap-2.5">
-              <div className="size-8 rounded-xl bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 flex items-center justify-center shrink-0">
-                <FileText className="size-4" />
+        {/* Right: Datos de la empresa & Representante y contacto */}
+        <div className="lg:col-span-5 flex flex-col gap-[20px]">
+          {/* Card: Datos de la empresa */}
+          <div className="bg-card border border-border rounded-[16px] p-[20px] flex flex-col gap-[16px]">
+            <div className="flex items-center justify-between gap-[12px]">
+              <h2 className="text-[18px] font-semibold leading-[24px] tracking-[-0.01em] text-foreground">
+                Datos de la empresa
+              </h2>
+
+              {isLocked ? (
+                <span className="inline-flex items-center rounded-full bg-success text-success-foreground px-[10px] py-[2px] text-[12px] font-medium leading-[16px]">
+                  Completo
+                </span>
+              ) : (
+                <button
+                  type="button"
+                  onClick={openCompanyEditModal}
+                  className="text-[14px] font-medium text-link hover:underline cursor-pointer"
+                >
+                  Editar
+                </button>
+              )}
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-[16px] gap-y-[14px]">
+              <div>
+                <p className="text-[12px] font-normal leading-[16px] text-muted-foreground">
+                  Tipo de persona
+                </p>
+                <p className="text-[14px] font-medium leading-[20px] text-foreground mt-[2px]">
+                  {fiscalRegime === "persona_moral" ? "Persona moral" : "Persona física"}
+                </p>
               </div>
               <div>
-                <h3 className="text-sm font-extrabold text-foreground">
-                  Sección 2: Documentación Legal Oficial (Carga de Archivos)
-                </h3>
-                <p className="text-xs text-muted-foreground font-medium">
-                  Adjunta copias escaneadas legibles en formato PDF o imagen (Máx. 10 MB por archivo).
+                <p className="text-[12px] font-normal leading-[16px] text-muted-foreground">
+                  Razón social
                 </p>
-              </div>
-            </div>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-5">
-              {/* Document 2: Acta Constitutiva */}
-              <DocumentUploadCard
-                title="2. Acta Constitutiva *"
-                description="Copia escaneada completa y legible en PDF."
-                docType="acta_constitutiva"
-                doc={documents.acta_constitutiva}
-                isUploading={uploadingDocType === "acta_constitutiva"}
-                disabled={isLocked || isSubmitting || isSaving}
-                onUpload={(file) => handleFileUpload("acta_constitutiva", file)}
-                onDelete={() => handleDeleteDoc("acta_constitutiva")}
-                onPreview={(doc) => handlePreviewDoc("Acta Constitutiva", doc)}
-              />
-
-              {/* Document 4: Constancia de Situación Fiscal */}
-              <DocumentUploadCard
-                title="4. Constancia de Situación Fiscal *"
-                description="Emitida por el SAT no mayor a 3 meses de antigüedad."
-                docType="constancia_situacion_fiscal"
-                doc={documents.constancia_situacion_fiscal}
-                isUploading={uploadingDocType === "constancia_situacion_fiscal"}
-                disabled={isLocked || isSubmitting || isSaving}
-                onUpload={(file) => handleFileUpload("constancia_situacion_fiscal", file)}
-                onDelete={() => handleDeleteDoc("constancia_situacion_fiscal")}
-                onPreview={(doc) => handlePreviewDoc("Constancia de Situación Fiscal", doc)}
-              />
-
-              {/* Document 9: Identificación del Rep. Legal */}
-              <DocumentUploadCard
-                title="9. Identificación Oficial del Rep. Legal *"
-                description="INE (frente y vuelta) o Pasaporte vigente."
-                docType="legal_rep_id"
-                doc={documents.legal_rep_id}
-                isUploading={uploadingDocType === "legal_rep_id"}
-                disabled={isLocked || isSubmitting || isSaving}
-                onUpload={(file) => handleFileUpload("legal_rep_id", file)}
-                onDelete={() => handleDeleteDoc("legal_rep_id")}
-                onPreview={(doc) => handlePreviewDoc("Identificación Oficial del Representante Legal", doc)}
-              />
-
-              {/* Document 10: Poder Notarial / Rep. Legal */}
-              <DocumentUploadCard
-                title="10. Acreditación de Representación Legal *"
-                description="Poder notarial con facultades de representación."
-                docType="legal_power"
-                doc={documents.legal_power}
-                isUploading={uploadingDocType === "legal_power"}
-                disabled={isLocked || isSubmitting || isSaving}
-                onUpload={(file) => handleFileUpload("legal_power", file)}
-                onDelete={() => handleDeleteDoc("legal_power")}
-                onPreview={(doc) => handlePreviewDoc("Documento de Representación Legal / Poder Notarial", doc)}
-              />
-            </div>
-          </div>
-
-          {/* SECCIÓN 3: TÉRMINOS Y PRIVACIDAD */}
-          <div className="space-y-4 pt-6">
-            <div className="flex items-center gap-2.5">
-              <div className="size-8 rounded-xl bg-amber-500/10 text-amber-600 dark:text-amber-400 flex items-center justify-center shrink-0">
-                <Lock className="size-4" />
+                <p className="text-[14px] font-medium leading-[20px] text-foreground mt-[2px]">
+                  {legalName || "Por definir"}
+                </p>
               </div>
               <div>
-                <h3 className="text-sm font-extrabold text-foreground">
-                  Sección 3: Consentimiento Legal & Privacidad
-                </h3>
-                <p className="text-xs text-muted-foreground font-medium">
-                  Requisito 13: Aceptación de términos y custodia de datos corporativos.
+                <p className="text-[12px] font-normal leading-[16px] text-muted-foreground">
+                  Nombre comercial
+                </p>
+                <p className="text-[14px] font-medium leading-[20px] text-foreground mt-[2px]">
+                  {companyName || "Por definir"}
+                </p>
+              </div>
+              <div>
+                <p className="text-[12px] font-normal leading-[16px] text-muted-foreground">
+                  RFC
+                </p>
+                <p className="text-[14px] font-medium leading-[20px] text-foreground mt-[2px]">
+                  {rfc || "Por definir"}
+                </p>
+              </div>
+              <div>
+                <p className="text-[12px] font-normal leading-[16px] text-muted-foreground">
+                  Actividad económica
+                </p>
+                <p className="text-[14px] font-medium leading-[20px] text-foreground mt-[2px]">
+                  {industry || "Por definir"}
+                </p>
+              </div>
+              <div>
+                <p className="text-[12px] font-normal leading-[16px] text-muted-foreground">
+                  Domicilio fiscal
+                </p>
+                <p className="text-[14px] font-medium leading-[20px] text-foreground mt-[2px]">
+                  {fiscalAddress || "Por definir"}
                 </p>
               </div>
             </div>
+          </div>
 
-            <div className="p-4 bg-muted/40 rounded-xl border border-border/80 flex items-start gap-3.5">
-              <Checkbox
-                id="terms-check"
-                checked={termsAccepted}
-                onCheckedChange={(checked) => setTermsAccepted(!!checked)}
-                disabled={isLocked || isSubmitting || isSaving}
-                className="mt-0.5 size-4.5 rounded-md"
-              />
-              <div className="space-y-1">
-                <Label
-                  htmlFor="terms-check"
-                  className="text-xs sm:text-sm font-bold text-foreground cursor-pointer leading-relaxed block"
+          {/* Card: Representante y contacto */}
+          <div className="bg-card border border-border rounded-[16px] p-[20px] flex flex-col gap-[16px]">
+            <div className="flex items-center justify-between gap-[12px]">
+              <h2 className="text-[18px] font-semibold leading-[24px] tracking-[-0.01em] text-foreground">
+                Representante y contacto
+              </h2>
+
+              {isLocked ? (
+                <span className="inline-flex items-center rounded-full bg-success text-success-foreground px-[10px] py-[2px] text-[12px] font-medium leading-[16px]">
+                  Completo
+                </span>
+              ) : (
+                <button
+                  type="button"
+                  onClick={openContactEditModal}
+                  className="text-[14px] font-medium text-link hover:underline cursor-pointer"
                 >
-                  13. Manifiesto bajo protesta de decir verdad que los datos y documentos proporcionados son legítimos y acepto los Términos y Condiciones y Aviso de Privacidad de K&apos;anPro.
-                </Label>
-                <p className="text-[11px] text-muted-foreground leading-relaxed">
-                  K&apos;anPro resguarda la información fiscal y legal de manera estrictamente confidencial para fines exclusivos de validación de identidad corporativa.
+                  Editar
+                </button>
+              )}
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-[16px] gap-y-[14px]">
+              <div>
+                <p className="text-[12px] font-normal leading-[16px] text-muted-foreground">
+                  Representante legal
+                </p>
+                <p className="text-[14px] font-medium leading-[20px] text-foreground mt-[2px]">
+                  {legalRepName || "Por definir"}
+                </p>
+              </div>
+              <div>
+                <p className="text-[12px] font-normal leading-[16px] text-muted-foreground">
+                  Teléfono
+                </p>
+                <p className="text-[14px] font-medium leading-[20px] text-foreground mt-[2px]">
+                  {contactPhone || "Por definir"}
+                </p>
+              </div>
+              <div className="sm:col-span-2">
+                <p className="text-[12px] font-normal leading-[16px] text-muted-foreground">
+                  Correo corporativo
+                </p>
+                <p className="text-[14px] font-medium leading-[20px] text-foreground mt-[2px] break-all">
+                  {corporateEmail || "Por definir"}
                 </p>
               </div>
             </div>
           </div>
+        </div>
+      </div>
 
-        </CardContent>
+      {/* Consent Card */}
+      <div
+        ref={consentRef}
+        className="bg-card border border-border rounded-[16px] p-[20px] flex flex-col gap-[12px]"
+      >
+        <h2 className="text-[18px] font-semibold leading-[24px] tracking-[-0.01em] text-foreground">
+          Revisión y consentimiento
+        </h2>
 
-        {/* ---------------- CARD FOOTER: ACTIONS ---------------- */}
-        <CardFooter className="p-4 sm:p-6 border-t border-border/60 bg-muted/20 flex flex-col sm:flex-row items-center justify-between gap-3">
-          <div className="text-xs font-semibold text-muted-foreground text-center sm:text-left">
-            {isApproved ? (
-              <span className="text-emerald-600 dark:text-emerald-400 font-bold flex items-center gap-1.5">
-                <ShieldCheck className="size-4 shrink-0" />
-                Expediente verificado y aprobado.
-              </span>
-            ) : isPendingReview ? (
-              <span className="text-amber-600 dark:text-amber-400 font-bold flex items-center gap-1.5">
-                <Clock className="size-4 shrink-0 animate-pulse" />
-                Expediente enviado a revisión. Auditoría en curso.
-              </span>
-            ) : completedCount === totalCount ? (
-              <span className="text-emerald-600 dark:text-emerald-400 font-bold flex items-center gap-1.5">
-                <CheckCircle2 className="size-4 shrink-0" />
-                Expediente completo (13/13). Listo para enviar.
-              </span>
-            ) : (
-              <span>Faltan {totalCount - completedCount} requisitos para poder enviar a revisión oficial.</span>
-            )}
-          </div>
+        <div className="flex items-start sm:items-center gap-[10px]">
+          <Checkbox
+            id="verification-terms"
+            checked={termsAccepted}
+            disabled={isReadOnly}
+            onCheckedChange={(checked) => setTermsAccepted(Boolean(checked))}
+            className="mt-0.5 sm:mt-0"
+          />
+          <label
+            htmlFor="verification-terms"
+            className="text-[14px] font-normal leading-[20px] text-foreground cursor-pointer select-none"
+          >
+            Confirmo que los datos y documentos son auténticos y acepto los{" "}
+            <Link href="/terms" className="text-link font-medium hover:underline">
+              Términos
+            </Link>{" "}
+            y el{" "}
+            <Link href="/privacy" className="text-link font-medium hover:underline">
+              Aviso de privacidad
+            </Link>
+          </label>
+        </div>
+      </div>
 
-          <div className="flex items-center gap-2.5 w-full sm:w-auto justify-end">
+      {/* Bottom Action Bar */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-[12px]">
+        <p className="text-[14px] font-normal leading-[20px] text-muted-foreground">
+          {isPendingReview
+            ? "Puedes consultar el expediente enviado."
+            : isApproved
+            ? "Tu expediente fue aprobado y verificado."
+            : missingCount === 0
+            ? `Los ${totalCount} requisitos están completos.`
+            : `Faltan ${missingCount} requisitos para enviar el expediente.`}
+        </p>
+
+        {!isLocked && (
+          <div className="flex items-center gap-[12px]">
             <Button
               type="button"
               variant="outline"
-              size="sm"
+              disabled={isSaving || isSubmitting}
               onClick={handleSaveDraft}
-              disabled={isSaving || isSubmitting || isLocked}
-              className="font-bold cursor-pointer gap-1.5 shadow-none disabled:opacity-50 disabled:cursor-not-allowed"
+              className="h-[44px] px-[16px] rounded-[8px] border-control-border bg-card text-[14px] font-medium text-foreground hover:bg-muted/50 cursor-pointer"
             >
-              {isSaving ? (
-                <>
-                  <Loader2 className="size-3.5 animate-spin" />
-                  <span>Guardando...</span>
-                </>
-              ) : (
-                <>
-                  <Save className="size-3.5" />
-                  <span>Guardar Borrador</span>
-                </>
-              )}
+              {isSaving ? "Guardando..." : "Guardar borrador"}
             </Button>
 
             <Button
               type="button"
-              size="sm"
+              disabled={isSubmitting || isSaving || completedCount < totalCount}
               onClick={handleSubmitVerification}
-              disabled={isSubmitting || isSaving || completedCount < totalCount || isLocked}
               className={cn(
-                "font-bold gap-2 shadow-sm transition-all",
-                isApproved
-                  ? "bg-emerald-600/15 text-emerald-700 dark:text-emerald-400 border border-emerald-500/30 opacity-80 cursor-not-allowed"
-                  : isPendingReview
-                  ? "bg-amber-500/15 text-amber-700 dark:text-amber-400 border border-amber-500/30 opacity-80 cursor-not-allowed"
-                  : "bg-primary text-primary-foreground hover:bg-primary/90 cursor-pointer active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
+                "h-[44px] px-[16px] rounded-[8px] text-[14px] font-medium cursor-pointer",
+                completedCount === totalCount
+                  ? "bg-primary text-primary-foreground hover:bg-primary/90"
+                  : "bg-muted text-muted-foreground"
               )}
             >
-              {isSubmitting ? (
-                <>
-                  <Loader2 className="size-3.5 animate-spin" />
-                  <span>Enviando Expediente...</span>
-                </>
-              ) : isApproved ? (
-                <>
-                  <ShieldCheck className="size-3.5 text-emerald-600 dark:text-emerald-400" />
-                  <span>Empresa Verificada</span>
-                </>
-              ) : isPendingReview ? (
-                <>
-                  <Clock className="size-3.5 text-amber-600 dark:text-amber-400 animate-pulse" />
-                  <span>Expediente en Revisión</span>
-                </>
-              ) : (
-                <>
-                  <Send className="size-3.5" />
-                  <span>Enviar a Revisión</span>
-                </>
-              )}
+              {isSubmitting ? "Enviando..." : "Enviar a revisión"}
             </Button>
           </div>
-        </CardFooter>
-      </Card>
+        )}
+      </div>
 
-      {/* PDF PREVIEW MODAL WITH SECURE SIGNED URL */}
+      {/* Modal: Adjuntar documento */}
+      <Dialog
+        open={!!uploadModalDoc}
+        onOpenChange={(open) => {
+          if (!open) {
+            setUploadModalDoc(null);
+            setPendingUploadFile(null);
+          }
+        }}
+      >
+        <DialogContent
+          showCloseButton={false}
+          className="sm:max-w-[460px] rounded-[16px] p-[24px] gap-[16px]"
+        >
+          <DialogHeader className="gap-[4px] text-left">
+            <DialogTitle className="text-[20px] font-semibold leading-[28px] text-foreground">
+              Adjuntar documento
+            </DialogTitle>
+            <DialogDescription className="text-[14px] font-semibold leading-[20px] text-foreground">
+              {uploadModalDoc?.title}
+            </DialogDescription>
+            <p className="text-[12px] font-normal leading-[16px] text-muted-foreground">
+              PDF, JPG o PNG · máximo 10 MB
+            </p>
+          </DialogHeader>
+
+          <button
+            type="button"
+            onClick={() => uploadModalInputRef.current?.click()}
+            className="w-full rounded-[12px] bg-muted/60 hover:bg-muted/80 border border-border p-[16px] text-left transition-colors cursor-pointer"
+          >
+            <p className="text-[14px] font-semibold leading-[20px] text-foreground truncate">
+              {pendingUploadFile
+                ? pendingUploadFile.name
+                : "Seleccionar archivo..."}
+            </p>
+            <p className="text-[12px] font-normal leading-[16px] text-muted-foreground mt-[2px]">
+              {pendingUploadFile
+                ? `${(pendingUploadFile.size / (1024 * 1024)).toFixed(2)} MB listo para adjuntar`
+                : "Haz clic para elegir un archivo desde tu dispositivo"}
+            </p>
+          </button>
+
+          <input
+            ref={uploadModalInputRef}
+            type="file"
+            accept=".pdf,.png,.jpg,.jpeg"
+            aria-label={`Seleccionar archivo para ${uploadModalDoc?.title || "documento"}`}
+            onChange={(e) => {
+              const file = e.target.files?.[0];
+              if (file) {
+                setPendingUploadFile(file);
+              }
+              e.target.value = "";
+            }}
+            className="hidden"
+          />
+
+          <div className="flex items-center justify-end gap-[10px]">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => {
+                setUploadModalDoc(null);
+                setPendingUploadFile(null);
+              }}
+              className="h-[40px] px-[16px] rounded-[8px] border-control-border bg-card text-[14px] font-medium text-foreground cursor-pointer"
+            >
+              Cancelar
+            </Button>
+            <Button
+              type="button"
+              disabled={!pendingUploadFile || !uploadModalDoc || uploadingDocType !== null}
+              onClick={async () => {
+                if (!uploadModalDoc || !pendingUploadFile) return;
+                await handleFileUpload(uploadModalDoc.docType, pendingUploadFile);
+                setUploadModalDoc(null);
+                setPendingUploadFile(null);
+              }}
+              className="h-[40px] px-[16px] rounded-[8px] bg-primary text-primary-foreground hover:bg-primary/90 text-[14px] font-medium cursor-pointer"
+            >
+              {uploadingDocType ? "Subiendo..." : "Adjuntar archivo"}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Modal: Editar datos de la empresa */}
+      <Dialog
+        open={editModal === "company"}
+        onOpenChange={(open) => !open && setEditModal(null)}
+      >
+        <DialogContent
+          showCloseButton={false}
+          className="sm:max-w-[540px] rounded-[16px] p-[24px] gap-[16px]"
+        >
+          <DialogHeader className="text-left">
+            <div className="flex items-center gap-[10px]">
+              <div className="size-[32px] rounded-[8px] bg-sidebar-accent text-link flex items-center justify-center shrink-0">
+                <Building2 className="size-[16px]" />
+              </div>
+              <DialogTitle className="text-[18px] font-semibold leading-[24px] text-foreground">
+                Editar datos de la empresa
+              </DialogTitle>
+            </div>
+          </DialogHeader>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-[14px]">
+            <div className="flex flex-col gap-[6px]">
+              <Label className="text-[14px] font-medium">Tipo de persona</Label>
+              <Select
+                value={draftCompany.fiscalRegime}
+                onValueChange={(val) =>
+                  setDraftCompany((prev) => ({
+                    ...prev,
+                    fiscalRegime: val as "persona_moral" | "persona_fisica",
+                  }))
+                }
+              >
+                <SelectTrigger className="h-[44px] w-full rounded-[8px] border-input bg-background px-[12px] text-[14px]">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="persona_moral">Persona moral</SelectItem>
+                  <SelectItem value="persona_fisica">Persona física</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="flex flex-col gap-[6px]">
+              <Label htmlFor="verif_rfc" className="text-[14px] font-medium">
+                RFC
+              </Label>
+              <Input
+                id="verif_rfc"
+                value={draftCompany.rfc}
+                onChange={(e) =>
+                  setDraftCompany((prev) => ({
+                    ...prev,
+                    rfc: e.target.value.toUpperCase(),
+                  }))
+                }
+                maxLength={draftCompany.fiscalRegime === "persona_moral" ? 12 : 13}
+                className="h-[44px] rounded-[8px] uppercase"
+              />
+            </div>
+
+            <div className="flex flex-col gap-[6px]">
+              <Label htmlFor="verif_legal_name" className="text-[14px] font-medium">
+                Razón social
+              </Label>
+              <Input
+                id="verif_legal_name"
+                value={draftCompany.legalName}
+                onChange={(e) =>
+                  setDraftCompany((prev) => ({ ...prev, legalName: e.target.value }))
+                }
+                className="h-[44px] rounded-[8px]"
+              />
+            </div>
+
+            <div className="flex flex-col gap-[6px]">
+              <Label htmlFor="verif_company_name" className="text-[14px] font-medium">
+                Nombre comercial
+              </Label>
+              <Input
+                id="verif_company_name"
+                value={draftCompany.companyName}
+                onChange={(e) =>
+                  setDraftCompany((prev) => ({
+                    ...prev,
+                    companyName: e.target.value,
+                  }))
+                }
+                className="h-[44px] rounded-[8px]"
+              />
+            </div>
+
+            <div className="flex flex-col gap-[6px] sm:col-span-2">
+              <Label className="text-[14px] font-medium">Actividad económica</Label>
+              <Select
+                value={draftCompany.industry}
+                onValueChange={(val) =>
+                  setDraftCompany((prev) => ({ ...prev, industry: val || "" }))
+                }
+              >
+                <SelectTrigger className="h-[44px] w-full rounded-[8px] border-input bg-background px-[12px] text-[14px]">
+                  <SelectValue placeholder="Selecciona un giro" />
+                </SelectTrigger>
+                <SelectContent>
+                  {INDUSTRY_OPTIONS.map((opt) => (
+                    <SelectItem key={opt} value={opt}>
+                      {opt}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="flex flex-col gap-[6px] sm:col-span-2">
+              <Label htmlFor="verif_fiscal_address" className="text-[14px] font-medium">
+                Domicilio fiscal
+              </Label>
+              <Input
+                id="verif_fiscal_address"
+                value={draftCompany.fiscalAddress}
+                onChange={(e) =>
+                  setDraftCompany((prev) => ({
+                    ...prev,
+                    fiscalAddress: e.target.value,
+                  }))
+                }
+                className="h-[44px] rounded-[8px]"
+              />
+            </div>
+          </div>
+
+          <DialogFooter className="flex flex-row justify-end gap-[10px]">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setEditModal(null)}
+              className="h-[40px] px-[16px] rounded-[8px] border-control-border bg-card text-[14px] font-medium text-foreground cursor-pointer"
+            >
+              Cancelar
+            </Button>
+            <Button
+              type="button"
+              onClick={() => {
+                setFiscalRegime(draftCompany.fiscalRegime);
+                setRfc(draftCompany.rfc);
+                setLegalName(draftCompany.legalName);
+                setCompanyName(draftCompany.companyName);
+                setIndustry(draftCompany.industry);
+                setFiscalAddress(draftCompany.fiscalAddress);
+                setEditModal(null);
+              }}
+              className="h-[40px] px-[16px] rounded-[8px] bg-primary text-primary-foreground hover:bg-primary/90 text-[14px] font-medium cursor-pointer"
+            >
+              Guardar cambios
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Modal: Editar representante y contacto */}
+      <Dialog
+        open={editModal === "contact"}
+        onOpenChange={(open) => !open && setEditModal(null)}
+      >
+        <DialogContent
+          showCloseButton={false}
+          className="sm:max-w-[520px] rounded-[16px] p-[24px] gap-[16px]"
+        >
+          <DialogHeader className="text-left">
+            <div className="flex items-center gap-[10px]">
+              <div className="size-[32px] rounded-[8px] bg-sidebar-accent text-link flex items-center justify-center shrink-0">
+                <Users className="size-[16px]" />
+              </div>
+              <DialogTitle className="text-[18px] font-semibold leading-[24px] text-foreground">
+                Editar representante y contacto
+              </DialogTitle>
+            </div>
+          </DialogHeader>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-[14px]">
+            <div className="flex flex-col gap-[6px] sm:col-span-2">
+              <Label htmlFor="verif_rep_name" className="text-[14px] font-medium">
+                Nombre completo del representante legal
+              </Label>
+              <Input
+                id="verif_rep_name"
+                value={draftContact.legalRepName}
+                onChange={(e) =>
+                  setDraftContact((prev) => ({
+                    ...prev,
+                    legalRepName: e.target.value,
+                  }))
+                }
+                className="h-[44px] rounded-[8px]"
+              />
+            </div>
+
+            <div className="flex flex-col gap-[6px]">
+              <Label htmlFor="verif_email" className="text-[14px] font-medium">
+                Correo corporativo
+              </Label>
+              <Input
+                id="verif_email"
+                type="email"
+                value={draftContact.corporateEmail}
+                onChange={(e) =>
+                  setDraftContact((prev) => ({
+                    ...prev,
+                    corporateEmail: e.target.value,
+                  }))
+                }
+                className="h-[44px] rounded-[8px]"
+              />
+            </div>
+
+            <div className="flex flex-col gap-[6px]">
+              <Label htmlFor="verif_phone" className="text-[14px] font-medium">
+                Teléfono de contacto
+              </Label>
+              <Input
+                id="verif_phone"
+                value={draftContact.contactPhone}
+                onChange={(e) =>
+                  setDraftContact((prev) => ({
+                    ...prev,
+                    contactPhone: e.target.value,
+                  }))
+                }
+                className="h-[44px] rounded-[8px]"
+              />
+            </div>
+          </div>
+
+          <DialogFooter className="flex flex-row justify-end gap-[10px]">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setEditModal(null)}
+              className="h-[40px] px-[16px] rounded-[8px] border-control-border bg-card text-[14px] font-medium text-foreground cursor-pointer"
+            >
+              Cancelar
+            </Button>
+            <Button
+              type="button"
+              onClick={() => {
+                setLegalRepName(draftContact.legalRepName);
+                setCorporateEmail(draftContact.corporateEmail);
+                setContactPhone(draftContact.contactPhone);
+                setEditModal(null);
+              }}
+              className="h-[40px] px-[16px] rounded-[8px] bg-primary text-primary-foreground hover:bg-primary/90 text-[14px] font-medium cursor-pointer"
+            >
+              Guardar cambios
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* PDF / Image Preview Modal */}
       <Dialog open={!!previewDoc} onOpenChange={(open) => !open && setPreviewDoc(null)}>
         <DialogContent className="sm:max-w-[700px] max-h-[90vh] overflow-y-auto p-6 space-y-4">
           <DialogHeader>
-            <DialogTitle className="text-base font-bold text-foreground flex items-center gap-2">
+            <DialogTitle className="text-base font-semibold text-foreground flex items-center gap-2">
               <FileText className="size-5 text-primary" />
               {previewDoc?.title}
             </DialogTitle>
-            <DialogDescription className="text-xs text-muted-foreground font-medium">
+            <DialogDescription className="text-xs text-muted-foreground">
               {previewDoc?.fileName}
             </DialogDescription>
           </DialogHeader>
 
-          <div className="p-3 bg-muted/30 border border-border/60 rounded-2xl flex flex-col items-center justify-center text-center space-y-3">
+          <div className="p-3 bg-muted/30 border border-border rounded-2xl flex flex-col items-center justify-center text-center space-y-3">
             {previewDoc?.url && (
               <div className="w-full space-y-3">
                 {previewDoc.fileName.toLowerCase().endsWith(".pdf") ? (
                   <iframe
                     src={previewDoc.url}
-                    className="w-full h-96 rounded-xl border border-border/60 bg-white"
+                    className="w-full h-96 rounded-xl border border-border bg-white"
                     title={previewDoc.title}
                   />
                 ) : (
@@ -973,21 +1201,33 @@ export function CompanyVerificationView({
                     <img
                       src={previewDoc.url}
                       alt={previewDoc.title}
-                      className="max-h-96 rounded-xl object-contain border border-border/60"
+                      className="max-h-96 rounded-xl object-contain border border-border"
                     />
                   </div>
                 )}
 
-                <div className="flex justify-center gap-3 pt-2">
+                <div className="flex flex-wrap justify-center gap-3 pt-2">
                   <a
                     href={previewDoc.url}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="inline-flex items-center gap-2 px-5 py-2.5 bg-primary text-primary-foreground rounded-full text-xs font-bold shadow-xs hover:bg-primary/90"
+                    className="inline-flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded-[8px] text-xs font-medium hover:bg-primary/90"
                   >
-                    <span>Abrir en Pestaña Completa</span>
+                    <span>Abrir en pestaña completa</span>
                     <ExternalLink className="size-3.5" />
                   </a>
+
+                  {!isReadOnly && (
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => handleDeleteDoc(previewDoc.docType)}
+                      className="h-[34px] px-4 rounded-[8px] text-xs font-medium text-destructive hover:text-destructive gap-1.5 cursor-pointer"
+                    >
+                      <Trash2 className="size-3.5" />
+                      <span>Eliminar archivo</span>
+                    </Button>
+                  )}
                 </div>
               </div>
             )}
@@ -995,146 +1235,5 @@ export function CompanyVerificationView({
         </DialogContent>
       </Dialog>
     </motion.div>
-  );
-}
-
-interface DocumentUploadCardProps {
-  title: string;
-  description: string;
-  docType: CompanyDocType;
-  doc: CompanyVerificationDoc | null;
-  isUploading: boolean;
-  disabled?: boolean;
-  onUpload: (file: File) => void;
-  onDelete: () => void;
-  onPreview: (doc: CompanyVerificationDoc) => void;
-}
-
-function DocumentUploadCard({
-  title,
-  description,
-  docType,
-  doc,
-  isUploading,
-  disabled,
-  onUpload,
-  onDelete,
-  onPreview,
-}: DocumentUploadCardProps) {
-  const fileInputRef = React.useRef<HTMLInputElement | null>(null);
-
-  return (
-    <div className="p-4 bg-muted/20 border border-border/80 rounded-3xl space-y-3 flex flex-col justify-between">
-      <div>
-        <div className="flex items-start justify-between gap-2">
-          <div>
-            <h4 className="text-xs sm:text-sm font-extrabold text-foreground">
-              {title}
-            </h4>
-            <p className="text-[11px] text-muted-foreground font-medium mt-0.5">
-              {description}
-            </p>
-          </div>
-
-          {doc ? (
-            <Badge className="bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border border-emerald-500/20 text-[10px] font-extrabold px-2 py-0.5 shrink-0 shadow-none">
-              Cargado
-            </Badge>
-          ) : (
-            <Badge className="bg-amber-500/10 text-amber-700 dark:text-amber-400 border border-amber-500/20 text-[10px] font-extrabold px-2 py-0.5 shrink-0 shadow-none">
-              Pendiente
-            </Badge>
-          )}
-        </div>
-
-        {/* Existing Doc Item */}
-        {doc ? (
-          <div className="mt-3 p-3 bg-card border border-border/80 rounded-2xl flex items-center justify-between gap-3 shadow-2xs">
-            <div className="flex items-center gap-2.5 min-w-0">
-              <FileText className="size-5 text-primary shrink-0" />
-              <div className="min-w-0">
-                <p className="text-xs font-bold text-foreground truncate">
-                  {doc.file_name}
-                </p>
-                <p className="text-[10px] text-muted-foreground font-medium">
-                  {doc.file_size_bytes
-                    ? `${(doc.file_size_bytes / (1024 * 1024)).toFixed(1)} MB`
-                    : "Documento Adjunto"}
-                </p>
-              </div>
-            </div>
-
-            <div className="flex items-center gap-1 shrink-0">
-              <button
-                type="button"
-                onClick={() => onPreview(doc)}
-                className="p-1.5 text-muted-foreground hover:text-foreground transition-colors cursor-pointer rounded-lg hover:bg-muted"
-                title="Ver Documento"
-              >
-                <Eye className="size-4" />
-              </button>
-              {!disabled && (
-                <button
-                  type="button"
-                  onClick={onDelete}
-                  className="p-1.5 text-destructive hover:text-destructive/80 transition-colors cursor-pointer rounded-lg hover:bg-destructive/10"
-                  title="Eliminar Documento"
-                >
-                  <Trash2 className="size-4" />
-                </button>
-              )}
-            </div>
-          </div>
-        ) : (
-          /* Dropzone Click Box */
-          <button
-            type="button"
-            disabled={disabled || isUploading}
-            onClick={() => fileInputRef.current?.click()}
-            aria-label={`Subir documento ${title}`}
-            className={cn(
-              "w-full mt-3 p-4 bg-background rounded-2xl border-2 border-dashed transition-all text-center flex flex-col items-center justify-center space-y-1.5 focus-visible:ring-2 focus-visible:ring-primary focus-visible:outline-hidden",
-              disabled
-                ? "border-border/40 bg-muted/10 opacity-60 cursor-not-allowed"
-                : isUploading
-                ? "border-primary bg-muted/20 cursor-wait"
-                : "border-border/80 hover:border-primary cursor-pointer"
-            )}
-          >
-            {isUploading ? (
-              <div className="flex items-center gap-2 text-xs font-bold text-foreground">
-                <Loader2 className="size-4 animate-spin text-primary" />
-                <span>Subiendo documento...</span>
-              </div>
-            ) : (
-              <>
-                <UploadCloud className="size-5 text-muted-foreground" />
-                <span className="text-xs font-bold text-foreground">
-                  {disabled ? "Carga bloqueada en revisión" : "Seleccionar archivo PDF o imagen"}
-                </span>
-                <span className="text-[10px] font-semibold text-muted-foreground">
-                  Formatos: .pdf, .jpg, .png (Máx. 10 MB)
-                </span>
-              </>
-            )}
-
-            {!disabled && (
-              <input
-                ref={fileInputRef}
-                type="file"
-                id={`file-input-${docType}`}
-                aria-label={`Archivo para ${title}`}
-                accept=".pdf,.png,.jpg,.jpeg"
-                onChange={(e) => {
-                  const file = e.target.files?.[0];
-                  if (file) onUpload(file);
-                }}
-                className="hidden"
-              />
-            )}
-          </button>
-        )}
-      </div>
-    </div>
   );
 }
