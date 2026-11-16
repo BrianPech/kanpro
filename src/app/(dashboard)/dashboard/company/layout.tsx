@@ -57,7 +57,7 @@ export default async function CompanyDashboardLayout({
         companies={userCompanies}
         activeCompanyId={activeCompanyId}
       />
-      <SidebarInset className="flex flex-1 flex-col overflow-hidden bg-sidebar">
+      <SidebarInset className="flex flex-1 flex-col overflow-hidden !bg-sidebar">
         <CompanyTopbar
           userName={userName}
           userInitials={userInitials}
@@ -68,7 +68,7 @@ export default async function CompanyDashboardLayout({
         />
 
         {/* Marco del área de trabajo */}
-        <div className="flex-1 min-h-0 flex flex-col px-2 sm:px-3 pb-3">
+        <div className="flex-1 min-h-0 flex flex-col px-2 sm:px-3 pb-3 bg-sidebar">
           <div className="flex-1 min-h-0 flex flex-col rounded-[16px] border border-border bg-background overflow-hidden">
             <ScrollArea
               className="flex-1 min-h-0 w-full"
