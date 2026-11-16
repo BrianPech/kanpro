@@ -2,7 +2,7 @@
 
 import React, { useEffect, useRef } from "react";
 import L from "leaflet";
-import "leaflet/dist/leaflet.css";
+import { addLocationMapTiles, createMapPinIcon } from "./location-map-theme";
 
 interface OnboardingLeafletMapProps {
   coordinates: [number, number] | null;
@@ -10,22 +10,6 @@ interface OnboardingLeafletMapProps {
 }
 
 const DEFAULT_CENTER: [number, number] = [20.9676, -89.6241]; // Mérida, Yucatán
-
-function createTealPinIcon() {
-  return L.divIcon({
-    className: "kanpro-onboarding-pin",
-    html: `
-      <div style="width:32px;height:40px;display:flex;align-items:center;justify-content:center;cursor:grab;">
-        <svg width="32" height="40" viewBox="0 0 36 44" fill="none" xmlns="http://www.w3.org/2000/svg" style="filter:drop-shadow(0 4px 8px rgba(0,120,111,0.35));">
-          <path d="M18 43C18 43 34 26.5 34 17C34 8.16344 26.8366 1 18 1C9.16344 1 2 8.16344 2 17C2 26.5 18 43 18 43Z" fill="#00786F" stroke="#FFFFFF" stroke-width="2.5" stroke-linejoin="round"/>
-          <circle cx="18" cy="17" r="5.5" fill="#FFFFFF"/>
-        </svg>
-      </div>
-    `,
-    iconSize: [32, 40],
-    iconAnchor: [16, 39],
-  });
-}
 
 export function OnboardingLeafletMap({
   coordinates,
@@ -49,12 +33,9 @@ export function OnboardingLeafletMap({
       center: initialCenter,
       zoom: coordinates ? 15 : 13,
       zoomControl: true,
-      attributionControl: false,
     });
 
-    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-      maxZoom: 19,
-    }).addTo(map);
+    addLocationMapTiles(map);
 
     map.on("click", (e: L.LeafletMouseEvent) => {
       onSelectRef.current(e.latlng.lat, e.latlng.lng);
@@ -87,7 +68,9 @@ export function OnboardingLeafletMap({
     if (!markerRef.current) {
       const marker = L.marker([lat, lng], {
         draggable: true,
-        icon: createTealPinIcon(),
+        icon: createMapPinIcon(),
+        title: "Ubicación de la empresa",
+        alt: "Ubicación de la empresa",
       }).addTo(map);
 
       marker.on("dragend", () => {
@@ -107,7 +90,9 @@ export function OnboardingLeafletMap({
     <div className="relative h-[218px] w-full rounded-[12px] border border-border bg-muted/50 overflow-hidden">
       <div
         ref={containerRef}
-        className="h-full w-full z-0 dark:[&_.leaflet-tile-pane]:brightness-[0.78] dark:[&_.leaflet-tile-pane]:contrast-[1.08] dark:[&_.leaflet-tile-pane]:invert dark:[&_.leaflet-tile-pane]:hue-rotate-180"
+        className="kanpro-location-map relative z-0 size-full"
+        role="region"
+        aria-label="Mapa de ubicación de la empresa"
       />
     </div>
   );

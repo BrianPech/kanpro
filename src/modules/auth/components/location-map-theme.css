@@ -1,0 +1,60 @@
+.kanpro-location-map.leaflet-container {
+  background: var(--muted);
+  color: var(--foreground);
+  font-family: inherit;
+}
+
+.kanpro-location-map .leaflet-tile-pane {
+  filter: saturate(0.55);
+}
+
+.dark .kanpro-location-map .leaflet-tile-pane {
+  filter: invert(1) hue-rotate(180deg) saturate(0.55) brightness(0.88);
+}
+
+.kanpro-location-map .kanpro-map-pin {
+  filter: drop-shadow(0 2px 3px rgb(0 0 0 / 42%));
+}
+
+.kanpro-location-map .leaflet-control-zoom {
+  border: 1px solid var(--input);
+  border-radius: var(--radius);
+  box-shadow: 0 2px 6px rgb(0 0 0 / 12%);
+}
+
+.kanpro-location-map .leaflet-control-zoom a {
+  width: 36px;
+  height: 36px;
+  line-height: 36px;
+  background: var(--popover);
+  border-color: var(--border);
+  color: var(--popover-foreground);
+}
+
+.kanpro-location-map .leaflet-control-zoom a:hover {
+  background: var(--accent);
+  color: var(--accent-foreground);
+}
+
+.kanpro-location-map .leaflet-control-zoom a.leaflet-disabled {
+  background: var(--muted);
+  color: var(--muted-foreground);
+}
+
+.kanpro-location-map :is(.leaflet-control a, .kanpro-map-pin):focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: -2px;
+}
+
+.kanpro-location-map .leaflet-control-attribution {
+  margin: 0 5px 4px;
+  padding: 2px 6px;
+  border-radius: 4px;
+  background: var(--popover);
+  color: var(--muted-foreground);
+}
+
+.kanpro-location-map .leaflet-control-attribution a {
+  color: var(--link);
+  text-decoration: underline;
+}

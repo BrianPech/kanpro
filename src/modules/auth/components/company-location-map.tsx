@@ -2,7 +2,7 @@
 
 import React, { useEffect, useRef, useState, useCallback } from "react";
 import L from "leaflet";
-import "leaflet/dist/leaflet.css";
+import { addLocationMapTiles, createMapPinIcon } from "./location-map-theme";
 import {
   MapPin,
   Navigation,
@@ -88,25 +88,6 @@ export interface CompanyLocationMapProps {
   initialCoordinates?: [number, number];
   onLocationChange: (result: LocationResult) => void;
   className?: string;
-}
-
-// Custom modern SVG marker for Leaflet with exact anchor positioning
-function createMapPinIcon() {
-  return L.divIcon({
-    className: "kanpro-map-pin-marker",
-    html: `
-      <div style="position: relative; width: 36px; height: 44px; display: flex; align-items: center; justify-content: center; cursor: grab; user-select: none;">
-        <svg width="36" height="44" viewBox="0 0 36 44" fill="none" xmlns="http://www.w3.org/2000/svg" style="filter: drop-shadow(0 6px 8px rgba(37,99,235,0.4)) drop-shadow(0 2px 4px rgba(0,0,0,0.15));">
-          <path d="M18 43C18 43 34 26.5 34 17C34 8.16344 26.8366 1 18 1C9.16344 1 2 8.16344 2 17C2 26.5 18 43 18 43Z" fill="#2563EB" stroke="#FFFFFF" stroke-width="2.5" stroke-linejoin="round"/>
-          <circle cx="18" cy="17" r="6" fill="#FFFFFF"/>
-          <circle cx="18" cy="17" r="3" fill="#2563EB"/>
-        </svg>
-      </div>
-    `,
-    iconSize: [36, 44],
-    iconAnchor: [18, 43],
-    popupAnchor: [0, -43],
-  });
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -256,14 +237,12 @@ function ExpandedMapDialog({
       scrollWheelZoom: "center",
     });
 
-    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-      maxZoom: 19,
-      attribution:
-        '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noreferrer">OpenStreetMap</a>',
-    }).addTo(map);
+    addLocationMapTiles(map);
 
     const marker = L.marker(currentCoords, {
       icon: createMapPinIcon(),
+      title: "Ubicación de la empresa",
+      alt: "Ubicación de la empresa",
       draggable: true,
       autoPan: true,
     }).addTo(map);
@@ -515,7 +494,9 @@ function ExpandedMapDialog({
         <div className="relative flex-1 w-full min-h-[220px] sm:min-h-[360px] rounded-2xl border border-border/80 overflow-hidden bg-muted/20">
           <div
             ref={setMapContainerNode}
-            className="absolute inset-0 z-0 cursor-crosshair"
+            className="kanpro-location-map absolute inset-0 z-0 cursor-crosshair"
+            role="region"
+            aria-label="Mapa ampliado de ubicación de la empresa"
           />
 
           {isGeocoding && (
@@ -525,12 +506,12 @@ function ExpandedMapDialog({
             </div>
           )}
 
-          <div className="absolute bottom-3 left-3 z-10 bg-background/90 backdrop-blur-sm border border-border/60 rounded-xl px-2.5 sm:px-3 py-1 sm:py-1.5 text-[10px] sm:text-[11px] text-foreground font-semibold flex items-center gap-1.5 shadow-xs pointer-events-none select-none max-w-[70%] sm:max-w-none">
+          <div className="absolute bottom-8 left-3 z-10 bg-background/90 backdrop-blur-sm border border-border/60 rounded-xl px-2.5 sm:px-3 py-1 sm:py-1.5 text-[10px] sm:text-[11px] text-foreground font-semibold flex items-center gap-1.5 shadow-xs pointer-events-none select-none max-w-[70%] sm:max-w-none">
             <span className="flex h-2 w-2 rounded-full bg-emerald-500 animate-pulse shrink-0" />
             <span className="truncate">Toca o haz clic para mover el pin</span>
           </div>
 
-          <div className="hidden sm:block absolute bottom-3 right-3 z-10 bg-background/90 backdrop-blur-sm border border-border/60 rounded-lg px-2.5 py-1 text-[10px] font-mono text-muted-foreground shadow-xs pointer-events-none select-none">
+          <div className="hidden sm:block absolute bottom-8 right-3 z-10 bg-background/90 backdrop-blur-sm border border-border/60 rounded-lg px-2.5 py-1 text-[10px] font-mono text-muted-foreground shadow-xs pointer-events-none select-none">
             {coords[0].toFixed(5)}, {coords[1].toFixed(5)}
           </div>
         </div>
@@ -728,14 +709,12 @@ export function CompanyLocationMap({
       dragging: !isTouchDevice,
     });
 
-    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-      maxZoom: 19,
-      attribution:
-        '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noreferrer">OpenStreetMap</a>',
-    }).addTo(map);
+    addLocationMapTiles(map);
 
     const marker = L.marker(initialCoords, {
       icon: createMapPinIcon(),
+      title: "Ubicación de la empresa",
+      alt: "Ubicación de la empresa",
       draggable: true,
       autoPan: true,
     }).addTo(map);
@@ -957,22 +936,6 @@ export function CompanyLocationMap({
 
   return (
     <div className={cn("w-full flex flex-col gap-2.5", className)}>
-      {/* Global CSS override for Leaflet div icon transparent styling */}
-      <style
-        dangerouslySetInnerHTML={{
-          __html: `
-            .kanpro-map-pin-marker {
-              background: transparent !important;
-              border: none !important;
-            }
-            .leaflet-container {
-              width: 100% !important;
-              height: 100% !important;
-            }
-          `,
-        }}
-      />
-
       {/* ── Barra de Búsqueda Geocodificada, Botón GPS y Botón Ampliar ── */}
       <div className="relative w-full flex items-center gap-2">
         <div className="relative flex-1">
@@ -1067,7 +1030,12 @@ export function CompanyLocationMap({
 
       {/* ── Contenedor del Mapa Leaflet + OpenStreetMap ── */}
       <div className="relative w-full h-52 sm:h-56 rounded-2xl border border-border/70 overflow-hidden shadow-xs bg-muted/20">
-        <div ref={mapContainerRef} className="size-full z-0 cursor-crosshair" />
+        <div
+          ref={mapContainerRef}
+          className="kanpro-location-map size-full z-0 cursor-crosshair"
+          role="region"
+          aria-label="Mapa de ubicación de la empresa"
+        />
 
         {/* Botón de acceso rápido para ampliar en la esquina superior derecha */}
         <Button
@@ -1083,14 +1051,14 @@ export function CompanyLocationMap({
 
         {/* Indicador de carga de geocodificación */}
         {isGeocoding && (
-          <div className="absolute top-2.5 left-2.5 z-10 bg-background/90 backdrop-blur-sm border border-border/60 rounded-lg px-2.5 py-1 flex items-center gap-1.5 text-[11px] font-semibold text-foreground shadow-xs select-none">
+          <div className="absolute top-2.5 left-14 z-10 bg-background/90 backdrop-blur-sm border border-border/60 rounded-lg px-2.5 py-1 flex items-center gap-1.5 text-[11px] font-semibold text-foreground shadow-xs select-none">
             <Loader2 className="size-3 animate-spin text-primary" />
             <span>Obteniendo dirección...</span>
           </div>
         )}
 
         {/* Floating chip con instrucción de clic o arrastre */}
-        <div className="absolute bottom-2 left-2 z-10 bg-background/90 backdrop-blur-sm border border-border/60 rounded-lg px-2 sm:px-2.5 py-1 text-[10px] text-muted-foreground font-semibold flex items-center gap-1.5 shadow-2xs pointer-events-none select-none max-w-[85%]">
+        <div className="absolute bottom-8 left-2 z-10 bg-background/90 backdrop-blur-sm border border-border/60 rounded-lg px-2 sm:px-2.5 py-1 text-[10px] text-muted-foreground font-semibold flex items-center gap-1.5 shadow-2xs pointer-events-none select-none max-w-[85%]">
           <MapPin className="size-3 text-primary shrink-0" />
           <span className="truncate">Toca para fijar el pin o usa &ldquo;Ampliar&rdquo;</span>
         </div>
