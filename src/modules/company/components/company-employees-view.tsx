@@ -45,6 +45,7 @@ import {
   Trash2,
   MailCheck,
   Layers,
+  ArrowLeft,
 } from "@/components/ui/icons";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -170,6 +171,7 @@ export function CompanyEmployeesView({
     React.useState<CompanyDepartmentItem[]>(companyDepartments);
   const [searchQuery, setSearchQuery] = React.useState("");
   const [categoryFilter, setCategoryFilter] = React.useState<string>("all");
+  const [cameFromAreas, setCameFromAreas] = React.useState(false);
   const [statusFilter, setStatusFilter] = React.useState<"Contratado" | "Baja" | "invitaciones">("Contratado");
   const [sorting, setSorting] = React.useState<SortingState>([
     { id: "hired_date", desc: true },
@@ -227,6 +229,9 @@ export function CompanyEmployeesView({
       const catParam = params.get("category") || params.get("area");
       if (catParam) {
         setCategoryFilter(catParam);
+      }
+      if (params.get("from") === "areas") {
+        setCameFromAreas(true);
       }
     }
 
@@ -933,6 +938,16 @@ export function CompanyEmployeesView({
 
   return (
     <div className="flex flex-col gap-6 w-full pb-16">
+      {cameFromAreas && (
+        <Link
+          href="/dashboard/company/areas"
+          className="inline-flex items-center gap-[6px] text-[14px] font-medium leading-[20px] text-link hover:underline w-fit"
+        >
+          <ArrowLeft className="size-[16px]" />
+          <span>Volver a Áreas</span>
+        </Link>
+      )}
+
       {/* 1. Header */}
       <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
         <div className="flex flex-col gap-1">

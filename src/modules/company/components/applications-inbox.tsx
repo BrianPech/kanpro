@@ -14,7 +14,6 @@ import {
 import {
   Search,
   Star,
-  MapPin,
   Briefcase,
   ExternalLink,
   Phone,
@@ -23,7 +22,6 @@ import {
   FileText,
   ShieldCheck,
   Lock,
-  Clock,
   Download,
   Save,
   Eye,
@@ -37,8 +35,6 @@ import {
   ChevronRight,
   ChevronLeft,
   ArrowUpDown,
-  ArrowUp,
-  ArrowDown,
   RotateCcw,
   MoreHorizontal,
   X,
@@ -54,7 +50,20 @@ import {
   Copy,
   Video,
   PenTool,
+  Clock,
+  MapPin,
 } from "@/components/ui/icons";
+import { HugeiconsIcon } from "@hugeicons/react";
+import {
+  Briefcase01Icon,
+  Calendar03Icon,
+  CheckmarkBadge01Icon,
+  Clock01Icon,
+  Download01Icon,
+  InboxIcon,
+  StarIcon,
+  UserCheck01Icon,
+} from "@hugeicons/core-free-icons";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -113,8 +122,19 @@ import {
 import { HireCandidateWizardModal } from "./recruitment/hire-candidate-wizard-modal";
 import { CandidateCvViewer } from "./candidate-cv-viewer";
 import { DatePicker } from "@/components/ui/date-picker";
-import { CompanyPageHeader } from "./shared/company-page-header";
-import { CompanyStatusBadge } from "./shared/company-status-badge";
+
+const APP_STATUS_PILL: Record<Applicant["status"], string> = {
+  Pendiente: "bg-warning text-warning-foreground",
+  "En revisión":
+    "bg-[#e8f2fb] text-[#184c78] dark:bg-[#213748] dark:text-[#abd6f5]",
+  Preseleccionado:
+    "bg-[#e8f2fb] text-[#184c78] dark:bg-[#213748] dark:text-[#abd6f5]",
+  Entrevista:
+    "bg-[#e8f2fb] text-[#184c78] dark:bg-[#213748] dark:text-[#abd6f5]",
+  Contratado: "bg-success text-success-foreground",
+  Descartado:
+    "bg-[#fcebe9] text-[#a6302a] dark:bg-[#3e2220] dark:text-[#f29b94]",
+};
 
 export function ApplicationsInbox({ companyId }: { companyId?: string } = {}) {
   const {
@@ -504,10 +524,12 @@ export function ApplicationsInbox({ companyId }: { companyId?: string } = {}) {
       }
 
       let matchesRating = true;
-      if (ratingFilter === "top") {
-        matchesRating = (app.internalRating || app.rating || 5) >= 5;
+      if (ratingFilter === "unrated") {
+        matchesRating = !app.internalRating;
+      } else if (ratingFilter === "top") {
+        matchesRating = (app.internalRating || 0) >= 5;
       } else if (ratingFilter === "high") {
-        matchesRating = (app.internalRating || app.rating || 5) >= 4;
+        matchesRating = (app.internalRating || 0) >= 4;
       }
 
       return matchesSearch && matchesVacancy && matchesStatus && matchesRating;
@@ -534,66 +556,39 @@ export function ApplicationsInbox({ companyId }: { companyId?: string } = {}) {
       {
         accessorKey: "name",
         id: "name",
-        header: ({ column }) => (
-          <button
-            type="button"
-            className="flex items-center gap-1.5 font-extrabold text-[11px] uppercase tracking-wider text-muted-foreground hover:text-foreground transition-colors cursor-pointer select-none py-1 group"
-            onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
-          >
-            <span>Candidato</span>
-            {column.getIsSorted() === "asc" ? (
-              <ArrowUp className="size-3.5 text-primary" />
-            ) : column.getIsSorted() === "desc" ? (
-              <ArrowDown className="size-3.5 text-primary" />
-            ) : (
-              <ArrowUpDown className="size-3.5 opacity-40 group-hover:opacity-80 transition-opacity" />
-            )}
-          </button>
+        header: () => (
+          <span className="text-[12px] font-medium leading-[16px] text-muted-foreground">
+            Candidato
+          </span>
         ),
         cell: ({ row }) => {
           const app = row.original;
           return (
-            <div className="flex items-center gap-3 py-1 min-w-[200px]">
+            <div className="flex items-center gap-[12px] min-w-[200px]">
               <Avatar
                 onClick={() => handleOpenDetail(app)}
-                className="size-10 rounded-2xl border border-border/40 shrink-0 cursor-pointer hover:ring-2 hover:ring-primary/40 transition-all shadow-2xs"
+                className="size-[36px] rounded-[8px] bg-sidebar-accent text-link shrink-0 cursor-pointer after:hidden"
               >
                 <AvatarImage
                   src={app.avatar}
                   alt={app.name}
                   className="object-cover"
                 />
-                <AvatarFallback className="rounded-2xl font-extrabold text-xs bg-primary/10 text-primary">
+                <AvatarFallback className="rounded-[8px] text-[12px] font-semibold bg-sidebar-accent text-link">
                   {getInitials(app.name)}
                 </AvatarFallback>
               </Avatar>
               <div className="min-w-0">
-                <div className="flex items-center gap-1.5 flex-wrap">
-                  <button
-                    type="button"
-                    onClick={() => handleOpenDetail(app)}
-                    className="text-xs sm:text-sm font-bold text-foreground group-hover:text-primary hover:text-primary transition-colors truncate block text-left cursor-pointer"
-                  >
-                    {app.name}
-                  </button>
-                  {app.isEarlyAccess && (
-                    <Badge variant="outline" className="text-[9px] font-bold bg-amber-500/10 text-amber-700 dark:text-amber-300 border-amber-500/30 px-1 py-0 h-4 shrink-0">
-                      Pionero
-                    </Badge>
-                  )}
-                </div>
-                <p className="text-[11px] text-muted-foreground font-medium truncate">
-                  {app.headline || "Candidato"}
+                <button
+                  type="button"
+                  onClick={() => handleOpenDetail(app)}
+                  className="text-[14px] font-semibold leading-[20px] text-link hover:underline truncate block text-left cursor-pointer"
+                >
+                  {app.name}
+                </button>
+                <p className="text-[12px] font-normal leading-[16px] text-muted-foreground truncate">
+                  {app.location || "Local"}
                 </p>
-                <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground font-mono">
-                  <span>{app.elapsedTime}</span>
-                  {app.phone && (
-                    <>
-                      <span>•</span>
-                      <span>{app.phone}</span>
-                    </>
-                  )}
-                </div>
               </div>
             </div>
           );
@@ -602,117 +597,72 @@ export function ApplicationsInbox({ companyId }: { companyId?: string } = {}) {
       {
         accessorKey: "vacancyTitle",
         id: "vacancyTitle",
-        header: ({ column }) => (
-          <button
-            type="button"
-            className="flex items-center gap-1.5 font-extrabold text-[11px] uppercase tracking-wider text-muted-foreground hover:text-foreground transition-colors cursor-pointer select-none py-1 group"
-            onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
-          >
-            <span>Vacante Aplicada</span>
-            {column.getIsSorted() === "asc" ? (
-              <ArrowUp className="size-3.5 text-primary" />
-            ) : column.getIsSorted() === "desc" ? (
-              <ArrowDown className="size-3.5 text-primary" />
-            ) : (
-              <ArrowUpDown className="size-3.5 opacity-40 group-hover:opacity-80 transition-opacity" />
-            )}
-          </button>
-        ),
-        cell: ({ row }) => {
-          const app = row.original;
-          return (
-            <div className="space-y-1 py-1">
-              <Link
-                href={app.vacancyId ? `/dashboard/company/vacancies/${app.vacancyId}` : "/dashboard/company/vacancies"}
-                className="text-xs font-bold text-foreground hover:text-primary transition-colors line-clamp-1 block"
-              >
-                {app.vacancyTitle || "Vacante"}
-              </Link>
-              <div className="flex items-center gap-1.5 text-xs text-muted-foreground font-medium">
-                <MapPin className="size-3 text-primary shrink-0" />
-                <span className="truncate">{app.location || "Local"}</span>
-              </div>
-            </div>
-          );
-        },
-      },
-      {
-        id: "skills",
         header: () => (
-          <span className="font-extrabold text-[11px] uppercase tracking-wider text-muted-foreground block">
-            Habilidades Clave
+          <span className="text-[12px] font-medium leading-[16px] text-muted-foreground">
+            Vacante
           </span>
         ),
         cell: ({ row }) => {
           const app = row.original;
-          const skillsList = Array.isArray(app?.skills) ? app.skills.filter(Boolean) : [];
-          const displaySkills = skillsList.slice(0, 3);
-          const remaining = Math.max(0, skillsList.length - 3);
-
           return (
-            <div className="flex items-center gap-1.5 flex-wrap py-1 max-w-xs">
-              {displaySkills.map((skill, idx) => (
-                <Badge
-                  key={idx}
-                  variant="outline"
-                  className="text-[10px] font-semibold px-2 py-0 border-border/40 bg-muted/30"
-                >
-                  {skill}
-                </Badge>
-              ))}
-              {remaining > 0 && (
-                <span className="text-[10px] text-muted-foreground font-mono font-bold">
-                  +{remaining}
-                </span>
-              )}
-            </div>
+            <Link
+              href={
+                app.vacancyId
+                  ? `/dashboard/company/vacancies/${app.vacancyId}`
+                  : "/dashboard/company/vacancies"
+              }
+              className="text-[14px] font-normal leading-[20px] text-foreground hover:text-link transition-colors truncate block max-w-[240px]"
+              title={app.vacancyTitle || "Vacante"}
+            >
+              {app.vacancyTitle || "Vacante"}
+            </Link>
           );
         },
       },
       {
-        accessorKey: "rating",
-        id: "rating",
+        accessorKey: "elapsedTime",
+        id: "elapsedTime",
         header: ({ column }) => (
           <button
             type="button"
-            className="flex items-center gap-1.5 font-extrabold text-[11px] uppercase tracking-wider text-muted-foreground hover:text-foreground transition-colors cursor-pointer select-none py-1 group"
+            className="inline-flex items-center gap-[6px] text-[12px] font-medium leading-[16px] text-muted-foreground hover:text-foreground transition-colors cursor-pointer select-none whitespace-nowrap"
             onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
           >
-            <span>Calificación</span>
-            {column.getIsSorted() === "asc" ? (
-              <ArrowUp className="size-3.5 text-primary" />
-            ) : column.getIsSorted() === "desc" ? (
-              <ArrowDown className="size-3.5 text-primary" />
-            ) : (
-              <ArrowUpDown className="size-3.5 opacity-40 group-hover:opacity-80 transition-opacity" />
-            )}
+            <span>Fecha de postulación</span>
+            <ArrowUpDown className="size-[14px] text-link" />
           </button>
         ),
+        cell: ({ row }) => (
+          <span className="text-[14px] font-normal leading-[20px] text-foreground whitespace-nowrap">
+            {row.original.elapsedTime || "Reciente"}
+          </span>
+        ),
+      },
+      {
+        accessorKey: "rating",
+        id: "rating",
+        header: () => (
+          <span className="text-[12px] font-medium leading-[16px] text-muted-foreground">
+            Calificación
+          </span>
+        ),
         cell: ({ row }) => {
-          const app = row.original;
-          const currentRating = app.internalRating || app.rating || 5;
-
+          const score = row.original.internalRating;
+          if (!score || score <= 0) {
+            return (
+              <span className="text-[14px] font-normal leading-[20px] text-muted-foreground whitespace-nowrap">
+                Sin calificar
+              </span>
+            );
+          }
           return (
-            <div className="flex items-center gap-0.5 py-1">
-              {[1, 2, 3, 4, 5].map((star) => (
-                <button
-                  key={star}
-                  type="button"
-                  onClick={() => handleUpdateRating(app.id, star)}
-                  aria-label={`Calificar con ${star} de 5 estrellas a ${app.name}`}
-                  className="cursor-pointer hover:scale-110 focus-visible:ring-2 focus-visible:ring-amber-500 rounded-xs outline-hidden transition-all p-0.5"
-                  title={`Calificar con ${star} estrellas`}
-                >
-                  <Star
-                    className={cn(
-                      "size-3.5",
-                      star <= currentRating
-                        ? "fill-amber-500 text-amber-500"
-                        : "text-muted-foreground/30"
-                    )}
-                  />
-                </button>
-              ))}
+            <div className="inline-flex items-center gap-[6px] text-[14px] font-medium leading-[20px] text-foreground whitespace-nowrap">
+              <HugeiconsIcon
+                icon={StarIcon}
+                className="size-[16px] text-warning-foreground shrink-0"
+                strokeWidth={2}
+              />
+              <span>{score.toFixed(1)} / 5</span>
             </div>
           );
         },
@@ -720,139 +670,36 @@ export function ApplicationsInbox({ companyId }: { companyId?: string } = {}) {
       {
         accessorKey: "status",
         id: "status",
-        header: ({ column }) => (
-          <button
-            type="button"
-            className="flex items-center gap-1.5 font-extrabold text-[11px] uppercase tracking-wider text-muted-foreground hover:text-foreground transition-colors cursor-pointer select-none py-1 group"
-            onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
-          >
-            <span>Estatus Embudo</span>
-            {column.getIsSorted() === "asc" ? (
-              <ArrowUp className="size-3.5 text-primary" />
-            ) : column.getIsSorted() === "desc" ? (
-              <ArrowDown className="size-3.5 text-primary" />
-            ) : (
-              <ArrowUpDown className="size-3.5 opacity-40 group-hover:opacity-80 transition-opacity" />
-            )}
-          </button>
+        header: () => (
+          <span className="text-[12px] font-medium leading-[16px] text-muted-foreground">
+            Estatus
+          </span>
         ),
         cell: ({ row }) => {
-          const app = row.original;
-
-          if (app.status === "Contratado") {
-            return (
-              <div className="py-1">
-                <span
-                  className={cn(
-                    "inline-flex items-center gap-1.5 h-7 px-2.5 rounded-full text-[10px] font-extrabold border-none shadow-2xs select-none",
-                    getStatusBadgeClass("Contratado")
-                  )}
-                >
-                  <CheckCircle2 className="size-3" />
-                  Contratado
-                </span>
-              </div>
-            );
-          }
-
+          const status = row.original.status;
           return (
-            <div className="py-1">
-              <Select
-                value={app.status}
-                onValueChange={(val) =>
-                  handleUpdateStatus(app.id, val as Applicant["status"])
-                }
-              >
-                <SelectTrigger
-                  aria-label={`Estado de ${app.name}: ${app.status}`}
-                  className={cn(
-                    "h-7 px-2.5 rounded-full text-[10px] font-extrabold border-none shadow-2xs cursor-pointer",
-                    getStatusBadgeClass(app.status)
-                  )}
-                >
-                  <SelectValue placeholder={app.status}>
-                    {app.status}
-                  </SelectValue>
-                </SelectTrigger>
-                <SelectContent className="rounded-xl border-border/50 bg-popover shadow-lg">
-                  <SelectItem
-                    value="Pendiente"
-                    className="text-xs font-semibold rounded-lg"
-                  >
-                    Pendiente
-                  </SelectItem>
-                  <SelectItem
-                    value="En revisión"
-                    className="text-xs font-semibold text-amber-600 rounded-lg"
-                  >
-                    En revisión
-                  </SelectItem>
-                  <SelectItem
-                    value="Preseleccionado"
-                    className="text-xs font-semibold text-indigo-600 rounded-lg"
-                  >
-                    Preseleccionado
-                  </SelectItem>
-                  <SelectItem
-                    value="Entrevista"
-                    className="text-xs font-semibold text-purple-600 rounded-lg"
-                  >
-                    Entrevista
-                  </SelectItem>
-                  <SelectItem
-                    value="Descartado"
-                    className="text-xs font-semibold text-rose-600 rounded-lg"
-                  >
-                    Descartado
-                  </SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
+            <span
+              className={cn(
+                "inline-flex items-center justify-center rounded-full px-[10px] py-[4px] text-[12px] font-medium leading-[16px] whitespace-nowrap",
+                APP_STATUS_PILL[status]
+              )}
+            >
+              {status}
+            </span>
           );
         },
       },
       {
         id: "actions",
         header: () => (
-          <span className="font-extrabold text-[11px] uppercase tracking-wider text-muted-foreground block text-right pr-2">
+          <span className="text-[12px] font-medium leading-[16px] text-muted-foreground block text-right">
             Acciones
           </span>
         ),
         cell: ({ row }) => {
           const app = row.original;
           return (
-            <div className="flex items-center justify-end gap-1 py-1">
-              {app.phone && (
-                <a
-                  href={getWhatsAppLink(app)}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  onClick={() => handleContactApplicant(app)}
-                  className="inline-flex"
-                >
-                  <Button
-                    size="sm"
-                    variant="ghost"
-                    className="h-8 px-2.5 rounded-lg text-emerald-600 hover:bg-emerald-500/10 hover:text-emerald-700 cursor-pointer font-bold text-xs gap-1.5"
-                  >
-                    <MessageSquare className="size-3.5" />
-                    <span className="hidden sm:inline">WhatsApp</span>
-                  </Button>
-                </a>
-              )}
-
-              {/* View Profile Button */}
-              <Button
-                size="sm"
-                variant="outline"
-                onClick={() => handleOpenDetail(app)}
-                className="h-8 px-2.5 rounded-lg border-border/60 hover:bg-muted/50 cursor-pointer font-semibold text-xs gap-1.5"
-              >
-                <Eye className="size-3.5 text-muted-foreground" />
-                <span>Perfil</span>
-              </Button>
-
-              {/* More Actions Dropdown */}
+            <div className="flex items-center justify-end">
               <DropdownMenu>
                 <DropdownMenuTrigger
                   render={
@@ -860,13 +707,16 @@ export function ApplicationsInbox({ companyId }: { companyId?: string } = {}) {
                       size="icon-sm"
                       variant="ghost"
                       aria-label={`Más acciones para ${app.name}`}
-                      className="size-8 rounded-lg text-muted-foreground hover:text-foreground cursor-pointer"
+                      className="size-[36px] rounded-[8px] bg-muted hover:bg-muted/80 text-foreground cursor-pointer"
                     />
                   }
                 >
-                  <MoreHorizontal className="size-4" />
+                  <MoreHorizontal className="size-[16px]" />
                 </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-52 rounded-xl border-border/60 bg-popover shadow-lg">
+                <DropdownMenuContent
+                  align="end"
+                  className="w-52 rounded-xl border-border/60 bg-popover shadow-lg"
+                >
                   <DropdownMenuItem
                     onSelect={() => handleOpenDetail(app, "experience")}
                     className="cursor-pointer text-xs font-semibold py-2 px-2.5 gap-2"
@@ -883,9 +733,25 @@ export function ApplicationsInbox({ companyId }: { companyId?: string } = {}) {
                     <span>Ver CV en PDF</span>
                   </DropdownMenuItem>
 
+                  {app.phone && (
+                    <DropdownMenuItem
+                      render={
+                        <a
+                          href={getWhatsAppLink(app)}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          onClick={() => handleContactApplicant(app)}
+                        />
+                      }
+                      className="cursor-pointer text-xs font-semibold py-2 px-2.5 gap-2 text-emerald-600 dark:text-emerald-400"
+                    >
+                      <MessageSquare className="size-3.5" />
+                      <span>Contactar por WhatsApp</span>
+                    </DropdownMenuItem>
+                  )}
+
                   <DropdownMenuSeparator className="my-1 border-border/40" />
 
-                  {/* Flow Actions */}
                   {app.status === "Pendiente" && (
                     <DropdownMenuItem
                       onSelect={() => handleUpdateStatus(app.id, "En revisión")}
@@ -896,15 +762,18 @@ export function ApplicationsInbox({ companyId }: { companyId?: string } = {}) {
                     </DropdownMenuItem>
                   )}
 
-                  {app.status !== "Preseleccionado" && app.status !== "Contratado" && (
-                    <DropdownMenuItem
-                      onSelect={() => handleUpdateStatus(app.id, "Preseleccionado")}
-                      className="cursor-pointer text-xs font-semibold py-2 px-2.5 gap-2 text-indigo-600 dark:text-indigo-400"
-                    >
-                      <CheckCircle2 className="size-3.5" />
-                      <span>2. Marcar Preseleccionado</span>
-                    </DropdownMenuItem>
-                  )}
+                  {app.status !== "Preseleccionado" &&
+                    app.status !== "Contratado" && (
+                      <DropdownMenuItem
+                        onSelect={() =>
+                          handleUpdateStatus(app.id, "Preseleccionado")
+                        }
+                        className="cursor-pointer text-xs font-semibold py-2 px-2.5 gap-2 text-indigo-600 dark:text-indigo-400"
+                      >
+                        <CheckCircle2 className="size-3.5" />
+                        <span>2. Marcar Preseleccionado</span>
+                      </DropdownMenuItem>
+                    )}
 
                   <DropdownMenuItem
                     onSelect={() => handleOpenScheduleInterview(app)}
@@ -926,15 +795,18 @@ export function ApplicationsInbox({ companyId }: { companyId?: string } = {}) {
                     </DropdownMenuItem>
                   )}
 
-                  {app.status !== "Descartado" && app.status !== "Contratado" && (
-                    <DropdownMenuItem
-                      onSelect={() => handleUpdateStatus(app.id, "Descartado")}
-                      className="cursor-pointer text-xs font-semibold py-2 px-2.5 gap-2 text-rose-600 dark:text-rose-400 hover:bg-rose-500/10"
-                    >
-                      <UserX className="size-3.5" />
-                      <span>Descartar Postulante</span>
-                    </DropdownMenuItem>
-                  )}
+                  {app.status !== "Descartado" &&
+                    app.status !== "Contratado" && (
+                      <DropdownMenuItem
+                        onSelect={() =>
+                          handleUpdateStatus(app.id, "Descartado")
+                        }
+                        className="cursor-pointer text-xs font-semibold py-2 px-2.5 gap-2 text-rose-600 dark:text-rose-400 hover:bg-rose-500/10"
+                      >
+                        <UserX className="size-3.5" />
+                        <span>Descartar Postulante</span>
+                      </DropdownMenuItem>
+                    )}
                 </DropdownMenuContent>
               </DropdownMenu>
             </div>
@@ -959,488 +831,333 @@ export function ApplicationsInbox({ companyId }: { companyId?: string } = {}) {
     getPaginationRowModel: getPaginationRowModel(),
     initialState: {
       pagination: {
-        pageSize: 15,
+        pageSize: 10,
       },
     },
   });
 
   const tableRows = table.getRowModel().rows;
+  const totalFilteredRows = table.getFilteredRowModel().rows.length;
+  const pageIndex = table.getState().pagination.pageIndex;
+  const pageSize = table.getState().pagination.pageSize;
+  const pageCount = Math.max(1, table.getPageCount());
+  const rangeStart = totalFilteredRows === 0 ? 0 : pageIndex * pageSize + 1;
+  const rangeEnd = Math.min(totalFilteredRows, (pageIndex + 1) * pageSize);
 
   return (
-    <div className="space-y-6 w-full pb-16 font-sans animate-in fade-in duration-300">
-      {/* 1. Header Unificado */}
-      <CompanyPageHeader
-        title="Postulantes & Selección"
-        description="Bandeja de candidatos, revisión de perfiles, evaluación curricular y contratación directa."
-      >
-        <div className="flex items-center gap-2">
-          <Badge variant="outline" className="font-mono">
-            {applicants.length}
-          </Badge>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => handleExportCSV(filteredApplicants)}
-            className="cursor-pointer"
-          >
-            <Download data-icon="inline-start" className="text-emerald-600 dark:text-emerald-400" />
-            <span>Exportar CSV</span>
-          </Button>
-
-          <Button
-            size="sm"
-            render={<Link href="/dashboard/company/vacancies" />}
-            className="cursor-pointer font-medium"
-          >
-            <Briefcase data-icon="inline-start" />
-            <span>Ver Vacantes</span>
-          </Button>
+    <div className="flex flex-col gap-[24px] w-full pb-12 font-sans animate-in fade-in duration-300">
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-[16px]">
+        <div>
+          <h1 className="text-[32px] font-semibold leading-[40px] tracking-[-0.02em] text-foreground">
+            Postulaciones
+          </h1>
+          <p className="text-[14px] font-normal leading-[20px] text-muted-foreground mt-[4px]">
+            Revisa candidatos y da seguimiento a cada etapa de selección.
+          </p>
         </div>
-      </CompanyPageHeader>
 
-      {/* 2. Barra de Selección y Filtro por Vacante */}
-      <div className="p-4 rounded-2xl bg-card border border-border/60 shadow-xs space-y-3">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-          <div className="flex items-center gap-3">
-            <div className="size-9 rounded-xl bg-gradient-to-br from-primary/20 via-primary/10 to-primary/5 text-primary border border-primary/20 flex items-center justify-center shrink-0 shadow-2xs">
-              <Briefcase className="size-4.5" />
-            </div>
-            <div>
-              <div className="flex items-center gap-2">
-                <h3 className="text-xs sm:text-sm font-extrabold text-foreground">
-                  Filtrar por Vacante
-                </h3>
-                {selectedVacancyId !== "all" ? (
-                  <Badge variant="outline" className="text-[10px] font-bold bg-primary/10 text-primary border-primary/30 px-2 py-0.5">
-                    Filtro activo
-                  </Badge>
-                ) : (
-                  <Badge variant="outline" className="text-[10px] font-bold bg-muted text-muted-foreground border-border/40 px-2 py-0.5">
-                    {vacanciesWithCounts.length} {vacanciesWithCounts.length === 1 ? "vacante" : "vacantes"}
-                  </Badge>
-                )}
-              </div>
-              <p className="text-[11px] text-muted-foreground mt-0.5">
-                {selectedVacancyId === "all" ? (
-                  <span>Viendo todos los postulantes de la empresa (<strong>{applicants.length}</strong> en total)</span>
-                ) : (
-                  <span>
-                    Viendo postulantes para: <strong className="text-foreground">{selectedVacancy?.title || "Vacante seleccionada"}</strong> ({currentScopeApplicants.length} candidatos)
-                  </span>
-                )}
-              </p>
+        <Link
+          href="/dashboard/company/vacancies"
+          className="inline-flex h-[44px] items-center justify-center gap-[8px] rounded-[8px] border border-control-border bg-card px-[16px] text-[14px] font-medium leading-[20px] text-foreground hover:bg-muted/50 transition-colors shrink-0 self-start sm:self-auto"
+        >
+          <HugeiconsIcon
+            icon={Briefcase01Icon}
+            className="size-[16px] text-muted-foreground"
+            strokeWidth={1.8}
+          />
+          <span>Ver vacantes</span>
+        </Link>
+      </div>
+
+      {/* 5 KPI Cards */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-[16px]">
+        <div className="bg-card border border-border rounded-[16px] p-[16px] flex flex-col gap-[8px]">
+          <div className="flex items-center justify-between gap-[8px]">
+            <span className="text-[12px] font-medium leading-[16px] text-muted-foreground">
+              Postulaciones
+            </span>
+            <div className="size-[32px] rounded-[8px] bg-sidebar-accent text-link flex items-center justify-center shrink-0">
+              <HugeiconsIcon icon={InboxIcon} className="size-[16px]" strokeWidth={1.8} />
             </div>
           </div>
+          <p className="text-[24px] font-semibold leading-[32px] tracking-[-0.01em] text-foreground tabular-nums">
+            {metrics.total}
+          </p>
+          <p className="text-[12px] font-normal leading-[16px] text-muted-foreground">
+            {selectedVacancyId === "all" ? "En todas las vacantes" : "En esta vacante"}
+          </p>
+        </div>
 
-          <div className="flex items-center gap-2 w-full sm:w-auto">
-            <div className="w-full sm:w-[250px]">
+        <div className="bg-card border border-border rounded-[16px] p-[16px] flex flex-col gap-[8px]">
+          <div className="flex items-center justify-between gap-[8px]">
+            <span className="text-[12px] font-medium leading-[16px] text-muted-foreground">
+              Por revisar
+            </span>
+            <div className="size-[32px] rounded-[8px] bg-warning text-warning-foreground flex items-center justify-center shrink-0">
+              <HugeiconsIcon icon={Clock01Icon} className="size-[16px]" strokeWidth={1.8} />
+            </div>
+          </div>
+          <p className="text-[24px] font-semibold leading-[32px] tracking-[-0.01em] text-foreground tabular-nums">
+            {metrics.pending}
+          </p>
+          <p className="text-[12px] font-normal leading-[16px] text-muted-foreground">
+            Pendientes o en revisión
+          </p>
+        </div>
+
+        <div className="bg-card border border-border rounded-[16px] p-[16px] flex flex-col gap-[8px]">
+          <div className="flex items-center justify-between gap-[8px]">
+            <span className="text-[12px] font-medium leading-[16px] text-muted-foreground">
+              Preseleccionados
+            </span>
+            <div className="size-[32px] rounded-[8px] bg-sidebar-accent text-link flex items-center justify-center shrink-0">
+              <HugeiconsIcon icon={UserCheck01Icon} className="size-[16px]" strokeWidth={1.8} />
+            </div>
+          </div>
+          <p className="text-[24px] font-semibold leading-[32px] tracking-[-0.01em] text-foreground tabular-nums">
+            {metrics.shortlisted}
+          </p>
+          <p className="text-[12px] font-normal leading-[16px] text-muted-foreground">
+            Candidatos por contactar
+          </p>
+        </div>
+
+        <div className="bg-card border border-border rounded-[16px] p-[16px] flex flex-col gap-[8px]">
+          <div className="flex items-center justify-between gap-[8px]">
+            <span className="text-[12px] font-medium leading-[16px] text-muted-foreground">
+              Entrevistas
+            </span>
+            <div className="size-[32px] rounded-[8px] bg-sidebar-accent text-link flex items-center justify-center shrink-0">
+              <HugeiconsIcon icon={Calendar03Icon} className="size-[16px]" strokeWidth={1.8} />
+            </div>
+          </div>
+          <p className="text-[24px] font-semibold leading-[32px] tracking-[-0.01em] text-foreground tabular-nums">
+            {metrics.interviews}
+          </p>
+          <p className="text-[12px] font-normal leading-[16px] text-muted-foreground">
+            Candidatos en esta etapa
+          </p>
+        </div>
+
+        <div className="bg-card border border-border rounded-[16px] p-[16px] flex flex-col gap-[8px]">
+          <div className="flex items-center justify-between gap-[8px]">
+            <span className="text-[12px] font-medium leading-[16px] text-muted-foreground">
+              Contratados
+            </span>
+            <div className="size-[32px] rounded-[8px] bg-success text-success-foreground flex items-center justify-center shrink-0">
+              <HugeiconsIcon icon={CheckmarkBadge01Icon} className="size-[16px]" strokeWidth={1.8} />
+            </div>
+          </div>
+          <p className="text-[24px] font-semibold leading-[32px] tracking-[-0.01em] text-foreground tabular-nums">
+            {metrics.hired}
+          </p>
+          <p className="text-[12px] font-normal leading-[16px] text-muted-foreground">
+            Procesos concluidos
+          </p>
+        </div>
+      </div>
+
+      {/* Main Card: Bandeja de postulaciones */}
+      <div className="bg-card border border-border rounded-[16px] overflow-hidden">
+        {/* Card Header */}
+        <div className="px-[20px] py-[16px] border-b border-border flex flex-col sm:flex-row sm:items-center justify-between gap-[12px]">
+          <h2 className="text-[18px] font-semibold leading-[24px] tracking-[-0.01em] text-foreground">
+            Bandeja de postulaciones
+          </h2>
+
+          <button
+            type="button"
+            onClick={() => handleExportCSV(filteredApplicants)}
+            className="inline-flex h-[44px] items-center justify-center gap-[8px] rounded-[8px] border border-control-border bg-card px-[16px] text-[14px] font-medium leading-[20px] text-foreground hover:bg-muted/50 transition-colors cursor-pointer shrink-0 self-start sm:self-auto"
+          >
+            <HugeiconsIcon
+              icon={Download01Icon}
+              className="size-[16px] text-muted-foreground"
+              strokeWidth={1.8}
+            />
+            <span>Exportar CSV</span>
+          </button>
+        </div>
+
+        {/* Filters & Status Tabs */}
+        <div className="px-[20px] py-[16px] border-b border-border flex flex-col gap-[16px]">
+          {/* Filters Row */}
+          <div className="flex flex-col lg:flex-row lg:items-end gap-[12px]">
+            {/* Search */}
+            <div className="flex flex-col gap-[6px] flex-1 min-w-0">
+              <label
+                htmlFor="applications-search"
+                className="text-[14px] font-medium leading-[20px] text-foreground"
+              >
+                Buscar candidatos
+              </label>
+              <div className="relative">
+                <Search className="pointer-events-none absolute left-[12px] top-1/2 -translate-y-1/2 size-[16px] text-muted-foreground" />
+                <Input
+                  id="applications-search"
+                  type="text"
+                  placeholder="Nombre, cargo, teléfono o habilidad"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="h-[44px] pl-[36px] pr-[36px] rounded-[8px] border-input bg-card text-[14px] font-normal placeholder:text-muted-foreground"
+                />
+                {searchQuery && (
+                  <button
+                    type="button"
+                    onClick={() => setSearchQuery("")}
+                    aria-label="Limpiar búsqueda"
+                    className="absolute right-[12px] top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground cursor-pointer"
+                  >
+                    <X className="size-[16px]" />
+                  </button>
+                )}
+              </div>
+            </div>
+
+            {/* Vacancy Filter */}
+            <div className="flex flex-col gap-[6px] w-full sm:w-[220px] shrink-0">
+              <span className="text-[14px] font-medium leading-[20px] text-foreground">
+                Vacante
+              </span>
               <Select
                 value={selectedVacancyId}
                 onValueChange={(val) => setSelectedVacancyId(val || "all")}
               >
                 <SelectTrigger
-                  aria-label="Filtrar por vacante"
-                  className="h-9 w-full rounded-xl border-border/60 bg-background text-xs font-bold shadow-2xs"
+                  aria-label="Filtrar candidatos por vacante"
+                  className="h-[44px] w-full rounded-[8px] border-input bg-card px-[12px] text-[14px] font-normal"
                 >
-                  <SelectValue placeholder="Seleccionar vacante...">
+                  <SelectValue placeholder="Todas las vacantes">
                     {selectedVacancyId === "all"
-                      ? `Todas las vacantes (${applicants.length})`
-                      : vacanciesWithCounts.find((v) => v.id === selectedVacancyId)?.title || "Vacante"}
+                      ? "Todas las vacantes"
+                      : vacanciesWithCounts.find((v) => v.id === selectedVacancyId)
+                          ?.title || selectedVacancyId}
                   </SelectValue>
                 </SelectTrigger>
-                <SelectContent className="rounded-xl border-border/50 bg-popover shadow-xl max-h-72">
-                  <SelectItem value="all" className="text-xs font-bold rounded-lg cursor-pointer">
+                <SelectContent className="rounded-[12px] border-border bg-popover shadow-lg max-h-64">
+                  <SelectItem
+                    value="all"
+                    className="text-[14px] font-normal rounded-[8px] cursor-pointer"
+                  >
                     Todas las vacantes ({applicants.length})
                   </SelectItem>
-                  {vacanciesWithCounts.map((v) => (
-                    <SelectItem key={v.id} value={v.id} className="text-xs font-semibold rounded-lg cursor-pointer">
-                      {v.title} ({v.applicantCount})
+                  {vacanciesWithCounts.map((vac) => (
+                    <SelectItem
+                      key={vac.id}
+                      value={vac.id}
+                      className="text-[14px] font-normal rounded-[8px] cursor-pointer"
+                    >
+                      {vac.title} ({vac.applicantCount})
                     </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
             </div>
 
-            {selectedVacancyId !== "all" && (
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setSelectedVacancyId("all")}
-                className="font-bold text-xs cursor-pointer shrink-0 gap-1.5"
-                title="Ver todas las vacantes"
+            {/* Rating Filter */}
+            <div className="flex flex-col gap-[6px] w-full sm:w-[220px] shrink-0">
+              <span className="text-[14px] font-medium leading-[20px] text-foreground">
+                Calificación
+              </span>
+              <Select
+                value={ratingFilter}
+                onValueChange={(val) => setRatingFilter(val || "all")}
               >
-                <X className="size-3.5" />
-                <span className="hidden sm:inline">Ver todas</span>
-              </Button>
-            )}
+                <SelectTrigger
+                  aria-label="Filtrar por calificación"
+                  className="h-[44px] w-full rounded-[8px] border-input bg-card px-[12px] text-[14px] font-normal"
+                >
+                  <SelectValue placeholder="Todas las calificaciones">
+                    {ratingFilter === "all"
+                      ? "Todas las calificaciones"
+                      : ratingFilter === "top"
+                      ? "5 estrellas"
+                      : ratingFilter === "high"
+                      ? "4 estrellas o más"
+                      : "Sin calificar"}
+                  </SelectValue>
+                </SelectTrigger>
+                <SelectContent className="rounded-[12px] border-border bg-popover shadow-lg">
+                  <SelectItem
+                    value="all"
+                    className="text-[14px] font-normal rounded-[8px] cursor-pointer"
+                  >
+                    Todas las calificaciones
+                  </SelectItem>
+                  <SelectItem
+                    value="top"
+                    className="text-[14px] font-normal rounded-[8px] cursor-pointer"
+                  >
+                    5 estrellas
+                  </SelectItem>
+                  <SelectItem
+                    value="high"
+                    className="text-[14px] font-normal rounded-[8px] cursor-pointer"
+                  >
+                    4 estrellas o más
+                  </SelectItem>
+                  <SelectItem
+                    value="unrated"
+                    className="text-[14px] font-normal rounded-[8px] cursor-pointer"
+                  >
+                    Sin calificar
+                  </SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
           </div>
-        </div>
 
-        {/* Carrusel Horizontal de Chips con ScrollArea */}
-        <div className="pt-2 border-t border-border/30">
-          <ScrollArea className="w-full whitespace-nowrap">
-            <div className="flex items-center gap-2 pb-1">
-              <button
-                type="button"
-                onClick={() => setSelectedVacancyId("all")}
-                className={cn(
-                  "inline-flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer border shrink-0",
-                  selectedVacancyId === "all"
-                    ? "bg-primary text-primary-foreground border-primary shadow-xs"
-                    : "bg-muted/30 hover:bg-muted text-muted-foreground hover:text-foreground border-border/50"
-                )}
-              >
-                <span>Todas las vacantes</span>
-                <span
+          {/* 5 Status Tabs */}
+          <div className="flex items-center gap-[8px] flex-wrap">
+            {[
+              {
+                key: "all",
+                label: `Todas · ${currentScopeApplicants.length}`,
+              },
+              {
+                key: "pending",
+                label: `Por revisar · ${metrics.pending}`,
+              },
+              {
+                key: "Preseleccionado",
+                label: `Preseleccionados · ${metrics.shortlisted}`,
+              },
+              {
+                key: "Entrevista",
+                label: `Entrevistas · ${metrics.interviews}`,
+              },
+              {
+                key: "Contratado",
+                label: `Contratados · ${metrics.hired}`,
+              },
+            ].map((tab) => {
+              const isActive = statusFilter === tab.key;
+              return (
+                <button
+                  key={tab.key}
+                  type="button"
+                  onClick={() => setStatusFilter(tab.key)}
                   className={cn(
-                    "text-[10px] px-1.5 py-0.5 rounded-full font-mono font-bold leading-none",
-                    selectedVacancyId === "all"
-                      ? "bg-white/20 text-white"
-                      : "bg-muted text-muted-foreground"
+                    "h-[36px] px-[12px] rounded-[8px] text-[14px] font-medium leading-[20px] transition-colors cursor-pointer inline-flex items-center whitespace-nowrap",
+                    isActive
+                      ? "bg-sidebar-accent text-link"
+                      : "text-foreground hover:bg-muted"
                   )}
                 >
-                  {applicants.length}
-                </span>
-              </button>
-
-              {vacanciesWithCounts.map((vac) => {
-                const isSelected = selectedVacancyId === vac.id;
-                return (
-                  <button
-                    key={vac.id}
-                    type="button"
-                    onClick={() => setSelectedVacancyId(vac.id)}
-                    className={cn(
-                      "inline-flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer border shrink-0 max-w-[280px]",
-                      isSelected
-                        ? "bg-primary text-primary-foreground border-primary shadow-xs"
-                        : "bg-muted/30 hover:bg-muted text-muted-foreground hover:text-foreground border-border/50"
-                    )}
-                  >
-                    <span className="truncate">{vac.title}</span>
-                    <span
-                      className={cn(
-                        "text-[10px] px-1.5 py-0.5 rounded-full font-mono font-bold shrink-0 leading-none",
-                        isSelected
-                          ? "bg-white/20 text-white"
-                          : vac.applicantCount > 0
-                          ? "bg-primary/15 text-primary dark:text-primary-foreground"
-                          : "bg-muted text-muted-foreground"
-                      )}
-                    >
-                      {vac.applicantCount}
-                    </span>
-                  </button>
-                );
-              })}
-            </div>
-          </ScrollArea>
-        </div>
-      </div>
-
-      {/* 3. Pipeline Metrics Cards */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 sm:gap-4">
-        <Card className="p-4 flex flex-col justify-between">
-          <div className="flex items-center justify-between">
-            <span className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider">
-              Total Postulantes
-            </span>
-            <div className="size-8 rounded-lg bg-primary/10 text-primary flex items-center justify-center">
-              <Users className="size-4" />
-            </div>
-          </div>
-          <div className="mt-2">
-            <h3 className="text-2xl font-extrabold text-foreground font-mono">
-              {metrics.total}
-            </h3>
-            <p className="text-[10px] font-semibold text-muted-foreground mt-0.5">
-              {selectedVacancyId === "all" ? "En todas las convocatorias" : "En esta vacante"}
-            </p>
-          </div>
-        </Card>
-
-        <Card className="p-4 flex flex-col justify-between">
-          <div className="flex items-center justify-between">
-            <span className="text-[11px] font-bold text-amber-600 dark:text-amber-400 uppercase tracking-wider">
-              1. Por Revisar
-            </span>
-            <div className="size-8 rounded-lg bg-amber-500/10 text-amber-600 dark:text-amber-400 flex items-center justify-center">
-              <Clock className="size-4" />
-            </div>
-          </div>
-          <div className="mt-2">
-            <h3 className="text-2xl font-extrabold text-foreground font-mono">
-              {metrics.pending}
-            </h3>
-            <p className="text-[10px] font-semibold text-muted-foreground mt-0.5">
-              {selectedVacancyId === "all" ? "Pendientes / Revisión" : "Por evaluar"}
-            </p>
-          </div>
-        </Card>
-
-        <Card className="p-4 flex flex-col justify-between">
-          <div className="flex items-center justify-between">
-            <span className="text-[11px] font-bold text-indigo-600 dark:text-indigo-400 uppercase tracking-wider">
-              2. Preselección
-            </span>
-            <div className="size-8 rounded-lg bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 flex items-center justify-center">
-              <CheckCircle2 className="size-4" />
-            </div>
-          </div>
-          <div className="mt-2">
-            <h3 className="text-2xl font-extrabold text-foreground font-mono">
-              {metrics.shortlisted}
-            </h3>
-            <p className="text-[10px] font-semibold text-muted-foreground mt-0.5">
-              {selectedVacancyId === "all" ? "Listos para agendar" : "Preseleccionados"}
-            </p>
-          </div>
-        </Card>
-
-        <Card className="p-4 flex flex-col justify-between">
-          <div className="flex items-center justify-between">
-            <span className="text-[11px] font-bold text-purple-600 dark:text-purple-400 uppercase tracking-wider">
-              3. Entrevistas
-            </span>
-            <div className="size-8 rounded-lg bg-purple-500/10 text-purple-600 dark:text-purple-400 flex items-center justify-center">
-              <Calendar className="size-4" />
-            </div>
-          </div>
-          <div className="mt-2">
-            <h3 className="text-2xl font-extrabold text-foreground font-mono">
-              {metrics.interviews}
-            </h3>
-            <p className="text-[10px] font-semibold text-muted-foreground mt-0.5">
-              {selectedVacancyId === "all" ? "Citas agendadas" : "Entrevistas vacante"}
-            </p>
-          </div>
-        </Card>
-
-        <Card className="p-4 flex flex-col justify-between col-span-2 sm:col-span-1">
-          <div className="flex items-center justify-between">
-            <span className="text-[11px] font-bold text-emerald-600 dark:text-emerald-400 uppercase tracking-wider">
-              4. Contratados
-            </span>
-            <div className="size-8 rounded-lg bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center">
-              <Sparkles className="size-4" />
-            </div>
-          </div>
-          <div className="mt-2">
-            <h3 className="text-2xl font-extrabold text-foreground font-mono">
-              {metrics.hired}
-            </h3>
-            <p className="text-[10px] font-semibold text-muted-foreground mt-0.5">
-              {selectedVacancyId === "all" ? "Plantilla activa" : "Contratados vacante"}
-            </p>
-          </div>
-        </Card>
-      </div>
-
-      {/* 3. Master TanStack DataTable Card */}
-      <Card className="bg-card border border-border/50 rounded-3xl overflow-hidden shadow-xs">
-        
-        {/* Unified Toolbar & Filters inside Header */}
-        <div className="p-4 sm:p-5 border-b border-border/40 space-y-3.5 bg-muted/10">
-          
-          {/* Top Row: Search & Info */}
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-            <div className="relative w-full sm:w-80">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
-              <Input
-                placeholder="Buscar por nombre, cargo, teléfono, skill..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-9 text-xs font-medium"
-              />
-              {searchQuery && (
-                <button
-                  type="button"
-                  onClick={() => setSearchQuery("")}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-                >
-                  <X className="size-3.5" />
+                  {tab.label}
                 </button>
-              )}
-            </div>
-
-            <div className="flex items-center gap-2">
-              <span className="text-xs text-muted-foreground font-medium">
-                Mostrando <strong className="text-foreground">{filteredApplicants.length}</strong> postulantes
-              </span>
-            </div>
-          </div>
-
-          {/* Bottom Row: Status Filter Tabs & Vacancy Selectors */}
-          <div className="flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-3 pt-1 border-t border-border/30">
-            
-            {/* Status Segmented Tabs */}
-            <div className="inline-flex p-1 rounded-xl bg-muted/60 border border-border/40 shrink-0 flex-wrap gap-1">
-              <button
-                type="button"
-                onClick={() => setStatusFilter("all")}
-                className={cn(
-                  "px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer",
-                  statusFilter === "all"
-                    ? "bg-background text-foreground shadow-2xs"
-                    : "text-muted-foreground hover:text-foreground"
-                )}
-              >
-                Todos ({currentScopeApplicants.length})
-              </button>
-              <button
-                type="button"
-                onClick={() => setStatusFilter("pending")}
-                className={cn(
-                  "px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5",
-                  statusFilter === "pending"
-                    ? "bg-background text-amber-600 dark:text-amber-400 shadow-2xs"
-                    : "text-muted-foreground hover:text-foreground"
-                )}
-              >
-                <span className="size-1.5 rounded-full bg-amber-500 inline-block" />
-                <span>Por Revisar ({metrics.pending})</span>
-              </button>
-              <button
-                type="button"
-                onClick={() => setStatusFilter("Preseleccionado")}
-                className={cn(
-                  "px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5",
-                  statusFilter === "Preseleccionado"
-                    ? "bg-background text-indigo-600 dark:text-indigo-400 shadow-2xs"
-                    : "text-muted-foreground hover:text-foreground"
-                )}
-              >
-                <span className="size-1.5 rounded-full bg-indigo-500 inline-block" />
-                <span>Preseleccionados ({metrics.shortlisted})</span>
-              </button>
-              <button
-                type="button"
-                onClick={() => setStatusFilter("Entrevista")}
-                className={cn(
-                  "px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5",
-                  statusFilter === "Entrevista"
-                    ? "bg-background text-purple-600 dark:text-purple-400 shadow-2xs"
-                    : "text-muted-foreground hover:text-foreground"
-                )}
-              >
-                <span className="size-1.5 rounded-full bg-purple-500 inline-block" />
-                <span>Entrevistas ({metrics.interviews})</span>
-              </button>
-              <button
-                type="button"
-                onClick={() => setStatusFilter("Contratado")}
-                className={cn(
-                  "px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5",
-                  statusFilter === "Contratado"
-                    ? "bg-background text-emerald-600 dark:text-emerald-400 shadow-2xs"
-                    : "text-muted-foreground hover:text-foreground"
-                )}
-              >
-                <span className="size-1.5 rounded-full bg-emerald-500 inline-block" />
-                <span>Contratados ({metrics.hired})</span>
-              </button>
-            </div>
-
-            {/* Selectors Group */}
-            <div className="flex items-center gap-2 flex-wrap sm:flex-nowrap">
-              {/* Vacancy Selector */}
-              <div className="w-full sm:w-[220px]">
-                <Select
-                  value={selectedVacancyId}
-                  onValueChange={(val) => setSelectedVacancyId(val || "all")}
-                >
-                  <SelectTrigger
-                    aria-label="Filtrar candidatos por vacante"
-                    className="h-9 w-full rounded-xl border-border/50 bg-background text-xs font-semibold"
-                  >
-                    <SelectValue placeholder="Todas las vacantes">
-                      {selectedVacancyId === "all"
-                        ? `Todas las vacantes (${applicants.length})`
-                        : vacanciesWithCounts.find((v) => v.id === selectedVacancyId)?.title || selectedVacancyId}
-                    </SelectValue>
-                  </SelectTrigger>
-                  <SelectContent className="rounded-xl border-border/50 bg-popover shadow-lg max-h-64">
-                    <SelectItem
-                      value="all"
-                      className="text-xs font-semibold rounded-lg cursor-pointer"
-                    >
-                      Todas las vacantes ({applicants.length})
-                    </SelectItem>
-                    {vacanciesWithCounts.map((vac) => (
-                      <SelectItem
-                        key={vac.id}
-                        value={vac.id}
-                        className="text-xs font-semibold rounded-lg cursor-pointer"
-                      >
-                        {vac.title} ({vac.applicantCount})
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              {/* Rating Selector */}
-              <div className="w-full sm:w-[150px]">
-                <Select
-                  value={ratingFilter}
-                  onValueChange={(val) => setRatingFilter(val || "all")}
-                >
-                  <SelectTrigger
-                    aria-label="Filtrar por calificación de estrellas"
-                    className="h-9 w-full rounded-xl border-border/50 bg-background text-xs font-semibold"
-                  >
-                    <SelectValue placeholder="Calificación">
-                      {ratingFilter === "all"
-                        ? "Todas las notas"
-                        : ratingFilter === "top"
-                        ? "⭐⭐⭐⭐⭐ (5★)"
-                        : "⭐⭐⭐⭐ (4★+)"}
-                    </SelectValue>
-                  </SelectTrigger>
-                  <SelectContent className="rounded-xl border-border/50 bg-popover shadow-lg">
-                    <SelectItem
-                      value="all"
-                      className="text-xs font-semibold rounded-lg cursor-pointer"
-                    >
-                      Todas las notas
-                    </SelectItem>
-                    <SelectItem
-                      value="top"
-                      className="text-xs font-semibold rounded-lg cursor-pointer"
-                    >
-                      ⭐⭐⭐⭐⭐ (5★)
-                    </SelectItem>
-                    <SelectItem
-                      value="high"
-                      className="text-xs font-semibold rounded-lg cursor-pointer"
-                    >
-                      ⭐⭐⭐⭐ (4★+)
-                    </SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              {isFiltered && (
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={handleClearFilters}
-                  className="h-9 px-2.5 text-xs font-bold text-muted-foreground hover:text-foreground gap-1 cursor-pointer shrink-0"
-                >
-                  <RotateCcw className="size-3.5" />
-                  <span className="hidden sm:inline">Limpiar</span>
-                </Button>
-              )}
-            </div>
+              );
+            })}
           </div>
         </div>
 
-        {/* 4. Table Body & Empty State */}
-        <div className="relative min-h-[300px]">
+        {/* Table Body & Empty State */}
+        <div className="relative">
           {isLoading ? (
-            <div className="p-8 text-center flex flex-col items-center justify-center gap-3">
+            <div className="p-12 text-center flex flex-col items-center justify-center gap-3">
               <Loader2 className="size-7 animate-spin text-primary" />
-              <p className="text-xs text-muted-foreground font-semibold">
+              <p className="text-sm text-muted-foreground font-medium">
                 Cargando postulaciones...
               </p>
             </div>
@@ -1449,20 +1166,22 @@ export function ApplicationsInbox({ companyId }: { companyId?: string } = {}) {
               <EmptyHeader>
                 <EmptyMedia
                   variant="icon"
-                  className="bg-primary/10 text-primary"
+                  className="bg-sidebar-accent text-link"
                 >
                   <Users className="size-5" />
                 </EmptyMedia>
                 <EmptyTitle>
                   {isFiltered
-                    ? selectedVacancyId !== "all" && currentScopeApplicants.length === 0
+                    ? selectedVacancyId !== "all" &&
+                      currentScopeApplicants.length === 0
                       ? `Sin postulantes para "${selectedVacancy?.title || "esta vacante"}"`
                       : "No se encontraron postulantes"
                     : "Aún no hay postulaciones"}
                 </EmptyTitle>
                 <EmptyDescription>
                   {isFiltered
-                    ? selectedVacancyId !== "all" && currentScopeApplicants.length === 0
+                    ? selectedVacancyId !== "all" &&
+                      currentScopeApplicants.length === 0
                       ? "Aún ningún candidato se ha postulado a esta vacante en particular. Puedes ver los candidatos de otras vacantes o compartir la convocatoria."
                       : "No hay candidatos que coincidan con la búsqueda o filtros aplicados. Intenta restablecer los filtros."
                     : "Tus convocatorias activas comenzarán a recibir candidatos locales de inmediato."}
@@ -1475,7 +1194,7 @@ export function ApplicationsInbox({ companyId }: { companyId?: string } = {}) {
                       <Button
                         size="sm"
                         onClick={() => setSelectedVacancyId("all")}
-                        className="font-bold text-xs cursor-pointer gap-1.5"
+                        className="font-medium text-xs cursor-pointer gap-1.5"
                       >
                         <Briefcase className="size-3.5" />
                         <span>Ver todas las vacantes</span>
@@ -1485,124 +1204,119 @@ export function ApplicationsInbox({ companyId }: { companyId?: string } = {}) {
                       variant="outline"
                       size="sm"
                       onClick={handleClearFilters}
-                      className="font-bold text-xs cursor-pointer gap-1.5"
+                      className="font-medium text-xs cursor-pointer gap-1.5"
                     >
                       <RotateCcw className="size-3.5" />
-                      <span>Restablecer Filtros</span>
+                      <span>Restablecer filtros</span>
                     </Button>
                   </div>
                 ) : (
                   <Button
                     size="sm"
                     render={<Link href="/dashboard/company/vacancies" />}
-                    className="font-bold text-xs cursor-pointer gap-1.5"
+                    className="font-medium text-xs cursor-pointer gap-1.5"
                   >
                     <Briefcase className="size-3.5" />
-                    <span>Revisar Convocatorias</span>
+                    <span>Ver vacantes</span>
                   </Button>
                 )}
               </EmptyContent>
             </Empty>
           ) : (
-            <div className="overflow-x-auto">
-              <Table className="w-full">
-                <TableHeader className="bg-muted/30 border-b border-border/40">
-                  {table.getHeaderGroups().map((headerGroup) => (
-                    <TableRow
-                      key={headerGroup.id}
-                      className="hover:bg-transparent"
-                    >
-                      {headerGroup.headers.map((header) => (
-                        <TableHead
-                          key={header.id}
-                          className="py-3 px-4 sm:px-6"
-                        >
-                          {header.isPlaceholder
-                            ? null
-                            : flexRender(
-                                header.column.columnDef.header,
-                                header.getContext()
-                              )}
-                        </TableHead>
-                      ))}
-                    </TableRow>
-                  ))}
-                </TableHeader>
-                <TableBody className="divide-y divide-border/30">
-                  {tableRows.map((row) => (
-                    <TableRow
-                      key={row.id}
-                      data-state={row.getIsSelected() && "selected"}
-                      onClick={(e) => {
-                        const target = e.target as HTMLElement;
-                        if (
-                          target.closest(
-                            "button, a, input, [role='combobox'], [role='checkbox'], [role='menuitem'], [data-slot='select-trigger'], [data-slot='select-content'], [data-slot='dropdown-menu-trigger'], [data-slot='dropdown-menu-content'], [data-slot='dropdown-menu-item'], [data-slot='alert-dialog'], [data-slot='alert-dialog-content']"
-                          )
-                        ) {
-                          return;
-                        }
-                        handleOpenDetail(row.original);
-                      }}
-                      className="hover:bg-muted/30 transition-colors cursor-pointer group"
-                    >
-                      {row.getVisibleCells().map((cell) => (
-                        <TableCell
-                          key={cell.id}
-                          className="py-3 px-4 sm:px-6"
-                        >
-                          {flexRender(
-                            cell.column.columnDef.cell,
-                            cell.getContext()
-                          )}
-                        </TableCell>
-                      ))}
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
+            <>
+              <div className="overflow-x-auto">
+                <Table className="w-full">
+                  <TableHeader className="bg-muted/30 border-b border-border">
+                    {table.getHeaderGroups().map((headerGroup) => (
+                      <TableRow
+                        key={headerGroup.id}
+                        className="hover:bg-transparent border-border"
+                      >
+                        {headerGroup.headers.map((header) => (
+                          <TableHead
+                            key={header.id}
+                            className="h-[44px] px-[16px] text-left align-middle"
+                          >
+                            {header.isPlaceholder
+                              ? null
+                              : flexRender(
+                                  header.column.columnDef.header,
+                                  header.getContext()
+                                )}
+                          </TableHead>
+                        ))}
+                      </TableRow>
+                    ))}
+                  </TableHeader>
+                  <TableBody>
+                    {tableRows.map((row) => (
+                      <TableRow
+                        key={row.id}
+                        data-state={row.getIsSelected() && "selected"}
+                        onClick={(e) => {
+                          const target = e.target as HTMLElement;
+                          if (
+                            target.closest(
+                              "button, a, input, [role='combobox'], [role='checkbox'], [role='menuitem'], [data-slot='select-trigger'], [data-slot='select-content'], [data-slot='dropdown-menu-trigger'], [data-slot='dropdown-menu-content'], [data-slot='dropdown-menu-item'], [data-slot='alert-dialog'], [data-slot='alert-dialog-content']"
+                            )
+                          ) {
+                            return;
+                          }
+                          handleOpenDetail(row.original);
+                        }}
+                        className="border-b border-border last:border-b-0 hover:bg-muted/30 transition-colors cursor-pointer"
+                      >
+                        {row.getVisibleCells().map((cell) => (
+                          <TableCell
+                            key={cell.id}
+                            className="px-[16px] py-[12px] align-middle"
+                          >
+                            {flexRender(
+                              cell.column.columnDef.cell,
+                              cell.getContext()
+                            )}
+                          </TableCell>
+                        ))}
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
 
-              {/* Table Footer with Summary and Pagination */}
-              <div className="p-3.5 px-4 sm:px-6 border-t border-border/30 bg-muted/10 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-muted-foreground font-medium">
-                <span>
-                  Mostrando <strong>{tableRows.length}</strong> de{" "}
-                  <strong>{filteredApplicants.length}</strong> postulantes
+              {/* Pagination Footer */}
+              <div className="px-[20px] py-[14px] border-t border-border flex flex-col sm:flex-row items-center justify-between gap-[12px] text-[14px] text-muted-foreground">
+                <span className="tabular-nums">
+                  {rangeStart}–{rangeEnd} de {totalFilteredRows} postulaciones
                 </span>
 
-                {/* Pagination Controls */}
-                {table.getPageCount() > 1 && (
-                  <div className="flex items-center gap-1.5">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => table.previousPage()}
-                      disabled={!table.getCanPreviousPage()}
-                      className="h-8 px-2.5 rounded-lg text-xs"
-                    >
-                      <ChevronLeft className="size-3.5 mr-1" />
-                      <span>Anterior</span>
-                    </Button>
-                    <span className="px-2 font-semibold">
-                      Página {table.getState().pagination.pageIndex + 1} de{" "}
-                      {table.getPageCount()}
-                    </span>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => table.nextPage()}
-                      disabled={!table.getCanNextPage()}
-                      className="h-8 px-2.5 rounded-lg text-xs"
-                    >
-                      <span>Siguiente</span>
-                      <ChevronRight className="size-3.5 ml-1" />
-                    </Button>
-                  </div>
-                )}
+                <div className="flex items-center gap-[12px]">
+                  <button
+                    type="button"
+                    onClick={() => table.previousPage()}
+                    disabled={!table.getCanPreviousPage()}
+                    aria-label="Página anterior"
+                    className="size-[32px] rounded-[8px] border border-control-border bg-card inline-flex items-center justify-center text-foreground hover:bg-muted/50 disabled:opacity-40 disabled:pointer-events-none cursor-pointer transition-colors"
+                  >
+                    <ChevronLeft className="size-[16px]" />
+                  </button>
+                  <span className="text-[14px] font-medium text-foreground tabular-nums">
+                    Página {pageIndex + 1} de {pageCount}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => table.nextPage()}
+                    disabled={!table.getCanNextPage()}
+                    aria-label="Página siguiente"
+                    className="size-[32px] rounded-[8px] border border-control-border bg-card inline-flex items-center justify-center text-foreground hover:bg-muted/50 disabled:opacity-40 disabled:pointer-events-none cursor-pointer transition-colors"
+                  >
+                    <ChevronRight className="size-[16px]" />
+                  </button>
+                </div>
               </div>
-            </div>
+            </>
           )}
         </div>
-      </Card>
+      </div>
 
       {/* Modal: Full Candidate Profile / Dossier Viewer (Redesigned matching reference) */}
       <Dialog open={isDetailModalOpen} onOpenChange={setIsDetailModalOpen}>

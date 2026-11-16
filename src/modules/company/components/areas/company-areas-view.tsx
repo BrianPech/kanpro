@@ -6,23 +6,29 @@ import {
   Layers,
   Plus,
   Search,
-  Users,
-  MoreVertical,
+  MoreHorizontal,
   Pencil,
   Trash2,
-  Sparkles,
   CheckCircle2,
   AlertTriangle,
-  ArrowRight,
   X,
   Pipette,
 } from "@/components/ui/icons";
+import { HugeiconsIcon } from "@hugeicons/react";
+import { Note01Icon } from "@hugeicons/core-free-icons";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Badge } from "@/components/ui/badge";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card } from "@/components/ui/card";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import {
   Dialog,
   DialogContent,
@@ -56,7 +62,6 @@ import {
   createPresetDepartmentsAction,
 } from "../../actions/areas";
 import type { DepartmentWithStats } from "../../services/company-areas";
-import { CompanyPageHeader } from "../shared/company-page-header";
 
 const COLOR_PALETTE = [
   { hex: "#6366f1", label: "Índigo" },
@@ -421,199 +426,223 @@ export function CompanyAreasView({
   }, [existingNamesSet]);
 
   return (
-    <div className="w-full space-y-6 pb-12 animate-in fade-in duration-300">
-      <CompanyPageHeader
-        title="Áreas & Departamentos"
-        description="Estructura organizacional, centros de costo y distribución de plantilla."
-        badge={
-          <Badge variant="outline" className="text-xs">
-            {departments.length} Registradas
-          </Badge>
-        }
-        actions={
-          <Button
-            onClick={() => setIsCreateOpen(true)}
-            size="sm"
-            className="cursor-pointer gap-1.5 font-bold"
-          >
-            <Plus className="size-4" />
-            <span>Nueva Área</span>
-          </Button>
-        }
-      />
+    <div className="flex flex-col gap-[24px] w-full pb-12 font-sans animate-in fade-in duration-300">
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-[16px]">
+        <div>
+          <h1 className="text-[32px] font-semibold leading-[40px] tracking-[-0.02em] text-foreground">
+            Áreas
+          </h1>
+          <p className="text-[14px] font-normal leading-[20px] text-muted-foreground mt-[4px]">
+            Organiza los departamentos de tu empresa y consulta quién pertenece a cada uno.
+          </p>
+        </div>
 
-      {/* Sugerencias Rápidas con 1 clic (si quedan sugerencias disponibles) */}
-      {availableSuggestions.length > 0 && (
-        <Card className="p-4 border-dashed border-primary/30 bg-primary/5 space-y-2.5">
-          <div className="flex items-center gap-2">
-            <Sparkles className="size-4 text-primary" />
-            <span className="text-xs font-bold text-foreground">
-              Sugerencias rápidas para tu empresa:
-            </span>
-            <span className="text-[11px] text-muted-foreground hidden sm:inline">
-              (Haz clic para agregarla instantáneamente a tu catálogo)
-            </span>
+        <Button
+          onClick={() => setIsCreateOpen(true)}
+          className="h-[44px] px-[16px] rounded-[8px] bg-primary text-primary-foreground hover:bg-primary/90 text-[14px] font-medium leading-[20px] gap-[8px] cursor-pointer shrink-0 self-start sm:self-auto"
+        >
+          <Plus className="size-[16px]" />
+          <span>Nueva área</span>
+        </Button>
+      </div>
+
+      {/* Search Card */}
+      <div className="bg-card border border-border rounded-[16px] p-[16px] sm:p-[20px]">
+        <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-[12px]">
+          <div className="flex flex-col gap-[6px] flex-1 max-w-[480px]">
+            <label
+              htmlFor="areas-search-input"
+              className="text-[14px] font-medium leading-[20px] text-foreground"
+            >
+              Buscar áreas
+            </label>
+            <div className="relative">
+              <Search className="pointer-events-none absolute left-[12px] top-1/2 -translate-y-1/2 size-[16px] text-muted-foreground" />
+              <Input
+                id="areas-search-input"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Busca por nombre o descripción"
+                className="h-[44px] pl-[36px] pr-[36px] rounded-[8px] border-input bg-card text-[14px] font-normal placeholder:text-muted-foreground"
+              />
+              {searchQuery && (
+                <button
+                  type="button"
+                  onClick={() => setSearchQuery("")}
+                  className="absolute right-[12px] top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground cursor-pointer"
+                  aria-label="Limpiar búsqueda"
+                >
+                  <X className="size-[16px]" />
+                </button>
+              )}
+            </div>
           </div>
-          <div className="flex flex-wrap items-center gap-1.5">
-            {availableSuggestions.map((suggestion) => (
+
+          <span className="text-[14px] font-normal leading-[20px] text-muted-foreground shrink-0 self-start sm:self-center tabular-nums">
+            {filteredDepartments.length} de {departments.length}{" "}
+            {departments.length === 1 ? "área" : "áreas"}
+          </span>
+        </div>
+      </div>
+
+      {/* Areas Table Card */}
+      <div className="bg-card border border-border rounded-[16px] overflow-hidden">
+        {filteredDepartments.length > 0 ? (
+          <div className="overflow-x-auto">
+            <Table className="w-full">
+              <TableHeader className="bg-muted/30 border-b border-border">
+                <TableRow className="hover:bg-transparent border-border">
+                  <TableHead className="h-[44px] px-[20px] text-[12px] font-medium leading-[16px] text-muted-foreground">
+                    Área
+                  </TableHead>
+                  <TableHead className="h-[44px] px-[16px] text-[12px] font-medium leading-[16px] text-muted-foreground text-right">
+                    Colaboradores
+                  </TableHead>
+                  <TableHead className="h-[44px] w-[96px] px-[20px] text-[12px] font-medium leading-[16px] text-muted-foreground text-right">
+                    Acciones
+                  </TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {filteredDepartments.map((dept) => (
+                  <TableRow
+                    key={dept.id}
+                    className="border-b border-border last:border-b-0 hover:bg-muted/30 transition-colors"
+                  >
+                    <TableCell className="px-[20px] py-[14px] align-middle">
+                      <Link
+                        href={`/dashboard/company/employees?category=${encodeURIComponent(
+                          dept.name
+                        )}&from=areas`}
+                        className="flex items-center gap-[12px] group min-w-[220px]"
+                      >
+                        <span
+                          className="size-[8px] rounded-full shrink-0"
+                          style={{ backgroundColor: dept.color || "#6366f1" }}
+                        />
+                        <div className="min-w-0">
+                          <p className="text-[14px] font-semibold leading-[20px] text-link group-hover:underline truncate">
+                            {dept.name}
+                          </p>
+                          <p className="text-[12px] font-normal leading-[16px] text-muted-foreground truncate">
+                            {dept.description || "Área operativa sin descripción detallada."}
+                          </p>
+                        </div>
+                      </Link>
+                    </TableCell>
+
+                    <TableCell className="px-[16px] py-[14px] align-middle text-right">
+                      <span className="text-[14px] font-semibold leading-[20px] text-foreground tabular-nums">
+                        {dept.employee_count}
+                      </span>
+                    </TableCell>
+
+                    <TableCell className="px-[20px] py-[14px] align-middle text-right">
+                      <div className="flex items-center justify-end">
+                        <DropdownMenu>
+                          <DropdownMenuTrigger
+                            render={
+                              <Button
+                                variant="ghost"
+                                size="icon-sm"
+                                aria-label={`Acciones para ${dept.name}`}
+                                className="size-[36px] rounded-[8px] bg-muted hover:bg-muted/80 text-foreground cursor-pointer"
+                              >
+                                <MoreHorizontal className="size-[16px]" />
+                              </Button>
+                            }
+                          />
+                          <DropdownMenuContent
+                            align="end"
+                            className="w-44 rounded-[12px] border-border bg-popover shadow-lg p-1"
+                          >
+                            <DropdownMenuItem
+                              onClick={() => handleOpenEdit(dept)}
+                              className="text-[14px] font-normal py-[8px] px-[10px] rounded-[8px] gap-[8px] cursor-pointer"
+                            >
+                              <Pencil className="size-[15px] text-muted-foreground" />
+                              <span>Editar área</span>
+                            </DropdownMenuItem>
+                            <DropdownMenuItem
+                              onClick={() => {
+                                setDeletingDept(dept);
+                                setIsDeleteOpen(true);
+                              }}
+                              className="text-[14px] font-normal py-[8px] px-[10px] rounded-[8px] gap-[8px] text-destructive focus:text-destructive cursor-pointer"
+                            >
+                              <Trash2 className="size-[15px]" />
+                              <span>Eliminar área</span>
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
+        ) : (
+          <Card className="p-8 sm:p-12 border-0 rounded-none text-center space-y-4 shadow-none">
+            <div className="size-14 rounded-2xl bg-muted/60 text-muted-foreground flex items-center justify-center mx-auto">
+              <Layers className="size-7" />
+            </div>
+            <div className="space-y-1 max-w-md mx-auto">
+              <h3 className="text-base font-semibold text-foreground">
+                {searchQuery ? "Sin coincidencias" : "No tienes áreas registradas"}
+              </h3>
+              <p className="text-xs text-muted-foreground">
+                {searchQuery
+                  ? `No encontramos áreas que coincidan con "${searchQuery}". Intenta con otro término.`
+                  : "Comienza a estructurar tu empresa agregando áreas operativas como Operaciones, Ventas, Cocina, etc."}
+              </p>
+            </div>
+            {!searchQuery && (
+              <div className="pt-2">
+                <Button
+                  type="button"
+                  onClick={() => setIsCreateOpen(true)}
+                  size="sm"
+                  className="font-medium cursor-pointer"
+                >
+                  <Plus className="size-4 mr-1.5" />
+                  <span>Crear mi primera área</span>
+                </Button>
+              </div>
+            )}
+          </Card>
+        )}
+      </div>
+
+      {/* Suggested Areas Card */}
+      {availableSuggestions.length > 0 && (
+        <div className="bg-card border border-border rounded-[16px] p-[16px] sm:p-[20px] flex flex-col gap-[12px]">
+          <div className="flex items-center gap-[8px]">
+            <HugeiconsIcon
+              icon={Note01Icon}
+              className="size-[16px] text-link shrink-0"
+              strokeWidth={1.8}
+            />
+            <h3 className="text-[16px] font-semibold leading-[24px] text-foreground">
+              Áreas sugeridas
+            </h3>
+          </div>
+          <div className="flex flex-wrap items-center gap-[8px]">
+            {availableSuggestions.slice(0, 4).map((suggestion) => (
               <button
                 key={suggestion}
                 type="button"
                 disabled={isAddingPreset === suggestion}
                 onClick={() => handleAddPreset(suggestion)}
-                className="px-2.5 py-1 text-xs font-semibold rounded-full bg-background border border-border/70 text-foreground hover:bg-primary hover:text-primary-foreground hover:border-primary transition-all duration-150 cursor-pointer shadow-2xs flex items-center gap-1 disabled:opacity-50"
+                className="h-[36px] px-[14px] rounded-[8px] border border-control-border bg-card hover:bg-muted/50 text-[14px] font-medium leading-[20px] text-foreground inline-flex items-center gap-[8px] transition-colors cursor-pointer disabled:opacity-50"
               >
-                <span>+</span>
+                <Plus className="size-[14px] text-muted-foreground" />
                 <span>{suggestion}</span>
               </button>
             ))}
           </div>
-        </Card>
-      )}
-
-      {/* Barra de Búsqueda y Contador */}
-      <div className="flex items-center justify-between gap-3">
-        <div className="relative flex-1 max-w-sm">
-          <Search className="size-4 text-muted-foreground absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
-          <Input
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Buscar por nombre o descripción..."
-            className="pl-9 pr-8 w-full"
-          />
-          {searchQuery && (
-            <button
-              type="button"
-              onClick={() => setSearchQuery("")}
-              className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground cursor-pointer p-0.5 rounded-md"
-              aria-label="Limpiar búsqueda"
-            >
-              <X className="size-3.5" />
-            </button>
-          )}
         </div>
-        <span className="text-xs text-muted-foreground font-semibold">
-          {filteredDepartments.length} de {departments.length} área(s)
-        </span>
-      </div>
-
-      {/* 5. Listado de Áreas (Grid) */}
-      {filteredDepartments.length > 0 ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {filteredDepartments.map((dept) => (
-            <Card
-              key={dept.id}
-              className="group p-5 hover:border-primary/40 hover:shadow-md transition-all duration-200 flex flex-col justify-between gap-4"
-            >
-              <div className="space-y-2.5">
-                {/* Header de la tarjeta */}
-                <div className="flex items-start justify-between gap-2">
-                  <div className="flex items-center gap-2.5">
-                    <span
-                      className="size-3.5 rounded-full shrink-0 shadow-xs"
-                      style={{ backgroundColor: dept.color || "#6366f1" }}
-                    />
-                    <h3 className="text-base font-bold text-foreground tracking-tight group-hover:text-primary transition-colors">
-                      {dept.name}
-                    </h3>
-                  </div>
-
-                  {/* Acciones */}
-                  <DropdownMenu>
-                    <DropdownMenuTrigger
-                      render={
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="size-8 text-muted-foreground hover:text-foreground cursor-pointer"
-                        >
-                          <MoreVertical className="size-4" />
-                        </Button>
-                      }
-                    />
-                    <DropdownMenuContent align="end" className="w-36">
-                      <DropdownMenuItem
-                        onClick={() => handleOpenEdit(dept)}
-                        className="text-xs font-semibold gap-2 cursor-pointer"
-                      >
-                        <Pencil className="size-3.5" />
-                        <span>Editar</span>
-                      </DropdownMenuItem>
-                      <DropdownMenuItem
-                        onClick={() => {
-                          setDeletingDept(dept);
-                          setIsDeleteOpen(true);
-                        }}
-                        className="text-xs font-semibold text-rose-600 dark:text-rose-400 gap-2 cursor-pointer focus:text-rose-600"
-                      >
-                        <Trash2 className="size-3.5" />
-                        <span>Eliminar</span>
-                      </DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
-                </div>
-
-                {/* Descripción */}
-                <p className="text-xs text-muted-foreground line-clamp-2 min-h-[32px]">
-                  {dept.description || "Área operativa sin descripción detallada."}
-                </p>
-              </div>
-
-              {/* Footer de la tarjeta con recuento y enlace directo */}
-              <div className="pt-3 border-t border-border/50 flex items-center justify-between">
-                <div className="flex items-center gap-1.5">
-                  <Badge
-                    variant="outline"
-                    className="text-[11px] font-bold"
-                  >
-                    <Users className="size-3 mr-1 text-muted-foreground" />
-                    {dept.employee_count} empleado(s)
-                  </Badge>
-                </div>
-
-                <Link
-                  href={`/dashboard/company/employees?category=${encodeURIComponent(
-                    dept.name
-                  )}`}
-                  className="text-xs font-bold text-primary hover:text-primary/80 flex items-center gap-1 group-hover:translate-x-0.5 transition-all"
-                >
-                  <span>Ver plantilla</span>
-                  <ArrowRight className="size-3" />
-                </Link>
-              </div>
-            </Card>
-          ))}
-        </div>
-      ) : (
-        /* Empty State */
-        <Card className="p-8 sm:p-12 border-dashed text-center space-y-4">
-          <div className="size-14 rounded-2xl bg-muted/60 text-muted-foreground flex items-center justify-center mx-auto">
-            <Layers className="size-7" />
-          </div>
-          <div className="space-y-1 max-w-md mx-auto">
-            <h3 className="text-base font-bold text-foreground">
-              {searchQuery ? "Sin coincidencias" : "No tienes áreas registradas"}
-            </h3>
-            <p className="text-xs text-muted-foreground font-medium">
-              {searchQuery
-                ? `No encontramos áreas que coincidan con "${searchQuery}". Intenta con otro término.`
-                : "Comienza a estructurar tu empresa agregando áreas operativas como Operaciones, Ventas, Cocina, etc."}
-            </p>
-          </div>
-          {!searchQuery && (
-            <div className="pt-2">
-              <Button
-                type="button"
-                onClick={() => setIsCreateOpen(true)}
-                size="sm"
-                className="font-bold cursor-pointer"
-              >
-                <Plus className="size-4 mr-1.5" />
-                <span>Crear mi primera área</span>
-              </Button>
-            </div>
-          )}
-        </Card>
       )}
 
       {/* ========================================================================= */}
