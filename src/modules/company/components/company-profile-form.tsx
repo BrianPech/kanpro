@@ -5,35 +5,18 @@ import Link from "next/link";
 import dynamic from "next/dynamic";
 import {
   Building2,
-  Globe,
   MapPin,
   Loader2,
-  Camera,
-  Edit3,
-  RefreshCw,
-  Save,
-  Phone,
   Image as ImageIcon,
-  ShieldCheck,
-  FileText,
+  Plus,
+  Users,
+  CheckCircle2,
+  XCircle,
 } from "@/components/ui/icons";
 import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import {
-  Card,
-  CardHeader,
-  CardContent,
-  CardFooter,
-} from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import {
-  Alert,
-  AlertTitle,
-  AlertDescription,
-  AlertAction,
-} from "@/components/ui/alert";
 import {
   Select,
   SelectContent,
@@ -45,59 +28,23 @@ import { useCompanyProfileForm } from "../hooks/use-company-profile-form";
 import { toast } from "sonner";
 import { motion } from "motion/react";
 import { cn } from "@/lib/utils";
-import { CompanyPageHeader } from "./shared/company-page-header";
 import { optimizeImageForStorage } from "@/lib/storage/optimize-upload";
+import { GEO_CONFIG, cleanCityName, findNearestCityAndZone } from "@/config/geo";
 
-const CompanyLocationMap = dynamic(
+const OnboardingLeafletMap = dynamic(
   () =>
-    import("@/modules/auth/components/company-location-map").then(
-      (mod) => mod.CompanyLocationMap
+    import("@/modules/auth/components/onboarding-leaflet-map").then(
+      (mod) => mod.OnboardingLeafletMap
     ),
   {
     ssr: false,
     loading: () => (
-      <div className="w-full h-56 sm:h-64 rounded-2xl border border-border/70 bg-muted/20 flex flex-col items-center justify-center gap-2 text-muted-foreground animate-pulse">
+      <div className="h-[218px] w-full rounded-[12px] border border-border bg-muted/50 flex flex-col items-center justify-center gap-2 text-muted-foreground animate-pulse">
         <MapPin className="size-5 text-primary/60 animate-bounce" />
-        <span className="text-xs font-semibold">Cargando mapa interactivo...</span>
+        <span className="text-xs font-medium">Cargando mapa interactivo...</span>
       </div>
     ),
   }
-);
-
-const InstagramIcon = (props: React.SVGProps<SVGSVGElement>) => (
-  <svg
-    xmlns="http://www.w3.org/2000/svg"
-    width="24"
-    height="24"
-    viewBox="0 0 24 24"
-    fill="none"
-    stroke="currentColor"
-    strokeWidth="2"
-    strokeLinecap="round"
-    strokeLinejoin="round"
-    {...props}
-  >
-    <rect width="20" height="20" x="2" y="2" rx="5" ry="5" />
-    <path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z" />
-    <line x1="17.5" x2="17.51" y1="6.5" y2="6.5" />
-  </svg>
-);
-
-const FacebookIcon = (props: React.SVGProps<SVGSVGElement>) => (
-  <svg
-    xmlns="http://www.w3.org/2000/svg"
-    width="24"
-    height="24"
-    viewBox="0 0 24 24"
-    fill="none"
-    stroke="currentColor"
-    strokeWidth="2"
-    strokeLinecap="round"
-    strokeLinejoin="round"
-    {...props}
-  >
-    <path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z" />
-  </svg>
 );
 
 export interface InitialProfile {
@@ -339,558 +286,672 @@ export function CompanyProfileForm({
 
   const charCount = description.length;
   const isWarningCount = charCount >= 280;
+  const industry = watch("industry");
+  const watchedLat = watch("latitude");
+  const watchedLng = watch("longitude");
+  const isVerified = Boolean(
+    initialProfile?.is_validated ||
+      initialProfile?.is_verified ||
+      initialProfile?.verification_status === "approved"
+  );
+
+  const resolvedCity = React.useMemo(() => {
+    const raw = (location || "").trim();
+    if (!raw) return "Mérida, Yucatán";
+    const exact = CITIES_LIST.find((c) => c.toLowerCase() === raw.toLowerCase());
+    if (exact) return exact;
+    const cleaned = cleanCityName(raw).toLowerCase();
+    const partial = CITIES_LIST.find((c) => c.toLowerCase().startsWith(cleaned));
+    return partial || raw;
+  }, [location]);
+
+  const initialLat = initialProfile?.latitude;
+  const initialLng = initialProfile?.longitude;
+
+  const mapCoordinates = React.useMemo<[number, number] | null>(() => {
+    if (typeof watchedLat === "number" && typeof watchedLng === "number") {
+      return [watchedLat, watchedLng];
+    }
+    if (typeof initialLat === "number" && typeof initialLng === "number") {
+      return [initialLat, initialLng];
+    }
+    const cleaned = cleanCityName(resolvedCity);
+    const cityCfg = GEO_CONFIG[cleaned];
+    if (cityCfg) {
+      return [cityCfg.coords.lat, cityCfg.coords.lng];
+    }
+    return [20.9676, -89.6241];
+  }, [watchedLat, watchedLng, initialLat, initialLng, resolvedCity]);
+
+  const reverseGeocodeCoordinates = React.useCallback(
+    async (lat: number, lng: number) => {
+      try {
+        const controller = new AbortController();
+        const timeout = setTimeout(() => controller.abort(), 6000);
+        const res = await fetch(
+          `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&zoom=18&addressdetails=1`,
+          {
+            signal: controller.signal,
+            headers: { "Accept-Language": "es" },
+          }
+        );
+        clearTimeout(timeout);
+        if (!res.ok) return;
+
+        const data = await res.json();
+        const addr = data.address || {};
+        const rawCity =
+          addr.city ||
+          addr.town ||
+          addr.municipality ||
+          addr.county ||
+          addr.village ||
+          addr.state_district ||
+          "";
+
+        let cityName = cleanCityName(rawCity);
+        if (!GEO_CONFIG[cityName]) {
+          cityName = findNearestCityAndZone(lat, lng).city;
+        }
+        const cityCfg = GEO_CONFIG[cityName];
+        const fullCity = cityCfg ? `${cityName}, ${cityCfg.state}` : cityName;
+        const matchedCity =
+          CITIES_LIST.find((c) => c.toLowerCase() === fullCity.toLowerCase()) ||
+          CITIES_LIST.find((c) => c.toLowerCase().startsWith(cityName.toLowerCase())) ||
+          fullCity;
+
+        if (matchedCity) {
+          setValue("location", matchedCity, {
+            shouldValidate: true,
+            shouldDirty: true,
+          });
+        }
+
+        const road = addr.road || "";
+        const houseNumber = addr.house_number ? `#${addr.house_number}` : "";
+        const suburb = addr.suburb || addr.neighbourhood || addr.quarter || "";
+        const postcode = addr.postcode || "";
+        const formatted = [
+          [road, houseNumber].filter(Boolean).join(" "),
+          suburb,
+          cityName,
+          postcode ? `C.P. ${postcode}` : "",
+        ]
+          .filter(Boolean)
+          .join(", ");
+
+        if (formatted || data.display_name) {
+          setValue("address_details", formatted || data.display_name, {
+            shouldValidate: true,
+            shouldDirty: true,
+          });
+        }
+      } catch {
+        // Ignore geocoding network failures; coordinates are already saved
+      }
+    },
+    [setValue]
+  );
+
+  const handleMapSelectCoordinates = React.useCallback(
+    (lat: number, lng: number) => {
+      setValue("latitude", lat, { shouldValidate: true, shouldDirty: true });
+      setValue("longitude", lng, { shouldValidate: true, shouldDirty: true });
+      void reverseGeocodeCoordinates(lat, lng);
+    },
+    [setValue, reverseGeocodeCoordinates]
+  );
+
+  const handleUseCurrentLocation = () => {
+    if (typeof navigator === "undefined" || !navigator.geolocation) {
+      toast.error("Geolocalización no disponible", {
+        description: "Tu navegador no soporta obtener la ubicación actual.",
+      });
+      return;
+    }
+
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        const lat = pos.coords.latitude;
+        const lng = pos.coords.longitude;
+        setValue("latitude", lat, { shouldValidate: true, shouldDirty: true });
+        setValue("longitude", lng, { shouldValidate: true, shouldDirty: true });
+        void reverseGeocodeCoordinates(lat, lng);
+        toast.success("Ubicación actualizada", {
+          description: "Se capturó tu ubicación actual en el mapa.",
+        });
+      },
+      () => {
+        toast.error("No se pudo obtener tu ubicación", {
+          description: "Verifica los permisos de ubicación en tu navegador.",
+        });
+      },
+      { enableHighAccuracy: true, timeout: 10000 }
+    );
+  };
 
   return (
     <motion.div
       initial={{ opacity: 0, y: 12 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.25 }}
-      className="space-y-6 w-full"
+      className="flex flex-col gap-[24px] w-full pb-12 font-sans"
     >
-      <CompanyPageHeader
-        title="Perfil de Empresa"
-        description="Administra la identidad corporativa, redes sociales y contacto para tus vacantes públicas."
-        badge={
-          initialProfile?.is_validated || initialProfile?.is_verified || initialProfile?.verification_status === "approved" ? (
-            <Badge variant="outline" className="text-xs font-bold text-emerald-600 dark:text-emerald-400 border-emerald-500/20 bg-emerald-500/10">
-              Verificada
-            </Badge>
-          ) : undefined
-        }
-      />
+      {/* Header */}
+      <div>
+        <h1 className="text-[32px] font-semibold leading-[40px] tracking-[-0.02em] text-foreground">
+          Perfil de empresa
+        </h1>
+        <p className="text-[14px] font-normal leading-[20px] text-muted-foreground mt-[4px]">
+          Administra la información que ven las personas al consultar tus vacantes.
+        </p>
+      </div>
 
-      <form onSubmit={onSubmit} method="POST" className="space-y-6">
-        
-        {/* ========================================================================= */}
-        {/* 1. SHADCN ALERT: VALIDACIÓN Y ESTADO DE CUENTA                            */}
-        {/* ========================================================================= */}
-        {initialProfile?.is_validated || initialProfile?.is_verified || initialProfile?.verification_status === "approved" ? (
-          <Alert className="border-emerald-500/30 bg-emerald-500/10 text-emerald-800 dark:text-emerald-300 p-4 sm:p-5">
-            <ShieldCheck className="size-5 text-emerald-600 dark:text-emerald-400" />
-            <div className="space-y-0.5">
-              <AlertTitle className="text-sm font-extrabold">
-                Empresa Verificada (Insignia de Confianza Activa)
-              </AlertTitle>
-              <AlertDescription className="text-xs text-emerald-700 dark:text-emerald-300/90 leading-relaxed">
-                Tu perfil corporativo cuenta con validación oficial. Tus vacantes tienen prioridad en el feed de postulantes.
-              </AlertDescription>
-            </div>
-          </Alert>
-        ) : (
-          <Alert className="border border-border/80 bg-muted/40 p-4 sm:p-5">
-            <ShieldCheck className="size-5 text-primary" />
-            <div className="space-y-1">
-              <AlertTitle className="text-sm font-bold text-foreground">
-                Sello de Verificación Corporativa
-              </AlertTitle>
-              <AlertDescription className="text-xs text-muted-foreground leading-relaxed">
-                Valida tus datos fiscales oficiales (RFC, razón social y régimen) y expediente legal para obtener la insignia de confianza corporativa.
-              </AlertDescription>
-            </div>
-            <AlertAction className="static sm:absolute sm:top-4 sm:right-4 mt-3 sm:mt-0">
+      <form onSubmit={onSubmit} method="POST" className="flex flex-col gap-[20px]">
+        {/* Top Identity Card */}
+        <div className="bg-card border border-border rounded-[16px] overflow-hidden">
+          {/* Banner */}
+          <div className="relative w-full h-[180px] sm:h-[220px] bg-muted/40 overflow-hidden">
+            {bannerUrl ? (
+              <img
+                src={bannerUrl}
+                alt="Portada de la empresa"
+                className="w-full h-full object-cover object-center block"
+              />
+            ) : (
+              <div className="w-full h-full flex flex-col items-center justify-center text-muted-foreground p-4 text-center bg-muted/40">
+                <ImageIcon className="size-10 stroke-[1.2]" />
+                <span className="text-xs font-semibold uppercase tracking-wider mt-2 text-foreground">
+                  Imagen de portada comercial
+                </span>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  Recomendado: 1200 x 400 px
+                </p>
+              </div>
+            )}
+
+            <div className="absolute top-[16px] right-[16px] z-20">
               <Button
-                size="sm"
-                render={<Link href="/dashboard/company/verification" />}
-                className="font-bold cursor-pointer"
+                type="button"
+                variant="outline"
+                disabled={isSaving || isUploadingBanner}
+                className="relative h-[40px] px-[14px] rounded-[8px] border-control-border bg-card/95 backdrop-blur-xs text-[14px] font-medium text-foreground hover:bg-card gap-[8px] cursor-pointer shadow-xs"
               >
-                Ir a Verificación Legal
-              </Button>
-            </AlertAction>
-          </Alert>
-        )}
-
-        {/* ========================================================================= */}
-        {/* 2. CARD PRINCIPAL UNIFICADA (HEADER + CONTENT + FOOTER)                   */}
-        {/* ========================================================================= */}
-        <Card className="overflow-hidden p-0 py-0 gap-0 border border-border/60 rounded-3xl shadow-sm bg-card">
-          
-          {/* ---------------- CARD HEADER: PORTADA, LOGO Y NOMBRE DE EMPRESA -------- */}
-          <CardHeader className="p-0 border-b border-border/60 gap-0 rounded-t-3xl">
-            {/* Banner Cover Image */}
-            <div className="relative w-full h-48 sm:h-64 bg-muted/30 overflow-hidden group">
-              {bannerUrl ? (
-                <img
-                  src={bannerUrl}
-                  alt="Portada de la empresa"
-                  className="w-full h-full object-cover object-center block"
-                />
-              ) : (
-                <div className="w-full h-full flex flex-col items-center justify-center text-muted-foreground p-4 text-center bg-muted/40">
-                  <ImageIcon className="size-10 stroke-[1.2]" />
-                  <span className="text-xs font-bold uppercase tracking-wider mt-2 text-foreground">
-                    Imagen de Portada Comercial
-                  </span>
-                  <p className="text-[11px] text-muted-foreground mt-0.5 font-medium">
-                    Recomendado: 1200 x 400 px (Restaurante, Hotel, Oficina o Sucursal)
-                  </p>
-                </div>
-              )}
-
-              {/* Botón Cambiar Portada */}
-              <div className="absolute top-4 right-4 z-20">
-                <Button
-                  type="button"
-                  size="sm"
+                {isUploadingBanner ? (
+                  <>
+                    <Loader2 className="size-[16px] animate-spin" />
+                    <span>Subiendo...</span>
+                  </>
+                ) : (
+                  <>
+                    <Plus className="size-[16px]" />
+                    <span>{bannerUrl ? "Cambiar portada" : "Subir portada"}</span>
+                  </>
+                )}
+                <input
+                  type="file"
+                  accept="image/png,image/jpeg,image/webp"
                   disabled={isSaving || isUploadingBanner}
-                  className="bg-background/90 text-foreground hover:bg-background border border-border/60 backdrop-blur-xs flex items-center gap-1.5 shadow-sm relative cursor-pointer font-bold"
-                >
-                  {isUploadingBanner ? (
-                    <>
-                      <Loader2 className="size-3.5 animate-spin text-primary" />
-                      <span>Subiendo...</span>
-                    </>
-                  ) : (
-                    <>
-                      <Camera className="size-3.5 text-primary" />
-                      <span>{bannerUrl ? "Cambiar Portada" : "Subir Portada"}</span>
-                    </>
-                  )}
-                  <input
-                    type="file"
-                    accept="image/png,image/jpeg,image/webp"
-                    disabled={isSaving || isUploadingBanner}
-                    onChange={handleBannerChange}
-                    className="absolute inset-0 opacity-0 cursor-pointer"
-                    aria-label="Subir portada"
-                  />
-                </Button>
-              </div>
+                  onChange={handleBannerChange}
+                  className="absolute inset-0 opacity-0 cursor-pointer"
+                  aria-label="Subir portada"
+                />
+              </Button>
             </div>
+          </div>
 
-            {/* Circular Logo and Company Name identity box */}
-            <div className="p-5 sm:p-6 md:p-8 pt-0 -mt-12 sm:-mt-14 flex flex-col sm:flex-row gap-4 sm:gap-5 items-center sm:items-start text-center sm:text-left relative z-10">
-              {/* Logo circular uploader */}
-              <div className="relative shrink-0 group">
-                <div className="size-24 sm:size-28 rounded-full bg-card border-4 border-card shadow-md flex items-center justify-center overflow-hidden relative">
-                  {isUploadingLogo ? (
-                    <div className="flex flex-col items-center justify-center p-2">
-                      <Loader2 className="size-6 animate-spin text-primary" />
-                      <span className="text-[8px] font-bold mt-1 text-muted-foreground">Subiendo...</span>
-                    </div>
-                  ) : logoUrl ? (
-                    <img
-                      src={logoUrl}
-                      alt={companyName || "Logo"}
-                      className="w-full h-full object-cover"
-                    />
-                  ) : (
-                    <div className="flex flex-col items-center justify-center text-muted-foreground p-2">
-                      <Building2 className="size-7 text-muted-foreground/60" />
-                      <span className="text-[9px] font-bold uppercase mt-1">Logo</span>
-                    </div>
-                  )}
-
-                  <input
-                    type="file"
-                    accept="image/png,image/jpeg,image/webp,image/svg+xml"
-                    disabled={isSaving || isUploadingLogo}
-                    onChange={handleLogoChange}
-                    className="absolute inset-0 opacity-0 cursor-pointer"
-                    aria-label="Subir logo"
+          {/* Logo + Company Name Row */}
+          <div className="px-[20px] sm:px-[24px] pb-[20px] pt-0 -mt-[40px] flex flex-col sm:flex-row sm:items-end justify-between gap-[16px] relative z-10">
+            <div className="flex flex-col sm:flex-row sm:items-end gap-[16px] min-w-0">
+              {/* Rounded Square Logo */}
+              <div className="relative size-[96px] rounded-[16px] bg-card border-4 border-card shadow-md overflow-hidden shrink-0 flex items-center justify-center">
+                {isUploadingLogo ? (
+                  <Loader2 className="size-6 animate-spin text-primary" />
+                ) : logoUrl ? (
+                  <img
+                    src={logoUrl}
+                    alt={companyName || "Logo"}
+                    className="w-full h-full object-cover"
                   />
-                </div>
-
-                <div className="absolute bottom-0 right-0 bg-primary text-primary-foreground p-1.5 rounded-full shadow-sm cursor-pointer hover:scale-105 active:scale-95 transition-transform">
-                  {isUploadingLogo ? (
-                    <Loader2 className="size-3.5 animate-spin" />
-                  ) : (
-                    <Edit3 className="size-3.5" />
-                  )}
-                  <input
-                    type="file"
-                    accept="image/png,image/jpeg,image/webp,image/svg+xml"
-                    disabled={isSaving || isUploadingLogo}
-                    onChange={handleLogoChange}
-                    className="absolute inset-0 opacity-0 cursor-pointer"
-                    aria-label="Cambiar logo"
-                  />
-                </div>
+                ) : (
+                  <Building2 className="size-8 text-muted-foreground/60" />
+                )}
+                <input
+                  type="file"
+                  accept="image/png,image/jpeg,image/webp,image/svg+xml"
+                  disabled={isSaving || isUploadingLogo}
+                  onChange={handleLogoChange}
+                  className="absolute inset-0 opacity-0 cursor-pointer"
+                  aria-label="Subir logo"
+                />
               </div>
 
-              {/* Company Name Header Details */}
-              <div className="flex-1 pt-1 sm:pt-14 space-y-1 min-w-0">
-                <div className="flex items-center gap-2 flex-wrap justify-center sm:justify-start">
-                  <h2 className="text-lg sm:text-xl font-black text-foreground tracking-tight truncate max-w-md">
-                    {companyName && companyName.trim() !== "" ? companyName : "Nombre de tu Empresa"}
+              <div className="pb-[4px] min-w-0">
+                <div className="flex items-center gap-[10px] flex-wrap">
+                  <h2 className="text-[24px] font-semibold leading-[32px] tracking-[-0.01em] text-foreground truncate">
+                    {companyName && companyName.trim() !== ""
+                      ? companyName
+                      : "Nombre de tu empresa"}
                   </h2>
-                  <Badge
-                    variant="outline"
-                    className="bg-primary/10 text-primary border-primary/20 font-bold px-2.5 py-0.5 rounded-full text-[10px]"
-                  >
-                    🌐 Perfil Público
-                  </Badge>
+                  {isVerified ? (
+                    <span className="inline-flex items-center rounded-full bg-success text-success-foreground px-[10px] py-[2px] text-[12px] font-medium leading-[16px] shrink-0">
+                      Verificada
+                    </span>
+                  ) : (
+                    <Link
+                      href="/dashboard/company/verification"
+                      className="inline-flex items-center rounded-full bg-warning text-warning-foreground px-[10px] py-[2px] text-[12px] font-medium leading-[16px] shrink-0 hover:opacity-90"
+                    >
+                      Sin verificar
+                    </Link>
+                  )}
                 </div>
-                <p className="text-xs text-muted-foreground font-medium leading-relaxed max-w-xl">
-                  {location ? `${location} • ` : ""}
-                  Gestiona la información comercial, presencia digital, canales de contacto y sede de tu empresa.
+                <p className="text-[14px] font-normal leading-[20px] text-muted-foreground mt-[2px] truncate">
+                  {[
+                    industry ? INDUSTRY_LABELS[industry] || industry : null,
+                    location || null,
+                  ]
+                    .filter(Boolean)
+                    .join(" · ") || "Completa los datos de tu empresa"}
                 </p>
               </div>
             </div>
-          </CardHeader>
 
-          {/* ---------------- CARD CONTENT: ORGANIZED EDITABLE FIELDS ---------------- */}
-          <CardContent className="p-5 sm:p-6 md:p-8 space-y-8 divide-y divide-border/60">
-            
-            {/* SECCIÓN 1: INFORMACIÓN GENERAL Y MARCA */}
-            <div className="space-y-5 pb-6 sm:pb-8">
-              <div className="flex items-center gap-2.5">
-                <div className="size-8 rounded-xl bg-primary/10 text-primary flex items-center justify-center shrink-0">
-                  <Building2 className="size-4" />
-                </div>
-                <div>
-                  <h3 className="text-sm font-extrabold text-foreground">
-                    Información General & Marca
-                  </h3>
-                  <p className="text-xs text-muted-foreground font-medium">
-                    Datos principales de tu organización visibles para los candidatos.
-                  </p>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-5">
-                {/* Nombre Comercial */}
-                <div className="space-y-1.5 md:col-span-1">
-                  <label className="text-xs font-bold text-foreground flex items-center gap-1">
-                    <span>Nombre Comercial</span>
-                    <span className="text-destructive">*</span>
-                  </label>
-                  <div className="relative">
-                    <Building2 className="absolute left-3.5 top-1/2 -translate-y-1/2 size-4 text-muted-foreground pointer-events-none" />
-                    <Input
-                      type="text"
-                      placeholder="Ej. Grupo Hotelero Maya"
-                      {...register("company_name")}
-                      className="pl-10 w-full"
-                    />
-                  </div>
-                  {errors.company_name && (
-                    <p className="text-xs font-semibold text-destructive">
-                      {errors.company_name.message}
-                    </p>
-                  )}
-                </div>
-
-                {/* Sector Industrial */}
-                <div className="space-y-1.5 md:col-span-1">
-                  <label className="text-xs font-bold text-foreground flex items-center gap-1">
-                    <span>Sector Industrial</span>
-                    <span className="text-destructive">*</span>
-                  </label>
-                  <Select
-                    value={watch("industry") || ""}
-                    onValueChange={(val) => setValue("industry", val || "", { shouldValidate: true })}
-                  >
-                    <SelectTrigger className="w-full">
-                      <SelectValue placeholder="Selecciona un sector">
-                        {(val: string | null) => (val && INDUSTRY_LABELS[val]) || val || "Selecciona un sector"}
-                      </SelectValue>
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="Restaurantes / Hotelería">Restaurantes / Hotelería / Turismo</SelectItem>
-                      <SelectItem value="Comercial">Comercio & Ventas al por Menor</SelectItem>
-                      <SelectItem value="Tecnología">Tecnología & Software</SelectItem>
-                      <SelectItem value="Salud">Salud & Bienestar</SelectItem>
-                      <SelectItem value="Finanzas">Finanzas & Contabilidad</SelectItem>
-                      <SelectItem value="Educación">Educación & Capacitación</SelectItem>
-                      <SelectItem value="Administración">Administración & Operaciones</SelectItem>
-                      <SelectItem value="Diseño">Diseño & Medios</SelectItem>
-                      <SelectItem value="Marketing">Marketing & Publicidad</SelectItem>
-                      <SelectItem value="Otro">Otro Sector</SelectItem>
-                    </SelectContent>
-                  </Select>
-                  {errors.industry && (
-                    <p className="text-xs font-semibold text-destructive">
-                      {errors.industry.message}
-                    </p>
-                  )}
-                </div>
-
-                {/* Tamaño de la Empresa */}
-                <div className="space-y-1.5 md:col-span-1">
-                  <label className="text-xs font-bold text-foreground">
-                    Tamaño de la Empresa
-                  </label>
-                  <Select
-                    value={watch("company_size") || ""}
-                    onValueChange={(val) => setValue("company_size", val || undefined)}
-                  >
-                    <SelectTrigger className="w-full">
-                      <SelectValue placeholder="Selecciona el tamaño">
-                        {(val: string | null) => (val && COMPANY_SIZE_LABELS[val]) || val || "Selecciona el tamaño"}
-                      </SelectValue>
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="1-10">1 - 10 empleados</SelectItem>
-                      <SelectItem value="11-50">11 - 50 empleados</SelectItem>
-                      <SelectItem value="51-200">51 - 200 empleados</SelectItem>
-                      <SelectItem value="201-500">201 - 500 empleados</SelectItem>
-                      <SelectItem value="500+">Más de 500 empleados</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-
-              {/* Bio Comercial / Descripción */}
-              <div className="space-y-1.5 pt-1">
-                <div className="flex items-center justify-between">
-                  <label className="text-xs font-bold text-foreground flex items-center gap-1.5">
-                    <FileText className="size-3.5 text-muted-foreground" />
-                    <span>Bio Comercial / Acerca de la Empresa</span>
-                  </label>
-                  <span
-                    className={cn(
-                      "text-[11px] font-bold",
-                      isWarningCount ? "text-destructive" : "text-muted-foreground"
-                    )}
-                  >
-                    {charCount} / 300
-                  </span>
-                </div>
-                <Textarea
-                  maxLength={300}
-                  placeholder="Describe brevemente la cultura laboral, historia y valores de tu empresa para atraer al mejor talento..."
-                  {...register("description")}
-                  className="w-full min-h-[90px] resize-none"
-                />
-                {errors.description && (
-                  <p className="text-xs font-semibold text-destructive">
-                    {errors.description.message}
-                  </p>
-                )}
-              </div>
-            </div>
-
-            {/* SECCIÓN 2: CONTACTO Y CANALES DIGITALES */}
-            <div className="space-y-5 py-6 sm:py-8">
-              <div className="flex items-center gap-2.5">
-                <div className="size-8 rounded-xl bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 flex items-center justify-center shrink-0">
-                  <Phone className="size-4" />
-                </div>
-                <div>
-                  <h3 className="text-sm font-extrabold text-foreground">
-                    Contacto & Presencia Digital
-                  </h3>
-                  <p className="text-xs text-muted-foreground font-medium">
-                    Canales de comunicación directa para postulantes y coordinación.
-                  </p>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 sm:gap-5">
-                {/* Teléfono / WhatsApp */}
-                <div className="space-y-1.5">
-                  <label className="text-xs font-bold text-foreground">
-                    WhatsApp de Contacto
-                  </label>
-                  <div className="relative">
-                    <Phone className="absolute left-3.5 top-1/2 -translate-y-1/2 size-4 text-emerald-600 dark:text-emerald-400 pointer-events-none" />
-                    <Input
-                      type="tel"
-                      placeholder="999 123 4567"
-                      {...register("phone")}
-                      className="pl-10 w-full"
-                    />
-                  </div>
-                  {errors.phone && (
-                    <p className="text-xs font-semibold text-destructive">
-                      {errors.phone.message}
-                    </p>
-                  )}
-                </div>
-
-                {/* Sitio Web */}
-                <div className="space-y-1.5">
-                  <label className="text-xs font-bold text-foreground">
-                    Sitio Web Oficial
-                  </label>
-                  <div className="relative">
-                    <Globe className="absolute left-3.5 top-1/2 -translate-y-1/2 size-4 text-blue-600 dark:text-blue-400 pointer-events-none" />
-                    <Input
-                      type="url"
-                      placeholder="https://empresa.com"
-                      {...register("website")}
-                      className="pl-10 w-full"
-                    />
-                  </div>
-                  {errors.website && (
-                    <p className="text-xs font-semibold text-destructive">
-                      {errors.website.message}
-                    </p>
-                  )}
-                </div>
-
-                {/* Instagram */}
-                <div className="space-y-1.5">
-                  <label className="text-xs font-bold text-foreground">
-                    Instagram
-                  </label>
-                  <div className="relative">
-                    <InstagramIcon className="absolute left-3.5 top-1/2 -translate-y-1/2 size-4 text-rose-500 pointer-events-none" />
-                    <Input
-                      type="text"
-                      placeholder="https://instagram.com/empresa"
-                      {...register("instagram_url")}
-                      className="pl-10 w-full"
-                    />
-                  </div>
-                </div>
-
-                {/* Facebook */}
-                <div className="space-y-1.5">
-                  <label className="text-xs font-bold text-foreground">
-                    Facebook
-                  </label>
-                  <div className="relative">
-                    <FacebookIcon className="absolute left-3.5 top-1/2 -translate-y-1/2 size-4 text-blue-600 pointer-events-none" />
-                    <Input
-                      type="text"
-                      placeholder="https://facebook.com/empresa"
-                      {...register("facebook_url")}
-                      className="pl-10 w-full"
-                    />
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* SECCIÓN 3: UBICACIÓN Y SEDE OPERATIVA */}
-            <div className="space-y-5 pt-6 sm:pt-8">
-              <div className="flex items-center gap-2.5">
-                <div className="size-8 rounded-xl bg-rose-500/10 text-rose-600 dark:text-rose-400 flex items-center justify-center shrink-0">
-                  <MapPin className="size-4" />
-                </div>
-                <div>
-                  <h3 className="text-sm font-extrabold text-foreground">
-                    Ubicación & Sede Operativa
-                  </h3>
-                  <p className="text-xs text-muted-foreground font-medium">
-                    Selecciona tu ciudad sede y marca en el mapa interactivo la ubicación física exacta de tu empresa o sucursal.
-                  </p>
-                </div>
-              </div>
-
-              <div className="space-y-4">
-                {/* Selector de Ciudad Sede */}
-                <div className="space-y-1.5">
-                  <label className="text-xs font-bold text-foreground flex items-center gap-1">
-                    <span>Ciudad Sede en el Sureste</span>
-                    <span className="text-destructive">*</span>
-                  </label>
-                  <Select
-                    value={watch("location") || "Mérida, Yucatán"}
-                    onValueChange={(val) => {
-                      if (val) {
-                        setValue("location", val, { shouldValidate: true, shouldDirty: true });
-                      }
-                    }}
-                  >
-                    <SelectTrigger className="w-full h-10 px-3.5 rounded-xl bg-card border border-input text-foreground text-xs sm:text-sm shadow-2xs cursor-pointer">
-                      <SelectValue placeholder="Selecciona la ciudad sede" />
-                    </SelectTrigger>
-                    <SelectContent className="rounded-xl border border-border/80 bg-popover text-popover-foreground max-h-64">
-                      {CITIES_LIST.map((city) => (
-                        <SelectItem
-                          key={city}
-                          value={city}
-                          className="text-xs sm:text-sm font-medium cursor-pointer rounded-lg py-2"
-                        >
-                          {city}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  {errors.location && (
-                    <p className="text-xs font-semibold text-destructive">
-                      {errors.location.message}
-                    </p>
-                  )}
-                </div>
-
-                {/* Mapa Interactivo con Leaflet + OpenStreetMap + Pin y Geocodificación */}
-                <div className="space-y-1.5 pt-1">
-                  <label className="text-xs font-bold text-foreground flex items-center justify-between">
-                    <span className="flex items-center gap-1">
-                      <MapPin className="size-3.5 text-primary" />
-                      <span>Mapa con Pin Interactivo & Geocodificación</span>
-                    </span>
-                    <span className="text-[10px] text-muted-foreground font-normal">
-                      OpenStreetMap
-                    </span>
-                  </label>
-                  <CompanyLocationMap
-                    selectedCity={watch("location") || "Mérida, Yucatán"}
-                    initialAddress={watch("address_details") || ""}
-                    initialCoordinates={
-                      typeof watch("latitude") === "number" && typeof watch("longitude") === "number"
-                        ? [watch("latitude")!, watch("longitude")!]
-                        : typeof initialProfile?.latitude === "number" && typeof initialProfile?.longitude === "number"
-                        ? [initialProfile.latitude, initialProfile.longitude]
-                        : undefined
-                    }
-                    onLocationChange={(res) => {
-                      if (res.address) {
-                        setValue("address_details", res.address, {
-                          shouldValidate: true,
-                          shouldDirty: true,
-                        });
-                      }
-                      if (res.city) {
-                        setValue("location", res.city, {
-                          shouldValidate: true,
-                          shouldDirty: true,
-                        });
-                      }
-                      if (typeof res.latitude === "number" && typeof res.longitude === "number") {
-                        setValue("latitude", res.latitude, {
-                          shouldValidate: true,
-                          shouldDirty: true,
-                        });
-                        setValue("longitude", res.longitude, {
-                          shouldValidate: true,
-                          shouldDirty: true,
-                        });
-                      }
-                    }}
-                  />
-                </div>
-              </div>
-            </div>
-
-          </CardContent>
-
-          {/* ---------------- CARD FOOTER: ACTION BUTTONS ---------------- */}
-          <CardFooter className="p-4 sm:p-6 border-t border-border/60 bg-muted/20 flex items-center justify-end gap-3">
             <Button
               type="button"
               variant="outline"
-              size="sm"
-              onClick={() => {
-                handleReset();
-                toast.info("Cambios descartados", {
-                  description: "Se han restaurado los valores anteriores de tu perfil corporativo.",
-                });
-              }}
-              className="font-bold cursor-pointer gap-1.5 shadow-none"
+              disabled={isSaving || isUploadingLogo}
+              className="relative h-[40px] px-[14px] rounded-[8px] border-control-border bg-card text-[14px] font-medium text-foreground hover:bg-muted/50 gap-[8px] cursor-pointer shrink-0 self-start sm:self-auto"
             >
-              <RefreshCw className="size-3.5" />
-              <span>Descartar</span>
-            </Button>
-
-            <Button
-              type="submit"
-              size="sm"
-              disabled={isSaving}
-              className="font-bold cursor-pointer gap-2 shadow-sm transition-all"
-            >
-              {isSaving ? (
-                <Loader2 className="size-4 animate-spin" />
+              {isUploadingLogo ? (
+                <>
+                  <Loader2 className="size-[16px] animate-spin" />
+                  <span>Subiendo...</span>
+                </>
               ) : (
-                <Save className="size-4" />
+                <>
+                  <Plus className="size-[16px]" />
+                  <span>Cambiar foto de perfil</span>
+                </>
               )}
-              <span>{isSaving ? "Guardando Perfil..." : "Guardar Perfil"}</span>
+              <input
+                type="file"
+                accept="image/png,image/jpeg,image/webp,image/svg+xml"
+                disabled={isSaving || isUploadingLogo}
+                onChange={handleLogoChange}
+                className="absolute inset-0 opacity-0 cursor-pointer"
+                aria-label="Cambiar foto de perfil"
+              />
             </Button>
-          </CardFooter>
-        </Card>
+          </div>
+        </div>
+
+        {/* Middle 2-Column Section */}
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-[20px]">
+          {/* Left Card: Información de la empresa */}
+          <div className="lg:col-span-7 bg-card border border-border rounded-[16px] p-[20px] flex flex-col gap-[16px]">
+            <div className="flex items-center gap-[10px]">
+              <div className="size-[32px] rounded-[8px] bg-sidebar-accent text-link flex items-center justify-center shrink-0">
+                <Building2 className="size-[16px]" />
+              </div>
+              <h3 className="text-[18px] font-semibold leading-[24px] tracking-[-0.01em] text-foreground">
+                Información de la empresa
+              </h3>
+            </div>
+
+            <div className="flex flex-col gap-[6px]">
+              <label
+                htmlFor="company_name"
+                className="text-[14px] font-medium leading-[20px] text-foreground"
+              >
+                Nombre comercial
+              </label>
+              <Input
+                id="company_name"
+                type="text"
+                placeholder="Ej. Hotel Tierra Maya"
+                {...register("company_name")}
+                className="h-[44px] rounded-[8px] border-input bg-background px-[12px] text-[14px] font-normal"
+              />
+              {errors.company_name && (
+                <p className="text-xs font-medium text-destructive">
+                  {errors.company_name.message}
+                </p>
+              )}
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-[12px]">
+              <div className="flex flex-col gap-[6px]">
+                <span className="text-[14px] font-medium leading-[20px] text-foreground">
+                  Sector
+                </span>
+                <Select
+                  value={watch("industry") || ""}
+                  onValueChange={(val) =>
+                    setValue("industry", val || "", { shouldValidate: true })
+                  }
+                >
+                  <SelectTrigger className="h-[44px] w-full rounded-[8px] border-input bg-background px-[12px] text-[14px] font-normal">
+                    <SelectValue placeholder="Selecciona un sector">
+                      {(val: string | null) =>
+                        (val && INDUSTRY_LABELS[val]) ||
+                        val ||
+                        "Selecciona un sector"
+                      }
+                    </SelectValue>
+                  </SelectTrigger>
+                  <SelectContent className="rounded-[12px] border-border bg-popover shadow-lg">
+                    <SelectItem value="Restaurantes / Hotelería">
+                      Restaurantes / Hotelería / Turismo
+                    </SelectItem>
+                    <SelectItem value="Comercial">
+                      Comercio & Ventas al por Menor
+                    </SelectItem>
+                    <SelectItem value="Tecnología">
+                      Tecnología & Software
+                    </SelectItem>
+                    <SelectItem value="Salud">Salud & Bienestar</SelectItem>
+                    <SelectItem value="Finanzas">
+                      Finanzas & Contabilidad
+                    </SelectItem>
+                    <SelectItem value="Educación">
+                      Educación & Capacitación
+                    </SelectItem>
+                    <SelectItem value="Administración">
+                      Administración & Operaciones
+                    </SelectItem>
+                    <SelectItem value="Diseño">Diseño & Medios</SelectItem>
+                    <SelectItem value="Marketing">
+                      Marketing & Publicidad
+                    </SelectItem>
+                    <SelectItem value="Otro">Otro Sector</SelectItem>
+                  </SelectContent>
+                </Select>
+                {errors.industry && (
+                  <p className="text-xs font-medium text-destructive">
+                    {errors.industry.message}
+                  </p>
+                )}
+              </div>
+
+              <div className="flex flex-col gap-[6px]">
+                <span className="text-[14px] font-medium leading-[20px] text-foreground">
+                  Tamaño de la empresa
+                </span>
+                <Select
+                  value={watch("company_size") || ""}
+                  onValueChange={(val) =>
+                    setValue("company_size", val || undefined)
+                  }
+                >
+                  <SelectTrigger className="h-[44px] w-full rounded-[8px] border-input bg-background px-[12px] text-[14px] font-normal">
+                    <SelectValue placeholder="Selecciona el tamaño">
+                      {(val: string | null) =>
+                        (val && COMPANY_SIZE_LABELS[val]) ||
+                        val ||
+                        "Selecciona el tamaño"
+                      }
+                    </SelectValue>
+                  </SelectTrigger>
+                  <SelectContent className="rounded-[12px] border-border bg-popover shadow-lg">
+                    <SelectItem value="1-10">1 - 10 empleados</SelectItem>
+                    <SelectItem value="11-50">11 - 50 empleados</SelectItem>
+                    <SelectItem value="51-200">51 - 200 empleados</SelectItem>
+                    <SelectItem value="201-500">201 - 500 empleados</SelectItem>
+                    <SelectItem value="500+">Más de 500 empleados</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            <div className="flex flex-col gap-[6px] flex-1">
+              <div className="flex items-center justify-between">
+                <label
+                  htmlFor="company_description"
+                  className="text-[14px] font-medium leading-[20px] text-foreground"
+                >
+                  Acerca de la empresa
+                </label>
+                <span
+                  className={cn(
+                    "text-[12px] font-normal tabular-nums",
+                    isWarningCount ? "text-destructive" : "text-muted-foreground"
+                  )}
+                >
+                  {charCount} / 300
+                </span>
+              </div>
+              <Textarea
+                id="company_description"
+                maxLength={300}
+                placeholder="Describe brevemente tu empresa, cultura laboral y enfoque..."
+                {...register("description")}
+                className="min-h-[108px] flex-1 rounded-[8px] border-input bg-background p-[12px] text-[14px] font-normal resize-none"
+              />
+              {errors.description && (
+                <p className="text-xs font-medium text-destructive">
+                  {errors.description.message}
+                </p>
+              )}
+            </div>
+          </div>
+
+          {/* Right Card: Contacto y redes */}
+          <div className="lg:col-span-5 bg-card border border-border rounded-[16px] p-[20px] flex flex-col gap-[16px]">
+            <div className="flex items-center gap-[10px]">
+              <div className="size-[32px] rounded-[8px] bg-sidebar-accent text-link flex items-center justify-center shrink-0">
+                <Users className="size-[16px]" />
+              </div>
+              <h3 className="text-[18px] font-semibold leading-[24px] tracking-[-0.01em] text-foreground">
+                Contacto y redes
+              </h3>
+            </div>
+
+            <div className="flex flex-col gap-[6px]">
+              <label
+                htmlFor="company_phone"
+                className="text-[14px] font-medium leading-[20px] text-foreground"
+              >
+                WhatsApp
+              </label>
+              <Input
+                id="company_phone"
+                type="tel"
+                placeholder="+52 999 000 0123"
+                {...register("phone")}
+                className="h-[44px] rounded-[8px] border-input bg-background px-[12px] text-[14px] font-normal"
+              />
+              {errors.phone && (
+                <p className="text-xs font-medium text-destructive">
+                  {errors.phone.message}
+                </p>
+              )}
+            </div>
+
+            <div className="flex flex-col gap-[6px]">
+              <label
+                htmlFor="company_website"
+                className="text-[14px] font-medium leading-[20px] text-foreground"
+              >
+                Sitio web
+              </label>
+              <Input
+                id="company_website"
+                type="url"
+                placeholder="https://empresa.com"
+                {...register("website")}
+                className="h-[44px] rounded-[8px] border-input bg-background px-[12px] text-[14px] font-normal"
+              />
+              {errors.website && (
+                <p className="text-xs font-medium text-destructive">
+                  {errors.website.message}
+                </p>
+              )}
+            </div>
+
+            <div className="flex flex-col gap-[6px]">
+              <label
+                htmlFor="company_instagram"
+                className="text-[14px] font-medium leading-[20px] text-foreground"
+              >
+                Instagram
+              </label>
+              <Input
+                id="company_instagram"
+                type="text"
+                placeholder="instagram.com/empresa"
+                {...register("instagram_url")}
+                className="h-[44px] rounded-[8px] border-input bg-background px-[12px] text-[14px] font-normal"
+              />
+            </div>
+
+            <div className="flex flex-col gap-[6px]">
+              <label
+                htmlFor="company_facebook"
+                className="text-[14px] font-medium leading-[20px] text-foreground"
+              >
+                Facebook
+              </label>
+              <Input
+                id="company_facebook"
+                type="text"
+                placeholder="facebook.com/empresa"
+                {...register("facebook_url")}
+                className="h-[44px] rounded-[8px] border-input bg-background px-[12px] text-[14px] font-normal"
+              />
+            </div>
+          </div>
+        </div>
+
+        {/* Bottom Card: Ubicación de la empresa */}
+        <div className="bg-card border border-border rounded-[16px] p-[20px] flex flex-col gap-[16px]">
+          <div className="flex items-center gap-[10px]">
+            <div className="size-[32px] rounded-[8px] bg-sidebar-accent text-link flex items-center justify-center shrink-0">
+              <MapPin className="size-[16px]" />
+            </div>
+            <h3 className="text-[18px] font-semibold leading-[24px] tracking-[-0.01em] text-foreground">
+              Ubicación de la empresa
+            </h3>
+          </div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-[20px] items-start">
+            <div className="lg:col-span-6 flex flex-col gap-[16px]">
+              <div className="flex flex-col gap-[6px]">
+                <span className="text-[14px] font-medium leading-[20px] text-foreground">
+                  Ciudad sede
+                </span>
+                <Select
+                  value={resolvedCity}
+                  onValueChange={(val) => {
+                    if (val) {
+                      setValue("location", val, {
+                        shouldValidate: true,
+                        shouldDirty: true,
+                      });
+                      const cleaned = cleanCityName(val);
+                      const cityCfg = GEO_CONFIG[cleaned];
+                      if (cityCfg) {
+                        setValue("latitude", cityCfg.coords.lat, {
+                          shouldValidate: true,
+                          shouldDirty: true,
+                        });
+                        setValue("longitude", cityCfg.coords.lng, {
+                          shouldValidate: true,
+                          shouldDirty: true,
+                        });
+                      }
+                    }
+                  }}
+                >
+                  <SelectTrigger className="h-[44px] w-full rounded-[8px] border-input bg-background px-[12px] text-[14px] font-normal">
+                    <SelectValue placeholder="Selecciona la ciudad sede" />
+                  </SelectTrigger>
+                  <SelectContent className="rounded-[12px] border-border bg-popover shadow-lg max-h-64">
+                    {CITIES_LIST.map((city) => (
+                      <SelectItem
+                        key={city}
+                        value={city}
+                        className="text-[14px] font-normal rounded-[8px] cursor-pointer"
+                      >
+                        {city}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                {errors.location && (
+                  <p className="text-xs font-medium text-destructive">
+                    {errors.location.message}
+                  </p>
+                )}
+              </div>
+
+              <div className="flex flex-col gap-[6px]">
+                <label
+                  htmlFor="company_address"
+                  className="text-[14px] font-medium leading-[20px] text-foreground"
+                >
+                  Dirección
+                </label>
+                <Input
+                  id="company_address"
+                  type="text"
+                  placeholder="Centro, Mérida, Yucatán, México"
+                  {...register("address_details")}
+                  className="h-[44px] rounded-[8px] border-input bg-background px-[12px] text-[14px] font-normal"
+                />
+              </div>
+
+              <Button
+                type="button"
+                variant="outline"
+                onClick={handleUseCurrentLocation}
+                className="h-[40px] px-[14px] rounded-[8px] border-control-border bg-card text-[14px] font-medium text-foreground hover:bg-muted/50 gap-[8px] cursor-pointer w-fit"
+              >
+                <MapPin className="size-[16px] text-muted-foreground" />
+                <span>Usar mi ubicación actual</span>
+              </Button>
+            </div>
+
+            <div className="lg:col-span-6">
+              <OnboardingLeafletMap
+                coordinates={mapCoordinates}
+                onSelectCoordinates={handleMapSelectCoordinates}
+              />
+            </div>
+          </div>
+        </div>
+
+        {/* Bottom Action Bar */}
+        <div className="flex items-center justify-end gap-[12px]">
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => {
+              handleReset();
+              toast.info("Cambios descartados", {
+                description:
+                  "Se han restaurado los valores anteriores de tu perfil corporativo.",
+              });
+            }}
+            className="h-[44px] px-[16px] rounded-[8px] border-control-border bg-card text-[14px] font-medium text-foreground hover:bg-muted/50 gap-[8px] cursor-pointer"
+          >
+            <XCircle className="size-[16px] text-muted-foreground" />
+            <span>Descartar</span>
+          </Button>
+
+          <Button
+            type="submit"
+            disabled={isSaving}
+            className="h-[44px] px-[16px] rounded-[8px] bg-primary text-primary-foreground hover:bg-primary/90 text-[14px] font-medium gap-[8px] cursor-pointer"
+          >
+            {isSaving ? (
+              <Loader2 className="size-[16px] animate-spin" />
+            ) : (
+              <CheckCircle2 className="size-[16px]" />
+            )}
+            <span>{isSaving ? "Guardando perfil..." : "Guardar perfil"}</span>
+          </Button>
+        </div>
       </form>
     </motion.div>
   );

@@ -9,11 +9,11 @@ export default async function CompanyProfilePage() {
 
   if (!data) return null;
 
-  const { profile, userId } = data;
+  const { profile, userId, companyId } = data;
 
   return (
     <div className="w-full max-w-5xl mx-auto space-y-6 animate-in fade-in duration-300">
-      <CompanyProfileForm initialProfile={profile || {}} userId={userId} />
+      <CompanyProfileForm initialProfile={profile || {}} userId={companyId || userId} />
     </div>
   );
 }

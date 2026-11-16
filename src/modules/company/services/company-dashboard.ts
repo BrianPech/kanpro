@@ -737,6 +737,7 @@ export async function getCompanyProfileData(targetCompanyId?: string) {
 
   let lat: number | null = null;
   let lng: number | null = null;
+  let branchAddress: string | null = null;
 
   if (Array.isArray(companyProfile?.branch_addresses) && companyProfile.branch_addresses.length > 0) {
     const firstBranch = companyProfile.branch_addresses[0] as Record<string, unknown> | null;
@@ -744,11 +745,18 @@ export async function getCompanyProfileData(targetCompanyId?: string) {
       lat = firstBranch.latitude;
       lng = firstBranch.longitude;
     }
+    if (typeof firstBranch?.address === "string" && firstBranch.address.trim()) {
+      branchAddress = firstBranch.address.trim();
+    }
   }
 
-  if (lat === null && companyProfile?.social_links) {
-    const social = companyProfile.social_links as Record<string, unknown> | null;
-    if (typeof social?.latitude === "number" && typeof social?.longitude === "number") {
+  const social =
+    companyProfile?.social_links && typeof companyProfile.social_links === "object"
+      ? (companyProfile.social_links as Record<string, unknown>)
+      : null;
+
+  if (lat === null && social) {
+    if (typeof social.latitude === "number" && typeof social.longitude === "number") {
       lat = social.latitude;
       lng = social.longitude;
     }
@@ -759,6 +767,18 @@ export async function getCompanyProfileData(targetCompanyId?: string) {
     ...(companyProfile || {}),
     latitude: lat,
     longitude: lng,
+    address_details:
+      companyProfile?.address_details ||
+      branchAddress ||
+      "",
+    location:
+      companyProfile?.fiscal_address ||
+      baseProfile?.location ||
+      "",
+    instagram_url:
+      (typeof social?.instagram === "string" ? social.instagram : "") || "",
+    facebook_url:
+      (typeof social?.facebook === "string" ? social.facebook : "") || "",
     phone:
       companyProfile?.contact_phone ||
       baseProfile?.whatsapp_number ||
@@ -780,5 +800,6 @@ export async function getCompanyProfileData(targetCompanyId?: string) {
   return {
     profile,
     userId: user.id,
+    companyId: companyProfile?.id || companyScopeId,
   };
 }

@@ -42,6 +42,9 @@ export function OnboardingLeafletMap({
     });
 
     mapRef.current = map;
+    requestAnimationFrame(() => {
+      map.invalidateSize();
+    });
 
     return () => {
       map.remove();
@@ -51,19 +54,20 @@ export function OnboardingLeafletMap({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  const lat = coordinates?.[0] ?? null;
+  const lng = coordinates?.[1] ?? null;
+
   useEffect(() => {
     const map = mapRef.current;
     if (!map) return;
 
-    if (!coordinates) {
+    if (lat === null || lng === null || !Number.isFinite(lat) || !Number.isFinite(lng)) {
       if (markerRef.current) {
         markerRef.current.remove();
         markerRef.current = null;
       }
       return;
     }
-
-    const [lat, lng] = coordinates;
 
     if (!markerRef.current) {
       const marker = L.marker([lat, lng], {
@@ -84,7 +88,7 @@ export function OnboardingLeafletMap({
     }
 
     map.setView([lat, lng], Math.max(map.getZoom(), 15), { animate: true });
-  }, [coordinates]);
+  }, [lat, lng]);
 
   return (
     <div className="relative h-[218px] w-full rounded-[12px] border border-border bg-muted/50 overflow-hidden">
