@@ -1,3 +1,5 @@
+import { getMexicoDateISO, parseMexicoCalendarDate } from "@/lib/formatters";
+
 /**
  * Mexican Federal Labor Law (LFT - "Vacaciones Dignas") Vacation Days Calculator
  * Art. 76 LFT:
@@ -40,10 +42,10 @@ export function calculateLFTVacationDays(
   totalDaysAccrued: number;
   currentYearEntitlement: number;
 } {
-  const hireDate = new Date(hireDateStr);
-  const targetDate = targetDateStr ? new Date(targetDateStr) : new Date();
+  const hireDate = parseMexicoCalendarDate(hireDateStr);
+  const targetDate = parseMexicoCalendarDate(targetDateStr || getMexicoDateISO());
 
-  if (isNaN(hireDate.getTime())) {
+  if (!hireDate || !targetDate) {
     return {
       yearsOfService: 1,
       monthsOfService: 0,
@@ -54,17 +56,15 @@ export function calculateLFTVacationDays(
     };
   }
 
-  let years = targetDate.getFullYear() - hireDate.getFullYear();
-  let months = targetDate.getMonth() - hireDate.getMonth();
-  let days = targetDate.getDate() - hireDate.getDate();
+  let years = targetDate.getUTCFullYear() - hireDate.getUTCFullYear();
+  let months = targetDate.getUTCMonth() - hireDate.getUTCMonth();
+  let days = targetDate.getUTCDate() - hireDate.getUTCDate();
 
   if (days < 0) {
     months -= 1;
     const prevMonthDays = new Date(
-      targetDate.getFullYear(),
-      targetDate.getMonth(),
-      0
-    ).getDate();
+      Date.UTC(targetDate.getUTCFullYear(), targetDate.getUTCMonth(), 0)
+    ).getUTCDate();
     days += prevMonthDays;
   }
 

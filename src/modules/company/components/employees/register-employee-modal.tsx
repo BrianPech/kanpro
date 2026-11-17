@@ -37,6 +37,7 @@ import {
 } from "@/components/ui/select";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { formatMexicoDateShort, getMexicoDateISO } from "@/lib/formatters";
 import { registerDirectEmployeeAction } from "../../actions/employees";
 import { getCompanyDepartmentsAction } from "../../actions/areas";
 
@@ -61,6 +62,7 @@ interface RegisteredSummary {
   fullName: string;
   email: string;
   department: string;
+  hireDate: string;
   forcePasswordChange: boolean;
 }
 
@@ -77,6 +79,7 @@ export function RegisterEmployeeModal({
   const [fullName, setFullName] = React.useState("");
   const [email, setEmail] = React.useState("");
   const [department, setDepartment] = React.useState("");
+  const [hireDate, setHireDate] = React.useState(() => getMexicoDateISO());
   const [password, setPassword] = React.useState("");
   const [confirmPassword, setConfirmPassword] = React.useState("");
   const [forcePasswordChange, setForcePasswordChange] = React.useState(true);
@@ -125,6 +128,7 @@ export function RegisterEmployeeModal({
     setFullName("");
     setEmail("");
     setDepartment("");
+    setHireDate(getMexicoDateISO());
     setPassword("");
     setConfirmPassword("");
     setForcePasswordChange(true);
@@ -182,6 +186,7 @@ export function RegisterEmployeeModal({
     setIsSubmitting(true);
     try {
       const cleanDept = department && department !== "none" ? department.trim() : "";
+      const cleanHireDate = hireDate || getMexicoDateISO();
       const res = await registerDirectEmployeeAction({
         full_name: fullName.trim(),
         email: email.trim(),
@@ -189,6 +194,7 @@ export function RegisterEmployeeModal({
         confirm_password: confirmPassword,
         force_password_change: forcePasswordChange,
         department: cleanDept || undefined,
+        hire_date: cleanHireDate,
       });
 
       if (!res.success) {
@@ -225,6 +231,7 @@ export function RegisterEmployeeModal({
         fullName: fullName.trim(),
         email: email.trim(),
         department: cleanDept,
+        hireDate: res.data?.employee?.hire_date || cleanHireDate,
         forcePasswordChange,
       });
     } catch (err: unknown) {
@@ -300,6 +307,9 @@ export function RegisterEmployeeModal({
               <div className="bg-muted rounded-[10px] p-[12px] flex flex-col gap-[5px] w-full">
                 <p className="text-[14px] font-medium leading-[20px] text-foreground">
                   Área · {registeredSummary.department || "Sin área asignada"}
+                </p>
+                <p className="text-[13px] font-normal leading-[19px] text-muted-foreground">
+                  Fecha de ingreso · {formatMexicoDateShort(registeredSummary.hireDate)}
                 </p>
                 <p className="text-[13px] font-normal leading-[19px] text-muted-foreground">
                   Correo de acceso · {registeredSummary.email}
@@ -448,6 +458,28 @@ export function RegisterEmployeeModal({
                           ))}
                         </SelectContent>
                       </Select>
+                    </div>
+
+                    {/* Fecha de ingreso (antigüedad LFT) */}
+                    <div className="flex flex-col gap-[6px]">
+                      <label
+                        htmlFor="hire_date"
+                        className="text-[14px] font-medium leading-[20px] text-foreground"
+                      >
+                        Fecha de ingreso
+                      </label>
+                      <input
+                        id="hire_date"
+                        type="date"
+                        max={getMexicoDateISO()}
+                        value={hireDate}
+                        onChange={(e) => setHireDate(e.target.value)}
+                        disabled={isSubmitting}
+                        className="h-[44px] w-full rounded-[8px] border border-input bg-card px-[12px] text-[14px] text-foreground focus:outline-none focus:ring-2 focus:ring-ring disabled:opacity-50"
+                      />
+                      <p className="text-[12px] font-normal leading-[18px] text-muted-foreground">
+                        Por defecto es la fecha actual; ajústala si el colaborador ya tenía antigüedad previa (LFT).
+                      </p>
                     </div>
 
                     {/* Contraseña de acceso */}

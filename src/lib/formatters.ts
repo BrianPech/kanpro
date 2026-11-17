@@ -28,6 +28,39 @@ export function getMexicoDateISO(date: Date = new Date()): string {
 }
 
 /**
+ * Parses a YYYY-MM-DD date string or ISO timestamp without shifting YYYY-MM-DD
+ * backwards by one day in negative UTC offsets.
+ */
+export function parseMexicoCalendarDate(dateStr: string | null | undefined): Date | null {
+  if (!dateStr) return null;
+  const trimmed = dateStr.trim();
+  const ymdMatch = trimmed.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (ymdMatch) {
+    return new Date(Date.UTC(Number(ymdMatch[1]), Number(ymdMatch[2]) - 1, Number(ymdMatch[3]), 12, 0, 0));
+  }
+  const parsed = new Date(trimmed);
+  return Number.isNaN(parsed.getTime()) ? null : parsed;
+}
+
+/**
+ * Formats a YYYY-MM-DD string or ISO timestamp in Spanish ("17 nov 2026")
+ * using Mexico City timezone for timestamps and calendar UTC noon for pure dates.
+ */
+export function formatMexicoDateShort(dateStr: string | null | undefined): string {
+  if (!dateStr) return "";
+  const trimmed = dateStr.trim();
+  const isPureDate = /^\d{4}-\d{2}-\d{2}$/.test(trimmed);
+  const date = parseMexicoCalendarDate(trimmed);
+  if (!date) return trimmed;
+  return new Intl.DateTimeFormat("es-MX", {
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+    timeZone: isPureDate ? "UTC" : MEXICO_TIME_ZONE,
+  }).format(date);
+}
+
+/**
  * Normalizes any date representation (DD/MM/YYYY, ISO, timestamp, Date object)
  * to standard database ISO format `YYYY-MM-DD`.
  */

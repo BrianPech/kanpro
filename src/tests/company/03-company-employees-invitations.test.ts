@@ -766,6 +766,20 @@ David Chan,david@empresa.com,Electricista
 
       expect(mockSupabase.from).toHaveBeenCalledWith("company_employees");
     });
+
+    test("registerDirectEmployeeSchema acepta fecha de ingreso historica YYYY-MM-DD", () => {
+      const parsed = registerDirectEmployeeSchema.safeParse({
+        full_name: "Veterano QA",
+        email: "veterano@empresa.mx",
+        password: "Password123",
+        confirm_password: "Password123",
+        hire_date: "2021-05-10",
+      });
+      expect(parsed.success).toBe(true);
+      if (parsed.success) {
+        expect(parsed.data.hire_date).toBe("2021-05-10");
+      }
+    });
   });
 });
 

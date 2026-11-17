@@ -2,6 +2,7 @@ import { describe, test, expect } from "vitest";
 import {
   normalizeDateToISO,
   getMexicoDateISO,
+  formatMexicoDateShort,
   formatDateToDisplay,
   normalizePhone,
   formatPhoneDisplay,
@@ -32,6 +33,13 @@ describe("Centralized Formatters & Data Normalizers", () => {
     test("getMexicoDateISO uses America/Mexico_City even past UTC midnight", () => {
       // 2026-11-17T03:30:00Z = 2026-11-16 21:30 America/Mexico_City
       expect(getMexicoDateISO(new Date("2026-11-17T03:30:00.000Z"))).toBe("2026-11-16");
+    });
+
+    test("formatMexicoDateShort preserves YYYY-MM-DD day without shifting to previous day", () => {
+      const formatted = formatMexicoDateShort("2026-11-16").toLowerCase();
+      expect(formatted).toContain("16");
+      expect(formatted).toContain("nov");
+      expect(formatted).toContain("2026");
     });
   });
 

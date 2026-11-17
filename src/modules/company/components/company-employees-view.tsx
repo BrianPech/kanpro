@@ -46,6 +46,7 @@ import {
   MailCheck,
   Layers,
   ArrowLeft,
+  Calendar,
 } from "@/components/ui/icons";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -92,11 +93,17 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
+import {
+  formatMexicoDateShort,
+  getMexicoDateISO,
+  parseMexicoCalendarDate,
+} from "@/lib/formatters";
 import Link from "next/link";
 import { toast } from "sonner";
 import {
   terminateEmployee,
   reactivateEmployee,
+  updateEmployeeStartDate,
   getCompanyInvitationsAction,
   resendEmployeeInvitationAction,
   cancelEmployeeInvitationAction,
@@ -270,7 +277,7 @@ export function CompanyEmployeesView({
         location: newEmp.department || "Mérida, Yucatán",
         vacancy_title: newEmp.job_title?.trim() ? newEmp.job_title : "Sin puesto asignado",
         vacancy_category: newEmp.department?.trim() ? newEmp.department : "Sin área",
-        hired_date: newEmp.hire_date || new Date().toISOString(),
+        hired_date: newEmp.hire_date || getMexicoDateISO(),
         notes: newEmp.notes || "",
         status: "Contratado",
       };
@@ -360,6 +367,12 @@ export function CompanyEmployeesView({
   const [selectedArea, setSelectedArea] = React.useState<string>("none");
   const [isSavingArea, setIsSavingArea] = React.useState(false);
 
+  // Start date dialog
+  const [isStartDateDialogOpen, setIsStartDateDialogOpen] = React.useState(false);
+  const [startDateEmployee, setStartDateEmployee] = React.useState<Employee | null>(null);
+  const [startDateInput, setStartDateInput] = React.useState("");
+  const [isSavingStartDate, setIsSavingStartDate] = React.useState(false);
+
   // Metrics
   const metrics = React.useMemo(() => {
     const total = employees.length;
@@ -427,38 +440,30 @@ export function CompanyEmployeesView({
 
   const formatDate = (dateStr: string) => {
     if (!dateStr) return "Reciente";
-    try {
-      const date = new Date(dateStr);
-      return date.toLocaleDateString("es-MX", {
-        day: "numeric",
-        month: "short",
-        year: "numeric",
-      });
-    } catch {
-      return dateStr;
-    }
+    return formatMexicoDateShort(dateStr) || "Reciente";
   };
 
   const getTenure = (dateStr: string) => {
     if (!dateStr) return "";
-    try {
-      const start = new Date(dateStr);
-      const now = new Date();
-      const diffMonths =
-        (now.getFullYear() - start.getFullYear()) * 12 +
-        (now.getMonth() - start.getMonth());
-      if (diffMonths < 1) return "Reciente";
-      if (diffMonths === 1) return "1 mes";
-      if (diffMonths < 12) return `${diffMonths} meses`;
-      const years = Math.floor(diffMonths / 12);
-      const remMonths = diffMonths % 12;
-      const yearLabel = `${years} ${years === 1 ? "año" : "años"}`;
-      if (remMonths === 0) return yearLabel;
-      const monthLabel = `${remMonths} ${remMonths === 1 ? "mes" : "meses"}`;
-      return `${yearLabel}, ${monthLabel}`;
-    } catch {
-      return "";
+    const start = parseMexicoCalendarDate(dateStr);
+    const today = parseMexicoCalendarDate(getMexicoDateISO());
+    if (!start || !today) return "";
+
+    let diffMonths =
+      (today.getUTCFullYear() - start.getUTCFullYear()) * 12 +
+      (today.getUTCMonth() - start.getUTCMonth());
+    if (today.getUTCDate() < start.getUTCDate()) {
+      diffMonths -= 1;
     }
+    if (diffMonths < 1) return "Reciente";
+    if (diffMonths === 1) return "1 mes";
+    if (diffMonths < 12) return `${diffMonths} meses`;
+    const years = Math.floor(diffMonths / 12);
+    const remMonths = diffMonths % 12;
+    const yearLabel = `${years} ${years === 1 ? "año" : "años"}`;
+    if (remMonths === 0) return yearLabel;
+    const monthLabel = `${remMonths} ${remMonths === 1 ? "mes" : "meses"}`;
+    return `${yearLabel}, ${monthLabel}`;
   };
 
   const getInitials = (name: string) => {
@@ -578,6 +583,51 @@ export function CompanyEmployeesView({
     const curr = emp.department?.trim() || emp.vacancy_category?.trim();
     setSelectedArea(curr && curr !== "Sin área" ? curr : "none");
     setIsAreaDialogOpen(true);
+  };
+
+  const handleOpenStartDateDialog = (emp: Employee) => {
+    setSelectedEmp(emp);
+    setStartDateEmployee(emp);
+    const isoMatch = emp.hired_date?.match(/^(\d{4}-\d{2}-\d{2})/);
+    setStartDateInput(isoMatch ? isoMatch[1] : getMexicoDateISO());
+    setIsStartDateDialogOpen(true);
+  };
+
+  const handleSaveStartDate = async () => {
+    if (!startDateEmployee || !/^\d{4}-\d{2}-\d{2}$/.test(startDateInput)) {
+      toast.error("Selecciona una fecha válida.");
+      return;
+    }
+    setIsSavingStartDate(true);
+    try {
+      const res = await updateEmployeeStartDate(startDateEmployee.id, startDateInput);
+      if (!res.success) {
+        toast.error("Error al actualizar fecha de ingreso", { description: res.error });
+        return;
+      }
+
+      setEmployees((prev) =>
+        prev.map((e) =>
+          e.id === startDateEmployee.id ? { ...e, hired_date: startDateInput } : e
+        )
+      );
+
+      if (dossierEmployee && dossierEmployee.id === startDateEmployee.id) {
+        setDossierEmployee((prev) =>
+          prev ? { ...prev, hired_date: startDateInput } : null
+        );
+      }
+
+      toast.success("Fecha de ingreso actualizada", {
+        description: `${startDateEmployee.full_name} ahora tiene fecha de ingreso ${formatMexicoDateShort(startDateInput)}.`,
+      });
+      setIsStartDateDialogOpen(false);
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : "Intenta nuevamente.";
+      toast.error("Error al guardar fecha de ingreso", { description: msg });
+    } finally {
+      setIsSavingStartDate(false);
+    }
   };
 
   const handleSaveArea = async () => {
@@ -829,7 +879,7 @@ export function CompanyEmployeesView({
                   className="rounded-xl border border-border/50 bg-popover min-w-[190px] shadow-lg p-1.5"
                 >
                   <DropdownMenuItem
-                    onSelect={() => handleOpenDossier(emp)}
+                    onClick={() => handleOpenDossier(emp)}
                     className="cursor-pointer text-xs font-semibold py-2 px-2.5 gap-2 text-foreground hover:bg-muted"
                   >
                     <Eye className="size-3.5 text-muted-foreground" />
@@ -853,7 +903,7 @@ export function CompanyEmployeesView({
                   )}
 
                   <DropdownMenuItem
-                    onSelect={() => handleOpenAreaDialog(emp)}
+                    onClick={() => handleOpenAreaDialog(emp)}
                     className="cursor-pointer text-xs font-semibold rounded-lg hover:bg-muted py-2 px-2.5 gap-2"
                   >
                     <Layers className="size-3.5 text-muted-foreground" />
@@ -861,7 +911,15 @@ export function CompanyEmployeesView({
                   </DropdownMenuItem>
 
                   <DropdownMenuItem
-                    onSelect={() => handleOpenNotesDialog(emp)}
+                    onClick={() => handleOpenStartDateDialog(emp)}
+                    className="cursor-pointer text-xs font-semibold rounded-lg hover:bg-muted py-2 px-2.5 gap-2"
+                  >
+                    <Calendar className="size-3.5 text-muted-foreground" />
+                    <span>Editar fecha de ingreso</span>
+                  </DropdownMenuItem>
+
+                  <DropdownMenuItem
+                    onClick={() => handleOpenNotesDialog(emp)}
                     className="cursor-pointer text-xs font-semibold rounded-lg hover:bg-muted py-2 px-2.5 gap-2"
                   >
                     <FileText className="size-3.5 text-muted-foreground" />
@@ -872,7 +930,7 @@ export function CompanyEmployeesView({
 
                   {emp.status === "Contratado" ? (
                     <DropdownMenuItem
-                      onSelect={() => handleOpenTerminateDialog(emp)}
+                      onClick={() => handleOpenTerminateDialog(emp)}
                       className="cursor-pointer text-xs font-semibold text-destructive rounded-lg hover:bg-destructive/10 focus:bg-destructive/10 py-2 px-2.5 gap-2"
                     >
                       <UserX className="size-3.5" />
@@ -880,7 +938,7 @@ export function CompanyEmployeesView({
                     </DropdownMenuItem>
                   ) : (
                     <DropdownMenuItem
-                      onSelect={() => handleReactivate(emp)}
+                      onClick={() => handleReactivate(emp)}
                       className="cursor-pointer text-xs font-semibold text-primary rounded-lg hover:bg-primary/10 focus:bg-primary/10 py-2 px-2.5 gap-2"
                     >
                       <RotateCcw className="size-3.5" />
@@ -1523,7 +1581,7 @@ export function CompanyEmployeesView({
                               className="rounded-2xl border border-border/50 bg-popover min-w-[200px] shadow-xl p-1.5"
                             >
                               <DropdownMenuItem
-                                onSelect={() => handleOpenDossier(emp)}
+                                onClick={() => handleOpenDossier(emp)}
                                 className="cursor-pointer text-xs font-semibold py-2.5 px-3 gap-2.5 text-foreground hover:bg-muted rounded-xl"
                               >
                                 <Eye className="size-4 text-muted-foreground" />
@@ -1547,7 +1605,7 @@ export function CompanyEmployeesView({
                               )}
 
                               <DropdownMenuItem
-                                onSelect={() => handleOpenAreaDialog(emp)}
+                                onClick={() => handleOpenAreaDialog(emp)}
                                 className="cursor-pointer text-xs font-semibold rounded-xl hover:bg-muted py-2.5 px-3 gap-2.5"
                               >
                                 <Layers className="size-4 text-muted-foreground" />
@@ -1555,7 +1613,15 @@ export function CompanyEmployeesView({
                               </DropdownMenuItem>
 
                               <DropdownMenuItem
-                                onSelect={() => handleOpenNotesDialog(emp)}
+                                onClick={() => handleOpenStartDateDialog(emp)}
+                                className="cursor-pointer text-xs font-semibold rounded-xl hover:bg-muted py-2.5 px-3 gap-2.5"
+                              >
+                                <Calendar className="size-4 text-muted-foreground" />
+                                <span>Editar fecha de ingreso</span>
+                              </DropdownMenuItem>
+
+                              <DropdownMenuItem
+                                onClick={() => handleOpenNotesDialog(emp)}
                                 className="cursor-pointer text-xs font-semibold rounded-xl hover:bg-muted py-2.5 px-3 gap-2.5"
                               >
                                 <FileText className="size-4 text-muted-foreground" />
@@ -1566,7 +1632,7 @@ export function CompanyEmployeesView({
 
                               {isTerminated ? (
                                 <DropdownMenuItem
-                                  onSelect={() => handleReactivate(emp)}
+                                  onClick={() => handleReactivate(emp)}
                                   className="cursor-pointer text-xs font-semibold text-primary rounded-xl hover:bg-primary/10 focus:bg-primary/10 py-2.5 px-3 gap-2.5"
                                 >
                                   <RotateCcw className="size-4" />
@@ -1574,7 +1640,7 @@ export function CompanyEmployeesView({
                                 </DropdownMenuItem>
                               ) : (
                                 <DropdownMenuItem
-                                  onSelect={() => handleOpenTerminateDialog(emp)}
+                                  onClick={() => handleOpenTerminateDialog(emp)}
                                   className="cursor-pointer text-xs font-semibold text-destructive rounded-xl hover:bg-destructive/10 focus:bg-destructive/10 py-2.5 px-3 gap-2.5"
                                 >
                                   <UserX className="size-4" />
@@ -1609,6 +1675,7 @@ export function CompanyEmployeesView({
                             <Button
                               variant="outline"
                               size="sm"
+                              nativeButton={false}
                               render={
                                 <a
                                   href={getWhatsAppLink(emp)}
@@ -2051,6 +2118,62 @@ export function CompanyEmployeesView({
                 <Loader2 className="size-3.5 animate-spin mr-1" />
               ) : null}
               <span>Guardar Notas</span>
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Dialog: Editar Fecha de Ingreso */}
+      <Dialog open={isStartDateDialogOpen} onOpenChange={setIsStartDateDialogOpen}>
+        <DialogContent className="rounded-4xl border-border/60 bg-card max-w-md">
+          <DialogHeader>
+            <DialogTitle className="text-base font-bold text-foreground flex items-center gap-2">
+              <Calendar className="size-4 text-primary" />
+              <span>Editar Fecha de Ingreso</span>
+            </DialogTitle>
+            <DialogDescription className="text-xs text-muted-foreground">
+              Ajusta la fecha real de ingreso laboral de{" "}
+              <strong>{startDateEmployee?.full_name}</strong> para calcular correctamente su antigüedad y vacaciones LFT.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="py-3 space-y-2">
+            <Label htmlFor="edit_start_date" className="text-xs font-bold text-foreground">
+              Fecha de ingreso
+            </Label>
+            <Input
+              id="edit_start_date"
+              type="date"
+              max={getMexicoDateISO()}
+              value={startDateInput}
+              onChange={(e) => setStartDateInput(e.target.value)}
+              disabled={isSavingStartDate}
+              className="h-10 rounded-xl bg-background border-border/80 text-xs font-medium"
+            />
+          </div>
+
+          <DialogFooter className="gap-2 sm:gap-0">
+            <Button
+              type="button"
+              variant="ghost"
+              disabled={isSavingStartDate}
+              onClick={() => setIsStartDateDialogOpen(false)}
+              className="rounded-4xl text-xs font-semibold cursor-pointer"
+            >
+              Cancelar
+            </Button>
+            <Button
+              type="button"
+              disabled={isSavingStartDate || !startDateInput}
+              onClick={handleSaveStartDate}
+              className="rounded-4xl text-xs font-bold bg-primary text-primary-foreground cursor-pointer"
+            >
+              {isSavingStartDate ? (
+                <Loader2 className="size-3.5 animate-spin mr-1.5" />
+              ) : (
+                <Calendar className="size-3.5 mr-1.5" />
+              )}
+              <span>Guardar Fecha</span>
             </Button>
           </DialogFooter>
         </DialogContent>

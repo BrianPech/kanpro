@@ -1011,7 +1011,7 @@ export class CompanyEmployeeService {
       job_title: "", // No se asigna puesto por defecto según requerimiento
       department: input.department?.trim() || null,
       status: "active",
-      hire_date: getMexicoDateISO(),
+      hire_date: input.hire_date || getMexicoDateISO(),
     };
 
     const { data: insertedEmployee, error: empError } = await adminClient

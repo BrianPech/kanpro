@@ -149,6 +149,10 @@ export const registerDirectEmployeeSchema = z
       .max(80, "El departamento no puede exceder 80 caracteres.")
       .optional()
       .nullable(),
+    hire_date: z
+      .string()
+      .regex(/^\d{4}-\d{2}-\d{2}$/, "La fecha de ingreso debe tener formato YYYY-MM-DD.")
+      .optional(),
   })
   .refine((data) => data.password === data.confirm_password, {
     message: "Las contraseñas no coinciden.",
