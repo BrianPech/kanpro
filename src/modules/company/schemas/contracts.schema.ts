@@ -16,6 +16,13 @@ const uuidSchema = z
 export const createContractSchema = z
   .object({
     employeeId: uuidSchema.optional().nullable(),
+    employeeName: z
+      .string()
+      .trim()
+      .min(2, "El nombre del colaborador debe tener al menos 2 caracteres.")
+      .max(160, "El nombre del colaborador no puede exceder 160 caracteres.")
+      .optional()
+      .nullable(),
     candidateId: uuidSchema.optional().nullable(),
     applicationId: uuidSchema.optional().nullable(),
     folio: z.string().optional().nullable(),

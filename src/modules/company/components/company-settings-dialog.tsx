@@ -944,14 +944,14 @@ export function CompanySettingsModal({
                         <div className="space-y-1">
                           <div className="flex items-center gap-2 flex-wrap">
                             <h4 className="text-xs sm:text-sm font-bold text-amber-950 dark:text-amber-100">
-                              Periodo de Pruebas • Acceso Anticipado
+                              Periodo de Pruebas • Acceso Anticipado (Plan Básico)
                             </h4>
                             <Badge className="bg-amber-500/20 text-amber-700 dark:text-amber-300 border-none text-[10px] font-bold px-2 py-0.5 rounded-full">
                               100% Gratuito
                             </Badge>
                           </div>
                           <p className="text-xs text-amber-900/80 dark:text-amber-200/80 leading-relaxed font-medium">
-                            Tu empresa está participando en el acceso anticipado de K&apos;anPro. Todas las funcionalidades premium —incluyendo publicación de vacantes, cupos de vacantes destacadas, contratos conforme a la LFT y seguimiento de postulantes— se encuentran activas y bonificadas sin cargos de facturación durante esta fase.
+                            Tu empresa participa en el acceso anticipado de K&apos;anPro con el Plan Básico bonificado sin costo durante esta etapa. Actualmente están activos reclutamiento, Radar de Talento, gestión de empleados, asistencia y checador QR; nómina, contratos LFT, evaluaciones y reportes avanzados se habilitarán progresivamente según tu fase de despliegue.
                           </p>
                         </div>
                       </div>
@@ -976,14 +976,14 @@ export function CompanySettingsModal({
                               <div>
                                 <div className="flex items-center gap-2">
                                   <h4 className="text-xs font-bold text-foreground">
-                                    Acceso Anticipado
+                                    Plan Básico • Acceso Anticipado
                                   </h4>
                                   <Badge className="bg-amber-500/15 text-amber-700 dark:text-amber-300 border-none text-[10px] font-bold h-4.5 px-2 rounded-full">
                                     Activo • 100% Bonificado
                                   </Badge>
                                 </div>
                                 <p className="text-[10px] text-muted-foreground font-medium mt-0.5">
-                                  Plan sin costo mensual durante el periodo de pruebas en el Caribe Mexicano.
+                                  Sin costo mensual durante el acceso anticipado con activación gradual de módulos.
                                 </p>
                               </div>
                             </div>

@@ -35,6 +35,7 @@ export default async function CompanyContractsPage() {
         .select(`
           id,
           folio,
+          employee_name,
           job_title,
           department,
           contract_type,
@@ -125,7 +126,7 @@ export default async function CompanyContractsPage() {
           : {};
 
         const employeeName =
-          emp?.full_name || baseProfile?.full_name || "Empleado";
+          c.employee_name?.trim() || emp?.full_name || baseProfile?.full_name || "Empleado";
         const avatarUrl =
           emp?.avatar_url || baseProfile?.avatar_url || null;
         const phone =

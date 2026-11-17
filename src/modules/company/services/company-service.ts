@@ -1,6 +1,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@/types/supabase";
 import crypto from "crypto";
+import { getMexicoDateISO } from "@/lib/formatters";
 import type { CompanyProfileFormValues } from "../schemas/company.schema";
 import type {
   CompanyEmployeeFormValues,
@@ -74,7 +75,7 @@ export class CompanyEmployeeService {
       employee_code: val.employee_code?.trim() || null,
       phone: val.phone?.trim() || null,
       email: val.email?.toLowerCase().trim() || null,
-      hire_date: val.hire_date || new Date().toISOString().split("T")[0],
+      hire_date: val.hire_date || getMexicoDateISO(),
       base_salary_monthly: val.base_salary_monthly ?? null,
       payment_frequency: val.payment_frequency || "quincenal",
       work_schedule: val.work_schedule?.trim() || null,
@@ -145,7 +146,7 @@ export class CompanyEmployeeService {
     companyId: string,
     input: TerminateEmployeeInput
   ): Promise<void> {
-    const today = new Date().toISOString().split("T")[0];
+    const today = getMexicoDateISO();
 
     const { data: updatedEmployee, error } = await supabase
       .from("company_employees")
@@ -511,7 +512,7 @@ export class CompanyEmployeeService {
       employee_code: val.employee_code?.trim() || null,
       phone: val.phone?.trim() || null,
       email: val.email.toLowerCase().trim(),
-      hire_date: val.hire_date || new Date().toISOString().split("T")[0],
+      hire_date: val.hire_date || getMexicoDateISO(),
       base_salary_monthly: val.salary ?? null,
       work_schedule: val.work_schedule?.trim() || null,
       notes: val.notes?.trim() || null,
@@ -541,7 +542,7 @@ export class CompanyEmployeeService {
       full_name: val.full_name.trim(),
       position: val.position.trim(),
       salary: val.salary ?? null,
-      hire_date: val.hire_date || new Date().toISOString().split("T")[0],
+      hire_date: val.hire_date || getMexicoDateISO(),
       contract_type: val.contract_type || "tiempo_indeterminado",
       status: "sent",
       token_hash: tokenHash,
@@ -591,7 +592,7 @@ export class CompanyEmployeeService {
       createdTokens: [] as { email: string; full_name: string; rawToken: string }[],
     };
 
-    const today = new Date().toISOString().split("T")[0];
+    const today = getMexicoDateISO();
     const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString();
 
     for (const row of rows) {
@@ -1010,7 +1011,7 @@ export class CompanyEmployeeService {
       job_title: "", // No se asigna puesto por defecto según requerimiento
       department: input.department?.trim() || null,
       status: "active",
-      hire_date: new Date().toISOString().split("T")[0],
+      hire_date: getMexicoDateISO(),
     };
 
     const { data: insertedEmployee, error: empError } = await adminClient
@@ -1050,21 +1051,26 @@ export class CompanyContractService {
       (input.companySigned && input.employeeSigned ? "vigente" : "en_firma");
 
     let resolvedCandidateId = input.candidateId || null;
-    if (!resolvedCandidateId && input.employeeId) {
+    let resolvedEmployeeName = input.employeeName?.trim() || null;
+    if (input.employeeId && (!resolvedCandidateId || !resolvedEmployeeName)) {
       const { data: empRecord } = await supabase
         .from("company_employees")
-        .select("employee_id")
+        .select("employee_id, full_name")
         .eq("id", input.employeeId)
         .maybeSingle();
 
-      if (empRecord?.employee_id) {
+      if (empRecord?.employee_id && !resolvedCandidateId) {
         resolvedCandidateId = empRecord.employee_id;
+      }
+      if (empRecord?.full_name && !resolvedEmployeeName) {
+        resolvedEmployeeName = empRecord.full_name;
       }
     }
 
     const payload: CompanyContractInsert = {
       company_id: companyId,
       employee_id: input.employeeId || null,
+      employee_name: resolvedEmployeeName,
       candidate_id: resolvedCandidateId,
       application_id: input.applicationId || null,
       folio,
@@ -1503,3 +1509,27 @@ export const companyService = {
     if (error) throw error;
   },
 };
+
+/**
+ * Merges direct `company_employees` records with legacy hired `applications`
+ * without duplicating the same candidate (`candidate_id`) or record `id`.
+ */
+export function combineCompanyEmployees<T extends { id: string; candidate_id: string }>(
+  directMapped: readonly T[],
+  legacyMapped: readonly T[],
+  directCandidateIds: readonly (string | null | undefined)[] = directMapped.map((e) => e.candidate_id)
+): T[] {
+  const coveredCandidates = new Set(
+    directCandidateIds.filter((id): id is string => Boolean(id))
+  );
+  const seenIds = new Set<string>();
+
+  return [
+    ...directMapped,
+    ...legacyMapped.filter((legacy) => !coveredCandidates.has(legacy.candidate_id)),
+  ].filter((employee) => {
+    if (seenIds.has(employee.id)) return false;
+    seenIds.add(employee.id);
+    return true;
+  });
+}

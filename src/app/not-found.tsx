@@ -16,11 +16,11 @@ export default function NotFound() {
         La página que buscas no existe o ha sido movida. Explora las vacantes o regresa al inicio.
       </p>
       <div className="mt-8 flex flex-wrap items-center justify-center gap-4">
-        <Button render={<Link href="/" />} variant="default" className="rounded-full px-6">
+        <Button nativeButton={false} render={<Link href="/" />} variant="default" className="rounded-full px-6">
           <Home className="mr-2 h-4 w-4" />
           Ir al Inicio
         </Button>
-        <Button render={<Link href="/dashboard/candidate/discovery" />} variant="outline" className="rounded-full px-6">
+        <Button nativeButton={false} render={<Link href="/dashboard/candidate/discovery" />} variant="outline" className="rounded-full px-6">
           Explorar Vacantes
         </Button>
       </div>

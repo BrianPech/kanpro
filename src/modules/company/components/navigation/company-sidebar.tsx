@@ -232,11 +232,11 @@ export function CompanySidebar({
 
       {/* Navegación principal */}
       <SidebarContent className="bg-sidebar overflow-hidden">
-        <ScrollArea className="h-full px-5">
+        <ScrollArea className="h-full px-3">
           <div className="flex flex-col gap-4 pb-4">
             {COMPANY_NAV_GROUPS.map((group) => (
               <SidebarGroup key={group.id} className="p-0 gap-0.5">
-                <SidebarGroupLabel className="h-auto px-0 pb-1 text-[12px] font-semibold leading-[15px] text-muted-foreground">
+                <SidebarGroupLabel className="h-auto px-2 pb-1 text-[12px] font-semibold leading-[15px] text-muted-foreground">
                   {group.label}
                 </SidebarGroupLabel>
                 <SidebarMenu className="gap-0.5">
@@ -247,7 +247,7 @@ export function CompanySidebar({
                       enabledModules
                     );
                     const lockedBadge = !allowed
-                      ? getLockedModuleBadge(item.url)
+                      ? getLockedModuleBadge(item.url, enabledModules)
                       : null;
 
                     return (
@@ -257,7 +257,7 @@ export function CompanySidebar({
                             href={item.url}
                             onClick={handleNavClick}
                             className={cn(
-                              "flex items-center gap-2 min-h-[36px] w-full pl-2.5 pr-2 py-2 rounded-[8px] text-[14px] font-medium leading-[19px] transition-colors",
+                              "flex items-center gap-2 min-h-[36px] w-full pl-2 pr-1.5 py-2 rounded-[8px] text-[13.5px] font-medium leading-[19px] transition-colors",
                               active
                                 ? "bg-sidebar-accent text-link"
                                 : "text-foreground hover:bg-background/60 dark:hover:bg-background/30"
@@ -281,12 +281,15 @@ export function CompanySidebar({
                           <button
                             type="button"
                             onClick={() =>
-                              toast.info(`${item.title} (${lockedBadge})`, {
-                                description:
-                                  "Este módulo no está habilitado para tu cuenta actual.",
-                              })
+                              toast.info(
+                                lockedBadge ? `${item.title} (${lockedBadge})` : item.title,
+                                {
+                                  description:
+                                    "Este módulo se habilitará progresivamente en una próxima fase del despliegue.",
+                                }
+                              )
                             }
-                            className="flex items-center gap-2 min-h-[36px] w-full pl-2.5 pr-2 py-2 rounded-[8px] text-[14px] font-medium leading-[19px] text-muted-foreground opacity-70 hover:bg-background/40 transition-colors cursor-pointer text-left"
+                            className="flex items-center gap-2 min-h-[36px] w-full pl-2 pr-1.5 py-2 rounded-[8px] text-[13.5px] font-medium leading-[19px] text-muted-foreground opacity-70 hover:bg-background/40 transition-colors cursor-pointer text-left"
                           >
                             <HugeiconsIcon
                               icon={item.icon}

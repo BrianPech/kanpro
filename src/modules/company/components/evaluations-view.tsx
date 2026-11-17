@@ -868,9 +868,6 @@ export function EvaluationsView({
         description="Evaluación periódica de 6 competencias clave, planes de desarrollo humano y seguimiento de metas."
       >
         <div className="flex items-center gap-2">
-          <Badge variant="outline" className="font-mono">
-            {evaluations.length}
-          </Badge>
           <Button
             variant="outline"
             size="sm"

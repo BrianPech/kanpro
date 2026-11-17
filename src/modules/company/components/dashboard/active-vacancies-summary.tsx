@@ -41,6 +41,7 @@ export function ActiveVacanciesSummary({
 
         <Button
           size="sm"
+          nativeButton={false}
           render={<Link href="/dashboard/company/vacancies/new" />}
         >
           <Plus data-icon="inline-start" />
@@ -55,6 +56,7 @@ export function ActiveVacanciesSummary({
           </p>
           <Button
             size="sm"
+            nativeButton={false}
             render={<Link href="/dashboard/company/vacancies/new" />}
           >
             Publicar primera oferta
@@ -102,6 +104,7 @@ export function ActiveVacanciesSummary({
           <Button
             variant="ghost"
             size="sm"
+            nativeButton={false}
             render={<Link href="/dashboard/company/vacancies" />}
             className="text-primary font-semibold"
           >

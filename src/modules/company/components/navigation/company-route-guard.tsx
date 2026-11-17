@@ -64,6 +64,7 @@ export function CompanyRouteGuard({
           <Button
             variant="outline"
             size="sm"
+            nativeButton={false}
             render={<Link href="/dashboard/company" />}
             className="w-full sm:w-auto rounded-xl font-semibold text-xs gap-1.5 cursor-pointer"
           >
@@ -72,6 +73,7 @@ export function CompanyRouteGuard({
           </Button>
           <Button
             size="sm"
+            nativeButton={false}
             render={<Link href="/dashboard/company/vacancies" />}
             className="w-full sm:w-auto rounded-xl font-semibold text-xs gap-1.5 cursor-pointer"
           >

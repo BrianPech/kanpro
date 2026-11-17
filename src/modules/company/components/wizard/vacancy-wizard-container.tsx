@@ -109,25 +109,38 @@ export function VacancyWizardContainer({
   const [submitError, setSubmitError] = React.useState<string | null>(null);
   const [showPreviewDrawer, setShowPreviewDrawer] = React.useState(false);
   const [companyProfile, setCompanyProfile] = React.useState<CompanyProfileState | null>(null);
-  const [savedDraft, setSavedDraft] = React.useState<VacancyWizardValues | null>(() => {
-    if (typeof window === "undefined" || isEditing) return null;
+  const [draftDismissed, setDraftDismissed] = React.useState(false);
+  const draftRaw = React.useSyncExternalStore(
+    React.useCallback((onStoreChange: () => void) => {
+      window.addEventListener("storage", onStoreChange);
+      return () => window.removeEventListener("storage", onStoreChange);
+    }, []),
+    () => {
+      try {
+        return localStorage.getItem(DRAFT_STORAGE_KEY);
+      } catch {
+        return null;
+      }
+    },
+    () => null
+  );
+
+  const savedDraft = React.useMemo<VacancyWizardValues | null>(() => {
+    if (isEditing || draftDismissed || !draftRaw) return null;
     try {
-      const saved = localStorage.getItem(DRAFT_STORAGE_KEY);
-      if (saved) {
-        const parsed = JSON.parse(saved);
-        if (
-          parsed &&
-          typeof parsed === "object" &&
-          (parsed.title?.trim() || parsed.description?.trim())
-        ) {
-          return parsed;
-        }
+      const parsed = JSON.parse(draftRaw);
+      if (
+        parsed &&
+        typeof parsed === "object" &&
+        (parsed.title?.trim() || parsed.description?.trim())
+      ) {
+        return parsed;
       }
     } catch {
       return null;
     }
     return null;
-  });
+  }, [isEditing, draftDismissed, draftRaw]);
 
   // React Hook Form Instance
   const form = useForm<VacancyWizardValues>({
@@ -306,7 +319,7 @@ export function VacancyWizardContainer({
       form.reset();
       setCurrentStep(1);
       setMaxAccessibleStep(1);
-      setSavedDraft(null);
+      setDraftDismissed(true);
       toast.success("Formulario restablecido a valores iniciales");
     } catch (e) {
       console.error(e);
@@ -503,7 +516,7 @@ export function VacancyWizardContainer({
                 try {
                   localStorage.removeItem(DRAFT_STORAGE_KEY);
                 } catch {}
-                setSavedDraft(null);
+                setDraftDismissed(true);
               }}
               className="h-[34px] rounded-[8px] border-control-border bg-card text-[13px] font-medium cursor-pointer"
             >
@@ -518,7 +531,7 @@ export function VacancyWizardContainer({
                   ...initialValues,
                   ...savedDraft,
                 });
-                setSavedDraft(null);
+                setDraftDismissed(true);
                 toast.success("Borrador restaurado");
               }}
               className="h-[34px] rounded-[8px] bg-primary text-primary-foreground text-[13px] font-medium cursor-pointer"
@@ -625,6 +638,7 @@ export function VacancyWizardContainer({
               <Button
                 type="button"
                 variant="outline"
+                nativeButton={false}
                 render={<Link href="/dashboard/company/vacancies" />}
                 className="h-[44px] px-[16px] rounded-[8px] border-control-border bg-card text-foreground text-[14px] font-semibold hover:bg-muted/60 cursor-pointer"
               >

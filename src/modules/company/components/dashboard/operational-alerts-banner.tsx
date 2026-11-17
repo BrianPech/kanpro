@@ -120,6 +120,7 @@ export function OperationalAlertsBanner({ alerts }: OperationalAlertsBannerProps
                 <Button
                   size="sm"
                   variant={styles.btnVariant}
+                  nativeButton={false}
                   render={<Link href={alert.actionUrl} />}
                 >
                   <span>{alert.actionLabel || "Atender"}</span>

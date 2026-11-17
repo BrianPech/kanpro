@@ -22,6 +22,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { toast } from "sonner";
+import { getMexicoDateISO } from "@/lib/formatters";
 import { ShieldCheck, AlertTriangle, CheckCircle2, Loader2, Sparkles } from "@/components/ui/icons";
 import { EmployeeSelectOption } from "../../services/company-evaluations";
 import { Nom035Survey, Nom035RiskLevel, Nom035GuideType } from "../../types/evaluations";
@@ -43,9 +44,7 @@ export function Nom035SurveyModal({
 }: Nom035SurveyModalProps) {
   const [employeeId, setEmployeeId] = useState<string>("");
   const [guideType, setGuideType] = useState<Nom035GuideType>("guia_ii");
-  const [surveyDate, setSurveyDate] = useState<string>(
-    new Date().toISOString().split("T")[0]
-  );
+  const [surveyDate, setSurveyDate] = useState<string>(getMexicoDateISO());
 
   // Scores (STPS 2018 dimensions)
   const [environmentScore, setEnvironmentScore] = useState<number>(4);
@@ -207,7 +206,13 @@ export function Nom035SurveyModal({
                 onValueChange={(v) => setGuideType(v as Nom035GuideType)}
               >
                 <SelectTrigger className="w-full h-10 rounded-xl text-xs font-semibold">
-                  <SelectValue placeholder="Seleccionar Guía" />
+                  <SelectValue placeholder="Seleccionar Guía">
+                    {({
+                      guia_ii: "Guía II: Factores de Riesgo Psicosocial (Hasta 50 trab.)",
+                      guia_iii: "Guía III: Entorno Organizacional (>50 trab.)",
+                      guia_i: "Guía I: Acontecimientos Traumáticos Severos",
+                    } as Record<string, string>)[guideType] || guideType}
+                  </SelectValue>
                 </SelectTrigger>
                 <SelectContent alignItemWithTrigger={false} side="bottom" sideOffset={4} className="w-(--anchor-width) min-w-[280px] rounded-xl">
                   <SelectItem value="guia_ii" className="text-xs">

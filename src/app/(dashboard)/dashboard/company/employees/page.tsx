@@ -2,9 +2,10 @@ import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import { CompanyEmployeesView } from "@/modules/company/components/company-employees-view";
 import { getDashboardSession } from "@/modules/auth/services/dashboard-session";
+import { combineCompanyEmployees } from "@/modules/company/services/company-service";
 
 export const metadata = {
-  title: "Plantilla de Empleados | K'anPro",
+  title: "Plantilla de Empleados",
   description: "Gestión operativa, estatus laboral y expedientes del personal de la empresa.",
 };
 
@@ -162,13 +163,12 @@ export default async function CompanyEmployeesPage() {
     };
   });
 
-  // Combine direct and legacy, avoiding duplicate IDs
-  const seenIds = new Set<string>();
-  const combinedEmployees = [...directMapped, ...legacyMapped].filter((e) => {
-    if (seenIds.has(e.id)) return false;
-    seenIds.add(e.id);
-    return true;
-  });
+  // Combine direct and legacy records without duplicating ATS-hired candidates
+  const combinedEmployees = combineCompanyEmployees(
+    directMapped,
+    legacyMapped,
+    (directEmployees || []).map((emp) => emp.employee_id)
+  );
 
   // 5. Fetch employee invitations for company
   const { data: rawInvitations } = await supabase

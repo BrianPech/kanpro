@@ -5,7 +5,7 @@ import { CompanyAreasService } from "@/modules/company/services/company-areas";
 import { getDashboardSession } from "@/modules/auth/services/dashboard-session";
 
 export const metadata = {
-  title: "Áreas & Departamentos | K'anPro",
+  title: "Áreas & Departamentos",
   description:
     "Gestor de estructura organizacional, departamentos y áreas operativas de la empresa.",
 };

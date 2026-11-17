@@ -628,5 +628,84 @@ describe("Fase 17: Módulo de Nómina - Patrón Schema -> Handler -> Service y M
       expect(employees[0].bank_name).toBe("Banorte");
       expect(employees[0].clabe_account).toBe("072180001234567895");
     });
+
+    test("Cálculo con sueldo $0 no aplica fallback artificial de $8,500", async () => {
+      expect(calculateIMSSWorkerShare(0)).toBe(0);
+      expect(calculateMexicanISR(0)).toBe(0);
+      const client = {
+        from: vi.fn((table: string) => {
+          if (table === "company_profiles") {
+            return {
+              select: () => ({
+                eq: () => ({
+                  maybeSingle: async () => ({
+                    data: { id: "comp-zero", company_name: "Empresa Cero", legal_name: null, rfc: null },
+                    error: null,
+                  }),
+                }),
+              }),
+            };
+          }
+          if (table === "company_employees") {
+            return {
+              select: () => ({
+                eq: () => ({
+                  in: () => ({
+                    order: async () => ({
+                      data: [
+                        {
+                          id: "emp-zero",
+                          employee_id: null,
+                          full_name: "Empleado Sin Sueldo",
+                          job_title: "Ayudante",
+                          department: "Operaciones",
+                          avatar_url: null,
+                          base_salary_monthly: 0,
+                          payment_frequency: "quincenal",
+                          status: "active",
+                          rfc: null,
+                          curp: null,
+                          bank_name: null,
+                          clabe_account: null,
+                        },
+                      ],
+                      error: null,
+                    }),
+                  }),
+                }),
+              }),
+            };
+          }
+          if (table === "company_payrolls") {
+            return {
+              select: () => ({
+                eq: () => ({
+                  eq: () => ({
+                    eq: () => ({ maybeSingle: async () => ({ data: null, error: null }) }),
+                  }),
+                }),
+              }),
+            };
+          }
+          if (table === "company_attendance") {
+            return {
+              select: () => ({
+                eq: () => ({
+                  gte: () => ({
+                    lte: async () => ({ data: [], error: null }),
+                  }),
+                }),
+              }),
+            };
+          }
+          return {};
+        }),
+      } as unknown as SupabaseClient<Database>;
+
+      const service = new CompanyPayrollService(client);
+      const result = await service.getCompanyPayrollData("comp-zero");
+      expect(result.summary.employees[0]?.baseSalaryPeriod).toBe(0);
+      expect(result.summary.employees[0]?.netPayEstimated).toBe(0);
+    });
   });
 });

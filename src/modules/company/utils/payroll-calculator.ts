@@ -2,6 +2,8 @@
  * Motor de Cálculo Laboral y Fiscal de Nómina conforme a la LFT, LISR y LSS (México)
  */
 
+import { getMexicoDateISO } from "@/lib/formatters";
+
 export interface FortnightPeriodInfo {
   periodName: string;
   periodDates: string;
@@ -20,9 +22,10 @@ const MONTH_NAMES_ES = [
  * Determina el periodo quincenal en curso o según fecha de referencia
  */
 export function getFortnightPeriodInfo(refDate = new Date()): FortnightPeriodInfo {
-  const year = refDate.getFullYear();
-  const month = refDate.getMonth(); // 0-indexed
-  const day = refDate.getDate();
+  const [yStr, mStr, dStr] = getMexicoDateISO(refDate).split("-");
+  const year = Number(yStr);
+  const month = Number(mStr) - 1; // 0-indexed
+  const day = Number(dStr);
   const monthName = MONTH_NAMES_ES[month];
 
   if (day <= 15) {

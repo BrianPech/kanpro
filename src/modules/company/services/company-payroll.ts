@@ -130,7 +130,7 @@ export class CompanyPayrollService {
 
     for (const emp of activeEmployees) {
       const savedItem = savedItemsMap.get(emp.id);
-      const monthlySalary = Number(emp.base_salary_monthly) || 8500;
+      const monthlySalary = Math.max(0, Number(emp.base_salary_monthly) || 0);
       const isWeekly = emp.payment_frequency === "semanal";
       const baseSalaryPeriod = Math.round(isWeekly ? (monthlySalary / 30) * 7 : monthlySalary / 2);
 
@@ -305,7 +305,7 @@ export class CompanyPayrollService {
       throw new Error("Colaborador no encontrado o no pertenece a tu empresa.");
     }
 
-    const monthly = Number(employee.base_salary_monthly) || 8500;
+    const monthly = Math.max(0, Number(employee.base_salary_monthly) || 0);
     const baseSalaryPeriod = Math.round(monthly / 2);
 
     const { error: itemError } = await this.supabase

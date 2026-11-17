@@ -20,6 +20,7 @@ import {
 import {
   CompanyEmployeeService,
   CompanyContractService,
+  combineCompanyEmployees,
   type CompanyEmployeeRow,
   type CompanyContractRow,
   type EmployeeInvitationRow,
@@ -839,6 +840,54 @@ describe("Fase 18: Gestión de Colaboradores y Contratos - Patrón Schema -> Han
       // Empresa B intenta eliminar contrato de Empresa A
       await CompanyContractService.deleteContract(client, "empresa-b", "ctr-comp-a");
       expect(contracts.length).toBe(1);
+    });
+
+    test("createContractSchema y CompanyContractService persisten employeeName en contratos manuales", async () => {
+      const parsed = createContractSchema.safeParse({
+        employeeName: "Empleado Prueba QA",
+        jobTitle: "Recepcionista",
+        department: "Recepción",
+        contractType: "Indeterminado",
+        templateType: "indeterminado",
+        startDate: "2026-11-16",
+        salary: 12000,
+      });
+      expect(parsed.success).toBe(true);
+
+      const insertedRecords: Record<string, unknown>[] = [];
+      const client = {
+        from: vi.fn(() => ({
+          insert: vi.fn((payload: Record<string, unknown>) => {
+            insertedRecords.push(payload);
+            return {
+              select: () => ({
+                single: async () => ({
+                  data: { id: "ctr-manual-1", folio: payload.folio },
+                  error: null,
+                }),
+              }),
+            };
+          }),
+        })),
+      } as unknown as SupabaseClient<Database>;
+
+      if (!parsed.success) throw new Error("unexpected parse fail");
+      await CompanyContractService.createContract(client, "comp-A", parsed.data);
+      expect(insertedRecords[0]?.employee_name).toBe("Empleado Prueba QA");
+      expect(insertedRecords[0]?.employee_id).toBeNull();
+    });
+
+    test("combineCompanyEmployees deduplica contrataciones ATS por candidate_id preservando registros legados", () => {
+      const combined = combineCompanyEmployees(
+        [{ id: "emp-row-1", candidate_id: "cand-1", full_name: "Candidato Prueba QA" }],
+        [
+          { id: "app-row-1", candidate_id: "cand-1", full_name: "Candidato Prueba QA" },
+          { id: "app-row-2", candidate_id: "cand-legacy", full_name: "Candidato Legado" },
+        ],
+        ["cand-1"]
+      );
+
+      expect(combined.map((e) => e.id)).toEqual(["emp-row-1", "app-row-2"]);
     });
   });
 });

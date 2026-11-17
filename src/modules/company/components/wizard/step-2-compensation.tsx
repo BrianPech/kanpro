@@ -416,7 +416,13 @@ export function Step2Compensation({
                 onValueChange={(val) => field.onChange(val)}
               >
                 <SelectTrigger className="h-[44px] w-full rounded-[8px] border-input bg-card px-[12px] text-[14px] font-normal">
-                  <SelectValue placeholder="Frecuencia" />
+                  <SelectValue placeholder="Frecuencia">
+                    {({
+                      semanal: "Semanal",
+                      quincenal: "Quincenal",
+                      mensual: "Mensual",
+                    } as Record<string, string>)[field.value || "quincenal"] || "Quincenal"}
+                  </SelectValue>
                 </SelectTrigger>
                 <SelectContent className="rounded-[12px] border-border bg-popover shadow-lg">
                   <SelectItem

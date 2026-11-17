@@ -75,6 +75,7 @@ export function RecentCandidatesSummary({
         <Button
           variant="outline"
           size="sm"
+          nativeButton={false}
           render={<Link href="/dashboard/company/applications" />}
         >
           <span>Ver todos ({totalApplications})</span>
@@ -98,6 +99,7 @@ export function RecentCandidatesSummary({
           <div className="flex items-center justify-center gap-2 pt-2">
             <Button
               size="sm"
+              nativeButton={false}
               render={<Link href="/dashboard/company/radar" />}
             >
               Explorar Radar

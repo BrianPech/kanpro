@@ -36,6 +36,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { toast } from "sonner";
+import { getMexicoDateISO } from "@/lib/formatters";
 import { cn } from "@/lib/utils";
 import { ContractTemplateType, EmploymentContract } from "../../types/contracts";
 import { getCompanyDepartmentsAction } from "../../actions/areas";
@@ -76,7 +77,7 @@ export function HireCandidateWizardModal({
   const [jobTitle, setJobTitle] = useState(candidate?.vacancyTitle || "Empleado K'anPro");
   const [department, setDepartment] = useState("Operaciones");
   const [templateType, setTemplateType] = useState<ContractTemplateType>("indeterminado");
-  const [startDate, setStartDate] = useState(new Date().toISOString().split("T")[0]);
+  const [startDate, setStartDate] = useState(getMexicoDateISO());
   const [salary, setSalary] = useState("16500");
   const [paymentFrequency, setPaymentFrequency] = useState("quincenal");
 
@@ -237,7 +238,14 @@ export function HireCandidateWizardModal({
                     onValueChange={(val) => val && setTemplateType(val as ContractTemplateType)}
                   >
                     <SelectTrigger className="w-full h-10 rounded-xl bg-background border border-border/80 text-xs font-medium">
-                      <SelectValue />
+                      <SelectValue>
+                        {({
+                          indeterminado: "Tiempo Indeterminado (Planta)",
+                          periodo_prueba: "Periodo de Prueba (30 días)",
+                          determinado: "Tiempo Determinado",
+                          capacitacion_inicial: "Capacitación Inicial",
+                        } as Record<string, string>)[templateType] || templateType}
+                      </SelectValue>
                     </SelectTrigger>
                     <SelectContent
                       alignItemWithTrigger={false}

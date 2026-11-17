@@ -640,7 +640,7 @@ export function VacanciesManager({ userId }: { userId: string }) {
         id: "salary_min",
         header: () => (
           <span className="text-[12px] font-medium leading-[16px] text-muted-foreground">
-            Sueldo mensual
+            Sueldo
           </span>
         ),
         cell: ({ row }) => {
@@ -906,6 +906,7 @@ export function VacanciesManager({ userId }: { userId: string }) {
         </div>
 
         <Button
+          nativeButton={false}
           render={<Link href="/dashboard/company/vacancies/new" />}
           className="h-[44px] px-[16px] rounded-[8px] bg-primary text-primary-foreground text-[14px] font-medium hover:bg-primary/90 gap-[8px] cursor-pointer shrink-0"
         >
@@ -1009,6 +1010,7 @@ export function VacanciesManager({ userId }: { userId: string }) {
           </div>
           <Button
             size="sm"
+            nativeButton={false}
             render={<Link href="/dashboard/company/profile" />}
             className="h-[36px] rounded-[8px] bg-card border border-control-border text-foreground hover:bg-accent font-semibold text-[13px] shrink-0 px-3"
           >
@@ -1261,6 +1263,7 @@ export function VacanciesManager({ userId }: { userId: string }) {
                 ) : (
                   <Button
                     size="sm"
+                    nativeButton={false}
                     render={<Link href="/dashboard/company/vacancies/new" />}
                     className="rounded-[8px] font-medium text-[13px] h-[36px] px-4 cursor-pointer gap-1.5 bg-primary text-primary-foreground"
                   >

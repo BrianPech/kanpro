@@ -264,6 +264,15 @@ export async function getCompanyReportsData(): Promise<CompanyReportsData> {
       (a, b) => b.lft.yearsOfService - a.lft.yearsOfService
     )[0];
 
+    const roleParts = [
+      mostSenior.job_title?.trim() ? `como ${mostSenior.job_title.trim()}` : null,
+      mostSenior.department?.trim() ? `en ${mostSenior.department.trim()}` : null,
+    ].filter(Boolean);
+    const roleDescription =
+      roleParts.length > 0
+        ? `desempeñándose ${roleParts.join(" ")}`
+        : "con puesto y área por asignar";
+
     insights.push({
       id: "qi-seniority",
       question: "¿Cuál es el empleado con mayor antigüedad en la empresa?",
@@ -272,7 +281,7 @@ export async function getCompanyReportsData(): Promise<CompanyReportsData> {
       metric: mostSenior.lft.formattedSeniority,
       metricSubtitle: `${mostSenior.vacationDays} días de vacaciones por ley`,
       badge: `${retentionRate}% Retención`,
-      explanation: `Ingresó el ${mostSenior.hire_date || "inicio de operaciones"} desempeñándose como ${mostSenior.job_title} en ${mostSenior.department}. La tasa de retención global de la empresa es del ${retentionRate}%.`,
+      explanation: `Ingresó el ${mostSenior.hire_date || "inicio de operaciones"} ${roleDescription}. La tasa de retención global de la empresa es del ${retentionRate}%.`,
       linkHref: `/dashboard/company/employees`,
       linkLabel: "Ver Plantilla de Empleados",
     });

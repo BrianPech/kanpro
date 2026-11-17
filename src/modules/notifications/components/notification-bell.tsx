@@ -78,6 +78,7 @@ export function NotificationBell({ userId }: NotificationBellProps) {
       <Button
         variant="ghost"
         size="icon"
+        nativeButton={false}
         render={<Link href="/dashboard/candidate/inbox" />}
         className="relative size-[36px] rounded-[8px] text-foreground hover:bg-muted transition-colors cursor-pointer md:hidden"
       >

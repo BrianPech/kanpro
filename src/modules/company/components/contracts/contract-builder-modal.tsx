@@ -31,6 +31,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { toast } from "sonner";
+import { getMexicoDateISO } from "@/lib/formatters";
 import { EmploymentContract, ContractTemplateType } from "../../types/contracts";
 
 export interface ActiveEmployeeOption {
@@ -86,7 +87,7 @@ export function ContractBuilderModal({
   const [employeeCurp, setEmployeeCurp] = useState(initialEmployeeData?.employeeCurp || "");
   const [jobTitle, setJobTitle] = useState(initialEmployeeData?.jobTitle || "");
   const [department, setDepartment] = useState(initialEmployeeData?.department || "Operaciones");
-  const [startDate, setStartDate] = useState(new Date().toISOString().split("T")[0]);
+  const [startDate, setStartDate] = useState(getMexicoDateISO());
   const [endDate, setEndDate] = useState("");
   const [salary, setSalary] = useState(initialEmployeeData?.baseSalary ? String(initialEmployeeData.baseSalary) : "");
   const [paymentFrequency, setPaymentFrequency] = useState<"quincenal" | "semanal" | "mensual">("quincenal");
@@ -203,7 +204,12 @@ export function ContractBuilderModal({
                   onValueChange={handleSelectEmployee}
                 >
                   <SelectTrigger className="h-10 rounded-xl bg-background border-border/80 text-xs font-medium">
-                    <SelectValue placeholder="Seleccionar empleado o manual" />
+                    <SelectValue placeholder="Seleccionar empleado o manual">
+                      {selectedEmployeeId === "manual"
+                        ? "✍️ Ingresar manualmente / Nuevo"
+                        : activeEmployees.find((e) => e.id === selectedEmployeeId)?.name ||
+                          "Seleccionar empleado o manual"}
+                    </SelectValue>
                   </SelectTrigger>
                   <SelectContent className="rounded-xl border-border/60 bg-popover">
                     <SelectItem value="manual" className="text-xs font-semibold">
@@ -229,7 +235,16 @@ export function ContractBuilderModal({
                 onValueChange={(val) => val && setTemplateType(val as ContractTemplateType)}
               >
                 <SelectTrigger className="h-10 rounded-xl bg-background border-border/80 text-xs font-medium">
-                  <SelectValue />
+                  <SelectValue>
+                    {({
+                      indeterminado: "Contrato por Tiempo Indeterminado (Planta)",
+                      determinado: "Contrato por Tiempo Determinado (Obra / Temporada)",
+                      periodo_prueba: "Contrato en Periodo de Prueba (30 - 90 días)",
+                      capacitacion_inicial: "Contrato de Capacitación Inicial (3 meses)",
+                      honorarios: "Contrato de Prestación de Servicios (Honorarios)",
+                      obra_determinada: "Contrato por Obra Determinada",
+                    } as Record<string, string>)[templateType] || templateType}
+                  </SelectValue>
                 </SelectTrigger>
                 <SelectContent className="rounded-xl">
                   <SelectItem value="indeterminado">Contrato por Tiempo Indeterminado (Planta)</SelectItem>
@@ -314,7 +329,11 @@ export function ContractBuilderModal({
                   onValueChange={(val) => val && setPaymentFrequency(val as any)}
                 >
                   <SelectTrigger className="h-10 rounded-xl bg-background border-border/80 text-xs font-medium">
-                    <SelectValue />
+                    <SelectValue>
+                      {({ quincenal: "Quincenal", semanal: "Semanal", mensual: "Mensual" } as Record<string, string>)[
+                        paymentFrequency
+                      ] || paymentFrequency}
+                    </SelectValue>
                   </SelectTrigger>
                   <SelectContent className="rounded-xl">
                     <SelectItem value="quincenal">Quincenal</SelectItem>

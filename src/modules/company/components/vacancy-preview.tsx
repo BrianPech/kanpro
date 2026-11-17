@@ -551,6 +551,7 @@ export function VacancyPreview({
               </div>
 
               <Button
+                nativeButton={false}
                 render={<Link href="/dashboard/company/vacancies" />}
                 variant="outline"
                 className="w-full h-10 rounded-xl text-xs font-bold mt-2"

@@ -301,6 +301,7 @@ export default function VacancyDetailPage({ params }: PageProps) {
           La vacante que intentas visualizar no existe o fue eliminada.
         </p>
         <Button
+          nativeButton={false}
           render={<Link href="/dashboard/company/vacancies" />}
           className="h-[44px] px-4 rounded-[8px] bg-primary text-primary-foreground text-[14px] font-medium"
         >
@@ -385,6 +386,7 @@ export default function VacancyDetailPage({ params }: PageProps) {
           {statusKey === "active" && (
             <>
               <Button
+                nativeButton={false}
                 render={
                   <Link
                     href={`/dashboard/company/applications?vacancy_id=${vacancy.id}`}
@@ -427,6 +429,7 @@ export default function VacancyDetailPage({ params }: PageProps) {
               </Button>
               <Button
                 variant="outline"
+                nativeButton={false}
                 render={
                   <Link
                     href={`/dashboard/company/applications?vacancy_id=${vacancy.id}`}
@@ -451,6 +454,7 @@ export default function VacancyDetailPage({ params }: PageProps) {
           {(statusKey === "closed" || statusKey === "draft") && (
             <>
               <Button
+                nativeButton={false}
                 render={
                   <Link
                     href={`/dashboard/company/applications?vacancy_id=${vacancy.id}`}

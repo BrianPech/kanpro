@@ -950,7 +950,11 @@ export function CompanyVerificationView({
                 }
               >
                 <SelectTrigger className="h-[44px] w-full rounded-[8px] border-input bg-background px-[12px] text-[14px]">
-                  <SelectValue />
+                  <SelectValue>
+                    {draftCompany.fiscalRegime === "persona_moral"
+                      ? "Persona moral"
+                      : "Persona física"}
+                  </SelectValue>
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="persona_moral">Persona moral</SelectItem>

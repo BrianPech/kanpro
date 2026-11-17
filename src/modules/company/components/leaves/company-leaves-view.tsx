@@ -238,7 +238,17 @@ export function CompanyLeavesView({
             onValueChange={(val) => val && setStatusFilter(val)}
           >
             <SelectTrigger className="w-44 text-xs font-medium">
-              <SelectValue placeholder="Filtrar por estatus" />
+              <SelectValue placeholder="Filtrar por estatus">
+                {statusFilter === "all"
+                  ? "Todas las solicitudes"
+                  : statusFilter === "pendiente"
+                    ? "🟡 Pendientes"
+                    : statusFilter === "aprobada"
+                      ? "🟢 Aprobadas"
+                      : statusFilter === "rechazada"
+                        ? "🔴 Rechazadas"
+                        : statusFilter}
+              </SelectValue>
             </SelectTrigger>
             <SelectContent className="rounded-xl">
               <SelectItem value="all">Todas las solicitudes</SelectItem>
@@ -347,6 +357,7 @@ export function CompanyLeavesView({
                     <Button
                       size="sm"
                       variant="ghost"
+                      nativeButton={false}
                       render={<Link href={`/dashboard/company/employees/${req.employeeId}`} />}
                       className="h-9 px-3 text-xs font-bold text-muted-foreground hover:text-foreground rounded-xl cursor-pointer"
                     >

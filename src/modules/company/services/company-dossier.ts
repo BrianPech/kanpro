@@ -1,5 +1,6 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@/types/supabase";
+import { getMexicoDateISO } from "@/lib/formatters";
 import {
   EmployeeDossier,
   VacationRequest,
@@ -153,7 +154,7 @@ export async function getEmployeeDossierById(
     emp?.hire_date ||
     emp?.created_at?.split("T")[0] ||
     candidateData?.applied_at?.split("T")[0] ||
-    new Date().toISOString().split("T")[0];
+    getMexicoDateISO();
 
   const seniority = calculateLFTVacationDays(hireDate);
 
@@ -511,17 +512,15 @@ export async function getCompanyVacationRequests(
   });
 
   // 2. Compute accurate stats
-  const now = new Date();
-  const currentYear = now.getFullYear();
-  const currentMonth = now.getMonth();
-  const todayStr = now.toISOString().split("T")[0];
+  const todayStr = getMexicoDateISO();
+  const [currentYear, currentMonth] = todayStr.split("-").map(Number);
 
   const pendingCount = requests.filter((r) => r.status === "pendiente").length;
 
   const approvedThisMonth = requests.filter((r) => {
     if (r.status !== "aprobada") return false;
     const d = new Date(r.startDate);
-    return d.getFullYear() === currentYear && d.getMonth() === currentMonth;
+    return d.getUTCFullYear() === currentYear && d.getUTCMonth() + 1 === currentMonth;
   }).length;
 
   const employeesOnLeaveToday = requests.filter(

@@ -2,7 +2,7 @@ import { getDashboardSession } from "@/modules/auth/services/dashboard-session";
 import { CreateCompanyWizard } from "@/modules/company/components/wizard/create-company-wizard";
 
 export const metadata = {
-  title: "Registrar Empresa | K'anPro",
+  title: "Registrar Empresa",
   description: "Crea y configura una organización para publicar ofertas y gestionar talento.",
 };
 

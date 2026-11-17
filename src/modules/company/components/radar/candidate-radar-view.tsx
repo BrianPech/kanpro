@@ -1,6 +1,19 @@
 "use client";
 
 import React, { useState, useMemo } from "react";
+import dynamic from "next/dynamic";
+
+const CandidateRadarMap = dynamic(
+  () => import("./candidate-radar-map").then((mod) => mod.CandidateRadarMap),
+  {
+    ssr: false,
+    loading: () => (
+      <div className="h-[260px] sm:h-[300px] w-full rounded-[12px] border border-border bg-muted/30 flex items-center justify-center text-xs text-muted-foreground">
+        Cargando mapa de talento...
+      </div>
+    ),
+  }
+);
 import {
   Search,
   MapPin,
@@ -222,6 +235,36 @@ export function CandidateRadarView({
             </Select>
           </div>
         </div>
+      </div>
+
+      {/* Mapa de talento por ciudad */}
+      <div className="bg-card border border-border rounded-[16px] p-[16px] sm:p-[20px] flex flex-col gap-[12px]">
+        <div className="flex items-center justify-between gap-2">
+          <div>
+            <h2 className="text-[16px] font-semibold leading-[22px] text-foreground">
+              Distribución geográfica de talento
+            </h2>
+            <p className="text-[12px] text-muted-foreground">
+              Haz clic en un marcador para filtrar perfiles por ciudad.
+            </p>
+          </div>
+          {selectedCity !== "Todas" && (
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => setSelectedCity("Todas")}
+              className="text-xs cursor-pointer"
+            >
+              Ver todas ({selectedCity})
+            </Button>
+          )}
+        </div>
+        <CandidateRadarMap
+          candidates={filteredCandidates}
+          selectedCity={selectedCity}
+          onSelectCity={setSelectedCity}
+        />
       </div>
 
       {/* Results Table Card */}

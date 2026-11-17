@@ -1213,6 +1213,7 @@ export function ApplicationsInbox({ companyId }: { companyId?: string } = {}) {
                 ) : (
                   <Button
                     size="sm"
+                    nativeButton={false}
                     render={<Link href="/dashboard/company/vacancies" />}
                     className="font-medium text-xs cursor-pointer gap-1.5"
                   >
@@ -1760,10 +1761,10 @@ export function ApplicationsInbox({ companyId }: { companyId?: string } = {}) {
                         )}
                       </div>
 
-                      {/* 5. "About" Section */}
+                      {/* 5. Sección "Acerca del candidato" */}
                       <div className="pt-2 text-left space-y-3">
                         <h3 className="text-base sm:text-lg font-bold text-foreground">
-                          About
+                          Acerca del candidato
                         </h3>
                         <p className="text-xs sm:text-sm leading-relaxed text-muted-foreground font-normal whitespace-pre-line">
                           {selectedApplicant.bio ||

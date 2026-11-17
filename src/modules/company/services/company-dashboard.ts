@@ -1,4 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
+import { getMexicoDateISO } from "@/lib/formatters";
+import { calculatePunctualityRate } from "../utils/attendance-utils";
+import { getFortnightPeriodInfo } from "../utils/payroll-calculator";
 import {
   CompanyDashboardData,
   WorkforceKPIs,
@@ -47,7 +50,7 @@ export async function getCompanyDashboardData(targetCompanyId?: string): Promise
     unjustifiedAbsences: 0,
     justifiedAbsences: 0,
     lateArrivalsToday: 0,
-    punctualityRate: 100,
+    punctualityRate: 0,
     openVacanciesCount: 0,
     totalApplicationsReceived: 0,
     pendingReviewApplications: 0,
@@ -66,44 +69,27 @@ export async function getCompanyDashboardData(targetCompanyId?: string): Promise
   let recentActivities: CompanyDashboardData["recentActivities"] = [];
 
   const now = new Date();
+  const todayStr = getMexicoDateISO(now);
+  const [curYear, curMonth, curDay] = todayStr.split("-").map(Number);
+  const todayUtc = new Date(Date.UTC(curYear, curMonth - 1, curDay));
 
-  // Calculate default payroll period (15th / last day of month cycle)
-  const currentDay = now.getDate();
-  const currentMonth = now.getMonth();
-  const currentYear = now.getFullYear();
-
-  let cutoffDate: Date;
-  let paymentDate: Date;
-  let periodName: string;
-
-  const monthNames = [
-    "Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio",
-    "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"
-  ];
-
-  if (currentDay <= 15) {
-    periodName = `1ra Quincena de ${monthNames[currentMonth]} ${currentYear}`;
-    cutoffDate = new Date(currentYear, currentMonth, 15);
-    paymentDate = new Date(currentYear, currentMonth, 15);
-  } else {
-    periodName = `2da Quincena de ${monthNames[currentMonth]} ${currentYear}`;
-    const lastDay = new Date(currentYear, currentMonth + 1, 0).getDate();
-    cutoffDate = new Date(currentYear, currentMonth, lastDay);
-    paymentDate = new Date(currentYear, currentMonth, lastDay);
-  }
-
-  const daysToPay = Math.max(0, Math.ceil((paymentDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)));
+  // Calculate default payroll period (15th / last day of month cycle in Mexico TZ)
+  const periodInfo = getFortnightPeriodInfo(now);
+  const [payYear, payMonth, payDay] = periodInfo.endDate.split("-").map(Number);
+  const paymentUtc = new Date(Date.UTC(payYear, payMonth - 1, payDay));
+  const daysToPay = Math.max(0, Math.round((paymentUtc.getTime() - todayUtc.getTime()) / 86_400_000));
 
   const payrollSummary: PayrollSummaryData = {
-    periodName,
+    periodName: periodInfo.periodName,
+    periodDates: periodInfo.periodDates,
     frequency: "quincenal",
-    cutoffDate: cutoffDate.toISOString().split("T")[0],
-    paymentDate: paymentDate.toISOString().split("T")[0],
+    cutoffDate: periodInfo.endDate,
+    paymentDate: periodInfo.payoutDate,
     estimatedTotal: 0,
     employeesCount: 0,
     status: daysToPay <= 3 ? "calculada" : "preparacion",
     daysToPay,
-    averageSalary: 8500,
+    averageSalary: 0,
     departmentBreakdown: [],
   };
 
@@ -139,16 +125,15 @@ export async function getCompanyDashboardData(targetCompanyId?: string): Promise
   let recentCandidates: RecentCandidateItem[] = [];
 
   if (user) {
-    const todayStr = now.toISOString().split("T")[0];
-    const monday = new Date(now);
-    const dayOfWeek = (now.getDay() + 6) % 7; // 0 = Lunes, 6 = Domingo
-    monday.setDate(now.getDate() - dayOfWeek);
+    const monday = new Date(todayUtc);
+    const dayOfWeek = (todayUtc.getUTCDay() + 6) % 7; // 0 = Lunes, 6 = Domingo
+    monday.setUTCDate(todayUtc.getUTCDate() - dayOfWeek);
     const mondayStr = monday.toISOString().split("T")[0];
 
     const companyScopeId = effectiveCompanyId || user.id;
 
-    // 1. Fetch Company Profile, Vacancies, Employees, Contracts, Attendance & Incidents in parallel
-    const [companyRes, vacanciesRes, employeesRes, contractsRes, attendanceRes, incidentsRes] = await Promise.all([
+    // 1. Fetch Company Profile, Vacancies, Employees, Contracts, Attendance, Incidents & Payroll in parallel
+    const [companyRes, vacanciesRes, employeesRes, contractsRes, attendanceRes, incidentsRes, payrollPeriodRes] = await Promise.all([
       supabase
         .from("company_profiles")
         .select(`
@@ -232,7 +217,24 @@ export async function getCompanyDashboardData(targetCompanyId?: string): Promise
         .eq("company_id", companyScopeId)
         .order("incident_date", { ascending: false })
         .limit(50),
+      supabase
+        .from("company_payrolls")
+        .select("status")
+        .eq("company_id", companyScopeId)
+        .eq("start_date", periodInfo.startDate)
+        .eq("end_date", periodInfo.endDate)
+        .maybeSingle(),
     ]);
+
+    const dbPayrollStatus = payrollPeriodRes?.data?.status;
+    if (
+      dbPayrollStatus === "timbrada" ||
+      dbPayrollStatus === "pagada" ||
+      dbPayrollStatus === "dispersada" ||
+      dbPayrollStatus === "calculada"
+    ) {
+      payrollSummary.status = dbPayrollStatus;
+    }
 
     if (companyRes.data) {
       if (companyRes.data.company_name) {
@@ -535,9 +537,8 @@ export async function getCompanyDashboardData(targetCompanyId?: string): Promise
       const lates = todayAttendance.filter((a) => a.status === "retardo").length;
       const unjustifiedAbs = todayAttendance.filter((a) => a.status === "ausente").length;
       const justifiedAbs = todayAttendance.filter((a) => a.status === "justificado").length;
-      const totalAttended = presents + lates;
 
-      kpis.punctualityRate = totalAttended > 0 ? Math.round((presents / totalAttended) * 100) : 100;
+      kpis.punctualityRate = calculatePunctualityRate(presents, lates);
       kpis.absentCountToday = unjustifiedAbs + justifiedAbs;
       kpis.unjustifiedAbsences = unjustifiedAbs;
       kpis.justifiedAbsences = justifiedAbs;
@@ -567,7 +568,7 @@ export async function getCompanyDashboardData(targetCompanyId?: string): Promise
       // Weekly attendance trend strictly calculated from database records
       weeklyAttendanceTrend = weekDays.map((day, idx) => {
         const targetDay = new Date(monday);
-        targetDay.setDate(monday.getDate() + idx);
+        targetDay.setUTCDate(monday.getUTCDate() + idx);
         const dayStr = targetDay.toISOString().split("T")[0];
         const dayRecords = rawAttendance.filter((a: any) => a.work_date === dayStr);
         return {
@@ -675,7 +676,7 @@ export async function getCompanyDashboardData(targetCompanyId?: string): Promise
         type: "payroll",
         severity: "warning",
         title: `Cierre de Nómina: ${daysToPay === 0 ? "Hoy es día de pago" : `Faltan ${daysToPay} día(s)`}`,
-        description: `Revisa el reporte de incidencias y montos antes de la dispersión de la ${periodName}.`,
+        description: `Revisa el reporte de incidencias y montos antes de la dispersión de la ${periodInfo.periodName}.`,
         actionUrl: "#payroll-section",
         actionLabel: "Ver Resumen de Nómina",
         timestamp: "Cierre de ciclo",

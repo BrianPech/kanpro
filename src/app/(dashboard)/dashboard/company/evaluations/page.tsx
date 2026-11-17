@@ -6,7 +6,7 @@ import { getDashboardSession } from "@/modules/auth/services/dashboard-session";
 import { redirect } from "next/navigation";
 
 export const metadata = {
-  title: "Evaluación de Desempeño 360 | K'anPro",
+  title: "Evaluación de Desempeño 360",
   description: "Evaluación periódica de competencias, fortalezas y planes de desarrollo del trabajador.",
 };
 

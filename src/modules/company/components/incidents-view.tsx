@@ -289,7 +289,21 @@ export function IncidentsView({
               onValueChange={(val) => val && setCategoryFilter(val)}
             >
               <SelectTrigger className="w-48">
-                <SelectValue placeholder="Categoría" />
+                <SelectValue placeholder="Categoría">
+                  {({
+                    all: "Todas las categorías",
+                    falta_injustificada: "Falta Injustificada",
+                    retardo: "Retardo",
+                    accidente: "Accidente de Trabajo",
+                    incapacidad: "Incapacidad Médica",
+                    queja: "Queja / Conducta",
+                    permiso: "Permiso Especial",
+                    suspension: "Suspensión",
+                    incumplimiento: "Acta Administrativa",
+                    reconocimiento: "⭐ Reconocimiento",
+                    otro: "Otra Incidencia",
+                  } as Record<string, string>)[categoryFilter] || categoryFilter}
+                </SelectValue>
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">Todas las categorías</SelectItem>
@@ -311,7 +325,15 @@ export function IncidentsView({
               onValueChange={(val) => val && setStatusFilter(val)}
             >
               <SelectTrigger className="w-40">
-                <SelectValue placeholder="Estatus" />
+                <SelectValue placeholder="Estatus">
+                  {({
+                    all: "Todos los estatus",
+                    pendiente: "🟡 Pendientes",
+                    aprobado: "🟢 Aprobados",
+                    resuelto: "⭐ Resueltos",
+                    rechazado: "🔴 Rechazados",
+                  } as Record<string, string>)[statusFilter] || statusFilter}
+                </SelectValue>
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">Todos los estatus</SelectItem>

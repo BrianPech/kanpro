@@ -587,6 +587,26 @@ export function BranchQrKioskModal({
                   </span>
                 )}
               </div>
+
+              <div className="h-px w-full bg-border" />
+
+              <div className="flex flex-col gap-[6px] w-full rounded-[8px] border border-border bg-muted/40 p-[10px]">
+                <span className="text-[13px] font-semibold leading-[18px] text-foreground">
+                  Geocerca activa
+                </span>
+                <div className="flex items-center justify-between text-[12px] text-muted-foreground">
+                  <span>Radio autorizado</span>
+                  <span className="font-semibold text-foreground tabular-nums">
+                    {branchConfig.radiusMeters} m
+                  </span>
+                </div>
+                <div className="flex items-center justify-between text-[12px] text-muted-foreground gap-2">
+                  <span>Coordenadas</span>
+                  <span className="font-mono text-[11px] text-foreground tabular-nums">
+                    {branchConfig.latitude.toFixed(4)}, {branchConfig.longitude.toFixed(4)}
+                  </span>
+                </div>
+              </div>
             </div>
           </div>
 

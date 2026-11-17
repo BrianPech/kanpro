@@ -105,6 +105,7 @@ export function ApplicationsPipelineSummary({
         <Button
           variant="outline"
           size="sm"
+          nativeButton={false}
           render={<Link href="/dashboard/company/applications" />}
         >
           <span>Bandeja</span>

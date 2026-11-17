@@ -39,6 +39,16 @@ export function calculateDistanceInMeters(
   return Math.round(R * c);
 }
 
+/**
+ * Calculates punctuality rate (0-100) from on-time vs late check-ins.
+ * Returns 0 when nobody has checked in (e.g., 0 present + absences).
+ */
+export function calculatePunctualityRate(onTimeCount: number, lateCount: number): number {
+  const attended = onTimeCount + lateCount;
+  if (attended <= 0) return 0;
+  return Math.round((onTimeCount / attended) * 100);
+}
+
 // Generate monthly dossier/history for an individual employee
 export function getIndividualAttendanceHistory(
   employeeId: string,
@@ -111,9 +121,7 @@ export function getIndividualAttendanceHistory(
     });
   }
 
-  const totalEvaluated = daysPresent + daysLate;
-  const individualPunctualityRate =
-    totalEvaluated > 0 ? Math.round((daysPresent / totalEvaluated) * 100) : 100;
+  const individualPunctualityRate = calculatePunctualityRate(daysPresent, daysLate);
 
   return {
     employeeId,

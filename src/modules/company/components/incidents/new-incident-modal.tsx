@@ -35,6 +35,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { toast } from "sonner";
+import { getMexicoDateISO } from "@/lib/formatters";
 import { LaborIncident, IncidentCategory, IncidentSeverity } from "../../types/incidents";
 import { createIncidentAction } from "../../actions/incidents";
 
@@ -66,7 +67,7 @@ export function NewIncidentModal({
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [severity, setSeverity] = useState<IncidentSeverity>("media");
-  const [incidentDate, setIncidentDate] = useState(new Date().toISOString().split("T")[0]);
+  const [incidentDate, setIncidentDate] = useState(getMexicoDateISO());
   const [supervisor, setSupervisor] = useState("");
   const [hasEvidence, setHasEvidence] = useState(false);
   const [evidenceFileName, setEvidenceFileName] = useState("");
@@ -263,7 +264,14 @@ export function NewIncidentModal({
                   onValueChange={(val) => val && setSeverity(val as IncidentSeverity)}
                 >
                   <SelectTrigger className="w-full">
-                    <SelectValue />
+                    <SelectValue>
+                      {({
+                        baja: "Baja (Informativo / Leve)",
+                        media: "Media (Aviso / Descuento)",
+                        alta: "Alta (Acta / Sanción)",
+                        critica: "Crítica (Riesgo / Rescisión)",
+                      } as Record<string, string>)[severity] || severity}
+                    </SelectValue>
                   </SelectTrigger>
                   <SelectContent alignItemWithTrigger={false} side="bottom" sideOffset={4} className="w-(--anchor-width) min-w-[240px]">
                     <SelectItem value="baja">Baja (Informativo / Leve)</SelectItem>
@@ -283,7 +291,7 @@ export function NewIncidentModal({
                 onValueChange={(val) => val && setCategory(val as IncidentCategory)}
               >
                 <SelectTrigger className="w-full">
-                  <SelectValue />
+                  <SelectValue>{categoryLabels[category] || category}</SelectValue>
                 </SelectTrigger>
                 <SelectContent alignItemWithTrigger={false} side="bottom" sideOffset={4} className="w-(--anchor-width) min-w-[260px] max-h-60">
                   <SelectItem value="falta_injustificada">Falta Injustificada</SelectItem>

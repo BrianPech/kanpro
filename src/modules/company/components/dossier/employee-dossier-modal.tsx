@@ -48,6 +48,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
+import { getMexicoDateISO } from "@/lib/formatters";
 import { calculateLFTVacationDays } from "../../utils/vacation-calculator";
 import { EmployeeDocument, EmployeeDossier } from "../../types/employee-dossier";
 import { uploadDossierDocumentAction } from "../../actions/dossier";
@@ -106,8 +107,7 @@ export function EmployeeDossierModal({
   const dossier = React.useMemo<EmployeeDossier | null>(() => {
     if (!employee) return null;
 
-    const hireDate =
-      employee.hired_date || new Date().toISOString().split("T")[0];
+    const hireDate = employee.hired_date || getMexicoDateISO();
     const seniority = calculateLFTVacationDays(hireDate);
 
     const baseSalary = Number(employee.base_salary_monthly) || 0;
@@ -134,14 +134,14 @@ export function EmployeeDossierModal({
       curp: employee.curp || "No registrado",
       nss: employee.nss || "No registrado",
       birthDate: "",
-      address: employee.location || "Playa del Carmen, Quintana Roo",
+      address: employee.location || "No registrada",
       nationality: "Mexicana",
 
       jobTitle:
         employee.job_title || employee.vacancy_title || "Puesto General",
       department:
         employee.department || employee.vacancy_category || "Operaciones",
-      branchName: `Sucursal Principal • ${employee.location || "Riviera Maya"}`,
+      branchName: employee.location ? `Sucursal Principal • ${employee.location}` : "Sucursal Principal",
       hireDate,
       yearsOfServiceFormatted: seniority.formattedSeniority,
       contractType: "indeterminado",

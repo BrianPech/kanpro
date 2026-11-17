@@ -1,6 +1,7 @@
 import { describe, test, expect } from "vitest";
 import {
   normalizeDateToISO,
+  getMexicoDateISO,
   formatDateToDisplay,
   normalizePhone,
   formatPhoneDisplay,
@@ -26,6 +27,11 @@ describe("Centralized Formatters & Data Normalizers", () => {
 
     test("formats ISO date to Mexican display DD/MM/AAAA", () => {
       expect(formatDateToDisplay("2007-11-05")).toBe("05/11/2007");
+    });
+
+    test("getMexicoDateISO uses America/Mexico_City even past UTC midnight", () => {
+      // 2026-11-17T03:30:00Z = 2026-11-16 21:30 America/Mexico_City
+      expect(getMexicoDateISO(new Date("2026-11-17T03:30:00.000Z"))).toBe("2026-11-16");
     });
   });
 

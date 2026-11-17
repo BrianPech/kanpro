@@ -7,7 +7,7 @@ import { getDashboardSession } from "@/modules/auth/services/dashboard-session";
 export const dynamic = "force-dynamic";
 
 export const metadata = {
-  title: "Vacaciones & Permisos LFT | K'anPro",
+  title: "Vacaciones & Permisos LFT",
   description: "Gestión y autorización de vacaciones conforme a la Ley Federal del Trabajo y permisos.",
 };
 

@@ -1,5 +1,6 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@/types/supabase";
+import { getMexicoDateISO } from "@/lib/formatters";
 import {
   EmployeeEvaluation,
   Nom035Survey,
@@ -61,8 +62,7 @@ export class CompanyEvaluationsService {
     const potentialScore = Math.max(1, Math.min(5, Number(input.potentialScore) || 3.5));
     const evaluatorRelation = input.evaluatorRelation || "jefe_directo";
     const nineBoxQuadrant = calculateNineBoxQuadrant(averageScore, potentialScore);
-    const evaluationDate =
-      input.evaluationDate || new Date().toISOString().split("T")[0];
+    const evaluationDate = input.evaluationDate || getMexicoDateISO();
 
     const payload: EvaluationInsert = {
       company_id: companyId,
@@ -151,8 +151,7 @@ export class CompanyEvaluationsService {
     const totalScore = engine.getTotalScore();
     const riskLevel = engine.getRiskLevel();
     const actionPlan = input.actionPlan?.trim() || engine.getActionPlan();
-    const surveyDate =
-      input.surveyDate || new Date().toISOString().split("T")[0];
+    const surveyDate = input.surveyDate || getMexicoDateISO();
 
     const payload: Nom035SurveyInsert = {
       company_id: companyId,

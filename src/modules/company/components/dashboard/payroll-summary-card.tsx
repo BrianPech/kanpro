@@ -13,6 +13,7 @@ import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { CompanyStatusBadge } from "../shared/company-status-badge";
 import { toast } from "sonner";
+import { getMexicoDateISO } from "@/lib/formatters";
 
 import { CompanyDashboardData, PayrollSummaryData } from "../../types/dashboard";
 
@@ -23,8 +24,8 @@ interface PayrollSummaryProps {
 const EMPTY_PAYROLL: PayrollSummaryData = {
   periodName: "Periodo Actual",
   frequency: "quincenal",
-  cutoffDate: new Date().toISOString().split("T")[0],
-  paymentDate: new Date().toISOString().split("T")[0],
+  cutoffDate: getMexicoDateISO(),
+  paymentDate: getMexicoDateISO(),
   estimatedTotal: 0,
   employeesCount: 0,
   status: "preparacion",
@@ -136,6 +137,7 @@ export function PayrollSummaryCard({
 
           <Button
             size="sm"
+            nativeButton={false}
             render={<Link href="/dashboard/company/payroll" />}
           >
             <span>Ver Pre-Nómina</span>

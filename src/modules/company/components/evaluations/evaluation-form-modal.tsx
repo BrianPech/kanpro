@@ -36,6 +36,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { toast } from "sonner";
+import { getMexicoDateISO } from "@/lib/formatters";
 import { cn } from "@/lib/utils";
 import { EmployeeEvaluation, calculateNineBoxQuadrant } from "../../types/evaluations";
 import { EmployeeSelectOption } from "../../services/company-evaluations";
@@ -213,7 +214,7 @@ export function EvaluationFormModal({
         jobTitle: jobTitle.trim(),
         department: department.trim(),
         period,
-        evaluationDate: new Date().toISOString().split("T")[0],
+        evaluationDate: getMexicoDateISO(),
         evaluatorName,
         evaluatorRole: "Evaluador Directo",
         evaluatorRelation: "jefe_directo",

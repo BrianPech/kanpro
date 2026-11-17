@@ -28,6 +28,7 @@ import {
 import { Sparkles, Star, Loader2, CheckCircle2, Users } from "@/components/ui/icons";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
+import { getMexicoDateISO } from "@/lib/formatters";
 import { EmployeeEvaluation, calculateNineBoxQuadrant } from "../../types/evaluations";
 import { EmployeeSelectOption } from "../../services/company-evaluations";
 import { createEvaluationAction } from "../../actions/evaluations";
@@ -636,7 +637,7 @@ export function EvaluationQuestionnaireModal({
         jobTitle,
         department,
         period,
-        evaluationDate: new Date().toISOString().split("T")[0],
+        evaluationDate: getMexicoDateISO(),
         evaluatorName: "Dirección de Operaciones",
         evaluatorRole: "Administrador K'anPro",
         evaluatorRelation: evaluator_relation,
@@ -728,7 +729,18 @@ export function EvaluationQuestionnaireModal({
             onSubmit={handleSubmit}
           >
             <div className="flex items-center justify-between pb-2">
-              <QuestionnaireProgress className="text-xs font-bold text-muted-foreground" />
+              <QuestionnaireProgress
+                className="text-xs font-bold text-muted-foreground"
+                render={(progressProps, state) => (
+                  <div
+                    {...progressProps}
+                    aria-label="Progreso de evaluación"
+                    aria-valuetext={`Pregunta ${state.current} de ${state.total}`}
+                  >
+                    Pregunta {state.current} de {state.total}
+                  </div>
+                )}
+              />
             </div>
 
             {items.map((question) => {

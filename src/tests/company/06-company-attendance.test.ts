@@ -15,6 +15,8 @@ import {
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@/types/supabase";
 import { generateQrSvg } from "@/modules/company/utils/qrcode";
+import { calculatePunctualityRate } from "@/modules/company/utils/attendance-utils";
+import { getMexicoDateISO } from "@/lib/formatters";
 
 describe("Fase 15: Módulo de Asistencia - Arquitectura Schema -> Handler -> Service", () => {
   describe("1. Validación de Esquemas Zod (attendance.schema.ts)", () => {
@@ -507,7 +509,7 @@ describe("Fase 15: Módulo de Asistencia - Arquitectura Schema -> Handler -> Ser
     });
 
     test("recordMobileCheckIn: actionType auto registra Salida (check_out) si ya existe Entrada hoy", async () => {
-      const todayStr = new Date().toISOString().split("T")[0];
+      const todayStr = getMexicoDateISO();
       const existingIn: AttendanceRow = {
         id: "att-auto-existing",
         company_id: "comp-A",
@@ -572,7 +574,7 @@ describe("Fase 15: Módulo de Asistencia - Arquitectura Schema -> Handler -> Ser
     });
 
     test("recordMobileCheckIn: actionType auto actualiza Salida (check_out) si ambos ya estaban registrados hoy", async () => {
-      const todayStr = new Date().toISOString().split("T")[0];
+      const todayStr = getMexicoDateISO();
       const completedTurn: AttendanceRow = {
         id: "att-auto-completed",
         company_id: "comp-A",
@@ -875,6 +877,12 @@ describe("Fase 15: Módulo de Asistencia - Arquitectura Schema -> Handler -> Ser
       // Tasa de puntualidad = (presentes - retardos) / presentes = (2 - 1) / 2 = 50%
       expect(history.individualPunctualityRate).toBe(50);
       expect(history.totalEffectiveHours).toBe(16); // 8 + 8
+    });
+
+    test("calculatePunctualityRate: Retorna 0% cuando hay 0 presentes y 0 retardos", () => {
+      expect(calculatePunctualityRate(0, 0)).toBe(0);
+      expect(calculatePunctualityRate(3, 1)).toBe(75);
+      expect(calculatePunctualityRate(4, 0)).toBe(100);
     });
   });
 });

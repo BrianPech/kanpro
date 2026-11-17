@@ -1417,6 +1417,7 @@ export function CompanyEmployeesView({
                 ) : (
                   <Button
                     size="sm"
+                    nativeButton={false}
                     render={<Link href="/dashboard/company/applications" />}
                     className="rounded-xl font-bold text-xs h-9 px-4 cursor-pointer gap-1.5 bg-primary text-primary-foreground"
                   >

@@ -54,6 +54,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { toast } from "sonner";
+import { getMexicoDateISO } from "@/lib/formatters";
 import { cn } from "@/lib/utils";
 import type {
   CompanyReportsData,
@@ -66,6 +67,12 @@ import { CompanyPageHeader } from "../shared/company-page-header";
 interface CompanyReportsViewProps {
   initialData: CompanyReportsData;
 }
+
+const PERIOD_LABELS: Record<string, string> = {
+  este_mes: "Este Mes",
+  mes_anterior: "Mes Anterior",
+  acumulado_2026: "Acumulado Anual",
+};
 
 export function CompanyReportsView({ initialData }: CompanyReportsViewProps) {
   const { companyName, kpis, insights, reports, departments } = initialData;
@@ -124,7 +131,7 @@ export function CompanyReportsView({ initialData }: CompanyReportsViewProps) {
   const handleDownload = (report: ReportDefinition) => {
     setIsExporting(report.id);
     try {
-      const todayStr = new Date().toISOString().split("T")[0];
+      const todayStr = getMexicoDateISO();
       const filename = `kanpro_${report.id}_${todayStr}`;
 
       exportReportToCSV({
@@ -190,7 +197,7 @@ export function CompanyReportsView({ initialData }: CompanyReportsViewProps) {
             >
               <SelectTrigger className="w-40">
                 <Calendar className="size-3.5 mr-1.5 text-muted-foreground" />
-                <SelectValue />
+                <SelectValue>{PERIOD_LABELS[selectedPeriod] || selectedPeriod}</SelectValue>
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="este_mes">Este Mes</SelectItem>
@@ -319,7 +326,7 @@ export function CompanyReportsView({ initialData }: CompanyReportsViewProps) {
           </div>
 
           {/* Preguntas disponibles como tabs limpias */}
-          <div className="flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-none">
+          <div className="flex flex-wrap items-center gap-1.5">
             {insights.map((qi, idx) => (
               <button
                 key={qi.id}
@@ -371,6 +378,7 @@ export function CompanyReportsView({ initialData }: CompanyReportsViewProps) {
                   <Button
                     size="sm"
                     variant="outline"
+                    nativeButton={false}
                     render={<Link href={activeInsight.linkHref} />}
                     className="gap-1 font-bold cursor-pointer"
                   >

@@ -132,7 +132,9 @@ export function NineBoxMatrixView({
           <Filter className="size-3.5 text-muted-foreground" />
           <Select value={selectedDept} onValueChange={(val) => setSelectedDept(val || "all")}>
             <SelectTrigger className="h-8 text-xs font-semibold rounded-xl w-[180px] bg-background">
-              <SelectValue placeholder="Todos los departamentos" />
+              <SelectValue placeholder="Todos los departamentos">
+                {selectedDept === "all" ? "Todos los departamentos" : selectedDept}
+              </SelectValue>
             </SelectTrigger>
             <SelectContent className="rounded-xl text-xs">
               <SelectItem value="all">Todos los departamentos</SelectItem>

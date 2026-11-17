@@ -98,7 +98,7 @@ export function ContractPreviewModal({
                 </Badge>
               </div>
 
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 pr-10">
                 <Button
                   variant="outline"
                   size="sm"
@@ -148,7 +148,10 @@ export function ContractPreviewModal({
                 <strong>I. DECLARA EL PATRÓN:</strong> Ser una empresa legalmente constituida denominada <u>{contract.companyName}</u>, con RFC <u>{contract.companyRfc}</u>, con domicilio en <u>{contract.companyAddress}</u>, representada por <u>{contract.legalRepName}</u>.
               </p>
               <p>
-                <strong>II. DECLARA EL TRABAJADOR:</strong> Llamarse <u>{contract.employeeName}</u>, con RFC <u>{contract.employeeRfc}</u>, CURP <u>{contract.employeeCurp}</u>, manifestando contar con la capacidad y aptitudes para desempeñar las funciones encomendadas.
+                <strong>II. DECLARA EL TRABAJADOR:</strong> Llamarse <u>{contract.employeeName}</u>
+                {contract.employeeRfc?.trim() ? <>, con RFC <u>{contract.employeeRfc}</u></> : null}
+                {contract.employeeCurp?.trim() ? <>, CURP <u>{contract.employeeCurp}</u></> : null}
+                , manifestando contar con la capacidad y aptitudes para desempeñar las funciones encomendadas.
               </p>
             </div>
 

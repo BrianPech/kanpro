@@ -64,7 +64,7 @@ export interface PayrollSummaryData {
   paymentDate: string;
   estimatedTotal: number;
   employeesCount: number;
-  status: "preparacion" | "calculada" | "pagada";
+  status: "preparacion" | "calculada" | "dispersada" | "pagada" | "timbrada";
   daysToPay: number;
   averageSalary: number;
   departmentBreakdown: Array<{

@@ -107,6 +107,7 @@ export function ContractsExpirationCard({
         <Button
           variant="outline"
           size="sm"
+          nativeButton={false}
           render={<Link href="/dashboard/company/employees" />}
           className="hidden sm:inline-flex"
         >

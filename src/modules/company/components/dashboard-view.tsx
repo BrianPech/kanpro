@@ -53,7 +53,9 @@ const QUICK_ACTIONS = [
 const PAYROLL_STATUS_LABELS: Record<CompanyDashboardData["payrollSummary"]["status"], string> = {
   preparacion: "En preparación",
   calculada: "Calculada",
+  dispersada: "Dispersada",
   pagada: "Pagada",
+  timbrada: "Timbrada SAT",
 };
 
 function formatLongDate(date: Date): string {
@@ -92,20 +94,41 @@ function SectionCardHeader({
   title,
   href,
   linkLabel,
+  enabledModules,
 }: {
   title: string;
   href: string;
   linkLabel: string;
+  enabledModules?: string[];
 }) {
+  const allowed = isCompanyRouteAllowed(href, enabledModules);
+  const lockedBadge = !allowed ? getLockedModuleBadge(href, enabledModules) : null;
+
   return (
     <div className="flex items-center justify-between gap-3">
       <h2 className="text-[18px] font-semibold leading-[24px] text-foreground">{title}</h2>
-      <Link
-        href={href}
-        className="text-[13px] font-medium text-link hover:underline shrink-0"
-      >
-        {linkLabel} →
-      </Link>
+      {allowed ? (
+        <Link
+          href={href}
+          className="text-[13px] font-medium text-link hover:underline shrink-0"
+        >
+          {linkLabel} →
+        </Link>
+      ) : (
+        <button
+          type="button"
+          onClick={() =>
+            toast.info(lockedBadge ? `${title} (${lockedBadge})` : title, {
+              description:
+                "Este módulo se habilitará progresivamente en una próxima fase del despliegue.",
+            })
+          }
+          className="inline-flex items-center gap-1 text-[12px] font-medium text-muted-foreground hover:text-foreground shrink-0 cursor-pointer"
+        >
+          <Lock className="size-3" />
+          <span>{lockedBadge || "Próximamente"}</span>
+        </button>
+      )}
     </div>
   );
 }
@@ -254,6 +277,7 @@ export function DashboardView(props: DashboardViewProps) {
               title="Contratos por vencer"
               href="/dashboard/company/contracts"
               linkLabel="Ver contratos"
+              enabledModules={enabledModules}
             />
             {expiringContracts.length > 0 ? (
               <div className="flex flex-col">
@@ -327,6 +351,7 @@ export function DashboardView(props: DashboardViewProps) {
               title="Nómina"
               href="/dashboard/company/payroll"
               linkLabel="Ver nómina"
+              enabledModules={enabledModules}
             />
             <div className="flex items-center justify-between gap-3 py-1">
               <div className="flex flex-col gap-0.5 min-w-0">
@@ -462,7 +487,7 @@ export function DashboardView(props: DashboardViewProps) {
           {QUICK_ACTIONS.map((action) => {
             const allowed = isCompanyRouteAllowed(action.href, enabledModules);
             const lockedBadge = !allowed
-              ? getLockedModuleBadge(action.href)
+              ? getLockedModuleBadge(action.href, enabledModules)
               : null;
 
             if (!allowed) {
@@ -471,10 +496,13 @@ export function DashboardView(props: DashboardViewProps) {
                   key={action.href}
                   type="button"
                   onClick={() =>
-                    toast.info(`${action.label} (${lockedBadge})`, {
-                      description:
-                        "Este módulo no está habilitado para tu cuenta actual.",
-                    })
+                    toast.info(
+                      lockedBadge ? `${action.label} (${lockedBadge})` : action.label,
+                      {
+                        description:
+                          "Este módulo se habilitará progresivamente en una próxima fase del despliegue.",
+                      }
+                    )
                   }
                   className="h-[40px] px-3.5 rounded-[8px] bg-muted/50 border border-border text-[13px] font-semibold text-muted-foreground opacity-75 inline-flex items-center justify-center gap-2 hover:bg-muted transition-colors cursor-not-allowed"
                 >
@@ -525,7 +553,9 @@ export function DashboardView(props: DashboardViewProps) {
         </div>
         {subscriptionSummary?.planName && (
           <span className="text-[12px] text-muted-foreground">
-            {subscriptionSummary.planName}
+            {subscriptionSummary.isEarlyAccess
+              ? `${subscriptionSummary.planName} · Acceso Anticipado`
+              : subscriptionSummary.planName}
           </span>
         )}
       </div>

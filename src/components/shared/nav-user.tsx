@@ -183,7 +183,7 @@ export function NavUser({
           <DropdownMenuTrigger
             render={
               <SidebarMenuButton
-                size={compact ? "icon" : "lg"}
+                size={compact ? "default" : "lg"}
                 tooltip={
                   compact
                     ? {

@@ -34,6 +34,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { toast } from "sonner";
+import { getMexicoDateISO } from "@/lib/formatters";
 import { VacationRequest, VacationRequestType } from "../../types/employee-dossier";
 import { calculateWorkingDays, calculateLFTVacationDays } from "../../utils/vacation-calculator";
 import { createCompanyLeaveAction } from "../../actions/leaves";
@@ -56,12 +57,8 @@ export function VacationRequestModal({
     employees.length > 0 ? employees[0].id : ""
   );
   const [requestType, setRequestType] = useState<VacationRequestType>("vacaciones");
-  const [startDate, setStartDate] = useState(
-    new Date().toISOString().split("T")[0]
-  );
-  const [endDate, setEndDate] = useState(
-    new Date().toISOString().split("T")[0]
-  );
+  const [startDate, setStartDate] = useState(getMexicoDateISO());
+  const [endDate, setEndDate] = useState(getMexicoDateISO());
   const [reason, setReason] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -200,7 +197,16 @@ export function VacationRequestModal({
                 onValueChange={(val) => val && setRequestType(val as VacationRequestType)}
               >
                 <SelectTrigger className="w-full h-10 rounded-xl bg-background border-border/80 text-xs font-medium">
-                  <SelectValue />
+                  <SelectValue>
+                    {({
+                      vacaciones: "Vacaciones Ordinarias (LFT Art. 76)",
+                      permiso_con_goce: "Permiso con Goce de Sueldo",
+                      permiso_sin_goce: "Permiso sin Goce de Sueldo",
+                      paternidad: "Permiso de Paternidad (LFT)",
+                      maternidad: "Incapacidad por Maternidad (LFT/IMSS)",
+                      luto: "Permiso por Duelo / Luto",
+                    } as Record<string, string>)[requestType] || requestType}
+                  </SelectValue>
                 </SelectTrigger>
                 <SelectContent alignItemWithTrigger={false} side="bottom" sideOffset={4} className="w-(--anchor-width) min-w-[260px] rounded-xl">
                   <SelectItem value="vacaciones">Vacaciones Ordinarias (LFT Art. 76)</SelectItem>

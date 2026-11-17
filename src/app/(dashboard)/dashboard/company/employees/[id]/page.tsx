@@ -6,7 +6,7 @@ import { EmployeeDossierView } from "@/modules/company/components/dossier/employ
 import { notFound, redirect } from "next/navigation";
 
 export const metadata = {
-  title: "Expediente Digital 360 | K'anPro",
+  title: "Expediente Digital 360",
   description: "Expediente laboral, documentos, historial salarial y vacaciones del empleado.",
 };
 

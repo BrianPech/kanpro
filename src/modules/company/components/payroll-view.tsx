@@ -1,6 +1,7 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import {
   CreditCard,
   Calendar,
@@ -70,6 +71,7 @@ export function PayrollView({
   kpis,
   payroll: fallbackPayroll,
 }: PayrollViewProps) {
+  const router = useRouter();
   const periodName =
     payrollSummary?.periodName ||
     fallbackPayroll?.periodName ||
@@ -77,19 +79,30 @@ export function PayrollView({
   const startDate = payrollSummary?.startDate || "2026-09-01";
   const endDate = payrollSummary?.endDate || "2026-09-15";
   const payoutDate = payrollSummary?.payoutDate || endDate;
-  const periodId = payrollSummary?.periodId || "";
 
+  const resolveViewStatus = (
+    status?: PayrollPeriodSummary["status"],
+    fallback?: PayrollSummaryData["status"]
+  ): "borrador" | "calculada" | "pagada" | "timbrada" => {
+    if (status === "timbrada") return "timbrada";
+    if (status === "dispersada" || status === "pagada") return "pagada";
+    if (status === "borrador" || status === "calculada") return status;
+    return fallback === "pagada" || fallback === "dispersada" ? "pagada" : "calculada";
+  };
+
+  const [periodId, setPeriodId] = useState(payrollSummary?.periodId || "");
   const [employees, setEmployees] = useState<PayrollEmployeeItem[]>(
     payrollSummary?.employees || []
   );
   const [currentStatus, setCurrentStatus] = useState<"borrador" | "calculada" | "pagada" | "timbrada">(
-    payrollSummary?.status === "timbrada"
-      ? "timbrada"
-      : payrollSummary?.status === "dispersada" || payrollSummary?.status === "pagada"
-        ? "pagada"
-        : (payrollSummary?.status as "borrador" | "calculada") ||
-          (fallbackPayroll?.status === "pagada" ? "pagada" : "calculada")
+    resolveViewStatus(payrollSummary?.status, fallbackPayroll?.status)
   );
+
+  useEffect(() => {
+    setPeriodId(payrollSummary?.periodId || "");
+    setEmployees(payrollSummary?.employees || []);
+    setCurrentStatus(resolveViewStatus(payrollSummary?.status, fallbackPayroll?.status));
+  }, [payrollSummary, fallbackPayroll?.status]);
   const [searchQuery, setSearchQuery] = useState("");
   const [isDispersing, setIsDispersing] = useState(false);
   const [isStamping, setIsStamping] = useState(false);
@@ -242,10 +255,15 @@ export function PayrollView({
         return;
       }
 
+      const newPayrollId = res.payrollId || res.data?.payrollId;
+      if (newPayrollId) {
+        setPeriodId(newPayrollId);
+      }
       setCurrentStatus("pagada");
       toast.success("Nómina dispersada y registrada con éxito", {
         description: `Se procesó la orden por $${totalNetCalculated.toLocaleString()} MXN respaldada en Supabase.`,
       });
+      router.refresh();
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : "Error al procesar la dispersión.";
       toast.error("Error al comunicar con el servidor", { description: message });
@@ -276,9 +294,18 @@ export function PayrollView({
       }
 
       setCurrentStatus("timbrada");
+      setEmployees((prev) =>
+        prev.map((emp) => ({
+          ...emp,
+          cfdi: emp.cfdi
+            ? { ...emp.cfdi, status: "timbrado" }
+            : { uuid: `CFDI-${emp.employeeId.slice(0, 8).toUpperCase()}`, status: "timbrado" },
+        }))
+      );
       toast.success("Nómina timbrada exitosamente ante el SAT (CFDI 4.0)", {
         description: `Se certificaron ${res.data.stampedCount} recibos de nómina con Timbre Fiscal Digital oficial.`,
       });
+      router.refresh();
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : "Error inesperado al conectar con el PAC.";
       toast.error("Error de timbrado fiscal", { description: message });
@@ -504,6 +531,7 @@ export function PayrollView({
               </p>
             </div>
             <Button
+              nativeButton={false}
               render={<Link href="/dashboard/company/employees" />}
               variant="outline"
               size="sm"
@@ -556,10 +584,22 @@ export function PayrollView({
                     <div className="flex items-center gap-3 text-xs text-muted-foreground font-semibold flex-wrap">
                       <span>
                         Sueldo Base:{" "}
-                        <strong className="text-foreground">
+                        <strong className={emp.baseSalaryPeriod <= 0 ? "text-amber-600 dark:text-amber-400" : "text-foreground"}>
                           ${emp.baseSalaryPeriod.toLocaleString()}
                         </strong>
                       </span>
+                      {emp.baseSalaryPeriod <= 0 && (
+                        <>
+                          <span>•</span>
+                          <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-amber-700 dark:text-amber-300 bg-amber-500/10 px-1.5 py-0.5 rounded border border-amber-500/20">
+                            <AlertTriangle className="size-3 shrink-0" />
+                            <span>Sueldo base $0 —</span>
+                            <Link href="/dashboard/company/employees" className="underline hover:opacity-80">
+                              Configurar en Plantilla
+                            </Link>
+                          </span>
+                        </>
+                      )}
                       <span>•</span>
                       <span>
                         Días:{" "}

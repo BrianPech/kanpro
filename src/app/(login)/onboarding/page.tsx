@@ -5,7 +5,7 @@ import { AuthShell } from "@/modules/auth/components/auth-shell";
 import { CompanyOnboardingFlow } from "@/modules/auth/components/company-onboarding-flow";
 
 export const metadata = {
-  title: "Configuración Inicial | K'anPro",
+  title: "Configuración Inicial",
   description: "Completa tu nombre y registra tu primera empresa para comenzar.",
 };
 

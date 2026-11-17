@@ -10,7 +10,12 @@ import {
   EmployeeAttendanceHistory,
   EmployeeAttendanceDay,
 } from "../types/attendance";
-import { DEFAULT_GEOFENCE, calculateDistanceInMeters } from "../utils/attendance-utils";
+import {
+  DEFAULT_GEOFENCE,
+  calculateDistanceInMeters,
+  calculatePunctualityRate,
+} from "../utils/attendance-utils";
+import { getMexicoDateISO } from "@/lib/formatters";
 import { GEO_CONFIG, getCitiesList } from "@/config/geo";
 import type {
   MobileCheckInInput,
@@ -85,7 +90,7 @@ export function calculateDelayMinutes(
   isLate: boolean;
   delayMinutes: number;
 } {
-  const workDate = now.toISOString().split("T")[0];
+  const workDate = getMexicoDateISO(now);
   const timeStr = now.toLocaleTimeString("es-MX", {
     hour: "2-digit",
     minute: "2-digit",
@@ -413,7 +418,7 @@ export class CompanyAttendanceService {
     companyId: string,
     targetDate?: string
   ): Promise<CompanyAttendanceResponse> {
-    const todayStr = targetDate || new Date().toISOString().split("T")[0];
+    const todayStr = targetDate || getMexicoDateISO();
     const branchConfig: GeofenceConfig = { ...DEFAULT_GEOFENCE };
 
     if (!companyId) {
@@ -695,8 +700,7 @@ export class CompanyAttendanceService {
     ).length;
     const totalScheduled = records.filter((r) => r.status !== "descanso" && r.status !== "vacaciones").length;
 
-    const attended = presentCount + lateCount;
-    const punctualityRate = attended > 0 ? Math.round((presentCount / attended) * 100) : 100;
+    const punctualityRate = calculatePunctualityRate(presentCount, lateCount);
     const totalOvertimeHoursToday = records.reduce((acc, curr) => acc + (curr.overtimeHours || 0), 0);
     const pendingJustificationsCount = records.filter((r) => r.justification?.status === "pendiente").length;
 
@@ -729,7 +733,7 @@ export class CompanyAttendanceService {
         lateCount: 0,
         unjustifiedAbsences: 0,
         justifiedAbsences: 0,
-        punctualityRate: 100,
+        punctualityRate: 0,
         totalOvertimeHoursToday: 0,
         pendingJustificationsCount: 0,
       },
@@ -807,8 +811,7 @@ export class CompanyAttendanceService {
       }
     }
 
-    const attended = daysPresent;
-    const punctualityRate = attended > 0 ? Math.round(((daysPresent - daysLate) / attended) * 100) : 100;
+    const punctualityRate = calculatePunctualityRate(daysPresent - daysLate, daysLate);
 
     return {
       employeeId: employee.id,

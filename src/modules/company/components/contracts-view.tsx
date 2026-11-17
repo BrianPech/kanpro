@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import { getMexicoDateISO } from "@/lib/formatters";
 import {
   useReactTable,
   getCoreRowModel,
@@ -361,6 +362,7 @@ export function ContractsView({
 
       const result = await createContractAction({
         employeeId: isUuid ? newContract.employeeId : undefined,
+        employeeName: newContract.employeeName,
         folio: newContract.folio,
         jobTitle: newContract.jobTitle,
         department: newContract.department,
@@ -471,7 +473,7 @@ export function ContractsView({
     const calculatedEndDate =
       extensionPeriod === "indeterminado"
         ? null
-        : newEnd.toISOString().split("T")[0];
+        : getMexicoDateISO(newEnd);
 
     const templateType: ContractTemplateType =
       extensionPeriod === "indeterminado" ? "indeterminado" : "determinado";
@@ -553,7 +555,7 @@ export function ContractsView({
         phone: selectedContractForTerminate.phone,
         jobTitle: selectedContractForTerminate.jobTitle,
         department: selectedContractForTerminate.department,
-        terminationDate: new Date().toISOString().split("T")[0],
+        terminationDate: getMexicoDateISO(),
         reason: terminationReason,
         notes: terminationNotes || undefined,
         severanceStatus: "finiquitado",
@@ -1192,9 +1194,6 @@ export function ContractsView({
         description="Plantillas oficiales LFT, firma electrónica digital, alertas de vigencia y registro de finiquitos."
       >
         <div className="flex items-center gap-2">
-          <Badge variant="outline" className="font-mono">
-            {contracts.length + terminations.length}
-          </Badge>
           <Button
             size="sm"
             onClick={() => setIsBuilderOpen(true)}

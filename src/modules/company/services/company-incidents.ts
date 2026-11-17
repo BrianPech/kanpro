@@ -1,5 +1,6 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@/types/supabase";
+import { getMexicoDateISO } from "@/lib/formatters";
 import {
   LaborIncident,
   IncidentCategory,
@@ -65,7 +66,7 @@ export class CompanyIncidentsService {
     const category = input.category;
     const categoryLabel =
       input.categoryLabel?.trim() || CATEGORY_DEFAULT_LABELS[category] || "Incidencia Laboral";
-    const incidentDate = input.incidentDate || new Date().toISOString().split("T")[0];
+    const incidentDate = input.incidentDate || getMexicoDateISO();
     const severity = input.severity || "media";
     const status = input.status || (category === "reconocimiento" ? "resuelto" : "pendiente");
 

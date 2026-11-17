@@ -7,7 +7,7 @@ import { getDashboardSession } from "@/modules/auth/services/dashboard-session";
 export const dynamic = "force-dynamic";
 
 export const metadata = {
-  title: "Control de Asistencia & Checador | K'anPro",
+  title: "Control de Asistencia & Checador",
   description: "Monitoreo en tiempo real de entradas por GPS, QR, retardos y expedientes de asistencia.",
 };
 
