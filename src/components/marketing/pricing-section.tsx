@@ -82,6 +82,7 @@ export function PricingSection() {
             </div>
 
             <Button
+              nativeButton={false}
               render={<Link href="/register/candidate" />}
               className="w-full h-11 rounded-xl border border-border bg-card hover:bg-muted text-foreground font-mono font-bold text-xs cursor-pointer shadow-2xs"
             >
@@ -126,6 +127,7 @@ export function PricingSection() {
             </div>
 
             <Button
+              nativeButton={false}
               render={<Link href="/register/company" />}
               className="w-full h-11 rounded-xl bg-foreground text-background hover:bg-foreground/90 font-mono font-bold text-xs cursor-pointer gap-1.5 shadow-2xs"
             >

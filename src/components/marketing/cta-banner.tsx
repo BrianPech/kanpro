@@ -55,6 +55,7 @@ export function CtaBanner({ className }: CtaBannerProps) {
         {/* Action Buttons using shadcn Button components */}
         <div className="relative z-10 flex flex-col sm:flex-row items-center gap-3.5">
           <Button
+            nativeButton={false}
             render={<Link href="/register/company" />}
             size="lg"
             className="h-11 sm:h-12 px-8 rounded-full bg-primary hover:bg-primary/90 text-primary-foreground font-bold text-xs sm:text-sm shadow-md hover:shadow-lg transition-all active:scale-[0.98] cursor-pointer gap-2"
@@ -64,6 +65,7 @@ export function CtaBanner({ className }: CtaBannerProps) {
           </Button>
 
           <Button
+            nativeButton={false}
             render={<Link href="/register/candidate" />}
             variant="outline"
             size="lg"

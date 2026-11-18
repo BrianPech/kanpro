@@ -1,10 +1,19 @@
 import React from "react";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { getCandidateContracts } from "@/modules/candidate/services/candidate-contracts";
 import { CandidateContractsView } from "@/modules/candidate/components/contracts/candidate-contracts-view";
 
 export const dynamic = "force-dynamic";
+
+function getOptionalAdminClient() {
+  try {
+    return createAdminClient();
+  } catch {
+    return undefined;
+  }
+}
 
 export default async function CandidateContractsPage() {
   const supabase = await createClient();
@@ -16,9 +25,11 @@ export default async function CandidateContractsPage() {
     redirect("/login");
   }
 
+  const adminClient = getOptionalAdminClient();
+
   const [contractsResult, { data: baseProfile }, { data: privateProfile }] =
     await Promise.all([
-      getCandidateContracts(supabase, user.id),
+      getCandidateContracts(supabase, user.id, adminClient),
       supabase
         .from("profiles")
         .select("full_name")

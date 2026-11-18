@@ -1,6 +1,6 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@/types/supabase";
-import { getMexicoDateISO } from "@/lib/formatters";
+import { calculateDailySalary, getMexicoDateISO } from "@/lib/formatters";
 import {
   EmployeeDossier,
   VacationRequest,
@@ -17,7 +17,8 @@ import { calculateLFTVacationDays } from "../utils/vacation-calculator";
 export async function getEmployeeDossierById(
   supabase: SupabaseClient<Database>,
   employeeId: string,
-  companyId: string
+  companyId: string,
+  adminClient?: SupabaseClient<Database>
 ): Promise<EmployeeDossier | null> {
   if (!companyId) return null;
 
@@ -62,11 +63,12 @@ export async function getEmployeeDossierById(
         status,
         notes,
         applied_at,
-        vacancies (
+        vacancies!inner (
           id,
           title,
           category,
-          location
+          location,
+          company_id
         ),
         candidate_profiles (
           id,
@@ -82,6 +84,7 @@ export async function getEmployeeDossierById(
         )
       `)
       .eq("id", employeeId)
+      .eq("vacancies.company_id", companyId)
       .maybeSingle();
 
     if (app) {
@@ -198,31 +201,78 @@ export async function getEmployeeDossierById(
   }
 
   if (targetCandId) {
-    const { data: profDocs } = await supabase
+    const docClient = adminClient || supabase;
+    const { data: profDocs } = await docClient
       .from("profile_documents")
       .select("id, doc_type, file_name, file_url, file_size_bytes, status, created_at")
-      .eq("owner_id", targetCandId);
+      .eq("owner_id", targetCandId)
+      .order("created_at", { ascending: false });
 
     if (profDocs && profDocs.length > 0) {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      profDocs.forEach((d: any) => {
+      for (const d of profDocs) {
+        let resolvedUrl = d.file_url || "#";
+        const storagePath = extractProfileDocumentPath(d.file_url);
+        if (storagePath) {
+          const { data: signedData } = await docClient.storage
+            .from("profile_documents")
+            .createSignedUrl(storagePath, 3600);
+          if (signedData?.signedUrl) {
+            resolvedUrl = signedData.signedUrl;
+          }
+        }
+
+        const mappedDocType: EmployeeDocument["docType"] =
+          d.doc_type === "ine_passport"
+            ? "ine"
+            : d.doc_type === "proof_of_address"
+            ? "comprobante_domicilio"
+            : d.doc_type === "curp"
+            ? "curp"
+            : d.doc_type === "constancia_situacion_fiscal"
+            ? "rfc_sat"
+            : "comprobante_estudios";
+
         documents.push({
           id: d.id,
-          docType: (d.doc_type as any) || "otro",
+          docType: mappedDocType,
           title: d.file_name,
           fileName: d.file_name,
-          fileUrl: d.file_url,
-          fileSizeBytes: d.file_size_bytes || 500000,
+          fileUrl: resolvedUrl,
+          fileSizeBytes: d.file_size_bytes || 0,
           uploadedAt: d.created_at?.split("T")[0] || "",
           status:
-            d.status === "verified"
+            d.status === "approved"
               ? "validado"
               : d.status === "rejected"
               ? "rechazado"
               : "pendiente",
         });
-      });
+      }
     }
+  }
+
+  // 5b. Enrich CURP, RFC and address from candidate private/public profile when emp lacks them
+  let resolvedCurp = emp?.curp || "";
+  let resolvedRfc = emp?.rfc || "";
+  let resolvedAddress = candBase?.location || "";
+
+  if (targetCandId && adminClient && (!resolvedCurp || !resolvedRfc || !resolvedAddress)) {
+    const [{ data: privProfile }, { data: pubProfile }] = await Promise.all([
+      adminClient
+        .from("candidate_private_profiles")
+        .select("curp, rfc")
+        .eq("id", targetCandId)
+        .maybeSingle(),
+      adminClient
+        .from("profiles")
+        .select("location")
+        .eq("id", targetCandId)
+        .maybeSingle(),
+    ]);
+
+    if (!resolvedCurp && privProfile?.curp) resolvedCurp = privProfile.curp;
+    if (!resolvedRfc && privProfile?.rfc) resolvedRfc = privProfile.rfc;
+    if (!resolvedAddress && pubProfile?.location) resolvedAddress = pubProfile.location;
   }
 
   // 6. Build position history
@@ -266,17 +316,18 @@ export async function getEmployeeDossierById(
     };
   }
 
-  const baseSalaryMonthly = Number(emp?.base_salary_monthly) || 0;
-  const dailyIntegratedSalary =
-    baseSalaryMonthly > 0
-      ? Math.round((baseSalaryMonthly / 30.4) * 1.0493 * 100) / 100
-      : 0;
-
   const rawFrequency = emp?.payment_frequency;
   const paymentFrequency: "quincenal" | "semanal" | "mensual" =
     rawFrequency === "semanal" || rawFrequency === "mensual"
       ? rawFrequency
       : "quincenal";
+
+  const baseSalaryMonthly = Number(emp?.base_salary_monthly) || 0;
+  const dailyBaseSalary = calculateDailySalary(baseSalaryMonthly, paymentFrequency);
+  const dailyIntegratedSalary =
+    dailyBaseSalary > 0
+      ? Math.round(dailyBaseSalary * 1.0493 * 100) / 100
+      : 0;
 
   const fullName =
     emp?.full_name || candBase?.full_name || "Colaborador";
@@ -293,13 +344,11 @@ export async function getEmployeeDossierById(
     email,
     phone,
     emergencyContact,
-    rfc: emp?.rfc || "No registrado",
-    curp: emp?.curp || "No registrado",
+    rfc: resolvedRfc || "No registrado",
+    curp: resolvedCurp || "No registrado",
     nss: emp?.nss || "No registrado",
     birthDate: "",
-    address: department
-      ? `${department}, Quintana Roo`
-      : "Playa del Carmen, Quintana Roo",
+    address: resolvedAddress || "No registrada",
     nationality: "Mexicana",
 
     // Job & Contract
@@ -562,5 +611,17 @@ export async function getCompanyVacationRequests(
       averageVacationBalance,
     },
   };
+}
+
+function extractProfileDocumentPath(fileUrl: string | null | undefined): string | null {
+  if (!fileUrl) return null;
+  if (!fileUrl.startsWith("http")) {
+    return fileUrl.replace(/^\/+/, "");
+  }
+  const marker = "/profile_documents/";
+  const idx = fileUrl.indexOf(marker);
+  if (idx === -1) return null;
+  const raw = fileUrl.slice(idx + marker.length).split("?")[0];
+  return raw ? decodeURIComponent(raw) : null;
 }
 

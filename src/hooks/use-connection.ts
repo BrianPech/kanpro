@@ -11,10 +11,22 @@ export interface InitiateConnectionParams {
 
 /**
  * Normaliza un número telefónico para formato internacional WhatsApp (E.164).
- * Si el número es mexicano de 10 dígitos, antepone el código de país '52'.
+ * Evita duplicar el código de país (52/521) cuando ya está incluido y antepone '52'
+ * a números mexicanos de 10 dígitos.
  */
 export function formatWhatsAppPhone(phone: string): string {
-  const clean = phone.replace(/[^0-9]/g, "");
+  let clean = phone.replace(/[^0-9]/g, "");
+  if (!clean) return "";
+
+  if (clean.startsWith("5252") && clean.length === 14) {
+    clean = clean.slice(2);
+  }
+  if (clean.startsWith("521") && clean.length === 13) {
+    return `52${clean.slice(3)}`;
+  }
+  if (clean.startsWith("52") && clean.length === 12) {
+    return clean;
+  }
   if (clean.length === 10) {
     return `52${clean}`;
   }

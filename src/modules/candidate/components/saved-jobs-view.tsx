@@ -20,6 +20,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { createClient } from "@/lib/supabase/client";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { formatPaymentFrequencyLabel } from "@/lib/formatters";
 
 export interface SavedVacancy {
   id: string;
@@ -29,6 +30,7 @@ export interface SavedVacancy {
   location: string;
   employmentType: string;
   formattedSalary: string;
+  paymentFrequency?: string | null;
   isPromoted: boolean;
 }
 
@@ -70,6 +72,7 @@ export function SavedJobsView({ onBack }: SavedJobsViewProps) {
             employment_type,
             salary_min,
             salary_max,
+            payment_frequency,
             is_featured,
             is_promoted,
             company_id
@@ -134,6 +137,7 @@ export function SavedJobsView({ onBack }: SavedJobsViewProps) {
           location: vac.location || vac.modality || "Remoto",
           employmentType: vac.employment_type || vac.modality || "Tiempo Completo",
           formattedSalary,
+          paymentFrequency: vac.payment_frequency || "quincenal",
           isPromoted: !!(vac.is_promoted || vac.is_featured),
         };
       });
@@ -331,7 +335,7 @@ export function SavedJobsView({ onBack }: SavedJobsViewProps) {
                   <div className="flex md:flex-col items-center md:items-end justify-between md:justify-center shrink-0 pt-3 md:pt-0 border-t md:border-t-0 border-border/60 gap-3">
                     <div className="text-left md:text-right">
                       <span className="text-[10px] text-muted-foreground font-semibold uppercase tracking-wider block">
-                        Salario mensual
+                        Salario {formatPaymentFrequencyLabel(vacancy.paymentFrequency).toLowerCase()}
                       </span>
                       <span className="text-sm sm:text-base font-bold font-mono text-foreground">
                         {vacancy.formattedSalary}

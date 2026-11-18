@@ -9,6 +9,15 @@ import {
   CompanyLegalInfo,
 } from "@/modules/company/components/contracts-view";
 import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
+
+function getOptionalAdminClient() {
+  try {
+    return createAdminClient();
+  } catch {
+    return undefined;
+  }
+}
 
 export default async function CompanyContractsPage() {
   const { activeCompanyId } = await getDashboardSession();
@@ -35,6 +44,7 @@ export default async function CompanyContractsPage() {
         .select(`
           id,
           folio,
+          candidate_id,
           employee_name,
           job_title,
           department,
@@ -45,13 +55,19 @@ export default async function CompanyContractsPage() {
           salary,
           payment_frequency,
           company_signed,
+          company_signature_url,
           employee_signed,
+          employee_signature_url,
+          notes,
           status,
           company_employees (
             id,
+            employee_id,
             full_name,
             phone,
-            avatar_url
+            avatar_url,
+            curp,
+            rfc
           ),
           candidate_profiles (
             id,
@@ -59,7 +75,8 @@ export default async function CompanyContractsPage() {
               id,
               full_name,
               avatar_url,
-              whatsapp_number
+              whatsapp_number,
+              location
             )
           )
         `)
@@ -89,6 +106,7 @@ export default async function CompanyContractsPage() {
         .from("company_employees")
         .select(`
           id,
+          employee_id,
           full_name,
           job_title,
           department,
@@ -96,7 +114,8 @@ export default async function CompanyContractsPage() {
           phone,
           rfc,
           curp,
-          base_salary_monthly
+          base_salary_monthly,
+          payment_frequency
         `)
         .eq("company_id", targetCompanyId)
         .neq("status", "terminated")
@@ -104,10 +123,40 @@ export default async function CompanyContractsPage() {
 
       supabase
         .from("company_profiles")
-        .select("company_name, legal_name, rfc, fiscal_address, legal_rep_name")
+        .select("company_name, legal_name, rfc, fiscal_address, legal_rep_name, owner_id")
         .eq("id", targetCompanyId)
         .maybeSingle(),
     ]);
+
+    // Enrich candidate CURP/RFC/address via authorized adminClient when company owns the contract/employee
+    const adminClient = getOptionalAdminClient();
+    const candidateIds = new Set<string>();
+    (contractsRes.data || []).forEach((c: any) => {
+      const emp = Array.isArray(c.company_employees) ? c.company_employees[0] : c.company_employees;
+      const candId = c.candidate_id || emp?.employee_id;
+      if (candId) candidateIds.add(candId);
+    });
+    (activeEmpsRes.data || []).forEach((e: any) => {
+      if (e.employee_id) candidateIds.add(e.employee_id);
+    });
+
+    const privateMap = new Map<string, { curp: string | null; rfc: string | null }>();
+    const locationMap = new Map<string, string | null>();
+    if (adminClient && candidateIds.size > 0) {
+      const ids = Array.from(candidateIds);
+      const [{ data: privRows }, { data: profRows }] = await Promise.all([
+        adminClient
+          .from("candidate_private_profiles")
+          .select("id, curp, rfc")
+          .in("id", ids),
+        adminClient
+          .from("profiles")
+          .select("id, location")
+          .in("id", ids),
+      ]);
+      (privRows || []).forEach((r) => privateMap.set(r.id, { curp: r.curp, rfc: r.rfc }));
+      (profRows || []).forEach((p) => locationMap.set(p.id, p.location));
+    }
 
     // 1. Process Contracts
     if (contractsRes.data && contractsRes.data.length > 0) {
@@ -124,13 +173,25 @@ export default async function CompanyContractsPage() {
             ? candProfile.profiles[0]
             : candProfile.profiles
           : {};
+        const targetCandId = c.candidate_id || emp?.employee_id || candProfile?.id;
+        const priv = targetCandId ? privateMap.get(targetCandId) : undefined;
+        const resolvedCurp = emp?.curp || priv?.curp || null;
+        const resolvedRfc = emp?.rfc || priv?.rfc || null;
+        const resolvedAddress =
+          baseProfile?.location ||
+          (targetCandId ? locationMap.get(targetCandId) : null) ||
+          null;
+        const noteHash =
+          typeof c.notes === "string" && c.notes.includes("SHA256:")
+            ? c.notes.slice(c.notes.indexOf("SHA256:")).trim()
+            : null;
 
         const employeeName =
           c.employee_name?.trim() || emp?.full_name || baseProfile?.full_name || "Empleado";
         const avatarUrl =
           emp?.avatar_url || baseProfile?.avatar_url || null;
         const phone =
-          emp?.phone || baseProfile?.whatsapp_number || "+52 984 123 4567";
+          emp?.phone || baseProfile?.whatsapp_number || "";
 
         let daysRemaining = 999;
         let contractStatus: "vigente" | "proximo_a_vencer" | "imminent" | "en_firma" =
@@ -175,6 +236,12 @@ export default async function CompanyContractsPage() {
           status: contractStatus,
           companySigned: Boolean(c.company_signed),
           employeeSigned: Boolean(c.employee_signed),
+          companySignatureUrl: c.company_signature_url || null,
+          employeeSignatureUrl: c.employee_signature_url || null,
+          documentHash: noteHash,
+          employeeCurp: resolvedCurp,
+          employeeRfc: resolvedRfc,
+          employeeAddress: resolvedAddress,
         };
       });
     }
@@ -219,23 +286,37 @@ export default async function CompanyContractsPage() {
 
     // 3. Process Active Employees for contract generator
     if (activeEmpsRes.data && activeEmpsRes.data.length > 0) {
-      activeEmployees = activeEmpsRes.data.map((emp: any) => ({
-        id: emp.id,
-        name: emp.full_name,
-        jobTitle: emp.job_title,
-        department: emp.department || "Operaciones",
-        avatarUrl: emp.avatar_url || null,
-        phone: emp.phone || undefined,
-        rfc: emp.rfc || undefined,
-        curp: emp.curp || undefined,
-        baseSalary: emp.base_salary_monthly
-          ? Number(emp.base_salary_monthly)
-          : undefined,
-      }));
+      activeEmployees = activeEmpsRes.data.map((emp: any) => {
+        const priv = emp.employee_id ? privateMap.get(emp.employee_id) : undefined;
+        return {
+          id: emp.id,
+          name: emp.full_name,
+          jobTitle: emp.job_title,
+          department: emp.department || "Operaciones",
+          avatarUrl: emp.avatar_url || null,
+          phone: emp.phone || undefined,
+          rfc: emp.rfc || priv?.rfc || undefined,
+          curp: emp.curp || priv?.curp || undefined,
+          baseSalary: emp.base_salary_monthly
+            ? Number(emp.base_salary_monthly)
+            : undefined,
+        };
+      });
     }
 
     // 4. Process Company Legal Profile
     if (companyProfileRes.data) {
+      let legalRep = companyProfileRes.data.legal_rep_name?.trim() || "";
+      if (!legalRep) {
+        const ownerId = companyProfileRes.data.owner_id || user.id;
+        const { data: ownerProf } = await supabase
+          .from("profiles")
+          .select("full_name")
+          .eq("id", ownerId)
+          .maybeSingle();
+        legalRep = ownerProf?.full_name?.trim() || "Representante Legal";
+      }
+
       companyInfo = {
         name:
           companyProfileRes.data.legal_name ||
@@ -245,8 +326,7 @@ export default async function CompanyContractsPage() {
         address:
           companyProfileRes.data.fiscal_address ||
           "Domicilio fiscal registrado en Quintana Roo, México",
-        legalRepName:
-          companyProfileRes.data.legal_rep_name || "Representante Legal",
+        legalRepName: legalRep,
       };
     }
   }

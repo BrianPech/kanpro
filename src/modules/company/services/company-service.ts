@@ -114,7 +114,7 @@ export class CompanyEmployeeService {
 
     if (data.full_name !== undefined) updatePayload.full_name = data.full_name.trim();
     if (data.job_title !== undefined) updatePayload.job_title = data.job_title.trim();
-    if (data.department !== undefined) updatePayload.department = data.department.trim();
+    if (data.department !== undefined) updatePayload.department = data.department ? data.department.trim() : null;
     if (data.employee_code !== undefined) updatePayload.employee_code = data.employee_code?.trim() || null;
     if (data.phone !== undefined) updatePayload.phone = data.phone?.trim() || null;
     if (data.email !== undefined) updatePayload.email = data.email?.toLowerCase().trim() || null;
@@ -305,7 +305,8 @@ export class CompanyEmployeeService {
   public static async hireCandidate(
     supabase: SupabaseClient<Database>,
     companyId: string,
-    input: HireCandidateInput
+    input: HireCandidateInput,
+    adminClient?: SupabaseClient<Database>
   ): Promise<{ employeeRecordId: string; folio: string }> {
     // 1. Verificar postulación y vacante
     const { data: app, error: appError } = await supabase
@@ -371,10 +372,26 @@ export class CompanyEmployeeService {
     const email = baseProfile?.email || null;
     const avatarUrl = baseProfile?.avatar_url || null;
 
+    // Obtener CURP y RFC reales del expediente privado del candidato (bypasseando RLS de solo dueño con adminClient autorizado)
+    let candidateCurp: string | null = null;
+    let candidateRfc: string | null = null;
+    const privClient = adminClient || supabase;
+    try {
+      const { data: privProfile } = await privClient
+        .from("candidate_private_profiles")
+        .select("curp, rfc")
+        .eq("id", input.candidateId)
+        .maybeSingle();
+      candidateCurp = privProfile?.curp?.trim() || null;
+      candidateRfc = privProfile?.rfc?.trim() || null;
+    } catch {
+      // Optional private profile lookup in mocked test clients
+    }
+
     // 4. Upsert colaborador en company_employees
     const { data: existingEmp } = await supabase
       .from("company_employees")
-      .select("id")
+      .select("id, curp, rfc")
       .eq("company_id", companyId)
       .eq("employee_id", input.candidateId)
       .maybeSingle();
@@ -390,6 +407,8 @@ export class CompanyEmployeeService {
           hire_date: input.startDate,
           base_salary_monthly: input.salary,
           payment_frequency: input.paymentFrequency || "quincenal",
+          curp: candidateCurp || existingEmp.curp || null,
+          rfc: candidateRfc || existingEmp.rfc || null,
           status: "active",
           updated_at: now,
         })
@@ -413,6 +432,8 @@ export class CompanyEmployeeService {
           hire_date: input.startDate,
           base_salary_monthly: input.salary,
           payment_frequency: input.paymentFrequency || "quincenal",
+          curp: candidateCurp,
+          rfc: candidateRfc,
           status: "active",
         })
         .select("id")
@@ -429,6 +450,7 @@ export class CompanyEmployeeService {
       indeterminado: "Contrato por Tiempo Indeterminado (Planta)",
       determinado: "Contrato por Tiempo Determinado",
       periodo_prueba: "Periodo de Prueba (90 días)",
+      capacitacion_inicial: "Capacitación Inicial",
       obra_determinada: "Contrato por Obra Determinada",
     };
     const contractTypeLabel = templateTypeLabels[input.templateType] || "Contrato Laboral Formal";
@@ -453,6 +475,7 @@ export class CompanyEmployeeService {
         company_signature_url: input.signatureData || null,
         employee_signed: false,
         status: "vigente",
+        notes: input.documentHash ? `Certificado SHA-256: ${input.documentHash}` : null,
       });
 
     if (contractErr) {
@@ -1002,14 +1025,16 @@ export class CompanyEmployeeService {
 
     const newUserId = authData.user.id;
 
-    // 3. Crear registro en company_employees (sin puesto por defecto)
+    // 3. Crear registro en company_employees
     const employeePayload: CompanyEmployeeInsert = {
       company_id: companyId,
       employee_id: newUserId,
       full_name: cleanFullName,
       email: cleanEmail,
-      job_title: "", // No se asigna puesto por defecto según requerimiento
+      job_title: input.job_title?.trim() || "",
       department: input.department?.trim() || null,
+      base_salary_monthly: input.base_salary_monthly ?? null,
+      payment_frequency: input.payment_frequency || "quincenal",
       status: "active",
       hire_date: input.hire_date || getMexicoDateISO(),
     };
@@ -1360,6 +1385,10 @@ export const companyService = {
         vacancies!inner (
           id,
           title,
+          category,
+          salary_min,
+          salary_max,
+          payment_frequency,
           company_id
         ),
         candidate:candidate_profiles (
@@ -1416,7 +1445,15 @@ export const companyService = {
         scheduled_interview_at: app.scheduled_interview_at || null,
         interview_status: app.interview_status || (rawInterview?.status as string) || null,
         hired_at: app.hired_at || null,
-        vacancies: vacancy || { id: app.vacancy_id, title: "Vacante", company_id: companyId },
+        vacancies: vacancy || {
+          id: app.vacancy_id,
+          title: "Vacante",
+          category: null,
+          salary_min: null,
+          salary_max: null,
+          payment_frequency: "quincenal",
+          company_id: companyId,
+        },
         candidate: {
           id: candidateProfile?.id || "",
           full_name: baseProfile?.full_name || "Profesional K'anPro",

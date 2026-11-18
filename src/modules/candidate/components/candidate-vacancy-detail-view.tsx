@@ -36,7 +36,12 @@ import { Card } from '@/components/ui/card';
 import { MarkdownRenderer } from '@/components/ui/markdown-renderer';
 import { createClient } from '@/lib/supabase/client';
 import { cn } from '@/lib/utils';
-import { parseLocation, cleanCityName } from '@/lib/formatters';
+import {
+  cleanCityName,
+  formatPaymentFrequencyLabel,
+  parseLocation,
+} from '@/lib/formatters';
+import { buildWhatsAppUrl } from '@/hooks/use-connection';
 import { getCoordsForZone, haversineDistanceKm, GEO_CONFIG } from '@/config/geo';
 
 export interface CompanyDetails {
@@ -59,6 +64,9 @@ export interface VacancyDetailData {
   zone?: string | null;
   salary_min?: number | null;
   salary_max?: number | null;
+  payment_frequency?: string | null;
+  contact_phone?: string | null;
+  preferred_contact_method?: string | null;
   currency?: string | null;
   employment_type?: string | null;
   modality?: string | null;
@@ -408,35 +416,61 @@ export function CandidateVacancyDetailView({
           <div className="flex flex-col sm:flex-row md:flex-col items-start sm:items-center md:items-end justify-between gap-3 pt-4 md:pt-0 border-t md:border-t-0 border-border/60 shrink-0">
             <div className="text-left md:text-right">
               <span className="text-[10px] text-muted-foreground font-semibold uppercase tracking-wider block">
-                Salario mensual ofrecido
+                Salario {formatPaymentFrequencyLabel(vacancy.payment_frequency).toLowerCase()} ofrecido
               </span>
               <span className="text-xl sm:text-2xl font-bold font-mono text-foreground block mt-0.5">
                 {formattedSalary}
               </span>
             </div>
 
-            {application ? (
-              <Button
-                disabled
-                className="w-full sm:w-auto h-9 px-4 rounded-4xl font-semibold text-xs bg-primary/10 text-primary border border-primary/20 gap-2 cursor-default"
-              >
-                <Check className="size-4 text-primary" />
-                Postulado ({application.status})
-              </Button>
-            ) : (
-              <Button
-                onClick={handleApply}
-                disabled={isApplying}
-                className="w-full sm:w-auto h-9 px-5 rounded-4xl text-xs font-semibold gap-2 shadow-xs cursor-pointer"
-              >
-                {isApplying ? (
-                  <Loader2 className="size-4 animate-spin" />
-                ) : (
-                  <Send className="size-4" />
+            <div className="flex items-center gap-2 w-full sm:w-auto flex-wrap">
+              {(vacancy.preferred_contact_method === "whatsapp" ||
+                vacancy.preferred_contact_method === "both" ||
+                !vacancy.preferred_contact_method) &&
+                (vacancy.contact_phone || company?.contact_phone) && (
+                  <Button
+                    variant="outline"
+                    nativeButton={false}
+                    render={
+                      <a
+                        href={buildWhatsAppUrl(
+                          (vacancy.contact_phone || company?.contact_phone) as string,
+                          `Hola ${company?.company_name || "equipo"}, me interesa la vacante "${vacancy.title}" publicada en K'anPro.`
+                        )}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                      />
+                    }
+                    className="h-9 px-4 rounded-4xl text-xs font-semibold gap-1.5 border-emerald-500/40 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-500/10 cursor-pointer"
+                  >
+                    <MessageCircle className="size-4 text-emerald-600" />
+                    WhatsApp
+                  </Button>
                 )}
-                Postularme ahora
-              </Button>
-            )}
+
+              {application ? (
+                <Button
+                  disabled
+                  className="w-full sm:w-auto h-9 px-4 rounded-4xl font-semibold text-xs bg-primary/10 text-primary border border-primary/20 gap-2 cursor-default"
+                >
+                  <Check className="size-4 text-primary" />
+                  Postulado ({application.status})
+                </Button>
+              ) : (
+                <Button
+                  onClick={handleApply}
+                  disabled={isApplying}
+                  className="w-full sm:w-auto h-9 px-5 rounded-4xl text-xs font-semibold gap-2 shadow-xs cursor-pointer"
+                >
+                  {isApplying ? (
+                    <Loader2 className="size-4 animate-spin" />
+                  ) : (
+                    <Send className="size-4" />
+                  )}
+                  Postularme ahora
+                </Button>
+              )}
+            </div>
           </div>
         </div>
       </div>
@@ -634,7 +668,9 @@ export function CandidateVacancyDetailView({
           <div className="bg-card border border-border/70 rounded-4xl p-6 shadow-xs space-y-4">
             <h3 className="text-sm font-bold text-foreground tracking-tight pb-3 border-b border-border/60 flex items-center justify-between">
               <span>Sobre la empresa</span>
-              <ShieldCheck className="size-4 text-primary" />
+              {company?.verification_status === "approved" && (
+                <ShieldCheck className="size-4 text-primary" />
+              )}
             </h3>
 
             <div className="space-y-3">
@@ -651,7 +687,10 @@ export function CandidateVacancyDetailView({
                     {company?.company_name || 'Empresa Empleadora'}
                   </h4>
                   <p className="text-xs text-muted-foreground">
-                    {company?.industry || 'Empresa Verificada'}
+                    {company?.industry ||
+                      (company?.verification_status === "approved"
+                        ? "Empresa Verificada"
+                        : "Empresa registrada")}
                   </p>
                 </div>
               </div>

@@ -136,7 +136,13 @@ const APP_STATUS_PILL: Record<Applicant["status"], string> = {
     "bg-[#fcebe9] text-[#a6302a] dark:bg-[#3e2220] dark:text-[#f29b94]",
 };
 
-export function ApplicationsInbox({ companyId }: { companyId?: string } = {}) {
+export function ApplicationsInbox({
+  companyId,
+  companyLegalRep,
+}: {
+  companyId?: string;
+  companyLegalRep?: string;
+} = {}) {
   const {
     applicants,
     vacancies,
@@ -2701,6 +2707,7 @@ export function ApplicationsInbox({ companyId }: { companyId?: string } = {}) {
         isOpen={isHireWizardOpen}
         onOpenChange={setIsHireWizardOpen}
         candidate={hiringApplicant}
+        companyLegalRep={companyLegalRep}
         onHiringCompleted={() => {
           setIsHireWizardOpen(false);
           reloadData();

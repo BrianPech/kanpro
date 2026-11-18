@@ -5,6 +5,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { companyService } from "../services/company-service";
 import { createClient } from "@/lib/supabase/client";
+import { buildWhatsAppUrl } from "@/hooks/use-connection";
 
 export interface Experience {
   role: string;
@@ -54,6 +55,10 @@ export interface Applicant {
   email?: string;
   vacancyTitle: string;
   vacancyId: string;
+  vacancyCategory?: string;
+  vacancySalaryMin?: number | null;
+  vacancySalaryMax?: number | null;
+  vacancyPaymentFrequency?: string;
   candidateId: string;
   internalRating?: number;
   internalNotes?: string;
@@ -224,8 +229,9 @@ export function useApplicationsInbox(options?: { companyId?: string }) {
           let currentRating = serverRating;
           let currentInterview: InterviewDetails | null = serverInterview;
 
-          const vacTitle = app.vacancies?.title || (Array.isArray(app.vacancies) ? app.vacancies[0]?.title : null) || "Vacante";
-          const vacId = app.vacancy_id || app.vacancies?.id || "";
+          const vacObj = Array.isArray(app.vacancies) ? app.vacancies[0] : app.vacancies;
+          const vacTitle = vacObj?.title || "Vacante";
+          const vacId = app.vacancy_id || vacObj?.id || "";
 
           return {
             id: app.id || `app-${Math.random().toString(36).slice(2)}`,
@@ -248,6 +254,10 @@ export function useApplicationsInbox(options?: { companyId?: string }) {
             email: profile.email || "",
             vacancyTitle: vacTitle,
             vacancyId: vacId,
+            vacancyCategory: vacObj?.category || "Operaciones",
+            vacancySalaryMin: vacObj?.salary_min ?? null,
+            vacancySalaryMax: vacObj?.salary_max ?? null,
+            vacancyPaymentFrequency: vacObj?.payment_frequency || "quincenal",
             candidateId: profile.id || app.candidate_id || "",
             isEarlyAccess: profile.is_early_access ?? true,
             portfolio: Array.isArray(profile.portfolio_links)
@@ -388,8 +398,7 @@ export function useApplicationsInbox(options?: { companyId?: string }) {
   // WhatsApp helper with dynamic contextual messages per stage
   const getWhatsAppLink = (applicant: Applicant) => {
     if (!applicant.phone) return "";
-    const cleanPhone = applicant.phone.replace(/[^0-9]/g, "");
-    
+
     let message = "";
     if (applicant.status === "Entrevista" && applicant.interview) {
       const modalityStr = applicant.interview.modality === "presencial"
@@ -404,7 +413,7 @@ export function useApplicationsInbox(options?: { companyId?: string }) {
       message = `Hola ${applicant.name}, te saludamos de parte de K'anPro. Hemos visto tu postulación para la vacante de "${applicant.vacancyTitle}" y nos interesa conocer más sobre tu experiencia. ¿Tienes disponibilidad para platicar?`;
     }
 
-    return `https://wa.me/${cleanPhone}?text=${encodeURIComponent(message)}`;
+    return buildWhatsAppUrl(applicant.phone, message);
   };
 
   // Create contact notification and register connection in db

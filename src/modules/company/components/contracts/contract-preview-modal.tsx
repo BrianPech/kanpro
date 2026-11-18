@@ -26,6 +26,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { calculateDailySalary, formatPaymentFrequencyAdjective } from "@/lib/formatters";
 import { EmploymentContract, DigitalSignature } from "../../types/contracts";
 import { DigitalSignatureModal } from "./digital-signature-modal";
 
@@ -182,7 +183,7 @@ export function ContractPreviewModal({
 
               <div className="space-y-1.5">
                 <p>
-                  <strong>CUARTA (SALARIO Y PAGO):</strong> EL PATRÓN pagará a EL TRABAJADOR un salario bruto de <strong>${contract.baseSalaryMonthly.toLocaleString()} MXN</strong> mensuales (Salario Diario Integrado de ${contract.dailyIntegratedSalary.toFixed(2)} MXN), pagaderos de forma <strong>{contract.paymentFrequency}</strong>.
+                  <strong>CUARTA (SALARIO Y PAGO):</strong> EL PATRÓN pagará a EL TRABAJADOR un salario bruto de <strong>${contract.baseSalaryMonthly.toLocaleString("es-MX")} MXN {formatPaymentFrequencyAdjective(contract.paymentFrequency)}</strong> (Salario Diario Base: ${calculateDailySalary(contract.baseSalaryMonthly, contract.paymentFrequency).toFixed(2)} MXN • SDI IMSS: ${contract.dailyIntegratedSalary.toFixed(2)} MXN), pagaderos de forma <strong>{contract.paymentFrequency}</strong>.
                 </p>
               </div>
 

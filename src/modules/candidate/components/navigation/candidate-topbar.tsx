@@ -136,6 +136,7 @@ export function CandidateTopbar({
         <Button
           variant="outline"
           size="sm"
+          nativeButton={false}
           render={<Link href="/dashboard/candidate/discovery" />}
           className="hidden sm:flex items-center gap-1.5 h-9 px-3.5 text-xs font-semibold rounded-4xl border-primary/30 text-primary hover:bg-primary/10"
         >

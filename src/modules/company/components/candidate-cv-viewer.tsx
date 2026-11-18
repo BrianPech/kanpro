@@ -16,6 +16,7 @@ import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import type { Applicant } from "../hooks/use-applications-inbox";
 import { getCandidateCvDocument } from "../actions/document-access";
+import { buildWhatsAppUrl } from "@/hooks/use-connection";
 
 interface CandidateCvViewerProps {
   applicant: Applicant;
@@ -187,7 +188,7 @@ export function CandidateCvViewer({ applicant }: CandidateCvViewerProps) {
           {applicant.phone && (
             <div className="pt-2 flex flex-col sm:flex-row items-center justify-center gap-2 max-w-full">
               <a
-                href={`https://wa.me/${applicant.phone.replace(/[^0-9]/g, "")}?text=${encodeURIComponent(whatsappMessage)}`}
+                href={buildWhatsAppUrl(applicant.phone, whatsappMessage)}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="max-w-full"

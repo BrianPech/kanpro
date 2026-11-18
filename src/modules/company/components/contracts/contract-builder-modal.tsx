@@ -31,7 +31,11 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { toast } from "sonner";
-import { getMexicoDateISO } from "@/lib/formatters";
+import {
+  calculateDailySalary,
+  formatPaymentFrequencyLabel,
+  getMexicoDateISO,
+} from "@/lib/formatters";
 import { EmploymentContract, ContractTemplateType } from "../../types/contracts";
 
 export interface ActiveEmployeeOption {
@@ -134,9 +138,10 @@ export function ContractBuilderModal({
     }
 
     const parsedSalary = parseFloat(salary) || 0;
+    const dailyBase = calculateDailySalary(parsedSalary, paymentFrequency);
     const parsedSDI =
-      parsedSalary > 0
-        ? Math.round((parsedSalary / 30) * 1.0493 * 100) / 100
+      dailyBase > 0
+        ? Math.round(dailyBase * 1.0493 * 100) / 100
         : 0;
     const randomFolioNum = Math.floor(100 + Math.random() * 900);
 
@@ -308,7 +313,7 @@ export function ContractBuilderModal({
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1.5">
                 <Label className="text-xs font-bold text-foreground">
-                  Salario Bruto Mensual (MXN) *
+                  Salario Bruto {formatPaymentFrequencyLabel(paymentFrequency)} (MXN) *
                 </Label>
                 <Input
                   type="number"

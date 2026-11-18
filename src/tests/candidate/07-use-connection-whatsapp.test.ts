@@ -21,9 +21,11 @@ describe("Lógica de Conexión WhatsApp (Prevención de Bucle de Contacto)", () 
       expect(formatWhatsAppPhone("999-123-45-67")).toBe("529991234567");
     });
 
-    test("formatWhatsAppPhone: Mantiene intactos números que ya incluyen prefijo de país", () => {
+    test("formatWhatsAppPhone: Mantiene intactos números que ya incluyen prefijo de país y elimina 52 duplicado", () => {
       expect(formatWhatsAppPhone("529991234567")).toBe("529991234567");
       expect(formatWhatsAppPhone("+52 999 123 4567")).toBe("529991234567");
+      expect(formatWhatsAppPhone("52529991234567")).toBe("529991234567");
+      expect(formatWhatsAppPhone("5219991234567")).toBe("529991234567");
       expect(formatWhatsAppPhone("+1 415 555 2671")).toBe("14155552671");
     });
 

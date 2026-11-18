@@ -149,6 +149,7 @@ function StepPreview({ step, direction }: { step: Step; direction: 1 | -1 }) {
                 src={step.media.src || "/placeholder.svg"}
                 alt={step.media.alt || ""}
                 fill
+                loading="eager"
                 sizes="(max-width: 768px) 100vw, 50vw"
                 className="object-cover"
               />

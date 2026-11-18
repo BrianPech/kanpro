@@ -112,6 +112,7 @@ export function CompanyVerificationView({
   >(initialData.documents);
 
   const [isSaving, setIsSaving] = React.useState(false);
+  const [isSavingModal, setIsSavingModal] = React.useState(false);
   const [isSubmitting, setIsSubmitting] = React.useState(false);
   const [uploadingDocType, setUploadingDocType] = React.useState<CompanyDocType | null>(null);
   const [isLoadingPreview, setIsLoadingPreview] = React.useState(false);
@@ -394,6 +395,86 @@ export function CompanyVerificationView({
       });
     } finally {
       setIsSaving(false);
+    }
+  };
+
+  const handleSaveCompanyModal = async () => {
+    setIsSavingModal(true);
+    try {
+      const normalizedRfc = draftCompany.rfc.toUpperCase().trim();
+      const res = await saveCompanyVerificationAction({
+        legal_name: draftCompany.legalName.trim(),
+        company_name: draftCompany.companyName.trim(),
+        rfc: normalizedRfc,
+        fiscal_address: draftCompany.fiscalAddress.trim(),
+        industry: draftCompany.industry,
+        legal_rep_name: legalRepName,
+        corporate_email: corporateEmail,
+        contact_phone: contactPhone,
+        fiscal_regime: draftCompany.fiscalRegime,
+        entity_type: draftCompany.fiscalRegime,
+        terms_accepted: termsAccepted,
+        submitForReview: false,
+      });
+
+      if (!res.success) {
+        throw new Error(res.error);
+      }
+
+      setFiscalRegime(draftCompany.fiscalRegime);
+      setRfc(normalizedRfc);
+      setLegalName(draftCompany.legalName.trim());
+      setCompanyName(draftCompany.companyName.trim());
+      setIndustry(draftCompany.industry);
+      setFiscalAddress(draftCompany.fiscalAddress.trim());
+      setEditModal(null);
+
+      toast.success("Datos de la empresa guardados", {
+        description: "La información fiscal se actualizó correctamente.",
+      });
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : "No se pudieron guardar los datos de la empresa.";
+      toast.error("Error al guardar cambios", { description: msg });
+    } finally {
+      setIsSavingModal(false);
+    }
+  };
+
+  const handleSaveContactModal = async () => {
+    setIsSavingModal(true);
+    try {
+      const res = await saveCompanyVerificationAction({
+        legal_name: legalName,
+        company_name: companyName,
+        rfc: rfc.toUpperCase().trim(),
+        fiscal_address: fiscalAddress,
+        industry,
+        legal_rep_name: draftContact.legalRepName.trim(),
+        corporate_email: draftContact.corporateEmail.trim(),
+        contact_phone: draftContact.contactPhone.trim(),
+        fiscal_regime: fiscalRegime,
+        entity_type: fiscalRegime,
+        terms_accepted: termsAccepted,
+        submitForReview: false,
+      });
+
+      if (!res.success) {
+        throw new Error(res.error);
+      }
+
+      setLegalRepName(draftContact.legalRepName.trim());
+      setCorporateEmail(draftContact.corporateEmail.trim());
+      setContactPhone(draftContact.contactPhone.trim());
+      setEditModal(null);
+
+      toast.success("Datos de representante guardados", {
+        description: "El representante legal y contacto se actualizaron correctamente.",
+      });
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : "No se pudieron guardar los datos de contacto.";
+      toast.error("Error al guardar cambios", { description: msg });
+    } finally {
+      setIsSavingModal(false);
     }
   };
 
@@ -1055,6 +1136,7 @@ export function CompanyVerificationView({
             <Button
               type="button"
               variant="outline"
+              disabled={isSavingModal}
               onClick={() => setEditModal(null)}
               className="h-[40px] px-[16px] rounded-[8px] border-control-border bg-card text-[14px] font-medium text-foreground cursor-pointer"
             >
@@ -1062,18 +1144,11 @@ export function CompanyVerificationView({
             </Button>
             <Button
               type="button"
-              onClick={() => {
-                setFiscalRegime(draftCompany.fiscalRegime);
-                setRfc(draftCompany.rfc);
-                setLegalName(draftCompany.legalName);
-                setCompanyName(draftCompany.companyName);
-                setIndustry(draftCompany.industry);
-                setFiscalAddress(draftCompany.fiscalAddress);
-                setEditModal(null);
-              }}
+              disabled={isSavingModal}
+              onClick={handleSaveCompanyModal}
               className="h-[40px] px-[16px] rounded-[8px] bg-primary text-primary-foreground hover:bg-primary/90 text-[14px] font-medium cursor-pointer"
             >
-              Guardar cambios
+              {isSavingModal ? "Guardando..." : "Guardar cambios"}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -1157,6 +1232,7 @@ export function CompanyVerificationView({
             <Button
               type="button"
               variant="outline"
+              disabled={isSavingModal}
               onClick={() => setEditModal(null)}
               className="h-[40px] px-[16px] rounded-[8px] border-control-border bg-card text-[14px] font-medium text-foreground cursor-pointer"
             >
@@ -1164,15 +1240,11 @@ export function CompanyVerificationView({
             </Button>
             <Button
               type="button"
-              onClick={() => {
-                setLegalRepName(draftContact.legalRepName);
-                setCorporateEmail(draftContact.corporateEmail);
-                setContactPhone(draftContact.contactPhone);
-                setEditModal(null);
-              }}
+              disabled={isSavingModal}
+              onClick={handleSaveContactModal}
               className="h-[40px] px-[16px] rounded-[8px] bg-primary text-primary-foreground hover:bg-primary/90 text-[14px] font-medium cursor-pointer"
             >
-              Guardar cambios
+              {isSavingModal ? "Guardando..." : "Guardar cambios"}
             </Button>
           </DialogFooter>
         </DialogContent>

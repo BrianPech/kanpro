@@ -1,12 +1,73 @@
 "use server";
 
 import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { revalidatePath } from "next/cache";
-import type { EmployeeDocument } from "../types/employee-dossier";
+import type { EmployeeDocument, EmployeeDossier } from "../types/employee-dossier";
+import { companyTenantService } from "../services/company-tenant.service";
+import { getEmployeeDossierById } from "../services/company-dossier";
 
 export type UploadDossierDocumentResult =
   | { success: true; data: EmployeeDocument }
   | { success: false; error: string };
+
+export type GetEmployeeDossierResult =
+  | { success: true; data: EmployeeDossier }
+  | { success: false; error: string };
+
+function getOptionalAdminClient() {
+  try {
+    return createAdminClient();
+  } catch {
+    return undefined;
+  }
+}
+
+/**
+ * Obtiene el expediente completo 360 del colaborador (incluyendo documentos de perfil,
+ * contratos, CURP/RFC y métricas laborales) validando el tenant de la empresa activa.
+ */
+export async function getEmployeeDossierDetailsAction(
+  employeeId: string
+): Promise<GetEmployeeDossierResult> {
+  if (!employeeId || !employeeId.trim()) {
+    return { success: false, error: "Identificador de colaborador inválido." };
+  }
+
+  const supabase = await createClient();
+  const {
+    data: { user },
+    error: authError,
+  } = await supabase.auth.getUser();
+
+  if (authError || !user) {
+    return { success: false, error: "No autorizado. Inicie sesión para continuar." };
+  }
+
+  try {
+    const { companyId } = await companyTenantService.resolveActiveCompanyScope(
+      user.id,
+      supabase
+    );
+    const adminClient = getOptionalAdminClient();
+    const dossier = await getEmployeeDossierById(
+      supabase,
+      employeeId.trim(),
+      companyId,
+      adminClient
+    );
+
+    if (!dossier) {
+      return { success: false, error: "Expediente de colaborador no encontrado." };
+    }
+
+    return { success: true, data: dossier };
+  } catch (err: unknown) {
+    const message =
+      err instanceof Error ? err.message : "Error al cargar el expediente del colaborador.";
+    return { success: false, error: message };
+  }
+}
 
 /**
  * Carga un documento real a la bóveda de Supabase Storage e indexa su registro

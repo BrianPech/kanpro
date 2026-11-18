@@ -144,6 +144,16 @@ export function normalizePhone(phoneStr: string | null | undefined): string {
   const cleaned = phoneStr.replace(/[^0-9+]/g, "");
   if (!cleaned) return "";
 
+  // If already starts with +5252 and 10 national digits (duplicate 52)
+  if (cleaned.startsWith("+5252") && cleaned.length === 15) {
+    return `+52${cleaned.substring(5)}`;
+  }
+
+  // If 14 digits starting with 5252 (duplicate 52)
+  if (cleaned.length === 14 && cleaned.startsWith("5252")) {
+    return `+52${cleaned.substring(4)}`;
+  }
+
   // If already starts with +521 and 10 national digits (total 14 chars: +521XXXXXXXXXX)
   if (cleaned.startsWith("+521") && cleaned.length === 14) {
     return `+52${cleaned.substring(4)}`;
@@ -302,4 +312,50 @@ export function formatSalaryDisplay(amount: number | null | undefined): string {
     currency: "MXN",
     maximumFractionDigits: 0
   }).format(amount);
+}
+
+/**
+ * Returns the number of days in a payment period according to periodicity.
+ * quincenal = 15, semanal = 7, catorcenal = 14, mensual = 30.
+ */
+export function getPeriodDays(paymentFrequency?: string | null): number {
+  const freq = (paymentFrequency || "quincenal").toLowerCase().trim();
+  if (freq === "semanal") return 7;
+  if (freq === "catorcenal") return 14;
+  if (freq === "mensual") return 30;
+  return 15;
+}
+
+/**
+ * Calculates daily salary dividing the periodic salary by the corresponding period days.
+ */
+export function calculateDailySalary(
+  amount: number | null | undefined,
+  paymentFrequency?: string | null
+): number {
+  const numeric = Number(amount) || 0;
+  if (numeric <= 0) return 0;
+  return Math.round((numeric / getPeriodDays(paymentFrequency)) * 100) / 100;
+}
+
+/**
+ * Returns capitalized period label (e.g. "Quincenal", "Semanal", "Mensual").
+ */
+export function formatPaymentFrequencyLabel(paymentFrequency?: string | null): string {
+  const freq = (paymentFrequency || "quincenal").toLowerCase().trim();
+  if (freq === "semanal") return "Semanal";
+  if (freq === "catorcenal") return "Catorcenal";
+  if (freq === "mensual") return "Mensual";
+  return "Quincenal";
+}
+
+/**
+ * Returns plural adjective for period salary wording (e.g. "quincenales").
+ */
+export function formatPaymentFrequencyAdjective(paymentFrequency?: string | null): string {
+  const freq = (paymentFrequency || "quincenal").toLowerCase().trim();
+  if (freq === "semanal") return "semanales";
+  if (freq === "catorcenal") return "catorcenales";
+  if (freq === "mensual") return "mensuales";
+  return "quincenales";
 }

@@ -122,6 +122,7 @@ export function VerifiedDossierSpotlight() {
               </div>
 
               <Button
+                nativeButton={false}
                 render={<Link href="/register/candidate" />}
                 className="h-11 px-6 rounded-xl bg-primary hover:bg-primary/90 text-primary-foreground font-bold text-xs shadow-xs gap-2 cursor-pointer"
               >
@@ -251,6 +252,7 @@ export function VerifiedDossierSpotlight() {
               </div>
 
               <Button
+                nativeButton={false}
                 render={<Link href="/register/company" />}
                 className="h-11 px-6 rounded-xl bg-primary hover:bg-primary/90 text-primary-foreground font-bold text-xs shadow-xs gap-2 cursor-pointer"
               >

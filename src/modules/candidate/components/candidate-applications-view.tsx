@@ -36,6 +36,7 @@ import {
   CheckCheck,
 } from "@/components/ui/icons";
 import { toast } from "sonner";
+import { buildWhatsAppUrl } from "@/hooks/use-connection";
 import {
   useReactTable,
   getCoreRowModel,
@@ -1225,7 +1226,10 @@ export function CandidateApplicationsView({ initialData }: CandidateApplications
                     <span>Contacto directo por WhatsApp</span>
                   </div>
                   <a
-                    href={`https://wa.me/${selectedApp.companyPhone.replace(/[^0-9]/g, "")}?text=Hola!%20Soy%20${encodeURIComponent(profile?.full_name || "Candidato")},%20me%20postule%20a%20la%20vacante%20de%20${encodeURIComponent(selectedApp.position)}%20en%20K'anPro.`}
+                    href={buildWhatsAppUrl(
+                      selectedApp.companyPhone,
+                      `Hola! Soy ${profile?.full_name || "Candidato"}, me postulé a la vacante de ${selectedApp.position} en K'anPro.`
+                    )}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="block w-full"
@@ -1373,7 +1377,7 @@ function CandidateApplicationsTable({
             className="flex items-center gap-1.5 font-bold text-xs uppercase tracking-wider text-muted-foreground hover:text-foreground transition-colors cursor-pointer select-none"
             onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
           >
-            <span>Sueldo Mensual</span>
+            <span>Sueldo</span>
             {column.getIsSorted() === "asc" ? (
               <ArrowUp className="size-3.5 text-foreground" />
             ) : column.getIsSorted() === "desc" ? (

@@ -11,7 +11,11 @@ import {
   normalizeLocation,
   parseLocation,
   normalizeSalary,
-  formatSalaryDisplay
+  formatSalaryDisplay,
+  getPeriodDays,
+  calculateDailySalary,
+  formatPaymentFrequencyLabel,
+  formatPaymentFrequencyAdjective
 } from "@/lib/formatters";
 
 describe("Centralized Formatters & Data Normalizers", () => {
@@ -83,6 +87,18 @@ describe("Centralized Formatters & Data Normalizers", () => {
 
     test("formats number to Mexican currency display", () => {
       expect(formatSalaryDisplay(15000)).toContain("15,000");
+    });
+
+    test("calculates daily salary according to payment frequency", () => {
+      expect(getPeriodDays("quincenal")).toBe(15);
+      expect(getPeriodDays("mensual")).toBe(30);
+      expect(getPeriodDays("semanal")).toBe(7);
+      expect(getPeriodDays("catorcenal")).toBe(14);
+      expect(calculateDailySalary(10500, "quincenal")).toBe(700);
+      expect(calculateDailySalary(10500, "mensual")).toBe(350);
+      expect(calculateDailySalary(3500, "semanal")).toBe(500);
+      expect(formatPaymentFrequencyLabel("quincenal")).toBe("Quincenal");
+      expect(formatPaymentFrequencyAdjective("quincenal")).toBe("quincenales");
     });
   });
 });

@@ -48,10 +48,18 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
-import { getMexicoDateISO } from "@/lib/formatters";
+import {
+  calculateDailySalary,
+  formatPaymentFrequencyLabel,
+  getMexicoDateISO,
+} from "@/lib/formatters";
+import { buildWhatsAppUrl } from "@/hooks/use-connection";
 import { calculateLFTVacationDays } from "../../utils/vacation-calculator";
 import { EmployeeDocument, EmployeeDossier } from "../../types/employee-dossier";
-import { uploadDossierDocumentAction } from "../../actions/dossier";
+import {
+  getEmployeeDossierDetailsAction,
+  uploadDossierDocumentAction,
+} from "../../actions/dossier";
 import { exportDossierToPrintableDocument } from "../../utils/dossier-exporter";
 
 export interface SimpleEmployee {
@@ -85,6 +93,7 @@ export interface EmployeeDossierModalProps {
   onOpenTerminateDialog?: (employee: SimpleEmployee) => void;
   onReactivate?: (employee: SimpleEmployee) => void;
   onOpenAreaDialog?: (employee: SimpleEmployee) => void;
+  onOpenEditLaborDialog?: (employee: SimpleEmployee) => void;
 }
 
 export function EmployeeDossierModal({
@@ -94,6 +103,7 @@ export function EmployeeDossierModal({
   onOpenTerminateDialog,
   onReactivate,
   onOpenAreaDialog,
+  onOpenEditLaborDialog,
 }: EmployeeDossierModalProps) {
   const [activeTab, setActiveTab] = React.useState("laboral");
   const [isUploadDocOpen, setIsUploadDocOpen] = React.useState(false);
@@ -102,83 +112,144 @@ export function EmployeeDossierModal({
   const [isUploadingDoc, setIsUploadingDoc] = React.useState(false);
   const fileInputRef = React.useRef<HTMLInputElement | null>(null);
   const [copiedKey, setCopiedKey] = React.useState<string | null>(null);
+  const [remoteDossier, setRemoteDossier] = React.useState<EmployeeDossier | null>(null);
+  const [isLoadingDossier, setIsLoadingDossier] = React.useState(false);
 
-  // Construct dynamic dossier strictly from real employee record
+  React.useEffect(() => {
+    if (!open || !employee?.id) {
+      setRemoteDossier(null);
+      return;
+    }
+
+    let cancelled = false;
+    setIsLoadingDossier(true);
+    setUploadedDocs([]);
+
+    getEmployeeDossierDetailsAction(employee.id)
+      .then((res) => {
+        if (!cancelled && res.success) {
+          setRemoteDossier(res.data);
+        }
+      })
+      .catch(() => {
+        // Keep base employee summary if dossier hydration fails
+      })
+      .finally(() => {
+        if (!cancelled) {
+          setIsLoadingDossier(false);
+        }
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [open, employee?.id]);
+
+  // Construct dynamic dossier from real employee record + hydrated dossier details
   const dossier = React.useMemo<EmployeeDossier | null>(() => {
     if (!employee) return null;
 
-    const hireDate = employee.hired_date || getMexicoDateISO();
+    const hireDate = employee.hired_date || remoteDossier?.hireDate || getMexicoDateISO();
     const seniority = calculateLFTVacationDays(hireDate);
 
-    const baseSalary = Number(employee.base_salary_monthly) || 0;
-    const dailyIntegratedSalary =
-      baseSalary > 0
-        ? Math.round((baseSalary / 30.4) * 1.0493 * 100) / 100
-        : 0;
+    const paymentFrequency: "quincenal" | "semanal" | "mensual" =
+      employee.payment_frequency === "semanal" ||
+      employee.payment_frequency === "mensual"
+        ? employee.payment_frequency
+        : employee.payment_frequency === "quincenal"
+        ? "quincenal"
+        : remoteDossier?.paymentFrequency || "quincenal";
 
-    const email = employee.email || "";
+    const baseSalary =
+      Number(employee.base_salary_monthly ?? remoteDossier?.baseSalaryMonthly) || 0;
+    const dailyBase = calculateDailySalary(baseSalary, paymentFrequency);
+    const dailyIntegratedSalary =
+      dailyBase > 0 ? Math.round(dailyBase * 1.0493 * 100) / 100 : 0;
+
+    const email = employee.email || remoteDossier?.email || "";
+    const jobTitle =
+      employee.job_title ||
+      remoteDossier?.jobTitle ||
+      employee.vacancy_title ||
+      "Puesto General";
+    const department =
+      employee.department ||
+      remoteDossier?.department ||
+      employee.vacancy_category ||
+      "Operaciones";
 
     return {
       id: employee.id,
-      candidateId: employee.candidate_id,
+      candidateId: employee.candidate_id || remoteDossier?.candidateId,
       fullName: employee.full_name,
-      avatarUrl: employee.avatar_url,
+      avatarUrl: employee.avatar_url || remoteDossier?.avatarUrl,
       email,
-      phone: employee.phone || "No registrado",
-      emergencyContact: {
+      phone: employee.phone || remoteDossier?.phone || "No registrado",
+      emergencyContact: remoteDossier?.emergencyContact || {
         name: "No registrado",
         phone: "No registrado",
         relationship: "No registrado",
       },
-      rfc: employee.rfc || "No registrado",
-      curp: employee.curp || "No registrado",
-      nss: employee.nss || "No registrado",
-      birthDate: "",
-      address: employee.location || "No registrada",
-      nationality: "Mexicana",
+      rfc:
+        (employee.rfc && employee.rfc !== "No registrado" ? employee.rfc : remoteDossier?.rfc) ||
+        "No registrado",
+      curp:
+        (employee.curp && employee.curp !== "No registrado" ? employee.curp : remoteDossier?.curp) ||
+        "No registrado",
+      nss:
+        (employee.nss && employee.nss !== "No registrado" ? employee.nss : remoteDossier?.nss) ||
+        "No registrado",
+      birthDate: remoteDossier?.birthDate || "",
+      address:
+        (employee.location && employee.location !== "No registrada"
+          ? employee.location
+          : remoteDossier?.address) || "No registrada",
+      nationality: remoteDossier?.nationality || "Mexicana",
 
-      jobTitle:
-        employee.job_title || employee.vacancy_title || "Puesto General",
-      department:
-        employee.department || employee.vacancy_category || "Operaciones",
-      branchName: employee.location ? `Sucursal Principal • ${employee.location}` : "Sucursal Principal",
+      jobTitle,
+      department,
+      branchName:
+        remoteDossier?.branchName ||
+        (employee.location ? `Sucursal Principal • ${employee.location}` : "Sucursal Principal"),
       hireDate,
       yearsOfServiceFormatted: seniority.formattedSeniority,
-      contractType: "indeterminado",
-      contractTypeLabel: "Contrato Laboral LFT",
-      contractStartDate: hireDate,
-      contractEndDate: null,
+      contractType: remoteDossier?.contractType || "indeterminado",
+      contractTypeLabel: remoteDossier?.contractTypeLabel || "Contrato Laboral LFT",
+      contractStartDate: remoteDossier?.contractStartDate || hireDate,
+      contractEndDate: remoteDossier?.contractEndDate || null,
       baseSalaryMonthly: baseSalary,
       dailyIntegratedSalary,
-      paymentFrequency:
-        employee.payment_frequency === "semanal" ||
-        employee.payment_frequency === "mensual"
-          ? employee.payment_frequency
-          : "quincenal",
+      paymentFrequency,
       workSchedule:
-        employee.work_schedule || "Lunes a Viernes (Jornada LFT)",
+        employee.work_schedule ||
+        remoteDossier?.workSchedule ||
+        "Lunes a Viernes (Jornada LFT)",
       status: employee.status === "Contratado" ? "activo" : "baja",
 
-      documents: [],
+      documents: remoteDossier?.documents || [],
 
-      positionHistory: [
-        {
-          id: `pos-${employee.id}`,
-          jobTitle:
-            employee.job_title || employee.vacancy_title || "Puesto General",
-          department:
-            employee.department || employee.vacancy_category || "Operaciones",
-          startDate: hireDate,
-          endDate: employee.status === "Baja" ? "Baja" : "Actual",
-          salary: baseSalary,
-          promotionReason:
-            employee.status === "Baja"
-              ? employee.notes || "Desvinculación laboral"
-              : "Ingreso inicial a la empresa",
-        },
-      ],
+      positionHistory: remoteDossier?.positionHistory?.length
+        ? remoteDossier.positionHistory.map((item, idx) =>
+            idx === 0
+              ? { ...item, jobTitle, department, salary: baseSalary }
+              : item
+          )
+        : [
+            {
+              id: `pos-${employee.id}`,
+              jobTitle,
+              department,
+              startDate: hireDate,
+              endDate: employee.status === "Baja" ? "Baja" : "Actual",
+              salary: baseSalary,
+              promotionReason:
+                employee.status === "Baja"
+                  ? employee.notes || "Desvinculación laboral"
+                  : "Ingreso inicial a la empresa",
+            },
+          ],
 
-      vacationBalance: {
+      vacationBalance: remoteDossier?.vacationBalance || {
         hireDate,
         yearsOfService: seniority.yearsOfService,
         totalDaysAccruedLFT: seniority.currentYearEntitlement,
@@ -188,10 +259,10 @@ export function EmployeeDossierModal({
         nextPeriodDate: `Ciclo anual ${new Date().getFullYear() + 1}`,
       },
 
-      vacationRequests: [],
-      performanceReviews: [],
+      vacationRequests: remoteDossier?.vacationRequests || [],
+      performanceReviews: remoteDossier?.performanceReviews || [],
 
-      attendanceSummary: {
+      attendanceSummary: remoteDossier?.attendanceSummary || {
         punctualityRate: 100,
         totalDaysPresent: 0,
         totalLateArrivals: 0,
@@ -199,14 +270,22 @@ export function EmployeeDossierModal({
         totalOvertimeHours: 0,
       },
     };
-  }, [employee]);
+  }, [employee, remoteDossier]);
 
   const [uploadedDocs, setUploadedDocs] = React.useState<EmployeeDocument[]>([]);
   const documentsList = React.useMemo<EmployeeDocument[]>(() => {
-    return [...uploadedDocs, ...(dossier?.documents || [])];
+    const existingIds = new Set(uploadedDocs.map((doc) => doc.id));
+    const remoteDocs = (dossier?.documents || []).filter((doc) => !existingIds.has(doc.id));
+    return [...uploadedDocs, ...remoteDocs];
   }, [uploadedDocs, dossier?.documents]);
 
   if (!employee || !dossier) return null;
+
+  const frequencyLabel = formatPaymentFrequencyLabel(dossier.paymentFrequency);
+  const dailyBaseSalary = calculateDailySalary(
+    dossier.baseSalaryMonthly,
+    dossier.paymentFrequency
+  );
 
   const getInitials = (name: string) => {
     return name
@@ -219,9 +298,8 @@ export function EmployeeDossierModal({
 
   const getWhatsAppLink = () => {
     if (!employee.phone) return "";
-    const cleanPhone = employee.phone.replace(/\D/g, "");
-    const msg = `¡Hola ${employee.full_name}! Te contacto de Recursos Humanos respecto a tu expediente laboral en el puesto de ${employee.vacancy_title}.`;
-    return `https://wa.me/52${cleanPhone}?text=${encodeURIComponent(msg)}`;
+    const msg = `¡Hola ${employee.full_name}! Te contacto de Recursos Humanos respecto a tu expediente laboral en el puesto de ${dossier.jobTitle}.`;
+    return buildWhatsAppUrl(employee.phone, msg);
   };
 
   const handleCopy = (key: string, text: string) => {
@@ -447,13 +525,13 @@ export function EmployeeDossierModal({
               <div className="p-2.5 rounded-xl bg-muted/30 border border-border/40 space-y-0.5">
                 <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1">
                   <DollarSign className="size-3 text-primary" />
-                  <span>Salario Mensual</span>
+                  <span>Salario {frequencyLabel}</span>
                 </span>
                 <p className="text-sm font-extrabold text-foreground font-mono truncate">
                   ${dossier.baseSalaryMonthly.toLocaleString("es-MX")} MXN
                 </p>
                 <p className="text-[10px] text-muted-foreground font-medium capitalize">
-                  Pago {dossier.paymentFrequency}
+                  Pago {dossier.paymentFrequency} • Diario ${dailyBaseSalary.toLocaleString("es-MX", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                 </p>
               </div>
 
@@ -621,16 +699,28 @@ export function EmployeeDossierModal({
 
                   {/* Card: Compensación & Nómina */}
                   <div className="bg-card border border-border/50 rounded-xl p-4 space-y-3">
-                    <div className="flex items-center gap-2 pb-1 border-b border-border/30 text-xs font-extrabold uppercase tracking-wider text-muted-foreground">
-                      <DollarSign className="size-3.5 text-primary" />
-                      <span>Compensación & Salario</span>
+                    <div className="flex items-center justify-between pb-1 border-b border-border/30">
+                      <div className="flex items-center gap-2 text-xs font-extrabold uppercase tracking-wider text-muted-foreground">
+                        <DollarSign className="size-3.5 text-primary" />
+                        <span>Compensación & Salario</span>
+                      </div>
+                      {onOpenEditLaborDialog && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => onOpenEditLaborDialog(employee)}
+                          className="h-6.5 text-[11px] font-bold text-primary hover:bg-primary/10 rounded-lg px-2 cursor-pointer gap-1"
+                        >
+                          <span>Editar puesto y sueldo</span>
+                        </Button>
+                      )}
                     </div>
 
                     <div className="space-y-2.5 text-xs">
                       <div className="grid grid-cols-2 gap-2">
                         <div>
                           <span className="text-muted-foreground font-medium block text-[11px]">
-                            Salario Base Mensual:
+                            Salario Base {frequencyLabel}:
                           </span>
                           <span className="font-bold text-foreground font-mono text-sm">
                             ${dossier.baseSalaryMonthly.toLocaleString("es-MX")} MXN
@@ -649,10 +739,10 @@ export function EmployeeDossierModal({
                       <div className="grid grid-cols-2 gap-2">
                         <div>
                           <span className="text-muted-foreground font-medium block text-[11px]">
-                            Salario Diario Integrado (SDI):
+                            Salario Diario Base / SDI:
                           </span>
                           <span className="font-bold text-foreground font-mono">
-                            ${dossier.dailyIntegratedSalary.toFixed(2)} MXN
+                            ${dailyBaseSalary.toFixed(2)} / ${dossier.dailyIntegratedSalary.toFixed(2)} MXN
                           </span>
                         </div>
                         <div>
@@ -1076,7 +1166,9 @@ export function EmployeeDossierModal({
                       <FileText className="size-6 mx-auto text-muted-foreground/60 mb-2" />
                       <p className="font-semibold text-foreground">Sin documentos digitalizados</p>
                       <p className="text-[11px] text-muted-foreground mt-0.5">
-                        Agrega constancias, identificaciones oficiales o contratos al expediente.
+                        {isLoadingDossier
+                          ? "Cargando documentos del expediente..."
+                          : "Agrega constancias, identificaciones oficiales o contratos al expediente."}
                       </p>
                     </div>
                   ) : (
@@ -1102,19 +1194,34 @@ export function EmployeeDossierModal({
                         <div className="flex items-center gap-2 shrink-0">
                           <Badge
                             variant="outline"
-                            className="text-[10px] font-bold text-primary border-primary/20 bg-primary/10 px-2 py-0.5"
+                            className={cn(
+                              "text-[10px] font-bold px-2 py-0.5",
+                              doc.status === "validado"
+                                ? "text-primary border-primary/20 bg-primary/10"
+                                : doc.status === "rechazado"
+                                ? "text-destructive border-destructive/20 bg-destructive/10"
+                                : "text-amber-700 border-amber-500/30 bg-amber-500/10"
+                            )}
                           >
                             <CheckCircle2 className="size-3 mr-1" />
-                            Validado
+                            {doc.status === "validado"
+                              ? "Validado"
+                              : doc.status === "rechazado"
+                              ? "Rechazado"
+                              : "Pendiente"}
                           </Badge>
                           <Button
                             variant="ghost"
                             size="icon"
-                            onClick={() =>
-                              toast.info(`Descargando documento: ${doc.title}`)
-                            }
+                            onClick={() => {
+                              if (doc.fileUrl && doc.fileUrl !== "#") {
+                                window.open(doc.fileUrl, "_blank", "noopener,noreferrer");
+                                return;
+                              }
+                              toast.info("El contrato está disponible en el módulo de Contratos.");
+                            }}
                             className="size-8 rounded-lg text-muted-foreground hover:text-foreground cursor-pointer"
-                            title="Descargar archivo"
+                            title="Abrir / descargar archivo"
                           >
                             <Download className="size-3.5" />
                           </Button>

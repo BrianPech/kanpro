@@ -37,9 +37,17 @@ import {
 } from "@/components/ui/select";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
-import { formatMexicoDateShort, getMexicoDateISO } from "@/lib/formatters";
+import {
+  formatMexicoDateShort,
+  getMexicoDateISO,
+  calculateDailySalary,
+  formatPaymentFrequencyLabel,
+} from "@/lib/formatters";
 import { registerDirectEmployeeAction } from "../../actions/employees";
-import { getCompanyDepartmentsAction } from "../../actions/areas";
+import {
+  getCompanyDepartmentsAction,
+  createDepartmentAction,
+} from "../../actions/areas";
 
 interface RegisterEmployeeModalProps {
   isOpen: boolean;
@@ -53,6 +61,8 @@ interface RegisterEmployeeModalProps {
     avatar_url?: string | null;
     department?: string | null;
     job_title?: string | null;
+    base_salary_monthly?: number | null;
+    payment_frequency?: string | null;
     hire_date?: string | null;
     notes?: string | null;
   }) => void;
@@ -61,6 +71,9 @@ interface RegisterEmployeeModalProps {
 interface RegisteredSummary {
   fullName: string;
   email: string;
+  jobTitle: string;
+  baseSalary: number;
+  paymentFrequency: string;
   department: string;
   hireDate: string;
   forcePasswordChange: boolean;
@@ -78,7 +91,15 @@ export function RegisterEmployeeModal({
   // Tab 1: Registrar empleado
   const [fullName, setFullName] = React.useState("");
   const [email, setEmail] = React.useState("");
+  const [jobTitle, setJobTitle] = React.useState("");
+  const [baseSalary, setBaseSalary] = React.useState("");
+  const [paymentFrequency, setPaymentFrequency] = React.useState<
+    "quincenal" | "semanal" | "mensual"
+  >("quincenal");
   const [department, setDepartment] = React.useState("");
+  const [showNewAreaInput, setShowNewAreaInput] = React.useState(false);
+  const [newAreaName, setNewAreaName] = React.useState("");
+  const [isCreatingArea, setIsCreatingArea] = React.useState(false);
   const [hireDate, setHireDate] = React.useState(() => getMexicoDateISO());
   const [password, setPassword] = React.useState("");
   const [confirmPassword, setConfirmPassword] = React.useState("");
@@ -127,7 +148,12 @@ export function RegisterEmployeeModal({
   const resetForm = () => {
     setFullName("");
     setEmail("");
+    setJobTitle("");
+    setBaseSalary("");
+    setPaymentFrequency("quincenal");
     setDepartment("");
+    setShowNewAreaInput(false);
+    setNewAreaName("");
     setHireDate(getMexicoDateISO());
     setPassword("");
     setConfirmPassword("");
@@ -139,16 +165,58 @@ export function RegisterEmployeeModal({
   };
 
   const handleClose = () => {
-    if (isSubmitting) return;
+    if (isSubmitting || isCreatingArea) return;
     resetForm();
     onOpenChange(false);
   };
 
+  const numericSalary = Number(baseSalary);
   const isRegisterFormValid =
     fullName.trim().length >= 3 &&
     /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim()) &&
+    jobTitle.trim().length >= 2 &&
+    Number.isFinite(numericSalary) &&
+    numericSalary > 0 &&
     password.length >= 8 &&
     confirmPassword === password;
+
+  const handleCreateInlineArea = async () => {
+    const cleanName = newAreaName.trim();
+    if (cleanName.length < 2) {
+      toast.error("Nombre de área inválido", {
+        description: "Ingresa al menos 2 caracteres para crear el área.",
+      });
+      return;
+    }
+
+    setIsCreatingArea(true);
+    try {
+      const res = await createDepartmentAction({
+        name: cleanName,
+        description: "",
+        color: "#6366f1",
+        manager_name: "",
+      });
+
+      if (!res.success || !res.data) {
+        toast.error("No se pudo crear el área", {
+          description: res.error || "Intenta nuevamente.",
+        });
+        return;
+      }
+
+      setAvailableDepartments((prev) => [...prev, res.data!]);
+      setDepartment(res.data.name);
+      setNewAreaName("");
+      setShowNewAreaInput(false);
+      toast.success(`Área "${res.data.name}" creada y seleccionada`);
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : "No se pudo crear el área.";
+      toast.error("Error al crear área", { description: msg });
+    } finally {
+      setIsCreatingArea(false);
+    }
+  };
 
   const isInviteFormValid = inviteEmails.trim().length > 0;
 
@@ -165,6 +233,20 @@ export function RegisterEmployeeModal({
     if (!email.trim() || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) {
       toast.error("Correo inválido", {
         description: "Ingresa un correo electrónico válido.",
+      });
+      return;
+    }
+
+    if (!jobTitle.trim() || jobTitle.trim().length < 2) {
+      toast.error("Puesto requerido", {
+        description: "Ingresa el puesto de trabajo (al menos 2 caracteres).",
+      });
+      return;
+    }
+
+    if (!Number.isFinite(numericSalary) || numericSalary <= 0) {
+      toast.error("Sueldo inválido", {
+        description: "Ingresa un sueldo bruto mayor a $0 MXN.",
       });
       return;
     }
@@ -186,6 +268,7 @@ export function RegisterEmployeeModal({
     setIsSubmitting(true);
     try {
       const cleanDept = department && department !== "none" ? department.trim() : "";
+      const cleanJobTitle = jobTitle.trim();
       const cleanHireDate = hireDate || getMexicoDateISO();
       const res = await registerDirectEmployeeAction({
         full_name: fullName.trim(),
@@ -193,6 +276,9 @@ export function RegisterEmployeeModal({
         password,
         confirm_password: confirmPassword,
         force_password_change: forcePasswordChange,
+        job_title: cleanJobTitle,
+        base_salary_monthly: numericSalary,
+        payment_frequency: paymentFrequency,
         department: cleanDept || undefined,
         hire_date: cleanHireDate,
       });
@@ -230,6 +316,9 @@ export function RegisterEmployeeModal({
       setRegisteredSummary({
         fullName: fullName.trim(),
         email: email.trim(),
+        jobTitle: cleanJobTitle,
+        baseSalary: numericSalary,
+        paymentFrequency,
         department: cleanDept,
         hireDate: res.data?.employee?.hire_date || cleanHireDate,
         forcePasswordChange,
@@ -306,7 +395,10 @@ export function RegisterEmployeeModal({
 
               <div className="bg-muted rounded-[10px] p-[12px] flex flex-col gap-[5px] w-full">
                 <p className="text-[14px] font-medium leading-[20px] text-foreground">
-                  Área · {registeredSummary.department || "Sin área asignada"}
+                  {registeredSummary.jobTitle} · {registeredSummary.department || "Sin área asignada"}
+                </p>
+                <p className="text-[13px] font-normal leading-[19px] text-muted-foreground">
+                  Sueldo · ${registeredSummary.baseSalary.toLocaleString("es-MX")} MXN ({formatPaymentFrequencyLabel(registeredSummary.paymentFrequency)})
                 </p>
                 <p className="text-[13px] font-normal leading-[19px] text-muted-foreground">
                   Fecha de ingreso · {formatMexicoDateShort(registeredSummary.hireDate)}
@@ -416,14 +508,113 @@ export function RegisterEmployeeModal({
                       />
                     </div>
 
-                    {/* Área de trabajo */}
+                    {/* Puesto y Sueldo */}
                     <div className="flex flex-col gap-[6px]">
                       <label
-                        htmlFor="employee_dept"
+                        htmlFor="employee_job_title"
                         className="text-[14px] font-medium leading-[20px] text-foreground"
                       >
-                        Área de trabajo
+                        Puesto de trabajo
                       </label>
+                      <input
+                        id="employee_job_title"
+                        type="text"
+                        placeholder="Ej. Mesero, Recepcionista, Auxiliar..."
+                        value={jobTitle}
+                        onChange={(e) => setJobTitle(e.target.value)}
+                        disabled={isSubmitting}
+                        className="h-[44px] w-full rounded-[8px] border border-input bg-card px-[12px] text-[14px] text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring disabled:opacity-50"
+                      />
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-[12px]">
+                      <div className="flex flex-col gap-[6px]">
+                        <label
+                          htmlFor="employee_salary"
+                          className="text-[14px] font-medium leading-[20px] text-foreground"
+                        >
+                          Sueldo bruto ({formatPaymentFrequencyLabel(paymentFrequency)})
+                        </label>
+                        <input
+                          id="employee_salary"
+                          type="number"
+                          min="1"
+                          step="0.01"
+                          placeholder="Ej. 10500"
+                          value={baseSalary}
+                          onChange={(e) => setBaseSalary(e.target.value)}
+                          disabled={isSubmitting}
+                          className="h-[44px] w-full rounded-[8px] border border-input bg-card px-[12px] text-[14px] text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring disabled:opacity-50"
+                        />
+                        {numericSalary > 0 && (
+                          <p className="text-[11px] font-medium text-muted-foreground">
+                            Salario diario: ${calculateDailySalary(numericSalary, paymentFrequency).toLocaleString("es-MX", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} MXN
+                          </p>
+                        )}
+                      </div>
+
+                      <div className="flex flex-col gap-[6px]">
+                        <label
+                          htmlFor="employee_frequency"
+                          className="text-[14px] font-medium leading-[20px] text-foreground"
+                        >
+                          Periodicidad de pago
+                        </label>
+                        <Select
+                          value={paymentFrequency}
+                          onValueChange={(val) =>
+                            val &&
+                            setPaymentFrequency(
+                              val as "quincenal" | "semanal" | "mensual"
+                            )
+                          }
+                          disabled={isSubmitting}
+                        >
+                          <SelectTrigger
+                            id="employee_frequency"
+                            className="h-[44px] w-full rounded-[8px] border border-input bg-card px-[12px] text-[14px] font-normal text-foreground cursor-pointer"
+                          >
+                            <SelectValue>
+                              {formatPaymentFrequencyLabel(paymentFrequency)}
+                            </SelectValue>
+                          </SelectTrigger>
+                          <SelectContent
+                            alignItemWithTrigger={false}
+                            side="bottom"
+                            sideOffset={6}
+                            className="w-(--anchor-width) rounded-[12px] p-1.5 border border-border shadow-xl bg-card"
+                          >
+                            <SelectItem value="quincenal" className="py-2 px-3 rounded-[8px] text-[13px] font-medium cursor-pointer">
+                              Quincenal (÷ 15 días)
+                            </SelectItem>
+                            <SelectItem value="semanal" className="py-2 px-3 rounded-[8px] text-[13px] font-medium cursor-pointer">
+                              Semanal (÷ 7 días)
+                            </SelectItem>
+                            <SelectItem value="mensual" className="py-2 px-3 rounded-[8px] text-[13px] font-medium cursor-pointer">
+                              Mensual (÷ 30 días)
+                            </SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </div>
+
+                    {/* Área de trabajo */}
+                    <div className="flex flex-col gap-[6px]">
+                      <div className="flex items-center justify-between gap-2">
+                        <label
+                          htmlFor="employee_dept"
+                          className="text-[14px] font-medium leading-[20px] text-foreground"
+                        >
+                          Área de trabajo
+                        </label>
+                        <button
+                          type="button"
+                          onClick={() => setShowNewAreaInput((prev) => !prev)}
+                          className="text-[12px] font-semibold text-link hover:underline cursor-pointer"
+                        >
+                          {showNewAreaInput ? "Cancelar nueva área" : "+ Crear nueva área"}
+                        </button>
+                      </div>
                       <Select
                         value={department}
                         onValueChange={(val) => setDepartment(val ?? "")}
@@ -433,7 +624,13 @@ export function RegisterEmployeeModal({
                           id="employee_dept"
                           className="h-[44px] w-full rounded-[8px] border border-input bg-card px-[12px] text-[14px] font-normal text-foreground cursor-pointer"
                         >
-                          <SelectValue placeholder="Selecciona un área" />
+                          <SelectValue
+                            placeholder={
+                              availableDepartments.length === 0
+                                ? "Sin áreas creadas (puedes crear una arriba)"
+                                : "Selecciona un área"
+                            }
+                          />
                         </SelectTrigger>
                         <SelectContent
                           alignItemWithTrigger={false}
@@ -458,6 +655,34 @@ export function RegisterEmployeeModal({
                           ))}
                         </SelectContent>
                       </Select>
+
+                      {(availableDepartments.length === 0 || showNewAreaInput) && (
+                        <div className="rounded-[10px] border border-dashed border-border bg-muted/40 p-2.5 flex flex-col gap-2">
+                          {availableDepartments.length === 0 && (
+                            <p className="text-[12px] text-muted-foreground">
+                              Aún no tienes áreas de trabajo registradas. Crea una aquí para asignarla al empleado:
+                            </p>
+                          )}
+                          <div className="flex items-center gap-2">
+                            <input
+                              type="text"
+                              value={newAreaName}
+                              onChange={(e) => setNewAreaName(e.target.value)}
+                              placeholder="Nombre del área (ej. Operaciones, Cocina)"
+                              disabled={isCreatingArea || isSubmitting}
+                              className="h-[38px] flex-1 rounded-[8px] border border-input bg-card px-3 text-[13px] text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+                            />
+                            <button
+                              type="button"
+                              onClick={handleCreateInlineArea}
+                              disabled={isCreatingArea || newAreaName.trim().length < 2}
+                              className="h-[38px] px-3 rounded-[8px] bg-primary text-primary-foreground text-[12px] font-semibold hover:opacity-90 disabled:opacity-50 cursor-pointer shrink-0"
+                            >
+                              {isCreatingArea ? "Creando..." : "Crear área"}
+                            </button>
+                          </div>
+                        </div>
+                      )}
                     </div>
 
                     {/* Fecha de ingreso (antigüedad LFT) */}

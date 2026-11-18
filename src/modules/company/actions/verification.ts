@@ -81,6 +81,7 @@ export async function saveCompanyVerificationAction(
         .eq("id", user.id);
     }
 
+    revalidatePath("/dashboard/company/verification");
     revalidatePath("/dashboard/company/settings/verification");
     revalidatePath("/dashboard/company/settings");
     revalidatePath("/dashboard/company");

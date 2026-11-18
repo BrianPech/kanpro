@@ -110,25 +110,22 @@ export function VacancyWizardContainer({
   const [showPreviewDrawer, setShowPreviewDrawer] = React.useState(false);
   const [companyProfile, setCompanyProfile] = React.useState<CompanyProfileState | null>(null);
   const [draftDismissed, setDraftDismissed] = React.useState(false);
-  const draftRaw = React.useSyncExternalStore(
-    React.useCallback((onStoreChange: () => void) => {
-      window.addEventListener("storage", onStoreChange);
-      return () => window.removeEventListener("storage", onStoreChange);
-    }, []),
-    () => {
-      try {
-        return localStorage.getItem(DRAFT_STORAGE_KEY);
-      } catch {
-        return null;
-      }
-    },
-    () => null
-  );
+  const [initialDraftRaw, setInitialDraftRaw] = React.useState<string | null>(null);
+
+  // Read any prior draft strictly once on mount so live auto-saves in this session never trigger the banner.
+  React.useEffect(() => {
+    if (isEditing) return;
+    try {
+      setInitialDraftRaw(localStorage.getItem(DRAFT_STORAGE_KEY));
+    } catch {
+      setInitialDraftRaw(null);
+    }
+  }, [isEditing]);
 
   const savedDraft = React.useMemo<VacancyWizardValues | null>(() => {
-    if (isEditing || draftDismissed || !draftRaw) return null;
+    if (isEditing || draftDismissed || !initialDraftRaw) return null;
     try {
-      const parsed = JSON.parse(draftRaw);
+      const parsed = JSON.parse(initialDraftRaw);
       if (
         parsed &&
         typeof parsed === "object" &&
@@ -140,7 +137,7 @@ export function VacancyWizardContainer({
       return null;
     }
     return null;
-  }, [isEditing, draftDismissed, draftRaw]);
+  }, [isEditing, draftDismissed, initialDraftRaw]);
 
   // React Hook Form Instance
   const form = useForm<VacancyWizardValues>({

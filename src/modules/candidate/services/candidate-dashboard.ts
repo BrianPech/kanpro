@@ -115,6 +115,7 @@ export interface VacancyItem {
   distanceBadge?: string | null
   salary_min?: number | null
   salary_max?: number | null
+  paymentFrequency?: string | null
   modality?: string
   skills?: string[]
 }
@@ -662,6 +663,7 @@ export async function getCandidateDashboardData(): Promise<CandidateDashboardDat
     employment_type: string | null;
     salary_min: number | null;
     salary_max: number | null;
+    payment_frequency?: string | null;
     is_promoted: boolean | null;
     is_featured?: boolean | null;
     category: string | null;
@@ -685,6 +687,7 @@ export async function getCandidateDashboardData(): Promise<CandidateDashboardDat
       employment_type,
       salary_min,
       salary_max,
+      payment_frequency,
       is_promoted,
       category,
       company_id,
@@ -902,6 +905,7 @@ export async function getCandidateDashboardData(): Promise<CandidateDashboardDat
       distanceBadge,
       salary_min: min || null,
       salary_max: max || null,
+      paymentFrequency: vac.payment_frequency || "quincenal",
       modality: vac.modality || "Presencial",
       skills: vac.skills || []
     }

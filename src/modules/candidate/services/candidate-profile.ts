@@ -303,6 +303,7 @@ export const candidateProfileService = {
 
       if (privateError) {
         console.error("[candidateProfileService] Error updating candidate_private_profiles:", privateError.message || privateError);
+        throw privateError;
       }
     }
 

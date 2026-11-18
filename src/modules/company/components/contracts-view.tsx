@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { getMexicoDateISO } from "@/lib/formatters";
+import { calculateDailySalary, getMexicoDateISO } from "@/lib/formatters";
 import {
   useReactTable,
   getCoreRowModel,
@@ -127,6 +127,12 @@ export interface ContractRecord {
   status: "vigente" | "proximo_a_vencer" | "imminent" | "en_firma";
   companySigned: boolean;
   employeeSigned: boolean;
+  companySignatureUrl?: string | null;
+  employeeSignatureUrl?: string | null;
+  documentHash?: string | null;
+  employeeCurp?: string | null;
+  employeeRfc?: string | null;
+  employeeAddress?: string | null;
 }
 
 interface TerminationRecord {
@@ -268,14 +274,20 @@ export function ContractsView({
         e.name.toLowerCase() === item.employeeName.toLowerCase()
     );
 
+    const rawFreq = (item.paymentFrequency || "quincenal").toLowerCase().trim();
+    const paymentFrequency: "quincenal" | "semanal" | "mensual" =
+      rawFreq === "semanal" || rawFreq === "mensual" ? rawFreq : "quincenal";
+    const dailyBase = calculateDailySalary(item.salary, paymentFrequency);
+    const dailyIntegrated = Math.round(dailyBase * 1.0493 * 100) / 100;
+
     const fullContract: EmploymentContract = {
       id: item.id,
       folio: item.folio,
       employeeId: item.employeeId,
       employeeName: item.employeeName,
-      employeeRfc: matchedEmp?.rfc || "XAXX010101000",
-      employeeCurp: matchedEmp?.curp || "NO_REGISTRADO",
-      employeeAddress: "Domicilio registrado en expediente laboral",
+      employeeRfc: item.employeeRfc || matchedEmp?.rfc || "",
+      employeeCurp: item.employeeCurp || matchedEmp?.curp || "",
+      employeeAddress: item.employeeAddress || "Domicilio registrado en expediente laboral",
       avatarUrl: item.avatarUrl,
       jobTitle: item.jobTitle,
       department: item.department,
@@ -290,28 +302,26 @@ export function ContractsView({
       startDate: item.startDate,
       endDate: item.endDate === "Indeterminado" ? null : item.endDate,
       baseSalaryMonthly: item.salary,
-      dailyIntegratedSalary: item.salary / 30.4,
-      paymentFrequency: "quincenal",
+      dailyIntegratedSalary: dailyIntegrated,
+      paymentFrequency,
       workSchedule: "Lunes a Viernes 08:00 - 17:00 (Sábados rotativos)",
       status: item.status === "en_firma" ? "en_firma" : "vigente",
       companySignature: item.companySigned
         ? {
             signerName: companyInfo?.legalRepName || "Representante Legal",
             signerRole: "representante_legal",
-            signatureDataUrl:
-              "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='100' height='40'><path d='M10 20 Q 30 5, 50 20 T 90 20' fill='none' stroke='%231e293b' stroke-width='2'/></svg>",
+            signatureDataUrl: item.companySignatureUrl || "",
             signedAt: item.startDate,
-            certificateHash: "SHA256:0x7a8b9c1d2e3f4a5b",
+            certificateHash: item.documentHash || `Folio:${item.folio}`,
           }
         : null,
       employeeSignature: item.employeeSigned
         ? {
             signerName: item.employeeName,
             signerRole: "trabajador",
-            signatureDataUrl:
-              "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='100' height='40'><path d='M10 25 Q 40 10, 80 25' fill='none' stroke='%231e293b' stroke-width='2'/></svg>",
+            signatureDataUrl: item.employeeSignatureUrl || "",
             signedAt: item.startDate,
-            certificateHash: "SHA256:0x8b9c1d2e3f4a5b6c",
+            certificateHash: item.documentHash || `Folio:${item.folio}`,
           }
         : null,
       addendums: [],

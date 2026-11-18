@@ -72,6 +72,8 @@ import { applyToVacancyAction } from "../actions/applications";
 import { jobSearchService, matchFuzzy } from "../services/job-search";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { formatPaymentFrequencyLabel } from "@/lib/formatters";
+import { buildWhatsAppUrl } from "@/hooks/use-connection";
 
 /**
  * Strips HTML tags and excessive markdown artifacts to produce a clean plain-text excerpt for cards.
@@ -96,6 +98,10 @@ export interface SearchVacancy {
   companyName: string;
   companyLogo: string | null;
   companyPhone?: string | null;
+  contactPhone?: string | null;
+  preferredContactMethod?: string | null;
+  paymentFrequency?: string | null;
+  isVerifiedCompany?: boolean;
   location: string;
   employmentType: string;
   formattedSalary: string;
@@ -679,7 +685,10 @@ export function JobSearchView({ initialVacancies = [], onBack }: JobSearchViewPr
                       <div className="flex items-center justify-between text-xs text-muted-foreground gap-2 pt-0.5">
                         <div className="flex items-center gap-1 font-medium text-foreground">
                           <DollarSign className="size-3.5 text-primary shrink-0" />
-                          <span className="text-[11px] font-semibold font-mono">{job.formattedSalary}</span>
+                          <span className="text-[11px] font-semibold font-mono">
+                            {job.formattedSalary}
+                            {job.paymentFrequency ? ` (${formatPaymentFrequencyLabel(job.paymentFrequency)})` : ""}
+                          </span>
                         </div>
 
                         <div className="flex items-center gap-1 text-[11px] text-muted-foreground font-medium truncate">
@@ -687,11 +696,13 @@ export function JobSearchView({ initialVacancies = [], onBack }: JobSearchViewPr
                           <span>{job.employmentType}</span>
                         </div>
 
-                        <div className="flex items-center gap-1 text-[11px] font-semibold text-primary shrink-0">
-                          <CheckCircle2 className="size-3.5 text-primary fill-primary/10 shrink-0" />
-                          <span className="hidden sm:inline">Empresa Verificada</span>
-                          <span className="sm:hidden">Verificada</span>
-                        </div>
+                        {job.isVerifiedCompany && (
+                          <div className="flex items-center gap-1 text-[11px] font-semibold text-primary shrink-0">
+                            <CheckCircle2 className="size-3.5 text-primary fill-primary/10 shrink-0" />
+                            <span className="hidden sm:inline">Empresa Verificada</span>
+                            <span className="sm:hidden">Verificada</span>
+                          </div>
+                        )}
                       </div>
                     </div>
                   );
@@ -726,13 +737,38 @@ export function JobSearchView({ initialVacancies = [], onBack }: JobSearchViewPr
                           <span>•</span>
                           <span>{selectedJob.location}</span>
                           <span>•</span>
-                          <span className="font-mono text-foreground font-semibold">{selectedJob.formattedSalary}</span>
+                          <span className="font-mono text-foreground font-semibold">
+                            {selectedJob.formattedSalary} ({formatPaymentFrequencyLabel(selectedJob.paymentFrequency)})
+                          </span>
                         </p>
                       </div>
                     </div>
 
                     {/* Top Right Action CTAs matching Reference 2 */}
-                    <div className="flex items-center gap-2 shrink-0">
+                    <div className="flex items-center gap-2 shrink-0 flex-wrap justify-end">
+                      {(selectedJob.preferredContactMethod === "whatsapp" ||
+                        selectedJob.preferredContactMethod === "both") &&
+                        (selectedJob.contactPhone || selectedJob.companyPhone) && (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            nativeButton={false}
+                            render={
+                              <a
+                                href={buildWhatsAppUrl(
+                                  (selectedJob.contactPhone || selectedJob.companyPhone) as string,
+                                  `Hola ${selectedJob.companyName}, me interesa la vacante "${selectedJob.title}" publicada en K'anPro.`
+                                )}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                              />
+                            }
+                            className="h-9 px-3.5 rounded-4xl text-xs font-semibold gap-1.5 border-emerald-500/40 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-500/10 cursor-pointer shadow-2xs"
+                          >
+                            <MessageCircle className="size-3.5 text-emerald-600" />
+                            <span>WhatsApp</span>
+                          </Button>
+                        )}
                       <Button
                         variant={appliedJobIds.has(selectedJob.id) ? "secondary" : "default"}
                         size="sm"
@@ -858,9 +894,11 @@ export function JobSearchView({ initialVacancies = [], onBack }: JobSearchViewPr
                         <span>Sobre {selectedJob.companyName}</span>
                         <Sparkles className="size-3.5 text-primary fill-primary" />
                       </h3>
-                      <Badge variant="outline" className="gap-1 text-[11px] text-primary border-primary/30 rounded-3xl">
-                        <ShieldCheck className="size-3" /> Verificada
-                      </Badge>
+                      {selectedJob.isVerifiedCompany && (
+                        <Badge variant="outline" className="gap-1 text-[11px] text-primary border-primary/30 rounded-3xl">
+                          <ShieldCheck className="size-3" /> Verificada
+                        </Badge>
+                      )}
                     </div>
                     <p className="text-xs text-muted-foreground leading-relaxed">
                       Empresa empleadora registrada en K&apos;anPro México. Todas las contrataciones se realizan bajo el marco legal y con garantía de protección de datos personales.
@@ -959,7 +997,30 @@ export function JobSearchView({ initialVacancies = [], onBack }: JobSearchViewPr
               </div>
             </div>
 
-            <div className="pt-3 border-t border-border/60 flex items-center gap-2">
+            <div className="pt-3 border-t border-border/60 flex items-center gap-2 flex-wrap">
+              {(selectedJob.preferredContactMethod === "whatsapp" ||
+                selectedJob.preferredContactMethod === "both") &&
+                (selectedJob.contactPhone || selectedJob.companyPhone) && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    nativeButton={false}
+                    render={
+                      <a
+                        href={buildWhatsAppUrl(
+                          (selectedJob.contactPhone || selectedJob.companyPhone) as string,
+                          `Hola ${selectedJob.companyName}, me interesa la vacante "${selectedJob.title}" publicada en K'anPro.`
+                        )}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                      />
+                    }
+                    className="h-9 px-3.5 rounded-4xl text-xs font-semibold gap-1.5 border-emerald-500/40 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-500/10 cursor-pointer"
+                  >
+                    <MessageCircle className="size-3.5 text-emerald-600" />
+                    <span>WhatsApp</span>
+                  </Button>
+                )}
               <Button
                 variant={appliedJobIds.has(selectedJob.id) ? "secondary" : "default"}
                 disabled={appliedJobIds.has(selectedJob.id) || isApplying}

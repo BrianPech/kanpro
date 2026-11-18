@@ -28,6 +28,10 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import {
+  calculateDailySalary,
+  formatPaymentFrequencyAdjective,
+} from "@/lib/formatters";
 import { DigitalSignatureModal } from "@/modules/company/components/contracts/digital-signature-modal";
 import { signCandidateContractAction } from "@/modules/candidate/actions/contracts";
 import type { DigitalSignature } from "@/modules/company/types/contracts";
@@ -144,7 +148,10 @@ export function CandidateContractModal({
     maximumFractionDigits: 2,
   });
 
-  const dailySalary = (Number(contract.salary || 0) / 30).toLocaleString("es-MX", {
+  const dailySalary = calculateDailySalary(
+    Number(contract.salary || 0),
+    contract.paymentFrequency
+  ).toLocaleString("es-MX", {
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
   });
@@ -285,7 +292,7 @@ export function CandidateContractModal({
 
               <div className="space-y-1.5">
                 <p>
-                  <strong>CUARTA (SALARIO Y PERIODICIDAD DE PAGO):</strong> EL PATRÓN pagará a EL TRABAJADOR un salario bruto de <strong>${formattedSalary} MXN</strong> periódicos (equivalente a un Salario Diario estimado de ${dailySalary} MXN), pagaderos de forma <strong>{contract.paymentFrequency}</strong> mediante transferencia bancaria o el medio electrónico acordado.
+                  <strong>CUARTA (SALARIO Y PERIODICIDAD DE PAGO):</strong> EL PATRÓN pagará a EL TRABAJADOR un salario bruto de <strong>${formattedSalary} MXN {formatPaymentFrequencyAdjective(contract.paymentFrequency)}</strong> (equivalente a un Salario Diario base de ${dailySalary} MXN), pagaderos de forma <strong>{contract.paymentFrequency}</strong> mediante transferencia bancaria o el medio electrónico acordado.
                 </p>
               </div>
 

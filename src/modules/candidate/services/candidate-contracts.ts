@@ -71,6 +71,7 @@ interface RawCompanyContract {
         rfc: string;
         fiscal_address: string;
         legal_rep_name: string | null;
+        owner_id?: string | null;
         logo_url: string | null;
       }
     | Array<{
@@ -80,6 +81,7 @@ interface RawCompanyContract {
         rfc: string;
         fiscal_address: string;
         legal_rep_name: string | null;
+        owner_id?: string | null;
         logo_url: string | null;
       }>
     | null;
@@ -109,7 +111,8 @@ export class CandidateContractsService {
    */
   static async getCandidateContracts(
     supabase: SupabaseClient<Database>,
-    userId: string
+    userId: string,
+    adminClient?: SupabaseClient<Database>
   ): Promise<CandidateContractsResult> {
     if (!userId) {
       return { contracts: [], pendingSignatureCount: 0 };
@@ -151,6 +154,7 @@ export class CandidateContractsService {
           rfc,
           fiscal_address,
           legal_rep_name,
+          owner_id,
           logo_url
         ),
         application:applications (
@@ -177,8 +181,30 @@ export class CandidateContractsService {
 
     const rawList = (dbContracts || []) as unknown as RawCompanyContract[];
 
+    const ownerNameMap = new Map<string, string>();
+    if (adminClient) {
+      const ownerIds = new Set<string>();
+      rawList.forEach((c) => {
+        const comp = Array.isArray(c.company) ? c.company[0] : c.company;
+        if (!comp?.legal_rep_name?.trim()) {
+          const ownerId = comp?.owner_id || c.company_id;
+          if (ownerId) ownerIds.add(ownerId);
+        }
+      });
+      if (ownerIds.size > 0) {
+        const { data: owners } = await adminClient
+          .from("profiles")
+          .select("id, full_name")
+          .in("id", Array.from(ownerIds));
+        (owners || []).forEach((o) => {
+          if (o.full_name) ownerNameMap.set(o.id, o.full_name);
+        });
+      }
+    }
+
     const contracts: CandidateContractItem[] = rawList.map((c) => {
       const comp = Array.isArray(c.company) ? c.company[0] : c.company;
+      const compOwnerId = comp?.owner_id || c.company_id;
       const app = Array.isArray(c.application) ? c.application[0] : c.application;
       const vac = app?.vacancies
         ? Array.isArray(app.vacancies)
@@ -194,7 +220,10 @@ export class CandidateContractsService {
         companyLegalName: comp?.legal_name || null,
         companyRfc: comp?.rfc || null,
         companyAddress: comp?.fiscal_address || null,
-        companyLegalRep: comp?.legal_rep_name || null,
+        companyLegalRep:
+          comp?.legal_rep_name?.trim() ||
+          (compOwnerId ? ownerNameMap.get(compOwnerId) : null) ||
+          null,
         companyLogo: comp?.logo_url || null,
         jobTitle: c.job_title,
         department: c.department,
@@ -364,7 +393,8 @@ export class CandidateContractsService {
  */
 export async function getCandidateContracts(
   supabase: SupabaseClient<Database>,
-  userId: string
+  userId: string,
+  adminClient?: SupabaseClient<Database>
 ): Promise<CandidateContractsResult> {
-  return CandidateContractsService.getCandidateContracts(supabase, userId);
+  return CandidateContractsService.getCandidateContracts(supabase, userId, adminClient);
 }

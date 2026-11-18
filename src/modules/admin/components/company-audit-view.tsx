@@ -4,6 +4,7 @@ import * as React from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
+import { buildWhatsAppUrl } from "@/hooks/use-connection";
 import {
   Building2,
   ShieldCheck,
@@ -141,9 +142,8 @@ export function CompanyAuditClient({ company: initialCompany }: CompanyAuditClie
 
   const getWhatsAppLink = () => {
     if (!company.contactPhone) return "";
-    const clean = company.contactPhone.replace(/\D/g, "");
     const msg = `Hola equipo de ${company.companyName}, nos comunicamos del área de Auditoría de K'anPro respecto a su expediente corporativo.`;
-    return `https://wa.me/52${clean}?text=${encodeURIComponent(msg)}`;
+    return buildWhatsAppUrl(company.contactPhone, msg);
   };
 
   const approvedDocsCount = company.dbUploadedDocuments.filter((d) => d.status === "approved").length;

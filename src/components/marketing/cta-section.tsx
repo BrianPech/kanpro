@@ -27,6 +27,7 @@ export function CtaSection() {
 
           <div className="flex flex-col sm:flex-row gap-3 pt-2">
             <Button
+              nativeButton={false}
               render={<Link href="/register/company" />}
               className="h-12 px-7 rounded-xl bg-foreground text-background hover:bg-foreground/90 font-mono font-bold text-xs sm:text-sm gap-2 cursor-pointer shadow-2xs"
             >
@@ -36,6 +37,7 @@ export function CtaSection() {
             </Button>
 
             <Button
+              nativeButton={false}
               render={<Link href="/register/candidate" />}
               variant="outline"
               className="h-12 px-7 rounded-xl border-border hover:bg-muted text-foreground font-mono font-bold text-xs sm:text-sm gap-2 cursor-pointer"

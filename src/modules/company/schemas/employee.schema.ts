@@ -118,6 +118,7 @@ export const hireCandidateSchema = z.object({
   paymentFrequency: z.string().optional().default("quincenal"),
   contractFolio: z.string().optional().nullable(),
   signatureData: z.string().optional().nullable(),
+  documentHash: z.string().optional().nullable(),
 });
 
 export type HireCandidateInput = z.infer<typeof hireCandidateSchema>;
@@ -143,6 +144,20 @@ export const registerDirectEmployeeSchema = z
     force_password_change: z
       .boolean()
       .default(true),
+    job_title: z
+      .string()
+      .trim()
+      .max(100, "El puesto no puede exceder 100 caracteres.")
+      .optional()
+      .nullable(),
+    base_salary_monthly: z
+      .number()
+      .positive("El sueldo debe ser un número positivo.")
+      .optional()
+      .nullable(),
+    payment_frequency: z
+      .enum(["semanal", "catorcenal", "quincenal", "mensual"])
+      .optional(),
     department: z
       .string()
       .trim()
@@ -160,6 +175,14 @@ export const registerDirectEmployeeSchema = z
   });
 
 export type RegisterDirectEmployeeValues = z.infer<typeof registerDirectEmployeeSchema>;
+
+export const updateEmployeeSchema = companyEmployeeSchema.partial().extend({
+  department: z.string().trim().max(80, "El área no puede exceder 80 caracteres.").nullable().optional(),
+  job_title: z.string().trim().min(2, "El puesto debe tener al menos 2 caracteres.").max(100).optional(),
+  base_salary_monthly: z.number().nonnegative("El sueldo no puede ser negativo.").nullable().optional(),
+});
+
+export type UpdateEmployeeInput = z.infer<typeof updateEmployeeSchema>;
 
 export const assignEmployeeDepartmentSchema = z.object({
   employeeId: z.string().min(1, "El identificador del empleado es requerido."),

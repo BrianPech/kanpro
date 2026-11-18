@@ -47,6 +47,7 @@ import {
   Layers,
   ArrowLeft,
   Calendar,
+  Briefcase,
 } from "@/components/ui/icons";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -97,13 +98,17 @@ import {
   formatMexicoDateShort,
   getMexicoDateISO,
   parseMexicoCalendarDate,
+  calculateDailySalary,
+  formatPaymentFrequencyLabel,
 } from "@/lib/formatters";
+import { buildWhatsAppUrl } from "@/hooks/use-connection";
 import Link from "next/link";
 import { toast } from "sonner";
 import {
   terminateEmployee,
   reactivateEmployee,
   updateEmployeeStartDate,
+  updateCompanyEmployeeAction,
   getCompanyInvitationsAction,
   resendEmployeeInvitationAction,
   cancelEmployeeInvitationAction,
@@ -264,24 +269,36 @@ export function CompanyEmployeesView({
     avatar_url?: string | null;
     department?: string | null;
     job_title?: string | null;
+    base_salary_monthly?: number | null;
+    payment_frequency?: string | null;
     hire_date?: string | null;
     notes?: string | null;
   }) => {
     if (newEmp && newEmp.id) {
+      const cleanTitle = newEmp.job_title?.trim() || "";
+      const cleanDept = newEmp.department?.trim() || "";
       const formatted: Employee = {
         id: newEmp.id,
         candidate_id: newEmp.employee_id || newEmp.id,
         full_name: newEmp.full_name,
         phone: newEmp.phone || "",
         avatar_url: newEmp.avatar_url || null,
-        location: newEmp.department || "Mérida, Yucatán",
-        vacancy_title: newEmp.job_title?.trim() ? newEmp.job_title : "Sin puesto asignado",
-        vacancy_category: newEmp.department?.trim() ? newEmp.department : "Sin área",
+        location: cleanDept || "Mérida, Yucatán",
+        vacancy_title: cleanTitle || "Sin puesto asignado",
+        vacancy_category: cleanDept || "Sin área",
+        job_title: cleanTitle || null,
+        department: cleanDept || null,
+        base_salary_monthly: newEmp.base_salary_monthly ?? null,
+        payment_frequency: newEmp.payment_frequency || "quincenal",
         hired_date: newEmp.hire_date || getMexicoDateISO(),
         notes: newEmp.notes || "",
         status: "Contratado",
       };
       setEmployees((prev) => [formatted, ...prev.filter((e) => e.id !== newEmp.id)]);
+    }
+    const deptsRes = await getCompanyDepartmentsAction();
+    if (deptsRes.success && deptsRes.data) {
+      setDepartmentsList(deptsRes.data);
     }
     await reloadInvitations();
   };
@@ -372,6 +389,15 @@ export function CompanyEmployeesView({
   const [startDateEmployee, setStartDateEmployee] = React.useState<Employee | null>(null);
   const [startDateInput, setStartDateInput] = React.useState("");
   const [isSavingStartDate, setIsSavingStartDate] = React.useState(false);
+
+  // Edit labor conditions dialog (puesto, sueldo, periodicidad, área)
+  const [isEditLaborDialogOpen, setIsEditLaborDialogOpen] = React.useState(false);
+  const [editLaborEmployee, setEditLaborEmployee] = React.useState<Employee | null>(null);
+  const [editJobTitle, setEditJobTitle] = React.useState("");
+  const [editSalary, setEditSalary] = React.useState("");
+  const [editFrequency, setEditFrequency] = React.useState<"quincenal" | "semanal" | "mensual">("quincenal");
+  const [editDepartment, setEditDepartment] = React.useState<string>("none");
+  const [isSavingLabor, setIsSavingLabor] = React.useState(false);
 
   // Metrics
   const metrics = React.useMemo(() => {
@@ -477,9 +503,8 @@ export function CompanyEmployeesView({
 
   const getWhatsAppLink = (emp: Employee) => {
     if (!emp.phone) return "";
-    const cleanPhone = emp.phone.replace(/\D/g, "");
     const msg = `¡Hola ${emp.full_name}! Te contacto de Recursos Humanos respecto a tus actividades laborales en el puesto de ${emp.vacancy_title}.`;
-    return `https://wa.me/52${cleanPhone}?text=${encodeURIComponent(msg)}`;
+    return buildWhatsAppUrl(emp.phone, msg);
   };
 
   const handleExportCSV = () => {
@@ -591,6 +616,91 @@ export function CompanyEmployeesView({
     const isoMatch = emp.hired_date?.match(/^(\d{4}-\d{2}-\d{2})/);
     setStartDateInput(isoMatch ? isoMatch[1] : getMexicoDateISO());
     setIsStartDateDialogOpen(true);
+  };
+
+  const handleOpenEditLaborDialog = (emp: Employee) => {
+    setSelectedEmp(emp);
+    setEditLaborEmployee(emp);
+    const currentJob =
+      emp.job_title?.trim() ||
+      (emp.vacancy_title && emp.vacancy_title !== "Sin puesto asignado" ? emp.vacancy_title : "");
+    setEditJobTitle(currentJob);
+    setEditSalary(
+      emp.base_salary_monthly && Number(emp.base_salary_monthly) > 0
+        ? String(emp.base_salary_monthly)
+        : ""
+    );
+    const freq = emp.payment_frequency;
+    setEditFrequency(
+      freq === "semanal" || freq === "mensual" ? freq : "quincenal"
+    );
+    const currArea = emp.department?.trim() || emp.vacancy_category?.trim();
+    setEditDepartment(currArea && currArea !== "Sin área" ? currArea : "none");
+    setIsEditLaborDialogOpen(true);
+  };
+
+  const handleSaveEditLabor = async () => {
+    if (!editLaborEmployee) return;
+    const cleanJob = editJobTitle.trim();
+    const numericSalary = Number(editSalary);
+
+    if (cleanJob.length < 2) {
+      toast.error("Puesto inválido", {
+        description: "El puesto de trabajo debe tener al menos 2 caracteres.",
+      });
+      return;
+    }
+
+    if (!Number.isFinite(numericSalary) || numericSalary <= 0) {
+      toast.error("Sueldo inválido", {
+        description: "Ingresa un sueldo bruto mayor a $0 MXN.",
+      });
+      return;
+    }
+
+    const targetDept = editDepartment === "none" ? undefined : editDepartment.trim();
+    setIsSavingLabor(true);
+    try {
+      const res = await updateCompanyEmployeeAction(editLaborEmployee.id, {
+        job_title: cleanJob,
+        base_salary_monthly: numericSalary,
+        payment_frequency: editFrequency,
+        department: targetDept,
+      });
+
+      if (!res.success) {
+        toast.error("Error al actualizar colaborador", { description: res.error });
+        return;
+      }
+
+      const applyUpdates = (item: Employee): Employee => ({
+        ...item,
+        job_title: cleanJob,
+        vacancy_title: cleanJob,
+        base_salary_monthly: numericSalary,
+        payment_frequency: editFrequency,
+        department: targetDept || null,
+        vacancy_category: targetDept || "Sin área",
+      });
+
+      setEmployees((prev) =>
+        prev.map((e) => (e.id === editLaborEmployee.id ? applyUpdates(e) : e))
+      );
+
+      if (dossierEmployee && dossierEmployee.id === editLaborEmployee.id) {
+        setDossierEmployee((prev) => (prev ? applyUpdates(prev) : null));
+      }
+
+      toast.success("Condiciones laborales actualizadas", {
+        description: `${editLaborEmployee.full_name} ahora figura como ${cleanJob} con $${numericSalary.toLocaleString("es-MX")} MXN (${formatPaymentFrequencyLabel(editFrequency)}).`,
+      });
+      setIsEditLaborDialogOpen(false);
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : "Intenta nuevamente.";
+      toast.error("Error al guardar cambios", { description: msg });
+    } finally {
+      setIsSavingLabor(false);
+    }
   };
 
   const handleSaveStartDate = async () => {
@@ -901,6 +1011,14 @@ export function CompanyEmployeesView({
                       <span>Mensaje WhatsApp</span>
                     </DropdownMenuItem>
                   )}
+
+                  <DropdownMenuItem
+                    onClick={() => handleOpenEditLaborDialog(emp)}
+                    className="cursor-pointer text-xs font-semibold rounded-lg hover:bg-muted py-2 px-2.5 gap-2"
+                  >
+                    <Briefcase className="size-3.5 text-muted-foreground" />
+                    <span>Editar puesto y sueldo</span>
+                  </DropdownMenuItem>
 
                   <DropdownMenuItem
                     onClick={() => handleOpenAreaDialog(emp)}
@@ -1605,6 +1723,14 @@ export function CompanyEmployeesView({
                               )}
 
                               <DropdownMenuItem
+                                onClick={() => handleOpenEditLaborDialog(emp)}
+                                className="cursor-pointer text-xs font-semibold rounded-xl hover:bg-muted py-2.5 px-3 gap-2.5"
+                              >
+                                <Briefcase className="size-4 text-muted-foreground" />
+                                <span>Editar puesto y sueldo</span>
+                              </DropdownMenuItem>
+
+                              <DropdownMenuItem
                                 onClick={() => handleOpenAreaDialog(emp)}
                                 className="cursor-pointer text-xs font-semibold rounded-xl hover:bg-muted py-2.5 px-3 gap-2.5"
                               >
@@ -1795,7 +1921,140 @@ export function CompanyEmployeesView({
         onOpenTerminateDialog={handleOpenTerminateDialog}
         onReactivate={handleReactivate}
         onOpenAreaDialog={handleOpenAreaDialog}
+        onOpenEditLaborDialog={handleOpenEditLaborDialog}
       />
+
+      {/* Dialog: Editar Puesto, Sueldo y Área */}
+      <Dialog open={isEditLaborDialogOpen} onOpenChange={setIsEditLaborDialogOpen}>
+        <DialogContent className="rounded-4xl border-border/60 bg-card max-w-md p-6">
+          <DialogHeader className="space-y-1.5 pb-2 border-b border-border/40">
+            <div className="flex items-center gap-2.5">
+              <div className="size-9 rounded-xl bg-primary/10 text-primary flex items-center justify-center shrink-0">
+                <Briefcase className="size-4.5" />
+              </div>
+              <div>
+                <DialogTitle className="text-base sm:text-lg font-bold text-foreground">
+                  Editar Puesto y Sueldo
+                </DialogTitle>
+                <DialogDescription className="text-xs text-muted-foreground">
+                  Actualiza las condiciones laborales de{" "}
+                  <strong>{editLaborEmployee?.full_name}</strong>.
+                </DialogDescription>
+              </div>
+            </div>
+          </DialogHeader>
+
+          <div className="py-3 space-y-3.5">
+            <div className="space-y-1.5">
+              <Label htmlFor="edit_job_title" className="text-xs font-bold text-foreground">
+                Puesto de trabajo *
+              </Label>
+              <Input
+                id="edit_job_title"
+                value={editJobTitle}
+                onChange={(e) => setEditJobTitle(e.target.value)}
+                placeholder="Ej. Mesero, Recepcionista, Auxiliar..."
+                disabled={isSavingLabor}
+                className="h-10 rounded-xl bg-background border-border/80 text-xs font-medium"
+              />
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1.5">
+                <Label htmlFor="edit_salary" className="text-xs font-bold text-foreground">
+                  Sueldo ({formatPaymentFrequencyLabel(editFrequency)}) *
+                </Label>
+                <Input
+                  id="edit_salary"
+                  type="number"
+                  min="1"
+                  step="0.01"
+                  value={editSalary}
+                  onChange={(e) => setEditSalary(e.target.value)}
+                  placeholder="10500"
+                  disabled={isSavingLabor}
+                  className="h-10 rounded-xl bg-background border-border/80 text-xs font-medium"
+                />
+                {Number(editSalary) > 0 && (
+                  <p className="text-[11px] text-muted-foreground">
+                    Diario: ${calculateDailySalary(Number(editSalary), editFrequency).toLocaleString("es-MX", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} MXN
+                  </p>
+                )}
+              </div>
+
+              <div className="space-y-1.5">
+                <Label htmlFor="edit_freq" className="text-xs font-bold text-foreground">
+                  Periodicidad
+                </Label>
+                <Select
+                  value={editFrequency}
+                  onValueChange={(val) =>
+                    val && setEditFrequency(val as "quincenal" | "semanal" | "mensual")
+                  }
+                  disabled={isSavingLabor}
+                >
+                  <SelectTrigger id="edit_freq" className="h-10 rounded-xl bg-background border-border/80 text-xs font-medium">
+                    <SelectValue>{formatPaymentFrequencyLabel(editFrequency)}</SelectValue>
+                  </SelectTrigger>
+                  <SelectContent className="rounded-xl">
+                    <SelectItem value="quincenal">Quincenal</SelectItem>
+                    <SelectItem value="semanal">Semanal</SelectItem>
+                    <SelectItem value="mensual">Mensual</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            <div className="space-y-1.5">
+              <Label htmlFor="edit_dept" className="text-xs font-bold text-foreground">
+                Área de trabajo
+              </Label>
+              <Select
+                value={editDepartment}
+                onValueChange={(val) => setEditDepartment(val || "none")}
+                disabled={isSavingLabor}
+              >
+                <SelectTrigger id="edit_dept" className="h-10 rounded-xl bg-background border-border/80 text-xs font-medium">
+                  <SelectValue placeholder="Selecciona un área" />
+                </SelectTrigger>
+                <SelectContent className="rounded-xl">
+                  <SelectItem value="none">Sin área asignada</SelectItem>
+                  {departmentsList.map((dept) => (
+                    <SelectItem key={dept.id} value={dept.name}>
+                      {dept.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+
+          <DialogFooter className="gap-2 sm:gap-0 pt-2 border-t border-border/40">
+            <Button
+              type="button"
+              variant="outline"
+              disabled={isSavingLabor}
+              onClick={() => setIsEditLaborDialogOpen(false)}
+              className="rounded-4xl text-xs font-semibold cursor-pointer"
+            >
+              Cancelar
+            </Button>
+            <Button
+              type="button"
+              disabled={isSavingLabor || editJobTitle.trim().length < 2 || Number(editSalary) <= 0}
+              onClick={handleSaveEditLabor}
+              className="rounded-4xl text-xs font-bold bg-primary text-primary-foreground hover:bg-primary/90 cursor-pointer shadow-xs"
+            >
+              {isSavingLabor ? (
+                <Loader2 className="size-3.5 animate-spin mr-1.5" />
+              ) : (
+                <Briefcase className="size-3.5 mr-1.5" />
+              )}
+              <span>Guardar Cambios</span>
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Dialog: Asignar Área o Departamento */}
       <Dialog open={isAreaDialogOpen} onOpenChange={setIsAreaDialogOpen}>

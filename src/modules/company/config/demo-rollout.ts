@@ -115,8 +115,9 @@ export const COMPANY_MODULES: readonly CompanyModuleDefinition[] = [
     key: "contracts",
     label: "Contratos Digitales & Bajas",
     description: "Generación de contratos laborales, firmas y renovaciones",
-    week: 3,
+    week: 1,
     routePrefixes: ["/dashboard/company/contracts"],
+    alwaysEnabled: true,
   },
   {
     key: "evaluations",
@@ -149,9 +150,9 @@ export const DEMO_PHASES: readonly {
 }[] = [
   {
     phase: 1,
-    title: "Semana 1 • Reclutamiento, Personal y Asistencia",
+    title: "Semana 1 • Reclutamiento, Personal, Contratos y Asistencia",
     subtitle: "Fase Inicial (Core)",
-    description: "Vacantes, postulantes (ATS), plantilla de empleados, checador QR, áreas y perfil.",
+    description: "Vacantes, postulantes (ATS), plantilla de empleados, contratos digitales, checador QR, áreas y perfil.",
   },
   {
     phase: 2,
@@ -161,9 +162,9 @@ export const DEMO_PHASES: readonly {
   },
   {
     phase: 3,
-    title: "Semana 3 • Contratos y Desempeño",
-    subtitle: "+ Gestión Legal y 360",
-    description: "Desbloquea contratos digitales con firma electrónica y evaluaciones 360.",
+    title: "Semana 3 • Evaluaciones 360 y Desempeño",
+    subtitle: "+ Clima y Desempeño",
+    description: "Desbloquea evaluaciones de desempeño 360, competencias y clima laboral.",
   },
   {
     phase: 4,

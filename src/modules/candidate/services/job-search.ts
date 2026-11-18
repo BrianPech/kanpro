@@ -59,6 +59,7 @@ interface EmbeddedCompanyProfile {
   company_name: string | null;
   logo_url: string | null;
   contact_phone: string | null;
+  verification_status?: string | null;
 }
 
 interface RawSearchVacancy {
@@ -70,6 +71,9 @@ interface RawSearchVacancy {
   employment_type: string | null;
   salary_min: number | null;
   salary_max: number | null;
+  payment_frequency?: string | null;
+  contact_phone?: string | null;
+  preferred_contact_method?: string | null;
   is_promoted: boolean | null;
   is_featured?: boolean | null;
   category: string | null;
@@ -102,6 +106,9 @@ export const jobSearchService = {
         employment_type,
         salary_min,
         salary_max,
+        payment_frequency,
+        contact_phone,
+        preferred_contact_method,
         is_promoted,
         is_featured,
         category,
@@ -115,7 +122,8 @@ export const jobSearchService = {
           id,
           company_name,
           logo_url,
-          contact_phone
+          contact_phone,
+          verification_status
         )
       `)
       .or("status.eq.Activa,status.eq.activa,status.eq.published,is_active.eq.true");
@@ -169,6 +177,10 @@ export const jobSearchService = {
         companyName: compName,
         companyLogo: compLogo,
         companyPhone: compPhone,
+        contactPhone: vac.contact_phone || compPhone,
+        preferredContactMethod: vac.preferred_contact_method || "whatsapp",
+        paymentFrequency: vac.payment_frequency || "quincenal",
+        isVerifiedCompany: comp?.verification_status === "approved",
         location: vac.location || vac.modality || "Remoto",
         employmentType: vac.employment_type || vac.modality || "Tiempo Completo",
         formattedSalary,
@@ -229,6 +241,9 @@ export const jobSearchService = {
         employment_type,
         salary_min,
         salary_max,
+        payment_frequency,
+        contact_phone,
+        preferred_contact_method,
         is_promoted,
         is_featured,
         category,
@@ -242,7 +257,8 @@ export const jobSearchService = {
           id,
           company_name,
           logo_url,
-          contact_phone
+          contact_phone,
+          verification_status
         )
       `)
       .eq("id", id)
@@ -277,6 +293,10 @@ export const jobSearchService = {
       companyName: compName,
       companyLogo: compLogo,
       companyPhone: compPhone,
+      contactPhone: rawVac.contact_phone || compPhone,
+      preferredContactMethod: rawVac.preferred_contact_method || "whatsapp",
+      paymentFrequency: rawVac.payment_frequency || "quincenal",
+      isVerifiedCompany: comp?.verification_status === "approved",
       location: rawVac.location || rawVac.modality || "Remoto",
       employmentType: rawVac.employment_type || rawVac.modality || "Tiempo Completo",
       formattedSalary,

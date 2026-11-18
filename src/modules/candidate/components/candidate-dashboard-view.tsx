@@ -28,6 +28,7 @@ import {
   ArrowRight,
 } from "@/components/ui/icons";
 import { toast } from "sonner";
+import { formatPaymentFrequencyLabel } from "@/lib/formatters";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -528,7 +529,7 @@ function CandidateJobSeekerDashboardView({
                       <div className="pt-3.5 mt-4 border-t border-border/60 flex items-center justify-between gap-2">
                         <div>
                           <span className="text-[10px] text-muted-foreground font-semibold uppercase tracking-wider block">
-                            Sueldo mensual
+                            Sueldo {formatPaymentFrequencyLabel(job.paymentFrequency).toLowerCase()}
                           </span>
                           <span className="text-sm font-bold font-mono text-foreground">
                             {job.formattedSalary}
@@ -699,7 +700,7 @@ function CandidateJobSeekerDashboardView({
                   <div className="flex md:flex-col items-center md:items-end justify-between md:justify-center shrink-0 pt-3 md:pt-0 border-t md:border-t-0 border-border/60 gap-3">
                     <div className="text-left md:text-right">
                       <span className="text-[10px] text-muted-foreground font-semibold uppercase tracking-wider block">
-                        Sueldo mensual
+                        Sueldo {formatPaymentFrequencyLabel(job.paymentFrequency).toLowerCase()}
                       </span>
                       <span className="text-sm sm:text-base font-bold font-mono text-foreground">
                         {job.formattedSalary}

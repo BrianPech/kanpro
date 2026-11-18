@@ -145,6 +145,7 @@ export function LocalZonesCoverage() {
 
           <div className="flex items-center gap-3 w-full sm:w-auto">
             <Button
+              nativeButton={false}
               render={<Link href="/register/company" />}
               className="w-full sm:w-auto h-11 px-6 rounded-xl bg-primary hover:bg-primary/90 text-primary-foreground font-bold text-xs shadow-xs gap-2 cursor-pointer"
             >

@@ -13,6 +13,7 @@ import {
   terminateEmployeeSchema,
   reactivateEmployeeSchema,
   updateEmployeeStartDateSchema,
+  updateEmployeeSchema,
   hireCandidateSchema,
   registerDirectEmployeeSchema,
   assignEmployeeDepartmentSchema,
@@ -194,6 +195,12 @@ export async function updateCompanyEmployeeAction(
     return { success: false, error: "Identificador de colaborador inválido." };
   }
 
+  const parsed = updateEmployeeSchema.safeParse(data);
+  if (!parsed.success) {
+    const errorMsg = parsed.error.issues[0]?.message || "Datos del colaborador inválidos.";
+    return { success: false, error: errorMsg };
+  }
+
   const supabase = await createClient();
   const {
     data: { user },
@@ -211,10 +218,11 @@ export async function updateCompanyEmployeeAction(
       supabase,
       companyScopeId,
       employeeId,
-      data
+      parsed.data as Partial<CompanyEmployeeFormValues>
     );
 
     revalidatePath("/dashboard/company/employees");
+    revalidatePath("/dashboard/company/areas");
     revalidatePath("/dashboard/company");
 
     return { success: true };
@@ -720,10 +728,18 @@ export async function hireCandidateAction(
   const { companyId: companyScopeId } = await companyTenantService.resolveActiveCompanyScope(user.id, supabase);
 
   try {
+    let adminClient;
+    try {
+      adminClient = createAdminClient();
+    } catch {
+      adminClient = undefined;
+    }
+
     const result = await CompanyEmployeeService.hireCandidate(
       supabase,
       companyScopeId,
-      parsed.data
+      parsed.data,
+      adminClient
     );
 
     revalidatePath("/dashboard/company/applications");
@@ -731,6 +747,7 @@ export async function hireCandidateAction(
     revalidatePath("/dashboard/company/contracts");
     revalidatePath("/dashboard/company");
     revalidatePath("/dashboard/candidate/applications");
+    revalidatePath("/dashboard/candidate/contracts");
 
     return {
       success: true,

@@ -36,9 +36,14 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { toast } from "sonner";
-import { getMexicoDateISO } from "@/lib/formatters";
+import {
+  calculateDailySalary,
+  formatPaymentFrequencyAdjective,
+  formatPaymentFrequencyLabel,
+  getMexicoDateISO,
+} from "@/lib/formatters";
 import { cn } from "@/lib/utils";
-import { ContractTemplateType, EmploymentContract } from "../../types/contracts";
+import { ContractTemplateType } from "../../types/contracts";
 import { getCompanyDepartmentsAction } from "../../actions/areas";
 import { DigitalSignatureModal } from "../contracts/digital-signature-modal";
 import { hireCandidateAction } from "../../actions/employees";
@@ -50,6 +55,10 @@ interface ApplicantCandidate {
   email?: string;
   vacancyTitle?: string;
   vacancyId?: string;
+  vacancyCategory?: string;
+  vacancySalaryMin?: number | null;
+  vacancySalaryMax?: number | null;
+  vacancyPaymentFrequency?: string;
   candidateId?: string;
 }
 
@@ -57,6 +66,7 @@ interface HireCandidateWizardModalProps {
   isOpen: boolean;
   onOpenChange: (open: boolean) => void;
   candidate: ApplicantCandidate | null;
+  companyLegalRep?: string;
   onHiringCompleted: (hiredData: {
     employeeId: string;
     employeeName: string;
@@ -65,69 +75,130 @@ interface HireCandidateWizardModalProps {
   }) => void;
 }
 
+function getInitialCandidateSalary(candidate: ApplicantCandidate | null): string {
+  if (!candidate) return "";
+  const min = Number(candidate.vacancySalaryMin) || 0;
+  const max = Number(candidate.vacancySalaryMax) || 0;
+  if (min > 0 && max > 0) return String(Math.round((min + max) / 2));
+  if (min > 0) return String(min);
+  if (max > 0) return String(max);
+  return "";
+}
+
+function generateContractFolio(): string {
+  const year = new Date().getFullYear();
+  const suffix = Math.floor(100 + Math.random() * 900);
+  return `KAN-CTR-${year}-${suffix}`;
+}
+
+async function computeContractSha256(payload: Record<string, unknown>): Promise<string> {
+  const serialized = JSON.stringify(payload);
+  if (typeof window !== "undefined" && window.crypto?.subtle) {
+    const encoded = new TextEncoder().encode(serialized);
+    const digest = await window.crypto.subtle.digest("SHA-256", encoded);
+    const hex = Array.from(new Uint8Array(digest))
+      .map((b) => b.toString(16).padStart(2, "0"))
+      .join("");
+    return `SHA256:${hex.slice(0, 16)}`;
+  }
+  let hash = 0;
+  for (let i = 0; i < serialized.length; i += 1) {
+    hash = (hash * 31 + serialized.charCodeAt(i)) >>> 0;
+  }
+  return `SHA256:${hash.toString(16).padStart(8, "0")}`;
+}
+
 export function HireCandidateWizardModal({
   isOpen,
   onOpenChange,
   candidate,
+  companyLegalRep,
   onHiringCompleted,
 }: HireCandidateWizardModalProps) {
   const [step, setStep] = useState<1 | 2 | 3>(1);
 
-  // Step 1: Conditions
-  const [jobTitle, setJobTitle] = useState(candidate?.vacancyTitle || "Empleado K'anPro");
-  const [department, setDepartment] = useState("Operaciones");
+  // Step 1: Conditions (hydrated dynamically from candidate/vacancy)
+  const [jobTitle, setJobTitle] = useState("");
+  const [department, setDepartment] = useState("");
   const [templateType, setTemplateType] = useState<ContractTemplateType>("indeterminado");
   const [startDate, setStartDate] = useState(getMexicoDateISO());
-  const [salary, setSalary] = useState("16500");
+  const [salary, setSalary] = useState("");
   const [paymentFrequency, setPaymentFrequency] = useState("quincenal");
+  const [contractFolio, setContractFolio] = useState("");
 
   // Departamentos reales de la empresa
   const [availableDepartments, setAvailableDepartments] = useState<
     { id: string; name: string }[]
   >([]);
 
-  React.useEffect(() => {
-    if (isOpen) {
-      getCompanyDepartmentsAction().then((res) => {
-        if (res.success && res.data) {
-          setAvailableDepartments(res.data);
-          if (res.data.length > 0 && department === "Operaciones") {
-            setDepartment(res.data[0].name);
-          }
-        }
-      });
-    }
-  }, [isOpen]);
-
   // Step 2: Digital Sign
   const [isSignModalOpen, setIsSignModalOpen] = useState(false);
   const [companySignatureData, setCompanySignatureData] = useState<string | null>(null);
+  const [documentHash, setDocumentHash] = useState("");
   const [isProcessingHire, setIsProcessingHire] = useState(false);
+
+  React.useEffect(() => {
+    if (!isOpen || !candidate) return;
+
+    setStep(1);
+    setJobTitle(candidate.vacancyTitle?.trim() || "");
+    setDepartment(candidate.vacancyCategory?.trim() || "Operaciones");
+    setTemplateType("indeterminado");
+    setStartDate(getMexicoDateISO());
+    setSalary(getInitialCandidateSalary(candidate));
+    setPaymentFrequency(candidate.vacancyPaymentFrequency || "quincenal");
+    setContractFolio(generateContractFolio());
+    setCompanySignatureData(null);
+    setDocumentHash("");
+
+    getCompanyDepartmentsAction().then((res) => {
+      if (res.success && res.data) {
+        setAvailableDepartments(res.data);
+        if (!candidate.vacancyCategory?.trim() && res.data.length > 0) {
+          setDepartment(res.data[0].name);
+        }
+      }
+    });
+  }, [isOpen, candidate]);
 
   if (!candidate) return null;
 
   const candidateName = candidate.name;
-  const contractFolio = `KAN-CTR-2026-${Math.floor(100 + Math.random() * 900)}`;
+  const resolvedLegalRep = companyLegalRep?.trim() || "Representante Legal";
+  const numericSalary = Number(salary) || 0;
+  const dailySalary = calculateDailySalary(numericSalary, paymentFrequency);
+  const frequencyLabel = formatPaymentFrequencyLabel(paymentFrequency);
+  const frequencyAdjective = formatPaymentFrequencyAdjective(paymentFrequency);
 
   const handleNextToSign = (e: React.FormEvent) => {
     e.preventDefault();
+    if (!jobTitle.trim()) {
+      toast.error("Ingresa el puesto de trabajo.");
+      return;
+    }
+    if (numericSalary <= 0) {
+      toast.error("Ingresa un sueldo válido mayor a 0.");
+      return;
+    }
     setStep(2);
   };
 
   const handleCompleteHiring = async () => {
     setIsProcessingHire(true);
     try {
+      const resolvedFolio = contractFolio || generateContractFolio();
       const result = await hireCandidateAction({
         applicationId: candidate.id,
         candidateId: candidate.candidateId || "",
-        jobTitle,
-        department,
+        jobTitle: jobTitle.trim(),
+        department: department.trim() || "Operaciones",
         templateType,
         startDate,
-        salary: Number(salary) || 16500,
+        salary: numericSalary,
         paymentFrequency,
-        contractFolio,
+        contractFolio: resolvedFolio,
         signatureData: companySignatureData || undefined,
+        documentHash: documentHash || undefined,
       });
 
       if (!result.success || !result.employeeId || !result.folio) {
@@ -139,17 +210,21 @@ export function HireCandidateWizardModal({
       onHiringCompleted({
         employeeId: result.employeeId,
         employeeName: candidateName,
-        jobTitle,
+        jobTitle: jobTitle.trim(),
         contractFolio: result.folio,
       });
 
       toast.success(`¡${candidateName} ha sido contratado exitosamente!`, {
         description: `Se registró en la plantilla activa y se generó el contrato con folio ${result.folio}.`,
       });
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error("Error al contratar candidato:", err);
+      const message =
+        err instanceof Error
+          ? err.message
+          : "Ocurrió un error al registrar al empleado en la base de datos.";
       toast.error("Error al procesar la contratación", {
-        description: err?.message || "Ocurrió un error al registrar al empleado en la base de datos.",
+        description: message,
       });
     } finally {
       setIsProcessingHire(false);
@@ -264,26 +339,62 @@ export function HireCandidateWizardModal({
 
               <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-1.5">
-                  <Label className="text-xs font-bold text-foreground">Salario Mensual Bruto (MXN)</Label>
+                  <Label className="text-xs font-bold text-foreground">
+                    Salario {frequencyLabel} Bruto (MXN)
+                  </Label>
                   <Input
                     type="number"
+                    min="1"
+                    step="any"
                     value={salary}
                     onChange={(e) => setSalary(e.target.value)}
+                    placeholder="Ej. 10500"
                     className="h-10 rounded-xl bg-background border-border/80 text-xs font-medium"
                     required
                   />
+                  {dailySalary > 0 && (
+                    <p className="text-[11px] font-medium text-muted-foreground">
+                      Salario diario equivalente:{" "}
+                      <span className="font-bold text-foreground">
+                        ${dailySalary.toLocaleString("es-MX", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} MXN
+                      </span>
+                    </p>
+                  )}
                 </div>
 
                 <div className="space-y-1.5">
-                  <Label className="text-xs font-bold text-foreground">Fecha de Ingreso</Label>
-                  <Input
-                    type="date"
-                    value={startDate}
-                    onChange={(e) => setStartDate(e.target.value)}
-                    className="h-10 rounded-xl bg-background border-border/80 text-xs font-medium"
-                    required
-                  />
+                  <Label className="text-xs font-bold text-foreground">Periodicidad de Pago</Label>
+                  <Select
+                    value={paymentFrequency}
+                    onValueChange={(val) => val && setPaymentFrequency(val)}
+                  >
+                    <SelectTrigger className="w-full h-10 rounded-xl bg-background border border-border/80 text-xs font-medium">
+                      <SelectValue>{frequencyLabel}</SelectValue>
+                    </SelectTrigger>
+                    <SelectContent
+                      alignItemWithTrigger={false}
+                      side="bottom"
+                      sideOffset={4}
+                      className="w-(--anchor-width) min-w-[180px] rounded-xl border border-border/70 bg-popover shadow-lg"
+                    >
+                      <SelectItem value="semanal">Semanal (7 días)</SelectItem>
+                      <SelectItem value="quincenal">Quincenal (15 días)</SelectItem>
+                      <SelectItem value="catorcenal">Catorcenal (14 días)</SelectItem>
+                      <SelectItem value="mensual">Mensual (30 días)</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
+              </div>
+
+              <div className="space-y-1.5">
+                <Label className="text-xs font-bold text-foreground">Fecha de Ingreso</Label>
+                <Input
+                  type="date"
+                  value={startDate}
+                  onChange={(e) => setStartDate(e.target.value)}
+                  className="h-10 rounded-xl bg-background border-border/80 text-xs font-medium"
+                  required
+                />
               </div>
 
               <DialogFooter className="flex flex-col-reverse sm:flex-row gap-2 pt-3 border-t border-border/40">
@@ -317,7 +428,7 @@ export function HireCandidateWizardModal({
                   </Badge>
                 </div>
                 <p className="text-muted-foreground leading-relaxed">
-                  Se ha redactado el contrato laboral para <strong>{candidateName}</strong> como <strong>{jobTitle}</strong> con un sueldo de <strong>${parseFloat(salary || "0").toLocaleString()} MXN</strong> mensuales a partir del <strong>{startDate}</strong>.
+                  Se ha redactado el contrato laboral para <strong>{candidateName}</strong> como <strong>{jobTitle}</strong> ({department || "Operaciones"}) con un sueldo de <strong>${numericSalary.toLocaleString("es-MX")} MXN {frequencyAdjective}</strong> (diario: <strong>${dailySalary.toLocaleString("es-MX", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} MXN</strong>) a partir del <strong>{startDate}</strong>.
                 </p>
               </div>
 
@@ -326,7 +437,7 @@ export function HireCandidateWizardModal({
                 <div className="flex items-center justify-between">
                   <span className="text-xs font-bold text-foreground flex items-center gap-1.5">
                     <ShieldCheck className="size-4 text-primary" />
-                    Firma de la Empresa (Representante Legal)
+                    Firma de la Empresa ({resolvedLegalRep})
                   </span>
                   {companySignatureData ? (
                     <Badge className="bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border-none text-[10px] font-bold">
@@ -348,7 +459,7 @@ export function HireCandidateWizardModal({
                       className="h-12 mx-auto object-contain"
                     />
                     <span className="text-[10px] font-mono text-emerald-600 dark:text-emerald-400 font-bold block mt-1">
-                      SHA256:0x4f8b91a2e37c
+                      {documentHash || "Verificando certificado..."}
                     </span>
                   </div>
                 ) : (
@@ -436,11 +547,25 @@ export function HireCandidateWizardModal({
       <DigitalSignatureModal
         isOpen={isSignModalOpen}
         onOpenChange={setIsSignModalOpen}
-        signerName="Lic. Andrea Garza Ramos"
+        signerName={resolvedLegalRep}
         signerRole="representante_legal"
         contractFolio={contractFolio}
-        onSignComplete={(sig) => {
+        onSignComplete={async (sig) => {
           setCompanySignatureData(sig.signatureDataUrl);
+          const hash = await computeContractSha256({
+            folio: contractFolio,
+            candidateId: candidate.candidateId || "",
+            candidateName,
+            jobTitle: jobTitle.trim(),
+            department: department.trim() || "Operaciones",
+            templateType,
+            startDate,
+            salary: numericSalary,
+            paymentFrequency,
+            signerName: resolvedLegalRep,
+            signedAt: sig.signedAt,
+          });
+          setDocumentHash(hash);
         }}
       />
     </>

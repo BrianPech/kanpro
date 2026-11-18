@@ -127,6 +127,7 @@ export function FeaturesSplit() {
 
               <div className="pt-2">
                 <Button
+                  nativeButton={false}
                   render={<Link href="/register/company" />}
                   className="w-full h-11 rounded-xl bg-foreground text-background hover:bg-foreground/90 font-mono font-bold text-xs gap-2 cursor-pointer shadow-2xs"
                 >
@@ -205,6 +206,7 @@ export function FeaturesSplit() {
 
               <div className="pt-2">
                 <Button
+                  nativeButton={false}
                   render={<Link href="/register/candidate" />}
                   className="w-full h-11 rounded-xl bg-foreground text-background hover:bg-foreground/90 font-mono font-bold text-xs gap-2 cursor-pointer shadow-2xs"
                 >
