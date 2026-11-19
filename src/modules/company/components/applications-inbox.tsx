@@ -724,7 +724,7 @@ export function ApplicationsInbox({
                   className="w-52 rounded-xl border-border/60 bg-popover shadow-lg"
                 >
                   <DropdownMenuItem
-                    onSelect={() => handleOpenDetail(app, "experience")}
+                    onClick={() => handleOpenDetail(app, "experience")}
                     className="cursor-pointer text-xs font-semibold py-2 px-2.5 gap-2"
                   >
                     <Eye className="size-3.5 text-muted-foreground" />
@@ -732,7 +732,7 @@ export function ApplicationsInbox({
                   </DropdownMenuItem>
 
                   <DropdownMenuItem
-                    onSelect={() => handleOpenDetail(app, "curriculum")}
+                    onClick={() => handleOpenDetail(app, "curriculum")}
                     className="cursor-pointer text-xs font-semibold py-2 px-2.5 gap-2 text-primary focus:text-primary"
                   >
                     <FileText className="size-3.5" />
@@ -760,7 +760,7 @@ export function ApplicationsInbox({
 
                   {app.status === "Pendiente" && (
                     <DropdownMenuItem
-                      onSelect={() => handleUpdateStatus(app.id, "En revisión")}
+                      onClick={() => handleUpdateStatus(app.id, "En revisión")}
                       className="cursor-pointer text-xs font-semibold py-2 px-2.5 gap-2 text-blue-600 dark:text-blue-400"
                     >
                       <Eye className="size-3.5" />
@@ -771,7 +771,7 @@ export function ApplicationsInbox({
                   {app.status !== "Preseleccionado" &&
                     app.status !== "Contratado" && (
                       <DropdownMenuItem
-                        onSelect={() =>
+                        onClick={() =>
                           handleUpdateStatus(app.id, "Preseleccionado")
                         }
                         className="cursor-pointer text-xs font-semibold py-2 px-2.5 gap-2 text-indigo-600 dark:text-indigo-400"
@@ -782,7 +782,7 @@ export function ApplicationsInbox({
                     )}
 
                   <DropdownMenuItem
-                    onSelect={() => handleOpenScheduleInterview(app)}
+                    onClick={() => handleOpenScheduleInterview(app)}
                     className="cursor-pointer text-xs font-semibold py-2 px-2.5 gap-2 text-purple-600 dark:text-purple-400"
                   >
                     <Calendar className="size-3.5" />
@@ -793,7 +793,7 @@ export function ApplicationsInbox({
 
                   {app.status !== "Contratado" && (
                     <DropdownMenuItem
-                      onSelect={() => handleStartHire(app)}
+                      onClick={() => handleStartHire(app)}
                       className="cursor-pointer text-xs font-semibold py-2 px-2.5 gap-2 text-primary hover:bg-primary/10"
                     >
                       <Sparkles className="size-3.5 text-primary" />
@@ -804,7 +804,7 @@ export function ApplicationsInbox({
                   {app.status !== "Descartado" &&
                     app.status !== "Contratado" && (
                       <DropdownMenuItem
-                        onSelect={() =>
+                        onClick={() =>
                           handleUpdateStatus(app.id, "Descartado")
                         }
                         className="cursor-pointer text-xs font-semibold py-2 px-2.5 gap-2 text-rose-600 dark:text-rose-400 hover:bg-rose-500/10"

@@ -797,7 +797,7 @@ export function EvaluationsView({
                   className="rounded-xl border border-border/50 bg-popover min-w-[200px] shadow-lg p-1.5"
                 >
                   <DropdownMenuItem
-                    onSelect={() => setSelectedEvaluation(ev)}
+                    onClick={() => setSelectedEvaluation(ev)}
                     className="cursor-pointer text-xs font-semibold py-2 px-2.5 gap-2 text-foreground hover:bg-muted"
                   >
                     <Eye className="size-3.5 text-muted-foreground" />
@@ -805,7 +805,7 @@ export function EvaluationsView({
                   </DropdownMenuItem>
 
                   <DropdownMenuItem
-                    onSelect={() => handleOpenDossierFromEval(ev)}
+                    onClick={() => handleOpenDossierFromEval(ev)}
                     className="cursor-pointer text-xs font-semibold py-2 px-2.5 gap-2 text-foreground hover:bg-muted"
                   >
                     <FileText className="size-3.5 text-muted-foreground" />
@@ -815,7 +815,7 @@ export function EvaluationsView({
                   <DropdownMenuSeparator className="my-1 border-border/40" />
 
                   <DropdownMenuItem
-                    onSelect={() => {
+                    onClick={() => {
                       toast.info(
                         `Generando reporte de desempeño de ${ev.employeeName}...`
                       );
@@ -829,7 +829,7 @@ export function EvaluationsView({
                   <DropdownMenuSeparator className="my-1 border-border/40" />
 
                   <DropdownMenuItem
-                    onSelect={() => handleDeleteEvaluation(ev.id, ev.employeeName)}
+                    onClick={() => handleDeleteEvaluation(ev.id, ev.employeeName)}
                     className="cursor-pointer text-xs font-semibold py-2 px-2.5 gap-2 text-rose-600 focus:text-rose-600 hover:bg-rose-500/10"
                   >
                     <Trash2 className="size-3.5" />

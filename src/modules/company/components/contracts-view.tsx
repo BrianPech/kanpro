@@ -925,7 +925,7 @@ export function ContractsView({
                   className="rounded-xl border border-border/50 bg-popover min-w-[200px] shadow-lg p-1.5"
                 >
                   <DropdownMenuItem
-                    onSelect={() => handleOpenPreviewFromRecord(item)}
+                    onClick={() => handleOpenPreviewFromRecord(item)}
                     className="cursor-pointer text-xs font-semibold py-2 px-2.5 gap-2 text-foreground hover:bg-muted"
                   >
                     <Eye className="size-3.5 text-muted-foreground" />
@@ -933,7 +933,7 @@ export function ContractsView({
                   </DropdownMenuItem>
 
                   <DropdownMenuItem
-                    onSelect={() => {
+                    onClick={() => {
                       setSelectedContractForRenew(item);
                       setIsRenewModalOpen(true);
                     }}
@@ -944,7 +944,7 @@ export function ContractsView({
                   </DropdownMenuItem>
 
                   <DropdownMenuItem
-                    onSelect={() => handleOpenDossierFromContract(item)}
+                    onClick={() => handleOpenDossierFromContract(item)}
                     className="cursor-pointer text-xs font-semibold py-2 px-2.5 gap-2 text-foreground hover:bg-muted"
                   >
                     <FileText className="size-3.5 text-muted-foreground" />
@@ -954,7 +954,7 @@ export function ContractsView({
                   <DropdownMenuSeparator className="my-1 border-border/40" />
 
                   <DropdownMenuItem
-                    onSelect={() => {
+                    onClick={() => {
                       setSelectedContractForTerminate(item);
                       setIsTerminateModalOpen(true);
                     }}

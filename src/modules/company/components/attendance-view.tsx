@@ -640,7 +640,7 @@ export function AttendanceView({
                   className="rounded-xl border border-border/50 bg-popover min-w-[210px] shadow-lg p-1.5"
                 >
                   <DropdownMenuItem
-                    onSelect={() => setSelectedEmployeeForDossier(item)}
+                    onClick={() => setSelectedEmployeeForDossier(item)}
                     className="cursor-pointer text-xs font-semibold py-2 px-2.5 gap-2 text-foreground hover:bg-muted"
                   >
                     <Eye className="size-3.5 text-muted-foreground" />
@@ -649,7 +649,7 @@ export function AttendanceView({
 
                   {isAbsent && (
                     <DropdownMenuItem
-                      onSelect={() => setSelectedRecordForJustification(item)}
+                      onClick={() => setSelectedRecordForJustification(item)}
                       className="cursor-pointer text-xs font-semibold py-2 px-2.5 gap-2 text-blue-600 dark:text-blue-400 hover:bg-blue-500/10"
                     >
                       <ShieldAlert className="size-3.5" />
@@ -662,7 +662,7 @@ export function AttendanceView({
                   )}
 
                   <DropdownMenuItem
-                    onSelect={() => setSelectedRecordForOvertime(item)}
+                    onClick={() => setSelectedRecordForOvertime(item)}
                     className="cursor-pointer text-xs font-semibold py-2 px-2.5 gap-2 text-indigo-600 dark:text-indigo-400 hover:bg-indigo-500/10"
                   >
                     <Sparkles className="size-3.5" />
@@ -672,7 +672,7 @@ export function AttendanceView({
                   <DropdownMenuSeparator className="my-1 border-border/40" />
 
                   <DropdownMenuItem
-                    onSelect={() => {
+                    onClick={() => {
                       setManualInitialSelection({
                         employeeId: item.employeeId,
                         name: item.employeeName,
