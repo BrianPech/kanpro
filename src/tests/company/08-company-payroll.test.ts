@@ -376,6 +376,18 @@ describe("Fase 17: Módulo de Nómina - Patrón Schema -> Handler -> Service y M
             };
           }
 
+          if (table === "company_incidents") {
+            return {
+              select: vi.fn(() => ({
+                eq: vi.fn(() => ({
+                  gte: vi.fn(() => ({
+                    lte: vi.fn(async () => ({ data: [], error: null })),
+                  })),
+                })),
+              })),
+            };
+          }
+
           if (table === "company_payrolls") {
             return {
               select: vi.fn(() => ({
@@ -671,6 +683,17 @@ describe("Fase 17: Módulo de Nómina - Patrón Schema -> Handler -> Service y M
                       ],
                       error: null,
                     }),
+                  }),
+                }),
+              }),
+            };
+          }
+          if (table === "company_incidents") {
+            return {
+              select: () => ({
+                eq: () => ({
+                  gte: () => ({
+                    lte: async () => ({ data: [], error: null }),
                   }),
                 }),
               }),

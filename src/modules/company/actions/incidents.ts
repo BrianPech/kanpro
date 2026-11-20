@@ -7,6 +7,9 @@ import {
   createIncidentSchema,
   updateIncidentStatusSchema,
   deleteIncidentSchema,
+  incidentReferenceSchema,
+  prepareEvidenceUploadSchema,
+  type PrepareEvidenceUploadInput,
   type CreateIncidentInput,
   type UpdateIncidentStatusInput,
   type DeleteIncidentInput,
@@ -15,6 +18,11 @@ import {
   CompanyIncidentsService,
   type IncidentRow,
 } from "../services/company-incidents";
+import {
+  IncidentEvidenceService,
+  type EvidenceUploadTarget,
+} from "../services/incident-evidence.service";
+import { IncidentActaService } from "../services/incident-acta.service";
 import type { LaborIncident } from "../types/incidents";
 
 interface ActionResponse<T> {
@@ -191,5 +199,104 @@ export async function getCompanyIncidentsAction(): Promise<GetCompanyIncidentsAc
   } catch (error) {
     const errorMsg = error instanceof Error ? error.message : "Error al obtener incidencias.";
     return { success: false, incidents: [], error: errorMsg };
+  }
+}
+
+/**
+ * Prepara la subida directa de una evidencia a Storage (valida tipo y tamaño en servidor)
+ */
+export async function prepareIncidentEvidenceUploadAction(
+  rawInput: PrepareEvidenceUploadInput
+): Promise<ActionResponse<EvidenceUploadTarget>> {
+  const parsed = prepareEvidenceUploadSchema.safeParse(rawInput);
+  if (!parsed.success) {
+    return { success: false, error: parsed.error.issues[0]?.message || "Archivo inválido." };
+  }
+
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) {
+    return { success: false, error: "No autorizado." };
+  }
+
+  const { companyId: companyScopeId } = await companyTenantService.resolveActiveCompanyScope(user.id, supabase);
+
+  try {
+    const target = await new IncidentEvidenceService(supabase).createUploadTarget(
+      companyScopeId,
+      parsed.data
+    );
+    return { success: true, data: target };
+  } catch (error) {
+    const errorMsg = error instanceof Error ? error.message : "Error inesperado al preparar la evidencia.";
+    return { success: false, error: errorMsg };
+  }
+}
+
+/**
+ * Devuelve una URL temporal para abrir la evidencia de una incidencia
+ */
+export async function getIncidentEvidenceUrlAction(
+  incidentId: string
+): Promise<ActionResponse<{ url: string }>> {
+  const parsed = incidentReferenceSchema.safeParse({ incidentId });
+  if (!parsed.success) {
+    return { success: false, error: parsed.error.issues[0]?.message || "ID de incidencia inválido." };
+  }
+
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) {
+    return { success: false, error: "No autorizado." };
+  }
+
+  const { companyId: companyScopeId } = await companyTenantService.resolveActiveCompanyScope(user.id, supabase);
+
+  try {
+    const url = await new IncidentEvidenceService(supabase).getEvidenceUrl(
+      companyScopeId,
+      parsed.data.incidentId
+    );
+    return { success: true, data: { url } };
+  } catch (error) {
+    const errorMsg = error instanceof Error ? error.message : "Error inesperado al abrir la evidencia.";
+    return { success: false, error: errorMsg };
+  }
+}
+
+/**
+ * Genera el Acta Administrativa en PDF (base64) de una incidencia
+ */
+export async function generateActaAdministrativaAction(
+  incidentId: string
+): Promise<ActionResponse<{ fileName: string; base64: string }>> {
+  const parsed = incidentReferenceSchema.safeParse({ incidentId });
+  if (!parsed.success) {
+    return { success: false, error: parsed.error.issues[0]?.message || "ID de incidencia inválido." };
+  }
+
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) {
+    return { success: false, error: "No autorizado." };
+  }
+
+  const { companyId: companyScopeId } = await companyTenantService.resolveActiveCompanyScope(user.id, supabase);
+
+  try {
+    const { fileName, pdf } = await new IncidentActaService(supabase).generate(
+      companyScopeId,
+      parsed.data.incidentId
+    );
+    return { success: true, data: { fileName, base64: Buffer.from(pdf).toString("base64") } };
+  } catch (error) {
+    const errorMsg = error instanceof Error ? error.message : "Error inesperado al generar el acta.";
+    return { success: false, error: errorMsg };
   }
 }

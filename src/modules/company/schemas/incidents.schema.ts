@@ -61,6 +61,18 @@ export const deleteIncidentSchema = z.object({
   incidentId: z.string().min(1, "El ID de la incidencia es requerido"),
 });
 
+export const incidentReferenceSchema = z.object({
+  incidentId: z.string().min(1, "El ID de la incidencia es requerido"),
+});
+
+export const prepareEvidenceUploadSchema = z.object({
+  fileName: z.string().min(1, "Nombre de archivo requerido").max(255),
+  mimeType: z.string().min(1),
+  size: z.number().int().positive(),
+});
+
 export type CreateIncidentInput = z.infer<typeof createIncidentSchema>;
 export type UpdateIncidentStatusInput = z.infer<typeof updateIncidentStatusSchema>;
 export type DeleteIncidentInput = z.infer<typeof deleteIncidentSchema>;
+
+export type PrepareEvidenceUploadInput = z.infer<typeof prepareEvidenceUploadSchema>;

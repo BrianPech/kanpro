@@ -12,6 +12,7 @@ import {
   Settings,
   HelpCircle,
   Plane,
+  ShieldAlert,
 } from "@/components/ui/icons";
 import {
   Sidebar,
@@ -55,6 +56,11 @@ export function CandidateSidebar({
       title: "Vacaciones & Permisos",
       url: "/dashboard/candidate/leaves",
       icon: Plane,
+    },
+    {
+      title: "Mis Incidencias",
+      url: "/dashboard/candidate/incidents",
+      icon: ShieldAlert,
     },
     {
       title: "Mis Documentos",

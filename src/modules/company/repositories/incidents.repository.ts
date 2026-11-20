@@ -23,10 +23,17 @@ export interface IncidentsRepository {
     payload: IncidentUpdate
   ): Promise<IncidentRow>;
   delete(companyId: string, incidentId: string): Promise<void>;
+  getById(companyId: string, incidentId: string): Promise<IncidentRow | null>;
+  markNotified(companyId: string, incidentId: string, notifiedAt: string): Promise<void>;
   listByCompany(companyId: string): Promise<IncidentRowWithEmployee[]>;
   listByEmployeeAndPeriod(
     companyId: string,
     employeeId: string,
+    periodStart: string,
+    periodEnd: string
+  ): Promise<IncidentRow[]>;
+  listByPeriod(
+    companyId: string,
     periodStart: string,
     periodEnd: string
   ): Promise<IncidentRow[]>;
@@ -147,6 +154,70 @@ export class SupabaseIncidentsRepository implements IncidentsRepository {
       .gte("incident_date", periodStart)
       .lte("incident_date", periodEnd)
       .order("incident_date", { ascending: true });
+
+    if (error) {
+      throw new Error(
+        error.message || "No se pudieron cargar las incidencias del periodo."
+      );
+    }
+
+    return data ?? [];
+  }
+
+  async getById(companyId: string, incidentId: string): Promise<IncidentRow | null> {
+    if (!companyId || !incidentId) {
+      return null;
+    }
+
+    const { data, error } = await this.supabase
+      .from("company_incidents")
+      .select("*")
+      .eq("company_id", companyId)
+      .eq("id", incidentId)
+      .maybeSingle();
+
+    if (error) {
+      throw new Error(error.message || "No se pudo cargar la incidencia.");
+    }
+
+    return data ?? null;
+  }
+
+  async markNotified(
+    companyId: string,
+    incidentId: string,
+    notifiedAt: string
+  ): Promise<void> {
+    if (!companyId || !incidentId) {
+      throw new Error("Identificador de empresa e incidencia requeridos.");
+    }
+
+    const { error } = await this.supabase
+      .from("company_incidents")
+      .update({ notified_at: notifiedAt })
+      .eq("id", incidentId)
+      .eq("company_id", companyId);
+
+    if (error) {
+      throw new Error(error.message || "No se pudo registrar la notificación.");
+    }
+  }
+
+  async listByPeriod(
+    companyId: string,
+    periodStart: string,
+    periodEnd: string
+  ): Promise<IncidentRow[]> {
+    if (!companyId) {
+      return [];
+    }
+
+    const { data, error } = await this.supabase
+      .from("company_incidents")
+      .select("*")
+      .eq("company_id", companyId)
+      .gte("incident_date", periodStart)
+      .lte("incident_date", periodEnd);
 
     if (error) {
       throw new Error(

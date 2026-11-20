@@ -27,6 +27,10 @@ import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { LaborIncident } from "../../types/incidents";
+import {
+  getIncidentEvidenceUrlAction,
+  generateActaAdministrativaAction,
+} from "../../actions/incidents";
 
 interface IncidentEvidenceModalProps {
   isOpen: boolean;
@@ -41,7 +45,35 @@ export function IncidentEvidenceModal({
   incident,
   onResolve,
 }: IncidentEvidenceModalProps) {
+  const [isBusy, setIsBusy] = React.useState(false);
+
   if (!incident) return null;
+
+  const handleOpenEvidence = async () => {
+    setIsBusy(true);
+    const res = await getIncidentEvidenceUrlAction(incident.id);
+    setIsBusy(false);
+    if (!res.success || !res.data) {
+      toast.error("No se pudo abrir la evidencia", { description: res.error });
+      return;
+    }
+    window.open(res.data.url, "_blank", "noopener,noreferrer");
+  };
+
+  const handleDownloadActa = async () => {
+    setIsBusy(true);
+    const res = await generateActaAdministrativaAction(incident.id);
+    setIsBusy(false);
+    if (!res.success || !res.data) {
+      toast.error("No se pudo generar el acta", { description: res.error });
+      return;
+    }
+    const link = document.createElement("a");
+    link.href = `data:application/pdf;base64,${res.data.base64}`;
+    link.download = res.data.fileName;
+    link.click();
+    toast.success("Acta Administrativa generada");
+  };
 
   const isRecognition = incident.category === "reconocimiento";
 
@@ -119,7 +151,8 @@ export function IncidentEvidenceModal({
               <Button
                 size="sm"
                 variant="outline"
-                onClick={() => toast.info("Abriendo visor de evidencia...")}
+                onClick={handleOpenEvidence}
+                disabled={isBusy}
                 className="font-bold gap-1 shrink-0 cursor-pointer"
               >
                 <ExternalLink className="size-3" />
@@ -131,6 +164,23 @@ export function IncidentEvidenceModal({
               Sin documento adjunto adicional
             </div>
           )}
+
+          {/* Respuesta del trabajador */}
+          <div className="p-3.5 rounded-2xl border border-border/60 bg-card space-y-1.5">
+            <span className="text-[10px] font-bold text-muted-foreground uppercase block">
+              Respuesta del trabajador
+            </span>
+            <p className="font-medium text-foreground">
+              {incident.notifiedAt ? `Notificado el ${incident.notifiedAt}.` : "Aún sin notificar en su portal."}{" "}
+              {incident.acknowledgedAt ? `Enterado el ${incident.acknowledgedAt}.` : "Sin acuse de enterado."}
+            </p>
+            {incident.employeeStatement && (
+              <p className="text-foreground">
+                <strong>Descargo{incident.employeeStatementAt ? ` (${incident.employeeStatementAt})` : ""}:</strong>{" "}
+                {incident.employeeStatement}
+              </p>
+            )}
+          </div>
         </div>
 
         <DialogFooter className="flex flex-col-reverse sm:flex-row gap-2 pt-3 border-t border-border/40">
@@ -143,6 +193,20 @@ export function IncidentEvidenceModal({
           >
             Cerrar
           </Button>
+
+          {!isRecognition && (
+            <Button
+              type="button"
+              variant="outline"
+              onClick={handleDownloadActa}
+              disabled={isBusy}
+              size="sm"
+              className="font-bold gap-1 cursor-pointer"
+            >
+              <Download className="size-3.5" />
+              <span>Acta Administrativa (PDF)</span>
+            </Button>
+          )}
 
           {incident.status === "pendiente" && !isRecognition && (
             <>

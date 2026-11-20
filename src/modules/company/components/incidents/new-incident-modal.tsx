@@ -36,8 +36,17 @@ import {
 } from "@/components/ui/select";
 import { toast } from "sonner";
 import { getMexicoDateISO } from "@/lib/formatters";
-import { LaborIncident, IncidentCategory, IncidentSeverity } from "../../types/incidents";
-import { createIncidentAction } from "../../actions/incidents";
+import { createClient as createBrowserSupabaseClient } from "@/lib/supabase/client";
+import {
+  LaborIncident,
+  IncidentCategory,
+  IncidentSeverity,
+  INCIDENT_EVIDENCE_BUCKET,
+} from "../../types/incidents";
+import {
+  createIncidentAction,
+  prepareIncidentEvidenceUploadAction,
+} from "../../actions/incidents";
 
 export interface EmployeeRosterOption {
   id: string;
@@ -109,11 +118,24 @@ export function NewIncidentModal({
     try {
       let evidenceUrl: string | undefined = undefined;
       if (evidenceFile) {
-        evidenceUrl = await new Promise<string>((resolve) => {
-          const reader = new FileReader();
-          reader.onload = () => resolve(reader.result as string);
-          reader.readAsDataURL(evidenceFile);
+        const target = await prepareIncidentEvidenceUploadAction({
+          fileName: evidenceFile.name,
+          mimeType: evidenceFile.type,
+          size: evidenceFile.size,
         });
+        if (!target.success || !target.data) {
+          toast.error("No se pudo adjuntar la evidencia", { description: target.error });
+          return;
+        }
+
+        const { error: uploadError } = await createBrowserSupabaseClient()
+          .storage.from(INCIDENT_EVIDENCE_BUCKET)
+          .uploadToSignedUrl(target.data.path, target.data.token, evidenceFile);
+        if (uploadError) {
+          toast.error("No se pudo subir la evidencia", { description: uploadError.message });
+          return;
+        }
+        evidenceUrl = target.data.path;
       }
 
       const res = await createIncidentAction({

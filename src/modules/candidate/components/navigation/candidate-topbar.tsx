@@ -30,6 +30,7 @@ const routeNames: Record<string, string> = {
   "/dashboard/candidate/documents": "Mis Documentos",
   "/dashboard/candidate/contracts": "Mis Contratos",
   "/dashboard/candidate/leaves": "Vacaciones & Permisos",
+  "/dashboard/candidate/incidents": "Mis Incidencias",
   "/dashboard/candidate/profile": "Mi Perfil Profesional",
   "/dashboard/candidate/profile/edit": "Editar Perfil",
   "/dashboard/candidate/profile/cv": "Mi CV Digital",

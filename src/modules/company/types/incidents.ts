@@ -1,3 +1,5 @@
+export const INCIDENT_EVIDENCE_BUCKET = "incident_evidence";
+
 export type IncidentCategory =
   | "falta_injustificada"
   | "retardo"
@@ -37,4 +39,10 @@ export interface LaborIncident {
   status: IncidentStatus;
   resolutionNotes?: string;
   createdAt: string;
+
+  // Respuesta del trabajador (portal del colaborador)
+  notifiedAt?: string;
+  acknowledgedAt?: string;
+  employeeStatement?: string;
+  employeeStatementAt?: string;
 }

@@ -21,6 +21,17 @@ import type {
   StampPayrollItemInput,
 } from "../schemas/payroll.schema";
 import { PacStampingService } from "./pac-stamping-service";
+import {
+  SupabaseIncidentsRepository,
+  type IncidentsRepository,
+  type IncidentRow,
+} from "../repositories/incidents.repository";
+import {
+  calculateIncidentsPayrollImpact,
+  filterPayrollEligibleIncidents,
+  parsePayrollImpactConfig,
+} from "../strategies/incident-payroll-impact.strategy";
+import type { IncidentCategory } from "../types/incidents";
 
 export type PayrollRow = Database["public"]["Tables"]["company_payrolls"]["Row"];
 export type PayrollInsert = Database["public"]["Tables"]["company_payrolls"]["Insert"];
@@ -34,7 +45,15 @@ export interface CompanyPayrollDataResult {
 }
 
 export class CompanyPayrollService {
-  constructor(private readonly supabase: SupabaseClient<Database>) {}
+  private readonly incidentsRepository: IncidentsRepository;
+
+  constructor(
+    private readonly supabase: SupabaseClient<Database>,
+    incidentsRepository?: IncidentsRepository
+  ) {
+    this.incidentsRepository =
+      incidentsRepository ?? new SupabaseIncidentsRepository(supabase);
+  }
 
   /**
    * Obtiene la pre-nómina en tiempo real calculada con colaboradores reales de Supabase,
@@ -55,10 +74,11 @@ export class CompanyPayrollService {
       employeesRes,
       savedPayrollRes,
       attendanceRes,
+      periodIncidents,
     ] = await Promise.all([
       this.supabase
         .from("company_profiles")
-        .select("id, company_name, legal_name, rfc")
+        .select("id, company_name, legal_name, rfc, payroll_impact_config")
         .eq("id", companyId)
         .maybeSingle(),
       this.supabase
@@ -100,7 +120,21 @@ export class CompanyPayrollService {
         .eq("company_id", companyId)
         .gte("work_date", periodInfo.startDate)
         .lte("work_date", periodInfo.endDate),
+      this.incidentsRepository.listByPeriod(
+        companyId,
+        periodInfo.startDate,
+        periodInfo.endDate
+      ),
     ]);
+
+    const impactConfig = parsePayrollImpactConfig(companyRes.data?.payroll_impact_config);
+    const incidentsByEmp = new Map<string, IncidentRow[]>();
+    periodIncidents.forEach((incident) => {
+      if (!incident.employee_id) return;
+      const list = incidentsByEmp.get(incident.employee_id) || [];
+      list.push(incident);
+      incidentsByEmp.set(incident.employee_id, list);
+    });
 
     const companyName = companyRes.data?.company_name || companyRes.data?.legal_name || "Mi Empresa";
     const activeEmployees = employeesRes.data || [];
@@ -135,8 +169,20 @@ export class CompanyPayrollService {
       const baseSalaryPeriod = Math.round(isWeekly ? (monthlySalary / 30) * 7 : monthlySalary / 2);
 
       const empAtt = attendanceByEmp.get(emp.id) || [];
-      const unjustifiedAbsences = empAtt.filter((a) => a.status === "falta_injustificada").length;
+      const attendanceAbsences = empAtt.filter((a) => a.status === "falta_injustificada").length;
       const lateArrivals = empAtt.filter((a) => a.status === "retardo").length;
+
+      // Impacto de incidencias aplicadas por RH (faltas, acumulación de retardos y reconocimientos)
+      const empIncidents = filterPayrollEligibleIncidents(
+        (incidentsByEmp.get(emp.id) || []).map((i) => ({
+          ...i,
+          category: i.category as IncidentCategory,
+        })),
+        empAtt
+      );
+      const incidentImpact = calculateIncidentsPayrollImpact(empIncidents, monthlySalary, impactConfig);
+      const incidentDelays = empIncidents.filter((i) => i.category === "retardo").length;
+      const unjustifiedAbsences = attendanceAbsences + incidentImpact.absenceEquivalents;
 
       let overtimeHours = 0;
       let overtimePay = 0;
@@ -150,7 +196,7 @@ export class CompanyPayrollService {
       });
 
       const daysWorked = Math.max(0, 15 - unjustifiedAbsences);
-      const defaultPunctuality = lateArrivals === 0 ? Math.round(baseSalaryPeriod * 0.05) : 0;
+      const defaultPunctuality = lateArrivals + incidentDelays === 0 ? Math.round(baseSalaryPeriod * 0.05) : 0;
       const defaultAttendance = unjustifiedAbsences === 0 ? Math.round(baseSalaryPeriod * 0.05) : 0;
 
       const punctualityBonus = savedItem?.punctuality_bonus !== undefined && savedItem?.punctuality_bonus !== null
@@ -161,9 +207,10 @@ export class CompanyPayrollService {
         : defaultAttendance;
       const performanceBonus = savedItem?.performance_bonus !== undefined && savedItem?.performance_bonus !== null
         ? Number(savedItem.performance_bonus)
-        : 0;
+        : incidentImpact.bonus;
 
-      const absenceDeductions = calculateAbsenceDeduction(monthlySalary, unjustifiedAbsences);
+      const absenceDeductions =
+        calculateAbsenceDeduction(monthlySalary, attendanceAbsences) + incidentImpact.deduction;
       const delayDeductions = lateArrivals * 100;
       const imssDeduction = calculateIMSSWorkerShare(monthlySalary);
 

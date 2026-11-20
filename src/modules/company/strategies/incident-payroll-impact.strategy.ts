@@ -126,3 +126,44 @@ export function calculateIncidentsPayrollImpact(
     { ...NO_IMPACT }
   );
 }
+
+/** Lee payroll_impact_config (jsonb) de la empresa; valores inválidos caen al default. */
+export function parsePayrollImpactConfig(raw: unknown): PayrollImpactConfig {
+  const source = typeof raw === "object" && raw !== null ? (raw as Record<string, unknown>) : {};
+  const delays = source.delaysPerAbsence;
+  const bonusDays = source.recognitionBonusDays;
+
+  return {
+    delaysPerAbsence:
+      typeof delays === "number" && Number.isInteger(delays) && delays >= 1
+        ? delays
+        : DEFAULT_PAYROLL_IMPACT_CONFIG.delaysPerAbsence,
+    recognitionBonusDays:
+      typeof bonusDays === "number" && bonusDays >= 0
+        ? bonusDays
+        : DEFAULT_PAYROLL_IMPACT_CONFIG.recognitionBonusDays,
+  };
+}
+
+export interface EligibleIncidentCandidate extends PayrollImpactIncident {
+  incident_date: string;
+}
+
+/**
+ * Incidencias que ya pueden afectar la nómina: las "aprobado" (aplicadas por RH) y los
+ * reconocimientos "resuelto". Se omiten las que ya cuentan vía asistencia el mismo día.
+ */
+export function filterPayrollEligibleIncidents<T extends EligibleIncidentCandidate>(
+  incidents: T[],
+  attendance: Array<{ work_date: string; status: string }>
+): T[] {
+  const attendanceKeys = new Set(attendance.map((a) => `${a.status}|${a.work_date}`));
+
+  return incidents.filter((incident) => {
+    const isApplied =
+      incident.status === "aprobado" ||
+      (incident.category === "reconocimiento" && incident.status === "resuelto");
+    if (!isApplied) return false;
+    return !attendanceKeys.has(`${incident.category}|${incident.incident_date}`);
+  });
+}

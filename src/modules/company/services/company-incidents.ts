@@ -11,6 +11,7 @@ import type {
   CreateIncidentInput,
   UpdateIncidentStatusInput,
 } from "../schemas/incidents.schema";
+import { resolveEmployeeUserId } from "./employee-user-resolver";
 import {
   SupabaseIncidentsRepository,
   type IncidentsRepository,
@@ -33,6 +34,11 @@ export const CATEGORY_DEFAULT_LABELS: Record<IncidentCategory, string> = {
   incapacidad: "Incapacidad Médica (IMSS)",
   otro: "Otra Incidencia",
 };
+
+/** Distingue rutas de Storage de URLs http o data URIs heredadas. */
+export function isStorageEvidencePath(value: string | null | undefined): value is string {
+  return Boolean(value) && !/^(data:|https?:)/i.test(value as string);
+}
 
 export class CompanyIncidentsService {
   private readonly repository: IncidentsRepository;
@@ -57,11 +63,12 @@ export class CompanyIncidentsService {
     let finalDepartment = input.department?.trim() || "Operaciones";
     let avatarUrl: string | null = null;
     let validEmployeeId: string | null = null;
+    let employeeContact: { employee_id?: string | null; email?: string | null } | null = null;
 
     if (input.employeeId && input.employeeId.trim()) {
       const { data: employee } = await this.supabase
         .from("company_employees")
-        .select("id, full_name, job_title, department, avatar_url")
+        .select("id, full_name, job_title, department, avatar_url, employee_id, email")
         .eq("id", input.employeeId)
         .eq("company_id", companyId)
         .maybeSingle();
@@ -72,7 +79,12 @@ export class CompanyIncidentsService {
         finalJobTitle = employee.job_title || finalJobTitle;
         finalDepartment = employee.department || finalDepartment;
         avatarUrl = employee.avatar_url;
+        employeeContact = { employee_id: employee.employee_id, email: employee.email };
       }
+    }
+
+    if (isStorageEvidencePath(input.evidenceUrl) && !input.evidenceUrl.startsWith(`${companyId}/`)) {
+      throw new Error("La evidencia no pertenece a tu empresa.");
     }
 
     const category = input.category;
@@ -106,8 +118,52 @@ export class CompanyIncidentsService {
     };
 
     const data = await this.repository.create(companyId, insertPayload);
+    const notifiedAt = employeeContact
+      ? await this.notifyEmployee(data, employeeContact)
+      : null;
 
-    return this.mapIncidentRow(data, avatarUrl, categoryLabel);
+    return this.mapIncidentRow(
+      notifiedAt ? { ...data, notified_at: notifiedAt } : data,
+      avatarUrl,
+      categoryLabel
+    );
+  }
+
+  /**
+   * Avisa al colaborador en su portal. Es de mejor esfuerzo: la incidencia ya quedó registrada.
+   */
+  private async notifyEmployee(
+    incident: IncidentRow,
+    employee: { employee_id?: string | null; email?: string | null }
+  ): Promise<string | null> {
+    try {
+      const userId = await resolveEmployeeUserId(this.supabase, employee);
+      if (!userId) {
+        return null;
+      }
+
+      const isRecognition = incident.category === "reconocimiento";
+      const { error } = await this.supabase.from("notifications").insert({
+        user_id: userId,
+        title: isRecognition
+          ? "¡Recibiste un reconocimiento!"
+          : "Nueva incidencia en tu expediente",
+        description: isRecognition
+          ? `${incident.title}. Consúltalo en tu portal.`
+          : `${incident.category_label || "Incidencia"}: ${incident.title}. Revísala y, si lo deseas, registra tu descargo.`,
+        type: "incident_notified",
+      });
+      if (error) {
+        throw new Error(error.message);
+      }
+
+      const notifiedAt = `${getMexicoDateISO()}T12:00:00.000Z`;
+      await this.repository.markNotified(incident.company_id, incident.id, notifiedAt);
+      return notifiedAt;
+    } catch (error) {
+      console.error("Error notifying employee of incident:", error);
+      return null;
+    }
   }
 
   async updateIncidentStatus(
@@ -188,6 +244,12 @@ export class CompanyIncidentsService {
       status: row.status as IncidentStatus,
       resolutionNotes: row.resolution_notes || undefined,
       createdAt: formatMexicoDateShort(row.created_at),
+      notifiedAt: row.notified_at ? formatMexicoDateShort(row.notified_at) : undefined,
+      acknowledgedAt: row.acknowledged_at ? formatMexicoDateShort(row.acknowledged_at) : undefined,
+      employeeStatement: row.employee_statement || undefined,
+      employeeStatementAt: row.employee_statement_at
+        ? formatMexicoDateShort(row.employee_statement_at)
+        : undefined,
     };
   }
 }
