@@ -1,11 +1,21 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@/types/supabase";
+import { getMexicoDateISO } from "@/lib/formatters";
 import { calculateWorkingDays } from "../utils/vacation-calculator";
 import { VacationRequestType } from "../types/employee-dossier";
 import type {
   RespondToLeaveRequestInput,
   CreateCompanyLeaveInput,
 } from "../schemas/leaves.schema";
+import {
+  SupabaseLeavesRepository,
+  type LeavesRepository,
+  type CompanyLeaveRow,
+  type CompanyLeaveInsert,
+  type CompanyLeaveUpdate,
+} from "../repositories/leaves.repository";
+
+export type { CompanyLeaveRow, CompanyLeaveInsert, CompanyLeaveUpdate };
 
 export const LEAVE_TYPE_LABELS: Record<VacationRequestType, string> = {
   vacaciones: "Vacaciones LFT",
@@ -15,10 +25,6 @@ export const LEAVE_TYPE_LABELS: Record<VacationRequestType, string> = {
   maternidad: "Incapacidad por Maternidad",
   luto: "Permiso por Luto",
 };
-
-export type CompanyLeaveRow = Database["public"]["Tables"]["company_leaves"]["Row"];
-export type CompanyLeaveInsert = Database["public"]["Tables"]["company_leaves"]["Insert"];
-export type CompanyLeaveUpdate = Database["public"]["Tables"]["company_leaves"]["Update"];
 
 export interface RespondToLeaveResult {
   message: string;
@@ -33,7 +39,14 @@ export interface CreateCompanyLeaveResult {
 }
 
 export class CompanyLeavesService {
-  constructor(private readonly supabase: SupabaseClient<Database>) {}
+  private readonly repository: LeavesRepository;
+
+  constructor(
+    private readonly supabase: SupabaseClient<Database>,
+    repository?: LeavesRepository
+  ) {
+    this.repository = repository ?? new SupabaseLeavesRepository(supabase);
+  }
 
   async respondToLeaveRequest(
     companyId: string,
@@ -43,48 +56,29 @@ export class CompanyLeavesService {
       throw new Error("ID de empresa requerido.");
     }
 
-    const { data: leave, error: fetchErr } = await this.supabase
-      .from("company_leaves")
-      .select(`
-        id,
-        company_id,
-        employee_id,
-        candidate_id,
-        request_type,
-        start_date,
-        end_date,
-        total_working_days
-      `)
-      .eq("id", input.requestId)
-      .eq("company_id", companyId)
-      .single();
-
-    if (fetchErr || !leave) {
-      throw new Error("No se encontró la solicitud de vacaciones o no pertenece a tu empresa.");
-    }
-
-    const now = new Date().toISOString();
+    const now = `${getMexicoDateISO()}T12:00:00.000Z`;
     const updatePayload: CompanyLeaveUpdate = {
       status: input.decision,
       reviewed_at: now,
       reviewed_by: "Recursos Humanos",
-      rejection_reason: input.decision === "rechazada" ? input.rejectionReason?.trim() || null : null,
+      rejection_reason:
+        input.decision === "rechazada"
+          ? input.rejectionReason?.trim() || null
+          : null,
       updated_at: now,
     };
 
-    const { data: updatedLeave, error: updateErr } = await this.supabase
-      .from("company_leaves")
-      .update(updatePayload)
-      .eq("id", input.requestId)
-      .eq("company_id", companyId)
-      .select()
-      .single();
+    const updatedLeave = await this.repository.respond(
+      companyId,
+      input.requestId,
+      updatePayload
+    );
 
-    if (updateErr || !updatedLeave) {
-      throw new Error(updateErr?.message || "Error al registrar la resolución en la base de datos.");
-    }
-
-    await this.notifyEmployeeOfResolution(leave, input.decision, input.rejectionReason);
+    await this.notifyEmployeeOfResolution(
+      updatedLeave,
+      input.decision,
+      input.rejectionReason
+    );
 
     const message =
       input.decision === "aprobada"
@@ -118,7 +112,7 @@ export class CompanyLeavesService {
       throw new Error("El colaborador no pertenece a tu plantilla.");
     }
 
-    const now = new Date().toISOString();
+    const now = `${getMexicoDateISO()}T12:00:00.000Z`;
     const payload: CompanyLeaveInsert = {
       company_id: companyId,
       employee_id: emp.id,
@@ -133,15 +127,7 @@ export class CompanyLeavesService {
       reviewed_by: "Recursos Humanos",
     };
 
-    const { data: inserted, error: insertErr } = await this.supabase
-      .from("company_leaves")
-      .insert(payload)
-      .select()
-      .single();
-
-    if (insertErr || !inserted) {
-      throw new Error(insertErr?.message || "No se pudo registrar la solicitud.");
-    }
+    const inserted = await this.repository.create(companyId, payload);
 
     const label = LEAVE_TYPE_LABELS[input.requestType] || "Permiso";
     const message = `Permiso de ${label} registrado y aprobado exitosamente (${workingDays} días hábiles).`;
@@ -195,7 +181,9 @@ export class CompanyLeavesService {
 
     try {
       const isApproved = decision === "aprobada";
-      const typeLabel = LEAVE_TYPE_LABELS[leave.request_type as VacationRequestType] || "Vacaciones";
+      const typeLabel =
+        LEAVE_TYPE_LABELS[leave.request_type as VacationRequestType] ||
+        "Vacaciones";
 
       await this.supabase.from("notifications").insert({
         user_id: targetUserId,

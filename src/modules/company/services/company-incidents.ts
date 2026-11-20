@@ -1,6 +1,6 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@/types/supabase";
-import { getMexicoDateISO } from "@/lib/formatters";
+import { getMexicoDateISO, formatMexicoDateShort } from "@/lib/formatters";
 import {
   LaborIncident,
   IncidentCategory,
@@ -11,6 +11,15 @@ import type {
   CreateIncidentInput,
   UpdateIncidentStatusInput,
 } from "../schemas/incidents.schema";
+import {
+  SupabaseIncidentsRepository,
+  type IncidentsRepository,
+  type IncidentRow,
+  type IncidentInsert,
+  type IncidentUpdate,
+} from "../repositories/incidents.repository";
+
+export type { IncidentRow, IncidentInsert, IncidentUpdate };
 
 export const CATEGORY_DEFAULT_LABELS: Record<IncidentCategory, string> = {
   falta_injustificada: "Falta Injustificada",
@@ -25,12 +34,15 @@ export const CATEGORY_DEFAULT_LABELS: Record<IncidentCategory, string> = {
   otro: "Otra Incidencia",
 };
 
-export type IncidentRow = Database["public"]["Tables"]["company_incidents"]["Row"];
-export type IncidentInsert = Database["public"]["Tables"]["company_incidents"]["Insert"];
-export type IncidentUpdate = Database["public"]["Tables"]["company_incidents"]["Update"];
-
 export class CompanyIncidentsService {
-  constructor(private readonly supabase: SupabaseClient<Database>) {}
+  private readonly repository: IncidentsRepository;
+
+  constructor(
+    private readonly supabase: SupabaseClient<Database>,
+    repository?: IncidentsRepository
+  ) {
+    this.repository = repository ?? new SupabaseIncidentsRepository(supabase);
+  }
 
   async createIncident(
     companyId: string,
@@ -65,10 +77,13 @@ export class CompanyIncidentsService {
 
     const category = input.category;
     const categoryLabel =
-      input.categoryLabel?.trim() || CATEGORY_DEFAULT_LABELS[category] || "Incidencia Laboral";
+      input.categoryLabel?.trim() ||
+      CATEGORY_DEFAULT_LABELS[category] ||
+      "Incidencia Laboral";
     const incidentDate = input.incidentDate || getMexicoDateISO();
     const severity = input.severity || "media";
-    const status = input.status || (category === "reconocimiento" ? "resuelto" : "pendiente");
+    const status =
+      input.status || (category === "reconocimiento" ? "resuelto" : "pendiente");
 
     const insertPayload: IncidentInsert = {
       company_id: companyId,
@@ -82,22 +97,15 @@ export class CompanyIncidentsService {
       description: input.description.trim(),
       incident_date: incidentDate,
       severity,
-      responsible_supervisor: input.responsibleSupervisor?.trim() || "Recursos Humanos",
+      responsible_supervisor:
+        input.responsibleSupervisor?.trim() || "Recursos Humanos",
       evidence_url: input.evidenceUrl || null,
       evidence_file_name: input.evidenceFileName || null,
       evidence_type: input.evidenceType || null,
       status,
     };
 
-    const { data, error } = await this.supabase
-      .from("company_incidents")
-      .insert(insertPayload)
-      .select()
-      .single();
-
-    if (error || !data) {
-      throw new Error(error?.message || "Error al crear la incidencia laboral.");
-    }
+    const data = await this.repository.create(companyId, insertPayload);
 
     return this.mapIncidentRow(data, avatarUrl, categoryLabel);
   }
@@ -113,22 +121,14 @@ export class CompanyIncidentsService {
     const updatePayload: IncidentUpdate = {
       status: input.status,
       resolution_notes: input.resolutionNotes?.trim() || null,
-      updated_at: new Date().toISOString(),
+      updated_at: `${getMexicoDateISO()}T12:00:00.000Z`,
     };
 
-    const { data, error } = await this.supabase
-      .from("company_incidents")
-      .update(updatePayload)
-      .eq("id", input.incidentId)
-      .eq("company_id", companyId)
-      .select()
-      .single();
-
-    if (error || !data) {
-      throw new Error("Incidencia no encontrada o no autorizada.");
-    }
-
-    return data;
+    return this.repository.updateStatus(
+      companyId,
+      input.incidentId,
+      updatePayload
+    );
   }
 
   async deleteIncident(companyId: string, incidentId: string): Promise<void> {
@@ -136,19 +136,7 @@ export class CompanyIncidentsService {
       throw new Error("ID de empresa requerido.");
     }
 
-    const { error, count } = await this.supabase
-      .from("company_incidents")
-      .delete({ count: "exact" })
-      .eq("id", incidentId)
-      .eq("company_id", companyId);
-
-    if (error) {
-      throw new Error(error.message);
-    }
-
-    if (count === 0) {
-      throw new Error("Incidencia no encontrada o no autorizada.");
-    }
+    await this.repository.delete(companyId, incidentId);
   }
 
   async getCompanyIncidents(companyId: string): Promise<LaborIncident[]> {
@@ -156,30 +144,21 @@ export class CompanyIncidentsService {
       return [];
     }
 
-    const { data, error } = await this.supabase
-      .from("company_incidents")
-      .select(`
-        *,
-        company_employees (
-          avatar_url
-        )
-      `)
-      .eq("company_id", companyId)
-      .order("incident_date", { ascending: false })
-      .order("created_at", { ascending: false });
+    const data = await this.repository.listByCompany(companyId);
 
-    if (error) {
-      throw new Error(error.message);
-    }
-
-    return (data || []).map((row) => {
+    return data.map((row) => {
       const emp = Array.isArray(row.company_employees)
         ? row.company_employees[0]
         : row.company_employees;
       const avatarUrl = emp?.avatar_url || null;
       const defaultCategoryLabel =
-        CATEGORY_DEFAULT_LABELS[row.category as IncidentCategory] || "Incidencia Laboral";
-      return this.mapIncidentRow(row, avatarUrl, row.category_label || defaultCategoryLabel);
+        CATEGORY_DEFAULT_LABELS[row.category as IncidentCategory] ||
+        "Incidencia Laboral";
+      return this.mapIncidentRow(
+        row,
+        avatarUrl,
+        row.category_label || defaultCategoryLabel
+      );
     });
   }
 
@@ -203,15 +182,12 @@ export class CompanyIncidentsService {
       severity: row.severity as IncidentSeverity,
       evidenceUrl: row.evidence_url || undefined,
       evidenceFileName: row.evidence_file_name || undefined,
-      evidenceType: (row.evidence_type as LaborIncident["evidenceType"]) || undefined,
+      evidenceType:
+        (row.evidence_type as LaborIncident["evidenceType"]) || undefined,
       responsibleSupervisor: row.responsible_supervisor || "Recursos Humanos",
       status: row.status as IncidentStatus,
       resolutionNotes: row.resolution_notes || undefined,
-      createdAt: new Date(row.created_at).toLocaleDateString("es-MX", {
-        day: "2-digit",
-        month: "short",
-        year: "numeric",
-      }),
+      createdAt: formatMexicoDateShort(row.created_at),
     };
   }
 }

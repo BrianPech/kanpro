@@ -179,8 +179,8 @@ export function getModulesForPhase(phase: 1 | 2 | 3 | 4): CompanyModuleKey[] {
 }
 
 export const DEFAULT_DEMO_ROLLOUT: DemoRolloutConfig = {
-  activePhase: 1,
-  enabledModules: getModulesForPhase(1),
+  activePhase: 2,
+  enabledModules: getModulesForPhase(2),
 };
 
 export function normalizeDemoRollout(raw: unknown): DemoRolloutConfig {
