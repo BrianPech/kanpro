@@ -40,9 +40,11 @@ Documento maestro de seguimiento técnico y funcional para las áreas del **Mód
 
 ## 2. ⚠️ Incidencias Laborales y Disciplinarias
 
-### Situación Actual
-- Tabla de incidencias con severidad (`baja`, `media`, `alta`, `critica`) y categorías predeterminadas.
-- Registro administrativo desde el panel de empresa.
+### Situación Actual (Completado — Semana 2)
+- Repositorio `IncidentsRepository` (`SupabaseIncidentsRepository`) con aislamiento multi-tenant y cliente autenticado RLS.
+- Estrategia `IncidentPayrollImpactStrategy` cableada en `CompanyPayrollService` (faltas injustificadas, acumulación configurable de retardos default 3 = 1 falta, bonos de reconocimiento) con `company_profiles.payroll_impact_config` (`20261120230100`).
+- Portal del colaborador (`/dashboard/candidate/incidents`) con notificación in-app, acuse de enterado y descargo vía RPC `employee_respond_to_incident`.
+- Evidencias en bucket privado `incident_evidence` con URLs firmadas y generador de Acta Administrativa PDF descargable.
 
 ### Tareas Pendientes (TO-DO)
 - [x] **Flujo de Notificación y Aceptación:**
@@ -59,9 +61,11 @@ Documento maestro de seguimiento técnico y funcional para las áreas del **Mód
 
 ## 3. 🏖️ Vacaciones y Permisos (LFT)
 
-### Situación Actual
-- Formulario de solicitud y tabla de aprobaciones/rechazos.
-- Utilidad preliminar para cálculo de días hábiles conforme al Art. 76 de la LFT (reforma vacaciones dignas).
+### Situación Actual (Completado — Semana 2)
+- Repositorio `LeavesRepository` (`SupabaseLeavesRepository`), `VacationPolicyStrategy` (`LftVacationPolicy` Art. 76 LFT), `LeaveApprovalStrategy` (`SingleStepApproval` / `TwoStepApproval` con `visto_bueno`) y `LeaveOverlapService` (`20261120230000`, `20261120230500`).
+- Vista corporativa por área con detección de solapamientos, políticas especiales (`dias_economicos`, `matrimonio`, `paternidad`, `maternidad`, `luto`), prima vacacional automática (25% Art. 80 LFT) y vencimientos (Art. 81 / 516 LFT).
+- Portal de autoservicio del colaborador y generador de Constancia Oficial de Disfrute de Vacaciones en PDF.
+- Pendiente menor: el tipo específico `estudio` no tiene categoría dedicada (se cubre vía `permiso_con_goce` o `dias_economicos`) y la vista de calendario corporativo es por agrupación de ausencias por área (no grilla mensual/semanal).
 
 ### Tareas Pendientes (TO-DO)
 - [x] **Calendario Corporativo de Ausencias:**
