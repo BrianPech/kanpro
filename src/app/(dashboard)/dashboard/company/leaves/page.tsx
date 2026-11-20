@@ -28,6 +28,7 @@ export default async function CompanyLeavesPage() {
     <CompanyLeavesView
       initialRequests={data.requests}
       companyName={data.companyName}
+      initialApprovalMode={data.approvalMode}
       stats={data.stats}
       employees={data.employees}
     />

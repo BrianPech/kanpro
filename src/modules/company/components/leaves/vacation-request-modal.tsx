@@ -103,6 +103,13 @@ export function VacationRequestModal({
         reason,
       });
 
+      if (!res.success) {
+        toast.error("No se pudo registrar el permiso", {
+          description: res.error,
+        });
+        return;
+      }
+
       toast.success("Permiso registrado con éxito", {
         description: res.message,
       });
@@ -112,13 +119,15 @@ export function VacationRequestModal({
           vacaciones: "Vacaciones LFT",
           permiso_con_goce: "Permiso con Goce de Sueldo",
           permiso_sin_goce: "Permiso sin Goce de Sueldo",
+          dias_economicos: "Días Económicos",
+          matrimonio: "Permiso por Matrimonio",
           paternidad: "Permiso por Paternidad",
           maternidad: "Incapacidad por Maternidad",
           luto: "Permiso por Luto",
         };
 
         const newReq: VacationRequest = {
-          id: res.leaveId || `vreq-${Date.now()}`,
+          id: res.leaveId || `vreq-${getMexicoDateISO()}`,
           employeeId: empId,
           employeeName: selectedEmp?.fullName || "Empleado",
           department: selectedEmp?.department || "Operaciones",
@@ -137,8 +146,9 @@ export function VacationRequestModal({
       }
 
       onOpenChange(false);
-    } catch (err: any) {
-      toast.error(err?.message || "Error al registrar la solicitud.");
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : "Error al registrar la solicitud.";
+      toast.error(msg);
     } finally {
       setIsSubmitting(false);
     }
@@ -200,21 +210,25 @@ export function VacationRequestModal({
                   <SelectValue>
                     {({
                       vacaciones: "Vacaciones Ordinarias (LFT Art. 76)",
+                      dias_economicos: "Días Económicos (máx. 3 días)",
+                      matrimonio: "Permiso por Matrimonio (máx. 5 días)",
+                      paternidad: "Permiso de Paternidad (5 días LFT)",
+                      maternidad: "Incapacidad por Maternidad (84 días LFT/IMSS)",
+                      luto: "Permiso por Duelo / Luto (máx. 5 días)",
                       permiso_con_goce: "Permiso con Goce de Sueldo",
                       permiso_sin_goce: "Permiso sin Goce de Sueldo",
-                      paternidad: "Permiso de Paternidad (LFT)",
-                      maternidad: "Incapacidad por Maternidad (LFT/IMSS)",
-                      luto: "Permiso por Duelo / Luto",
                     } as Record<string, string>)[requestType] || requestType}
                   </SelectValue>
                 </SelectTrigger>
                 <SelectContent alignItemWithTrigger={false} side="bottom" sideOffset={4} className="w-(--anchor-width) min-w-[260px] rounded-xl">
                   <SelectItem value="vacaciones">Vacaciones Ordinarias (LFT Art. 76)</SelectItem>
+                  <SelectItem value="dias_economicos">Días Económicos (máx. 3 días)</SelectItem>
+                  <SelectItem value="matrimonio">Permiso por Matrimonio (máx. 5 días)</SelectItem>
+                  <SelectItem value="paternidad">Permiso de Paternidad (5 días LFT)</SelectItem>
+                  <SelectItem value="maternidad">Incapacidad por Maternidad (84 días LFT/IMSS)</SelectItem>
+                  <SelectItem value="luto">Permiso por Duelo / Luto (máx. 5 días)</SelectItem>
                   <SelectItem value="permiso_con_goce">Permiso con Goce de Sueldo</SelectItem>
                   <SelectItem value="permiso_sin_goce">Permiso sin Goce de Sueldo</SelectItem>
-                  <SelectItem value="paternidad">Permiso de Paternidad (LFT)</SelectItem>
-                  <SelectItem value="maternidad">Incapacidad por Maternidad (LFT/IMSS)</SelectItem>
-                  <SelectItem value="luto">Permiso por Duelo / Luto</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -230,7 +244,7 @@ export function VacationRequestModal({
                   value={startDate}
                   onChange={(e) => {
                     setStartDate(e.target.value);
-                    if (new Date(e.target.value) > new Date(endDate)) {
+                    if (e.target.value > endDate) {
                       setEndDate(e.target.value);
                     }
                   }}

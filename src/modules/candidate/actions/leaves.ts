@@ -7,12 +7,7 @@ import {
   type SubmitCandidateLeaveRequestInput,
 } from "../schemas/leaves.schema";
 import { CandidateLeavesService } from "../services/candidate-leaves";
-
-interface ActionResponse<T> {
-  success: boolean;
-  data?: T;
-  error?: string;
-}
+import { LeaveCertificateService } from "@/modules/company/services/leave-certificate.service";
 
 type SubmitCandidateLeaveActionResult =
   | {
@@ -72,11 +67,46 @@ export async function submitCandidateLeaveRequestAction(
       leaveId: result.leaveId,
       message: result.message,
     };
-  } catch (err: unknown) {
-    const message =
-      err instanceof Error
-        ? err.message
-        : "Error al enviar la solicitud de permiso.";
-    return { success: false, error: message };
+  } catch (error) {
+    const errorMsg =
+      error instanceof Error
+        ? error.message
+        : "Ocurrió un error inesperado al procesar la solicitud.";
+    return { success: false, error: errorMsg };
+  }
+}
+
+/**
+ * Server Action: Candidate / Employee downloads their official Constancia de Disfrute de Vacaciones PDF.
+ */
+export async function generateCandidateLeaveCertificateAction(
+  requestId: string
+): Promise<{ success: boolean; data?: { fileName: string; base64: string }; error?: string }> {
+  if (!requestId || !requestId.trim()) {
+    return { success: false, error: "El ID de la solicitud es requerido." };
+  }
+
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    return { success: false, error: "No autorizado. Inicie sesión para continuar." };
+  }
+
+  try {
+    const { fileName, pdf } = await new LeaveCertificateService(supabase).generateForCandidate(
+      user.id,
+      requestId
+    );
+    return {
+      success: true,
+      data: { fileName, base64: Buffer.from(pdf).toString("base64") },
+    };
+  } catch (error) {
+    const errorMsg =
+      error instanceof Error ? error.message : "No se pudo generar la constancia.";
+    return { success: false, error: errorMsg };
   }
 }

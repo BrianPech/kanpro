@@ -9,8 +9,8 @@ Documento maestro de seguimiento técnico y funcional para las áreas del **Mód
 | Módulo / Área | Estado Actual | Prioridad Sugerida | Dependencias Clave |
 | :--- | :---: | :---: | :--- |
 | **1. Evaluaciones 360 & Desempeño** | 🟡 Parcial (NOM-035 básica) | Media | Catálogo de Áreas, Organigrama |
-| **2. Incidencias Laborales** | 🟡 Parcial (CRUD base) | Alta | Portal de Empleado, Motor de Nómina |
-| **3. Vacaciones y Permisos** | 🟡 Parcial (Cálculo LFT básico) | Alta | Catálogo de Turnos, Calendario |
+| **2. Incidencias Laborales** | 🟢 Completado (Repository + Strategy + Portal/PDF/Nómina) | Alta | Portal de Empleado, Motor de Nómina |
+| **3. Vacaciones y Permisos** | 🟢 Completado (Repository + Strategy + Calendario/PDF) | Alta | Catálogo de Turnos, Calendario |
 | **4. Asistencias y Checador** | 🟡 Parcial (Geocercas base) | Alta | App Móvil / Kiosco, Geocercas |
 | **5. Nómina y Pagos** | 🟡 Parcial (Pre-nómina e ISR) | Crítica | Incidencias, Asistencias, PAC/SAT |
 | **6. Centro de Reportes** | 🟡 Parcial (CSV básico) | Media | Métricas consolidadas, PDF Engine |
@@ -45,15 +45,15 @@ Documento maestro de seguimiento técnico y funcional para las áreas del **Mód
 - Registro administrativo desde el panel de empresa.
 
 ### Tareas Pendientes (TO-DO)
-- [ ] **Flujo de Notificación y Aceptación:**
-  - [ ] Notificación automática en el portal del colaborador cuando se levante una incidencia o reconocimiento.
-  - [ ] Sistema de descargo o comentarios por parte del trabajador antes del cierre del acta.
-- [ ] **Evidencias y Documentos Oficiales:**
-  - [ ] Carga de adjuntos en Supabase Storage (recetas médicas, formatos ST-7 de accidentes de trabajo del IMSS, actas firmadas).
-  - [ ] Generador de Acta Administrativa en PDF con formato legal LFT listo para firma digital o física.
-- [ ] **Impacto Automático en Nómina y Asistencia:**
-  - [ ] Conexión en tiempo real con pre-nómina para deducción de faltas injustificadas y suspensiones.
-  - [ ] Regla de negocio para acumulación de retardos (ej. 3 retardos = 1 falta injustificada configurable por empresa).
+- [x] **Flujo de Notificación y Aceptación:**
+  - [x] Notificación automática en el portal del colaborador cuando se levante una incidencia o reconocimiento.
+  - [x] Sistema de descargo o comentarios por parte del trabajador antes del cierre del acta.
+- [x] **Evidencias y Documentos Oficiales:**
+  - [x] Carga de adjuntos en Supabase Storage (recetas médicas, formatos ST-7 de accidentes de trabajo del IMSS, actas firmadas).
+  - [x] Generador de Acta Administrativa en PDF con formato legal LFT listo para firma digital o física.
+- [x] **Impacto Automático en Nómina y Asistencia:**
+  - [x] Conexión en tiempo real con pre-nómina para deducción de faltas injustificadas y suspensiones.
+  - [x] Regla de negocio para acumulación de retardos (ej. 3 retardos = 1 falta injustificada configurable por empresa).
 
 ---
 
@@ -64,16 +64,16 @@ Documento maestro de seguimiento técnico y funcional para las áreas del **Mód
 - Utilidad preliminar para cálculo de días hábiles conforme al Art. 76 de la LFT (reforma vacaciones dignas).
 
 ### Tareas Pendientes (TO-DO)
-- [ ] **Calendario Corporativo de Ausencias:**
-  - [ ] Vista interactiva en formato Calendario (semanal / mensual) filtrable por Área o Departamento.
-  - [ ] Detección y advertencia de solapamiento de ausencias en puestos críticos de la misma área.
-- [ ] **Portal de Autoservicio del Empleado:**
-  - [ ] Solicitud de vacaciones directamente desde el perfil del colaborador con visualizador de saldo disponible vs. devengado.
-  - [ ] Flujo de aprobación en dos pasos: Vo.Bo. del Líder de Área ➔ Aprobación final de Recursos Humanos.
-- [ ] **Políticas y Saldos:**
-  - [ ] Gestión de días económicos o permisos especiales (matrimonio, paternidad, luto, estudio).
-  - [ ] Cálculo automático de prima vacacional acumulada y fechas de vencimiento de periodo vacacional.
-  - [ ] Generación de Constancia Oficial de Disfrute de Vacaciones con acuse de firma del trabajador.
+- [x] **Calendario Corporativo de Ausencias:**
+  - [x] Vista interactiva en formato Calendario (semanal / mensual) filtrable por Área o Departamento.
+  - [x] Detección y advertencia de solapamiento de ausencias en puestos críticos de la misma área.
+- [x] **Portal de Autoservicio del Empleado:**
+  - [x] Solicitud de vacaciones directamente desde el perfil del colaborador con visualizador de saldo disponible vs. devengado.
+  - [x] Flujo de aprobación en dos pasos: Vo.Bo. del Líder de Área ➔ Aprobación final de Recursos Humanos.
+- [x] **Políticas y Saldos:**
+  - [x] Gestión de días económicos o permisos especiales (matrimonio, paternidad, luto, estudio).
+  - [x] Cálculo automático de prima vacacional acumulada y fechas de vencimiento de periodo vacacional.
+  - [x] Generación de Constancia Oficial de Disfrute de Vacaciones con acuse de firma del trabajador.
 
 ---
 

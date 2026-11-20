@@ -10,6 +10,7 @@ export type CompanyLeaveUpdate = Database["public"]["Tables"]["company_leaves"][
  */
 export interface LeavesRepository {
   create(companyId: string, payload: CompanyLeaveInsert): Promise<CompanyLeaveRow>;
+  getById?(companyId: string, requestId: string): Promise<CompanyLeaveRow | null>;
   respond(
     companyId: string,
     requestId: string,
@@ -48,6 +49,28 @@ export class SupabaseLeavesRepository implements LeavesRepository {
 
     if (error || !data) {
       throw new Error(error?.message || "No se pudo registrar la solicitud.");
+    }
+
+    return data;
+  }
+
+  async getById(
+    companyId: string,
+    requestId: string
+  ): Promise<CompanyLeaveRow | null> {
+    if (!companyId || !requestId) {
+      return null;
+    }
+
+    const { data, error } = await this.supabase
+      .from("company_leaves")
+      .select("*")
+      .eq("id", requestId)
+      .eq("company_id", companyId)
+      .single();
+
+    if (error || !data) {
+      return null;
     }
 
     return data;

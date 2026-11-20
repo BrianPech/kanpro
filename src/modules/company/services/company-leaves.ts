@@ -1,7 +1,10 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@/types/supabase";
 import { getMexicoDateISO } from "@/lib/formatters";
-import { calculateWorkingDays } from "../utils/vacation-calculator";
+import {
+  calculateWorkingDays,
+  validateSpecialLeavePolicyDays,
+} from "../utils/vacation-calculator";
 import { VacationRequestType } from "../types/employee-dossier";
 import type {
   RespondToLeaveRequestInput,
@@ -14,6 +17,13 @@ import {
   type CompanyLeaveInsert,
   type CompanyLeaveUpdate,
 } from "../repositories/leaves.repository";
+import {
+  resolveLeaveApprovalStrategy,
+  type LeaveApprovalMode,
+  type LeaveApprovalStatus,
+  type LeaveApprovalActor,
+} from "../strategies/leave-approval.strategy";
+import { LeaveOverlapService } from "./leave-overlap.service";
 
 export type { CompanyLeaveRow, CompanyLeaveInsert, CompanyLeaveUpdate };
 
@@ -21,6 +31,8 @@ export const LEAVE_TYPE_LABELS: Record<VacationRequestType, string> = {
   vacaciones: "Vacaciones LFT",
   permiso_con_goce: "Permiso con Goce de Sueldo",
   permiso_sin_goce: "Permiso sin Goce de Sueldo",
+  dias_economicos: "Días Económicos",
+  matrimonio: "Permiso por Matrimonio",
   paternidad: "Permiso por Paternidad",
   maternidad: "Incapacidad por Maternidad",
   luto: "Permiso por Luto",
@@ -38,14 +50,45 @@ export interface CreateCompanyLeaveResult {
   leave: CompanyLeaveRow;
 }
 
+export function parseLeaveApprovalMode(raw: unknown): LeaveApprovalMode {
+  if (typeof raw === "object" && raw !== null) {
+    const mode = (raw as Record<string, unknown>).approvalMode;
+    if (mode === "two_step") {
+      return "two_step";
+    }
+  }
+  return "single_step";
+}
+
 export class CompanyLeavesService {
   private readonly repository: LeavesRepository;
+  private readonly overlapService: LeaveOverlapService;
 
   constructor(
     private readonly supabase: SupabaseClient<Database>,
-    repository?: LeavesRepository
+    repository?: LeavesRepository,
+    private readonly approvalModeOverride?: LeaveApprovalMode
   ) {
     this.repository = repository ?? new SupabaseLeavesRepository(supabase);
+    this.overlapService = new LeaveOverlapService(this.repository);
+  }
+
+  private async resolveApprovalMode(companyId: string): Promise<LeaveApprovalMode> {
+    if (this.approvalModeOverride) {
+      return this.approvalModeOverride;
+    }
+
+    try {
+      const { data } = await this.supabase
+        .from("company_profiles")
+        .select("leave_approval_config")
+        .eq("id", companyId)
+        .maybeSingle();
+
+      return parseLeaveApprovalMode(data?.leave_approval_config);
+    } catch {
+      return "single_step";
+    }
   }
 
   async respondToLeaveRequest(
@@ -56,13 +99,35 @@ export class CompanyLeavesService {
       throw new Error("ID de empresa requerido.");
     }
 
+    const mode = await this.resolveApprovalMode(companyId);
+    const strategy = resolveLeaveApprovalStrategy(mode);
+    const actor: LeaveApprovalActor = input.actor ?? "hr";
+
+    let currentStatus: LeaveApprovalStatus = "pendiente";
+    if (mode === "two_step" || input.actor) {
+      const existing = this.repository.getById
+        ? await this.repository.getById(companyId, input.requestId)
+        : null;
+      if (!existing) {
+        throw new Error(
+          "No se encontró la solicitud de vacaciones o no pertenece a tu empresa."
+        );
+      }
+      currentStatus = (existing.status as LeaveApprovalStatus) || "pendiente";
+    }
+
+    const outcome = strategy.decide(currentStatus, actor, input.decision);
+
     const now = `${getMexicoDateISO()}T12:00:00.000Z`;
+    const reviewerLabel =
+      actor === "area_leader" ? "Líder de Área (Vo.Bo.)" : "Recursos Humanos";
+
     const updatePayload: CompanyLeaveUpdate = {
-      status: input.decision,
+      status: outcome.status,
       reviewed_at: now,
-      reviewed_by: "Recursos Humanos",
+      reviewed_by: reviewerLabel,
       rejection_reason:
-        input.decision === "rechazada"
+        outcome.status === "rechazada"
           ? input.rejectionReason?.trim() || null
           : null,
       updated_at: now,
@@ -76,12 +141,14 @@ export class CompanyLeavesService {
 
     await this.notifyEmployeeOfResolution(
       updatedLeave,
-      input.decision,
+      outcome.status,
       input.rejectionReason
     );
 
     const message =
-      input.decision === "aprobada"
+      outcome.status === "visto_bueno"
+        ? "Vo.Bo. del líder de área registrado. Pendiente de aprobación final de Recursos Humanos."
+        : outcome.status === "aprobada"
         ? "Solicitud aprobada con éxito. Días descontados del saldo del colaborador."
         : "Solicitud rechazada. Se ha notificado al colaborador.";
 
@@ -101,6 +168,8 @@ export class CompanyLeavesService {
       throw new Error("El rango de fechas no contiene días hábiles.");
     }
 
+    validateSpecialLeavePolicyDays(input.requestType, workingDays);
+
     const { data: emp, error: empErr } = await this.supabase
       .from("company_employees")
       .select("id, full_name, email, employee_id")
@@ -110,6 +179,27 @@ export class CompanyLeavesService {
 
     if (empErr || !emp) {
       throw new Error("El colaborador no pertenece a tu plantilla.");
+    }
+
+    try {
+      const hasOverlap = await this.overlapService.hasOverlap(
+        companyId,
+        emp.id,
+        input.startDate,
+        input.endDate
+      );
+      if (hasOverlap) {
+        throw new Error(
+          "El colaborador ya tiene una ausencia activa o en revisión que se traslapa con las fechas seleccionadas."
+        );
+      }
+    } catch (err) {
+      if (
+        err instanceof Error &&
+        err.message.includes("traslapa con las fechas seleccionadas")
+      ) {
+        throw err;
+      }
     }
 
     const now = `${getMexicoDateISO()}T12:00:00.000Z`;
@@ -149,7 +239,7 @@ export class CompanyLeavesService {
       end_date: string;
       total_working_days: number;
     },
-    decision: "aprobada" | "rechazada",
+    status: LeaveApprovalStatus,
     rejectionReason?: string
   ): Promise<void> {
     let targetUserId = leave.candidate_id;
@@ -180,20 +270,35 @@ export class CompanyLeavesService {
     }
 
     try {
-      const isApproved = decision === "aprobada";
+      const isApproved = status === "aprobada";
+      const isVistoBueno = status === "visto_bueno";
       const typeLabel =
         LEAVE_TYPE_LABELS[leave.request_type as VacationRequestType] ||
         "Vacaciones";
 
+      const title = isApproved
+        ? `¡Solicitud de ${typeLabel} aprobada!`
+        : isVistoBueno
+        ? `Vo.Bo. otorgado a tu solicitud de ${typeLabel}`
+        : `Actualización de solicitud de ${typeLabel}`;
+
+      const description = isApproved
+        ? `Tu solicitud de ${leave.total_working_days} día(s) del ${leave.start_date} al ${leave.end_date} ha sido aprobada por Recursos Humanos.`
+        : isVistoBueno
+        ? `Tu líder de área otorgó el Vo.Bo. a tu solicitud del ${leave.start_date} al ${leave.end_date}. Falta la aprobación final de Recursos Humanos.`
+        : `Tu solicitud de descanso del ${leave.start_date} al ${leave.end_date} fue rechazada.${rejectionReason ? ` Motivo: "${rejectionReason.trim()}".` : ""}`;
+
+      const notifType = isApproved
+        ? "leave_approved"
+        : isVistoBueno
+        ? "leave_visto_bueno"
+        : "leave_rejected";
+
       await this.supabase.from("notifications").insert({
         user_id: targetUserId,
-        title: isApproved
-          ? `¡Solicitud de ${typeLabel} aprobada!`
-          : `Actualización de solicitud de ${typeLabel}`,
-        description: isApproved
-          ? `Tu solicitud de ${leave.total_working_days} día(s) del ${leave.start_date} al ${leave.end_date} ha sido aprobada por Recursos Humanos.`
-          : `Tu solicitud de descanso del ${leave.start_date} al ${leave.end_date} fue rechazada.${rejectionReason ? ` Motivo: "${rejectionReason.trim()}".` : ""}`,
-        type: isApproved ? "leave_approved" : "leave_rejected",
+        title,
+        description,
+        type: notifType,
       });
     } catch (notifErr) {
       console.error("Error notifying employee of leave resolution:", notifErr);

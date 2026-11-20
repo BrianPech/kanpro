@@ -20,13 +20,17 @@ import {
   ShieldCheck,
   Palmtree,
   Filter,
+  Download,
 } from "@/components/ui/icons";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
+import { toast } from "sonner";
 import { cn } from "@/lib/utils";
-import { CandidateLeavesData, CandidateLeaveRequest, LeaveStatus } from "../../services/candidate-leaves";
+import { formatMexicoDateShort, formatSalaryDisplay } from "@/lib/formatters";
+import { CandidateLeavesData } from "../../services/candidate-leaves";
 import { CandidateLeaveRequestModal } from "./candidate-leave-request-modal";
+import { generateCandidateLeaveCertificateAction } from "../../actions/leaves";
 
 interface CandidateLeavesViewProps {
   initialData: CandidateLeavesData;
@@ -37,6 +41,27 @@ export function CandidateLeavesView({ initialData }: CandidateLeavesViewProps) {
   const [isModalOpen, setIsModalOpen] = useState<boolean>(false);
   const [isRefreshing, setIsRefreshing] = useState<boolean>(false);
   const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [downloadingId, setDownloadingId] = useState<string | null>(null);
+
+  const handleDownloadCertificate = async (requestId: string) => {
+    try {
+      setDownloadingId(requestId);
+      const res = await generateCandidateLeaveCertificateAction(requestId);
+      if (!res.success || !res.data) {
+        toast.error("No se pudo descargar la constancia", {
+          description: res.error,
+        });
+        return;
+      }
+      const link = document.createElement("a");
+      link.href = `data:application/pdf;base64,${res.data.base64}`;
+      link.download = res.data.fileName;
+      link.click();
+      toast.success("Constancia oficial de disfrute descargada");
+    } finally {
+      setDownloadingId(null);
+    }
+  };
 
   const handleRefresh = () => {
     setIsRefreshing(true);
@@ -213,7 +238,48 @@ export function CandidateLeavesView({ initialData }: CandidateLeavesViewProps) {
         </Card>
       </div>
 
-      {/* 3. LFT Legal Information Banner */}
+      {/* 3. Prima Vacacional & Vencimiento Art. 80 / Art. 81 LFT */}
+      {balance && (
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4">
+          <Card className="p-4 sm:p-5 rounded-4xl bg-card border-border/70 space-y-1.5 shadow-xs">
+            <span className="text-xs font-bold text-muted-foreground uppercase tracking-wider">
+              Prima Vacacional (Art. 80 LFT)
+            </span>
+            <p className="text-base sm:text-lg font-extrabold text-foreground">
+              {Math.round((balance.vacationPremiumRate ?? 0.25) * 100)}% mínimo legal
+              {balance.vacationPremiumEstimatedAmount > 0 && (
+                <span className="text-primary ml-2">
+                  • Est. {formatSalaryDisplay(balance.vacationPremiumEstimatedAmount)} MXN
+                </span>
+              )}
+            </p>
+            <p className="text-xs text-muted-foreground">
+              Derecho aplicable sobre los días de vacaciones disfrutados en el ciclo vigente.
+            </p>
+          </Card>
+
+          <Card className="p-4 sm:p-5 rounded-4xl bg-card border-border/70 space-y-1.5 shadow-xs">
+            <span className="text-xs font-bold text-muted-foreground uppercase tracking-wider">
+              Vigencia y Vencimiento (Art. 81 y 516 LFT)
+            </span>
+            <p className="text-sm font-extrabold text-foreground">
+              Ventana de concesión (6 meses):{" "}
+              <span className="text-primary">
+                {formatMexicoDateShort(balance.enjoymentWindowEndDate)}
+              </span>
+            </p>
+            <p className="text-xs text-muted-foreground">
+              Fecha límite antes de prescripción:{" "}
+              <strong className="text-foreground">
+                {formatMexicoDateShort(balance.prescriptionEndDate)}
+              </strong>{" "}
+              • Próximo aniversario: {formatMexicoDateShort(balance.nextAnniversaryDate)}
+            </p>
+          </Card>
+        </div>
+      )}
+
+      {/* 3b. LFT Legal Information Banner */}
       <div className="p-4 rounded-3xl bg-primary/5 border border-primary/20 flex items-start gap-3 text-xs leading-relaxed text-muted-foreground">
         <Info className="size-4.5 text-primary shrink-0 mt-0.5" />
         <div>
@@ -236,6 +302,7 @@ export function CandidateLeavesView({ initialData }: CandidateLeavesViewProps) {
             {[
               { id: "all", label: "Todas" },
               { id: "pendiente", label: "En Revisión" },
+              { id: "visto_bueno", label: "Con Vo.Bo. Líder" },
               { id: "aprobada", label: "Aprobadas" },
               { id: "rechazada", label: "Rechazadas" },
             ].map((chip) => (
@@ -318,11 +385,33 @@ export function CandidateLeavesView({ initialData }: CandidateLeavesViewProps) {
                   </div>
 
                   {/* Status badge */}
-                  <div>
+                  <div className="flex items-center gap-2 flex-wrap">
                     {req.status === "aprobada" ? (
-                      <Badge variant="outline" className="bg-primary/10 text-primary border border-primary/20 text-xs font-semibold gap-1 px-2.5 py-1 rounded-3xl">
+                      <>
+                        <Badge variant="outline" className="bg-primary/10 text-primary border border-primary/20 text-xs font-semibold gap-1 px-2.5 py-1 rounded-3xl">
+                          <CheckCircle2 className="size-3.5" />
+                          <span>Aprobada por RH</span>
+                        </Badge>
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant="outline"
+                          disabled={downloadingId === req.id}
+                          onClick={() => handleDownloadCertificate(req.id)}
+                          className="rounded-3xl min-h-12 px-3.5 text-xs font-bold gap-1.5 cursor-pointer"
+                        >
+                          <Download className="size-3.5" />
+                          <span>
+                            {downloadingId === req.id
+                              ? "Generando..."
+                              : "Constancia Oficial PDF"}
+                          </span>
+                        </Button>
+                      </>
+                    ) : req.status === "visto_bueno" ? (
+                      <Badge variant="outline" className="bg-blue-500/10 text-blue-700 dark:text-blue-300 border border-blue-500/30 text-xs font-semibold gap-1 px-2.5 py-1 rounded-3xl">
                         <CheckCircle2 className="size-3.5" />
-                        <span>Aprobada por RH</span>
+                        <span>Vo.Bo. Líder • Por aprobar RH</span>
                       </Badge>
                     ) : req.status === "rechazada" ? (
                       <Badge variant="outline" className="bg-destructive/10 text-destructive border border-destructive/20 text-xs font-semibold gap-1 px-2.5 py-1 rounded-3xl">
@@ -332,7 +421,7 @@ export function CandidateLeavesView({ initialData }: CandidateLeavesViewProps) {
                     ) : (
                       <Badge variant="outline" className="bg-muted text-foreground border border-border/80 text-xs font-semibold gap-1 px-2.5 py-1 rounded-3xl">
                         <Clock className="size-3.5" />
-                        <span>En Revisión por RH</span>
+                        <span>En Revisión</span>
                       </Badge>
                     )}
                   </div>

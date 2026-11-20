@@ -20,11 +20,13 @@ export type VacationRequestType =
   | "vacaciones"
   | "permiso_con_goce"
   | "permiso_sin_goce"
+  | "dias_economicos"
+  | "matrimonio"
   | "paternidad"
   | "maternidad"
   | "luto";
 
-export type RequestStatus = "pendiente" | "aprobada" | "rechazada";
+export type RequestStatus = "pendiente" | "visto_bueno" | "aprobada" | "rechazada";
 
 export interface EmployeeDocument {
   id: string;

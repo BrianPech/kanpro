@@ -1,16 +1,22 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@/types/supabase";
+import { formatMexicoDateShort, getMexicoDateISO } from "@/lib/formatters";
 import {
   calculateWorkingDays,
   calculateLFTVacationDays,
+  calculateVacationPremium,
+  calculateVacationExpiration,
+  validateSpecialLeavePolicyDays,
 } from "@/modules/company/utils/vacation-calculator";
+import { SupabaseLeavesRepository } from "@/modules/company/repositories/leaves.repository";
+import { LeaveOverlapService } from "@/modules/company/services/leave-overlap.service";
 import type {
   LeaveRequestType,
   SubmitCandidateLeaveRequestInput,
 } from "../schemas/leaves.schema";
 
 export type { LeaveRequestType };
-export type LeaveStatus = "pendiente" | "aprobada" | "rechazada";
+export type LeaveStatus = "pendiente" | "visto_bueno" | "aprobada" | "rechazada";
 
 export interface CandidateLeaveRequest {
   id: string;
@@ -36,6 +42,12 @@ export interface CandidateVacationBalance {
   daysTaken: number;
   daysPendingApproval: number;
   daysAvailable: number;
+  vacationPremiumRate: number;
+  vacationPremiumEstimatedAmount: number;
+  enjoymentWindowEndDate: string;
+  prescriptionEndDate: string;
+  nextAnniversaryDate: string;
+  isPeriodExpired: boolean;
 }
 
 export interface CandidateLeavesData {
@@ -60,6 +72,8 @@ const TYPE_LABELS: Record<LeaveRequestType, string> = {
   vacaciones: "Vacaciones Anuales LFT",
   permiso_con_goce: "Permiso con Goce de Sueldo",
   permiso_sin_goce: "Permiso sin Goce de Sueldo",
+  dias_economicos: "Días Económicos",
+  matrimonio: "Permiso por Matrimonio",
   paternidad: "Permiso por Paternidad (LFT)",
   maternidad: "Incapacidad por Maternidad (LFT/IMSS)",
   luto: "Permiso por Luto",
@@ -115,6 +129,7 @@ export class CandidateLeavesService {
       job_title: string;
       department: string | null;
       hire_date: string | null;
+      base_salary_monthly?: number | null;
       company?: CompanyProfileJoined | null;
     } | null = null;
 
@@ -127,6 +142,7 @@ export class CandidateLeavesService {
           job_title,
           department,
           hire_date,
+          base_salary_monthly,
           company:company_profiles (
             id,
             company_name,
@@ -144,6 +160,7 @@ export class CandidateLeavesService {
           job_title: emp.job_title,
           department: emp.department,
           hire_date: emp.hire_date,
+          base_salary_monthly: emp.base_salary_monthly,
           company: Array.isArray(emp.company) ? emp.company[0] : emp.company,
         };
       }
@@ -159,6 +176,7 @@ export class CandidateLeavesService {
           job_title,
           department,
           hire_date,
+          base_salary_monthly,
           company:company_profiles (
             id,
             company_name,
@@ -177,6 +195,7 @@ export class CandidateLeavesService {
           job_title: empDirect.job_title,
           department: empDirect.department,
           hire_date: empDirect.hire_date,
+          base_salary_monthly: empDirect.base_salary_monthly,
           company: Array.isArray(empDirect.company) ? empDirect.company[0] : empDirect.company,
         };
       }
@@ -204,10 +223,13 @@ export class CandidateLeavesService {
     const hireDate =
       activeContract?.start_date ||
       employeeRecord?.hire_date ||
-      new Date().toISOString().split("T")[0];
+      getMexicoDateISO();
 
-    // 3. Calcular antigüedad y días devengados Art. 76 LFT
+    // 3. Calcular antigüedad, días devengados Art. 76 LFT, prima vacacional Art. 80 y vencimiento Art. 81
     const lft = calculateLFTVacationDays(hireDate);
+    const expiration = calculateVacationExpiration(hireDate);
+    const monthlySalary = Number(employeeRecord?.base_salary_monthly) || 0;
+    const premium = calculateVacationPremium(monthlySalary, lft.totalDaysAccrued);
 
     // 4. Consultar solicitudes previas en company_leaves
     let leavesQuery = supabase
@@ -236,7 +258,7 @@ export class CandidateLeavesService {
       .reduce((acc, curr) => acc + (Number(curr.total_working_days) || 0), 0);
 
     const daysPendingApproval = vacationRequests
-      .filter((l) => l.status === "pendiente")
+      .filter((l) => l.status === "pendiente" || l.status === "visto_bueno")
       .reduce((acc, curr) => acc + (Number(curr.total_working_days) || 0), 0);
 
     const daysAvailable = Math.max(
@@ -253,6 +275,12 @@ export class CandidateLeavesService {
       daysTaken,
       daysPendingApproval,
       daysAvailable,
+      vacationPremiumRate: premium.premiumRate,
+      vacationPremiumEstimatedAmount: premium.premiumAmount,
+      enjoymentWindowEndDate: expiration.enjoymentWindowEndDate,
+      prescriptionEndDate: expiration.prescriptionEndDate,
+      nextAnniversaryDate: expiration.nextAnniversaryDate,
+      isPeriodExpired: expiration.isExpired,
     };
 
     const requests: CandidateLeaveRequest[] = leavesList.map((req) => ({
@@ -265,18 +293,10 @@ export class CandidateLeavesService {
       reason: req.reason || "Sin observaciones adicionales.",
       status: req.status as LeaveStatus,
       requestedAt: req.created_at
-        ? new Date(req.created_at).toLocaleDateString("es-MX", {
-            day: "numeric",
-            month: "short",
-            year: "numeric",
-          })
+        ? formatMexicoDateShort(req.created_at)
         : "Reciente",
       reviewedAt: req.reviewed_at
-        ? new Date(req.reviewed_at).toLocaleDateString("es-MX", {
-            day: "numeric",
-            month: "short",
-            year: "numeric",
-          })
+        ? formatMexicoDateShort(req.reviewed_at)
         : null,
       reviewedBy: req.reviewed_by || null,
       rejectionReason: req.rejection_reason || null,
@@ -296,7 +316,7 @@ export class CandidateLeavesService {
   }
 
   /**
-   * Registra una nueva solicitud de vacaciones o permiso laboral validando reglas LFT.
+   * Registra una nueva solicitud de vacaciones o permiso laboral validando reglas LFT, políticas y solapamientos.
    */
   static async submitLeaveRequest(
     supabase: SupabaseClient<Database>,
@@ -308,6 +328,36 @@ export class CandidateLeavesService {
 
     if (workingDays <= 0) {
       throw new Error("El periodo seleccionado no contiene días laborales hábiles.");
+    }
+
+    // 1b. Validar tope de días por política especial (días económicos, matrimonio, paternidad, luto)
+    validateSpecialLeavePolicyDays(input.requestType, workingDays);
+
+    // 1c. Validar solapamiento de ausencias con LeaveOverlapService si hay employeeId
+    if (input.employeeId) {
+      try {
+        const overlapService = new LeaveOverlapService(
+          new SupabaseLeavesRepository(supabase)
+        );
+        const hasOverlap = await overlapService.hasOverlap(
+          input.companyId,
+          input.employeeId,
+          input.startDate,
+          input.endDate
+        );
+        if (hasOverlap) {
+          throw new Error(
+            "Ya cuentas con una solicitud activa o aprobada que se traslapa con las fechas seleccionadas."
+          );
+        }
+      } catch (err) {
+        if (
+          err instanceof Error &&
+          err.message.includes("se traslapa con las fechas seleccionadas")
+        ) {
+          throw err;
+        }
+      }
     }
 
     // 2. Si son vacaciones anuales, validar contra saldo disponible Art. 76 LFT
@@ -330,7 +380,7 @@ export class CandidateLeavesService {
         hireDate = emp?.hire_date;
       }
 
-      const effectiveHireDate = hireDate || new Date().toISOString().split("T")[0];
+      const effectiveHireDate = hireDate || getMexicoDateISO();
       const lft = calculateLFTVacationDays(effectiveHireDate);
 
       // Consultar solicitudes previas en company_leaves
@@ -339,7 +389,7 @@ export class CandidateLeavesService {
         .select("total_working_days, status")
         .eq("company_id", input.companyId)
         .eq("request_type", "vacaciones")
-        .in("status", ["aprobada", "pendiente"])
+        .in("status", ["aprobada", "pendiente", "visto_bueno"])
         .or(
           `candidate_id.eq.${userId},employee_id.eq.${
             input.employeeId || "00000000-0000-0000-0000-000000000000"

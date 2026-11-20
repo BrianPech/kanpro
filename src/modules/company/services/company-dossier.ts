@@ -417,6 +417,7 @@ export async function getCompanyVacationRequests(
   companyId: string
 ): Promise<{
   companyName: string;
+  approvalMode: "single_step" | "two_step";
   requests: VacationRequest[];
   employees: CompanyEmployeeRosterItem[];
   stats: {
@@ -427,9 +428,11 @@ export async function getCompanyVacationRequests(
   };
 }> {
   let companyName = "Mi Empresa";
+  let approvalMode: "single_step" | "two_step" = "single_step";
   if (!companyId) {
     return {
       companyName,
+      approvalMode,
       requests: [],
       employees: [],
       stats: {
@@ -443,12 +446,19 @@ export async function getCompanyVacationRequests(
 
   const { data: profile } = await supabase
     .from("company_profiles")
-    .select("company_name, legal_name")
+    .select("company_name, legal_name, leave_approval_config")
     .eq("id", companyId)
     .maybeSingle();
 
   if (profile?.legal_name || profile?.company_name) {
     companyName = profile.legal_name || profile.company_name;
+  }
+  if (
+    profile?.leave_approval_config &&
+    typeof profile.leave_approval_config === "object" &&
+    (profile.leave_approval_config as Record<string, unknown>).approvalMode === "two_step"
+  ) {
+    approvalMode = "two_step";
   }
 
   // 1. Fetch real leave requests from company_leaves
@@ -489,10 +499,10 @@ export async function getCompanyVacationRequests(
   const candidateIdsToFetch = Array.from(
     new Set(
       rawLeaves
-        .filter((l: any) => !l.employee && l.candidate_id)
-        .map((l: any) => l.candidate_id)
+        .filter((l) => !l.employee && l.candidate_id)
+        .map((l) => l.candidate_id as string)
     )
-  ) as string[];
+  );
 
   const candidateProfilesMap: Record<string, { full_name: string; avatar_url: string | null }> = {};
   if (candidateIdsToFetch.length > 0) {
@@ -502,7 +512,7 @@ export async function getCompanyVacationRequests(
       .in("id", candidateIdsToFetch);
 
     if (cProfiles) {
-      cProfiles.forEach((cp: any) => {
+      cProfiles.forEach((cp) => {
         candidateProfilesMap[cp.id] = {
           full_name: cp.full_name || "Colaborador",
           avatar_url: cp.avatar_url || null,
@@ -515,12 +525,14 @@ export async function getCompanyVacationRequests(
     vacaciones: "Vacaciones LFT",
     permiso_con_goce: "Permiso con Goce de Sueldo",
     permiso_sin_goce: "Permiso sin Goce de Sueldo",
+    dias_economicos: "Días Económicos",
+    matrimonio: "Permiso por Matrimonio",
     paternidad: "Permiso por Paternidad",
     maternidad: "Incapacidad por Maternidad",
     luto: "Permiso por Luto",
   };
 
-  const requests: VacationRequest[] = rawLeaves.map((l: any) => {
+  const requests: VacationRequest[] = rawLeaves.map((l) => {
     const emp = Array.isArray(l.employee) ? l.employee[0] : l.employee;
     const cand = l.candidate_id ? candidateProfilesMap[l.candidate_id] : null;
 
@@ -534,13 +546,13 @@ export async function getCompanyVacationRequests(
       employeeName,
       avatarUrl,
       department,
-      requestType: l.request_type,
+      requestType: l.request_type as VacationRequest["requestType"],
       typeLabel: typeLabels[l.request_type] || "Vacaciones LFT",
       startDate: l.start_date,
       endDate: l.end_date,
       totalWorkingDays: l.total_working_days,
       reason: l.reason || "Sin observaciones registradas.",
-      status: l.status,
+      status: l.status as VacationRequest["status"],
       requestedAt: l.created_at
         ? new Date(l.created_at).toLocaleDateString("es-MX", {
             day: "numeric",
@@ -564,12 +576,14 @@ export async function getCompanyVacationRequests(
   const todayStr = getMexicoDateISO();
   const [currentYear, currentMonth] = todayStr.split("-").map(Number);
 
-  const pendingCount = requests.filter((r) => r.status === "pendiente").length;
+  const pendingCount = requests.filter(
+    (r) => r.status === "pendiente" || r.status === "visto_bueno"
+  ).length;
 
   const approvedThisMonth = requests.filter((r) => {
     if (r.status !== "aprobada") return false;
-    const d = new Date(r.startDate);
-    return d.getUTCFullYear() === currentYear && d.getUTCMonth() + 1 === currentMonth;
+    const [y, m] = r.startDate.split("-").map(Number);
+    return y === currentYear && m === currentMonth;
   }).length;
 
   const employeesOnLeaveToday = requests.filter(
@@ -584,7 +598,7 @@ export async function getCompanyVacationRequests(
     .eq("status", "active")
     .order("full_name", { ascending: true });
 
-  const roster: CompanyEmployeeRosterItem[] = (employees || []).map((e: any) => ({
+  const roster: CompanyEmployeeRosterItem[] = (employees || []).map((e) => ({
     id: e.id,
     fullName: e.full_name,
     department: e.department || null,
@@ -602,6 +616,7 @@ export async function getCompanyVacationRequests(
 
   return {
     companyName,
+    approvalMode,
     requests,
     employees: roster,
     stats: {

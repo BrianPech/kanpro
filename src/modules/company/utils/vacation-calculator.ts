@@ -3,6 +3,7 @@ import {
   DEFAULT_VACATION_POLICY,
   type VacationPolicyStrategy,
 } from "../strategies/vacation-policy.strategy";
+import type { VacationRequestType } from "../types/employee-dossier";
 
 /**
  * Mexican Federal Labor Law (LFT - "Vacaciones Dignas") Vacation Days Calculator
@@ -134,4 +135,175 @@ export function calculateWorkingDays(
   }
 
   return count;
+}
+
+export const LFT_VACATION_PREMIUM_RATE = 0.25;
+
+export interface VacationPremiumResult {
+  dailySalary: number;
+  vacationBaseAmount: number;
+  premiumRate: number;
+  premiumAmount: number;
+}
+
+/**
+ * Art. 80 LFT: Prima vacacional no menor de 25% sobre los salarios que correspondan
+ * durante el período de vacaciones.
+ */
+export function calculateVacationPremium(
+  monthlySalary: number,
+  vacationDays: number,
+  premiumRate: number = LFT_VACATION_PREMIUM_RATE
+): VacationPremiumResult {
+  const safeMonthly = Math.max(0, Number(monthlySalary) || 0);
+  const safeDays = Math.max(0, Number(vacationDays) || 0);
+  const safeRate = Math.max(LFT_VACATION_PREMIUM_RATE, Number(premiumRate) || LFT_VACATION_PREMIUM_RATE);
+  const dailySalary = Math.round((safeMonthly / 30) * 100) / 100;
+  const vacationBaseAmount = Math.round(dailySalary * safeDays * 100) / 100;
+  const premiumAmount = Math.round(vacationBaseAmount * safeRate * 100) / 100;
+
+  return {
+    dailySalary,
+    vacationBaseAmount,
+    premiumRate: safeRate,
+    premiumAmount,
+  };
+}
+
+export interface VacationExpirationSchedule {
+  completedYears: number;
+  lastAnniversaryDate: string;
+  nextAnniversaryDate: string;
+  enjoymentWindowEndDate: string;
+  prescriptionEndDate: string;
+  isExpired: boolean;
+}
+
+function addMonthsUTC(base: Date, monthsToAdd: number): string {
+  const totalMonths = base.getUTCFullYear() * 12 + base.getUTCMonth() + monthsToAdd;
+  const targetYear = Math.floor(totalMonths / 12);
+  const targetMonth = totalMonths % 12;
+  const maxDay = new Date(Date.UTC(targetYear, targetMonth + 1, 0)).getUTCDate();
+  const targetDay = Math.min(base.getUTCDate(), maxDay);
+  return `${targetYear}-${String(targetMonth + 1).padStart(2, "0")}-${String(targetDay).padStart(2, "0")}`;
+}
+
+/**
+ * Art. 81 y Art. 516 LFT:
+ * - Las vacaciones deben concederse dentro de los 6 meses siguientes al cumplimiento del año de servicios.
+ * - La acción para reclamarlas prescribe en 1 año a partir de que sean exigibles (18 meses tras el aniversario).
+ */
+export function calculateVacationExpiration(
+  hireDateStr: string,
+  targetDateStr?: string
+): VacationExpirationSchedule {
+  const referenceISO = targetDateStr || getMexicoDateISO();
+  const hireDate = parseMexicoCalendarDate(hireDateStr) || parseMexicoCalendarDate(referenceISO)!;
+  const seniority = calculateLFTVacationDays(hireDateStr, referenceISO);
+  const completedYears = Math.max(1, seniority.yearsOfService);
+
+  const lastAnniversaryDate = addMonthsUTC(hireDate, completedYears * 12);
+  const nextAnniversaryDate = addMonthsUTC(hireDate, (completedYears + 1) * 12);
+  const enjoymentWindowEndDate = addMonthsUTC(hireDate, completedYears * 12 + 6);
+  const prescriptionEndDate = addMonthsUTC(hireDate, completedYears * 12 + 18);
+
+  return {
+    completedYears,
+    lastAnniversaryDate,
+    nextAnniversaryDate,
+    enjoymentWindowEndDate,
+    prescriptionEndDate,
+    isExpired: referenceISO > prescriptionEndDate,
+  };
+}
+
+export interface SpecialLeavePolicyRule {
+  requestType: VacationRequestType;
+  label: string;
+  maxDaysPerRequest: number | null;
+  paid: boolean;
+  deductsFromVacationBalance: boolean;
+  legalBasis: string;
+}
+
+export const SPECIAL_LEAVE_POLICIES: Record<VacationRequestType, SpecialLeavePolicyRule> = {
+  vacaciones: {
+    requestType: "vacaciones",
+    label: "Vacaciones Anuales LFT",
+    maxDaysPerRequest: null,
+    paid: true,
+    deductsFromVacationBalance: true,
+    legalBasis: "Art. 76 LFT (Vacaciones Dignas)",
+  },
+  dias_economicos: {
+    requestType: "dias_economicos",
+    label: "Días Económicos",
+    maxDaysPerRequest: 3,
+    paid: true,
+    deductsFromVacationBalance: false,
+    legalBasis: "Prestación corporativa con goce de sueldo (máx. 3 días hábiles)",
+  },
+  matrimonio: {
+    requestType: "matrimonio",
+    label: "Permiso por Matrimonio",
+    maxDaysPerRequest: 5,
+    paid: true,
+    deductsFromVacationBalance: false,
+    legalBasis: "Política corporativa de nupcias (máx. 5 días hábiles)",
+  },
+  paternidad: {
+    requestType: "paternidad",
+    label: "Permiso por Paternidad",
+    maxDaysPerRequest: 5,
+    paid: true,
+    deductsFromVacationBalance: false,
+    legalBasis: "Art. 132 Fracc. XXVII Bis LFT (5 días laborables con goce de sueldo)",
+  },
+  maternidad: {
+    requestType: "maternidad",
+    label: "Incapacidad por Maternidad",
+    maxDaysPerRequest: 84,
+    paid: true,
+    deductsFromVacationBalance: false,
+    legalBasis: "Art. 170 Fracc. II LFT / IMSS (84 días)",
+  },
+  luto: {
+    requestType: "luto",
+    label: "Permiso por Luto",
+    maxDaysPerRequest: 5,
+    paid: true,
+    deductsFromVacationBalance: false,
+    legalBasis: "Política humanitaria por fallecimiento familiar directo (máx. 5 días hábiles)",
+  },
+  permiso_con_goce: {
+    requestType: "permiso_con_goce",
+    label: "Permiso con Goce de Sueldo",
+    maxDaysPerRequest: null,
+    paid: true,
+    deductsFromVacationBalance: false,
+    legalBasis: "Autorización especial con goce de sueldo",
+  },
+  permiso_sin_goce: {
+    requestType: "permiso_sin_goce",
+    label: "Permiso sin Goce de Sueldo",
+    maxDaysPerRequest: null,
+    paid: false,
+    deductsFromVacationBalance: false,
+    legalBasis: "Licencia temporal sin goce de salario",
+  },
+};
+
+export function validateSpecialLeavePolicyDays(
+  requestType: VacationRequestType,
+  workingDays: number
+): void {
+  const policy = SPECIAL_LEAVE_POLICIES[requestType];
+  if (!policy || policy.maxDaysPerRequest === null) {
+    return;
+  }
+  if (workingDays > policy.maxDaysPerRequest) {
+    throw new Error(
+      `El permiso de "${policy.label}" permite un máximo de ${policy.maxDaysPerRequest} día(s) hábiles por solicitud (solicitaste ${workingDays}).`
+    );
+  }
 }

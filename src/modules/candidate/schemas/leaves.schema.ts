@@ -1,9 +1,12 @@
 import { z } from "zod";
+import { parseMexicoCalendarDate } from "@/lib/formatters";
 
 export const leaveRequestTypeSchema = z.enum([
   "vacaciones",
   "permiso_con_goce",
   "permiso_sin_goce",
+  "dias_economicos",
+  "matrimonio",
   "paternidad",
   "maternidad",
   "luto",
@@ -30,9 +33,9 @@ export const submitCandidateLeaveRequestSchema = z
   })
   .refine(
     (data) => {
-      const start = new Date(data.startDate);
-      const end = new Date(data.endDate);
-      return !isNaN(start.getTime()) && !isNaN(end.getTime()) && start <= end;
+      const start = parseMexicoCalendarDate(data.startDate);
+      const end = parseMexicoCalendarDate(data.endDate);
+      return Boolean(start && end && start <= end);
     },
     {
       message: "La fecha de fin debe ser posterior o igual a la fecha de inicio.",

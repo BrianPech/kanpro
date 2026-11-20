@@ -33,7 +33,11 @@ import {
   CheckCircle2,
   Send,
 } from "@/components/ui/icons";
-import { calculateWorkingDays } from "@/modules/company/utils/vacation-calculator";
+import { getMexicoDateISO } from "@/lib/formatters";
+import {
+  calculateWorkingDays,
+  SPECIAL_LEAVE_POLICIES,
+} from "@/modules/company/utils/vacation-calculator";
 import { submitCandidateLeaveRequestAction } from "../../actions/leaves";
 import type { LeaveRequestType } from "../../schemas/leaves.schema";
 
@@ -56,17 +60,22 @@ export function CandidateLeaveRequestModal({
   daysAvailable,
   onSuccess,
 }: CandidateLeaveRequestModalProps) {
-  const tomorrowStr = new Date(Date.now() + 86400000).toISOString().split("T")[0];
+  const todayStr = getMexicoDateISO();
 
   const [requestType, setRequestType] = useState<LeaveRequestType>("vacaciones");
-  const [startDate, setStartDate] = useState<string>(tomorrowStr);
-  const [endDate, setEndDate] = useState<string>(tomorrowStr);
+  const [startDate, setStartDate] = useState<string>(todayStr);
+  const [endDate, setEndDate] = useState<string>(todayStr);
   const [reason, setReason] = useState<string>("");
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
 
   // Real-time calculation of working days (excluding Sundays as statutory LFT rest)
   const workingDays = calculateWorkingDays(startDate, endDate);
-  const exceedsBalance = requestType === "vacaciones" && workingDays > daysAvailable;
+  const selectedPolicy = SPECIAL_LEAVE_POLICIES[requestType];
+  const exceedsPolicyMax =
+    selectedPolicy?.maxDaysPerRequest !== null &&
+    workingDays > (selectedPolicy?.maxDaysPerRequest ?? Infinity);
+  const exceedsBalance =
+    requestType === "vacaciones" && workingDays > daysAvailable;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -109,8 +118,9 @@ export function CandidateLeaveRequestModal({
 
       onOpenChange(false);
       if (onSuccess) onSuccess();
-    } catch (err: any) {
-      toast.error(err?.message || "Error al enviar la solicitud.");
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : "Error al enviar la solicitud.";
+      toast.error(msg);
     } finally {
       setIsSubmitting(false);
     }
@@ -166,16 +176,16 @@ export function CandidateLeaveRequestModal({
                     <span>Vacaciones Anuales LFT (Art. 76)</span>
                   </div>
                 </SelectItem>
-                <SelectItem value="permiso_con_goce" className="text-xs font-semibold py-2">
+                <SelectItem value="dias_economicos" className="text-xs font-semibold py-2">
                   <div className="flex items-center gap-2">
                     <CheckCircle2 className="size-3.5 text-foreground" />
-                    <span>Permiso con Goce de Sueldo</span>
+                    <span>Días Económicos (máx. 3 días hábiles)</span>
                   </div>
                 </SelectItem>
-                <SelectItem value="permiso_sin_goce" className="text-xs font-semibold py-2">
+                <SelectItem value="matrimonio" className="text-xs font-semibold py-2">
                   <div className="flex items-center gap-2">
-                    <Clock className="size-3.5 text-foreground" />
-                    <span>Permiso sin Goce de Sueldo</span>
+                    <HeartHandshake className="size-3.5 text-foreground" />
+                    <span>Permiso por Matrimonio (máx. 5 días hábiles)</span>
                   </div>
                 </SelectItem>
                 <SelectItem value="paternidad" className="text-xs font-semibold py-2">
@@ -193,7 +203,19 @@ export function CandidateLeaveRequestModal({
                 <SelectItem value="luto" className="text-xs font-semibold py-2">
                   <div className="flex items-center gap-2">
                     <HeartHandshake className="size-3.5 text-foreground" />
-                    <span>Permiso por Luto</span>
+                    <span>Permiso por Luto (máx. 5 días hábiles)</span>
+                  </div>
+                </SelectItem>
+                <SelectItem value="permiso_con_goce" className="text-xs font-semibold py-2">
+                  <div className="flex items-center gap-2">
+                    <CheckCircle2 className="size-3.5 text-foreground" />
+                    <span>Permiso con Goce de Sueldo</span>
+                  </div>
+                </SelectItem>
+                <SelectItem value="permiso_sin_goce" className="text-xs font-semibold py-2">
+                  <div className="flex items-center gap-2">
+                    <Clock className="size-3.5 text-foreground" />
+                    <span>Permiso sin Goce de Sueldo</span>
                   </div>
                 </SelectItem>
               </SelectContent>
@@ -209,10 +231,10 @@ export function CandidateLeaveRequestModal({
               <Input
                 type="date"
                 value={startDate}
-                min={new Date().toISOString().split("T")[0]}
+                min={todayStr}
                 onChange={(e) => {
                   setStartDate(e.target.value);
-                  if (new Date(e.target.value) > new Date(endDate)) {
+                  if (e.target.value > endDate) {
                     setEndDate(e.target.value);
                   }
                 }}
@@ -248,14 +270,18 @@ export function CandidateLeaveRequestModal({
             </span>
           </div>
 
-          {/* Insufficient balance warning */}
-          {exceedsBalance && (
+          {/* Insufficient balance or policy limit warning */}
+          {(exceedsBalance || exceedsPolicyMax) && (
             <div className="p-3 rounded-3xl bg-destructive/10 border border-destructive/20 text-destructive text-xs flex items-start gap-2">
               <AlertTriangle className="size-4 shrink-0 mt-0.5" />
               <div className="space-y-0.5">
-                <p className="font-bold">Saldo de vacaciones insuficiente</p>
+                <p className="font-bold">
+                  {exceedsBalance ? "Saldo de vacaciones insuficiente" : "Límite de política excedido"}
+                </p>
                 <p className="text-[11px] leading-relaxed text-destructive/90">
-                  Estás solicitando {workingDays} días pero solo dispones de {daysAvailable} días hábiles. Por favor ajusta tu periodo.
+                  {exceedsBalance
+                    ? `Estás solicitando ${workingDays} días pero solo dispones de ${daysAvailable} días hábiles. Por favor ajusta tu periodo.`
+                    : `La política de ${selectedPolicy?.label} permite hasta ${selectedPolicy?.maxDaysPerRequest} día(s) hábiles por solicitud.`}
                 </p>
               </div>
             </div>
@@ -289,7 +315,7 @@ export function CandidateLeaveRequestModal({
             <Button
               type="submit"
               size="sm"
-              disabled={isSubmitting || workingDays <= 0 || exceedsBalance}
+              disabled={isSubmitting || workingDays <= 0 || exceedsBalance || exceedsPolicyMax}
               className="rounded-4xl h-9 text-xs font-semibold gap-1.5 bg-primary text-primary-foreground shadow-2xs cursor-pointer"
             >
               {isSubmitting ? (
