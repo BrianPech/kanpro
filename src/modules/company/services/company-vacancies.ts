@@ -5,10 +5,18 @@ import type {
   CreateExpressVacancyInput,
 } from "../schemas/vacancies.schema";
 import { getSubscriptionPlan } from "@/config/subscriptions";
+import {
+  SupabaseVacanciesRepository,
+  type VacancyRow,
+  type VacancyInsert,
+  type VacancyUpdate,
+} from "../repositories/vacancies.repository";
 
-export type VacancyRow = Database["public"]["Tables"]["vacancies"]["Row"];
-export type VacancyInsert = Database["public"]["Tables"]["vacancies"]["Insert"];
-export type VacancyUpdate = Database["public"]["Tables"]["vacancies"]["Update"];
+export type { VacancyRow, VacancyInsert, VacancyUpdate };
+
+export type VacancyWithApplicantCount = VacancyRow & {
+  applicants_count: number;
+};
 
 export class CompanyVacanciesService {
   /**
@@ -351,16 +359,61 @@ export class CompanyVacanciesService {
     supabase: SupabaseClient<Database>,
     companyId: string
   ): Promise<VacancyRow[]> {
-    const { data, error } = await supabase
-      .from("vacancies")
-      .select("*")
-      .eq("company_id", companyId)
-      .order("created_at", { ascending: false });
+    const repository = new SupabaseVacanciesRepository(supabase);
+    return repository.listByCompany(companyId);
+  }
 
-    if (error) {
-      throw new Error("No se pudieron cargar las vacantes.");
+  /**
+   * Obtiene una vacante por ID verificando pertenencia a la empresa.
+   */
+  public static async getVacancyById(
+    supabase: SupabaseClient<Database>,
+    companyId: string,
+    vacancyId: string
+  ): Promise<VacancyRow | null> {
+    const repository = new SupabaseVacanciesRepository(supabase);
+    return repository.getById(companyId, vacancyId);
+  }
+
+  /**
+   * Obtiene las vacantes de la empresa enriquecidas con el conteo de postulaciones.
+   */
+  public static async getVacanciesWithCounts(
+    supabase: SupabaseClient<Database>,
+    companyId: string
+  ): Promise<VacancyWithApplicantCount[]> {
+    const repository = new SupabaseVacanciesRepository(supabase);
+    const vacancies = await repository.listByCompany(companyId);
+
+    if (vacancies.length === 0) {
+      return [];
     }
 
-    return data || [];
+    const vacancyIds = vacancies.map((vacancy) => vacancy.id);
+    const { data: appRows, error: appError } = await supabase
+      .from("applications")
+      .select("vacancy_id")
+      .in("vacancy_id", vacancyIds);
+
+    if (appError) {
+      throw new Error(
+        appError.message || "No se pudieron cargar los conteos de postulaciones."
+      );
+    }
+
+    const countsByVacancy = (appRows ?? []).reduce<Map<string, number>>(
+      (acc, row) => {
+        if (row.vacancy_id) {
+          acc.set(row.vacancy_id, (acc.get(row.vacancy_id) ?? 0) + 1);
+        }
+        return acc;
+      },
+      new Map()
+    );
+
+    return vacancies.map((vacancy) => ({
+      ...vacancy,
+      applicants_count: countsByVacancy.get(vacancy.id) ?? 0,
+    }));
   }
 }

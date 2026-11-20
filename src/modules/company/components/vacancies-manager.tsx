@@ -93,7 +93,10 @@ import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { createClient } from "@/lib/supabase/client";
 import { useVacancyManager, type VacancyRow } from "@/modules/company/hooks/use-vacancy-manager";
-import { cloneVacancyAction } from "../actions/vacancies";
+import {
+  cloneVacancyAction,
+  getCompanyVacanciesAction,
+} from "../actions/vacancies";
 
 export interface VacancyItem extends VacancyRow {
   applicants_count?: number;
@@ -169,13 +172,14 @@ export function VacanciesManager({ userId }: { userId: string }) {
     null
   );
   const [loadingProfile, setLoadingProfile] = React.useState(true);
+  const [loadingVacancies, setLoadingVacancies] = React.useState(true);
 
   const {
     toggleVacancyStatus,
-    fetchCompanyVacancies,
     deleteVacancy,
-    loading: isLoading,
+    loading: isMutating,
   } = useVacancyManager();
+  const isLoading = loadingVacancies || isMutating;
 
   const loadProfile = React.useCallback(async () => {
     try {
@@ -221,29 +225,18 @@ export function VacanciesManager({ userId }: { userId: string }) {
 
   const loadVacancies = React.useCallback(async () => {
     try {
-      const data = await fetchCompanyVacancies();
-      const supabase = createClient();
-      const { data: appCounts } = await supabase
-        .from("applications")
-        .select("vacancy_id");
-
-      const countsMap: Record<string, number> = {};
-      appCounts?.forEach((app: { vacancy_id: string | null }) => {
-        if (app.vacancy_id) {
-          countsMap[app.vacancy_id] = (countsMap[app.vacancy_id] || 0) + 1;
-        }
-      });
-
-      const enriched: VacancyItem[] = data.map((v) => ({
-        ...v,
-        applicants_count: countsMap[v.id] || 0,
-      }));
-
-      setVacancies(enriched);
+      setLoadingVacancies(true);
+      const result = await getCompanyVacanciesAction();
+      if (!result.success) {
+        throw new Error(result.error);
+      }
+      setVacancies(result.data);
     } catch (err) {
       console.error(err);
+    } finally {
+      setLoadingVacancies(false);
     }
-  }, [fetchCompanyVacancies]);
+  }, []);
 
   React.useEffect(() => {
     loadProfile();

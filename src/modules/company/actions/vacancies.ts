@@ -19,7 +19,9 @@ import {
 import {
   CompanyVacanciesService,
   type VacancyRow,
+  type VacancyWithApplicantCount,
 } from "../services/company-vacancies";
+import { companyTenantService } from "../services/company-tenant.service";
 
 interface ActionResponse<T> {
   success: boolean;
@@ -71,6 +73,45 @@ export async function revalidateVacancies(): Promise<void> {
     }
   } catch {
     // Ignorar fuera del entorno de servidor Next.js
+  }
+}
+
+export type GetCompanyVacanciesActionResult =
+  | { success: true; data: VacancyWithApplicantCount[] }
+  | { success: false; error: string };
+
+/**
+ * Obtiene la lista de vacantes de la empresa activa con el conteo de postulaciones.
+ */
+export async function getCompanyVacanciesAction(): Promise<GetCompanyVacanciesActionResult> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+    error: authError,
+  } = await supabase.auth.getUser();
+
+  if (authError || !user) {
+    return {
+      success: false,
+      error: "No autorizado. Inicia sesión para continuar.",
+    };
+  }
+
+  try {
+    const { companyId } = await companyTenantService.resolveActiveCompanyScope(
+      user.id,
+      supabase
+    );
+    const vacancies = await CompanyVacanciesService.getVacanciesWithCounts(
+      supabase,
+      companyId
+    );
+
+    return { success: true, data: vacancies };
+  } catch (err: unknown) {
+    const message =
+      err instanceof Error ? err.message : "No se pudieron cargar las vacantes.";
+    return { success: false, error: message };
   }
 }
 
