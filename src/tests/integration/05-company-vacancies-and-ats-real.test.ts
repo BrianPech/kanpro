@@ -100,7 +100,11 @@ describe("[REAL INTEGRATION] 05 - Company Vacancies & ATS Pipeline with Real Pos
       status: "Activa",
     };
 
-    const created = await CompanyVacanciesService.createVacancy(clientA, companyA.id, vacancyData);
+    const created = await new CompanyVacanciesService(clientA).createVacancy(
+      companyA.id,
+      vacancyData,
+      companyA.id
+    );
 
     expect(created).toBeDefined();
     expect(created.id).toBeDefined();
@@ -137,11 +141,9 @@ describe("[REAL INTEGRATION] 05 - Company Vacancies & ATS Pipeline with Real Pos
       employment_type: "Tiempo Completo",
     };
 
-    const expressVacancy = await CompanyVacanciesService.createExpressVacancy(
-      clientA,
-      companyA.id,
-      expressData
-    );
+    const expressVacancy = await new CompanyVacanciesService(
+      clientA
+    ).createExpressVacancy(companyA.id, expressData, companyA.id);
 
     expect(expressVacancy).toBeDefined();
     expect(expressVacancy.title).toBe("Ayudante de Bar Exprés");
@@ -154,8 +156,8 @@ describe("[REAL INTEGRATION] 05 - Company Vacancies & ATS Pipeline with Real Pos
   it("3. should enforce active vacancy limit on Basic plan (max 3 active vacancies)", async () => {
     // Currently Company A has 2 active vacancies (vacancy1Id and vacancy2Id).
     // Let's create the 3rd active vacancy:
-    const thirdVacancy = await CompanyVacanciesService.createExpressVacancy(
-      clientA,
+    const serviceA = new CompanyVacanciesService(clientA);
+    const thirdVacancy = await serviceA.createExpressVacancy(
       companyA.id,
       {
         title: "Recepcionista Nocturno",
@@ -164,7 +166,8 @@ describe("[REAL INTEGRATION] 05 - Company Vacancies & ATS Pipeline with Real Pos
         requirements: "Inglés conversacional intermedio.",
         modality: "Presencial",
         salary_min: 13000,
-      }
+      },
+      companyA.id
     );
     expect(thirdVacancy.is_active).toBe(true);
     vacancy3Id = thirdVacancy.id;
@@ -172,20 +175,24 @@ describe("[REAL INTEGRATION] 05 - Company Vacancies & ATS Pipeline with Real Pos
     // Company A now has exactly 3 active vacancies, which is the limit for Plan Básico.
     // Attempting to create a 4th active vacancy MUST throw an error:
     await expect(
-      CompanyVacanciesService.createExpressVacancy(clientA, companyA.id, {
-        title: "4ta Vacante que debe ser rechazada",
-        zone: "Cancún Centro",
-        category: "Hotelería y Turismo",
-        requirements: "Excede límite de plan.",
-        modality: "Presencial",
-      })
+      serviceA.createExpressVacancy(
+        companyA.id,
+        {
+          title: "4ta Vacante que debe ser rechazada",
+          zone: "Cancún Centro",
+          category: "Hotelería y Turismo",
+          requirements: "Excede límite de plan.",
+          modality: "Presencial",
+        },
+        companyA.id
+      )
     ).rejects.toThrow(/límite de 3 vacantes activas/i);
   });
 
   it("4. should pause an active vacancy and allow activating another within limits", async () => {
+    const serviceA = new CompanyVacanciesService(clientA);
     // Pause vacancy2
-    const paused = await CompanyVacanciesService.toggleVacancyStatus(
-      clientA,
+    const paused = await serviceA.toggleVacancyStatus(
       companyA.id,
       vacancy2Id,
       false
@@ -204,8 +211,7 @@ describe("[REAL INTEGRATION] 05 - Company Vacancies & ATS Pipeline with Real Pos
     expect(dbCheck?.status).toBe("Pausada");
 
     // Now active count is 2 (vacancy1 and vacancy3). A new active vacancy should now be allowed:
-    const newAllowedVacancy = await CompanyVacanciesService.createExpressVacancy(
-      clientA,
+    const newAllowedVacancy = await serviceA.createExpressVacancy(
       companyA.id,
       {
         title: "Camarista de Piso Reemplazo",
@@ -213,20 +219,19 @@ describe("[REAL INTEGRATION] 05 - Company Vacancies & ATS Pipeline with Real Pos
         category: "Hotelería y Turismo",
         requirements: "Experiencia en limpieza de habitaciones de lujo.",
         modality: "Presencial",
-      }
+      },
+      companyA.id
     );
     expect(newAllowedVacancy.is_active).toBe(true);
 
     // Delete the temporary replacement to keep state clean
-    await CompanyVacanciesService.deleteVacancy(clientA, companyA.id, newAllowedVacancy.id);
+    await serviceA.deleteVacancy(companyA.id, newAllowedVacancy.id);
   });
 
   it("5. should clone an existing vacancy into a draft in PostgreSQL", async () => {
-    const cloneResult = await CompanyVacanciesService.cloneVacancy(
-      clientA,
-      companyA.id,
-      vacancy1Id
-    );
+    const cloneResult = await new CompanyVacanciesService(
+      clientA
+    ).cloneVacancy(companyA.id, vacancy1Id, companyA.id);
 
     expect(cloneResult.newVacancyId).toBeDefined();
     expect(cloneResult.title).toContain("(Copia)");

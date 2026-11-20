@@ -1,7 +1,6 @@
 "use client";
 
 import * as React from "react";
-import { getActiveCompanyContextAction } from "../actions/tenant-actions";
 import {
   useReactTable,
   getCoreRowModel,
@@ -91,12 +90,16 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
-import { createClient } from "@/lib/supabase/client";
+import {
+  formatMexicoDateShort,
+  getMexicoDateISO,
+} from "@/lib/formatters";
 import { useVacancyManager, type VacancyRow } from "@/modules/company/hooks/use-vacancy-manager";
 import {
   cloneVacancyAction,
   getCompanyVacanciesAction,
 } from "../actions/vacancies";
+import type { VacancyManagerProfileSummary } from "../services/company-vacancies";
 
 export interface VacancyItem extends VacancyRow {
   applicants_count?: number;
@@ -135,15 +138,14 @@ const STATUS_PILL_CONFIG: Record<
   },
 };
 
-interface CompanyProfileSummary {
-  company_name: string;
-  phone: string;
-  logo_url: string | null;
-  location: string;
-  is_validated: boolean;
+interface VacanciesManagerProps {
+  userId: string;
+  initialProfile?: VacancyManagerProfileSummary | null;
 }
 
-export function VacanciesManager({ userId }: { userId: string }) {
+export function VacanciesManager({
+  initialProfile = null,
+}: VacanciesManagerProps) {
   const router = useRouter();
   const [vacancies, setVacancies] = React.useState<VacancyItem[]>([]);
   const [searchQuery, setSearchQuery] = React.useState("");
@@ -167,11 +169,7 @@ export function VacanciesManager({ userId }: { userId: string }) {
   ]);
   const [rowSelection, setRowSelection] = React.useState<RowSelectionState>({});
 
-  // States for company profile checking
-  const [profile, setProfile] = React.useState<CompanyProfileSummary | null>(
-    null
-  );
-  const [loadingProfile, setLoadingProfile] = React.useState(true);
+  const profile = initialProfile;
   const [loadingVacancies, setLoadingVacancies] = React.useState(true);
 
   const {
@@ -180,48 +178,6 @@ export function VacanciesManager({ userId }: { userId: string }) {
     loading: isMutating,
   } = useVacancyManager();
   const isLoading = loadingVacancies || isMutating;
-
-  const loadProfile = React.useCallback(async () => {
-    try {
-      setLoadingProfile(true);
-      const supabase = createClient();
-      const scopeRes = await getActiveCompanyContextAction();
-      const companyScopeId = scopeRes.success ? scopeRes.data.companyId : userId;
-
-      const { data: baseProfile } = await supabase
-        .from("profiles")
-        .select("full_name, location")
-        .eq("id", userId)
-        .maybeSingle();
-
-      const { data: compProfile } = await supabase
-        .from("company_profiles")
-        .select(
-          "company_name, contact_phone, fiscal_address, logo_url, verification_status"
-        )
-        .eq("id", companyScopeId)
-        .maybeSingle();
-
-      const company_name =
-        compProfile?.company_name || baseProfile?.full_name || "";
-      const phone = compProfile?.contact_phone || "configurado";
-      const location =
-        compProfile?.fiscal_address || baseProfile?.location || "";
-      const is_validated = compProfile?.verification_status === "approved";
-
-      setProfile({
-        company_name,
-        phone,
-        logo_url: compProfile?.logo_url || null,
-        location,
-        is_validated,
-      });
-    } catch (err) {
-      console.error("Error loading company profile:", err);
-    } finally {
-      setLoadingProfile(false);
-    }
-  }, [userId]);
 
   const loadVacancies = React.useCallback(async () => {
     try {
@@ -239,17 +195,15 @@ export function VacanciesManager({ userId }: { userId: string }) {
   }, []);
 
   React.useEffect(() => {
-    loadProfile();
     loadVacancies();
-  }, [loadProfile, loadVacancies]);
+  }, [loadVacancies]);
 
   const isProfileIncomplete = React.useMemo(() => {
-    if (loadingProfile) return false;
     if (!profile) return false;
     const name = profile.company_name?.trim() || "";
     const addr = profile.location?.trim() || "";
     return !name || name === "Nueva Empresa" || !addr;
-  }, [profile, loadingProfile]);
+  }, [profile]);
 
   const handleToggleActive = React.useCallback(async (vacancyId: string, currentActive: boolean) => {
     const nextState = !currentActive;
@@ -355,7 +309,7 @@ export function VacanciesManager({ userId }: { userId: string }) {
     const isActive = newStatus === "Activa";
     try {
       for (const id of ids) {
-        await toggleVacancyStatus(id, isActive);
+        await toggleVacancyStatus(id, isActive, newStatus);
       }
       setVacancies((prev) =>
         prev.map((v) =>
@@ -487,16 +441,7 @@ export function VacanciesManager({ userId }: { userId: string }) {
 
   const formatDate = (dateStr: string) => {
     if (!dateStr) return "Reciente";
-    try {
-      const date = new Date(dateStr);
-      return date.toLocaleDateString("es-MX", {
-        day: "numeric",
-        month: "short",
-        year: "numeric",
-      });
-    } catch {
-      return dateStr;
-    }
+    return formatMexicoDateShort(dateStr) || dateStr;
   };
 
   const handleExportCSV = () => {
@@ -536,7 +481,7 @@ export function VacanciesManager({ userId }: { userId: string }) {
     link.setAttribute("href", encodedUri);
     link.setAttribute(
       "download",
-      `vacantes_${profile?.company_name ? profile.company_name.toLowerCase().replace(/\s+/g, "_") : "empresa"}_${new Date().toISOString().split("T")[0]}.csv`
+      `vacantes_${profile?.company_name ? profile.company_name.toLowerCase().replace(/\s+/g, "_") : "empresa"}_${getMexicoDateISO()}.csv`
     );
     document.body.appendChild(link);
     link.click();
@@ -984,7 +929,7 @@ export function VacanciesManager({ userId }: { userId: string }) {
       </div>
 
       {/* Profile Incomplete Warning Banner */}
-      {isProfileIncomplete && !loadingProfile && (
+      {isProfileIncomplete && (
         <Alert
           variant="destructive"
           className="bg-warning border-warning text-warning-foreground p-4 rounded-[12px] flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4"

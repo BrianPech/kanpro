@@ -12,7 +12,7 @@ export { cleanCityName };
 // 1. DATE NORMALIZATION & FORMATTING
 // ==========================================
 
-const MEXICO_TIME_ZONE = "America/Mexico_City";
+export const MEXICO_TIME_ZONE = "America/Mexico_City";
 
 /**
  * Returns the calendar date `YYYY-MM-DD` in America/Mexico_City timezone,

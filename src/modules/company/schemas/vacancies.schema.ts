@@ -72,6 +72,7 @@ export type CreateExpressVacancyInput = z.infer<typeof createExpressVacancySchem
 export const toggleVacancyStatusSchema = z.object({
   vacancyId: uuidSchema,
   isActive: z.boolean(),
+  status: z.enum(["Activa", "Pausada", "Cerrada"]).optional(),
 });
 
 export type ToggleVacancyStatusInput = z.infer<typeof toggleVacancyStatusSchema>;

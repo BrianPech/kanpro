@@ -6,6 +6,7 @@ import {
   toggleVacancyStatusSchema,
   deleteVacancySchema,
   vacancyWizardSchema,
+  DEFAULT_WIZARD_VALUES,
 } from "@/modules/company/schemas/vacancies.schema";
 import {
   createEvaluationSchema,
@@ -17,6 +18,11 @@ import {
   CompanyVacanciesService,
   type VacancyRow,
 } from "@/modules/company/services/company-vacancies";
+import type {
+  VacanciesRepository,
+  VacancyInsert,
+  VacancyUpdate,
+} from "@/modules/company/repositories/vacancies.repository";
 import {
   CompanyEvaluationsService,
   type EvaluationRow,
@@ -284,6 +290,7 @@ describe("Fase 19: Vacantes y Evaluaciones/NOM-035 - Patrón Schema -> Handler -
 
     test("createExpressVacancy: Crea vacante exprés asociada a la empresa", async () => {
       const { client, vacancies } = createMockVacanciesSupabase();
+      const service = new CompanyVacanciesService(client);
 
       const rawPayload = {
         title: "Auxiliar de Mantenimiento",
@@ -293,20 +300,21 @@ describe("Fase 19: Vacantes y Evaluaciones/NOM-035 - Patrón Schema -> Handler -
         salary_min: 12000,
         salary_max: 14000,
       };
-      const created = await CompanyVacanciesService.createExpressVacancy(
-        client,
+      const created = await service.createExpressVacancy(
         "comp-1",
-        createExpressVacancySchema.parse(rawPayload)
+        createExpressVacancySchema.parse(rawPayload),
+        "user-recruiter-1"
       );
 
       expect(created.id).toBeDefined();
       expect(created.title).toBe("Auxiliar de Mantenimiento");
+      expect(created.recruiter_id).toBe("user-recruiter-1");
       expect(created.status).toBe("Activa");
       expect(created.is_active).toBe(true);
       expect(vacancies.length).toBe(1);
     });
 
-    test("cloneVacancy: Clona una vacante existente con sufijo (Copia) y en estado Borrador", async () => {
+    test("cloneVacancy: Clona una vacante existente con sufijo (Copia), Borrador y recruiterId resuelto", async () => {
       const initial: Partial<VacancyRow>[] = [
         {
           id: "vac-origin-1",
@@ -320,8 +328,13 @@ describe("Fase 19: Vacantes y Evaluaciones/NOM-035 - Patrón Schema -> Handler -
         },
       ];
       const { client, vacancies } = createMockVacanciesSupabase(initial);
+      const service = new CompanyVacanciesService(client);
 
-      const cloneRes = await CompanyVacanciesService.cloneVacancy(client, "comp-1", "vac-origin-1");
+      const cloneRes = await service.cloneVacancy(
+        "comp-1",
+        "vac-origin-1",
+        "user-recruiter-1"
+      );
 
       expect(cloneRes.title).toBe("Chef de Partie (Copia)");
       expect(vacancies.length).toBe(2);
@@ -329,6 +342,7 @@ describe("Fase 19: Vacantes y Evaluaciones/NOM-035 - Patrón Schema -> Handler -
       const cloned = vacancies.find((v) => v.id === cloneRes.newVacancyId);
       expect(cloned?.status).toBe("Borrador");
       expect(cloned?.is_active).toBe(false);
+      expect(cloned?.recruiter_id).toBe("user-recruiter-1");
     });
 
     test("toggleVacancyStatus: Pausa o activa una vacante", async () => {
@@ -342,9 +356,9 @@ describe("Fase 19: Vacantes y Evaluaciones/NOM-035 - Patrón Schema -> Handler -
         },
       ];
       const { client, vacancies } = createMockVacanciesSupabase(initial);
+      const service = new CompanyVacanciesService(client);
 
-      const paused = await CompanyVacanciesService.toggleVacancyStatus(
-        client,
+      const paused = await service.toggleVacancyStatus(
         "comp-1",
         "vac-toggle-1",
         false
@@ -361,9 +375,10 @@ describe("Fase 19: Vacantes y Evaluaciones/NOM-035 - Patrón Schema -> Handler -
         { id: "v-3", company_id: "comp-1", is_active: true },
       ];
       const { client } = createMockVacanciesSupabase(initial, "basic");
+      const service = new CompanyVacanciesService(client);
 
       await expect(
-        CompanyVacanciesService.checkActiveVacancyLimit(client, "comp-1")
+        service.checkActiveVacancyLimit("comp-1")
       ).rejects.toThrow(/límite de 3 vacantes activas/);
     });
 
@@ -372,9 +387,196 @@ describe("Fase 19: Vacantes y Evaluaciones/NOM-035 - Patrón Schema -> Handler -
         { id: "vac-del-1", company_id: "comp-1", title: "Para borrar" },
       ];
       const { client, vacancies } = createMockVacanciesSupabase(initial);
+      const service = new CompanyVacanciesService(client);
 
-      await CompanyVacanciesService.deleteVacancy(client, "comp-1", "vac-del-1");
+      await service.deleteVacancy("comp-1", "vac-del-1");
       expect(vacancies.length).toBe(0);
+    });
+
+    test("createVacancy y updateVacancy: Usan repositorio inyectado y el Factory", async () => {
+      const { client } = createMockVacanciesSupabase();
+      const stored: VacancyRow[] = [];
+
+      const fakeRepo: VacanciesRepository = {
+        create: vi.fn(async (companyId: string, payload: VacancyInsert) => {
+          const row = {
+            id: "vac-fake-1",
+            created_at: "2026-11-19T00:00:00.000Z",
+            updated_at: "2026-11-19T00:00:00.000Z",
+            ...payload,
+            company_id: companyId,
+          } as VacancyRow;
+          stored.push(row);
+          return row;
+        }),
+        update: vi.fn(
+          async (
+            companyId: string,
+            vacancyId: string,
+            payload: VacancyUpdate
+          ) => {
+            const idx = stored.findIndex(
+              (v) => v.id === vacancyId && v.company_id === companyId
+            );
+            if (idx === -1) throw new Error("Not found");
+            stored[idx] = { ...stored[idx], ...payload } as VacancyRow;
+            return stored[idx];
+          }
+        ),
+        getById: vi.fn(
+          async (companyId: string, vacancyId: string) =>
+            stored.find(
+              (v) => v.id === vacancyId && v.company_id === companyId
+            ) ?? null
+        ),
+        listByCompany: vi.fn(async () => stored),
+        delete: vi.fn(async () => undefined),
+        countActive: vi.fn(
+          async () => stored.filter((v) => v.is_active).length
+        ),
+      };
+
+      const service = new CompanyVacanciesService(client, fakeRepo);
+      const wizardInput = vacancyWizardSchema.parse({
+        ...DEFAULT_WIZARD_VALUES,
+        title: "  Recepcionista Nocturno  ",
+        description: "Atención a huéspedes en turno nocturno.",
+        contact_phone: "9991234567",
+        skills: ["Inglés", "PMS"],
+        is_active: true,
+      });
+
+      const created = await service.createVacancy(
+        "comp-fake",
+        wizardInput,
+        "user-fake-1"
+      );
+
+      expect(created.id).toBe("vac-fake-1");
+      expect(created.title).toBe("Recepcionista Nocturno");
+      expect(created.recruiter_id).toBe("user-fake-1");
+      expect(created.status).toBe("Activa");
+      expect(created.tags).toEqual(["Inglés", "PMS"]);
+      expect(fakeRepo.create).toHaveBeenCalledTimes(1);
+
+      const updated = await service.updateVacancy("comp-fake", created.id, {
+        ...wizardInput,
+        title: "Recepcionista Actualizado",
+        is_active: false,
+      });
+
+      expect(updated.title).toBe("Recepcionista Actualizado");
+      expect(updated.status).toBe("Borrador");
+      expect(updated.is_active).toBe(false);
+      expect(fakeRepo.update).toHaveBeenCalledTimes(1);
+    });
+
+    test("updateVacancy: Permite editar una vacante ya activa en el límite del Plan BASIC (3/3) y bloquea activar una inactiva", async () => {
+      const initial: Partial<VacancyRow>[] = [
+        {
+          id: "vac-active-1",
+          company_id: "comp-1",
+          title: "Cocinero A",
+          is_active: true,
+          status: "Activa",
+        },
+        {
+          id: "vac-active-2",
+          company_id: "comp-1",
+          title: "Mesero",
+          is_active: true,
+          status: "Activa",
+        },
+        {
+          id: "vac-active-3",
+          company_id: "comp-1",
+          title: "Recepcionista",
+          is_active: true,
+          status: "Activa",
+        },
+        {
+          id: "vac-draft-4",
+          company_id: "comp-1",
+          title: "Hostess Borrador",
+          is_active: false,
+          status: "Borrador",
+        },
+      ];
+      const { client } = createMockVacanciesSupabase(initial, "basic");
+      const service = new CompanyVacanciesService(client);
+      const limitSpy = vi.spyOn(service, "checkActiveVacancyLimit");
+
+      const wizardInput = vacancyWizardSchema.parse({
+        ...DEFAULT_WIZARD_VALUES,
+        title: "Cocinero A Actualizado",
+        description: "Preparación de línea caliente y fría con estándar H.",
+        contact_phone: "9991234567",
+        is_active: true,
+      });
+
+      const editedActive = await service.updateVacancy(
+        "comp-1",
+        "vac-active-1",
+        wizardInput
+      );
+
+      expect(editedActive.title).toBe("Cocinero A Actualizado");
+      expect(editedActive.is_active).toBe(true);
+      expect(editedActive.status).toBe("Activa");
+      expect(limitSpy).not.toHaveBeenCalled();
+
+      await expect(
+        service.updateVacancy("comp-1", "vac-draft-4", wizardInput)
+      ).rejects.toThrow(/límite de 3 vacantes activas/);
+      expect(limitSpy).toHaveBeenCalledTimes(1);
+    });
+
+    test("toggleVacancyStatus: Valida límite únicamente al activar (false -> true) y nunca al pausar (true -> false)", async () => {
+      const initial: Partial<VacancyRow>[] = [
+        {
+          id: "vac-active-1",
+          company_id: "comp-1",
+          is_active: true,
+          status: "Activa",
+        },
+        {
+          id: "vac-active-2",
+          company_id: "comp-1",
+          is_active: true,
+          status: "Activa",
+        },
+        {
+          id: "vac-active-3",
+          company_id: "comp-1",
+          is_active: true,
+          status: "Activa",
+        },
+        {
+          id: "vac-paused-4",
+          company_id: "comp-1",
+          is_active: false,
+          status: "Pausada",
+        },
+      ];
+      const { client } = createMockVacanciesSupabase(initial, "basic");
+      const service = new CompanyVacanciesService(client);
+      const limitSpy = vi.spyOn(service, "checkActiveVacancyLimit");
+
+      await expect(
+        service.toggleVacancyStatus("comp-1", "vac-paused-4", true)
+      ).rejects.toThrow(/límite de 3 vacantes activas/);
+      expect(limitSpy).toHaveBeenCalledTimes(1);
+
+      limitSpy.mockClear();
+
+      const paused = await service.toggleVacancyStatus(
+        "comp-1",
+        "vac-active-1",
+        false
+      );
+      expect(paused.is_active).toBe(false);
+      expect(paused.status).toBe("Pausada");
+      expect(limitSpy).not.toHaveBeenCalled();
     });
   });
 
@@ -559,13 +761,15 @@ describe("Fase 19: Vacantes y Evaluaciones/NOM-035 - Patrón Schema -> Handler -
         }),
       } as unknown as SupabaseClient<Database>;
 
+      const service = new CompanyVacanciesService(client);
+
       // Empresa B intenta clonar la vacante de Empresa A
       await expect(
-        CompanyVacanciesService.cloneVacancy(client, "empresa-b", "vac-empresa-a")
+        service.cloneVacancy("empresa-b", "vac-empresa-a", "user-b")
       ).rejects.toThrow(/No se encontró la vacante origen/);
 
       // Empresa B intenta borrar la vacante de Empresa A
-      await CompanyVacanciesService.deleteVacancy(client, "empresa-b", "vac-empresa-a");
+      await service.deleteVacancy("empresa-b", "vac-empresa-a");
       // La vacante de Empresa A sigue existiendo
       expect(vacancies.length).toBe(1);
     });

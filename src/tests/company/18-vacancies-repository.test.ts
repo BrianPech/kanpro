@@ -347,8 +347,8 @@ describe("Paso 1: VacanciesRepository y lecturas desacopladas", () => {
     const emptyMock = createTypedMockSupabase([], [
       { vacancy_id: "vac-otra-empresa" },
     ]);
-    const emptyRes = await CompanyVacanciesService.getVacanciesWithCounts(
-      emptyMock.client,
+    const emptyService = new CompanyVacanciesService(emptyMock.client);
+    const emptyRes = await emptyService.getVacanciesWithCounts(
       "empresa-sin-vacantes"
     );
 
@@ -368,8 +368,8 @@ describe("Paso 1: VacanciesRepository y lecturas desacopladas", () => {
       ]
     );
 
-    const listWithCounts = await CompanyVacanciesService.getVacanciesWithCounts(
-      populatedMock.client,
+    const populatedService = new CompanyVacanciesService(populatedMock.client);
+    const listWithCounts = await populatedService.getVacanciesWithCounts(
       "empresa-a"
     );
 
@@ -390,18 +390,11 @@ describe("Paso 1: VacanciesRepository y lecturas desacopladas", () => {
       buildSampleVacancy({ id: "vac-a1", company_id: "empresa-a" }),
       buildSampleVacancy({ id: "vac-b1", company_id: "empresa-b" }),
     ]);
+    const service = new CompanyVacanciesService(client);
 
-    const listA = await CompanyVacanciesService.getVacancies(
-      client,
-      "empresa-a"
-    );
-    const ownVacancy = await CompanyVacanciesService.getVacancyById(
-      client,
-      "empresa-a",
-      "vac-a1"
-    );
-    const foreignVacancy = await CompanyVacanciesService.getVacancyById(
-      client,
+    const listA = await service.getVacancies("empresa-a");
+    const ownVacancy = await service.getVacancyById("empresa-a", "vac-a1");
+    const foreignVacancy = await service.getVacancyById(
       "empresa-a",
       "vac-b1"
     );

@@ -23,9 +23,10 @@ import { applyPreset } from "../../factories/vacancy-payload.factory";
 
 interface Step1BasicProps {
   form: UseFormReturn<VacancyWizardValues>;
+  onApplyPreset?: (nextValues: VacancyWizardValues) => void;
 }
 
-export function Step1Basic({ form }: Step1BasicProps) {
+export function Step1Basic({ form, onApplyPreset }: Step1BasicProps) {
   const [companyAreas, setCompanyAreas] = React.useState<
     { id: string; name: string }[]
   >([]);
@@ -69,6 +70,11 @@ export function Step1Basic({ form }: Step1BasicProps) {
             if (!preset) return;
             const next = applyPreset(form.getValues(), preset);
             form.reset(next, { keepDefaultValues: true });
+            form.setValue("title", next.title, {
+              shouldDirty: true,
+              shouldTouch: true,
+            });
+            onApplyPreset?.(next);
             form.trigger();
           }}
         >

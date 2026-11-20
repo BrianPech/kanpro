@@ -1,9 +1,7 @@
 "use server";
 
 import { createClient } from "@/lib/supabase/server";
-import { cookies } from "next/headers";
 import * as nextCache from "next/cache";
-import { ACTIVE_COMPANY_COOKIE } from "../schemas/tenant.schema";
 import {
   cloneVacancySchema,
   createExpressVacancySchema,
@@ -102,10 +100,8 @@ export async function getCompanyVacanciesAction(): Promise<GetCompanyVacanciesAc
       user.id,
       supabase
     );
-    const vacancies = await CompanyVacanciesService.getVacanciesWithCounts(
-      supabase,
-      companyId
-    );
+    const service = new CompanyVacanciesService(supabase);
+    const vacancies = await service.getVacanciesWithCounts(companyId);
 
     return { success: true, data: vacancies };
   } catch (err: unknown) {
@@ -142,10 +138,15 @@ export async function cloneVacancyAction(
   }
 
   try {
-    const result = await CompanyVacanciesService.cloneVacancy(
-      supabase,
+    const { companyId } = await companyTenantService.resolveActiveCompanyScope(
       user.id,
-      parsed.data.vacancyId
+      supabase
+    );
+    const service = new CompanyVacanciesService(supabase);
+    const result = await service.cloneVacancy(
+      companyId,
+      parsed.data.vacancyId,
+      user.id
     );
 
     await revalidateVacancies();
@@ -187,21 +188,12 @@ export async function createVacancyAction(
   }
 
   try {
-    let effectiveCompanyId: string | undefined;
-    try {
-      const cookieStore = await cookies();
-      effectiveCompanyId = cookieStore.get(ACTIVE_COMPANY_COOKIE)?.value;
-    } catch {
-      // outside cookie context
-    }
-    const companyScopeId = effectiveCompanyId || user.id;
-
-    const vacancy = await CompanyVacanciesService.createVacancy(
-      supabase,
-      companyScopeId,
-      parsed.data,
-      user.id
+    const { companyId } = await companyTenantService.resolveActiveCompanyScope(
+      user.id,
+      supabase
     );
+    const service = new CompanyVacanciesService(supabase);
+    const vacancy = await service.createVacancy(companyId, parsed.data, user.id);
 
     await revalidateVacancies();
 
@@ -242,12 +234,12 @@ export async function updateVacancyAction(
   }
 
   try {
-    const vacancy = await CompanyVacanciesService.updateVacancy(
-      supabase,
+    const { companyId } = await companyTenantService.resolveActiveCompanyScope(
       user.id,
-      vacancyId,
-      parsed.data
+      supabase
     );
+    const service = new CompanyVacanciesService(supabase);
+    const vacancy = await service.updateVacancy(companyId, vacancyId, parsed.data);
 
     await revalidateVacancies();
 
@@ -287,18 +279,13 @@ export async function createExpressVacancyAction(
   }
 
   try {
-    let effectiveCompanyId: string | undefined;
-    try {
-      const cookieStore = await cookies();
-      effectiveCompanyId = cookieStore.get(ACTIVE_COMPANY_COOKIE)?.value;
-    } catch {
-      // outside cookie context
-    }
-    const companyScopeId = effectiveCompanyId || user.id;
-
-    const vacancy = await CompanyVacanciesService.createExpressVacancy(
-      supabase,
-      companyScopeId,
+    const { companyId } = await companyTenantService.resolveActiveCompanyScope(
+      user.id,
+      supabase
+    );
+    const service = new CompanyVacanciesService(supabase);
+    const vacancy = await service.createExpressVacancy(
+      companyId,
       parsed.data,
       user.id
     );
@@ -341,11 +328,16 @@ export async function toggleVacancyStatusAction(
   }
 
   try {
-    const vacancy = await CompanyVacanciesService.toggleVacancyStatus(
-      supabase,
+    const { companyId } = await companyTenantService.resolveActiveCompanyScope(
       user.id,
+      supabase
+    );
+    const service = new CompanyVacanciesService(supabase);
+    const vacancy = await service.toggleVacancyStatus(
+      companyId,
       parsed.data.vacancyId,
-      parsed.data.isActive
+      parsed.data.isActive,
+      parsed.data.status
     );
 
     await revalidateVacancies();
@@ -389,11 +381,12 @@ export async function deleteVacancyAction(
   }
 
   try {
-    await CompanyVacanciesService.deleteVacancy(
-      supabase,
+    const { companyId } = await companyTenantService.resolveActiveCompanyScope(
       user.id,
-      parsed.data.vacancyId
+      supabase
     );
+    const service = new CompanyVacanciesService(supabase);
+    await service.deleteVacancy(companyId, parsed.data.vacancyId);
 
     await revalidateVacancies();
 

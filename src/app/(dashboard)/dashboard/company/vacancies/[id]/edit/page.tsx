@@ -5,6 +5,7 @@ import { companyTenantService } from "@/modules/company/services/company-tenant.
 import {
   CompanyVacanciesService,
   type VacancyRow,
+  type VacancyWizardCompanyPrefill,
 } from "@/modules/company/services/company-vacancies";
 import { redirect } from "next/navigation";
 
@@ -15,7 +16,9 @@ interface PageProps {
 export default async function EditVacancyPage({ params }: PageProps) {
   const { id } = await params;
   const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
 
   if (!user) {
     redirect("/login");
@@ -27,12 +30,13 @@ export default async function EditVacancyPage({ params }: PageProps) {
   );
 
   let initialVacancy: VacancyRow | null = null;
+  let companyPrefill: VacancyWizardCompanyPrefill | null = null;
   try {
-    initialVacancy = await CompanyVacanciesService.getVacancyById(
-      supabase,
-      companyId,
-      id
-    );
+    const service = new CompanyVacanciesService(supabase);
+    [initialVacancy, companyPrefill] = await Promise.all([
+      service.getVacancyById(companyId, id),
+      service.getWizardCompanyPrefill(companyId, user.id),
+    ]);
   } catch (err) {
     console.error("Error loading vacancy for editing:", err);
   }
@@ -42,6 +46,7 @@ export default async function EditVacancyPage({ params }: PageProps) {
       userId={user.id}
       vacancyId={id}
       initialVacancy={initialVacancy}
+      companyPrefill={companyPrefill}
     />
   );
 }

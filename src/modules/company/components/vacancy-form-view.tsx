@@ -4,11 +4,13 @@ import * as React from "react";
 import { VacancyWizardContainer } from "./wizard/vacancy-wizard-container";
 import { type VacancyWizardValues } from "../schemas/vacancy-wizard.schema";
 import type { VacancyRow } from "../repositories/vacancies.repository";
+import type { VacancyWizardCompanyPrefill } from "../services/company-vacancies";
 
 interface VacancyFormViewProps {
   userId: string;
   vacancyId?: string;
   initialVacancy?: VacancyRow | null;
+  companyPrefill?: VacancyWizardCompanyPrefill | null;
 }
 
 function normalizePaymentFrequency(
@@ -62,6 +64,7 @@ export function VacancyFormView({
   userId,
   vacancyId,
   initialVacancy,
+  companyPrefill,
 }: VacancyFormViewProps) {
   const initialValues = React.useMemo(
     () => (initialVacancy ? mapVacancyToWizardValues(initialVacancy) : undefined),
@@ -72,6 +75,7 @@ export function VacancyFormView({
     <VacancyWizardContainer
       userId={userId}
       initialValues={initialValues}
+      companyPrefill={companyPrefill}
       isEditing={!!vacancyId}
       vacancyId={vacancyId}
     />

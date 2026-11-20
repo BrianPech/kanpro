@@ -28,14 +28,16 @@ import { Step1Basic } from "./step-1-basic";
 import { Step2Compensation } from "./step-2-compensation";
 import { Step3Description } from "./step-3-description";
 import { Step4Publication } from "./step-4-publication";
-import { createClient } from "@/lib/supabase/client";
-import { useDebouncedCallback } from "@tanstack/react-pacer";
 import {
   createVacancyAction,
   updateVacancyAction,
 } from "../../actions/vacancies";
-import { parseLocation, formatSalaryDisplay, formatDateToDisplay } from "@/lib/formatters";
-import { GEO_CONFIG } from "@/config/geo";
+import type { VacancyWizardCompanyPrefill } from "../../services/company-vacancies";
+import {
+  formatSalaryDisplay,
+  formatDateToDisplay,
+  getMexicoDateISO,
+} from "@/lib/formatters";
 import { cn } from "@/lib/utils";
 import Link from "next/link";
 
@@ -60,45 +62,51 @@ const CONTACT_DISPLAY: Record<string, string> = {
   both: "WhatsApp y bandeja Kanpro",
 };
 
-interface RawCompanyProfile {
-  company_name?: string;
-  contact_phone?: string;
-  fiscal_address?: string;
-  address_details?: string;
-  logo_url?: string;
-  verification_status?: string;
-  subscription_plan?: string;
-}
-
-interface RawProfile {
-  location?: string;
-  full_name?: string;
-  phone?: string;
-}
-
-interface CompanyProfileState {
-  company_name?: string;
-  contact_phone?: string;
-  fiscal_address?: string;
-  address_details?: string;
-  logo_url?: string;
-  verification_status?: string;
-  subscription_plan?: string;
-  resolvedCity?: string;
-  resolvedZone?: string;
-  resolvedLocation?: string;
-}
-
 interface VacancyWizardContainerProps {
   userId: string;
   initialValues?: Partial<VacancyWizardValues>;
+  companyPrefill?: VacancyWizardCompanyPrefill | null;
   isEditing?: boolean;
   vacancyId?: string;
 }
 
+function buildWizardDefaultValues(
+  initialValues: Partial<VacancyWizardValues> | undefined,
+  companyPrefill: VacancyWizardCompanyPrefill | null | undefined,
+  isEditing: boolean
+): VacancyWizardValues {
+  const base: VacancyWizardValues = {
+    ...DEFAULT_WIZARD_VALUES,
+    ...initialValues,
+  };
+
+  if (companyPrefill?.contact_phone && !base.contact_phone) {
+    base.contact_phone = companyPrefill.contact_phone;
+  }
+
+  if (!isEditing && companyPrefill) {
+    const currentLoc = base.location || "";
+    const isStreetAddress =
+      /^(calle|av\.|avenida|carretera|carr\.|diag\.|diagonal|sm\b|mz\b|lote|c\.)/i.test(
+        currentLoc
+      );
+    if (
+      !currentLoc ||
+      currentLoc === "Mérida, Yucatán" ||
+      currentLoc === "Mérida" ||
+      isStreetAddress
+    ) {
+      base.location = companyPrefill.resolvedLocation;
+      base.zone = companyPrefill.resolvedZone;
+    }
+  }
+
+  return base;
+}
+
 export function VacancyWizardContainer({
-  userId,
   initialValues,
+  companyPrefill = null,
   isEditing = false,
   vacancyId,
 }: VacancyWizardContainerProps) {
@@ -108,19 +116,37 @@ export function VacancyWizardContainer({
   const [isSubmitting, setIsSubmitting] = React.useState(false);
   const [submitError, setSubmitError] = React.useState<string | null>(null);
   const [showPreviewDrawer, setShowPreviewDrawer] = React.useState(false);
-  const [companyProfile, setCompanyProfile] = React.useState<CompanyProfileState | null>(null);
+  const companyProfile = companyPrefill;
   const [draftDismissed, setDraftDismissed] = React.useState(false);
   const [initialDraftRaw, setInitialDraftRaw] = React.useState<string | null>(null);
+  const [isDraftHydrated, setIsDraftHydrated] = React.useState(false);
+  const draftTimerRef = React.useRef<number | null>(null);
+  const lastSavedSnapshotRef = React.useRef<string | null>(null);
+
+  const resolvedDefaultValues = React.useMemo(
+    () => buildWizardDefaultValues(initialValues, companyPrefill, isEditing),
+    [initialValues, companyPrefill, isEditing]
+  );
 
   // Read any prior draft strictly once on mount so live auto-saves in this session never trigger the banner.
   React.useEffect(() => {
     if (isEditing) return;
-    try {
-      setInitialDraftRaw(localStorage.getItem(DRAFT_STORAGE_KEY));
-    } catch {
-      setInitialDraftRaw(null);
-    }
-  }, [isEditing]);
+    let cancelled = false;
+    queueMicrotask(() => {
+      if (cancelled) return;
+      try {
+        setInitialDraftRaw(localStorage.getItem(DRAFT_STORAGE_KEY));
+      } catch {
+        setInitialDraftRaw(null);
+      } finally {
+        lastSavedSnapshotRef.current = JSON.stringify(resolvedDefaultValues);
+        setIsDraftHydrated(true);
+      }
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [isEditing, resolvedDefaultValues]);
 
   const savedDraft = React.useMemo<VacancyWizardValues | null>(() => {
     if (isEditing || draftDismissed || !initialDraftRaw) return null;
@@ -141,110 +167,58 @@ export function VacancyWizardContainer({
 
   // React Hook Form Instance
   const form = useForm<VacancyWizardValues>({
-    defaultValues: {
-      ...DEFAULT_WIZARD_VALUES,
-      ...initialValues,
-    },
+    defaultValues: resolvedDefaultValues,
   });
 
   const formValues = useWatch({ control: form.control }) as VacancyWizardValues;
 
-  // Load company profile for default values (phone, name, verified status, location)
-  React.useEffect(() => {
-    async function loadCompany() {
-      try {
-        const supabase = createClient();
-        const [compRes, profRes] = await Promise.all([
-          supabase
-            .from("company_profiles")
-            .select(
-              "company_name, contact_phone, fiscal_address, address_details, logo_url, verification_status, subscription_plan"
-            )
-            .eq("id", userId)
-            .maybeSingle(),
-          supabase
-            .from("profiles")
-            .select("location, full_name, whatsapp_number")
-            .eq("id", userId)
-            .maybeSingle(),
-        ]);
-
-        const comp = compRes.data as RawCompanyProfile | null;
-        const prof = profRes.data as RawProfile | null;
-
-        if (comp || prof) {
-          const rawLoc =
-            comp?.fiscal_address ||
-            comp?.address_details ||
-            prof?.location;
-          const parsed = parseLocation(rawLoc);
-          const cleanCity = parsed.city || "Mérida";
-          const cleanZone =
-            parsed.zone ||
-            (cleanCity === "Mérida" ? "Centro Mérida" : "Centro");
-          const stateName = GEO_CONFIG[cleanCity]?.state;
-          const resolvedLocationDisplay = stateName
-            ? `${cleanCity}, ${stateName === "Quintana Roo" ? "Q. Roo" : stateName}`
-            : rawLoc?.trim() || cleanCity;
-
-          setCompanyProfile({
-            ...comp,
-            resolvedCity: cleanCity,
-            resolvedZone: cleanZone,
-            resolvedLocation: resolvedLocationDisplay,
-            company_name:
-              comp?.company_name || prof?.full_name || "Tu Empresa",
-          });
-
-          // Pre-fill phone if available and form is empty
-          if (comp?.contact_phone && !form.getValues("contact_phone")) {
-            form.setValue("contact_phone", comp.contact_phone);
-          }
-
-          // Pre-fill location & zone if form is creating a new vacancy and using default or dirty street address
-          if (!isEditing) {
-            const currentLoc = form.getValues("location");
-            const isStreetAddress =
-              /^(calle|av\.|avenida|carretera|carr\.|diag\.|diagonal|sm\b|mz\b|lote|c\.)/i.test(
-                currentLoc || ""
-              );
-            if (
-              !currentLoc ||
-              currentLoc === "Mérida, Yucatán" ||
-              currentLoc === "Mérida" ||
-              isStreetAddress
-            ) {
-              form.setValue("location", resolvedLocationDisplay);
-              form.setValue("zone", cleanZone);
-            }
-          }
-        }
-      } catch (err) {
-        console.error("Error loading company profile:", err);
-      }
+  const cancelPendingDraftSave = React.useCallback(() => {
+    if (draftTimerRef.current !== null) {
+      window.clearTimeout(draftTimerRef.current);
+      draftTimerRef.current = null;
     }
-    loadCompany();
-  }, [userId, isEditing, form]);
+  }, []);
 
-  // Debounced auto-save draft using react-pacer
-  const saveDraftDebounced = useDebouncedCallback(
+  const persistDraftNow = React.useCallback(
     (values: VacancyWizardValues) => {
       if (isEditing) return;
+      cancelPendingDraftSave();
       try {
         if (values.title?.trim() || values.description?.trim()) {
-          localStorage.setItem(DRAFT_STORAGE_KEY, JSON.stringify(values));
+          const serialized = JSON.stringify(values);
+          localStorage.setItem(DRAFT_STORAGE_KEY, serialized);
+          lastSavedSnapshotRef.current = serialized;
         }
       } catch (e) {
         console.warn("Draft save failed:", e);
       }
     },
-    { wait: 1000 }
+    [isEditing, cancelPendingDraftSave]
   );
 
-  // Trigger auto-save whenever form state changes
+  // Trigger debounced auto-save only after initial draft hydration completes and values change
   React.useEffect(() => {
-    saveDraftDebounced(formValues);
-  }, [formValues, saveDraftDebounced]);
+    if (isEditing || !isDraftHydrated) return;
+
+    const serialized = JSON.stringify(formValues);
+    if (serialized === lastSavedSnapshotRef.current) return;
+
+    cancelPendingDraftSave();
+    draftTimerRef.current = window.setTimeout(() => {
+      draftTimerRef.current = null;
+      persistDraftNow(formValues);
+    }, 500);
+
+    return () => {
+      cancelPendingDraftSave();
+    };
+  }, [
+    isEditing,
+    isDraftHydrated,
+    formValues,
+    cancelPendingDraftSave,
+    persistDraftNow,
+  ]);
 
   // Validate current step before advancing
   const validateStep = (step: number): boolean => {
@@ -312,8 +286,10 @@ export function VacancyWizardContainer({
 
   const handleClearDraft = () => {
     try {
+      cancelPendingDraftSave();
       localStorage.removeItem(DRAFT_STORAGE_KEY);
-      form.reset();
+      lastSavedSnapshotRef.current = JSON.stringify(resolvedDefaultValues);
+      form.reset(resolvedDefaultValues);
       setCurrentStep(1);
       setMaxAccessibleStep(1);
       setDraftDismissed(true);
@@ -355,6 +331,7 @@ export function VacancyWizardContainer({
       }
 
       // Clear local storage draft
+      cancelPendingDraftSave();
       try {
         localStorage.removeItem(DRAFT_STORAGE_KEY);
       } catch {}
@@ -409,7 +386,7 @@ export function VacancyWizardContainer({
       contact_phone: formValues.contact_phone,
       contact_email: formValues.contact_email,
       is_active: formValues.is_active,
-      created_at: new Date().toISOString(),
+      created_at: getMexicoDateISO(),
       applicants_count: 0,
     };
   }, [formValues, vacancyId]);
@@ -510,6 +487,7 @@ export function VacancyWizardContainer({
               variant="outline"
               size="sm"
               onClick={() => {
+                cancelPendingDraftSave();
                 try {
                   localStorage.removeItem(DRAFT_STORAGE_KEY);
                 } catch {}
@@ -523,11 +501,13 @@ export function VacancyWizardContainer({
               type="button"
               size="sm"
               onClick={() => {
-                form.reset({
-                  ...DEFAULT_WIZARD_VALUES,
-                  ...initialValues,
+                const restored = {
+                  ...resolvedDefaultValues,
                   ...savedDraft,
-                });
+                };
+                cancelPendingDraftSave();
+                lastSavedSnapshotRef.current = JSON.stringify(restored);
+                form.reset(restored);
                 setDraftDismissed(true);
                 toast.success("Borrador restaurado");
               }}
@@ -583,7 +563,9 @@ export function VacancyWizardContainer({
           }}
           className="bg-card border border-border rounded-[16px] p-[24px] flex flex-col gap-[20px]"
         >
-          {currentStep === 1 && <Step1Basic form={form} />}
+          {currentStep === 1 && (
+            <Step1Basic form={form} onApplyPreset={persistDraftNow} />
+          )}
           {currentStep === 2 && (
             <Step2Compensation
               form={form}

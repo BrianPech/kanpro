@@ -85,13 +85,17 @@ describe("[REAL INTEGRATION] 08 - Exhaustive Multi-Tenant & RLS Security Audit i
     branchAId = branch!.id;
 
     // Vacancy
-    const vac = await CompanyVacanciesService.createExpressVacancy(clientA, companyA.id, {
-      title: "Audited Senior Position",
-      zone: "Mérida Norte",
-      category: "Tecnología",
-      requirements: "5 años de experiencia.",
-      modality: "Presencial",
-    });
+    const vac = await new CompanyVacanciesService(clientA).createExpressVacancy(
+      companyA.id,
+      {
+        title: "Audited Senior Position",
+        zone: "Mérida Norte",
+        category: "Tecnología",
+        requirements: "5 años de experiencia.",
+        modality: "Presencial",
+      },
+      companyA.id
+    );
     vacancyAId = vac.id;
 
     // Application
