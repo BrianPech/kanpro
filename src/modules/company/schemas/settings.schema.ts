@@ -67,3 +67,14 @@ export const getCompanyInvoicesSchema = z.object({
 });
 
 export type GetCompanyInvoicesInput = z.infer<typeof getCompanyInvoicesSchema>;
+
+export const updateCompanyAccountPhoneSchema = z.object({
+  companyId: uuidOrIdSchema,
+  phone: z
+    .string()
+    .trim()
+    .min(10, "Ingresa un teléfono válido de al menos 10 dígitos.")
+    .max(20, "El teléfono no puede exceder 20 caracteres."),
+});
+
+export type UpdateCompanyAccountPhoneInput = z.infer<typeof updateCompanyAccountPhoneSchema>;

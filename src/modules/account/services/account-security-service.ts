@@ -167,7 +167,7 @@ export class AccountSecurityService {
       throw new Error(result.error || "Error al procesar la cancelación de cuenta ARCO.");
     }
 
-    const { error: signOutError } = await supabase.auth.signOut();
+    const { error: signOutError } = await supabase.auth.signOut({ scope: "local" });
     if (signOutError) {
       console.warn("SignOut after account deletion warning:", signOutError.message);
     }

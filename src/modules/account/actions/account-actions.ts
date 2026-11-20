@@ -64,6 +64,7 @@ export async function requestAccountDeletionAction(
     }
 
     // 3. Marcar el perfil como suspended y anonimizar datos PII
+    // Se usa "" en whatsapp_number para no depender de nulabilidad en entornos con restricción NOT NULL
     const { error: profileErr } = await adminClient
       .from("profiles")
       .update({
@@ -71,7 +72,7 @@ export async function requestAccountDeletionAction(
         location: "PENDING_DELETION",
         is_verified: false,
         full_name: "Usuario Eliminado (ARCO)",
-        whatsapp_number: null,
+        whatsapp_number: "",
         avatar_url: null,
         updated_at: now,
       })
@@ -97,14 +98,62 @@ export async function requestAccountDeletionAction(
       })
       .eq("id", user.id);
 
-    // 5. Si es empresa, revocar verificación
-    await adminClient
+    // 5. Si es empresa (soporte legacy id=user.id y multi-empresa owner_id=user.id), cerrar vacantes y anonimizar empresa
+    const { data: ownedCompanies } = await adminClient
       .from("company_profiles")
+      .select("id")
+      .or(`id.eq.${user.id},owner_id.eq.${user.id}`);
+
+    const ownedCompanyIds = (ownedCompanies || []).map((c) => c.id);
+
+    if (ownedCompanyIds.length > 0) {
+      await adminClient
+        .from("vacancies")
+        .update({
+          is_active: false,
+          status: "Cerrada",
+          contact_phone: null,
+          contact_email: null,
+          updated_at: now,
+        })
+        .in("company_id", ownedCompanyIds);
+
+      await adminClient
+        .from("company_profiles")
+        .update({
+          company_name: "Empresa Eliminada (ARCO)",
+          legal_name: null,
+          rfc: "XAXX010101000",
+          fiscal_address: "Eliminado",
+          legal_rep_name: null,
+          corporate_email: null,
+          contact_phone: null,
+          website_url: null,
+          logo_url: null,
+          banner_url: null,
+          description: null,
+          address_details: null,
+          verification_status: "rejected",
+          updated_at: now,
+        })
+        .in("id", ownedCompanyIds);
+    }
+
+    await adminClient
+      .from("vacancies")
       .update({
-        verification_status: "rejected",
+        is_active: false,
+        status: "Cerrada",
+        contact_phone: null,
+        contact_email: null,
         updated_at: now,
       })
-      .eq("id", user.id);
+      .eq("recruiter_id", user.id);
+
+    await adminClient
+      .from("company_members")
+      .delete()
+      .eq("user_id", user.id);
 
     // 6. Invocar API administrativa para inhabilitar permanentemente el acceso del usuario
     const { error: adminAuthErr } = await adminClient.auth.admin.updateUserById(

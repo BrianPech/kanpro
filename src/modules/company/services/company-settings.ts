@@ -68,6 +68,40 @@ export class CompanySettingsService {
   }
 
   /**
+   * Actualiza el teléfono de contacto corporativo y sincroniza el WhatsApp del titular.
+   */
+  static async updateAccountPhone(
+    supabase: SupabaseClient<Database>,
+    userId: string,
+    companyId: string,
+    phone: string
+  ): Promise<{ success: boolean; phone: string }> {
+    const cleanPhone = phone.trim();
+    const now = new Date().toISOString();
+
+    const { error: companyErr } = await supabase
+      .from("company_profiles")
+      .update({ contact_phone: cleanPhone, updated_at: now })
+      .eq("id", companyId);
+
+    if (companyErr) {
+      console.error("Error updating company contact_phone:", companyErr);
+      throw new Error("No se pudo guardar el teléfono de contacto de la empresa.");
+    }
+
+    const { error: profileErr } = await supabase
+      .from("profiles")
+      .update({ whatsapp_number: cleanPhone, updated_at: now })
+      .eq("id", userId);
+
+    if (profileErr) {
+      console.warn("Warning syncing profile whatsapp_number:", profileErr.message);
+    }
+
+    return { success: true, phone: cleanPhone };
+  }
+
+  /**
    * Actualiza el plan de suscripción de la empresa, calcula vigencia y genera factura contable.
    * Los planes de pago ("pro" | "enterprise") requieren un ID de transacción verificado.
    */

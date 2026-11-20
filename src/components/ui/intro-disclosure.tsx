@@ -490,7 +490,7 @@ export function IntroDisclosure({
   const isFeatureVisible = ignoreDismissal ? true : isVisible;
 
   const handleOpenChange = (nextOpen: boolean) => {
-    if (!nextOpen && skipNextTime) {
+    if (!nextOpen && !ignoreDismissal) {
       hideFeature()
     }
     setOpen(nextOpen)

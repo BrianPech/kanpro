@@ -932,6 +932,41 @@ export function CompanyEmployeesView({
         },
       },
       {
+        accessorKey: "base_salary_monthly",
+        id: "base_salary_monthly",
+        header: ({ column }) => (
+          <button
+            type="button"
+            className="flex items-center gap-1.5 text-[13px] font-semibold leading-[18px] text-muted-foreground hover:text-foreground transition-colors cursor-pointer select-none"
+            onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
+          >
+            <span>Sueldo</span>
+            {column.getIsSorted() === "asc" ? (
+              <span className="text-link">↑</span>
+            ) : column.getIsSorted() === "desc" ? (
+              <span className="text-link">↓</span>
+            ) : null}
+          </button>
+        ),
+        cell: ({ row }) => {
+          const emp = row.original;
+          const salary = Number(emp.base_salary_monthly);
+          const hasSalary = Number.isFinite(salary) && salary > 0;
+          return (
+            <div className="flex flex-col gap-px py-1">
+              <span className="text-[13px] font-semibold leading-[18px] text-foreground tabular-nums">
+                {hasSalary ? `$${salary.toLocaleString("es-MX")} MXN` : "Sin sueldo"}
+              </span>
+              {hasSalary && (
+                <span className="text-[12px] font-normal leading-[16px] text-muted-foreground">
+                  {formatPaymentFrequencyLabel(emp.payment_frequency)}
+                </span>
+              )}
+            </div>
+          );
+        },
+      },
+      {
         accessorKey: "status",
         id: "status",
         header: () => (
@@ -1659,6 +1694,11 @@ export function CompanyEmployeesView({
                               {emp.location && (
                                 <span className="text-[10px] text-muted-foreground/70 truncate">
                                   • {emp.location}
+                                </span>
+                              )}
+                              {Number(emp.base_salary_monthly) > 0 && (
+                                <span className="text-[10px] font-semibold text-foreground/90 tabular-nums truncate">
+                                  • ${Number(emp.base_salary_monthly).toLocaleString("es-MX")} MXN ({formatPaymentFrequencyLabel(emp.payment_frequency)})
                                 </span>
                               )}
                             </div>

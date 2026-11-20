@@ -33,6 +33,7 @@ import {
   FileText,
 } from "@/components/ui/icons";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
@@ -72,6 +73,7 @@ import {
 } from "./billing-subscriptions-table";
 import {
   getCompanyInvoices,
+  updateCompanyAccountPhone,
 } from "@/modules/company/actions/settings";
 import {
   getSubscriptionPlan,
@@ -170,6 +172,10 @@ export function CompanySettingsModal({
   const [isChangingPassword, setIsChangingPassword] = React.useState(false);
   const [isSettingUp2FA, setIsSettingUp2FA] = React.useState(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = React.useState(false);
+  const [activeCompanyId, setActiveCompanyId] = React.useState(initialProfile?.id || "");
+  const [isEditingPhone, setIsEditingPhone] = React.useState(false);
+  const [phoneInput, setPhoneInput] = React.useState("");
+  const [isSavingPhone, setIsSavingPhone] = React.useState(false);
 
   // Fiscal CFDI 4.0 States
   const [fiscalProfile, setFiscalProfile] = React.useState<{
@@ -252,7 +258,7 @@ export function CompanySettingsModal({
           const [profileRes, companyRes, invoicesRes] = await Promise.all([
             supabase
               .from("profiles")
-              .select("full_name, email, role")
+              .select("full_name, email, role, whatsapp_number")
               .eq("id", user.id)
               .maybeSingle(),
             supabase
@@ -268,7 +274,15 @@ export function CompanySettingsModal({
           ]);
 
           const comp = companyRes.data;
+          setActiveCompanyId(comp?.id || companyScopeId);
 
+          const resolvedPhone =
+            comp?.contact_phone ||
+            profileRes.data?.whatsapp_number ||
+            user.phone ||
+            "";
+
+          setPhoneInput(resolvedPhone);
           setAccountInfo({
             id: user.id,
             name:
@@ -281,10 +295,7 @@ export function CompanySettingsModal({
               user.email ||
               profileRes.data?.email ||
               "",
-            phone:
-              comp?.contact_phone ||
-              user.phone ||
-              "No registrado",
+            phone: resolvedPhone || "No registrado",
           });
 
           if (comp) {
@@ -329,6 +340,32 @@ export function CompanySettingsModal({
     }
     loadAccountData();
   }, []);
+
+  const handleSaveAccountPhone = async () => {
+    const cleanPhone = phoneInput.trim();
+    if (!activeCompanyId) {
+      toast.error("No se pudo identificar la empresa activa.");
+      return;
+    }
+    setIsSavingPhone(true);
+    try {
+      const res = await updateCompanyAccountPhone(activeCompanyId, cleanPhone);
+      if (!res.success || !res.data) {
+        toast.error("Error al guardar teléfono", { description: res.error });
+        return;
+      }
+      setAccountInfo((prev) => ({ ...prev, phone: res.data!.phone }));
+      setPhoneInput(res.data.phone);
+      setIsEditingPhone(false);
+      toast.success("Teléfono registrado", {
+        description: "El teléfono de contacto se guardó correctamente.",
+      });
+    } catch {
+      toast.error("Error inesperado al guardar el teléfono.");
+    } finally {
+      setIsSavingPhone(false);
+    }
+  };
 
   const handleCopyId = () => {
     if (!accountInfo.id) return;
@@ -756,20 +793,63 @@ export function CompanySettingsModal({
                           </div>
 
                           {/* Teléfono */}
-                          <div className="flex items-center justify-between gap-2">
-                            <div className="flex items-center gap-2.5">
-                              <div className="size-7.5 rounded-lg bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0">
-                                <Phone className="size-4" />
+                          <div className="space-y-2.5">
+                            <div className="flex items-center justify-between gap-2">
+                              <div className="flex items-center gap-2.5">
+                                <div className="size-7.5 rounded-lg bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0">
+                                  <Phone className="size-4" />
+                                </div>
+                                <div>
+                                  <span className="text-[10px] text-muted-foreground font-semibold uppercase tracking-wider block">
+                                    Teléfono Registrado
+                                  </span>
+                                  <span className="text-xs font-bold text-foreground block">
+                                    {accountInfo.phone}
+                                  </span>
+                                </div>
                               </div>
-                              <div>
-                                <span className="text-[10px] text-muted-foreground font-semibold uppercase tracking-wider block">
-                                  Teléfono Registrado
-                                </span>
-                                <span className="text-xs font-bold text-foreground block">
-                                  {accountInfo.phone}
-                                </span>
-                              </div>
+                              <Button
+                                type="button"
+                                variant="outline"
+                                size="sm"
+                                onClick={() => {
+                                  setPhoneInput(
+                                    accountInfo.phone === "No registrado" ? "" : accountInfo.phone
+                                  );
+                                  setIsEditingPhone((prev) => !prev);
+                                }}
+                                className="h-7 text-[11px] px-2.5 font-semibold rounded-lg border-border/40 hover:bg-muted/50 cursor-pointer shrink-0"
+                              >
+                                {isEditingPhone
+                                  ? "Cancelar"
+                                  : accountInfo.phone === "No registrado"
+                                    ? "Registrar"
+                                    : "Editar"}
+                              </Button>
                             </div>
+
+                            {isEditingPhone && (
+                              <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 pt-2 border-t border-border/20">
+                                <Input
+                                  type="tel"
+                                  aria-label="Teléfono de contacto"
+                                  placeholder="Ej. 9991234567"
+                                  value={phoneInput}
+                                  onChange={(e) => setPhoneInput(e.target.value)}
+                                  disabled={isSavingPhone}
+                                  className="h-8 text-xs rounded-lg bg-background flex-1"
+                                />
+                                <Button
+                                  type="button"
+                                  size="sm"
+                                  onClick={handleSaveAccountPhone}
+                                  disabled={isSavingPhone}
+                                  className="h-8 text-xs font-semibold rounded-lg px-3 cursor-pointer shrink-0"
+                                >
+                                  {isSavingPhone ? "Guardando..." : "Guardar"}
+                                </Button>
+                              </div>
+                            )}
                           </div>
 
                         </div>

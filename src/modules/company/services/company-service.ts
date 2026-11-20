@@ -1289,7 +1289,7 @@ export const companyService = {
       full_name: profile.company_name.trim(),
       avatar_url: profile.logo_url || null,
       location: finalLocation,
-      whatsapp_number: profile.phone || null,
+      whatsapp_number: profile.phone?.trim() || "",
       updated_at: new Date().toISOString(),
     };
 

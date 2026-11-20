@@ -9,6 +9,7 @@ import {
   updateSubscriptionPlanSchema,
   updateCompanyBranchesSchema,
   getCompanyInvoicesSchema,
+  updateCompanyAccountPhoneSchema,
   type BranchGeofenceInput,
 } from "../schemas/settings.schema";
 import {
@@ -265,4 +266,56 @@ export async function getCompanyInvoices(companyId: string): Promise<CompanyInvo
 export async function getCompanyBranches(companyId: string): Promise<BranchGeofenceInput[]> {
   const supabase = await createClient();
   return await CompanySettingsService.getCompanyBranches(supabase, companyId);
+}
+
+/**
+ * Updates the contact phone for the active company and syncs the owner profile WhatsApp number.
+ */
+export async function updateCompanyAccountPhone(
+  companyId: string,
+  phone: string
+): Promise<SettingsActionResult<{ phone: string }>> {
+  const parsed = updateCompanyAccountPhoneSchema.safeParse({ companyId, phone });
+  if (!parsed.success) {
+    return {
+      success: false,
+      error: parsed.error.issues[0]?.message || "Teléfono inválido.",
+    };
+  }
+
+  const supabase = await createClient();
+  const {
+    data: { user },
+    error: authError,
+  } = await supabase.auth.getUser();
+
+  if (authError || !user) {
+    return { success: false, error: "No autorizado. Inicie sesión para continuar." };
+  }
+
+  const membershipRole = await companyTenantService.verifyUserMembership(user.id, companyId, supabase);
+  if (!membershipRole) {
+    return {
+      success: false,
+      error: "No tienes permisos para actualizar el teléfono de esta empresa.",
+    };
+  }
+
+  try {
+    const result = await CompanySettingsService.updateAccountPhone(
+      supabase,
+      user.id,
+      parsed.data.companyId,
+      parsed.data.phone
+    );
+
+    revalidatePath("/dashboard/company/settings");
+    revalidatePath("/dashboard/company/profile");
+
+    return { success: true, data: { phone: result.phone } };
+  } catch (err) {
+    const errorMsg =
+      err instanceof Error ? err.message : "No se pudo actualizar el teléfono.";
+    return { success: false, error: errorMsg };
+  }
 }
