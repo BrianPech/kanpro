@@ -1,4 +1,8 @@
 import { getMexicoDateISO, parseMexicoCalendarDate } from "@/lib/formatters";
+import {
+  DEFAULT_VACATION_POLICY,
+  type VacationPolicyStrategy,
+} from "../strategies/vacation-policy.strategy";
 
 /**
  * Mexican Federal Labor Law (LFT - "Vacaciones Dignas") Vacation Days Calculator
@@ -16,24 +20,17 @@ import { getMexicoDateISO, parseMexicoCalendarDate } from "@/lib/formatters";
  * Years 31-35: 32 days
  */
 
-export function getVacationDaysForYear(yearNumber: number): number {
-  if (yearNumber <= 0) return 0;
-  if (yearNumber === 1) return 12;
-  if (yearNumber === 2) return 14;
-  if (yearNumber === 3) return 16;
-  if (yearNumber === 4) return 18;
-  if (yearNumber === 5) return 20;
-  if (yearNumber <= 10) return 22;
-  if (yearNumber <= 15) return 24;
-  if (yearNumber <= 20) return 26;
-  if (yearNumber <= 25) return 28;
-  if (yearNumber <= 30) return 30;
-  return 32;
+export function getVacationDaysForYear(
+  yearNumber: number,
+  policy: VacationPolicyStrategy = DEFAULT_VACATION_POLICY
+): number {
+  return policy.getDaysForYear(yearNumber);
 }
 
 export function calculateLFTVacationDays(
   hireDateStr: string,
-  targetDateStr?: string
+  targetDateStr?: string,
+  policy: VacationPolicyStrategy = DEFAULT_VACATION_POLICY
 ): {
   yearsOfService: number;
   monthsOfService: number;
@@ -80,7 +77,7 @@ export function calculateLFTVacationDays(
   // Active year in course
   const completedYears = years;
   const currentWorkingYear = completedYears + 1;
-  const currentYearEntitlement = getVacationDaysForYear(currentWorkingYear);
+  const currentYearEntitlement = getVacationDaysForYear(currentWorkingYear, policy);
 
   let formattedSeniority = "";
   if (years > 0) {
@@ -104,34 +101,36 @@ export function calculateLFTVacationDays(
   };
 }
 
+const DAY_MS = 24 * 60 * 60 * 1000;
+
+/** Normaliza fecha o timestamp a día calendario de negocio (UTC mediodía). */
+function toBusinessCalendarDay(dateStr: string): Date | null {
+  const day = dateStr.includes("T") ? getMexicoDateISO(new Date(dateStr)) : dateStr;
+  return Number.isNaN(Date.parse(dateStr)) ? null : parseMexicoCalendarDate(day);
+}
+
 /**
- * Calculates the number of working days between two dates, excluding Sundays (and optionally Saturdays)
+ * Calculates the number of working days between two dates, excluding Sundays (and optionally Saturdays).
+ * Opera sobre días calendario de la zona de negocio, independiente de la zona del servidor.
  */
 export function calculateWorkingDays(
   startDateStr: string,
   endDateStr: string,
   excludeSaturdays = false
 ): number {
-  const start = new Date(startDateStr.includes("T") ? startDateStr : `${startDateStr}T12:00:00`);
-  const end = new Date(endDateStr.includes("T") ? endDateStr : `${endDateStr}T12:00:00`);
+  const start = toBusinessCalendarDay(startDateStr);
+  const end = toBusinessCalendarDay(endDateStr);
 
-  if (isNaN(start.getTime()) || isNaN(end.getTime()) || start > end) {
+  if (!start || !end || start > end) {
     return 0;
   }
 
   let count = 0;
-  const current = new Date(start);
-
-  while (current <= end) {
-    const dayOfWeek = current.getDay(); // 0 is Sunday, 6 is Saturday
-    const isSunday = dayOfWeek === 0;
-    const isSaturday = dayOfWeek === 6;
-
-    if (!isSunday && (!excludeSaturdays || !isSaturday)) {
+  for (let t = start.getTime(); t <= end.getTime(); t += DAY_MS) {
+    const dayOfWeek = new Date(t).getUTCDay(); // 0 is Sunday, 6 is Saturday
+    if (dayOfWeek !== 0 && (!excludeSaturdays || dayOfWeek !== 6)) {
       count++;
     }
-
-    current.setDate(current.getDate() + 1);
   }
 
   return count;

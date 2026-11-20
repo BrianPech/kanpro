@@ -18,6 +18,20 @@ import {
 } from "@/modules/company/services/company-leaves";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@/types/supabase";
+import { LftVacationPolicy } from "@/modules/company/strategies/vacation-policy.strategy";
+import {
+  SingleStepApproval,
+  TwoStepApproval,
+  resolveLeaveApprovalStrategy,
+} from "@/modules/company/strategies/leave-approval.strategy";
+import {
+  calculateIncidentsPayrollImpact,
+  resolvePayrollImpactStrategy,
+} from "@/modules/company/strategies/incident-payroll-impact.strategy";
+import { calculateAbsenceDeduction } from "@/modules/company/utils/payroll-calculator";
+import { calculateWorkingDays, getVacationDaysForYear } from "@/modules/company/utils/vacation-calculator";
+import { LeaveOverlapService } from "@/modules/company/services/leave-overlap.service";
+import type { LeavesRepository } from "@/modules/company/repositories/leaves.repository";
 
 describe("Fase 16: Módulos de Incidencias y Permisos - Patrón Schema -> Handler -> Service", () => {
   describe("1. Validación de Esquemas Zod de Incidencias (incidents.schema.ts)", () => {
@@ -550,5 +564,122 @@ describe("Fase 16: Módulos de Incidencias y Permisos - Patrón Schema -> Handle
         })
       ).rejects.toThrow("No se encontró la solicitud de vacaciones o no pertenece a tu empresa.");
     });
+  });
+});
+
+describe("Fase 2 (Strategy): políticas, aprobación, impacto en nómina y solapamiento", () => {
+  test("LftVacationPolicy: tabla Art. 76 LFT (2023+) intacta", () => {
+    const policy = new LftVacationPolicy();
+    const expected: Array<[number, number]> = [
+      [0, 0], [1, 12], [2, 14], [3, 16], [4, 18], [5, 20],
+      [6, 22], [10, 22], [11, 24], [15, 24], [16, 26], [20, 26],
+      [21, 28], [25, 28], [26, 30], [30, 30], [31, 32], [40, 32],
+    ];
+    for (const [year, days] of expected) {
+      expect(policy.getDaysForYear(year)).toBe(days);
+      expect(getVacationDaysForYear(year)).toBe(days);
+    }
+    expect(getVacationDaysForYear(1, { getDaysForYear: () => 99 })).toBe(99);
+  });
+
+  test("calculateWorkingDays: excluye domingos por día calendario, sin depender de la zona local", () => {
+    expect(calculateWorkingDays("2026-10-05", "2026-10-11")).toBe(6);
+    expect(calculateWorkingDays("2026-10-05", "2026-10-11", true)).toBe(5);
+    expect(calculateWorkingDays("2026-10-11", "2026-10-11")).toBe(0);
+    expect(calculateWorkingDays("2026-10-09", "2026-10-05")).toBe(0);
+  });
+
+  test("Retardos: default 3 = 1 falta y regla de empresa 2 = 1 falta", () => {
+    const delays = (n: number) =>
+      Array.from({ length: n }, () => ({ category: "retardo" as const, status: "pendiente" }));
+    const salary = 12000;
+
+    expect(calculateIncidentsPayrollImpact(delays(2), salary).deduction).toBe(0);
+    const byDefault = calculateIncidentsPayrollImpact(delays(3), salary);
+    expect(byDefault.absenceEquivalents).toBe(1);
+    expect(byDefault.deduction).toBe(calculateAbsenceDeduction(salary, 1));
+
+    const custom = { delaysPerAbsence: 2, recognitionBonusDays: 1 };
+    const byCompany = calculateIncidentsPayrollImpact(delays(3), salary, custom);
+    expect(byCompany.absenceEquivalents).toBe(1);
+    expect(calculateIncidentsPayrollImpact(delays(4), salary, custom).absenceEquivalents).toBe(2);
+    expect(() => resolvePayrollImpactStrategy("retardo", { ...custom, delaysPerAbsence: 0 })).toThrow();
+  });
+
+  test("Impacto por categoría: falta deduce, incapacidad/permiso no, reconocimiento da bono, rechazadas no cuentan", () => {
+    const salary = 15000;
+    const falta = calculateIncidentsPayrollImpact(
+      [
+        { category: "falta_injustificada", status: "pendiente" },
+        { category: "falta_injustificada", status: "rechazado" },
+      ],
+      salary
+    );
+    expect(falta.deduction).toBe(calculateAbsenceDeduction(salary, 1));
+
+    const neutral = calculateIncidentsPayrollImpact(
+      [
+        { category: "incapacidad", status: "resuelto" },
+        { category: "permiso", status: "resuelto" },
+      ],
+      salary
+    );
+    expect(neutral).toEqual({ deduction: 0, bonus: 0, absenceEquivalents: 0 });
+
+    const bono = calculateIncidentsPayrollImpact(
+      [{ category: "reconocimiento", status: "resuelto" }],
+      salary
+    );
+    expect(bono.bonus).toBe(500);
+    expect(bono.deduction).toBe(0);
+  });
+
+  test("Aprobación: un paso por default; dos pasos exige Vo.Bo. del líder antes de RH", () => {
+    expect(resolveLeaveApprovalStrategy()).toBeInstanceOf(SingleStepApproval);
+    expect(resolveLeaveApprovalStrategy("two_step")).toBeInstanceOf(TwoStepApproval);
+
+    const single = new SingleStepApproval();
+    expect(single.decide("pendiente", "hr", "aprobada")).toEqual({ status: "aprobada", isFinal: true });
+    expect(() => single.decide("pendiente", "area_leader", "aprobada")).toThrow();
+
+    const two = new TwoStepApproval();
+    expect(() => two.decide("pendiente", "hr", "aprobada")).toThrow(/Vo\.Bo\./);
+    const vobo = two.decide("pendiente", "area_leader", "aprobada");
+    expect(vobo).toEqual({ status: "visto_bueno", isFinal: false });
+    expect(two.decide(vobo.status, "hr", "aprobada")).toEqual({ status: "aprobada", isFinal: true });
+    expect(two.decide(vobo.status, "hr", "rechazada").status).toBe("rechazada");
+    expect(two.decide("pendiente", "area_leader", "rechazada")).toEqual({ status: "rechazada", isFinal: true });
+    expect(() => two.decide("aprobada", "hr", "aprobada")).toThrow(/resuelta/);
+  });
+
+  test("LeaveOverlapService: detecta traslapes activos y respeta exclusiones", async () => {
+    const base = {
+      company_id: "comp-A",
+      employee_id: "emp-1",
+      candidate_id: null,
+      total_working_days: 5,
+      request_type: "vacaciones",
+      reason: null,
+      rejection_reason: null,
+      reviewed_at: null,
+      reviewed_by: null,
+      created_at: "2026-10-01T00:00:00.000Z",
+      updated_at: "2026-10-01T00:00:00.000Z",
+    };
+    const rows: CompanyLeaveRow[] = [
+      { ...base, id: "l1", start_date: "2026-10-05", end_date: "2026-10-09", status: "aprobada" },
+      { ...base, id: "l2", start_date: "2026-10-12", end_date: "2026-10-16", status: "rechazada" },
+      { ...base, id: "l3", start_date: "2026-10-19", end_date: "2026-10-23", status: "visto_bueno" },
+    ];
+    const listByEmployeeAndPeriod = vi.fn(async () => rows);
+    const repo = { listByEmployeeAndPeriod } as unknown as LeavesRepository;
+    const service = new LeaveOverlapService(repo);
+
+    expect((await service.findOverlaps("comp-A", "emp-1", "2026-10-08", "2026-10-10")).map((l) => l.id)).toEqual(["l1"]);
+    expect(await service.hasOverlap("comp-A", "emp-1", "2026-10-12", "2026-10-16")).toBe(false);
+    expect(await service.hasOverlap("comp-A", "emp-1", "2026-10-20", "2026-10-21")).toBe(true);
+    expect(await service.hasOverlap("comp-A", "emp-1", "2026-10-08", "2026-10-10", { excludeLeaveId: "l1" })).toBe(false);
+    expect(listByEmployeeAndPeriod).toHaveBeenCalledWith("comp-A", "emp-1", "2026-10-08", "2026-10-10");
+    await expect(service.findOverlaps("comp-A", "emp-1", "2026-10-10", "2026-10-08")).rejects.toThrow();
   });
 });
