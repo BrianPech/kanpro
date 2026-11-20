@@ -18,6 +18,8 @@ import {
   type VacancyWizardValues,
 } from "../../schemas/vacancy-wizard.schema";
 import { getCompanyDepartmentsAction } from "../../actions/areas";
+import { VACANCY_PRESETS } from "../../data/vacancy-presets";
+import { applyPreset } from "../../factories/vacancy-payload.factory";
 
 interface Step1BasicProps {
   form: UseFormReturn<VacancyWizardValues>;
@@ -54,6 +56,38 @@ export function Step1Basic({ form }: Step1BasicProps) {
           Define el puesto y cuántas personas buscas.
         </p>
       </div>
+
+      {/* Plantilla de puesto (opcional, todo sigue editable) */}
+      <Field className="gap-[6px]">
+        <span className="text-[14px] font-medium leading-[20px] text-foreground">
+          Plantilla de puesto (opcional)
+        </span>
+        <Select
+          value=""
+          onValueChange={(id) => {
+            const preset = VACANCY_PRESETS.find((p) => p.id === id);
+            if (!preset) return;
+            const next = applyPreset(form.getValues(), preset);
+            form.reset(next, { keepDefaultValues: true });
+            form.trigger();
+          }}
+        >
+          <SelectTrigger className="h-[44px] w-full rounded-[8px] border-input bg-card px-[12px] text-[14px] font-normal">
+            <SelectValue placeholder="Empieza desde una plantilla" />
+          </SelectTrigger>
+          <SelectContent className="rounded-[12px] border-border bg-popover shadow-lg">
+            {VACANCY_PRESETS.map((preset) => (
+              <SelectItem
+                key={preset.id}
+                value={preset.id}
+                className="text-[14px] font-normal rounded-[8px] cursor-pointer"
+              >
+                {preset.name}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </Field>
 
       {/* Nombre del puesto */}
       <Controller
