@@ -324,7 +324,15 @@ export function EvaluationFormModal({
                   onValueChange={handleSelectEmployee}
                 >
                   <SelectTrigger className="h-10 rounded-xl bg-background border-border/80 text-xs font-medium">
-                    <SelectValue placeholder="Elige un empleado..." />
+                    <SelectValue placeholder="Elige un empleado...">
+                      {(val: string | null) => {
+                        if (val === "custom") return "+ Ingresar otro empleado manualmente";
+                        const emp = employees.find((e) => e.id === val);
+                        return emp
+                          ? `${emp.name} — ${emp.jobTitle} (${emp.department})`
+                          : "Elige un empleado...";
+                      }}
+                    </SelectValue>
                   </SelectTrigger>
                   <SelectContent className="rounded-xl max-h-56">
                     {employees.map((emp) => (

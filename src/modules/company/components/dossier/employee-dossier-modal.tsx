@@ -252,11 +252,11 @@ export function EmployeeDossierModal({
       vacationBalance: remoteDossier?.vacationBalance || {
         hireDate,
         yearsOfService: seniority.yearsOfService,
-        totalDaysAccruedLFT: seniority.currentYearEntitlement,
+        totalDaysAccruedLFT: seniority.totalDaysAccrued,
         daysTaken: 0,
         daysPendingApproval: 0,
-        daysAvailable: seniority.currentYearEntitlement,
-        nextPeriodDate: `Ciclo anual ${new Date().getFullYear() + 1}`,
+        daysAvailable: seniority.totalDaysAccrued,
+        nextPeriodDate: `Ciclo anual ${Number(getMexicoDateISO().slice(0, 4)) + 1}`,
       },
 
       vacationRequests: remoteDossier?.vacationRequests || [],

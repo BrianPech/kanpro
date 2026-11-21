@@ -1,6 +1,10 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@/types/supabase";
-import { calculateDailySalary, getMexicoDateISO } from "@/lib/formatters";
+import {
+  calculateDailySalary,
+  formatMexicoDateShort,
+  getMexicoDateISO,
+} from "@/lib/formatters";
 import {
   EmployeeDossier,
   VacationRequest,
@@ -9,6 +13,7 @@ import {
   PerformanceReview,
 } from "../types/employee-dossier";
 import { calculateLFTVacationDays } from "../utils/vacation-calculator";
+import { LEAVE_TYPE_LABELS } from "./company-leaves";
 
 /**
  * Fetches an employee 360 dossier strictly from Supabase backend.
@@ -336,6 +341,90 @@ export async function getEmployeeDossierById(
   const email =
     emp?.email || candBase?.email || "";
 
+  // 8. Fetch employee leave requests and compute real vacation balance
+  const leavesOwnerId = emp?.id;
+  let rawEmpLeaves: Array<{
+    id: string;
+    employee_id: string | null;
+    candidate_id: string | null;
+    request_type: string;
+    start_date: string;
+    end_date: string;
+    total_working_days: number;
+    reason: string | null;
+    status: string;
+    reviewed_at: string | null;
+    reviewed_by: string | null;
+    rejection_reason: string | null;
+    created_at: string;
+  }> = [];
+
+  if (leavesOwnerId || targetCandId) {
+    let empLeavesQuery = supabase
+      .from("company_leaves")
+      .select(
+        "id, employee_id, candidate_id, request_type, start_date, end_date, total_working_days, reason, status, reviewed_at, reviewed_by, rejection_reason, created_at"
+      )
+      .eq("company_id", companyId)
+      .order("created_at", { ascending: false });
+
+    if (leavesOwnerId && targetCandId) {
+      empLeavesQuery = empLeavesQuery.or(
+        `employee_id.eq.${leavesOwnerId},candidate_id.eq.${targetCandId}`
+      );
+    } else if (leavesOwnerId) {
+      empLeavesQuery = empLeavesQuery.eq("employee_id", leavesOwnerId);
+    } else if (targetCandId) {
+      empLeavesQuery = empLeavesQuery.eq("candidate_id", targetCandId);
+    }
+
+    const { data: fetchedLeaves, error: empLeavesErr } = await empLeavesQuery;
+    if (empLeavesErr) {
+      console.error("[getEmployeeDossierById] Error fetching employee leaves:", empLeavesErr);
+    }
+    rawEmpLeaves = fetchedLeaves || [];
+  }
+
+  const vacationRequests: VacationRequest[] = rawEmpLeaves.map((l) => ({
+    id: l.id,
+    employeeId: l.employee_id || l.candidate_id || targetEmpId,
+    employeeName: fullName,
+    avatarUrl: emp?.avatar_url || candBase?.avatar_url || null,
+    department,
+    requestType: l.request_type as VacationRequest["requestType"],
+    typeLabel:
+      LEAVE_TYPE_LABELS[l.request_type as VacationRequest["requestType"]] ||
+      "Vacaciones LFT",
+    startDate: l.start_date,
+    endDate: l.end_date,
+    totalWorkingDays: Number(l.total_working_days) || 0,
+    reason: l.reason || "Sin observaciones registradas.",
+    status: l.status as VacationRequest["status"],
+    requestedAt: l.created_at
+      ? formatMexicoDateShort(l.created_at)
+      : "Reciente",
+    reviewedAt: l.reviewed_at
+      ? formatMexicoDateShort(l.reviewed_at)
+      : undefined,
+    reviewedBy: l.reviewed_by || undefined,
+    rejectionReason: l.rejection_reason || undefined,
+  }));
+
+  const vacationRows = rawEmpLeaves.filter((l) => l.request_type === "vacaciones");
+  const daysTaken = vacationRows
+    .filter((l) => l.status === "aprobada")
+    .reduce((acc, curr) => acc + (Number(curr.total_working_days) || 0), 0);
+
+  const daysPendingApproval = vacationRows
+    .filter((l) => l.status === "pendiente" || l.status === "visto_bueno")
+    .reduce((acc, curr) => acc + (Number(curr.total_working_days) || 0), 0);
+
+  const daysAvailable = Math.max(
+    0,
+    seniority.totalDaysAccrued - daysTaken - daysPendingApproval
+  );
+  const currentMexicoYear = Number(getMexicoDateISO().slice(0, 4));
+
   const dossier: EmployeeDossier = {
     id: emp?.id || candidateData?.id || employeeId,
     candidateId: emp?.employee_id || candidateData?.candidate_profiles?.id || undefined,
@@ -377,15 +466,15 @@ export async function getEmployeeDossierById(
     vacationBalance: {
       hireDate,
       yearsOfService: seniority.yearsOfService,
-      totalDaysAccruedLFT: seniority.currentYearEntitlement,
-      daysTaken: 0,
-      daysPendingApproval: 0,
-      daysAvailable: seniority.currentYearEntitlement,
-      nextPeriodDate: `Ciclo anual ${new Date().getFullYear() + 1}`,
+      totalDaysAccruedLFT: seniority.totalDaysAccrued,
+      daysTaken,
+      daysPendingApproval,
+      daysAvailable,
+      nextPeriodDate: `Ciclo anual ${currentMexicoYear + 1}`,
     },
 
-    // Vacation Requests (empty by default unless requests table exists)
-    vacationRequests: [],
+    // Real Vacation Requests
+    vacationRequests,
 
     // Performance Reviews (from company_evaluations)
     performanceReviews: realReviews,

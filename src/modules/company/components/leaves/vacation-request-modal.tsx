@@ -181,7 +181,15 @@ export function VacationRequestModal({
                   onValueChange={(val) => val && setSelectedEmployeeId(val)}
                 >
                   <SelectTrigger className="w-full h-10 rounded-xl bg-background border-border/80 text-xs font-medium">
-                    <SelectValue placeholder="Seleccionar empleado" />
+                    <SelectValue placeholder="Seleccionar empleado">
+                      {(val: string | null) => {
+                        const activeId = val || employees[0]?.id;
+                        const emp = employees.find((e) => e.id === activeId);
+                        return emp
+                          ? `${emp.fullName}${emp.department ? ` (${emp.department})` : ""}`
+                          : "Seleccionar empleado";
+                      }}
+                    </SelectValue>
                   </SelectTrigger>
                   <SelectContent alignItemWithTrigger={false} side="bottom" sideOffset={4} className="w-(--anchor-width) min-w-[280px] rounded-xl max-h-56">
                     {employees.map((emp) => (

@@ -25,6 +25,7 @@ export interface LeavesRepository {
   ): Promise<CompanyLeaveRow[]>;
   listPending(companyId: string): Promise<CompanyLeaveRow[]>;
   balanceUsedDays(companyId: string, employeeId: string): Promise<number>;
+  balanceCommittedDays?(companyId: string, employeeId: string): Promise<number>;
 }
 
 /**
@@ -218,6 +219,34 @@ export class SupabaseLeavesRepository implements LeavesRepository {
     if (error) {
       throw new Error(
         error.message || "No se pudo consultar el saldo de días disfrutados."
+      );
+    }
+
+    return (data ?? []).reduce(
+      (total, row) => total + (Number(row.total_working_days) || 0),
+      0
+    );
+  }
+
+  async balanceCommittedDays(
+    companyId: string,
+    employeeId: string
+  ): Promise<number> {
+    if (!companyId || !employeeId) {
+      return 0;
+    }
+
+    const { data, error } = await this.supabase
+      .from("company_leaves")
+      .select("total_working_days")
+      .eq("company_id", companyId)
+      .eq("employee_id", employeeId)
+      .eq("request_type", "vacaciones")
+      .in("status", ["aprobada", "pendiente", "visto_bueno"]);
+
+    if (error) {
+      throw new Error(
+        error.message || "No se pudo consultar el saldo comprometido de vacaciones."
       );
     }
 

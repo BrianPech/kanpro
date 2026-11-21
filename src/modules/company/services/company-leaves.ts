@@ -2,6 +2,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@/types/supabase";
 import { getMexicoDateISO } from "@/lib/formatters";
 import {
+  calculateLFTVacationDays,
   calculateWorkingDays,
   validateSpecialLeavePolicyDays,
 } from "../utils/vacation-calculator";
@@ -172,7 +173,7 @@ export class CompanyLeavesService {
 
     const { data: emp, error: empErr } = await this.supabase
       .from("company_employees")
-      .select("id, full_name, email, employee_id")
+      .select("id, full_name, email, employee_id, hire_date, created_at")
       .eq("id", input.employeeId)
       .eq("company_id", companyId)
       .single();
@@ -199,6 +200,21 @@ export class CompanyLeavesService {
         err.message.includes("traslapa con las fechas seleccionadas")
       ) {
         throw err;
+      }
+    }
+
+    const effectiveHireDate =
+      emp.hire_date || emp.created_at?.split("T")[0] || null;
+    if (input.requestType === "vacaciones" && effectiveHireDate) {
+      const lft = calculateLFTVacationDays(effectiveHireDate);
+      const committedDays = this.repository.balanceCommittedDays
+        ? await this.repository.balanceCommittedDays(companyId, emp.id)
+        : await this.repository.balanceUsedDays(companyId, emp.id);
+      const available = Math.max(0, lft.totalDaysAccrued - committedDays);
+      if (workingDays > available) {
+        throw new Error(
+          `Saldo de vacaciones insuficiente. Disponible: ${available} día(s), solicitado: ${workingDays} día(s).`
+        );
       }
     }
 

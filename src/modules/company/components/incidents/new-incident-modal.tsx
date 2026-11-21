@@ -223,7 +223,14 @@ export function NewIncidentModal({
                   }}
                 >
                   <SelectTrigger className="w-full">
-                    <SelectValue placeholder="Selecciona un empleado..." />
+                    <SelectValue placeholder="Selecciona un empleado...">
+                      {(val: string | null) => {
+                        const emp = employees.find((e) => e.id === val);
+                        return emp
+                          ? `${emp.fullName}${emp.jobTitle ? ` — ${emp.jobTitle}` : ""}`
+                          : "Selecciona un empleado...";
+                      }}
+                    </SelectValue>
                   </SelectTrigger>
                   <SelectContent alignItemWithTrigger={false} side="bottom" sideOffset={4} className="w-(--anchor-width) min-w-[280px] max-h-60">
                     {employees.map((emp) => (

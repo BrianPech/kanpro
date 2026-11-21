@@ -185,7 +185,14 @@ export function Nom035SurveyModal({
               </Label>
               <Select value={employeeId} onValueChange={(v) => setEmployeeId(v || "")}>
                 <SelectTrigger className="w-full h-10 rounded-xl text-xs font-semibold">
-                  <SelectValue placeholder="Seleccionar empleado" />
+                  <SelectValue placeholder="Seleccionar empleado">
+                    {(val: string | null) => {
+                      const emp = employees.find((e) => e.id === val);
+                      return emp
+                        ? `${emp.name} — ${emp.jobTitle} (${emp.department})`
+                        : "Seleccionar empleado";
+                    }}
+                  </SelectValue>
                 </SelectTrigger>
                 <SelectContent alignItemWithTrigger={false} side="bottom" sideOffset={4} className="w-(--anchor-width) min-w-[280px] max-h-60 rounded-xl">
                   {employees.map((emp) => (

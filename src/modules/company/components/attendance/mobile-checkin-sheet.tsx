@@ -436,7 +436,14 @@ export function MobileCheckInSheet({
                   }}
                 >
                   <SelectTrigger className="h-10 rounded-xl bg-background border-border/80 text-xs font-medium">
-                    <SelectValue placeholder="Selecciona un empleado..." />
+                    <SelectValue placeholder="Selecciona un empleado...">
+                      {(val: string | null) => {
+                        const emp = employees.find((e) => e.id === val);
+                        return emp
+                          ? `${emp.name} — ${emp.jobTitle} (${emp.department})`
+                          : "Selecciona un empleado...";
+                      }}
+                    </SelectValue>
                   </SelectTrigger>
                   <SelectContent className="rounded-xl max-h-56">
                     {employees.map((emp) => (

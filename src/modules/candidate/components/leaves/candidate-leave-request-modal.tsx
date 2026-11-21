@@ -167,7 +167,20 @@ export function CandidateLeaveRequestModal({
               onValueChange={(val) => setRequestType(val as LeaveRequestType)}
             >
               <SelectTrigger className="rounded-3xl h-9 text-xs sm:text-sm bg-input/50 border-input font-medium">
-                <SelectValue placeholder="Selecciona tipo de permiso" />
+                <SelectValue placeholder="Selecciona tipo de permiso">
+                  {(val: string | null) =>
+                    ({
+                      vacaciones: "Vacaciones Anuales LFT (Art. 76)",
+                      dias_economicos: "Días Económicos (máx. 3 días hábiles)",
+                      matrimonio: "Permiso por Matrimonio (máx. 5 días hábiles)",
+                      paternidad: "Permiso por Paternidad (5 días LFT)",
+                      maternidad: "Incapacidad por Maternidad (84 días IMSS)",
+                      luto: "Permiso por Luto (máx. 5 días hábiles)",
+                      permiso_con_goce: "Permiso con Goce de Sueldo",
+                      permiso_sin_goce: "Permiso sin Goce de Sueldo",
+                    } as Record<string, string>)[val || requestType] || "Selecciona tipo de permiso"
+                  }
+                </SelectValue>
               </SelectTrigger>
               <SelectContent className="rounded-3xl">
                 <SelectItem value="vacaciones" className="text-xs font-semibold py-2">

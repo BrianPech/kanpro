@@ -61,6 +61,7 @@ export async function respondToCompanyLeaveAction(
     const result = await service.respondToLeaveRequest(companyScopeId, parsed.data);
 
     revalidatePath("/dashboard/company/leaves");
+    revalidatePath("/dashboard/company/employees");
     revalidatePath("/dashboard/company");
     revalidatePath("/dashboard/candidate/leaves");
     revalidatePath("/dashboard/candidate");
@@ -104,6 +105,7 @@ export async function createCompanyLeaveAction(
     const result = await service.createCompanyLeave(companyScopeId, parsed.data);
 
     revalidatePath("/dashboard/company/leaves");
+    revalidatePath("/dashboard/company/employees");
     revalidatePath("/dashboard/company");
     revalidatePath("/dashboard/candidate/leaves");
 
