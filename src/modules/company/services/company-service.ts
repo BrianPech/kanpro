@@ -1,7 +1,10 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@/types/supabase";
 import crypto from "crypto";
-import { getMexicoDateISO } from "@/lib/formatters";
+import {
+  getMexicoDateISO,
+  toMonthlyEquivalentSalary,
+} from "@/lib/formatters";
 import type { CompanyProfileFormValues } from "../schemas/company.schema";
 import type {
   CompanyEmployeeFormValues,
@@ -58,6 +61,21 @@ function splitCsv(value?: string | null): string[] {
     .filter(Boolean);
 }
 
+async function resolveActorUserId(
+  supabase: SupabaseClient<Database>,
+  explicitUserId?: string | null
+): Promise<string | null> {
+  const cleaned = explicitUserId?.trim();
+  if (cleaned) return cleaned;
+  if (!supabase.auth?.getUser) return null;
+  try {
+    const { data } = await supabase.auth.getUser();
+    return data?.user?.id || null;
+  } catch {
+    return null;
+  }
+}
+
 export class CompanyEmployeeService {
   /**
    * Crea un nuevo registro de colaborador en company_employees garantizando multitenancy.
@@ -67,6 +85,12 @@ export class CompanyEmployeeService {
     companyId: string,
     val: CompanyEmployeeFormValues
   ): Promise<CompanyEmployeeRow> {
+    const paymentFrequency = val.payment_frequency || "quincenal";
+    const normalizedMonthlySalary =
+      val.base_salary_monthly != null
+        ? toMonthlyEquivalentSalary(val.base_salary_monthly, paymentFrequency)
+        : null;
+
     const payload: CompanyEmployeeInsert = {
       company_id: companyId,
       full_name: val.full_name.trim(),
@@ -76,8 +100,8 @@ export class CompanyEmployeeService {
       phone: val.phone?.trim() || null,
       email: val.email?.toLowerCase().trim() || null,
       hire_date: val.hire_date || getMexicoDateISO(),
-      base_salary_monthly: val.base_salary_monthly ?? null,
-      payment_frequency: val.payment_frequency || "quincenal",
+      base_salary_monthly: normalizedMonthlySalary,
+      payment_frequency: paymentFrequency,
       work_schedule: val.work_schedule?.trim() || null,
       rfc: val.rfc?.toUpperCase().trim() || null,
       curp: val.curp?.toUpperCase().trim() || null,
@@ -119,7 +143,12 @@ export class CompanyEmployeeService {
     if (data.phone !== undefined) updatePayload.phone = data.phone?.trim() || null;
     if (data.email !== undefined) updatePayload.email = data.email?.toLowerCase().trim() || null;
     if (data.hire_date !== undefined) updatePayload.hire_date = data.hire_date || null;
-    if (data.base_salary_monthly !== undefined) updatePayload.base_salary_monthly = data.base_salary_monthly;
+    if (data.base_salary_monthly !== undefined) {
+      updatePayload.base_salary_monthly =
+        data.base_salary_monthly != null && data.payment_frequency
+          ? toMonthlyEquivalentSalary(data.base_salary_monthly, data.payment_frequency)
+          : data.base_salary_monthly;
+    }
     if (data.payment_frequency !== undefined) updatePayload.payment_frequency = data.payment_frequency;
     if (data.work_schedule !== undefined) updatePayload.work_schedule = data.work_schedule?.trim() || null;
     if (data.rfc !== undefined) updatePayload.rfc = data.rfc?.toUpperCase().trim() || null;
@@ -345,6 +374,11 @@ export class CompanyEmployeeService {
       throw new Error("No tienes permisos para contratar candidatos para esta vacante.");
     }
 
+    if (!app.candidate_id || app.candidate_id !== input.candidateId) {
+      throw new Error("El candidato especificado no corresponde a la postulación.");
+    }
+
+    const verifiedCandidateId = app.candidate_id;
     const now = new Date().toISOString();
 
     // 2. Actualizar estado de postulación a 'Contratado'
@@ -372,7 +406,7 @@ export class CompanyEmployeeService {
     const email = baseProfile?.email || null;
     const avatarUrl = baseProfile?.avatar_url || null;
 
-    // Obtener CURP y RFC reales del expediente privado del candidato (bypasseando RLS de solo dueño con adminClient autorizado)
+    // Obtener CURP y RFC reales del candidato verificado en la postulación (nunca confiar en input.candidateId)
     let candidateCurp: string | null = null;
     let candidateRfc: string | null = null;
     const privClient = adminClient || supabase;
@@ -380,7 +414,7 @@ export class CompanyEmployeeService {
       const { data: privProfile } = await privClient
         .from("candidate_private_profiles")
         .select("curp, rfc")
-        .eq("id", input.candidateId)
+        .eq("id", verifiedCandidateId)
         .maybeSingle();
       candidateCurp = privProfile?.curp?.trim() || null;
       candidateRfc = privProfile?.rfc?.trim() || null;
@@ -393,10 +427,16 @@ export class CompanyEmployeeService {
       .from("company_employees")
       .select("id, curp, rfc")
       .eq("company_id", companyId)
-      .eq("employee_id", input.candidateId)
+      .eq("employee_id", verifiedCandidateId)
       .maybeSingle();
 
     let employeeRecordId: string;
+
+    const paymentFrequency = input.paymentFrequency || "quincenal";
+    const normalizedMonthlySalary = toMonthlyEquivalentSalary(
+      input.salary,
+      paymentFrequency
+    );
 
     if (existingEmp) {
       const { data: updatedEmp } = await supabase
@@ -405,8 +445,8 @@ export class CompanyEmployeeService {
           job_title: input.jobTitle.trim(),
           department: input.department.trim(),
           hire_date: input.startDate,
-          base_salary_monthly: input.salary,
-          payment_frequency: input.paymentFrequency || "quincenal",
+          base_salary_monthly: normalizedMonthlySalary,
+          payment_frequency: paymentFrequency,
           curp: candidateCurp || existingEmp.curp || null,
           rfc: candidateRfc || existingEmp.rfc || null,
           status: "active",
@@ -422,7 +462,7 @@ export class CompanyEmployeeService {
         .from("company_employees")
         .insert({
           company_id: companyId,
-          employee_id: input.candidateId,
+          employee_id: verifiedCandidateId,
           full_name: fullName,
           phone,
           email,
@@ -430,8 +470,8 @@ export class CompanyEmployeeService {
           job_title: input.jobTitle.trim(),
           department: input.department.trim(),
           hire_date: input.startDate,
-          base_salary_monthly: input.salary,
-          payment_frequency: input.paymentFrequency || "quincenal",
+          base_salary_monthly: normalizedMonthlySalary,
+          payment_frequency: paymentFrequency,
           curp: candidateCurp,
           rfc: candidateRfc,
           status: "active",
@@ -461,7 +501,7 @@ export class CompanyEmployeeService {
       .insert({
         company_id: companyId,
         employee_id: employeeRecordId,
-        candidate_id: input.candidateId,
+        candidate_id: verifiedCandidateId,
         application_id: input.applicationId,
         folio,
         job_title: input.jobTitle.trim(),
@@ -492,7 +532,7 @@ export class CompanyEmployeeService {
     const companyName = compProfile?.company_name || "La empresa";
 
     await supabase.from("notifications").insert({
-      user_id: input.candidateId,
+      user_id: verifiedCandidateId,
       title: "¡Felicidades! Has sido contratado",
       description: `${companyName} te ha contratado formalmente para el puesto de "${input.jobTitle}". ¡Mucho éxito en tu nueva etapa laboral!`,
       type: "hired",
@@ -507,18 +547,22 @@ export class CompanyEmployeeService {
   public static async createEmployeeInvitation(
     supabase: SupabaseClient<Database>,
     companyId: string,
-    val: CreateEmployeeInvitationValues
+    val: CreateEmployeeInvitationValues,
+    createdByUserId?: string | null
   ): Promise<{
     employee: CompanyEmployeeRow;
     invitation: EmployeeInvitationRow;
     rawToken: string;
   }> {
+    const createdBy = await resolveActorUserId(supabase, createdByUserId);
+    const normalizedEmail = val.email.toLowerCase().trim();
+
     // 1. Validar que no haya invitación activa duplicada
     const { data: existingInvitation } = await supabase
       .from("employee_invitations")
       .select("id, status")
       .eq("company_id", companyId)
-      .ilike("email", val.email.trim())
+      .eq("email", normalizedEmail)
       .in("status", ["pending", "sent"])
       .maybeSingle();
 
@@ -534,7 +578,7 @@ export class CompanyEmployeeService {
       department: val.department?.trim() || "Operaciones",
       employee_code: val.employee_code?.trim() || null,
       phone: val.phone?.trim() || null,
-      email: val.email.toLowerCase().trim(),
+      email: normalizedEmail,
       hire_date: val.hire_date || getMexicoDateISO(),
       base_salary_monthly: val.salary ?? null,
       work_schedule: val.work_schedule?.trim() || null,
@@ -561,7 +605,7 @@ export class CompanyEmployeeService {
     const invitationPayload = {
       company_id: companyId,
       employee_id: insertedEmployee.id,
-      email: val.email.toLowerCase().trim(),
+      email: normalizedEmail,
       full_name: val.full_name.trim(),
       position: val.position.trim(),
       salary: val.salary ?? null,
@@ -570,7 +614,7 @@ export class CompanyEmployeeService {
       status: "sent",
       token_hash: tokenHash,
       expires_at: expiresAt,
-      created_by: companyId,
+      created_by: createdBy,
     };
 
     const { data: insertedInvitation, error: invError } = await supabase
@@ -597,7 +641,8 @@ export class CompanyEmployeeService {
   public static async bulkImportEmployees(
     supabase: SupabaseClient<Database>,
     companyId: string,
-    rows: BulkEmployeeImportRow[]
+    rows: BulkEmployeeImportRow[],
+    createdByUserId?: string | null
   ): Promise<{
     imported: number;
     failed: number;
@@ -607,6 +652,8 @@ export class CompanyEmployeeService {
     if (!rows || rows.length === 0) {
       throw new Error("No se proporcionaron registros para importar.");
     }
+
+    const createdBy = await resolveActorUserId(supabase, createdByUserId);
 
     const results = {
       imported: 0,
@@ -656,7 +703,7 @@ export class CompanyEmployeeService {
             status: "sent",
             token_hash: tokenHash,
             expires_at: expiresAt,
-            created_by: companyId,
+            created_by: createdBy,
           });
 
         if (invErr) throw invErr;
@@ -741,6 +788,7 @@ export class CompanyEmployeeService {
 
   /**
    * Cancela una invitación pendiente y actualiza el colaborador placeholder.
+   * Nunca permite cancelar invitaciones ya aceptadas ni operar fuera de companyId.
    */
   public static async cancelEmployeeInvitation(
     supabase: SupabaseClient<Database>,
@@ -749,7 +797,7 @@ export class CompanyEmployeeService {
   ): Promise<void> {
     const { data: inv, error: findErr } = await supabase
       .from("employee_invitations")
-      .select("id, employee_id")
+      .select("id, employee_id, status")
       .eq("id", invitationId)
       .eq("company_id", companyId)
       .maybeSingle();
@@ -758,23 +806,49 @@ export class CompanyEmployeeService {
       throw new Error("Invitación no encontrada.");
     }
 
-    await supabase
+    if (inv.status === "accepted") {
+      throw new Error(
+        "No se puede cancelar una invitación que ya fue aceptada por el colaborador."
+      );
+    }
+
+    if (inv.status === "cancelled") {
+      throw new Error("Esta invitación ya fue cancelada previamente.");
+    }
+
+    const now = new Date().toISOString();
+
+    const { data: cancelledInv, error: cancelErr } = await supabase
       .from("employee_invitations")
       .update({
         status: "cancelled",
-        updated_at: new Date().toISOString(),
+        updated_at: now,
       })
-      .eq("id", invitationId);
+      .eq("id", invitationId)
+      .eq("company_id", companyId)
+      .in("status", ["pending", "sent", "expired"])
+      .select("id, employee_id")
+      .maybeSingle();
 
-    if (inv.employee_id) {
-      await supabase
+    if (cancelErr || !cancelledInv) {
+      throw new Error("No se pudo cancelar la invitación; verifica que no haya sido aceptada.");
+    }
+
+    if (cancelledInv.employee_id) {
+      const { error: empErr } = await supabase
         .from("company_employees")
         .update({
           status: "terminated",
           termination_reason: "Invitación cancelada por la empresa",
-          updated_at: new Date().toISOString(),
+          updated_at: now,
         })
-        .eq("id", inv.employee_id);
+        .eq("id", cancelledInv.employee_id)
+        .eq("company_id", companyId)
+        .eq("status", "pending");
+
+      if (empErr) {
+        throw new Error("No se pudo actualizar el colaborador pendiente de la invitación.");
+      }
     }
   }
 
@@ -880,11 +954,21 @@ export class CompanyEmployeeService {
 
   /**
    * Acepta una invitación vinculando la cuenta de usuario con la empresa.
+   * Valida coincidencia exacta de correo de sesión, vigencia y reclamo atómico.
    */
   public static async acceptEmployeeInvitation(
     adminClient: SupabaseClient<Database>,
     input: { rawToken: string; userId: string; email: string }
   ): Promise<{ success: boolean; message?: string }> {
+    const normalizedEmail = input.email?.trim().toLowerCase() || "";
+    if (
+      !normalizedEmail ||
+      normalizedEmail.includes("%") ||
+      !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalizedEmail)
+    ) {
+      throw new Error("El correo de la sesión es inválido para aceptar la invitación.");
+    }
+
     const tokenHash = crypto.createHash("sha256").update(input.rawToken.trim()).digest("hex");
 
     const { data: invitation, error: invError } = await adminClient
@@ -897,23 +981,75 @@ export class CompanyEmployeeService {
       throw new Error("Invitación no encontrada o token inválido.");
     }
 
+    const invitationEmail = invitation.email?.trim().toLowerCase() || "";
+    if (!invitationEmail || invitationEmail !== normalizedEmail) {
+      throw new Error("El correo de tu sesión no coincide con el destinatario de esta invitación.");
+    }
+
     if (invitation.status === "accepted") {
       return { success: true, message: "Invitación ya aceptada previamente." };
     }
 
-    const now = new Date().toISOString();
+    if (invitation.status === "cancelled") {
+      throw new Error("Esta invitación fue cancelada por la empresa.");
+    }
 
-    // 1. Garantizar existencia en candidate_profiles para satisfacer FK company_employees_employee_id_fkey
+    const nowDate = new Date();
+    const now = nowDate.toISOString();
+    const expiresAtDate = invitation.expires_at ? new Date(invitation.expires_at) : null;
+
+    if (
+      (invitation.status !== "pending" && invitation.status !== "sent") ||
+      !expiresAtDate ||
+      Number.isNaN(expiresAtDate.getTime()) ||
+      expiresAtDate.getTime() <= nowDate.getTime()
+    ) {
+      throw new Error("Esta invitación ha expirado o ya no se encuentra vigente.");
+    }
+
+    // 1. Reclamar atómicamente la invitación (solo si sigue pending/sent y no vencida)
+    const { data: claimedInvitation, error: claimErr } = await adminClient
+      .from("employee_invitations")
+      .update({
+        status: "accepted",
+        accepted_at: now,
+        updated_at: now,
+      })
+      .eq("id", invitation.id)
+      .eq("company_id", invitation.company_id)
+      .in("status", ["pending", "sent"])
+      .gt("expires_at", now)
+      .select("id, company_id, employee_id, email, full_name, created_by")
+      .maybeSingle();
+
+    if (claimErr || !claimedInvitation) {
+      throw new Error("No se pudo aceptar la invitación: ya fue utilizada, cancelada o ha expirado.");
+    }
+
+    const rollbackClaim = async () => {
+      await adminClient
+        .from("employee_invitations")
+        .update({
+          status: invitation.status,
+          accepted_at: null,
+          updated_at: new Date().toISOString(),
+        })
+        .eq("id", claimedInvitation.id)
+        .eq("company_id", claimedInvitation.company_id);
+    };
+
+    // 2. Garantizar existencia en candidate_profiles para satisfacer FK company_employees_employee_id_fkey
     const { error: profileUpsertErr } = await adminClient
       .from("candidate_profiles")
       .upsert({ id: input.userId }, { onConflict: "id" });
 
     if (profileUpsertErr) {
+      await rollbackClaim();
       throw new Error(`Error al sincronizar el perfil del colaborador: ${profileUpsertErr.message}`);
     }
 
-    // 2. Vincular registro en company_employees con control estricto de errores
-    if (invitation.employee_id) {
+    // 3. Vincular registro en company_employees con igualdad exacta (sin .ilike) y filtro por company_id
+    if (claimedInvitation.employee_id) {
       const { error: empUpdateErr } = await adminClient
         .from("company_employees")
         .update({
@@ -921,9 +1057,11 @@ export class CompanyEmployeeService {
           status: "active",
           updated_at: now,
         })
-        .eq("id", invitation.employee_id);
+        .eq("id", claimedInvitation.employee_id)
+        .eq("company_id", claimedInvitation.company_id);
 
       if (empUpdateErr) {
+        await rollbackClaim();
         throw new Error(`Error al vincular el colaborador: ${empUpdateErr.message}`);
       }
     } else {
@@ -934,35 +1072,51 @@ export class CompanyEmployeeService {
           status: "active",
           updated_at: now,
         })
-        .eq("company_id", invitation.company_id)
-        .ilike("email", input.email.toLowerCase().trim());
+        .eq("company_id", claimedInvitation.company_id)
+        .eq("email", invitationEmail)
+        .eq("status", "pending");
 
       if (empUpdateErr) {
+        await rollbackClaim();
         throw new Error(`Error al vincular el colaborador: ${empUpdateErr.message}`);
       }
     }
 
-    // 3. Marcar invitación como aceptada
-    const { error: invUpdateErr } = await adminClient
-      .from("employee_invitations")
-      .update({
-        status: "accepted",
-        accepted_at: now,
-        updated_at: now,
-      })
-      .eq("id", invitation.id);
+    // 4. Notificación al propietario/responsable de la empresa (nunca usar company_id ciegamente por FK a profiles)
+    let recipientUserId: string | null =
+      claimedInvitation.created_by || invitation.created_by || null;
+    try {
+      const { data: companyOwner } = await adminClient
+        .from("company_profiles")
+        .select("owner_id")
+        .eq("id", claimedInvitation.company_id)
+        .maybeSingle();
 
-    if (invUpdateErr) {
-      throw new Error(`Error al actualizar la invitación: ${invUpdateErr.message}`);
+      if (companyOwner?.owner_id) {
+        recipientUserId = companyOwner.owner_id;
+      } else if (!recipientUserId) {
+        const { data: legacyOwner } = await adminClient
+          .from("profiles")
+          .select("id")
+          .eq("id", claimedInvitation.company_id)
+          .maybeSingle();
+        recipientUserId = legacyOwner?.id || null;
+      }
+    } catch {
+      // Ignorar si la consulta opcional no está implementada en mocks parciales
     }
 
-    // 4. Notificación a la empresa
-    await adminClient.from("notifications").insert({
-      user_id: invitation.company_id,
-      title: "Colaborador se ha unido",
-      description: `${invitation.full_name} ha completado su registro y se incorporó a tu plantilla activa.`,
-      type: "employee_joined",
-    });
+    if (recipientUserId) {
+      const { error: notifErr } = await adminClient.from("notifications").insert({
+        user_id: recipientUserId,
+        title: "Colaborador se ha unido",
+        description: `${claimedInvitation.full_name} ha completado su registro y se incorporó a tu plantilla activa.`,
+        type: "employee_joined",
+      });
+      if (notifErr) {
+        console.error("[acceptEmployeeInvitation] Error creating notification:", notifErr.message);
+      }
+    }
 
     return { success: true };
   }
@@ -988,7 +1142,7 @@ export class CompanyEmployeeService {
     const { data: existingProfile } = await adminClient
       .from("profiles")
       .select("id, email, full_name")
-      .ilike("email", cleanEmail)
+      .eq("email", cleanEmail)
       .maybeSingle();
 
     if (existingProfile) {
@@ -1025,7 +1179,13 @@ export class CompanyEmployeeService {
 
     const newUserId = authData.user.id;
 
-    // 3. Crear registro en company_employees
+    // 3. Crear registro en company_employees (salario normalizado a equivalente mensual)
+    const paymentFrequency = input.payment_frequency || "quincenal";
+    const normalizedMonthlySalary =
+      input.base_salary_monthly != null
+        ? toMonthlyEquivalentSalary(input.base_salary_monthly, paymentFrequency)
+        : null;
+
     const employeePayload: CompanyEmployeeInsert = {
       company_id: companyId,
       employee_id: newUserId,
@@ -1033,8 +1193,8 @@ export class CompanyEmployeeService {
       email: cleanEmail,
       job_title: input.job_title?.trim() || "",
       department: input.department?.trim() || null,
-      base_salary_monthly: input.base_salary_monthly ?? null,
-      payment_frequency: input.payment_frequency || "quincenal",
+      base_salary_monthly: normalizedMonthlySalary,
+      payment_frequency: paymentFrequency,
       status: "active",
       hire_date: input.hire_date || getMexicoDateISO(),
     };
@@ -1293,6 +1453,8 @@ export const companyService = {
       updated_at: new Date().toISOString(),
     };
 
+    const actorUserId = await resolveActorUserId(supabase);
+
     const updateRes = await supabase
       .from("company_profiles")
       .update(companyPayload)
@@ -1304,6 +1466,7 @@ export const companyService = {
     if (!updateRes.data || updateRes.data.length === 0) {
       const { error: upsertErr } = await supabase.from("company_profiles").upsert({
         id: userId,
+        owner_id: actorUserId || userId,
         rfc: profile.rfc?.toUpperCase().trim() || "XAXX010101000",
         ...companyPayload,
       });

@@ -238,12 +238,18 @@ export async function getAuthorizedCandidateDocuments(
     return { authorized: false, documents: [] };
   }
 
-  const { companyId: companyScopeId } =
-    await companyTenantService.resolveActiveCompanyScope(user.id, supabase);
+  const scope = await companyTenantService.resolveAuthorizedCompanyScope(
+    user.id,
+    supabase,
+    ["owner", "admin", "recruiter"]
+  );
+  if (!scope) {
+    return { authorized: false, documents: [] };
+  }
 
   return await CompanyDocumentAccessService.getAuthorizedCandidateDocuments(
     supabase,
-    companyScopeId,
+    scope.companyId,
     parsed.data
   );
 }

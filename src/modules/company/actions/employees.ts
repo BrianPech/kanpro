@@ -136,6 +136,21 @@ export type BulkImportActionResult =
       createdTokens?: undefined;
     };
 
+const ADMIN_PERMISSION_ERROR =
+  "No tienes permisos de administrador para operar sobre esta empresa.";
+
+async function resolveAdminCompanyScope(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  userId: string
+): Promise<string | null> {
+  const scope = await companyTenantService.resolveAuthorizedCompanyScope(
+    userId,
+    supabase,
+    ["owner", "admin"]
+  );
+  return scope?.companyId ?? null;
+}
+
 /**
  * Registra directamente un nuevo colaborador en la plantilla de la empresa autenticada.
  */
@@ -158,7 +173,10 @@ export async function createCompanyEmployeeAction(
     return { success: false, error: "No autorizado. Inicie sesión para continuar." };
   }
 
-  const { companyId: companyScopeId } = await companyTenantService.resolveActiveCompanyScope(user.id, supabase);
+  const companyScopeId = await resolveAdminCompanyScope(supabase, user.id);
+  if (!companyScopeId) {
+    return { success: false, error: ADMIN_PERMISSION_ERROR };
+  }
 
   try {
     const employee = await CompanyEmployeeService.createEmployee(
@@ -211,7 +229,10 @@ export async function updateCompanyEmployeeAction(
     return { success: false, error: "No autorizado. Inicie sesión para continuar." };
   }
 
-  const { companyId: companyScopeId } = await companyTenantService.resolveActiveCompanyScope(user.id, supabase);
+  const companyScopeId = await resolveAdminCompanyScope(supabase, user.id);
+  if (!companyScopeId) {
+    return { success: false, error: ADMIN_PERMISSION_ERROR };
+  }
 
   try {
     await CompanyEmployeeService.updateEmployee(
@@ -265,7 +286,10 @@ export async function terminateCompanyEmployeeAction(
     return { success: false, error: "No autorizado. Inicie sesión para continuar." };
   }
 
-  const { companyId: companyScopeId } = await companyTenantService.resolveActiveCompanyScope(user.id, supabase);
+  const companyScopeId = await resolveAdminCompanyScope(supabase, user.id);
+  if (!companyScopeId) {
+    return { success: false, error: ADMIN_PERMISSION_ERROR };
+  }
 
   try {
     await CompanyEmployeeService.terminateEmployee(
@@ -311,7 +335,10 @@ export async function reactivateCompanyEmployeeAction(
     return { success: false, error: "No autorizado. Inicie sesión para continuar." };
   }
 
-  const { companyId: companyScopeId } = await companyTenantService.resolveActiveCompanyScope(user.id, supabase);
+  const companyScopeId = await resolveAdminCompanyScope(supabase, user.id);
+  if (!companyScopeId) {
+    return { success: false, error: ADMIN_PERMISSION_ERROR };
+  }
 
   try {
     await CompanyEmployeeService.reactivateEmployee(
@@ -358,7 +385,10 @@ export async function updateEmployeeStartDate(
     return { success: false, error: "No autorizado. Inicia sesión para continuar." };
   }
 
-  const { companyId: companyScopeId } = await companyTenantService.resolveActiveCompanyScope(user.id, supabase);
+  const companyScopeId = await resolveAdminCompanyScope(supabase, user.id);
+  if (!companyScopeId) {
+    return { success: false, error: ADMIN_PERMISSION_ERROR };
+  }
 
   try {
     await CompanyEmployeeService.updateEmployeeStartDate(
@@ -404,7 +434,10 @@ export async function assignEmployeeDepartmentAction(
     return { success: false, error: "No autorizado. Inicia sesión para continuar." };
   }
 
-  const { companyId: companyScopeId } = await companyTenantService.resolveActiveCompanyScope(user.id, supabase);
+  const companyScopeId = await resolveAdminCompanyScope(supabase, user.id);
+  if (!companyScopeId) {
+    return { success: false, error: ADMIN_PERMISSION_ERROR };
+  }
 
   try {
     const targetDepartment = parsed.data.department?.trim() || null;
@@ -478,13 +511,17 @@ export async function createEmployeeInvitationAction(
     return { success: false, error: "No autorizado. Inicie sesión para continuar." };
   }
 
-  const { companyId: companyScopeId } = await companyTenantService.resolveActiveCompanyScope(user.id, supabase);
+  const companyScopeId = await resolveAdminCompanyScope(supabase, user.id);
+  if (!companyScopeId) {
+    return { success: false, error: ADMIN_PERMISSION_ERROR };
+  }
 
   try {
     const result = await CompanyEmployeeService.createEmployeeInvitation(
       supabase,
       companyScopeId,
-      parsed.data
+      parsed.data,
+      user.id
     );
 
     revalidatePath("/dashboard/company/employees");
@@ -527,13 +564,17 @@ export async function bulkImportEmployeesAction(
     return { success: false, error: "No autorizado. Inicie sesión para continuar." };
   }
 
-  const { companyId: companyScopeId } = await companyTenantService.resolveActiveCompanyScope(user.id, supabase);
+  const companyScopeId = await resolveAdminCompanyScope(supabase, user.id);
+  if (!companyScopeId) {
+    return { success: false, error: ADMIN_PERMISSION_ERROR };
+  }
 
   try {
     const results = await CompanyEmployeeService.bulkImportEmployees(
       supabase,
       companyScopeId,
-      parsed.data
+      parsed.data,
+      user.id
     );
 
     revalidatePath("/dashboard/company/employees");
@@ -565,7 +606,10 @@ export async function getCompanyInvitationsAction() {
     throw new Error("No autorizado.");
   }
 
-  const { companyId: companyScopeId } = await companyTenantService.resolveActiveCompanyScope(user.id, supabase);
+  const companyScopeId = await resolveAdminCompanyScope(supabase, user.id);
+  if (!companyScopeId) {
+    throw new Error(ADMIN_PERMISSION_ERROR);
+  }
 
   return CompanyEmployeeService.getCompanyInvitations(supabase, companyScopeId);
 }
@@ -590,7 +634,10 @@ export async function resendEmployeeInvitationAction(
     return { success: false, error: "No autorizado." };
   }
 
-  const { companyId: companyScopeId } = await companyTenantService.resolveActiveCompanyScope(user.id, supabase);
+  const companyScopeId = await resolveAdminCompanyScope(supabase, user.id);
+  if (!companyScopeId) {
+    return { success: false, error: ADMIN_PERMISSION_ERROR };
+  }
 
   try {
     const result = await CompanyEmployeeService.resendEmployeeInvitation(
@@ -633,7 +680,10 @@ export async function cancelEmployeeInvitationAction(
     return { success: false, error: "No autorizado." };
   }
 
-  const { companyId: companyScopeId } = await companyTenantService.resolveActiveCompanyScope(user.id, supabase);
+  const companyScopeId = await resolveAdminCompanyScope(supabase, user.id);
+  if (!companyScopeId) {
+    return { success: false, error: ADMIN_PERMISSION_ERROR };
+  }
 
   try {
     await CompanyEmployeeService.cancelEmployeeInvitation(
@@ -665,7 +715,7 @@ export async function getInvitationByTokenAction(rawToken: string) {
  */
 export async function acceptEmployeeInvitationAction(rawInput: {
   rawToken: string;
-  email: string;
+  email?: string;
   userId?: string;
 }): Promise<AcceptInvitationActionResult> {
   const supabase = await createClient();
@@ -678,10 +728,19 @@ export async function acceptEmployeeInvitationAction(rawInput: {
     return { success: false, error: "Debes iniciar sesión para aceptar la invitación." };
   }
 
+  const sessionEmail = user.email?.trim().toLowerCase();
+  if (!sessionEmail) {
+    return {
+      success: false,
+      error: "Tu sesión no tiene un correo electrónico válido para aceptar la invitación.",
+    };
+  }
+
+  // Ignorar rawInput.email y rawInput.userId del cliente; usar exclusivamente identidad de auth.getUser()
   const parsed = acceptEmployeeInvitationSchema.safeParse({
     rawToken: rawInput.rawToken,
-    email: rawInput.email,
-    userId: user.id, // Forzar ID inmutable de la sesión autenticada en el servidor
+    email: sessionEmail,
+    userId: user.id,
   });
 
   if (!parsed.success) {
@@ -725,7 +784,10 @@ export async function hireCandidateAction(
     return { success: false, error: "No autorizado. Inicie sesión para continuar." };
   }
 
-  const { companyId: companyScopeId } = await companyTenantService.resolveActiveCompanyScope(user.id, supabase);
+  const companyScopeId = await resolveAdminCompanyScope(supabase, user.id);
+  if (!companyScopeId) {
+    return { success: false, error: ADMIN_PERMISSION_ERROR };
+  }
 
   try {
     let adminClient;
@@ -798,7 +860,10 @@ export async function registerDirectEmployeeAction(
     };
   }
 
-  const { companyId: companyScopeId } = await companyTenantService.resolveActiveCompanyScope(user.id, supabase);
+  const companyScopeId = await resolveAdminCompanyScope(supabase, user.id);
+  if (!companyScopeId) {
+    return { success: false, error: ADMIN_PERMISSION_ERROR };
+  }
 
   try {
     const adminClient = createAdminClient();

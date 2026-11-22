@@ -6,6 +6,19 @@ import {
   type CompanyMemberRole,
 } from "../schemas/tenant.schema";
 
+const UUID_REGEX =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+export function isValidUuid(value: string | null | undefined): value is string {
+  return typeof value === "string" && UUID_REGEX.test(value.trim());
+}
+
+export function isCompanyAdminRole(
+  role: CompanyMemberRole | null | undefined
+): boolean {
+  return role === "owner" || role === "admin";
+}
+
 export interface UserCompanyItem {
   companyId: string;
   companyName: string;
@@ -132,6 +145,9 @@ export class CompanyTenantService {
         contact_phone: input.contact_phone?.trim() || null,
         website_url: input.website_url?.trim() || null,
         description: input.description?.trim() || null,
+        leave_approval_config: {
+          approvalMode: input.leave_approval_mode || "single_step",
+        },
         owner_id: userId,
       })
       .select("id, company_name")
@@ -171,40 +187,89 @@ export class CompanyTenantService {
     companyId: string,
     supabase: SupabaseClient<Database>
   ): Promise<CompanyMemberRole | null> {
-    if (!userId || !companyId) return null;
+    if (!isValidUuid(userId) || !isValidUuid(companyId)) return null;
+
+    const cleanUserId = userId.trim();
+    const cleanCompanyId = companyId.trim();
 
     const { data } = await supabase
       .from("company_members")
       .select("role")
-      .eq("user_id", userId)
-      .eq("company_id", companyId)
+      .eq("user_id", cleanUserId)
+      .eq("company_id", cleanCompanyId)
       .maybeSingle();
 
     if (data?.role) {
       return data.role as CompanyMemberRole;
     }
 
-    // Fallback retrocompatible
+    // Fallback retrocompatible: solo si el usuario es dueño legítimo de la empresa solicitada
     const { data: legacy } = await supabase
       .from("company_profiles")
       .select("id")
-      .or(`id.eq.${companyId},owner_id.eq.${userId}`)
-      .eq("id", companyId)
+      .or(`id.eq.${cleanUserId},owner_id.eq.${cleanUserId}`)
+      .eq("id", cleanCompanyId)
       .maybeSingle();
 
     return legacy ? "owner" : null;
   }
 
   /**
+   * Resuelve el scope activo verificando membresía real y rol permitido.
+   * Rechaza cookies `kanpro_active_company` manipuladas en lugar de degradar silenciosamente.
+   */
+  async resolveAuthorizedCompanyScope(
+    userId: string,
+    supabase: SupabaseClient<Database>,
+    allowedRoles: readonly CompanyMemberRole[] = ["owner", "admin"],
+    cookieCompanyId?: string
+  ): Promise<{ companyId: string; role: CompanyMemberRole } | null> {
+    if (!isValidUuid(userId)) {
+      return null;
+    }
+
+    let preferredId = cookieCompanyId;
+    if (preferredId === undefined) {
+      try {
+        const { cookies } = await import("next/headers");
+        const cookieStore = await cookies();
+        preferredId = cookieStore.get(ACTIVE_COMPANY_COOKIE)?.value;
+      } catch {
+        // fuera de contexto de cookies
+      }
+    }
+
+    if (preferredId !== undefined && preferredId !== "") {
+      const role = await this.verifyUserMembership(userId, preferredId, supabase);
+      if (!role || !allowedRoles.includes(role)) {
+        return null;
+      }
+      return { companyId: preferredId.trim(), role };
+    }
+
+    const companies = await this.getUserCompanies(userId, supabase);
+    if (companies.length === 0) {
+      return null;
+    }
+
+    const primary = companies[0];
+    if (!allowedRoles.includes(primary.role)) {
+      return null;
+    }
+
+    return { companyId: primary.companyId, role: primary.role };
+  }
+
+  /**
    * Resuelve el ID y rol de la empresa activa para operaciones en Server Actions o backend.
-   * Valida pertenencia en company_members o fallback seguro a legacy.
+   * Valida pertenencia en company_members o recuperación legacy de company_profiles.
    */
   async resolveActiveCompanyScope(
     userId: string,
     supabase: SupabaseClient<Database>,
     cookieCompanyId?: string
   ): Promise<{ companyId: string; role: CompanyMemberRole }> {
-    if (!userId) {
+    if (!userId || !userId.trim()) {
       throw new Error("Usuario no autenticado");
     }
 
@@ -233,8 +298,7 @@ export class CompanyTenantService {
       return { companyId: companies[0].companyId, role: companies[0].role };
     }
 
-    // 3. Fallback histórico
-    return { companyId: userId, role: "owner" };
+    throw new Error("No tienes una empresa activa asociada.");
   }
 
   /**

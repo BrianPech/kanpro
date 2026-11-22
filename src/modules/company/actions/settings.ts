@@ -2,7 +2,11 @@
 
 import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
-import { companyTenantService } from "../services/company-tenant.service";
+import {
+  companyTenantService,
+  isCompanyAdminRole,
+  isValidUuid,
+} from "../services/company-tenant.service";
 import {
   toggleGlobalRecruitmentSchema,
   updateContactChannelSchema,
@@ -49,7 +53,7 @@ export async function toggleGlobalRecruitment(
   }
 
   const membershipRole = await companyTenantService.verifyUserMembership(user.id, companyId, supabase);
-  if (!membershipRole) {
+  if (!isCompanyAdminRole(membershipRole)) {
     return {
       success: false,
       error: "No tienes permisos para modificar la configuración de esta empresa.",
@@ -102,7 +106,7 @@ export async function updateContactChannel(
   }
 
   const membershipRole = await companyTenantService.verifyUserMembership(user.id, companyId, supabase);
-  if (!membershipRole) {
+  if (!isCompanyAdminRole(membershipRole)) {
     return {
       success: false,
       error: "No tienes permisos para modificar la configuración de esta empresa.",
@@ -154,7 +158,7 @@ export async function updateSubscriptionPlan(
   }
 
   const membershipRole = await companyTenantService.verifyUserMembership(user.id, companyId, supabase);
-  if (!membershipRole) {
+  if (!isCompanyAdminRole(membershipRole)) {
     return {
       success: false,
       error: "No tienes permisos para modificar la suscripción de esta empresa.",
@@ -214,7 +218,7 @@ export async function updateCompanyBranchesAction(
   }
 
   const membershipRole = await companyTenantService.verifyUserMembership(user.id, companyId, supabase);
-  if (!membershipRole) {
+  if (!isCompanyAdminRole(membershipRole)) {
     return {
       success: false,
       error: "No tienes permisos para modificar las sucursales de esta empresa.",
@@ -252,11 +256,29 @@ export async function updateCompanyBranchesAction(
  */
 export async function getCompanyInvoices(companyId: string): Promise<CompanyInvoiceRecord[]> {
   const parsed = getCompanyInvoicesSchema.safeParse({ companyId });
-  if (!parsed.success) {
-    return [];
+  if (!parsed.success || !isValidUuid(parsed.data.companyId)) {
+    throw new Error("Identificador de empresa inválido.");
   }
 
   const supabase = await createClient();
+  const {
+    data: { user },
+    error: authError,
+  } = await supabase.auth.getUser();
+
+  if (authError || !user) {
+    throw new Error("No autorizado. Inicie sesión para continuar.");
+  }
+
+  const membershipRole = await companyTenantService.verifyUserMembership(
+    user.id,
+    parsed.data.companyId,
+    supabase
+  );
+  if (!isCompanyAdminRole(membershipRole)) {
+    throw new Error("No tienes permisos para consultar las facturas de esta empresa.");
+  }
+
   return await CompanySettingsService.getCompanyInvoices(supabase, parsed.data.companyId);
 }
 
@@ -264,7 +286,29 @@ export async function getCompanyInvoices(companyId: string): Promise<CompanyInvo
  * Fetches branches and geofences configured for a company.
  */
 export async function getCompanyBranches(companyId: string): Promise<BranchGeofenceInput[]> {
+  if (!isValidUuid(companyId)) {
+    throw new Error("Identificador de empresa inválido.");
+  }
+
   const supabase = await createClient();
+  const {
+    data: { user },
+    error: authError,
+  } = await supabase.auth.getUser();
+
+  if (authError || !user) {
+    throw new Error("No autorizado. Inicie sesión para continuar.");
+  }
+
+  const membershipRole = await companyTenantService.verifyUserMembership(
+    user.id,
+    companyId,
+    supabase
+  );
+  if (!isCompanyAdminRole(membershipRole)) {
+    throw new Error("No tienes permisos para consultar las sucursales de esta empresa.");
+  }
+
   return await CompanySettingsService.getCompanyBranches(supabase, companyId);
 }
 
@@ -294,7 +338,7 @@ export async function updateCompanyAccountPhone(
   }
 
   const membershipRole = await companyTenantService.verifyUserMembership(user.id, companyId, supabase);
-  if (!membershipRole) {
+  if (!isCompanyAdminRole(membershipRole)) {
     return {
       success: false,
       error: "No tienes permisos para actualizar el teléfono de esta empresa.",

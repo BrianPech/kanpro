@@ -244,8 +244,8 @@ describe("Multi-Company Organization & Tenant Management (1 Usuario -> N Empresa
 
     test("verifyUserMembership debe verificar si el usuario tiene permiso sobre una empresa", async () => {
       const service = new CompanyTenantService();
-      const mockUserId = "usr-1";
-      const targetCompanyId = "comp-authorized";
+      const mockUserId = "11111111-1111-4111-8111-111111111111";
+      const targetCompanyId = "22222222-2222-4222-8222-222222222222";
 
       const mockSupabase = {
         from: (table: string) => {

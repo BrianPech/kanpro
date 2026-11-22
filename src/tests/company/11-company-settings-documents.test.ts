@@ -169,54 +169,34 @@ describe("Fase 20: Flujos Finales - Acceso a Documentos y Configuración de Empr
       const client = {
         from: vi.fn((table: string) => {
           if (table === "document_access_requests") {
-            return {
-              select: vi.fn((cols: string) => {
-                return {
-                  eq: vi.fn((field1: string, val1: string) => {
-                    return {
-                      eq: vi.fn((field2: string, val2: string) => {
-                        return {
-                          eq: vi.fn((field3: string, val3: string) => {
-                            return {
-                              maybeSingle: vi.fn(async () => {
-                                const found = requests.find(
-                                  (r) =>
-                                    (r as unknown as Record<string, string>)[field1] === val1 &&
-                                    (r as unknown as Record<string, string>)[field2] === val2 &&
-                                    (r as unknown as Record<string, string>)[field3] === val3
-                                );
-                                return { data: found || null, error: null };
-                              }),
-                            };
-                          }),
-                          maybeSingle: vi.fn(async () => {
-                            const found = requests.find(
-                              (r) =>
-                                (r as unknown as Record<string, string>)[field1] === val1 &&
-                                (r as unknown as Record<string, string>)[field2] === val2
-                            );
-                            return { data: found || null, error: null };
-                          }),
-                        };
-                      }),
-                      order: vi.fn(() => ({
-                        maybeSingle: vi.fn(async () => {
-                          const found = requests
-                            .filter((r) => (r as unknown as Record<string, string>)[field1] === val1)
-                            .pop();
-                          return { data: found || null, error: null };
-                        }),
-                      })),
-                      maybeSingle: vi.fn(async () => {
-                        const found = requests.find(
-                          (r) => (r as unknown as Record<string, string>)[field1] === val1
-                        );
-                        return { data: found || null, error: null };
-                      }),
-                    };
-                  }),
-                };
+            const buildChain = (filters: Array<[string, string]>) => ({
+              eq: vi.fn((field: string, val: string) =>
+                buildChain([...filters, [field, val]])
+              ),
+              order: vi.fn(() => ({
+                maybeSingle: vi.fn(async () => {
+                  const found = requests
+                    .filter((r) =>
+                      filters.every(
+                        ([f, v]) => (r as unknown as Record<string, string>)[f] === v
+                      )
+                    )
+                    .pop();
+                  return { data: found || null, error: null };
+                }),
+              })),
+              maybeSingle: vi.fn(async () => {
+                const found = requests.find((r) =>
+                  filters.every(
+                    ([f, v]) => (r as unknown as Record<string, string>)[f] === v
+                  )
+                );
+                return { data: found || null, error: null };
               }),
+            });
+
+            return {
+              select: vi.fn(() => buildChain([])),
               insert: vi.fn((payload: unknown) => {
                 const item = {
                   id: `req-${requests.length + 1}`,
@@ -701,25 +681,23 @@ describe("Fase 20: Flujos Finales - Acceso a Documentos y Configuración de Empr
         },
       ];
 
+      const buildChain = (filters: Array<[string, string]>) => ({
+        eq: vi.fn((field: string, val: string) =>
+          buildChain([...filters, [field, val]])
+        ),
+        maybeSingle: vi.fn(async () => {
+          const match = requests.find((r) =>
+            filters.every(
+              ([f, v]) => (r as unknown as Record<string, string>)[f] === v
+            )
+          );
+          return { data: match || null, error: null };
+        }),
+      });
+
       const client = {
         from: vi.fn(() => ({
-          select: vi.fn(() => ({
-            eq: vi.fn((field1: string, val1: string) => ({
-              eq: vi.fn((field2: string, val2: string) => ({
-                eq: vi.fn((field3: string, val3: string) => ({
-                  maybeSingle: vi.fn(async () => {
-                    const match = requests.find(
-                      (r) =>
-                        (r as unknown as Record<string, string>)[field1] === val1 &&
-                        (r as unknown as Record<string, string>)[field2] === val2 &&
-                        (r as unknown as Record<string, string>)[field3] === val3
-                    );
-                    return { data: match || null, error: null };
-                  }),
-                })),
-              })),
-            })),
-          })),
+          select: vi.fn(() => buildChain([])),
         })),
         storage: { from: vi.fn() },
       } as unknown as SupabaseClient<Database>;

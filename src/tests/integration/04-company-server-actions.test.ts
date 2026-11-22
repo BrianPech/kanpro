@@ -216,9 +216,6 @@ describe("[REAL INTEGRATION] 04 - Employee Server Actions with Real PostgreSQL",
         email: candidateEmail,
       });
 
-      // Restore company client for subsequent company-level tests
-      currentServerSupabaseClient = companyClient;
-
       expect(result.success).toBe(true);
 
       // 4. Verify in PostgreSQL
@@ -238,12 +235,16 @@ describe("[REAL INTEGRATION] 04 - Employee Server Actions with Real PostgreSQL",
       expect(checkEmp?.status).toBe("active");
       expect(checkEmp?.employee_id).toBe(testCandidate.id);
 
-      // 5. Test idempotency: Accepting again should succeed gracefully
+      // 5. Test idempotency: Accepting again as the same authenticated candidate should succeed gracefully
       const secondResult = await acceptEmployeeInvitationAction({
         rawToken,
         userId: testCandidate.id,
         email: candidateEmail,
       });
+
+      // Restore company client for subsequent company-level tests
+      currentServerSupabaseClient = companyClient;
+
       expect(secondResult.success).toBe(true);
       expect(secondResult.message).toContain("ya aceptada previamente");
     });

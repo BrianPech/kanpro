@@ -179,29 +179,52 @@ export class CompanyDocumentAccessService {
     companyId: string,
     input: GetAuthorizedDocumentsInput
   ): Promise<AuthorizedCandidateDocumentsResponse> {
-    // 1. Verificar autorización activa para la empresa
+    // 1. Verificar autorización activa para la empresa y el candidato exacto
     const { data: accessReq } = await supabase
       .from("document_access_requests")
-      .select("status")
+      .select("status, candidate_id, requested_documents, rejected_at")
       .eq("application_id", input.applicationId)
       .eq("company_id", companyId)
+      .eq("candidate_id", input.candidateId)
       .eq("status", "approved")
       .maybeSingle();
 
-    if (!accessReq) {
+    if (
+      !accessReq ||
+      accessReq.candidate_id !== input.candidateId ||
+      accessReq.rejected_at
+    ) {
       return {
         authorized: false,
         documents: [],
       };
     }
 
-    // 2. Obtener documentos del expediente del candidato
+    const allowedDocTypes = Array.isArray(accessReq.requested_documents)
+      ? accessReq.requested_documents
+          .map((docType) => String(docType).trim().toLowerCase())
+          .filter(Boolean)
+      : [];
+
+    if (allowedDocTypes.length === 0) {
+      return {
+        authorized: true,
+        documents: [],
+      };
+    }
+
+    // 2. Obtener únicamente los documentos del candidato autorizados en requested_documents
+    // Filtramos en app tras la consulta protegida por RLS (doc_type::text = ANY(requested_documents))
+    // para evitar errores de cast de enum si requested_documents incluye alias textuales.
     const { data: docs } = await supabase
       .from("profile_documents")
       .select("id, doc_type, file_url, file_name, status, created_at")
       .eq("owner_id", input.candidateId);
 
-    const docList = docs || [];
+    const allowedSet = new Set(allowedDocTypes);
+    const docList = (docs || []).filter((doc) =>
+      allowedSet.has(String(doc.doc_type).toLowerCase())
+    );
 
     // 3. Generar signed URLs temporales (15 minutos / 900s)
     const documentsWithSignedUrls: AuthorizedDocumentItem[] = await Promise.all(
