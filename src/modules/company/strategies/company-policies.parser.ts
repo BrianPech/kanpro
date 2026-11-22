@@ -137,12 +137,16 @@ export const DEFAULT_COMPANY_WORK_RULES_CONFIG: CompanyWorkRulesConfig = {
     amount: 0,
     type: "fixed",
     cancelledBy: ["retardo", "falta_injustificada", "suspension"],
+    partialCancelBy: [],
+    partialCancelPercentage: 50,
   },
   attendanceBonus: {
     enabled: false,
     amount: 0,
     type: "fixed",
     cancelledBy: ["falta_injustificada", "suspension"],
+    partialCancelBy: [],
+    partialCancelPercentage: 50,
   },
   disciplinaryRules: {
     administrativeFaultMode: "con_goce",
@@ -442,21 +446,25 @@ function parseOvertimeRules(raw: unknown, violations: string[]): OvertimeRulesCo
   };
 }
 
+function parseCategoryList(raw: unknown, fallback: IncidentCategory[]): IncidentCategory[] {
+  if (!Array.isArray(raw)) return [...fallback];
+  const valid = raw.filter(
+    (item): item is IncidentCategory =>
+      typeof item === "string" && VALID_INCIDENT_CATEGORIES.has(item as IncidentCategory)
+  );
+  return Array.from(new Set(valid));
+}
+
 function parseBonusConfig(
   raw: unknown,
   defaults: AttendanceBonusConfig
 ): AttendanceBonusConfig {
   if (!isPlainObject(raw)) {
-    return { ...defaults, cancelledBy: [...defaults.cancelledBy] };
-  }
-
-  let cancelledBy = [...defaults.cancelledBy];
-  if (Array.isArray(raw.cancelledBy)) {
-    const valid = raw.cancelledBy.filter(
-      (item): item is IncidentCategory =>
-        typeof item === "string" && VALID_INCIDENT_CATEGORIES.has(item as IncidentCategory)
-    );
-    cancelledBy = Array.from(new Set(valid));
+    return {
+      ...defaults,
+      cancelledBy: [...defaults.cancelledBy],
+      partialCancelBy: [...defaults.partialCancelBy],
+    };
   }
 
   return {
@@ -466,7 +474,14 @@ function parseBonusConfig(
       typeof raw.type === "string" && VALID_BONUS_TYPES.has(raw.type as BonusAmountType)
         ? (raw.type as BonusAmountType)
         : defaults.type,
-    cancelledBy,
+    cancelledBy: parseCategoryList(raw.cancelledBy, defaults.cancelledBy),
+    partialCancelBy: parseCategoryList(raw.partialCancelBy, defaults.partialCancelBy),
+    partialCancelPercentage: parseNumberInRange(
+      raw.partialCancelPercentage,
+      0,
+      100,
+      defaults.partialCancelPercentage
+    ),
   };
 }
 

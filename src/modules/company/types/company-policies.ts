@@ -100,7 +100,12 @@ export interface AttendanceBonusConfig {
   enabled: boolean;
   amount: number;
   type: BonusAmountType;
+  /** Incidencias que cancelan el bono por completo (100%). */
   cancelledBy: IncidentCategory[];
+  /** Incidencias que reducen el bono de forma parcial. */
+  partialCancelBy: IncidentCategory[];
+  /** Porcentaje de reducción cuando ocurre una incidencia en `partialCancelBy` (0-100). */
+  partialCancelPercentage: number;
 }
 
 export type DisciplinaryPayMode =

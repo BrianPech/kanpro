@@ -63,6 +63,8 @@ describe("Tarea 0: Reglas de mi empresa — CompanyWorkRulesConfig", () => {
       amount: 0,
       type: "fixed",
       cancelledBy: ["retardo"],
+      partialCancelBy: [],
+      partialCancelPercentage: 50,
     });
   });
 
