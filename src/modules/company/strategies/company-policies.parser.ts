@@ -11,6 +11,8 @@ import {
   type BonusAmountType,
   type CompanyWorkRulesConfig,
   type CompTimeMode,
+  type DisciplinaryPayMode,
+  type DisciplinaryRulesConfig,
   type EarlyDepartureMode,
   type FelipeInvariants,
   type HourlyLeaveRulesConfig,
@@ -142,6 +144,11 @@ export const DEFAULT_COMPANY_WORK_RULES_CONFIG: CompanyWorkRulesConfig = {
     type: "fixed",
     cancelledBy: ["falta_injustificada", "suspension"],
   },
+  disciplinaryRules: {
+    administrativeFaultMode: "con_goce",
+    suspensionMode: "sin_goce_solo_dia",
+    maxSuspensionDays: 8,
+  },
   invariants: FELIPE_INVARIANTS,
 };
 
@@ -165,6 +172,12 @@ const VALID_PERIODICITIES = new Set<PayrollPeriodicity>([
 ]);
 
 const VALID_BONUS_TYPES = new Set<BonusAmountType>(["fixed", "percentage"]);
+
+const VALID_DISCIPLINARY_MODES = new Set<DisciplinaryPayMode>([
+  "con_goce",
+  "sin_goce_solo_dia",
+  "sin_goce_con_septimo",
+]);
 
 const VALID_INCIDENT_CATEGORIES = new Set<IncidentCategory>([
   "falta_injustificada",
@@ -457,6 +470,34 @@ function parseBonusConfig(
   };
 }
 
+function parseDisciplinaryRules(
+  raw: unknown,
+  violations: string[]
+): DisciplinaryRulesConfig {
+  const defaults = DEFAULT_COMPANY_WORK_RULES_CONFIG.disciplinaryRules;
+  if (!isPlainObject(raw)) return { ...defaults };
+
+  if (isFiniteNumber(raw.maxSuspensionDays) && raw.maxSuspensionDays > 8) {
+    violations.push(
+      `Art. 423 frac. X LFT: la suspensión disciplinaria (${raw.maxSuspensionDays} días) no puede exceder 8 días.`
+    );
+  }
+
+  return {
+    administrativeFaultMode:
+      typeof raw.administrativeFaultMode === "string" &&
+      VALID_DISCIPLINARY_MODES.has(raw.administrativeFaultMode as DisciplinaryPayMode)
+        ? (raw.administrativeFaultMode as DisciplinaryPayMode)
+        : defaults.administrativeFaultMode,
+    suspensionMode:
+      typeof raw.suspensionMode === "string" &&
+      VALID_DISCIPLINARY_MODES.has(raw.suspensionMode as DisciplinaryPayMode)
+        ? (raw.suspensionMode as DisciplinaryPayMode)
+        : defaults.suspensionMode,
+    maxSuspensionDays: parseIntInRange(raw.maxSuspensionDays, 1, 8, defaults.maxSuspensionDays),
+  };
+}
+
 function validateInvariantsObject(raw: unknown, violations: string[]): void {
   if (!isPlainObject(raw)) return;
   if (raw.imssDisabilityCountsAsAbsence === true) {
@@ -489,6 +530,7 @@ export function parseCompanyWorkRulesConfig(raw: unknown): CompanyWorkRulesConfi
   const leaveCatalogue = parseLeaveCatalogue(source.leaveCatalogue, violations);
   const vacationRules = parseVacationRules(source.vacationRules, violations);
   const overtimeRules = parseOvertimeRules(source.overtimeRules, violations);
+  const disciplinaryRules = parseDisciplinaryRules(source.disciplinaryRules, violations);
 
   if (violations.length > 0) {
     throw new LftPolicyViolationError(violations);
@@ -531,6 +573,7 @@ export function parseCompanyWorkRulesConfig(raw: unknown): CompanyWorkRulesConfi
       source.attendanceBonus,
       DEFAULT_COMPANY_WORK_RULES_CONFIG.attendanceBonus
     ),
+    disciplinaryRules,
     invariants: FELIPE_INVARIANTS,
   };
 }

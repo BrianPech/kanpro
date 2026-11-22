@@ -103,6 +103,20 @@ export interface AttendanceBonusConfig {
   cancelledBy: IncidentCategory[];
 }
 
+export type DisciplinaryPayMode =
+  | "con_goce"
+  | "sin_goce_solo_dia"
+  | "sin_goce_con_septimo";
+
+export interface DisciplinaryRulesConfig {
+  /** Forma de pago/descuento para faltas administrativas (incumplimiento / acta). */
+  administrativeFaultMode: DisciplinaryPayMode;
+  /** Forma de pago/descuento para suspensiones disciplinarias (Art. 423 frac. X LFT). */
+  suspensionMode: DisciplinaryPayMode;
+  /** Máximo de días por suspensión disciplinaria (LFT Art. 423 frac. X: máximo 8 días). */
+  maxSuspensionDays: number;
+}
+
 export interface FelipeInvariants {
   readonly imssDisabilityCountsAsAbsence: false;
   readonly imssDisabilityPaidAsOrdinarySalary: false;
@@ -123,6 +137,7 @@ export interface CompanyWorkRulesConfig extends PayrollImpactConfig {
   incidentCutoffDay: number;
   punctualityBonus: AttendanceBonusConfig;
   attendanceBonus: AttendanceBonusConfig;
+  disciplinaryRules: DisciplinaryRulesConfig;
   readonly invariants: FelipeInvariants;
 }
 
