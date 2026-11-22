@@ -10,6 +10,7 @@ export const companyOnboardingWorkspaceSchema = z.object({
     .string()
     .trim()
     .min(3, "La ubicación de la empresa es obligatoria"),
+  leave_approval_mode: z.enum(["single_step", "two_step"]).optional(),
 });
 
 export type CompanyOnboardingWorkspaceValues = z.infer<

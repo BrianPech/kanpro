@@ -114,6 +114,13 @@ const CONFIG_MODULES = [
     badge: "Legal",
     badgeColor: "bg-rose-500/10 text-rose-600 dark:text-rose-400 border-rose-500/20",
   },
+  {
+    title: "Reglas de mi empresa",
+    description: "Flujo de aprobación de vacaciones en 1 o 2 pasos y reglas operativas de personal.",
+    icon: SlidersHorizontal,
+    badge: "Reglas",
+    badgeColor: "bg-teal-500/10 text-teal-600 dark:text-teal-400 border-teal-500/20",
+  },
 ];
 
 export function CompanySettingsView({

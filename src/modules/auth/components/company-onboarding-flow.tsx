@@ -116,6 +116,7 @@ export function CompanyOnboardingFlow({
     defaultValues: {
       company_name: "",
       location: "",
+      leave_approval_mode: "single_step",
     },
     mode: "onChange",
   });
@@ -252,6 +253,7 @@ export function CompanyOnboardingFlow({
         location: data.location,
         address_details: addressDetail || undefined,
         industry: "General",
+        leave_approval_mode: data.leave_approval_mode || "single_step",
       });
 
       if (!res.success) {
@@ -506,6 +508,65 @@ export function CompanyOnboardingFlow({
                   )}
                 </div>
               )}
+            </div>
+
+            {/* Regla inicial: flujo de aprobación de vacaciones */}
+            <div className="flex flex-col gap-2">
+              <div className="flex items-center justify-between gap-2">
+                <Label className="text-[14px] font-medium leading-[20px] text-foreground">
+                  Aprobación de vacaciones
+                </Label>
+                <span className="text-xs text-muted-foreground">
+                  Editable luego en Reglas de mi empresa
+                </span>
+              </div>
+              <div
+                role="radiogroup"
+                aria-label="Aprobación de vacaciones"
+                className="grid grid-cols-1 sm:grid-cols-2 gap-2"
+              >
+                {[
+                  {
+                    value: "single_step" as const,
+                    title: "1 paso (RH directo)",
+                    desc: "Recomendado: aprobación inmediata por RH.",
+                  },
+                  {
+                    value: "two_step" as const,
+                    title: "2 pasos (Líder → RH)",
+                    desc: "Requiere Vo.Bo. previo del líder de área.",
+                  },
+                ].map((opt) => {
+                  const selected =
+                    (companyForm.watch("leave_approval_mode") || "single_step") ===
+                    opt.value;
+                  return (
+                    <button
+                      key={opt.value}
+                      type="button"
+                      role="radio"
+                      aria-checked={selected}
+                      onClick={() =>
+                        companyForm.setValue("leave_approval_mode", opt.value, {
+                          shouldDirty: true,
+                        })
+                      }
+                      className={
+                        selected
+                          ? "text-left rounded-[8px] border border-primary bg-primary/5 p-3 ring-1 ring-primary/30 cursor-pointer transition-colors"
+                          : "text-left rounded-[8px] border border-border bg-card p-3 hover:border-border/80 cursor-pointer transition-colors"
+                      }
+                    >
+                      <div className="text-[13px] font-semibold text-foreground">
+                        {opt.title}
+                      </div>
+                      <div className="text-[11px] text-muted-foreground mt-0.5">
+                        {opt.desc}
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
             </div>
 
             {/* Botón Continuar */}

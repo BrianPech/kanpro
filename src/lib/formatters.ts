@@ -12,7 +12,8 @@ export { cleanCityName };
 // 1. DATE NORMALIZATION & FORMATTING
 // ==========================================
 
-export const MEXICO_TIME_ZONE = "America/Mexico_City";
+export const BUSINESS_TIME_ZONE = "America/Cancun";
+export const MEXICO_TIME_ZONE = BUSINESS_TIME_ZONE;
 
 /**
  * Returns the calendar date `YYYY-MM-DD` in America/Mexico_City timezone,
@@ -336,6 +337,50 @@ export function calculateDailySalary(
   const numeric = Number(amount) || 0;
   if (numeric <= 0) return 0;
   return Math.round((numeric / getPeriodDays(paymentFrequency)) * 100) / 100;
+}
+
+/**
+ * Normalizes a periodic salary amount to its monthly equivalent:
+ * quincenal × 2, semanal × 30/7, catorcenal × 30/14, mensual × 1.
+ */
+export function toMonthlyEquivalentSalary(
+  amount: number | null | undefined,
+  paymentFrequency?: string | null
+): number {
+  const numeric = Number(amount) || 0;
+  if (numeric <= 0) return 0;
+  const freq = (paymentFrequency || "quincenal").toLowerCase().trim();
+  if (freq === "mensual") return Math.round(numeric * 100) / 100;
+  if (freq === "semanal") return Math.round(((numeric * 30) / 7) * 100) / 100;
+  if (freq === "catorcenal") return Math.round(((numeric * 30) / 14) * 100) / 100;
+  return Math.round(numeric * 2 * 100) / 100;
+}
+
+/**
+ * Converts a normalized monthly equivalent salary back to the employee's payment period amount.
+ */
+export function fromMonthlyEquivalentSalary(
+  monthlyAmount: number | null | undefined,
+  paymentFrequency?: string | null
+): number {
+  const numeric = Number(monthlyAmount) || 0;
+  if (numeric <= 0) return 0;
+  const freq = (paymentFrequency || "quincenal").toLowerCase().trim();
+  if (freq === "mensual") return Math.round(numeric * 100) / 100;
+  if (freq === "semanal") return Math.round(((numeric * 7) / 30) * 100) / 100;
+  if (freq === "catorcenal") return Math.round(((numeric * 14) / 30) * 100) / 100;
+  return Math.round((numeric / 2) * 100) / 100;
+}
+
+/**
+ * Calculates daily salary from a normalized monthly equivalent salary (÷ 30).
+ */
+export function calculateDailySalaryFromMonthly(
+  monthlyAmount: number | null | undefined
+): number {
+  const numeric = Number(monthlyAmount) || 0;
+  if (numeric <= 0) return 0;
+  return Math.round((numeric / 30) * 100) / 100;
 }
 
 /**

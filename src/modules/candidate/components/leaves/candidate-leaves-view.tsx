@@ -27,7 +27,7 @@ import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
-import { formatMexicoDateShort, formatSalaryDisplay } from "@/lib/formatters";
+import { formatMexicoDateShort } from "@/lib/formatters";
 import { CandidateLeavesData } from "../../services/candidate-leaves";
 import { CandidateLeaveRequestModal } from "./candidate-leave-request-modal";
 import { generateCandidateLeaveCertificateAction } from "../../actions/leaves";
@@ -249,7 +249,10 @@ export function CandidateLeavesView({ initialData }: CandidateLeavesViewProps) {
               {Math.round((balance.vacationPremiumRate ?? 0.25) * 100)}% mínimo legal
               {balance.vacationPremiumEstimatedAmount > 0 && (
                 <span className="text-primary ml-2">
-                  • Est. {formatSalaryDisplay(balance.vacationPremiumEstimatedAmount)} MXN
+                  • Est. ${balance.vacationPremiumEstimatedAmount.toLocaleString("es-MX", {
+                    minimumFractionDigits: 2,
+                    maximumFractionDigits: 2,
+                  })} MXN
                 </span>
               )}
             </p>

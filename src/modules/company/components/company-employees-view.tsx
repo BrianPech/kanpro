@@ -100,6 +100,8 @@ import {
   parseMexicoCalendarDate,
   calculateDailySalary,
   formatPaymentFrequencyLabel,
+  fromMonthlyEquivalentSalary,
+  toMonthlyEquivalentSalary,
 } from "@/lib/formatters";
 import { buildWhatsAppUrl } from "@/hooks/use-connection";
 import Link from "next/link";
@@ -625,15 +627,15 @@ export function CompanyEmployeesView({
       emp.job_title?.trim() ||
       (emp.vacancy_title && emp.vacancy_title !== "Sin puesto asignado" ? emp.vacancy_title : "");
     setEditJobTitle(currentJob);
-    setEditSalary(
-      emp.base_salary_monthly && Number(emp.base_salary_monthly) > 0
-        ? String(emp.base_salary_monthly)
-        : ""
-    );
     const freq = emp.payment_frequency;
-    setEditFrequency(
-      freq === "semanal" || freq === "mensual" ? freq : "quincenal"
+    const resolvedFreq =
+      freq === "semanal" || freq === "mensual" ? freq : "quincenal";
+    setEditFrequency(resolvedFreq);
+    const periodicVal = fromMonthlyEquivalentSalary(
+      emp.base_salary_monthly,
+      resolvedFreq
     );
+    setEditSalary(periodicVal > 0 ? String(periodicVal) : "");
     const currArea = emp.department?.trim() || emp.vacancy_category?.trim();
     setEditDepartment(currArea && currArea !== "Sin área" ? currArea : "none");
     setIsEditLaborDialogOpen(true);
@@ -677,7 +679,7 @@ export function CompanyEmployeesView({
         ...item,
         job_title: cleanJob,
         vacancy_title: cleanJob,
-        base_salary_monthly: numericSalary,
+        base_salary_monthly: toMonthlyEquivalentSalary(numericSalary, editFrequency),
         payment_frequency: editFrequency,
         department: targetDept || null,
         vacancy_category: targetDept || "Sin área",
@@ -950,12 +952,15 @@ export function CompanyEmployeesView({
         ),
         cell: ({ row }) => {
           const emp = row.original;
-          const salary = Number(emp.base_salary_monthly);
-          const hasSalary = Number.isFinite(salary) && salary > 0;
+          const periodicSalary = fromMonthlyEquivalentSalary(
+            emp.base_salary_monthly,
+            emp.payment_frequency
+          );
+          const hasSalary = Number.isFinite(periodicSalary) && periodicSalary > 0;
           return (
             <div className="flex flex-col gap-px py-1">
               <span className="text-[13px] font-semibold leading-[18px] text-foreground tabular-nums">
-                {hasSalary ? `$${salary.toLocaleString("es-MX")} MXN` : "Sin sueldo"}
+                {hasSalary ? `$${periodicSalary.toLocaleString("es-MX")} MXN` : "Sin sueldo"}
               </span>
               {hasSalary && (
                 <span className="text-[12px] font-normal leading-[16px] text-muted-foreground">
@@ -1698,7 +1703,7 @@ export function CompanyEmployeesView({
                               )}
                               {Number(emp.base_salary_monthly) > 0 && (
                                 <span className="text-[10px] font-semibold text-foreground/90 tabular-nums truncate">
-                                  • ${Number(emp.base_salary_monthly).toLocaleString("es-MX")} MXN ({formatPaymentFrequencyLabel(emp.payment_frequency)})
+                                  • ${fromMonthlyEquivalentSalary(emp.base_salary_monthly, emp.payment_frequency).toLocaleString("es-MX")} MXN ({formatPaymentFrequencyLabel(emp.payment_frequency)})
                                 </span>
                               )}
                             </div>

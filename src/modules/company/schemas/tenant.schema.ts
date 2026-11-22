@@ -32,6 +32,7 @@ export const createCompanySchema = z.object({
   contact_phone: z.string().optional(),
   website_url: z.string().optional(),
   description: z.string().optional(),
+  leave_approval_mode: z.enum(["single_step", "two_step"]).optional(),
 });
 
 export type CreateCompanyInput = z.infer<typeof createCompanySchema>;

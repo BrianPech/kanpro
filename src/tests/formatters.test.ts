@@ -15,7 +15,11 @@ import {
   getPeriodDays,
   calculateDailySalary,
   formatPaymentFrequencyLabel,
-  formatPaymentFrequencyAdjective
+  formatPaymentFrequencyAdjective,
+  BUSINESS_TIME_ZONE,
+  toMonthlyEquivalentSalary,
+  fromMonthlyEquivalentSalary,
+  calculateDailySalaryFromMonthly,
 } from "@/lib/formatters";
 
 describe("Centralized Formatters & Data Normalizers", () => {
@@ -99,6 +103,21 @@ describe("Centralized Formatters & Data Normalizers", () => {
       expect(calculateDailySalary(3500, "semanal")).toBe(500);
       expect(formatPaymentFrequencyLabel("quincenal")).toBe("Quincenal");
       expect(formatPaymentFrequencyAdjective("quincenal")).toBe("quincenales");
+    });
+
+    test("normalizes periodic salaries to monthly equivalents and exposes BUSINESS_TIME_ZONE", () => {
+      expect(BUSINESS_TIME_ZONE).toBe("America/Cancun");
+      expect(toMonthlyEquivalentSalary(11000, "quincenal")).toBe(22000);
+      expect(toMonthlyEquivalentSalary(3500, "semanal")).toBe(15000);
+      expect(toMonthlyEquivalentSalary(7000, "catorcenal")).toBe(15000);
+      expect(toMonthlyEquivalentSalary(18000, "mensual")).toBe(18000);
+
+      expect(fromMonthlyEquivalentSalary(22000, "quincenal")).toBe(11000);
+      expect(fromMonthlyEquivalentSalary(15000, "semanal")).toBe(3500);
+      expect(fromMonthlyEquivalentSalary(15000, "catorcenal")).toBe(7000);
+
+      expect(calculateDailySalaryFromMonthly(22000)).toBe(733.33);
+      expect(calculateDailySalaryFromMonthly(21000)).toBe(700);
     });
   });
 });

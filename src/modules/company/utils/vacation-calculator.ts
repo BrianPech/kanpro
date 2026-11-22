@@ -1,4 +1,8 @@
-import { getMexicoDateISO, parseMexicoCalendarDate } from "@/lib/formatters";
+import {
+  getMexicoDateISO,
+  parseMexicoCalendarDate,
+  toMonthlyEquivalentSalary,
+} from "@/lib/formatters";
 import {
   DEFAULT_VACATION_POLICY,
   type VacationPolicyStrategy,
@@ -45,12 +49,12 @@ export function calculateLFTVacationDays(
 
   if (!hireDate || !targetDate) {
     return {
-      yearsOfService: 1,
+      yearsOfService: 0,
       monthsOfService: 0,
       daysOfService: 0,
-      formattedSeniority: "1 año",
-      totalDaysAccrued: 12,
-      currentYearEntitlement: 12,
+      formattedSeniority: "0 días",
+      totalDaysAccrued: 0,
+      currentYearEntitlement: 0,
     };
   }
 
@@ -75,10 +79,15 @@ export function calculateLFTVacationDays(
   months = Math.max(0, months);
   days = Math.max(0, days);
 
-  // Active year in course
+  // Active year in course (annual LFT entitlement for the year being worked)
   const completedYears = years;
   const currentWorkingYear = completedYears + 1;
   const currentYearEntitlement = getVacationDaysForYear(currentWorkingYear, policy);
+  // Accrued days: proportional in year 1 (1 day per completed month), full completed-year LFT entitlement after year 1
+  const totalDaysAccrued =
+    completedYears === 0
+      ? Math.floor((currentYearEntitlement * months) / 12)
+      : getVacationDaysForYear(completedYears, policy);
 
   let formattedSeniority = "";
   if (years > 0) {
@@ -97,7 +106,7 @@ export function calculateLFTVacationDays(
     monthsOfService: months,
     daysOfService: days,
     formattedSeniority,
-    totalDaysAccrued: currentYearEntitlement,
+    totalDaysAccrued,
     currentYearEntitlement,
   };
 }
@@ -151,16 +160,25 @@ export interface VacationPremiumResult {
  * durante el período de vacaciones.
  */
 export function calculateVacationPremium(
-  monthlySalary: number,
+  salaryAmount: number,
   vacationDays: number,
-  premiumRate: number = LFT_VACATION_PREMIUM_RATE
+  premiumRate: number = LFT_VACATION_PREMIUM_RATE,
+  paymentFrequency?: string | null
 ): VacationPremiumResult {
-  const safeMonthly = Math.max(0, Number(monthlySalary) || 0);
+  const safeSalary = Math.max(0, Number(salaryAmount) || 0);
+  const safeMonthly =
+    paymentFrequency && paymentFrequency.toLowerCase().trim() !== "mensual"
+      ? toMonthlyEquivalentSalary(safeSalary, paymentFrequency)
+      : safeSalary;
   const safeDays = Math.max(0, Number(vacationDays) || 0);
-  const safeRate = Math.max(LFT_VACATION_PREMIUM_RATE, Number(premiumRate) || LFT_VACATION_PREMIUM_RATE);
+  const safeRate = Math.max(
+    LFT_VACATION_PREMIUM_RATE,
+    Number(premiumRate) || LFT_VACATION_PREMIUM_RATE
+  );
   const dailySalary = Math.round((safeMonthly / 30) * 100) / 100;
-  const vacationBaseAmount = Math.round(dailySalary * safeDays * 100) / 100;
-  const premiumAmount = Math.round(vacationBaseAmount * safeRate * 100) / 100;
+  const rawBase = (safeMonthly / 30) * safeDays;
+  const vacationBaseAmount = Math.round(rawBase * 100) / 100;
+  const premiumAmount = Math.round(rawBase * safeRate * 100) / 100;
 
   return {
     dailySalary,

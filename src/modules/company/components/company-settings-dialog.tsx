@@ -75,6 +75,8 @@ import {
   getCompanyInvoices,
   updateCompanyAccountPhone,
 } from "@/modules/company/actions/settings";
+import { updateCompanyLeaveApprovalModeAction } from "@/modules/company/actions/leaves";
+import type { LeaveApprovalMode } from "@/modules/company/strategies/leave-approval.strategy";
 import {
   getSubscriptionPlan,
   type SubscriptionPlanId,
@@ -133,7 +135,20 @@ const SETTINGS_SECTIONS = [
     icon: Bell,
     description: "Canales de aviso y alertas automáticas",
   },
+  {
+    id: "company_rules",
+    label: "Reglas de mi empresa",
+    icon: FileCheck2,
+    description: "Flujo de aprobación de vacaciones y políticas",
+  },
 ];
+
+const resolveApprovalMode = (config: unknown): LeaveApprovalMode =>
+  config &&
+  typeof config === "object" &&
+  (config as { approvalMode?: string }).approvalMode === "two_step"
+    ? "two_step"
+    : "single_step";
 
 export function CompanySettingsModal({
   open,
@@ -222,6 +237,14 @@ export function CompanySettingsModal({
   const [notifyDigest, setNotifyDigest] = React.useState(false);
   const [notifyContracts, setNotifyContracts] = React.useState(true);
   const [notifyLeaves, setNotifyLeaves] = React.useState(true);
+  const [leaveApprovalMode, setLeaveApprovalMode] =
+    React.useState<LeaveApprovalMode>(
+      resolveApprovalMode(
+        (initialProfile as { leave_approval_config?: unknown } | null)
+          ?.leave_approval_config
+      )
+    );
+  const [isSavingApprovalMode, setIsSavingApprovalMode] = React.useState(false);
 
   React.useEffect(() => {
     setMounted(true);
@@ -318,6 +341,12 @@ export function CompanySettingsModal({
               corporateEmail: comp.corporate_email || user.email || "",
               verificationStatus: comp.verification_status || null,
             });
+            setLeaveApprovalMode(
+              resolveApprovalMode(
+                (comp as { leave_approval_config?: unknown })
+                  .leave_approval_config
+              )
+            );
           }
 
           if (invoicesRes.data && invoicesRes.data.length > 0) {
@@ -422,6 +451,33 @@ export function CompanySettingsModal({
       localStorage.setItem(key, String(newVal));
     }
     toast.success(newVal ? `${label} activadas` : `${label} desactivadas`);
+  };
+
+  const handleLeaveApprovalModeChange = async (nextMode: LeaveApprovalMode) => {
+    if (isSavingApprovalMode || nextMode === leaveApprovalMode) return;
+    const prev = leaveApprovalMode;
+    setLeaveApprovalMode(nextMode);
+    setIsSavingApprovalMode(true);
+    try {
+      const res = await updateCompanyLeaveApprovalModeAction(nextMode);
+      if (!res.success) {
+        setLeaveApprovalMode(prev);
+        toast.error("No se pudo guardar la regla de aprobación", {
+          description: res.error,
+        });
+        return;
+      }
+      toast.success(
+        nextMode === "two_step"
+          ? "Aprobación en 2 pasos activada (Vo.Bo. Líder → RH)"
+          : "Aprobación directa de RH activada (1 paso)"
+      );
+    } catch {
+      setLeaveApprovalMode(prev);
+      toast.error("Error inesperado al guardar la regla de aprobación.");
+    } finally {
+      setIsSavingApprovalMode(false);
+    }
   };
 
   return (
@@ -1350,6 +1406,95 @@ export function CompanySettingsModal({
                         </div>
                       </div>
 
+                    </div>
+                  )}
+
+                  {/* 5. SECCIÓN: REGLAS DE MI EMPRESA */}
+                  {activeSection === "company_rules" && (
+                    <div className="w-full max-w-2xl mx-auto space-y-6 animate-in fade-in-50 duration-200">
+                      <div className="space-y-0.5 pb-2.5 border-b border-border/25">
+                        <h3 className="text-base font-[800] text-foreground tracking-tight">
+                          Reglas de mi empresa
+                        </h3>
+                        <p className="text-xs text-muted-foreground font-medium">
+                          Define cómo se aprueban las solicitudes de vacaciones y permisos de tu equipo.
+                        </p>
+                      </div>
+
+                      <div className="space-y-3">
+                        <div className="space-y-0.5">
+                          <Label className="text-xs font-bold text-foreground">
+                            Aprobación de vacaciones y permisos
+                          </Label>
+                          <p className="text-[11px] text-muted-foreground font-medium">
+                            Por defecto es en 1 paso para agilizar operaciones; puedes habilitar el visto bueno previo del líder de área cuando lo necesites.
+                          </p>
+                        </div>
+
+                        <div
+                          role="radiogroup"
+                          aria-label="Flujo de aprobación de vacaciones"
+                          className="grid grid-cols-1 sm:grid-cols-2 gap-3"
+                        >
+                          <button
+                            type="button"
+                            role="radio"
+                            aria-checked={leaveApprovalMode === "single_step"}
+                            disabled={isSavingApprovalMode}
+                            onClick={() => handleLeaveApprovalModeChange("single_step")}
+                            className={cn(
+                              "text-left p-4 rounded-xl border transition-all cursor-pointer disabled:opacity-60",
+                              leaveApprovalMode === "single_step"
+                                ? "border-primary bg-primary/5 ring-1 ring-primary/30"
+                                : "border-border/40 hover:border-border hover:bg-muted/30"
+                            )}
+                          >
+                            <div className="flex items-center justify-between gap-2 mb-1.5">
+                              <span className="text-xs font-bold text-foreground">
+                                Flujo 1 paso (RH aprueba directo)
+                              </span>
+                              <Badge
+                                variant={leaveApprovalMode === "single_step" ? "default" : "outline"}
+                                className="text-[10px] shrink-0"
+                              >
+                                {leaveApprovalMode === "single_step" ? "Activo" : "Estándar"}
+                              </Badge>
+                            </div>
+                            <p className="text-[11px] text-muted-foreground leading-relaxed">
+                              Recursos Humanos aprueba o rechaza directamente cada solicitud de vacaciones o permiso.
+                            </p>
+                          </button>
+
+                          <button
+                            type="button"
+                            role="radio"
+                            aria-checked={leaveApprovalMode === "two_step"}
+                            disabled={isSavingApprovalMode}
+                            onClick={() => handleLeaveApprovalModeChange("two_step")}
+                            className={cn(
+                              "text-left p-4 rounded-xl border transition-all cursor-pointer disabled:opacity-60",
+                              leaveApprovalMode === "two_step"
+                                ? "border-primary bg-primary/5 ring-1 ring-primary/30"
+                                : "border-border/40 hover:border-border hover:bg-muted/30"
+                            )}
+                          >
+                            <div className="flex items-center justify-between gap-2 mb-1.5">
+                              <span className="text-xs font-bold text-foreground">
+                                Flujo 2 pasos (Vo.Bo. Líder → RH)
+                              </span>
+                              <Badge
+                                variant={leaveApprovalMode === "two_step" ? "default" : "outline"}
+                                className="text-[10px] shrink-0"
+                              >
+                                {leaveApprovalMode === "two_step" ? "Activo" : "Opcional"}
+                              </Badge>
+                            </div>
+                            <p className="text-[11px] text-muted-foreground leading-relaxed">
+                              Requiere primero el visto bueno del líder de área antes de la aprobación final de RH.
+                            </p>
+                          </button>
+                        </div>
+                      </div>
                     </div>
                   )}
 
