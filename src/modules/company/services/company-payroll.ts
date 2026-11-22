@@ -5,6 +5,11 @@ import {
   PayrollEmployeeItem,
 } from "../types/payroll";
 import {
+  fromMonthlyEquivalentSalary,
+  getMexicoDateISO,
+  getPeriodDays,
+} from "@/lib/formatters";
+import {
   getFortnightPeriodInfo,
   calculateMexicanISR,
   calculateIMSSWorkerShare,
@@ -12,6 +17,19 @@ import {
   calculateAbsenceDeduction,
   FortnightPeriodInfo,
 } from "../utils/payroll-calculator";
+import { parseCompanyWorkRulesConfig } from "../strategies/company-policies.parser";
+import {
+  evaluatePeriodBonuses,
+  partitionIncidentsByCutoff,
+  resolvePayrollPeriodWithCutoff,
+} from "../strategies/payroll-period-bonuses.engine";
+import {
+  calculateImssDisabilityPayrollEffect,
+  evaluateLeavePolicyEffect,
+  evaluateOvertimePolicy,
+  type ImssBranch,
+} from "../strategies/leaves-imss-overtime-policy.engine";
+import type { LeaveCatalogueKey } from "../types/company-policies";
 import type {
   AdjustBonusesInput,
   DispersePayrollInput,
@@ -41,6 +59,18 @@ export type PayrollItemRow = Database["public"]["Tables"]["company_payroll_items
 export type PayrollItemInsert = Database["public"]["Tables"]["company_payroll_items"]["Insert"];
 export type AttendanceRow = Database["public"]["Tables"]["company_attendance"]["Row"];
 
+function isPlainObject(val: unknown): val is Record<string, unknown> {
+  return typeof val === "object" && val !== null && !Array.isArray(val);
+}
+
+function countOverlapDays(startA: string, endA: string, startB: string, endB: string): number {
+  const s = startA > startB ? startA : startB;
+  const e = endA < endB ? endA : endB;
+  if (e < s) return 0;
+  const msPerDay = 24 * 60 * 60 * 1000;
+  return Math.floor((Date.parse(`${e}T12:00:00Z`) - Date.parse(`${s}T12:00:00Z`)) / msPerDay) + 1;
+}
+
 export interface CompanyPayrollDataResult {
   summary: PayrollPeriodSummary;
   companyName: string;
@@ -65,10 +95,10 @@ export class CompanyPayrollService {
     companyId: string,
     refDate = new Date()
   ): Promise<CompanyPayrollDataResult> {
-    const periodInfo: FortnightPeriodInfo = getFortnightPeriodInfo(refDate);
+    const defaultPeriodInfo: FortnightPeriodInfo = getFortnightPeriodInfo(refDate);
 
     if (!companyId) {
-      return this.buildEmptyPayrollResult(periodInfo);
+      return this.buildEmptyPayrollResult(defaultPeriodInfo);
     }
 
     if (this.incidentsRepository.expireOverdueClarifications) {
@@ -79,18 +109,49 @@ export class CompanyPayrollService {
       }
     }
 
+    const companyRes = await this.supabase
+      .from("company_profiles")
+      .select("id, company_name, legal_name, rfc, payroll_impact_config")
+      .eq("id", companyId)
+      .maybeSingle();
+
+    const rawImpactConfig = companyRes.data?.payroll_impact_config ?? null;
+    const impactConfig = parsePayrollImpactConfig(rawImpactConfig);
+    const workRules = parseCompanyWorkRulesConfig(rawImpactConfig);
+    const refDateISO = getMexicoDateISO(refDate);
+    const periodWithCutoff = resolvePayrollPeriodWithCutoff({
+      refDateISO,
+      config: rawImpactConfig,
+    });
+
+    const periodType = workRules.payrollPeriodicity;
+    const startDate = periodType === "quincenal" ? defaultPeriodInfo.startDate : periodWithCutoff.startDate;
+    const endDate = periodType === "quincenal" ? defaultPeriodInfo.endDate : periodWithCutoff.endDate;
+    const cutoffDate = periodWithCutoff.cutoffDate;
+    const periodName =
+      periodType === "quincenal"
+        ? defaultPeriodInfo.periodName
+        : `Periodo ${periodType} (${startDate} al ${endDate})`;
+    const payoutDate = endDate;
+
+    const leavesTable = this.supabase.from("company_leaves");
+    const leavesPromise =
+      leavesTable && typeof leavesTable.select === "function"
+        ? leavesTable
+            .select("id, employee_id, request_type, start_date, end_date, total_working_days, status, incident_id")
+            .eq("company_id", companyId)
+            .eq("status", "aprobada")
+            .lte("start_date", endDate)
+            .gte("end_date", startDate)
+        : Promise.resolve({ data: [], error: null });
+
     const [
-      companyRes,
       employeesRes,
       savedPayrollRes,
       attendanceRes,
       periodIncidents,
+      leavesRes,
     ] = await Promise.all([
-      this.supabase
-        .from("company_profiles")
-        .select("id, company_name, legal_name, rfc, payroll_impact_config")
-        .eq("id", companyId)
-        .maybeSingle(),
       this.supabase
         .from("company_employees")
         .select(`
@@ -121,30 +182,66 @@ export class CompanyPayrollService {
           company_payroll_items (*)
         `)
         .eq("company_id", companyId)
-        .eq("start_date", periodInfo.startDate)
-        .eq("end_date", periodInfo.endDate)
+        .eq("start_date", startDate)
+        .eq("end_date", endDate)
         .maybeSingle(),
       this.supabase
         .from("company_attendance")
         .select("*")
         .eq("company_id", companyId)
-        .gte("work_date", periodInfo.startDate)
-        .lte("work_date", periodInfo.endDate),
+        .gte("work_date", startDate)
+        .lte("work_date", endDate),
       this.incidentsRepository.listByPeriod(
         companyId,
-        periodInfo.startDate,
-        periodInfo.endDate
+        startDate,
+        endDate
       ),
+      leavesPromise,
     ]);
 
-    const impactConfig = parsePayrollImpactConfig(companyRes.data?.payroll_impact_config);
     const incidentsByEmp = new Map<string, IncidentRow[]>();
+    const incidentIdsInPeriod = new Set<string>();
     periodIncidents.forEach((incident) => {
+      incidentIdsInPeriod.add(incident.id);
       if (!incident.employee_id) return;
       const list = incidentsByEmp.get(incident.employee_id) || [];
       list.push(incident);
       incidentsByEmp.set(incident.employee_id, list);
     });
+
+    const leavesByEmp = new Map<string, Array<{
+      id: string;
+      employee_id: string | null;
+      request_type: string;
+      start_date: string;
+      end_date: string;
+      total_working_days: number;
+      status: string;
+      incident_id: string | null;
+    }>>();
+    ((leavesRes as { data?: Array<{
+      id: string;
+      employee_id: string | null;
+      request_type: string;
+      start_date: string;
+      end_date: string;
+      total_working_days: number;
+      status: string;
+      incident_id: string | null;
+    }> | null }).data ?? []).forEach((leave) => {
+      if (!leave.employee_id) return;
+      // Evita doble conteo si la solicitud de permiso apunta a una incapacidad ya leída en company_incidents.
+      if (leave.incident_id && incidentIdsInPeriod.has(leave.incident_id)) return;
+      const list = leavesByEmp.get(leave.employee_id) || [];
+      list.push(leave);
+      leavesByEmp.set(leave.employee_id, list);
+    });
+
+    const hasExplicitPeriodicity =
+      isPlainObject(rawImpactConfig) && typeof rawImpactConfig.payrollPeriodicity === "string";
+    const hasExplicitBonusesConfig =
+      isPlainObject(rawImpactConfig) &&
+      ("punctualityBonus" in rawImpactConfig || "attendanceBonus" in rawImpactConfig);
 
     const companyName = companyRes.data?.company_name || companyRes.data?.legal_name || "Mi Empresa";
     const activeEmployees = employeesRes.data || [];
@@ -175,14 +272,19 @@ export class CompanyPayrollService {
     for (const emp of activeEmployees) {
       const savedItem = savedItemsMap.get(emp.id);
       const monthlySalary = Math.max(0, Number(emp.base_salary_monthly) || 0);
-      const isWeekly = emp.payment_frequency === "semanal";
-      const baseSalaryPeriod = Math.round(isWeekly ? (monthlySalary / 30) * 7 : monthlySalary / 2);
+      const effectiveFreq = hasExplicitPeriodicity
+        ? periodType
+        : emp.payment_frequency || periodType;
+      const periodDays = getPeriodDays(effectiveFreq);
+      const rawBaseSalaryPeriod = Math.round(
+        fromMonthlyEquivalentSalary(monthlySalary, effectiveFreq)
+      );
 
       const empAtt = attendanceByEmp.get(emp.id) || [];
       const attendanceAbsences = empAtt.filter((a) => a.status === "falta_injustificada").length;
       const lateArrivals = empAtt.filter((a) => a.status === "retardo").length;
 
-      // Impacto de incidencias aplicadas por RH (faltas, acumulación de retardos y reconocimientos)
+      // Impacto de incidencias aplicadas por RH (faltas, acumulación de retardos, incapacidades y reconocimientos)
       const resolvedEmpIncidents = (incidentsByEmp.get(emp.id) || []).map((i) => {
         const resolved = resolveExpiredClarificationIncident(i, refDate);
         return {
@@ -190,10 +292,18 @@ export class CompanyPayrollService {
           category: resolved.category as IncidentCategory,
         };
       });
-      const { eligible: empIncidents, absorbedByAttendance } = partitionPayrollIncidents(
+      const { eligible: eligibleEmpIncidents, absorbedByAttendance } = partitionPayrollIncidents(
         resolvedEmpIncidents,
         empAtt
       );
+      const { inCurrentPeriod: empIncidents, deferredToNextPeriod } =
+        partitionIncidentsByCutoff(eligibleEmpIncidents, {
+          startDate,
+          endDate,
+          cutoffDate,
+        });
+      const deferredIncidentsCount = deferredToNextPeriod.length;
+
       const incidentImpact = calculateIncidentsPayrollImpact(empIncidents, monthlySalary, impactConfig);
       const incidentDelays = empIncidents.filter((i) => i.category === "retardo").length;
       const delayImpact = new DelayAccumulationImpact(
@@ -203,20 +313,142 @@ export class CompanyPayrollService {
       ).calculate({ monthlySalary, count: incidentDelays });
       const unjustifiedAbsences = attendanceAbsences + incidentImpact.absenceEquivalents;
 
+      // Incapacidades IMSS dentro del corte: nunca cuentan como falta ni se pagan como salario ordinario
+      const imssIncidents = empIncidents.filter((i) => i.category === "incapacidad");
+      let imssDisabilityDays = 0;
+      let imssComplementPay = 0;
+      for (const inc of imssIncidents) {
+        const daysCovered = Math.max(1, Number(inc.dias_amparados) || 1);
+        imssDisabilityDays += daysCovered;
+        if (inc.complemento_empresa !== null && inc.complemento_empresa !== undefined) {
+          imssComplementPay += Math.max(0, Number(inc.complemento_empresa) || 0);
+        } else if (workRules.imssComplement.enabled) {
+          const branch = (inc.ramo_imss as ImssBranch | null) || "enfermedad_general";
+          imssComplementPay += calculateImssDisabilityPayrollEffect({
+            capture: {
+              folio: inc.folio_imss || inc.id,
+              daysCovered,
+              branch,
+              startDate: inc.incident_date,
+            },
+            monthlySalary,
+            config: workRules,
+          }).companyComplementPay;
+        }
+      }
+
+      // Permisos aprobados en el periodo (catálogo config: con goce íntegro vs sin goce)
+      const empLeaves = leavesByEmp.get(emp.id) || [];
+      let paidLeaveDays = 0;
+      let unpaidLeaveDays = 0;
+      let unpaidLeaveDeduction = 0;
+      const leaveBonusTriggers: Array<{ category: IncidentCategory; status: string; incident_date: string }> = [];
+      for (const leave of empLeaves) {
+        if (leave.request_type === "incapacidad_imss") continue;
+        const overlapDays = countOverlapDays(leave.start_date, leave.end_date, startDate, endDate);
+        if (overlapDays <= 0) continue;
+        const leaveKey = leave.request_type as LeaveCatalogueKey;
+        if (!(leaveKey in workRules.leaveCatalogue)) continue;
+        const leaveEffect = evaluateLeavePolicyEffect({
+          requestType: leaveKey,
+          days: overlapDays,
+          monthlySalary,
+          config: workRules,
+        });
+        if (leaveEffect.paid) {
+          paidLeaveDays += overlapDays;
+        } else {
+          unpaidLeaveDays += overlapDays;
+          unpaidLeaveDeduction += leaveEffect.unpaidDeduction;
+          if (leaveEffect.affectsBonuses) {
+            leaveBonusTriggers.push({
+              category: "falta_injustificada",
+              status: "aprobado",
+              incident_date: startDate,
+            });
+          }
+        }
+      }
+
+      // Días trabajados y salario ordinario pagado (IMSS y sin goce no se pagan como salario ordinario)
+      const daysWorked = Math.max(
+        0,
+        periodDays - unjustifiedAbsences - imssDisabilityDays - unpaidLeaveDays
+      );
+      const baseSalaryPeriod =
+        imssDisabilityDays > 0 || unpaidLeaveDays > 0
+          ? Math.round(
+              (monthlySalary / 30) *
+                Math.max(0, periodDays - imssDisabilityDays - unpaidLeaveDays)
+            )
+          : rawBaseSalaryPeriod;
+
       let overtimeHours = 0;
       let overtimePay = 0;
-      empAtt.forEach((a) => {
-        if (a.overtime_status === "autorizado" && Number(a.overtime_hours) > 0) {
-          const hours = Number(a.overtime_hours);
-          overtimeHours += hours;
-          const rate = a.overtime_rate_type === "triple" ? "triple" : "doble";
-          overtimePay += calculateOvertimePay(monthlySalary, hours, rate);
-        }
-      });
+      const overtimeEntries = empAtt
+        .filter((a) => Number(a.overtime_hours) > 0)
+        .map((a) => ({
+          work_date: a.work_date,
+          hours: Number(a.overtime_hours),
+          authorized: a.overtime_status === "autorizado",
+          rateType: a.overtime_rate_type === "triple" ? "triple" : "doble",
+        }));
 
-      const daysWorked = Math.max(0, 15 - unjustifiedAbsences);
-      const defaultPunctuality = lateArrivals + incidentDelays === 0 ? Math.round(baseSalaryPeriod * 0.05) : 0;
-      const defaultAttendance = unjustifiedAbsences === 0 ? Math.round(baseSalaryPeriod * 0.05) : 0;
+      if (overtimeEntries.length > 0) {
+        const hasExplicitTriple = overtimeEntries.some((e) => e.rateType === "triple");
+        if (
+          hasExplicitTriple ||
+          (workRules.overtimeRules.doubleRateMultiplier === 2 &&
+            workRules.overtimeRules.tripleRateMultiplier === 3)
+        ) {
+          for (const entry of overtimeEntries) {
+            if (workRules.overtimeRules.requiresPriorAuthorization && !entry.authorized) {
+              continue;
+            }
+            overtimeHours += entry.hours;
+            const multiplierRatio =
+              entry.rateType === "triple"
+                ? workRules.overtimeRules.tripleRateMultiplier / 3
+                : workRules.overtimeRules.doubleRateMultiplier / 2;
+            overtimePay += Math.round(
+              calculateOvertimePay(
+                monthlySalary,
+                entry.hours,
+                entry.rateType as "doble" | "triple"
+              ) * multiplierRatio
+            );
+          }
+        } else {
+          const otResult = evaluateOvertimePolicy({
+            entries: overtimeEntries,
+            monthlySalary,
+            config: workRules,
+          });
+          overtimeHours = otResult.authorizedHoursPaid;
+          overtimePay = otResult.totalOvertimePay;
+        }
+      }
+
+      let defaultPunctuality = 0;
+      let defaultAttendance = 0;
+      if (hasExplicitBonusesConfig) {
+        const bonusRes = evaluatePeriodBonuses({
+          incidents: [...empIncidents, ...leaveBonusTriggers],
+          attendance: empAtt.filter((a) => a.work_date <= cutoffDate),
+          monthlySalary,
+          config: rawImpactConfig,
+          refDateISO,
+        });
+        defaultPunctuality = bonusRes.punctualityBonus.finalAmount;
+        defaultAttendance = bonusRes.attendanceBonus.finalAmount;
+      } else {
+        defaultPunctuality =
+          lateArrivals + incidentDelays === 0 ? Math.round(rawBaseSalaryPeriod * 0.05) : 0;
+        defaultAttendance =
+          unjustifiedAbsences + unpaidLeaveDays === 0
+            ? Math.round(rawBaseSalaryPeriod * 0.05)
+            : 0;
+      }
 
       const punctualityBonus = savedItem?.punctuality_bonus !== undefined && savedItem?.punctuality_bonus !== null
         ? Number(savedItem.punctuality_bonus)
@@ -238,11 +470,18 @@ export class CompanyPayrollService {
       const delayDeductions = 0;
       const imssDeduction = calculateIMSSWorkerShare(monthlySalary);
 
-      const taxablePerceptions = baseSalaryPeriod + overtimePay + punctualityBonus + attendanceBonus + performanceBonus;
+      const taxablePerceptions =
+        baseSalaryPeriod +
+        overtimePay +
+        punctualityBonus +
+        attendanceBonus +
+        performanceBonus +
+        imssComplementPay;
       const isrEstimated = calculateMexicanISR(taxablePerceptions);
 
       const totalPerceptions = taxablePerceptions;
-      const totalDeductions = absenceDeductions + delayDeductions + imssDeduction + isrEstimated;
+      const totalDeductions =
+        absenceDeductions + delayDeductions + unpaidLeaveDeduction + imssDeduction + isrEstimated;
       const netPayEstimated = Math.max(0, totalPerceptions - totalDeductions);
 
       const clabeAccount = emp.clabe_account?.trim();
@@ -279,6 +518,11 @@ export class CompanyPayrollService {
         delaysPerAbsenceRule: impactConfig.delaysPerAbsence,
         delayDeductionDaysRule: impactConfig.delayDeductionDays,
         absorbedIncidentsCount: absorbedByAttendance.length,
+        imssDisabilityDays,
+        imssComplementPay,
+        unpaidLeaveDays,
+        paidLeaveDays,
+        deferredIncidentsCount,
         totalPerceptions,
         totalDeductions,
         netPayEstimated,
@@ -307,12 +551,13 @@ export class CompanyPayrollService {
     const currentStatus = (savedPayroll?.status as "borrador" | "calculada" | "dispersada" | "pagada" | "timbrada") || "calculada";
 
     const summary: PayrollPeriodSummary = {
-      periodId: savedPayroll?.id || `payroll-${periodInfo.startDate}`,
-      periodName: periodInfo.periodName,
-      periodType: periodInfo.periodType,
-      startDate: periodInfo.startDate,
-      endDate: periodInfo.endDate,
-      payoutDate: periodInfo.payoutDate,
+      periodId: savedPayroll?.id || `payroll-${startDate}`,
+      periodName,
+      periodType,
+      startDate,
+      endDate,
+      cutoffDate,
+      payoutDate,
       status: currentStatus,
       timbradaAt: savedPayroll?.timbrada_at || null,
       timbradosCount: payrollEmployees.filter((e) => e.cfdi?.status === "timbrado").length,

@@ -11,6 +11,7 @@ import {
   type BonusAmountType,
   type CompanyWorkRulesConfig,
   type CompTimeMode,
+  type CutoffDaysBeforeEnd,
   type DisciplinaryPayMode,
   type DisciplinaryRulesConfig,
   type EarlyDepartureMode,
@@ -64,6 +65,7 @@ const DEFAULT_LEAVE_CATALOGUE: LeaveCatalogueConfig = {
     affectsVacationPremium: false,
     affectsBonuses: false,
     maxDaysPerYear: 5,
+    maxDaysPerEvent: 3,
   },
   matrimonio: {
     paid: true,
@@ -72,6 +74,7 @@ const DEFAULT_LEAVE_CATALOGUE: LeaveCatalogueConfig = {
     affectsVacationPremium: false,
     affectsBonuses: false,
     maxDaysPerYear: 5,
+    maxDaysPerEvent: 5,
   },
   paternidad: {
     paid: true,
@@ -80,6 +83,7 @@ const DEFAULT_LEAVE_CATALOGUE: LeaveCatalogueConfig = {
     affectsVacationPremium: false,
     affectsBonuses: false,
     maxDaysPerYear: 5,
+    maxDaysPerEvent: 5,
   },
   maternidad: {
     paid: true,
@@ -88,6 +92,7 @@ const DEFAULT_LEAVE_CATALOGUE: LeaveCatalogueConfig = {
     affectsVacationPremium: false,
     affectsBonuses: false,
     maxDaysPerYear: 84,
+    maxDaysPerEvent: 84,
   },
   luto: {
     paid: true,
@@ -95,7 +100,8 @@ const DEFAULT_LEAVE_CATALOGUE: LeaveCatalogueConfig = {
     affectsSeventhDay: false,
     affectsVacationPremium: false,
     affectsBonuses: false,
-    maxDaysPerYear: 3,
+    maxDaysPerYear: null,
+    maxDaysPerEvent: 3,
   },
 };
 
@@ -132,6 +138,7 @@ export const DEFAULT_COMPANY_WORK_RULES_CONFIG: CompanyWorkRulesConfig = {
   },
   payrollPeriodicity: "quincenal",
   incidentCutoffDay: 15,
+  cutoffDaysBeforeEnd: 0,
   punctualityBonus: {
     enabled: false,
     amount: 0,
@@ -299,6 +306,23 @@ function parseLeaveRule(
     maxDaysPerYear = raw.maxDaysPerYear;
   }
 
+  let maxDaysPerEvent = defaults.maxDaysPerEvent ?? null;
+  if (key === "luto") {
+    const rawLutoLimit = raw.maxDaysPerEvent !== undefined ? raw.maxDaysPerEvent : raw.maxDaysPerYear;
+    if (isFiniteNumber(rawLutoLimit) && rawLutoLimit < 3) {
+      violations.push(
+        `Art. 132 fracc. XXIX LFT: el permiso por luto (${rawLutoLimit} días) no puede ser menor a 3 días hábiles por evento.`
+      );
+    } else if (typeof rawLutoLimit === "number" && Number.isInteger(rawLutoLimit) && rawLutoLimit >= 3) {
+      maxDaysPerEvent = rawLutoLimit;
+    }
+    maxDaysPerYear = null;
+  } else if (raw.maxDaysPerEvent === null) {
+    maxDaysPerEvent = null;
+  } else if (typeof raw.maxDaysPerEvent === "number" && Number.isInteger(raw.maxDaysPerEvent) && raw.maxDaysPerEvent >= 1) {
+    maxDaysPerEvent = raw.maxDaysPerEvent;
+  }
+
   if (key === "paternidad" && maxDaysPerYear !== null && maxDaysPerYear < 5) {
     violations.push(
       `Art. 132 XXVII Bis LFT: el permiso de paternidad (${maxDaysPerYear} días) no puede ser menor a 5 días laborables.`
@@ -326,6 +350,7 @@ function parseLeaveRule(
     affectsBonuses:
       typeof raw.affectsBonuses === "boolean" ? raw.affectsBonuses : defaults.affectsBonuses,
     maxDaysPerYear,
+    ...(maxDaysPerEvent !== null ? { maxDaysPerEvent } : {}),
   };
 }
 
@@ -580,6 +605,14 @@ export function parseCompanyWorkRulesConfig(raw: unknown): CompanyWorkRulesConfi
       31,
       DEFAULT_COMPANY_WORK_RULES_CONFIG.incidentCutoffDay
     ),
+    cutoffDaysBeforeEnd: (
+      typeof source.cutoffDaysBeforeEnd === "number" &&
+      Number.isInteger(source.cutoffDaysBeforeEnd) &&
+      source.cutoffDaysBeforeEnd >= 0 &&
+      source.cutoffDaysBeforeEnd <= 3
+        ? source.cutoffDaysBeforeEnd
+        : DEFAULT_COMPANY_WORK_RULES_CONFIG.cutoffDaysBeforeEnd
+    ) as CutoffDaysBeforeEnd,
     punctualityBonus: parseBonusConfig(
       source.punctualityBonus,
       DEFAULT_COMPANY_WORK_RULES_CONFIG.punctualityBonus

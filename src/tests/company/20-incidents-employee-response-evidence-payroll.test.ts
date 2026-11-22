@@ -46,6 +46,10 @@ function buildIncident(overrides: Partial<IncidentRow> = {}): IncidentRow {
     acknowledged_at: null,
     employee_statement: null,
     employee_statement_at: null,
+    folio_imss: null,
+    dias_amparados: null,
+    ramo_imss: null,
+    complemento_empresa: null,
     ...overrides,
   };
 }

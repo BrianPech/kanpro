@@ -26,6 +26,7 @@ function buildLeaveRow(overrides: Partial<CompanyLeaveRow> = {}): CompanyLeaveRo
     company_id: "comp-A",
     employee_id: "emp-1",
     candidate_id: "cand-1",
+    incident_id: null,
     request_type: "vacaciones",
     start_date: "2026-10-05",
     end_date: "2026-10-09",
@@ -111,11 +112,11 @@ describe("Parte 3B: aprobación en 2 pasos, políticas especiales, prima vacacio
     expect(notifications.at(-1)?.type).toBe("leave_approved");
   });
 
-  test("Políticas especiales: valida topes de días económicos (3), matrimonio (5), paternidad (5) y luto (5)", () => {
+  test("Políticas especiales: valida topes de días económicos (3), matrimonio (5), paternidad (5) y luto (3 LFT por evento)", () => {
     expect(SPECIAL_LEAVE_POLICIES.dias_economicos.maxDaysPerRequest).toBe(3);
     expect(SPECIAL_LEAVE_POLICIES.matrimonio.maxDaysPerRequest).toBe(5);
     expect(SPECIAL_LEAVE_POLICIES.paternidad.maxDaysPerRequest).toBe(5);
-    expect(SPECIAL_LEAVE_POLICIES.luto.maxDaysPerRequest).toBe(5);
+    expect(SPECIAL_LEAVE_POLICIES.luto.maxDaysPerRequest).toBe(3);
 
     expect(() => validateSpecialLeavePolicyDays("dias_economicos", 3)).not.toThrow();
     expect(() => validateSpecialLeavePolicyDays("dias_economicos", 4)).toThrow(/máximo de 3/);
@@ -124,7 +125,9 @@ describe("Parte 3B: aprobación en 2 pasos, políticas especiales, prima vacacio
     expect(() => validateSpecialLeavePolicyDays("matrimonio", 6)).toThrow(/máximo de 5/);
 
     expect(() => validateSpecialLeavePolicyDays("paternidad", 6)).toThrow(/máximo de 5/);
-    expect(() => validateSpecialLeavePolicyDays("luto", 6)).toThrow(/máximo de 5/);
+    expect(() => validateSpecialLeavePolicyDays("luto", 3)).not.toThrow();
+    expect(() => validateSpecialLeavePolicyDays("luto", 4)).toThrow(/máximo de 3/);
+    expect(() => validateSpecialLeavePolicyDays("luto", 5, 5)).not.toThrow();
     expect(() => validateSpecialLeavePolicyDays("vacaciones", 20)).not.toThrow();
   });
 

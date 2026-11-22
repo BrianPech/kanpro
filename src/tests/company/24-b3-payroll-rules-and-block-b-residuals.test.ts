@@ -81,6 +81,10 @@ function buildIncidentRow(overrides: Partial<IncidentRow> = {}): IncidentRow {
     acknowledged_at: null,
     employee_statement: null,
     employee_statement_at: null,
+    folio_imss: null,
+    dias_amparados: null,
+    ramo_imss: null,
+    complemento_empresa: null,
     ...overrides,
   };
 }
@@ -753,6 +757,7 @@ describe("Residuos Block B (2-4): Normalización en invitaciones, fallback modal
             company_id: companyId,
             employee_id: payload.employee_id ?? null,
             candidate_id: payload.candidate_id ?? null,
+            incident_id: payload.incident_id ?? null,
             request_type: payload.request_type,
             start_date: payload.start_date,
             end_date: payload.end_date,

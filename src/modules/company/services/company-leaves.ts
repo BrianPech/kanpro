@@ -25,6 +25,12 @@ import {
   type LeaveApprovalStatus,
   type LeaveApprovalActor,
 } from "../strategies/leave-approval.strategy";
+import {
+  DEFAULT_COMPANY_WORK_RULES_CONFIG,
+  parseCompanyWorkRulesConfig,
+} from "../strategies/company-policies.parser";
+import { resolveCompanyVacationPolicy } from "../strategies/leaves-imss-overtime-policy.engine";
+import type { CompanyWorkRulesConfig, LeaveCatalogueKey } from "../types/company-policies";
 import { LeaveOverlapService } from "./leave-overlap.service";
 
 export type { CompanyLeaveRow, CompanyLeaveInsert, CompanyLeaveUpdate };
@@ -81,8 +87,11 @@ export class CompanyLeavesService {
     }
 
     try {
-      const { data } = await this.supabase
-        .from("company_profiles")
+      const compTable = this.supabase.from("company_profiles");
+      if (!compTable || typeof compTable.select !== "function") {
+        return "single_step";
+      }
+      const { data } = await compTable
         .select("leave_approval_config")
         .eq("id", companyId)
         .maybeSingle();
@@ -90,6 +99,22 @@ export class CompanyLeavesService {
       return parseLeaveApprovalMode(data?.leave_approval_config);
     } catch {
       return "single_step";
+    }
+  }
+
+  private async resolveWorkRulesConfig(companyId: string): Promise<CompanyWorkRulesConfig> {
+    try {
+      const compTable = this.supabase.from("company_profiles");
+      if (!compTable || typeof compTable.select !== "function") {
+        return DEFAULT_COMPANY_WORK_RULES_CONFIG;
+      }
+      const { data } = await compTable
+        .select("payroll_impact_config")
+        .eq("id", companyId)
+        .maybeSingle();
+      return parseCompanyWorkRulesConfig(data?.payroll_impact_config);
+    } catch {
+      return DEFAULT_COMPANY_WORK_RULES_CONFIG;
     }
   }
 
@@ -178,7 +203,15 @@ export class CompanyLeavesService {
       throw new Error("El rango de fechas no contiene días hábiles.");
     }
 
-    validateSpecialLeavePolicyDays(input.requestType, workingDays);
+    const workRules = await this.resolveWorkRulesConfig(companyId);
+    const leaveKey = input.requestType as LeaveCatalogueKey;
+    const rule = leaveKey in workRules.leaveCatalogue ? workRules.leaveCatalogue[leaveKey] : null;
+    const customMaxDays =
+      input.requestType === "luto"
+        ? (rule?.maxDaysPerEvent ?? 3)
+        : rule?.maxDaysPerEvent ?? undefined;
+
+    validateSpecialLeavePolicyDays(input.requestType, workingDays, customMaxDays);
 
     const { data: emp, error: empErr } = await this.supabase
       .from("company_employees")
@@ -215,7 +248,8 @@ export class CompanyLeavesService {
     const effectiveHireDate =
       emp.hire_date || emp.created_at?.split("T")[0] || null;
     if (input.requestType === "vacaciones" && effectiveHireDate) {
-      const lft = calculateLFTVacationDays(effectiveHireDate);
+      const vacationPolicy = resolveCompanyVacationPolicy(workRules).strategy;
+      const lft = calculateLFTVacationDays(effectiveHireDate, undefined, vacationPolicy);
       const cycleWindow = getCurrentVacationCycleWindow(effectiveHireDate);
       const committedDays = cycleWindow
         ? this.repository.balanceCommittedDays
@@ -243,6 +277,7 @@ export class CompanyLeavesService {
       company_id: companyId,
       employee_id: emp.id,
       candidate_id: emp.employee_id || null,
+      ...(input.incidentId ? { incident_id: input.incidentId } : {}),
       request_type: input.requestType,
       start_date: input.startDate,
       end_date: input.endDate,
@@ -289,7 +324,9 @@ export class CompanyLeavesService {
 
     if (!effectiveHireDate) return;
 
-    const lft = calculateLFTVacationDays(effectiveHireDate);
+    const workRules = await this.resolveWorkRulesConfig(companyId);
+    const vacationPolicy = resolveCompanyVacationPolicy(workRules).strategy;
+    const lft = calculateLFTVacationDays(effectiveHireDate, undefined, vacationPolicy);
     const cycleWindow = getCurrentVacationCycleWindow(effectiveHireDate);
     const committedOther = cycleWindow
       ? this.repository.balanceCommittedDays

@@ -37,7 +37,8 @@ export interface PayrollPeriodWithCutoff {
 
 /**
  * Resuelve el periodo de nómina vigente y su fecha de corte de incidencias
- * según `payrollPeriodicity` y `incidentCutoffDay` en zona `America/Cancun`.
+ * según `payrollPeriodicity`, `cutoffDaysBeforeEnd` (0..3 días antes del fin)
+ * e `incidentCutoffDay` (legado) en zona `America/Cancun`.
  */
 export function resolvePayrollPeriodWithCutoff(options?: {
   refDateISO?: string;
@@ -45,6 +46,18 @@ export function resolvePayrollPeriodWithCutoff(options?: {
   anchorDateISO?: string;
 }): PayrollPeriodWithCutoff {
   const config = parseCompanyWorkRulesConfig(options?.config);
+  const rawObj =
+    typeof options?.config === "object" && options?.config !== null && !Array.isArray(options.config)
+      ? (options.config as Record<string, unknown>)
+      : {};
+  const hasExplicitCutoffDaysBeforeEnd =
+    typeof rawObj.cutoffDaysBeforeEnd === "number" &&
+    [0, 1, 2, 3].includes(rawObj.cutoffDaysBeforeEnd);
+  const hasLegacyIncidentCutoffDay =
+    typeof rawObj.incidentCutoffDay === "number" &&
+    !hasExplicitCutoffDaysBeforeEnd &&
+    rawObj.incidentCutoffDay !== 15;
+
   const refDateISO = options?.refDateISO ?? getMexicoDateISO();
   const parsed = parseMexicoCalendarDate(refDateISO) ?? parseMexicoCalendarDate(getMexicoDateISO())!;
 
@@ -56,11 +69,22 @@ export function resolvePayrollPeriodWithCutoff(options?: {
   const cutoffDay = config.incidentCutoffDay;
   const periodicity = config.payrollPeriodicity;
 
+  const shiftBeforeEnd = (startStr: string, endStr: string): string => {
+    const startDateParsed = parseMexicoCalendarDate(startStr)!;
+    const endDateParsed = parseMexicoCalendarDate(endStr)!;
+    const targetMs = Math.max(
+      startDateParsed.getTime(),
+      endDateParsed.getTime() - config.cutoffDaysBeforeEnd * DAY_MS
+    );
+    return formatUtcDateISO(targetMs);
+  };
+
   if (periodicity === "mensual") {
     const startDate = `${year}-${month}-01`;
     const endDate = `${year}-${month}-${String(lastDayOfMonth).padStart(2, "0")}`;
-    const clampedCutoff = Math.max(1, Math.min(lastDayOfMonth, cutoffDay));
-    const cutoffDate = `${year}-${month}-${String(clampedCutoff).padStart(2, "0")}`;
+    const cutoffDate = hasLegacyIncidentCutoffDay
+      ? `${year}-${month}-${String(Math.max(1, Math.min(lastDayOfMonth, cutoffDay))).padStart(2, "0")}`
+      : shiftBeforeEnd(startDate, endDate);
     return { timezone: BUSINESS_TIME_ZONE, periodicity, startDate, endDate, cutoffDate };
   }
 
@@ -68,8 +92,9 @@ export function resolvePayrollPeriodWithCutoff(options?: {
     if (day <= 15) {
       const startDate = `${year}-${month}-01`;
       const endDate = `${year}-${month}-15`;
-      const clampedCutoff = cutoffDay <= 15 ? Math.max(1, cutoffDay) : 15;
-      const cutoffDate = `${year}-${month}-${String(clampedCutoff).padStart(2, "0")}`;
+      const cutoffDate = hasLegacyIncidentCutoffDay
+        ? `${year}-${month}-${String(cutoffDay <= 15 ? Math.max(1, cutoffDay) : 15).padStart(2, "0")}`
+        : shiftBeforeEnd(startDate, endDate);
       return { timezone: BUSINESS_TIME_ZONE, periodicity, startDate, endDate, cutoffDate };
     }
     const startDate = `${year}-${month}-16`;
@@ -78,7 +103,9 @@ export function resolvePayrollPeriodWithCutoff(options?: {
       cutoffDay >= 16
         ? Math.min(cutoffDay, lastDayOfMonth)
         : Math.min(15 + cutoffDay, lastDayOfMonth);
-    const cutoffDate = `${year}-${month}-${String(q2Cutoff).padStart(2, "0")}`;
+    const cutoffDate = hasLegacyIncidentCutoffDay
+      ? `${year}-${month}-${String(q2Cutoff).padStart(2, "0")}`
+      : shiftBeforeEnd(startDate, endDate);
     return { timezone: BUSINESS_TIME_ZONE, periodicity, startDate, endDate, cutoffDate };
   }
 
@@ -87,13 +114,18 @@ export function resolvePayrollPeriodWithCutoff(options?: {
     const diffToMonday = dow === 0 ? -6 : 1 - dow;
     const mondayMs = parsed.getTime() + diffToMonday * DAY_MS;
     const sundayMs = mondayMs + 6 * DAY_MS;
+    const startDate = formatUtcDateISO(mondayMs);
+    const endDate = formatUtcDateISO(sundayMs);
     const offset = Math.max(0, Math.min(6, cutoffDay - 1));
+    const cutoffDate = hasLegacyIncidentCutoffDay
+      ? formatUtcDateISO(mondayMs + offset * DAY_MS)
+      : shiftBeforeEnd(startDate, endDate);
     return {
       timezone: BUSINESS_TIME_ZONE,
       periodicity,
-      startDate: formatUtcDateISO(mondayMs),
-      endDate: formatUtcDateISO(sundayMs),
-      cutoffDate: formatUtcDateISO(mondayMs + offset * DAY_MS),
+      startDate,
+      endDate,
+      cutoffDate,
     };
   }
 
@@ -105,14 +137,19 @@ export function resolvePayrollPeriodWithCutoff(options?: {
   const blockIndex = Math.floor(diffDays / 14);
   const startMs = anchorMs + blockIndex * 14 * DAY_MS;
   const endMs = startMs + 13 * DAY_MS;
+  const startDate = formatUtcDateISO(startMs);
+  const endDate = formatUtcDateISO(endMs);
   const offset = Math.max(0, Math.min(13, cutoffDay - 1));
+  const cutoffDate = hasLegacyIncidentCutoffDay
+    ? formatUtcDateISO(startMs + offset * DAY_MS)
+    : shiftBeforeEnd(startDate, endDate);
 
   return {
     timezone: BUSINESS_TIME_ZONE,
     periodicity,
-    startDate: formatUtcDateISO(startMs),
-    endDate: formatUtcDateISO(endMs),
-    cutoffDate: formatUtcDateISO(startMs + offset * DAY_MS),
+    startDate,
+    endDate,
+    cutoffDate,
   };
 }
 
@@ -246,7 +283,7 @@ export function evaluatePeriodBonuses(input: PeriodBonusesInput): PeriodBonusesR
   const config = parseCompanyWorkRulesConfig(input.config);
   const period = resolvePayrollPeriodWithCutoff({
     refDateISO: input.refDateISO,
-    config,
+    config: input.config,
     anchorDateISO: input.anchorDateISO,
   });
 

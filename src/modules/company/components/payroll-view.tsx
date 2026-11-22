@@ -655,6 +655,32 @@ export function PayrollView({
                           </Badge>
                         </>
                       )}
+                      {(emp.imssDisabilityDays ?? 0) > 0 && (
+                        <>
+                          <span>•</span>
+                          <Badge
+                            variant="outline"
+                            className="text-[10px] py-0 h-4 text-sky-700 dark:text-sky-300 border-sky-500/30 bg-sky-500/10"
+                          >
+                            Incapacidad IMSS: {emp.imssDisabilityDays}d (subsidio IMSS
+                            {(emp.imssComplementPay ?? 0) > 0
+                              ? ` +$${emp.imssComplementPay?.toLocaleString()} comp.`
+                              : ""}
+                            )
+                          </Badge>
+                        </>
+                      )}
+                      {(emp.deferredIncidentsCount ?? 0) > 0 && (
+                        <>
+                          <span>•</span>
+                          <Badge
+                            variant="outline"
+                            className="text-[10px] py-0 h-4 text-amber-700 dark:text-amber-300 border-amber-500/30 bg-amber-500/10"
+                          >
+                            {emp.deferredIncidentsCount} pasa(n) al siguiente periodo
+                          </Badge>
+                        </>
+                      )}
                       {emp.bankAccount?.clabe && /^\d{18}$/.test(emp.bankAccount.clabe.trim()) ? (
                         <>
                           <span>•</span>

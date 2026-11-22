@@ -34,6 +34,13 @@ export interface PayrollEmployeeItem {
   delayDeductionDaysRule?: 0.5 | 1;
   absorbedIncidentsCount?: number;
 
+  // Reglas de empresa (Bloque 1): IMSS, permisos y diferidos tras fecha de corte
+  imssDisabilityDays?: number;
+  imssComplementPay?: number;
+  unpaidLeaveDays?: number;
+  paidLeaveDays?: number;
+  deferredIncidentsCount?: number;
+
   // Net
   totalPerceptions: number;
   totalDeductions: number;
@@ -60,9 +67,10 @@ export interface PayrollEmployeeItem {
 export interface PayrollPeriodSummary {
   periodId: string;
   periodName: string;
-  periodType: "quincenal" | "semanal" | "mensual";
+  periodType: "quincenal" | "semanal" | "catorcenal" | "mensual";
   startDate: string;
   endDate: string;
+  cutoffDate?: string;
   payoutDate: string;
   status: "borrador" | "calculada" | "dispersada" | "pagada" | "timbrada";
   timbradaAt?: string | null;

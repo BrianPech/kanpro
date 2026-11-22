@@ -194,6 +194,10 @@ describe("Fase 16: Módulos de Incidencias y Permisos - Patrón Schema -> Handle
                       resolution_notes: null,
                       clarification_deadline: payload.clarification_deadline || null,
                       notified_at: null, acknowledged_at: null, employee_statement: null, employee_statement_at: null,
+                      folio_imss: payload.folio_imss ?? null,
+                      dias_amparados: payload.dias_amparados ?? null,
+                      ramo_imss: payload.ramo_imss ?? null,
+                      complemento_empresa: payload.complemento_empresa ?? null,
                       responsible_supervisor: payload.responsible_supervisor || null,
                     };
                     incidents.push(row);
@@ -297,6 +301,7 @@ describe("Fase 16: Módulos de Incidencias y Permisos - Patrón Schema -> Handle
         resolution_notes: null,
         clarification_deadline: null,
         notified_at: null, acknowledged_at: null, employee_statement: null, employee_statement_at: null,
+        folio_imss: null, dias_amparados: null, ramo_imss: null, complemento_empresa: null,
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
       };
@@ -343,6 +348,7 @@ describe("Fase 16: Módulos de Incidencias y Permisos - Patrón Schema -> Handle
         resolution_notes: null,
         clarification_deadline: null,
         notified_at: null, acknowledged_at: null, employee_statement: null, employee_statement_at: null,
+        folio_imss: null, dias_amparados: null, ramo_imss: null, complemento_empresa: null,
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
       };
@@ -428,6 +434,7 @@ describe("Fase 16: Módulos de Incidencias y Permisos - Patrón Schema -> Handle
                       updated_at: new Date().toISOString(),
                       candidate_id: payload.candidate_id || null,
                       employee_id: payload.employee_id || null,
+                      incident_id: payload.incident_id || null,
                       reason: payload.reason || null,
                       rejection_reason: payload.rejection_reason || null,
                       reviewed_at: payload.reviewed_at || null,
@@ -533,6 +540,7 @@ describe("Fase 16: Módulos de Incidencias y Permisos - Patrón Schema -> Handle
         company_id: "comp-A",
         employee_id: "emp-10",
         candidate_id: "user-cand-10",
+        incident_id: null,
         request_type: "paternidad",
         start_date: "2026-10-12",
         end_date: "2026-10-16",
@@ -663,6 +671,7 @@ describe("Fase 2 (Strategy): políticas, aprobación, impacto en nómina y solap
       company_id: "comp-A",
       employee_id: "emp-1",
       candidate_id: null,
+      incident_id: null,
       total_working_days: 5,
       request_type: "vacaciones",
       reason: null,

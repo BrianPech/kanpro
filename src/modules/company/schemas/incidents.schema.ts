@@ -40,6 +40,12 @@ export const evidenceTypeEnum = z.enum([
   "acta_administrativa",
 ]);
 
+export const imssBranchEnum = z.enum([
+  "enfermedad_general",
+  "riesgo_trabajo",
+  "maternidad",
+]);
+
 export const createIncidentSchema = z.object({
   employeeId: z.string().nullable().optional(),
   employeeName: z.string().min(1, "El nombre del colaborador es obligatorio").max(120),
@@ -60,6 +66,10 @@ export const createIncidentSchema = z.object({
   evidenceType: evidenceTypeEnum.optional(),
   status: incidentStatusEnum.optional(),
   clarificationDeadline: clarificationDeadlineSchema,
+  folioImss: z.string().trim().min(3, "El folio IMSS debe tener al menos 3 caracteres").max(40).optional(),
+  diasAmparados: z.number().int().min(1).max(365).optional(),
+  ramoImss: imssBranchEnum.optional(),
+  complementoEmpresa: z.number().min(0).optional(),
 });
 
 export const updateIncidentStatusSchema = z.object({

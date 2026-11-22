@@ -127,6 +127,12 @@ export class CompanyIncidentsService {
       evidence_file_name: input.evidenceFileName || null,
       evidence_type: input.evidenceType || null,
       status,
+      ...(input.folioImss ? { folio_imss: input.folioImss.trim() } : {}),
+      ...(input.diasAmparados !== undefined ? { dias_amparados: input.diasAmparados } : {}),
+      ...(input.ramoImss ? { ramo_imss: input.ramoImss } : {}),
+      ...(input.complementoEmpresa !== undefined
+        ? { complemento_empresa: input.complementoEmpresa }
+        : {}),
       ...(clarificationDeadline ? { clarification_deadline: clarificationDeadline } : {}),
     };
 
@@ -348,6 +354,14 @@ export class CompanyIncidentsService {
       employeeStatementAt: row.employee_statement_at
         ? formatMexicoDateShort(row.employee_statement_at)
         : undefined,
+      folioImss: row.folio_imss || undefined,
+      diasAmparados: row.dias_amparados ?? undefined,
+      ramoImss:
+        (row.ramo_imss as LaborIncident["ramoImss"]) || undefined,
+      complementoEmpresa:
+        row.complemento_empresa !== null && row.complemento_empresa !== undefined
+          ? Number(row.complemento_empresa)
+          : undefined,
     };
   }
 }

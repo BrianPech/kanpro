@@ -34,6 +34,7 @@ export const createCompanyLeaveSchema = z.object({
     .string()
     .regex(/^\d{4}-\d{2}-\d{2}$/, "Formato de fecha de fin inválido (YYYY-MM-DD)"),
   reason: z.string().max(500, "El motivo no puede exceder 500 caracteres").optional(),
+  incidentId: z.string().uuid("ID de incidencia inválido").optional(),
 });
 
 export const leaveReferenceSchema = z.object({

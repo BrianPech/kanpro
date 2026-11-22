@@ -359,10 +359,10 @@ export const SPECIAL_LEAVE_POLICIES: Record<VacationRequestType, SpecialLeavePol
   luto: {
     requestType: "luto",
     label: "Permiso por Luto",
-    maxDaysPerRequest: 5,
+    maxDaysPerRequest: 3,
     paid: true,
     deductsFromVacationBalance: false,
-    legalBasis: "Política humanitaria por fallecimiento familiar directo (máx. 5 días hábiles)",
+    legalBasis: "Art. 132 Fracc. XXIX LFT (mín. 3 días hábiles por evento con goce de sueldo)",
   },
   permiso_con_goce: {
     requestType: "permiso_con_goce",
@@ -384,15 +384,21 @@ export const SPECIAL_LEAVE_POLICIES: Record<VacationRequestType, SpecialLeavePol
 
 export function validateSpecialLeavePolicyDays(
   requestType: VacationRequestType,
-  workingDays: number
+  workingDays: number,
+  customMaxDaysPerRequest?: number | null
 ): void {
   const policy = SPECIAL_LEAVE_POLICIES[requestType];
-  if (!policy || policy.maxDaysPerRequest === null) {
+  if (!policy) {
     return;
   }
-  if (workingDays > policy.maxDaysPerRequest) {
+  const effectiveMax =
+    customMaxDaysPerRequest !== undefined ? customMaxDaysPerRequest : policy.maxDaysPerRequest;
+  if (effectiveMax === null) {
+    return;
+  }
+  if (workingDays > effectiveMax) {
     throw new Error(
-      `El permiso de "${policy.label}" permite un máximo de ${policy.maxDaysPerRequest} día(s) hábiles por solicitud (solicitaste ${workingDays}).`
+      `El permiso de "${policy.label}" permite un máximo de ${effectiveMax} día(s) hábiles por solicitud (solicitaste ${workingDays}).`
     );
   }
 }

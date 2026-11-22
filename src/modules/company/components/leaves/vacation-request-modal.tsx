@@ -222,7 +222,7 @@ export function VacationRequestModal({
                       matrimonio: "Permiso por Matrimonio (máx. 5 días)",
                       paternidad: "Permiso de Paternidad (5 días LFT)",
                       maternidad: "Incapacidad por Maternidad (84 días LFT/IMSS)",
-                      luto: "Permiso por Duelo / Luto (máx. 5 días)",
+                      luto: "Permiso por Duelo / Luto (mín. 3 días LFT)",
                       permiso_con_goce: "Permiso con Goce de Sueldo",
                       permiso_sin_goce: "Permiso sin Goce de Sueldo",
                     } as Record<string, string>)[requestType] || requestType}
@@ -234,7 +234,7 @@ export function VacationRequestModal({
                   <SelectItem value="matrimonio">Permiso por Matrimonio (máx. 5 días)</SelectItem>
                   <SelectItem value="paternidad">Permiso de Paternidad (5 días LFT)</SelectItem>
                   <SelectItem value="maternidad">Incapacidad por Maternidad (84 días LFT/IMSS)</SelectItem>
-                  <SelectItem value="luto">Permiso por Duelo / Luto (máx. 5 días)</SelectItem>
+                  <SelectItem value="luto">Permiso por Duelo / Luto (mín. 3 días LFT)</SelectItem>
                   <SelectItem value="permiso_con_goce">Permiso con Goce de Sueldo</SelectItem>
                   <SelectItem value="permiso_sin_goce">Permiso sin Goce de Sueldo</SelectItem>
                 </SelectContent>

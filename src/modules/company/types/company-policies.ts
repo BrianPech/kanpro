@@ -66,6 +66,8 @@ export interface LeaveRuleConfig {
   affectsVacationPremium: boolean;
   affectsBonuses: boolean;
   maxDaysPerYear: number | null;
+  /** Tope de días hábiles por evento (ej. Luto Art. 132 fracc. XXIX LFT: mín. 3 por evento). */
+  maxDaysPerEvent?: number | null;
 }
 
 export type LeaveCatalogueConfig = Record<LeaveCatalogueKey, LeaveRuleConfig>;
@@ -129,6 +131,8 @@ export interface FelipeInvariants {
   readonly seventhDayEarnedByWorkedDays: true;
 }
 
+export type CutoffDaysBeforeEnd = 0 | 1 | 2 | 3;
+
 export interface CompanyWorkRulesConfig extends PayrollImpactConfig {
   timezone: typeof BUSINESS_TIME_ZONE;
   earlyDepartureMode: EarlyDepartureMode;
@@ -140,6 +144,8 @@ export interface CompanyWorkRulesConfig extends PayrollImpactConfig {
   overtimeRules: OvertimeRulesConfig;
   payrollPeriodicity: PayrollPeriodicity;
   incidentCutoffDay: number;
+  /** Días antes del fin del periodo para el corte de incidencias (0 = fin del periodo, 1–3 = adelantado). */
+  cutoffDaysBeforeEnd: CutoffDaysBeforeEnd;
   punctualityBonus: AttendanceBonusConfig;
   attendanceBonus: AttendanceBonusConfig;
   disciplinaryRules: DisciplinaryRulesConfig;

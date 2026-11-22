@@ -81,6 +81,12 @@ export function NewIncidentModal({
   const [hasEvidence, setHasEvidence] = useState(false);
   const [evidenceFileName, setEvidenceFileName] = useState("");
   const [evidenceFile, setEvidenceFile] = useState<File | null>(null);
+  const [folioImss, setFolioImss] = useState("");
+  const [diasAmparados, setDiasAmparados] = useState<number>(1);
+  const [ramoImss, setRamoImss] = useState<"enfermedad_general" | "riesgo_trabajo" | "maternidad">(
+    "enfermedad_general"
+  );
+  const [complementoEmpresa, setComplementoEmpresa] = useState<number>(0);
   const evidenceInputRef = useRef<HTMLInputElement | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -112,6 +118,16 @@ export function NewIncidentModal({
     if (!employeeName.trim() || !title.trim() || !description.trim()) {
       toast.error("Por favor completa todos los campos requeridos.");
       return;
+    }
+    if (category === "incapacidad") {
+      if (folioImss.trim().length < 3) {
+        toast.error("Ingresa el folio de incapacidad IMSS (mínimo 3 caracteres).");
+        return;
+      }
+      if (!Number.isInteger(diasAmparados) || diasAmparados < 1) {
+        toast.error("Los días amparados IMSS deben ser un entero mayor o igual a 1.");
+        return;
+      }
     }
 
     setIsSubmitting(true);
@@ -158,6 +174,14 @@ export function NewIncidentModal({
             : category === "incumplimiento" || category === "falta_injustificada"
             ? "acta_administrativa"
             : "documento",
+        ...(category === "incapacidad"
+          ? {
+              folioImss: folioImss.trim(),
+              diasAmparados,
+              ramoImss,
+              complementoEmpresa: Math.max(0, Number(complementoEmpresa) || 0),
+            }
+          : {}),
       });
 
       if (!res.success || !res.incident) {
@@ -181,6 +205,10 @@ export function NewIncidentModal({
       setEmployeeName("");
       setJobTitle("");
       setDepartment("");
+      setFolioImss("");
+      setDiasAmparados(1);
+      setRamoImss("enfermedad_general");
+      setComplementoEmpresa(0);
       onOpenChange(false);
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : "No se pudo conectar con la base de datos.";
@@ -336,6 +364,80 @@ export function NewIncidentModal({
                 </SelectContent>
               </Select>
             </div>
+
+            {category === "incapacidad" && (
+              <div className="p-3.5 rounded-2xl border border-sky-500/30 bg-sky-500/5 space-y-3">
+                <div className="text-xs font-extrabold text-sky-700 dark:text-sky-300">
+                  Datos de Incapacidad IMSS (no cuenta como falta ni salario ordinario)
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div className="space-y-1">
+                    <Label htmlFor="folio-imss" className="text-xs font-bold text-foreground">
+                      Folio IMSS *
+                    </Label>
+                    <Input
+                      id="folio-imss"
+                      value={folioImss}
+                      onChange={(e) => setFolioImss(e.target.value)}
+                      placeholder="Ej. IMSS-482910"
+                      required
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <Label htmlFor="dias-amparados" className="text-xs font-bold text-foreground">
+                      Días amparados *
+                    </Label>
+                    <Input
+                      id="dias-amparados"
+                      type="number"
+                      min={1}
+                      max={365}
+                      value={diasAmparados}
+                      onChange={(e) =>
+                        setDiasAmparados(Math.max(1, Math.min(365, Math.floor(Number(e.target.value) || 1))))
+                      }
+                      required
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-xs font-bold text-foreground">Ramo IMSS *</Label>
+                    <Select
+                      value={ramoImss}
+                      onValueChange={(val) =>
+                        val &&
+                        setRamoImss(
+                          val as "enfermedad_general" | "riesgo_trabajo" | "maternidad"
+                        )
+                      }
+                    >
+                      <SelectTrigger className="w-full">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="enfermedad_general">Enfermedad General</SelectItem>
+                        <SelectItem value="riesgo_trabajo">Riesgo de Trabajo</SelectItem>
+                        <SelectItem value="maternidad">Maternidad</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-1">
+                    <Label htmlFor="complemento-imss" className="text-xs font-bold text-foreground">
+                      Complemento empresa (MXN)
+                    </Label>
+                    <Input
+                      id="complemento-imss"
+                      type="number"
+                      min={0}
+                      step="0.01"
+                      value={complementoEmpresa}
+                      onChange={(e) =>
+                        setComplementoEmpresa(Math.max(0, Number(e.target.value) || 0))
+                      }
+                    />
+                  </div>
+                </div>
+              </div>
+            )}
 
             <div className="space-y-1.5">
               <Label className="text-xs font-bold text-foreground">Título Resumido *</Label>

@@ -52,4 +52,10 @@ export interface LaborIncident {
   acknowledgedAt?: string;
   employeeStatement?: string;
   employeeStatementAt?: string;
+
+  // Captura oficial de incapacidad IMSS
+  folioImss?: string;
+  diasAmparados?: number;
+  ramoImss?: "enfermedad_general" | "riesgo_trabajo" | "maternidad";
+  complementoEmpresa?: number;
 }

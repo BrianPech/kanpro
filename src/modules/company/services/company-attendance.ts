@@ -16,6 +16,11 @@ import {
   calculatePunctualityRate,
 } from "../utils/attendance-utils";
 import { BUSINESS_TIME_ZONE, getMexicoDateISO } from "@/lib/formatters";
+import {
+  DEFAULT_COMPANY_WORK_RULES_CONFIG,
+  parseCompanyWorkRulesConfig,
+} from "../strategies/company-policies.parser";
+import { resolveEffectiveTolerance } from "../strategies/punctuality-policy.engine";
 import { GEO_CONFIG, getCitiesList } from "@/config/geo";
 import type {
   MobileCheckInInput,
@@ -118,6 +123,23 @@ export function calculateDelayMinutes(
   return { workDate, timeStr, isLate, delayMinutes };
 }
 
+/**
+ * Calcula los minutos de salida anticipada respecto a la hora programada de salida (HH:MM).
+ */
+export function calculateEarlyDepartureMinutes(
+  scheduledCheckOut: string,
+  checkOutTimeStr: string
+): number {
+  const [rawSchedH, rawSchedM] = scheduledCheckOut.split(":");
+  const [rawOutH, rawOutM] = checkOutTimeStr.split(":");
+  const schedH = Number.parseInt(rawSchedH ?? "", 10);
+  const schedM = Number.parseInt(rawSchedM ?? "", 10);
+  const outH = Number.parseInt(rawOutH ?? "", 10);
+  const outM = Number.parseInt(rawOutM ?? "", 10);
+  if ([schedH, schedM, outH, outM].some(Number.isNaN)) return 0;
+  return Math.max(0, schedH * 60 + schedM - (outH * 60 + outM));
+}
+
 export class CompanyAttendanceService {
   constructor(private readonly supabase: SupabaseClient<Database>) {}
 
@@ -208,7 +230,31 @@ export class CompanyAttendanceService {
 
     const { scheduledCheckIn, scheduledCheckOut } = resolveWorkSchedule(employee.work_schedule);
     const now = new Date();
-    const { workDate, timeStr, isLate, delayMinutes } = calculateDelayMinutes(scheduledCheckIn, now);
+    let effectiveToleranceMinutes = DEFAULT_COMPANY_WORK_RULES_CONFIG.toleranceMinutes;
+    try {
+      const compProfileTable = this.supabase.from("company_profiles");
+      if (compProfileTable && typeof compProfileTable.select === "function") {
+        const { data: compProfile } = await compProfileTable
+          .select("payroll_impact_config")
+          .eq("id", effectiveCompanyId)
+          .maybeSingle();
+        if (compProfile?.payroll_impact_config !== undefined) {
+          const workRules = parseCompanyWorkRulesConfig(compProfile.payroll_impact_config);
+          effectiveToleranceMinutes = resolveEffectiveTolerance(workRules, {
+            jobTitle: employee.job_title,
+            shift: employee.work_schedule,
+          }).toleranceMinutes;
+        }
+      }
+    } catch {
+      effectiveToleranceMinutes = DEFAULT_COMPANY_WORK_RULES_CONFIG.toleranceMinutes;
+    }
+
+    const { workDate, timeStr, isLate, delayMinutes } = calculateDelayMinutes(
+      scheduledCheckIn,
+      now,
+      effectiveToleranceMinutes
+    );
 
     let effectiveActionType: "check_in" | "check_out" | "break_start" | "break_end" =
       input.actionType === "auto" ? "check_in" : input.actionType;
@@ -289,6 +335,9 @@ export class CompanyAttendanceService {
     }
 
     const { scheduledCheckIn, scheduledCheckOut } = resolveWorkSchedule(employee.work_schedule);
+    const earlyDepartureMinutes = input.checkOutTime
+      ? calculateEarlyDepartureMinutes(scheduledCheckOut, input.checkOutTime)
+      : 0;
 
     const payload: AttendanceInsert = {
       company_id: companyId,
@@ -300,6 +349,7 @@ export class CompanyAttendanceService {
       check_out_time: input.checkOutTime || null,
       check_in_method: "manual",
       delay_minutes: input.delayMinutes ?? (input.status === "retardo" ? 20 : 0),
+      ...(earlyDepartureMinutes > 0 ? { early_departure_minutes: earlyDepartureMinutes } : {}),
       status: input.status,
       notes: input.notes?.trim() || null,
       updated_at: new Date().toISOString(),
@@ -619,6 +669,10 @@ export class CompanyAttendanceService {
       }
     } else if (resolvedActionType === "check_out") {
       payload.check_out_time = timeStr;
+      const earlyDepartureMinutes = calculateEarlyDepartureMinutes(scheduledCheckOut, timeStr);
+      if (earlyDepartureMinutes > 0) {
+        payload.early_departure_minutes = earlyDepartureMinutes;
+      }
     } else if (resolvedActionType === "break_start") {
       payload.break_start_time = timeStr;
     } else if (resolvedActionType === "break_end") {
