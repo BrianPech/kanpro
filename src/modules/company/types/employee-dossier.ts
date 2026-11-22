@@ -16,6 +16,18 @@ export type DocumentType =
   | "examen_medico"
   | "comprobante_estudios";
 
+export const DOSSIER_DOC_TYPE_LABELS: Record<DocumentType, string> = {
+  comprobante_estudios: "Comprobante de Estudios / Certificado",
+  ine: "Identificación Oficial (INE / Pasaporte)",
+  curp: "CURP",
+  rfc_sat: "Constancia de Situación Fiscal (RFC / SAT)",
+  nss: "Número de Seguridad Social (NSS / IMSS)",
+  comprobante_domicilio: "Comprobante de Domicilio",
+  contrato_laboral: "Contrato / Constancia Laboral",
+  carta_antecedentes: "Carta de Recomendación / Antecedentes",
+  examen_medico: "Certificado / Examen Médico",
+};
+
 export type VacationRequestType =
   | "vacaciones"
   | "permiso_con_goce"

@@ -1,8 +1,9 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@/types/supabase";
 import {
-  calculateDailySalary,
+  calculateDailySalaryFromMonthly,
   formatMexicoDateShort,
+  fromMonthlyEquivalentSalary,
   getMexicoDateISO,
 } from "@/lib/formatters";
 import {
@@ -14,6 +15,43 @@ import {
 } from "../types/employee-dossier";
 import { calculateLFTVacationDays } from "../utils/vacation-calculator";
 import { LEAVE_TYPE_LABELS } from "./company-leaves";
+
+/**
+ * Convierte una fecha o timestamp ISO a YYYY-MM-DD en la zona horaria de negocio.
+ */
+function toMexicoCalendarDate(raw: string | null | undefined): string | null {
+  if (!raw) return null;
+  const trimmed = raw.trim();
+  if (/^\d{4}-\d{2}-\d{2}$/.test(trimmed)) return trimmed;
+  const parsed = new Date(trimmed);
+  return Number.isNaN(parsed.getTime()) ? null : getMexicoDateISO(parsed);
+}
+
+/**
+ * Mapea los tipos de documento de la tabla profile_documents a las categorías del Expediente 360.
+ */
+export function mapDbDocumentTypeToDossierDocType(
+  dbDocType: string | null | undefined
+): EmployeeDocument["docType"] {
+  switch (dbDocType) {
+    case "ine_passport":
+      return "ine";
+    case "proof_of_address":
+      return "comprobante_domicilio";
+    case "curp":
+      return "curp";
+    case "constancia_situacion_fiscal":
+      return "rfc_sat";
+    case "imss_registry":
+      return "nss";
+    case "recommendation_letter":
+      return "carta_antecedentes";
+    case "work_certificate":
+      return "contrato_laboral";
+    default:
+      return "comprobante_estudios";
+  }
+}
 
 /**
  * Fetches an employee 360 dossier strictly from Supabase backend.
@@ -160,8 +198,8 @@ export async function getEmployeeDossierById(
   const candBase = candidateData?.candidate_profiles?.profiles;
   const hireDate =
     emp?.hire_date ||
-    emp?.created_at?.split("T")[0] ||
-    candidateData?.applied_at?.split("T")[0] ||
+    toMexicoCalendarDate(emp?.created_at) ||
+    toMexicoCalendarDate(candidateData?.applied_at) ||
     getMexicoDateISO();
 
   const seniority = calculateLFTVacationDays(hireDate);
@@ -207,11 +245,16 @@ export async function getEmployeeDossierById(
 
   if (targetCandId) {
     const docClient = adminClient || supabase;
-    const { data: profDocs } = await docClient
+    let profDocsQuery = docClient
       .from("profile_documents")
       .select("id, doc_type, file_name, file_url, file_size_bytes, status, created_at")
-      .eq("owner_id", targetCandId)
-      .order("created_at", { ascending: false });
+      .eq("owner_id", targetCandId);
+
+    if (adminClient) {
+      profDocsQuery = profDocsQuery.or(`company_id.eq.${companyId},company_id.is.null`);
+    }
+
+    const { data: profDocs } = await profDocsQuery.order("created_at", { ascending: false });
 
     if (profDocs && profDocs.length > 0) {
       for (const d of profDocs) {
@@ -226,16 +269,7 @@ export async function getEmployeeDossierById(
           }
         }
 
-        const mappedDocType: EmployeeDocument["docType"] =
-          d.doc_type === "ine_passport"
-            ? "ine"
-            : d.doc_type === "proof_of_address"
-            ? "comprobante_domicilio"
-            : d.doc_type === "curp"
-            ? "curp"
-            : d.doc_type === "constancia_situacion_fiscal"
-            ? "rfc_sat"
-            : "comprobante_estudios";
+        const mappedDocType = mapDbDocumentTypeToDossierDocType(d.doc_type);
 
         documents.push({
           id: d.id,
@@ -244,7 +278,7 @@ export async function getEmployeeDossierById(
           fileName: d.file_name,
           fileUrl: resolvedUrl,
           fileSizeBytes: d.file_size_bytes || 0,
-          uploadedAt: d.created_at?.split("T")[0] || "",
+          uploadedAt: toMexicoCalendarDate(d.created_at) || "",
           status:
             d.status === "approved"
               ? "validado"
@@ -289,22 +323,6 @@ export async function getEmployeeDossierById(
     candidateData?.vacancies?.category ||
     "Operaciones";
 
-  const positionHistory: PositionHistoryItem[] = [
-    {
-      id: `pos-${emp?.id || candidateData?.id}`,
-      jobTitle,
-      department,
-      startDate: hireDate,
-      endDate: isTerminated ? emp?.termination_date || "Baja" : "Actual",
-      salary: Number(emp?.base_salary_monthly) || 0,
-      promotionReason: isTerminated
-        ? emp?.termination_reason
-          ? `Baja: ${emp.termination_reason}`
-          : "Desvinculación laboral"
-        : "Ingreso / Contratación a la empresa",
-    },
-  ];
-
   // 7. Emergency contact
   let emergencyContact: { name: string; phone: string; relationship: string } = {
     name: "No registrado",
@@ -328,11 +346,27 @@ export async function getEmployeeDossierById(
       : "quincenal";
 
   const baseSalaryMonthly = Number(emp?.base_salary_monthly) || 0;
-  const dailyBaseSalary = calculateDailySalary(baseSalaryMonthly, paymentFrequency);
+  const dailyBaseSalary = calculateDailySalaryFromMonthly(baseSalaryMonthly);
   const dailyIntegratedSalary =
     dailyBaseSalary > 0
       ? Math.round(dailyBaseSalary * 1.0493 * 100) / 100
       : 0;
+
+  const positionHistory: PositionHistoryItem[] = [
+    {
+      id: `pos-${emp?.id || candidateData?.id}`,
+      jobTitle,
+      department,
+      startDate: hireDate,
+      endDate: isTerminated ? emp?.termination_date || "Baja" : "Actual",
+      salary: fromMonthlyEquivalentSalary(baseSalaryMonthly, paymentFrequency),
+      promotionReason: isTerminated
+        ? emp?.termination_reason
+          ? `Baja: ${emp.termination_reason}`
+          : "Desvinculación laboral"
+        : "Ingreso / Contratación a la empresa",
+    },
+  ];
 
   const fullName =
     emp?.full_name || candBase?.full_name || "Colaborador";
@@ -528,7 +562,7 @@ export async function getCompanyVacationRequests(
         pendingCount: 0,
         approvedThisMonth: 0,
         employeesOnLeaveToday: 0,
-        averageVacationBalance: 12.0,
+        averageVacationBalance: 0,
       },
     };
   }
@@ -643,18 +677,10 @@ export async function getCompanyVacationRequests(
       reason: l.reason || "Sin observaciones registradas.",
       status: l.status as VacationRequest["status"],
       requestedAt: l.created_at
-        ? new Date(l.created_at).toLocaleDateString("es-MX", {
-            day: "numeric",
-            month: "short",
-            year: "numeric",
-          })
+        ? formatMexicoDateShort(l.created_at)
         : "Reciente",
       reviewedAt: l.reviewed_at
-        ? new Date(l.reviewed_at).toLocaleDateString("es-MX", {
-            day: "numeric",
-            month: "short",
-            year: "numeric",
-          })
+        ? formatMexicoDateShort(l.reviewed_at)
         : undefined,
       reviewedBy: l.reviewed_by || undefined,
       rejectionReason: l.rejection_reason || undefined,
@@ -694,7 +720,7 @@ export async function getCompanyVacationRequests(
     hireDate: e.hire_date || null,
   }));
 
-  let averageVacationBalance = 12.0;
+  let averageVacationBalance = 0;
   if (roster.length > 0) {
     const totalDays = roster.reduce((sum, e) => {
       const lft = calculateLFTVacationDays(e.hireDate || todayStr);

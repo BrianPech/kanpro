@@ -51,13 +51,14 @@ async function getDiscoveryVacancies(): Promise<SearchVacancy[]> {
     ) as string[];
 
     if (companyIds.length > 0) {
-      const { data: companyProfiles } = await supabase
-        .from("company_profiles")
+      const { data: companyDirectoryRows } = await supabase
+        .from("company_directory")
         .select("id, company_name, logo_url, contact_phone, verification_status")
         .in("id", companyIds);
 
-      if (companyProfiles) {
-        companyProfiles.forEach((comp) => {
+      if (companyDirectoryRows) {
+        companyDirectoryRows.forEach((comp) => {
+          if (!comp.id) return;
           companies[comp.id] = {
             company_name: comp.company_name || "Empresa",
             logo_url: comp.logo_url || null,

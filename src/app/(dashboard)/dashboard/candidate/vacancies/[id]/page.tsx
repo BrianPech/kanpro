@@ -39,7 +39,7 @@ export default async function CandidateVacancyDetailPage({ params }: PageProps) 
     { data: similarVacancies },
   ] = await Promise.all([
     supabase
-      .from('company_profiles')
+      .from('company_directory')
       .select('id, company_name, logo_url, industry, description, contact_phone, website_url, verification_status')
       .eq('id', vacancy.company_id)
       .maybeSingle(),

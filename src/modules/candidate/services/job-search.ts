@@ -118,7 +118,7 @@ export const jobSearchService = {
         skills,
         benefits,
         requirements,
-        company:company_profiles (
+        company:company_directory (
           id,
           company_name,
           logo_url,
@@ -253,7 +253,7 @@ export const jobSearchService = {
         skills,
         benefits,
         requirements,
-        company:company_profiles (
+        company:company_directory (
           id,
           company_name,
           logo_url,

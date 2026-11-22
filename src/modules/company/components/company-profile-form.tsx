@@ -119,13 +119,16 @@ const INDUSTRY_LABELS: Record<string, string> = {
 export function CompanyProfileForm({
   initialProfile,
   userId,
+  companyId,
 }: {
   initialProfile: InitialProfile;
   userId: string;
+  companyId?: string;
 }) {
+  const activeCompanyId = companyId || userId;
   const { form, isSaving, onSubmit, handleReset } = useCompanyProfileForm(
     initialProfile,
-    userId
+    activeCompanyId
   );
 
   const {
@@ -173,15 +176,11 @@ export function CompanyProfileForm({
       setValue("logo_url", previewUrl);
 
       const supabase = createClient();
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
-      const currentUserId = user?.id || userId;
       const fileExt = optimizedFile.name.split(".").pop()?.toLowerCase() || "webp";
-      const filePath = `${currentUserId}/logo.${fileExt}`;
+      const filePath = `${activeCompanyId}/logo.${fileExt}`;
 
       const { error: uploadErr } = await supabase.storage
-        .from("avatars")
+        .from("company_assets")
         .upload(filePath, optimizedFile, {
           upsert: true,
           contentType: optimizedFile.type,
@@ -191,7 +190,7 @@ export function CompanyProfileForm({
       if (uploadErr) throw uploadErr;
 
       const { data: urlData } = supabase.storage
-        .from("avatars")
+        .from("company_assets")
         .getPublicUrl(filePath);
 
       if (urlData?.publicUrl) {
@@ -243,15 +242,11 @@ export function CompanyProfileForm({
       setValue("banner_url", previewUrl);
 
       const supabase = createClient();
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
-      const currentUserId = user?.id || userId;
       const fileExt = optimizedFile.name.split(".").pop()?.toLowerCase() || "webp";
-      const filePath = `${currentUserId}/banner.${fileExt}`;
+      const filePath = `${activeCompanyId}/banner.${fileExt}`;
 
       const { error: uploadErr } = await supabase.storage
-        .from("avatars")
+        .from("company_assets")
         .upload(filePath, optimizedFile, {
           upsert: true,
           contentType: optimizedFile.type,
@@ -261,7 +256,7 @@ export function CompanyProfileForm({
       if (uploadErr) throw uploadErr;
 
       const { data: urlData } = supabase.storage
-        .from("avatars")
+        .from("company_assets")
         .getPublicUrl(filePath);
 
       if (urlData?.publicUrl) {

@@ -1,9 +1,17 @@
 import { createClient as createServerClient } from "@/lib/supabase/server";
+import { companyTenantService } from "./company-tenant.service";
 import {
   CompanyDocType,
   CompanyVerificationData,
   CompanyVerificationDoc,
 } from "./company-verification";
+
+const VERIFICATION_DOC_TYPES: CompanyDocType[] = [
+  "acta_constitutiva",
+  "constancia_situacion_fiscal",
+  "legal_rep_id",
+  "legal_power",
+];
 
 export async function getCompanyVerificationServerData(
   targetCompanyId?: string
@@ -18,18 +26,17 @@ export async function getCompanyVerificationServerData(
 
   if (!user) return null;
 
-  let effectiveCompanyId = targetCompanyId;
-  if (!effectiveCompanyId) {
-    try {
-      const { cookies } = await import("next/headers");
-      const cookieStore = await cookies();
-      effectiveCompanyId = cookieStore.get("kanpro_active_company")?.value;
-    } catch {
-      // outside cookie context
-    }
+  let companyScopeId: string;
+  try {
+    const scope = await companyTenantService.resolveActiveCompanyScope(
+      user.id,
+      supabase,
+      targetCompanyId
+    );
+    companyScopeId = scope.companyId;
+  } catch {
+    return null;
   }
-
-  const companyScopeId = effectiveCompanyId || user.id;
 
   const { data: baseProfile } = await supabase
     .from("profiles")
@@ -45,10 +52,18 @@ export async function getCompanyVerificationServerData(
     .eq("id", companyScopeId)
     .maybeSingle();
 
-  const { data: docsData } = await supabase
+  const docsQuery = supabase
     .from("profile_documents")
     .select("*")
-    .or(`owner_id.eq.${companyScopeId},owner_id.eq.${user.id}`);
+    .in("doc_type", VERIFICATION_DOC_TYPES)
+    .not("file_url", "like", "dossiers/%");
+
+  const { data: docsData } =
+    companyScopeId === user.id
+      ? await docsQuery.or(
+          `company_id.eq.${companyScopeId},and(owner_id.eq.${user.id},company_id.is.null)`
+        )
+      : await docsQuery.eq("company_id", companyScopeId);
 
   const docsMap: Record<CompanyDocType, CompanyVerificationDoc | null> = {
     acta_constitutiva: null,
@@ -121,7 +136,7 @@ export async function getCompanyVerificationServerData(
   };
 
   return {
-    companyId: user.id,
+    companyId: companyScopeId,
     verificationData,
   };
 }

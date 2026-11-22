@@ -298,7 +298,7 @@ describe("Fase 18: Gestión de Colaboradores y Contratos - Patrón Schema -> Han
               })),
               select: vi.fn(() => ({
                 eq: vi.fn((fieldA: string, valA: string) => ({
-                  ilike: vi.fn((fieldB: string, valB: string) => ({
+                  eq: vi.fn((fieldB: string, valB: string) => ({
                     in: vi.fn(() => ({
                       maybeSingle: vi.fn(async () => {
                         const found = invitations.find(
@@ -567,22 +567,55 @@ describe("Fase 18: Gestión de Colaboradores y Contratos - Patrón Schema -> Han
     test("createEmployeeInvitation: Crea invitación y placeholder con token seguro", async () => {
       const { client, employees, invitations } = createMockSupabase();
 
-      const result = await CompanyEmployeeService.createEmployeeInvitation(client, "comp-1", {
-        full_name: "Daniela Rivas",
-        email: "daniela.rivas@empresa.com",
-        position: "Concierge",
-        salary: 19000,
-        department: "Atención al Huésped",
-        contract_type: "tiempo_indeterminado",
-      });
+      const result = await CompanyEmployeeService.createEmployeeInvitation(
+        client,
+        "comp-1",
+        {
+          full_name: "Daniela Rivas",
+          email: "daniela.rivas@empresa.com",
+          position: "Concierge",
+          salary: 19000,
+          department: "Atención al Huésped",
+          contract_type: "tiempo_indeterminado",
+        },
+        "user-owner-1"
+      );
 
       expect(result.employee.id).toBeDefined();
       expect(result.employee.status).toBe("pending");
       expect(result.invitation.id).toBeDefined();
+      expect(result.invitation.created_by).toBe("user-owner-1");
+      expect(result.invitation.created_by).not.toBe("comp-1");
       expect(result.rawToken).toBeDefined();
       expect(result.rawToken.length).toBe(64); // 32 bytes hex
       expect(employees.length).toBe(1);
       expect(invitations.length).toBe(1);
+    });
+
+    test("bulkImportEmployees: Registra created_by con userId real (distinto de companyId)", async () => {
+      const { client, invitations } = createMockSupabase();
+
+      const res = await CompanyEmployeeService.bulkImportEmployees(
+        client,
+        "comp-2",
+        [
+          {
+            full_name: "Luis Hernández",
+            email: "luis.hernandez@empresa.com",
+            position: "Recepcionista",
+            salary: 14000,
+            department: "Recepción",
+            contract_type: "tiempo_indeterminado",
+          },
+        ],
+        "user-owner-1"
+      );
+
+      expect(res.imported).toBe(1);
+      expect(res.failed).toBe(0);
+      expect(invitations).toHaveLength(1);
+      expect(invitations[0].created_by).toBe("user-owner-1");
+      expect(invitations[0].created_by).not.toBe("comp-2");
     });
   });
 

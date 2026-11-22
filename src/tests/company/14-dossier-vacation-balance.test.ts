@@ -3,6 +3,7 @@ import React from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@/types/supabase";
+import { getMexicoDateISO } from "@/lib/formatters";
 import { getEmployeeDossierById } from "@/modules/company/services/company-dossier";
 import { CompanyLeavesService } from "@/modules/company/services/company-leaves";
 import type { LeavesRepository, CompanyLeaveRow } from "@/modules/company/repositories/leaves.repository";
@@ -107,18 +108,17 @@ function buildDossierSupabaseMock(options: {
   } as unknown as SupabaseClient<Database>;
 }
 
-function getOneYearAgoISO(): string {
-  const now = new Date();
-  const y = now.getUTCFullYear() - 1;
-  const m = String(now.getUTCMonth() + 1).padStart(2, "0");
-  const d = String(Math.min(28, now.getUTCDate())).padStart(2, "0");
-  return `${y}-${m}-${d}`;
+function getTwoYearsAgoISO(refDate: Date = new Date()): string {
+  const [yStr, mStr, dStr] = getMexicoDateISO(refDate).split("-");
+  const y = Number(yStr) - 2;
+  const d = String(Math.min(28, Number(dStr))).padStart(2, "0");
+  return `${y}-${mStr}-${d}`;
 }
 
 describe("B2: Balance de vacaciones en Expediente Digital 360 y validación en servidor", () => {
   test("Derecho 14 + solicitud aprobada de 3 días (07-09 dic 2026) -> tomados 3, disponible 11, 1 solicitud", async () => {
     const supabase = buildDossierSupabaseMock({
-      hireDate: getOneYearAgoISO(),
+      hireDate: getTwoYearsAgoISO(),
       leaves: [
         {
           id: "leave-1",
@@ -158,7 +158,7 @@ describe("B2: Balance de vacaciones en Expediente Digital 360 y validación en s
 
   test("Solicitud pendiente o visto_bueno reduce el saldo disponible sin sumar a días tomados", async () => {
     const supabase = buildDossierSupabaseMock({
-      hireDate: getOneYearAgoISO(),
+      hireDate: getTwoYearsAgoISO(),
       leaves: [
         {
           id: "leave-pending",
@@ -188,7 +188,7 @@ describe("B2: Balance de vacaciones en Expediente Digital 360 y validación en s
 
   test("Sin solicitudes -> tomados 0, disponible 14, arreglo vacío", async () => {
     const supabase = buildDossierSupabaseMock({
-      hireDate: getOneYearAgoISO(),
+      hireDate: getTwoYearsAgoISO(),
       leaves: [],
     });
 
@@ -221,8 +221,8 @@ describe("B2: Balance de vacaciones en Expediente Digital 360 y validación en s
                   full_name: "qa-semana2c-Ana",
                   email: "ana@empresa.test",
                   employee_id: "cand-ana-uuid",
-                  hire_date: getOneYearAgoISO(),
-                  created_at: `${getOneYearAgoISO()}T00:00:00.000Z`,
+                  hire_date: getTwoYearsAgoISO(),
+                  created_at: `${getTwoYearsAgoISO()}T00:00:00.000Z`,
                 },
                 error: null,
               }),
@@ -243,5 +243,28 @@ describe("B2: Balance de vacaciones en Expediente Digital 360 y validación en s
         endDate: "2026-12-09",
       })
     ).rejects.toThrow(/Saldo de vacaciones insuficiente/);
+  });
+
+  test("Nocturno 19:00-23:59 Cancún (00:00-04:59 UTC del día siguiente) mantiene 2 años cumplidos y 14 días LFT", async () => {
+    vi.useFakeTimers();
+    try {
+      // 2026-11-22T02:30:00.000Z = 2026-11-21 21:30 America/Cancun
+      vi.setSystemTime(new Date("2026-11-22T02:30:00.000Z"));
+      const hireDate = getTwoYearsAgoISO();
+      expect(hireDate).toBe("2024-11-21");
+
+      const supabase = buildDossierSupabaseMock({
+        hireDate,
+        leaves: [],
+      });
+
+      const dossier = await getEmployeeDossierById(supabase, "emp-ana-uuid", "comp-A");
+      expect(dossier).not.toBeNull();
+      expect(dossier!.vacationBalance.yearsOfService).toBe(2);
+      expect(dossier!.vacationBalance.totalDaysAccruedLFT).toBe(14);
+      expect(dossier!.vacationBalance.daysAvailable).toBe(14);
+    } finally {
+      vi.useRealTimers();
+    }
   });
 });

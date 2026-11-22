@@ -3,9 +3,73 @@
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { revalidatePath } from "next/cache";
+import { BUSINESS_TIME_ZONE } from "@/lib/formatters";
+import type { Database } from "@/types/supabase";
 import type { EmployeeDocument, EmployeeDossier } from "../types/employee-dossier";
-import { companyTenantService } from "../services/company-tenant.service";
-import { getEmployeeDossierById } from "../services/company-dossier";
+import {
+  companyTenantService,
+  isValidUuid,
+} from "../services/company-tenant.service";
+import {
+  getEmployeeDossierById,
+  mapDbDocumentTypeToDossierDocType,
+} from "../services/company-dossier";
+
+type DbDocumentType = Database["public"]["Enums"]["document_type"];
+
+const VALID_DB_DOCUMENT_TYPES = new Set<DbDocumentType>([
+  "ine_passport",
+  "curp",
+  "constancia_situacion_fiscal",
+  "proof_of_address",
+  "cv",
+  "cedula_profesional",
+  "titulo_profesional",
+  "acta_constitutiva",
+  "legal_power",
+  "legal_rep_id",
+  "imss_registry",
+  "repse",
+  "operating_license",
+  "work_certificate",
+  "recommendation_letter",
+  "course_certificate",
+  "work_photo",
+]);
+
+const DOSSIER_TO_DB_DOCUMENT_TYPE: Record<EmployeeDocument["docType"], DbDocumentType> = {
+  ine: "ine_passport",
+  curp: "curp",
+  rfc_sat: "constancia_situacion_fiscal",
+  nss: "imss_registry",
+  comprobante_domicilio: "proof_of_address",
+  contrato_laboral: "work_certificate",
+  carta_antecedentes: "recommendation_letter",
+  examen_medico: "work_certificate",
+  comprobante_estudios: "titulo_profesional",
+};
+
+function resolveDbDocumentType(rawDocType: string | null | undefined): DbDocumentType {
+  const normalized = rawDocType?.trim() || "";
+  if (VALID_DB_DOCUMENT_TYPES.has(normalized as DbDocumentType)) {
+    return normalized as DbDocumentType;
+  }
+  if (normalized in DOSSIER_TO_DB_DOCUMENT_TYPE) {
+    return DOSSIER_TO_DB_DOCUMENT_TYPE[normalized as EmployeeDocument["docType"]];
+  }
+  return "work_certificate";
+}
+
+function resolveUiDocumentType(
+  dbDocType: DbDocumentType,
+  rawDocType: string | null | undefined
+): EmployeeDocument["docType"] {
+  const normalized = rawDocType?.trim() || "";
+  if (normalized in DOSSIER_TO_DB_DOCUMENT_TYPE) {
+    return normalized as EmployeeDocument["docType"];
+  }
+  return mapDbDocumentTypeToDossierDocType(dbDocType);
+}
 
 export type UploadDossierDocumentResult =
   | { success: true; data: EmployeeDocument }
@@ -86,11 +150,25 @@ export async function uploadDossierDocumentAction(
     return { success: false, error: "No autorizado. Inicie sesión para continuar." };
   }
 
+  const scope = await companyTenantService.resolveAuthorizedCompanyScope(
+    user.id,
+    supabase,
+    ["owner", "admin"]
+  );
+  if (!scope) {
+    return {
+      success: false,
+      error: "No tienes permisos de administrador para subir documentos en esta empresa.",
+    };
+  }
+
   const file = formData.get("file") as File | null;
-  const employeeId = formData.get("employeeId") as string | null;
-  const candidateId = formData.get("candidateId") as string | null;
+  const employeeId = (formData.get("employeeId") as string | null)?.trim() || "";
+  const candidateId = (formData.get("candidateId") as string | null)?.trim() || "";
   const title = (formData.get("title") as string | null)?.trim();
-  const docType = (formData.get("docType") as string | null)?.trim() || "comprobante_estudios";
+  const rawDocType = (formData.get("docType") as string | null)?.trim() || "comprobante_estudios";
+  const dbDocType = resolveDbDocumentType(rawDocType);
+  const uiDocType = resolveUiDocumentType(dbDocType, rawDocType);
 
   if (!file || !(file instanceof File) || file.size === 0) {
     return { success: false, error: "No se proporcionó un archivo válido para cargar." };
@@ -118,12 +196,47 @@ export async function uploadDossierDocumentAction(
     };
   }
 
-  try {
-    const targetOwnerId = candidateId || employeeId || user.id;
-    const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, "_");
-    const storagePath = `dossiers/${targetOwnerId}/${Date.now()}_${safeName}`;
+  if (!isValidUuid(employeeId)) {
+    return { success: false, error: "Identificador de colaborador inválido." };
+  }
 
-    // 1. Subida real a Supabase Storage en el bucket 'profile_documents'
+  if (candidateId && !isValidUuid(candidateId)) {
+    return { success: false, error: "Identificador de candidato inválido." };
+  }
+
+  try {
+    // 1. Verificar pertenencia del colaborador a la empresa activa
+    const { data: employeeRecord, error: empLookupError } = await supabase
+      .from("company_employees")
+      .select("id, employee_id, company_id")
+      .eq("company_id", scope.companyId)
+      .or(`id.eq.${employeeId},employee_id.eq.${employeeId}`)
+      .maybeSingle();
+
+    if (empLookupError || !employeeRecord) {
+      return {
+        success: false,
+        error: "El colaborador no pertenece a la empresa activa.",
+      };
+    }
+
+    if (
+      candidateId &&
+      employeeRecord.employee_id &&
+      employeeRecord.employee_id !== candidateId
+    ) {
+      return {
+        success: false,
+        error: "El candidato no corresponde al colaborador seleccionado.",
+      };
+    }
+
+    const verifiedOwnerId = employeeRecord.employee_id || candidateId || null;
+    const targetOwnerId = verifiedOwnerId || employeeRecord.id;
+    const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, "_");
+    const storagePath = `dossiers/${scope.companyId}/${targetOwnerId}/${Date.now()}_${safeName}`;
+
+    // 2. Subida real a Supabase Storage en el bucket privado 'profile_documents'
     const { error: uploadError } = await supabase.storage
       .from("profile_documents")
       .upload(storagePath, file, {
@@ -136,39 +249,54 @@ export async function uploadDossierDocumentAction(
       return { success: false, error: "Error al almacenar el archivo en la bóveda digital de Supabase." };
     }
 
-    // 2. Obtener URL del archivo
-    const { data: publicUrlData } = supabase.storage
+    // 3. Generar URL firmada temporal en lugar de getPublicUrl() sobre bucket privado
+    const { data: signedUrlData, error: signedUrlError } = await supabase.storage
       .from("profile_documents")
-      .getPublicUrl(storagePath);
+      .createSignedUrl(storagePath, 3600);
 
-    const fileUrl = publicUrlData.publicUrl;
+    if (signedUrlError || !signedUrlData?.signedUrl) {
+      console.error("Storage signed URL error:", signedUrlError);
+      return { success: false, error: "No se pudo generar una URL firmada para el documento." };
+    }
 
-    // 3. Registrar metadatos en tabla profile_documents si se dispone de owner válido
+    const fileUrl = signedUrlData.signedUrl;
+
+    // 4. Registrar metadatos en tabla profile_documents propagando cualquier error de inserción
     let docId = `doc-${Date.now()}`;
-    if (candidateId) {
-      const { data: insertedDoc } = await supabase
+    if (verifiedOwnerId) {
+      const { data: insertedDoc, error: insertError } = await supabase
         .from("profile_documents")
         .insert({
-          owner_id: candidateId,
-          doc_type: "work_certificate",
+          owner_id: verifiedOwnerId,
+          company_id: scope.companyId,
+          doc_type: dbDocType,
           file_name: file.name,
-          file_url: fileUrl,
+          file_url: storagePath,
           file_size_bytes: file.size,
           status: "approved",
         })
         .select("id")
         .maybeSingle();
 
-      if (insertedDoc?.id) {
-        docId = insertedDoc.id;
+      if (insertError || !insertedDoc?.id) {
+        await supabase.storage
+          .from("profile_documents")
+          .remove([storagePath])
+          .catch(() => undefined);
+        return {
+          success: false,
+          error: insertError?.message || "No se pudo indexar el documento en el expediente.",
+        };
       }
+
+      docId = insertedDoc.id;
     }
 
     revalidatePath("/dashboard/company/employees");
 
     const createdDoc: EmployeeDocument = {
       id: docId,
-      docType: docType as EmployeeDocument["docType"],
+      docType: uiDocType,
       title,
       fileName: file.name,
       fileUrl,
@@ -177,6 +305,7 @@ export async function uploadDossierDocumentAction(
         day: "2-digit",
         month: "short",
         year: "numeric",
+        timeZone: BUSINESS_TIME_ZONE,
       }),
       status: "validado",
     };

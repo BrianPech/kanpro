@@ -664,13 +664,16 @@ describe("Fase 19: Vacantes y Evaluaciones/NOM-035 - Patrón Schema -> Handler -
       const result = await CompanyEvaluationsService.createEvaluation(
         client,
         "comp-1",
-        createEvaluationSchema.parse(rawPayload)
+        createEvaluationSchema.parse(rawPayload),
+        "user-evaluator-1"
       );
 
       expect(result.evaluationId).toBeDefined();
       expect(result.averageScore).toBe(4.5);
       expect(evaluations.length).toBe(1);
       expect(evaluations[0].average_score).toBe(4.5);
+      expect(evaluations[0].evaluator_id).toBe("user-evaluator-1");
+      expect(evaluations[0].evaluator_id).not.toBe("comp-1");
     });
 
     test("deleteEvaluation: Elimina la evaluación de desempeño", async () => {

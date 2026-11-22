@@ -122,19 +122,19 @@ export async function executeWhatsAppConnection(
     // Jerarquía de fallback para obtener el teléfono de contacto de la empresa:
     // 1. companyPhone recibido como parámetro
     // 2. vacancies.contact_phone
-    // 3. company_profiles.contact_phone
+    // 3. company_directory.contact_phone
     // 4. profiles.whatsapp_number del reclutador
     let resolvedPhone = companyPhone?.trim() || vacancy.contact_phone?.trim() || null;
 
     if (!resolvedPhone && vacancy.company_id) {
-      const { data: companyProfile } = await supabase
-        .from("company_profiles")
+      const { data: companyDirectoryRow } = await supabase
+        .from("company_directory")
         .select("contact_phone")
         .eq("id", vacancy.company_id)
         .maybeSingle();
 
-      if (companyProfile?.contact_phone?.trim()) {
-        resolvedPhone = companyProfile.contact_phone.trim();
+      if (companyDirectoryRow?.contact_phone?.trim()) {
+        resolvedPhone = companyDirectoryRow.contact_phone.trim();
       }
     }
 

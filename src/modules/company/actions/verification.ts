@@ -41,11 +41,22 @@ export async function saveCompanyVerificationAction(
     };
   }
 
-  const { companyId: companyScopeId } = await companyTenantService.resolveActiveCompanyScope(user.id, supabase);
-
   const data = parsed.data;
 
   try {
+    const scope = await companyTenantService.resolveAuthorizedCompanyScope(
+      user.id,
+      supabase,
+      ["owner", "admin"]
+    );
+    if (!scope) {
+      return {
+        success: false,
+        error: "No tienes permisos de administrador para guardar los datos de esta empresa.",
+      };
+    }
+
+    const companyScopeId = scope.companyId;
     const companyPayload: Database["public"]["Tables"]["company_profiles"]["Update"] = {
       updated_at: new Date().toISOString(),
     };

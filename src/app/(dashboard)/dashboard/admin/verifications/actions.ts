@@ -159,12 +159,16 @@ export async function getCompanyVerifications(): Promise<PendingCompanyItem[]> {
   }
 
   const companyIds = companies.map((c) => c.id);
+  const companyIdList = companyIds.join(",");
 
-  // Consulta por lote de Profile Documents
+  // Consulta por lote de Profile Documents (soporta company_id y registros legacy con company_id NULL)
   const { data: dbDocs } = await supabase
     .from("profile_documents")
     .select("*")
-    .in("owner_id", companyIds);
+    .not("file_url", "like", "dossiers/%")
+    .or(
+      `company_id.in.(${companyIdList}),and(owner_id.in.(${companyIdList}),company_id.is.null)`
+    );
 
   const companyDocsMap = new Map<string, ProfileDocumentItem[]>();
   if (dbDocs && dbDocs.length > 0) {
@@ -172,9 +176,10 @@ export async function getCompanyVerifications(): Promise<PendingCompanyItem[]> {
     for (let i = 0; i < dbDocs.length; i++) {
       const doc = dbDocs[i];
       const signedDoc = signedDocs[i];
-      const existing = companyDocsMap.get(doc.owner_id) || [];
+      const mapKey = doc.company_id || doc.owner_id;
+      const existing = companyDocsMap.get(mapKey) || [];
       existing.push(signedDoc);
-      companyDocsMap.set(doc.owner_id, existing);
+      companyDocsMap.set(mapKey, existing);
     }
   }
 
@@ -245,7 +250,8 @@ export async function getCompanyVerificationById(companyId: string): Promise<Pen
     supabase
       .from("profile_documents")
       .select("*")
-      .eq("owner_id", companyId),
+      .not("file_url", "like", "dossiers/%")
+      .or(`company_id.eq.${companyId},and(owner_id.eq.${companyId},company_id.is.null)`),
   ]);
 
   const company = companyRes.data;

@@ -46,16 +46,29 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Progress } from "@/components/ui/progress";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import {
-  calculateDailySalary,
+  calculateDailySalaryFromMonthly,
   formatPaymentFrequencyLabel,
+  fromMonthlyEquivalentSalary,
   getMexicoDateISO,
 } from "@/lib/formatters";
 import { buildWhatsAppUrl } from "@/hooks/use-connection";
 import { calculateLFTVacationDays } from "../../utils/vacation-calculator";
-import { EmployeeDocument, EmployeeDossier } from "../../types/employee-dossier";
+import {
+  DOSSIER_DOC_TYPE_LABELS,
+  type DocumentType,
+  type EmployeeDocument,
+  type EmployeeDossier,
+} from "../../types/employee-dossier";
 import {
   getEmployeeDossierDetailsAction,
   uploadDossierDocumentAction,
@@ -108,6 +121,7 @@ export function EmployeeDossierModal({
   const [activeTab, setActiveTab] = React.useState("laboral");
   const [isUploadDocOpen, setIsUploadDocOpen] = React.useState(false);
   const [newDocTitle, setNewDocTitle] = React.useState("");
+  const [newDocType, setNewDocType] = React.useState<DocumentType>("comprobante_estudios");
   const [selectedFile, setSelectedFile] = React.useState<File | null>(null);
   const [isUploadingDoc, setIsUploadingDoc] = React.useState(false);
   const fileInputRef = React.useRef<HTMLInputElement | null>(null);
@@ -162,7 +176,7 @@ export function EmployeeDossierModal({
 
     const baseSalary =
       Number(employee.base_salary_monthly ?? remoteDossier?.baseSalaryMonthly) || 0;
-    const dailyBase = calculateDailySalary(baseSalary, paymentFrequency);
+    const dailyBase = calculateDailySalaryFromMonthly(baseSalary);
     const dailyIntegratedSalary =
       dailyBase > 0 ? Math.round(dailyBase * 1.0493 * 100) / 100 : 0;
 
@@ -231,7 +245,12 @@ export function EmployeeDossierModal({
       positionHistory: remoteDossier?.positionHistory?.length
         ? remoteDossier.positionHistory.map((item, idx) =>
             idx === 0
-              ? { ...item, jobTitle, department, salary: baseSalary }
+              ? {
+                  ...item,
+                  jobTitle,
+                  department,
+                  salary: fromMonthlyEquivalentSalary(baseSalary, paymentFrequency),
+                }
               : item
           )
         : [
@@ -241,7 +260,7 @@ export function EmployeeDossierModal({
               department,
               startDate: hireDate,
               endDate: employee.status === "Baja" ? "Baja" : "Actual",
-              salary: baseSalary,
+              salary: fromMonthlyEquivalentSalary(baseSalary, paymentFrequency),
               promotionReason:
                 employee.status === "Baja"
                   ? employee.notes || "Desvinculación laboral"
@@ -282,10 +301,11 @@ export function EmployeeDossierModal({
   if (!employee || !dossier) return null;
 
   const frequencyLabel = formatPaymentFrequencyLabel(dossier.paymentFrequency);
-  const dailyBaseSalary = calculateDailySalary(
+  const periodicSalary = fromMonthlyEquivalentSalary(
     dossier.baseSalaryMonthly,
     dossier.paymentFrequency
   );
+  const dailyBaseSalary = calculateDailySalaryFromMonthly(dossier.baseSalaryMonthly);
 
   const getInitials = (name: string) => {
     return name
@@ -326,6 +346,7 @@ export function EmployeeDossierModal({
       const formData = new FormData();
       formData.append("file", selectedFile);
       formData.append("title", newDocTitle.trim());
+      formData.append("docType", newDocType);
       formData.append("employeeId", employee.id);
       if (employee.candidate_id) {
         formData.append("candidateId", employee.candidate_id);
@@ -342,6 +363,7 @@ export function EmployeeDossierModal({
       });
 
       setNewDocTitle("");
+      setNewDocType("comprobante_estudios");
       setSelectedFile(null);
       if (fileInputRef.current) fileInputRef.current.value = "";
       setIsUploadDocOpen(false);
@@ -528,7 +550,7 @@ export function EmployeeDossierModal({
                   <span>Salario {frequencyLabel}</span>
                 </span>
                 <p className="text-sm font-extrabold text-foreground font-mono truncate">
-                  ${dossier.baseSalaryMonthly.toLocaleString("es-MX")} MXN
+                  ${periodicSalary.toLocaleString("es-MX")} MXN
                 </p>
                 <p className="text-[10px] text-muted-foreground font-medium capitalize">
                   Pago {dossier.paymentFrequency} • Diario ${dailyBaseSalary.toLocaleString("es-MX", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
@@ -723,7 +745,7 @@ export function EmployeeDossierModal({
                             Salario Base {frequencyLabel}:
                           </span>
                           <span className="font-bold text-foreground font-mono text-sm">
-                            ${dossier.baseSalaryMonthly.toLocaleString("es-MX")} MXN
+                            ${periodicSalary.toLocaleString("es-MX")} MXN
                           </span>
                         </div>
                         <div>
@@ -1307,10 +1329,46 @@ export function EmployeeDossierModal({
             <div className="py-4 space-y-3.5">
               <div className="space-y-1.5">
                 <Label
+                  htmlFor="doc_type"
+                  className="text-xs font-bold uppercase tracking-wider text-muted-foreground"
+                >
+                  Tipo de Documento
+                </Label>
+                <Select
+                  value={newDocType}
+                  onValueChange={(val) => {
+                    if (val) setNewDocType(val as DocumentType);
+                  }}
+                >
+                  <SelectTrigger
+                    id="doc_type"
+                    className="h-10 w-full rounded-lg bg-muted/30 border-border/50 text-xs font-semibold"
+                  >
+                    <SelectValue placeholder="Selecciona el tipo de documento">
+                      {(val: string | null) =>
+                        (val && DOSSIER_DOC_TYPE_LABELS[val as DocumentType]) ||
+                        "Selecciona el tipo de documento"
+                      }
+                    </SelectValue>
+                  </SelectTrigger>
+                  <SelectContent>
+                    {(Object.entries(DOSSIER_DOC_TYPE_LABELS) as Array<[DocumentType, string]>).map(
+                      ([value, label]) => (
+                        <SelectItem key={value} value={value} className="text-xs">
+                          {label}
+                        </SelectItem>
+                      )
+                    )}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-1.5">
+                <Label
                   htmlFor="doc_title"
                   className="text-xs font-bold uppercase tracking-wider text-muted-foreground"
                 >
-                  Nombre / Tipo de Documento
+                  Nombre / Título de Documento
                 </Label>
                 <Input
                   id="doc_title"
@@ -1356,6 +1414,7 @@ export function EmployeeDossierModal({
                 onClick={() => {
                   setIsUploadDocOpen(false);
                   setSelectedFile(null);
+                  setNewDocType("comprobante_estudios");
                 }}
                 className="rounded-lg text-xs font-semibold"
               >

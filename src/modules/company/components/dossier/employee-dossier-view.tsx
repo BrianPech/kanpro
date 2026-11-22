@@ -47,9 +47,25 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
-import { EmployeeDossier, EmployeeDocument } from "../../types/employee-dossier";
+import {
+  formatPaymentFrequencyLabel,
+  fromMonthlyEquivalentSalary,
+} from "@/lib/formatters";
+import {
+  DOSSIER_DOC_TYPE_LABELS,
+  type DocumentType,
+  type EmployeeDossier,
+  type EmployeeDocument,
+} from "../../types/employee-dossier";
 import { uploadDossierDocumentAction } from "../../actions/dossier";
 import { exportDossierToPrintableDocument } from "../../utils/dossier-exporter";
 
@@ -62,6 +78,7 @@ export function EmployeeDossierView({ dossier }: EmployeeDossierViewProps) {
   const [selectedDoc, setSelectedDoc] = useState<EmployeeDocument | null>(null);
   const [isUploadDocOpen, setIsUploadDocOpen] = useState(false);
   const [newDocTitle, setNewDocTitle] = useState("");
+  const [newDocType, setNewDocType] = useState<DocumentType>("comprobante_estudios");
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [isUploadingDoc, setIsUploadingDoc] = useState(false);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
@@ -83,6 +100,7 @@ export function EmployeeDossierView({ dossier }: EmployeeDossierViewProps) {
       const formData = new FormData();
       formData.append("file", selectedFile);
       formData.append("title", newDocTitle.trim());
+      formData.append("docType", newDocType);
       formData.append("employeeId", dossier.id);
       if (dossier.candidateId) {
         formData.append("candidateId", dossier.candidateId);
@@ -99,6 +117,7 @@ export function EmployeeDossierView({ dossier }: EmployeeDossierViewProps) {
       });
 
       setNewDocTitle("");
+      setNewDocType("comprobante_estudios");
       setSelectedFile(null);
       if (fileInputRef.current) fileInputRef.current.value = "";
       setIsUploadDocOpen(false);
@@ -121,6 +140,12 @@ export function EmployeeDossierView({ dossier }: EmployeeDossierViewProps) {
       toast.error("Error al exportar expediente", { description: message });
     }
   };
+
+  const frequencyLabel = formatPaymentFrequencyLabel(dossier.paymentFrequency);
+  const periodicSalary = fromMonthlyEquivalentSalary(
+    dossier.baseSalaryMonthly,
+    dossier.paymentFrequency
+  );
 
   return (
     <div className="p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto space-y-6 sm:space-y-8 animate-in fade-in duration-300">
@@ -202,12 +227,15 @@ export function EmployeeDossierView({ dossier }: EmployeeDossierViewProps) {
 
           <div className="p-4 rounded-2xl bg-card border border-border/60 space-y-2 self-start md:self-center min-w-48 shadow-xs">
             <div className="text-xs font-bold text-muted-foreground">
-              Salario Bruto Mensual
+              Salario Bruto {frequencyLabel}
             </div>
             <div className="text-xl sm:text-2xl font-extrabold text-foreground">
-              ${dossier.baseSalaryMonthly.toLocaleString()} MXN
+              ${periodicSalary.toLocaleString("es-MX")} MXN
             </div>
             <div className="text-[11px] text-muted-foreground font-semibold">
+              {dossier.paymentFrequency !== "mensual"
+                ? `Mensual equiv.: $${dossier.baseSalaryMonthly.toLocaleString("es-MX")} MXN • `
+                : ""}
               SDI Diario: ${dossier.dailyIntegratedSalary.toFixed(2)} MXN
             </div>
           </div>
@@ -366,9 +394,11 @@ export function EmployeeDossierView({ dossier }: EmployeeDossierViewProps) {
               </div>
 
               <div className="space-y-1">
-                <span className="text-xs font-bold text-muted-foreground block">Salario Bruto Mensual</span>
+                <span className="text-xs font-bold text-muted-foreground block">
+                  Salario Bruto {frequencyLabel}
+                </span>
                 <span className="text-lg font-extrabold text-foreground block">
-                  ${dossier.baseSalaryMonthly.toLocaleString()} MXN
+                  ${periodicSalary.toLocaleString("es-MX")} MXN
                 </span>
               </div>
 
@@ -798,6 +828,39 @@ export function EmployeeDossierView({ dossier }: EmployeeDossierViewProps) {
 
             <div className="space-y-3">
               <div className="space-y-1.5">
+                <Label htmlFor="doc-type-view" className="text-xs font-bold text-foreground">
+                  Tipo de Documento *
+                </Label>
+                <Select
+                  value={newDocType}
+                  onValueChange={(val) => {
+                    if (val) setNewDocType(val as DocumentType);
+                  }}
+                >
+                  <SelectTrigger
+                    id="doc-type-view"
+                    className="h-10 w-full rounded-xl bg-background border-border/80 text-xs font-medium"
+                  >
+                    <SelectValue placeholder="Selecciona el tipo de documento">
+                      {(val: string | null) =>
+                        (val && DOSSIER_DOC_TYPE_LABELS[val as DocumentType]) ||
+                        "Selecciona el tipo de documento"
+                      }
+                    </SelectValue>
+                  </SelectTrigger>
+                  <SelectContent>
+                    {(Object.entries(DOSSIER_DOC_TYPE_LABELS) as Array<[DocumentType, string]>).map(
+                      ([value, label]) => (
+                        <SelectItem key={value} value={value} className="text-xs">
+                          {label}
+                        </SelectItem>
+                      )
+                    )}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-1.5">
                 <Label htmlFor="doc-title" className="text-xs font-bold text-foreground">
                   Nombre o Título del Documento *
                 </Label>
@@ -845,6 +908,7 @@ export function EmployeeDossierView({ dossier }: EmployeeDossierViewProps) {
                 onClick={() => {
                   setIsUploadDocOpen(false);
                   setSelectedFile(null);
+                  setNewDocType("comprobante_estudios");
                 }}
                 className="rounded-xl text-xs font-bold h-10 px-4"
               >

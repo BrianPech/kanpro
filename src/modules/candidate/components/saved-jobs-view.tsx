@@ -97,13 +97,14 @@ export function SavedJobsView({ onBack }: SavedJobsViewProps) {
 
       const companies: Record<string, { company_name: string; logo_url: string | null }> = {};
       if (companyIds.length > 0) {
-        const { data: compProfiles } = await supabase
-          .from("company_profiles")
+        const { data: compDirectoryRows } = await supabase
+          .from("company_directory")
           .select("id, company_name, logo_url")
           .in("id", companyIds);
         
-        if (compProfiles) {
-          compProfiles.forEach((c: any) => {
+        if (compDirectoryRows) {
+          compDirectoryRows.forEach((c: { id: string | null; company_name: string | null; logo_url: string | null }) => {
+            if (!c.id) return;
             companies[c.id] = {
               company_name: c.company_name || "Empresa",
               logo_url: c.logo_url || null,

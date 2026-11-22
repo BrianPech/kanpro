@@ -832,14 +832,14 @@ isOneToOne: false
                   ]
                 },"profile_documents": {
                   Row: {
-                    "created_at": string,"doc_type": Database["public"]['Enums']["document_type"],"file_name": string,"file_size_bytes": number | null,"file_url": string,"id": string,"owner_id": string,"rejection_reason": string | null,"status": Database["public"]['Enums']["verification_status"],"updated_at": string
+                    "company_id": string | null,"created_at": string,"doc_type": Database["public"]['Enums']["document_type"],"file_name": string,"file_size_bytes": number | null,"file_url": string,"id": string,"owner_id": string,"rejection_reason": string | null,"status": Database["public"]['Enums']["verification_status"],"updated_at": string
                   }
                   ComputedFields: never
                   Insert: {
-                    "created_at"?: string,"doc_type": Database["public"]['Enums']["document_type"],"file_name": string,"file_size_bytes"?: number | null,"file_url": string,"id"?: string,"owner_id": string,"rejection_reason"?: string | null,"status"?: Database["public"]['Enums']["verification_status"],"updated_at"?: string
+                    "company_id"?: string | null,"created_at"?: string,"doc_type": Database["public"]['Enums']["document_type"],"file_name": string,"file_size_bytes"?: number | null,"file_url": string,"id"?: string,"owner_id": string,"rejection_reason"?: string | null,"status"?: Database["public"]['Enums']["verification_status"],"updated_at"?: string
                   }
                   Update: {
-                    "created_at"?: string,"doc_type"?: Database["public"]['Enums']["document_type"],"file_name"?: string,"file_size_bytes"?: number | null,"file_url"?: string,"id"?: string,"owner_id"?: string,"rejection_reason"?: string | null,"status"?: Database["public"]['Enums']["verification_status"],"updated_at"?: string
+                    "company_id"?: string | null,"created_at"?: string,"doc_type"?: Database["public"]['Enums']["document_type"],"file_name"?: string,"file_size_bytes"?: number | null,"file_url"?: string,"id"?: string,"owner_id"?: string,"rejection_reason"?: string | null,"status"?: Database["public"]['Enums']["verification_status"],"updated_at"?: string
                   }
                   Relationships: [
                     {
@@ -1103,7 +1103,7 @@ isOneToOne: false
                   ]
                 },"company_directory": {
                   Row: {
-                    "banner_url": string | null,"company_name": string | null,"company_size": string | null,"description": string | null,"id": string | null,"industry": string | null,"is_early_access": boolean | null,"logo_url": string | null,"social_links": Json | null,"verification_status": Database["public"]['Enums']["verification_status"] | null,"website_url": string | null
+                    "banner_url": string | null,"company_name": string | null,"company_size": string | null,"contact_phone": string | null,"description": string | null,"id": string | null,"industry": string | null,"is_early_access": boolean | null,"logo_url": string | null,"social_links": Json | null,"verification_status": Database["public"]['Enums']["verification_status"] | null,"website_url": string | null
                   }
                   ComputedFields: never
                   Relationships: [

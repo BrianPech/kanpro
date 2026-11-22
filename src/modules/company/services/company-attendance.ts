@@ -15,7 +15,7 @@ import {
   calculateDistanceInMeters,
   calculatePunctualityRate,
 } from "../utils/attendance-utils";
-import { getMexicoDateISO } from "@/lib/formatters";
+import { BUSINESS_TIME_ZONE, getMexicoDateISO } from "@/lib/formatters";
 import { GEO_CONFIG, getCitiesList } from "@/config/geo";
 import type {
   MobileCheckInInput,
@@ -91,16 +91,23 @@ export function calculateDelayMinutes(
   delayMinutes: number;
 } {
   const workDate = getMexicoDateISO(now);
-  const timeStr = now.toLocaleTimeString("es-MX", {
+  const parts = new Intl.DateTimeFormat("en-GB", {
+    timeZone: BUSINESS_TIME_ZONE,
     hour: "2-digit",
     minute: "2-digit",
     hour12: false,
-  });
+  }).formatToParts(now);
 
-  const currentHour = now.getHours();
-  const currentMin = now.getMinutes();
-  const scheduledHour = parseInt(scheduledCheckIn.split(":")[0], 10) || 8;
-  const scheduledMin = parseInt(scheduledCheckIn.split(":")[1], 10) || 0;
+  const rawHour = Number(parts.find((p) => p.type === "hour")?.value ?? 0);
+  const currentHour = rawHour === 24 ? 0 : rawHour;
+  const currentMin = Number(parts.find((p) => p.type === "minute")?.value ?? 0);
+  const timeStr = `${String(currentHour).padStart(2, "0")}:${String(currentMin).padStart(2, "0")}`;
+
+  const [rawSchedHour, rawSchedMin] = scheduledCheckIn.split(":");
+  const parsedSchedHour = Number.parseInt(rawSchedHour ?? "", 10);
+  const parsedSchedMin = Number.parseInt(rawSchedMin ?? "", 10);
+  const scheduledHour = Number.isNaN(parsedSchedHour) ? 8 : parsedSchedHour;
+  const scheduledMin = Number.isNaN(parsedSchedMin) ? 0 : parsedSchedMin;
 
   const currentMinutesFromMidnight = currentHour * 60 + currentMin;
   const scheduledMinutesFromMidnight = scheduledHour * 60 + scheduledMin;
@@ -374,8 +381,9 @@ export class CompanyAttendanceService {
     companyId: string,
     input: GetAttendanceHistoryInput
   ): Promise<EmployeeAttendanceHistory> {
-    const month = input.month ?? new Date().getMonth() + 1;
-    const year = input.year ?? new Date().getFullYear();
+    const [currentYear, currentMonth] = getMexicoDateISO().split("-").map(Number);
+    const month = input.month ?? currentMonth;
+    const year = input.year ?? currentYear;
 
     const { data: employee, error: empError } = await this.supabase
       .from("company_employees")
@@ -511,7 +519,7 @@ export class CompanyAttendanceService {
     });
 
     const dateObj = new Date(todayStr + "T12:00:00Z");
-    const isSunday = dateObj.getDay() === 0;
+    const isSunday = dateObj.getUTCDay() === 0;
 
     const records: AttendanceRecord[] = rawEmployees.map((emp) => {
       const existing = attendanceByEmployee.get(emp.id);
@@ -643,12 +651,14 @@ export class CompanyAttendanceService {
             ? new Date(existing.justification_submitted_at).toLocaleTimeString("es-MX", {
                 hour: "2-digit",
                 minute: "2-digit",
+                timeZone: BUSINESS_TIME_ZONE,
               })
             : "Hoy",
           reviewedAt: existing.justification_reviewed_at
             ? new Date(existing.justification_reviewed_at).toLocaleTimeString("es-MX", {
                 hour: "2-digit",
                 minute: "2-digit",
+                timeZone: BUSINESS_TIME_ZONE,
               })
             : undefined,
           reviewedBy: existing.justification_reviewed_by || undefined,
@@ -762,8 +772,8 @@ export class CompanyAttendanceService {
     let totalOvertimeHours = 0;
 
     for (let d = 1; d <= daysInMonth; d++) {
-      const dateObj = new Date(year, month - 1, d);
-      const dayOfWeekIndex = dateObj.getDay();
+      const dateObj = new Date(Date.UTC(year, month - 1, d, 12, 0, 0));
+      const dayOfWeekIndex = dateObj.getUTCDay();
       const dayOfWeek = DAY_NAMES_SHORT[dayOfWeekIndex];
       const isSunday = dayOfWeekIndex === 0;
       const dateStr = `${year}-${String(month).padStart(2, "0")}-${String(d).padStart(2, "0")}`;

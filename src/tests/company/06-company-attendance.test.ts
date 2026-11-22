@@ -183,23 +183,54 @@ describe("Fase 15: Módulo de Asistencia - Arquitectura Schema -> Handler -> Ser
     });
 
     test("calculateDelayMinutes: Respeta los 15 minutos de tolerancia para retardos", () => {
-      // Entrada a las 08:00, checada a las 08:12 (dentro de tolerancia de 15 min)
-      const onTimeDate = new Date("2026-10-01T08:12:00");
+      // Entrada a las 08:00, checada a las 08:12 Cancún (dentro de tolerancia de 15 min)
+      const onTimeDate = new Date("2026-10-01T08:12:00-05:00");
       const onTime = calculateDelayMinutes("08:00", onTimeDate, 15);
       expect(onTime.isLate).toBe(false);
       expect(onTime.delayMinutes).toBe(0);
 
-      // Entrada a las 08:00, checada a las 08:15 (exactamente en el límite de tolerancia)
-      const exactLimitDate = new Date("2026-10-01T08:15:00");
+      // Entrada a las 08:00, checada a las 08:15 Cancún (exactamente en el límite de tolerancia)
+      const exactLimitDate = new Date("2026-10-01T08:15:00-05:00");
       const exactLimit = calculateDelayMinutes("08:00", exactLimitDate, 15);
       expect(exactLimit.isLate).toBe(false);
       expect(exactLimit.delayMinutes).toBe(0);
 
-      // Entrada a las 08:00, checada a las 08:25 (supera los 15 min de tolerancia)
-      const lateDate = new Date("2026-10-01T08:25:00");
+      // Entrada a las 08:00, checada a las 08:25 Cancún (supera los 15 min de tolerancia)
+      const lateDate = new Date("2026-10-01T08:25:00-05:00");
       const late = calculateDelayMinutes("08:00", lateDate, 15);
       expect(late.isLate).toBe(true);
       expect(late.delayMinutes).toBe(25);
+    });
+
+    test("calculateDelayMinutes: Usa BUSINESS_TIME_ZONE (America/Cancun) aunque el servidor corra en UTC y soporta turno 00:00", () => {
+      // 07:55 Cancún = 12:55 UTC. Entrada a las 08:00 -> 0 minutos de retardo (nunca 295)
+      const earlyCancunUtc = new Date("2026-11-21T12:55:00.000Z");
+      const earlyCheck = calculateDelayMinutes("08:00", earlyCancunUtc, 15);
+      expect(earlyCheck.workDate).toBe("2026-11-21");
+      expect(earlyCheck.timeStr).toBe("07:55");
+      expect(earlyCheck.isLate).toBe(false);
+      expect(earlyCheck.delayMinutes).toBe(0);
+
+      // Turno nocturno 00:00: 00:10 Cancún = 05:10 UTC -> dentro de tolerancia (0 min)
+      const midnightOnTime = calculateDelayMinutes(
+        "00:00",
+        new Date("2026-11-22T05:10:00.000Z"),
+        15
+      );
+      expect(midnightOnTime.workDate).toBe("2026-11-22");
+      expect(midnightOnTime.timeStr).toBe("00:10");
+      expect(midnightOnTime.isLate).toBe(false);
+      expect(midnightOnTime.delayMinutes).toBe(0);
+
+      // Turno nocturno 00:00: 00:25 Cancún = 05:25 UTC -> 25 minutos de retardo
+      const midnightLate = calculateDelayMinutes(
+        "00:00",
+        new Date("2026-11-22T05:25:00.000Z"),
+        15
+      );
+      expect(midnightLate.timeStr).toBe("00:25");
+      expect(midnightLate.isLate).toBe(true);
+      expect(midnightLate.delayMinutes).toBe(25);
     });
   });
 

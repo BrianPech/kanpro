@@ -91,7 +91,7 @@ describe("Lógica de Conexión WhatsApp (Prevención de Bucle de Contacto)", () 
       });
     });
 
-    test("Caso B: Fallback a company_profiles.contact_phone si la vacante no tiene teléfono directo", async () => {
+    test("Caso B: Fallback a company_directory.contact_phone si la vacante no tiene teléfono directo", async () => {
       const supabaseMock = {
         auth: {
           getUser: vi.fn().mockResolvedValue({ data: { user: { id: "cand-user-123" } }, error: null }),
@@ -115,7 +115,7 @@ describe("Lógica de Conexión WhatsApp (Prevención de Bucle de Contacto)", () 
               })),
             };
           }
-          if (table === "company_profiles") {
+          if (table === "company_directory") {
             return {
               select: vi.fn(() => ({
                 eq: vi.fn(() => ({
@@ -141,7 +141,7 @@ describe("Lógica de Conexión WhatsApp (Prevención de Bucle de Contacto)", () 
         initiatedBy: "candidate",
       });
 
-      // Teléfono resuelto desde company_profiles
+      // Teléfono resuelto desde company_directory
       expect(whatsappUrl).toContain("https://wa.me/529991112233");
     });
 
@@ -222,7 +222,7 @@ describe("Lógica de Conexión WhatsApp (Prevención de Bucle de Contacto)", () 
               })),
             };
           }
-          if (table === "company_profiles") {
+          if (table === "company_directory") {
             return {
               select: vi.fn(() => ({
                 eq: vi.fn(() => ({

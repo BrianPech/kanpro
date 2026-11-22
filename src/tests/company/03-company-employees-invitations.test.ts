@@ -505,7 +505,7 @@ David Chan,david@empresa.com,Electricista
             if (table === "profiles") {
               return {
                 select: vi.fn(() => ({
-                  ilike: vi.fn(() => ({
+                  eq: vi.fn(() => ({
                     maybeSingle: vi.fn().mockResolvedValue({
                       data: { id: "user-existing-123", email: "existente@empresa.com", full_name: "Juan Existente" },
                       error: null,
@@ -568,7 +568,7 @@ David Chan,david@empresa.com,Electricista
             if (table === "profiles") {
               return {
                 select: vi.fn(() => ({
-                  ilike: vi.fn(() => ({
+                  eq: vi.fn(() => ({
                     maybeSingle: vi.fn().mockResolvedValue({
                       data: null,
                       error: null,
@@ -650,7 +650,7 @@ David Chan,david@empresa.com,Electricista
             if (table === "profiles") {
               return {
                 select: vi.fn(() => ({
-                  ilike: vi.fn(() => ({
+                  eq: vi.fn(() => ({
                     maybeSingle: vi.fn().mockResolvedValue({
                       data: null,
                       error: null,

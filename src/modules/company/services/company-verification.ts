@@ -62,11 +62,15 @@ export const companyVerificationService = {
   },
 
   async saveVerificationData(
-    userId: string,
+    companyId: string,
     data: Partial<CompanyVerificationData>,
     submitForReview = false
   ) {
     const supabase = createClient();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+    const authUserId = user?.id || companyId;
 
     // 1. Update company_profiles
     const companyPayload: Database["public"]["Tables"]["company_profiles"]["Update"] = {
@@ -93,26 +97,30 @@ export const companyVerificationService = {
     const { error: companyErr } = await supabase
       .from("company_profiles")
       .update(companyPayload)
-      .eq("id", userId);
+      .eq("id", companyId);
 
     if (companyErr) throw companyErr;
 
-    // 2. Sync base profiles location & contact phone if provided
+    // 2. Sync base profiles terms (and legacy profile fields only when companyId matches authUserId)
     const profilesPayload: Database["public"]["Tables"]["profiles"]["Update"] = {
       updated_at: new Date().toISOString(),
     };
-    if (data.company_name) profilesPayload.full_name = data.company_name;
-    if (data.fiscal_address) profilesPayload.location = data.fiscal_address;
-    if (data.contact_phone) profilesPayload.whatsapp_number = data.contact_phone;
+    if (companyId === authUserId) {
+      if (data.company_name) profilesPayload.full_name = data.company_name;
+      if (data.fiscal_address) profilesPayload.location = data.fiscal_address;
+      if (data.contact_phone) profilesPayload.whatsapp_number = data.contact_phone;
+    }
     if (data.terms_accepted) profilesPayload.terms_accepted_at = new Date().toISOString();
 
-    await supabase
-      .from("profiles")
-      .update(profilesPayload)
-      .eq("id", userId);
+    if (Object.keys(profilesPayload).length > 1) {
+      await supabase
+        .from("profiles")
+        .update(profilesPayload)
+        .eq("id", authUserId);
+    }
   },
 
-  async unlockForEditing(userId: string) {
+  async unlockForEditing(companyId: string) {
     const supabase = createClient();
     const { error } = await supabase
       .from("company_profiles")
@@ -120,17 +128,25 @@ export const companyVerificationService = {
         verification_status: null,
         updated_at: new Date().toISOString(),
       })
-      .eq("id", userId);
+      .eq("id", companyId);
 
     if (error) throw error;
   },
 
   async uploadDocument(
-    userId: string,
+    companyId: string,
     docType: CompanyDocType,
     rawFile: File
   ): Promise<CompanyVerificationDoc> {
     const supabase = createClient();
+    const {
+      data: { user },
+      error: authError,
+    } = await supabase.auth.getUser();
+
+    if (authError || !user) {
+      throw new Error("No autorizado. Inicia sesión para subir documentos.");
+    }
 
     if (!["application/pdf", "image/jpeg", "image/png", "image/webp"].includes(rawFile.type)) {
       throw new Error("Formato no permitido. Carga un PDF, JPG, PNG o WEBP.");
@@ -151,9 +167,9 @@ export const companyVerificationService = {
     const ext =
       file.name.split(".").pop()?.toLowerCase() ||
       (file.type === "application/pdf" ? "pdf" : "webp");
-    const filePath = `${userId}/${docType}.${ext}`;
+    const filePath = `company_verification/${companyId}/${docType}.${ext}`;
 
-    // 1. Upload to Supabase Storage bucket 'profile_documents'
+    // 1. Upload to Supabase Storage bucket 'profile_documents' scoped per company
     const { error: uploadErr } = await supabase.storage
       .from("profile_documents")
       .upload(filePath, file, {
@@ -172,16 +188,23 @@ export const companyVerificationService = {
     // short-lived signed URL from the server when inspecting the document.
     const fileUrl = filePath;
 
-    // 3. Check if document record already exists in profile_documents table
-    const { data: existingDoc } = await supabase
+    // 3. Check if document record already exists in profile_documents for this company
+    const existingQuery = supabase
       .from("profile_documents")
       .select("id, file_url")
-      .eq("owner_id", userId)
       .eq("doc_type", docType)
-      .maybeSingle();
+      .not("file_url", "like", "dossiers/%");
+
+    const { data: existingDoc } =
+      companyId === user.id
+        ? await existingQuery
+            .or(`company_id.eq.${companyId},and(owner_id.eq.${user.id},company_id.is.null)`)
+            .maybeSingle()
+        : await existingQuery.eq("company_id", companyId).maybeSingle();
 
     const docPayload = {
-      owner_id: userId,
+      owner_id: user.id,
+      company_id: companyId,
       doc_type: docType,
       file_url: fileUrl,
       file_name: file.name,
@@ -235,43 +258,62 @@ export const companyVerificationService = {
     };
   },
 
-  async deleteDocument(userId: string, docType: CompanyDocType, docId?: string) {
+  async deleteDocument(companyId: string, docType: CompanyDocType, docId?: string) {
     const supabase = createClient();
+    const {
+      data: { user },
+      error: authError,
+    } = await supabase.auth.getUser();
+
+    if (authError || !user) {
+      throw new Error("No autorizado. Inicia sesión para eliminar documentos.");
+    }
+
+    const legacyOrFilter =
+      companyId === user.id
+        ? `company_id.eq.${companyId},and(owner_id.eq.${user.id},company_id.is.null)`
+        : null;
 
     let fileUrl: string | null = null;
 
     if (docId) {
-      const { data: docData } = await supabase
+      const selectQ = supabase
         .from("profile_documents")
         .select("file_url")
-        .eq("id", docId)
-        .eq("owner_id", userId)
-        .maybeSingle();
+        .eq("id", docId);
+      const { data: docData } = legacyOrFilter
+        ? await selectQ.or(legacyOrFilter).maybeSingle()
+        : await selectQ.eq("company_id", companyId).maybeSingle();
 
       fileUrl = docData?.file_url || null;
 
-      const { error } = await supabase
+      const deleteQ = supabase
         .from("profile_documents")
         .delete()
-        .eq("id", docId)
-        .eq("owner_id", userId);
+        .eq("id", docId);
+      const { error } = legacyOrFilter
+        ? await deleteQ.or(legacyOrFilter)
+        : await deleteQ.eq("company_id", companyId);
 
       if (error) throw error;
     } else {
-      const { data: docData } = await supabase
+      const selectQ = supabase
         .from("profile_documents")
         .select("file_url")
-        .eq("owner_id", userId)
-        .eq("doc_type", docType)
-        .maybeSingle();
+        .eq("doc_type", docType);
+      const { data: docData } = legacyOrFilter
+        ? await selectQ.or(legacyOrFilter).maybeSingle()
+        : await selectQ.eq("company_id", companyId).maybeSingle();
 
       fileUrl = docData?.file_url || null;
 
-      const { error } = await supabase
+      const deleteQ = supabase
         .from("profile_documents")
         .delete()
-        .eq("owner_id", userId)
         .eq("doc_type", docType);
+      const { error } = legacyOrFilter
+        ? await deleteQ.or(legacyOrFilter)
+        : await deleteQ.eq("company_id", companyId);
 
       if (error) throw error;
     }

@@ -79,13 +79,16 @@ export async function createEvaluationAction(
     return { success: false, error: "No autorizado. Inicie sesión como empresa." };
   }
 
-  const { companyId: companyScopeId } = await companyTenantService.resolveActiveCompanyScope(user.id, supabase);
-
   try {
+    const { companyId: companyScopeId } = await companyTenantService.resolveActiveCompanyScope(
+      user.id,
+      supabase
+    );
     const result = await CompanyEvaluationsService.createEvaluation(
       supabase,
       companyScopeId,
-      parsed.data
+      parsed.data,
+      user.id
     );
 
     revalidatePath("/dashboard/company/evaluations");
@@ -130,9 +133,11 @@ export async function deleteEvaluationAction(
     return { success: false, error: "No autorizado." };
   }
 
-  const { companyId: companyScopeId } = await companyTenantService.resolveActiveCompanyScope(user.id, supabase);
-
   try {
+    const { companyId: companyScopeId } = await companyTenantService.resolveActiveCompanyScope(
+      user.id,
+      supabase
+    );
     await CompanyEvaluationsService.deleteEvaluation(
       supabase,
       companyScopeId,
@@ -171,9 +176,11 @@ export async function createNom035SurveyAction(
     return { success: false, error: "No autorizado." };
   }
 
-  const { companyId: companyScopeId } = await companyTenantService.resolveActiveCompanyScope(user.id, supabase);
-
   try {
+    const { companyId: companyScopeId } = await companyTenantService.resolveActiveCompanyScope(
+      user.id,
+      supabase
+    );
     const result = await CompanyEvaluationsService.createNom035Survey(
       supabase,
       companyScopeId,
@@ -222,9 +229,11 @@ export async function deleteNom035SurveyAction(
     return { success: false, error: "No autorizado." };
   }
 
-  const { companyId: companyScopeId } = await companyTenantService.resolveActiveCompanyScope(user.id, supabase);
-
   try {
+    const { companyId: companyScopeId } = await companyTenantService.resolveActiveCompanyScope(
+      user.id,
+      supabase
+    );
     await CompanyEvaluationsService.deleteNom035Survey(
       supabase,
       companyScopeId,

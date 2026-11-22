@@ -50,7 +50,7 @@ export async function getVacanciesByLocation(
       benefits,
       status,
       company_id,
-      company:company_profiles (
+      company:company_directory (
         id,
         company_name,
         logo_url

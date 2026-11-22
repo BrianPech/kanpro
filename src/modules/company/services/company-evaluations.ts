@@ -43,8 +43,19 @@ export class CompanyEvaluationsService {
   public static async createEvaluation(
     supabase: SupabaseClient<Database>,
     companyId: string,
-    input: CreateEvaluationInput
+    input: CreateEvaluationInput,
+    evaluatorUserId?: string | null
   ): Promise<{ evaluationId: string; averageScore: number }> {
+    let resolvedEvaluatorId = evaluatorUserId?.trim() || null;
+    if (!resolvedEvaluatorId && supabase.auth?.getUser) {
+      try {
+        const { data: authData } = await supabase.auth.getUser();
+        resolvedEvaluatorId = authData?.user?.id || null;
+      } catch {
+        resolvedEvaluatorId = null;
+      }
+    }
+
     const scores = [
       input.punctualityScore,
       input.attendanceScore,
@@ -67,7 +78,7 @@ export class CompanyEvaluationsService {
     const payload: EvaluationInsert = {
       company_id: companyId,
       employee_id: input.employeeId || null,
-      evaluator_id: companyId,
+      evaluator_id: resolvedEvaluatorId,
       employee_name: input.employeeName.trim(),
       job_title: input.jobTitle?.trim() || null,
       department: input.department?.trim() || null,
