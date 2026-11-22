@@ -35,6 +35,9 @@ import { IncidentEvidenceModal } from "./incidents/incident-evidence-modal";
 import { updateIncidentStatusAction, deleteIncidentAction } from "../actions/incidents";
 import { CompanyPageHeader } from "./shared/company-page-header";
 import { CompanyStatusBadge } from "./shared/company-status-badge";
+import { parseCompanyWorkRulesConfig } from "../strategies/company-policies.parser";
+import { getResetPeriodKey } from "../strategies/punctuality-policy.engine";
+import { getMexicoDateISO } from "@/lib/formatters";
 
 interface IncidentsViewProps {
   initialIncidents?: LaborIncident[];
@@ -43,12 +46,14 @@ interface IncidentsViewProps {
     pendingIncidentsCount?: number;
     criticalIncidentsCount?: number;
   };
+  payrollImpactConfig?: unknown;
 }
 
 export function IncidentsView({
   initialIncidents = [],
   employees = [],
   kpis,
+  payrollImpactConfig,
 }: IncidentsViewProps) {
   const [incidents, setIncidents] = useState<LaborIncident[]>(initialIncidents);
   const [searchQuery, setSearchQuery] = useState("");
@@ -193,6 +198,73 @@ export function IncidentsView({
   const recognitionCount = incidents.filter((i) => i.category === "reconocimiento").length;
   const criticalCount = incidents.filter((i) => i.severity === "alta" || i.severity === "critica").length;
 
+  const workRules = React.useMemo(
+    () => parseCompanyWorkRulesConfig(payrollImpactConfig),
+    [payrollImpactConfig]
+  );
+  const currentPeriodKey = React.useMemo(
+    () => getResetPeriodKey(getMexicoDateISO(), workRules.resetPeriod),
+    [workRules.resetPeriod]
+  );
+
+  const payrollImpactRows = React.useMemo(() => {
+    const byEmp = new Map<
+      string,
+      {
+        employeeName: string;
+        delaysCount: number;
+        absencesCount: number;
+        pendingClarifications: number;
+        imssCount: number;
+      }
+    >();
+
+    for (const inc of incidents) {
+      if (inc.status === "rechazado") continue;
+      if (getResetPeriodKey(inc.incidentDate, workRules.resetPeriod) !== currentPeriodKey) {
+        continue;
+      }
+      const entry = byEmp.get(inc.employeeId) ?? {
+        employeeName: inc.employeeName,
+        delaysCount: 0,
+        absencesCount: 0,
+        pendingClarifications: 0,
+        imssCount: 0,
+      };
+      if (inc.status === "por_aclarar") {
+        entry.pendingClarifications += 1;
+      } else if (inc.category === "retardo" && inc.status === "aprobado") {
+        entry.delaysCount += 1;
+      } else if (inc.category === "falta_injustificada" && inc.status === "aprobado") {
+        entry.absencesCount += 1;
+      } else if (inc.category === "incapacidad") {
+        entry.imssCount += 1;
+      }
+      byEmp.set(inc.employeeId, entry);
+    }
+
+    return Array.from(byEmp.entries()).map(([employeeId, row]) => {
+      const delayAbsenceEquivalents =
+        Math.floor(row.delaysCount / workRules.delaysPerAbsence) * workRules.delayDeductionDays;
+      const totalAbsenceEquivalents = row.absencesCount + delayAbsenceEquivalents;
+      const statusLabel =
+        row.pendingClarifications > 0
+          ? "Por aclarar"
+          : totalAbsenceEquivalents > 0
+            ? "Impacta nómina"
+            : row.imssCount > 0
+              ? "IMSS (sin falta)"
+              : "En rango";
+      return {
+        employeeId,
+        ...row,
+        delayAbsenceEquivalents,
+        totalAbsenceEquivalents,
+        statusLabel,
+      };
+    });
+  }, [incidents, workRules, currentPeriodKey]);
+
   return (
     <div className="w-full space-y-6 pb-12 animate-in fade-in duration-300">
       <CompanyPageHeader
@@ -269,6 +341,53 @@ export function IncidentsView({
           </p>
         </Card>
       </div>
+
+      {/* Panel Impacto en Nómina */}
+      <Card className="p-5 space-y-3">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+          <div>
+            <h3 className="text-sm font-extrabold text-foreground">
+              Impacto en Nómina
+            </h3>
+            <p className="text-[11px] text-muted-foreground font-medium">
+              Regla activa: {workRules.delaysPerAbsence} retardos = {workRules.delayDeductionDays} día(s) · reinicio {workRules.resetPeriod} · 7° día {workRules.seventhDayMode}
+            </p>
+          </div>
+          <Badge variant="outline" className="text-[11px] font-mono self-start sm:self-center">
+            {payrollImpactRows.length} colaboradores con eventos en periodo
+          </Badge>
+        </div>
+
+        {payrollImpactRows.length === 0 ? (
+          <p className="text-xs text-muted-foreground">
+            Sin retardos acumulados ni faltas equivalentes en el periodo vigente.
+          </p>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+            {payrollImpactRows.map((row) => (
+              <div
+                key={row.employeeId}
+                className="p-3 rounded-xl border border-border/50 bg-muted/20 flex items-center justify-between gap-3"
+              >
+                <div className="min-w-0 space-y-0.5">
+                  <p className="text-xs font-bold text-foreground truncate">
+                    {row.employeeName}
+                  </p>
+                  <p className="text-[11px] text-muted-foreground">
+                    {row.delaysCount} retardo(s) → {row.totalAbsenceEquivalents} falta(s) equiv.
+                  </p>
+                </div>
+                <Badge
+                  variant={row.totalAbsenceEquivalents > 0 ? "destructive" : "outline"}
+                  className="text-[10px] shrink-0"
+                >
+                  {row.statusLabel}
+                </Badge>
+              </div>
+            ))}
+          </div>
+        )}
+      </Card>
 
       {/* Main List */}
       <Card className="p-5 sm:p-6 space-y-5">

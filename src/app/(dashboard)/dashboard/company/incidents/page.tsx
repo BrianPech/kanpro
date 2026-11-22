@@ -17,7 +17,7 @@ export default async function CompanyIncidentsPage() {
 
   const targetCompanyId = activeCompanyId || user?.id;
 
-  const [incidentsRes, employeesRes, dashboardData] = await Promise.all([
+  const [incidentsRes, employeesRes, dashboardData, profileRes] = await Promise.all([
     getCompanyIncidentsAction(),
     targetCompanyId
       ? supabase
@@ -28,6 +28,13 @@ export default async function CompanyIncidentsPage() {
           .order("full_name", { ascending: true })
       : Promise.resolve({ data: [] }),
     getCompanyDashboardData(targetCompanyId),
+    targetCompanyId
+      ? supabase
+          .from("company_profiles")
+          .select("payroll_impact_config")
+          .eq("id", targetCompanyId)
+          .maybeSingle()
+      : Promise.resolve({ data: null }),
   ]);
 
   const employees = (employeesRes.data || []).map((e) => ({
@@ -42,6 +49,7 @@ export default async function CompanyIncidentsPage() {
       initialIncidents={incidentsRes.incidents || []}
       employees={employees}
       kpis={dashboardData.kpis}
+      payrollImpactConfig={profileRes.data?.payroll_impact_config ?? null}
     />
   );
 }

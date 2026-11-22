@@ -20,6 +20,10 @@ import {
   CompanySettingsService,
   type CompanyInvoiceRecord,
 } from "../services/company-settings";
+import { safeParseCompanyWorkRulesConfig } from "../strategies/company-policies.parser";
+import type { CompanyWorkRulesConfig } from "../types/company-policies";
+import type { LeaveApprovalMode } from "../strategies/leave-approval.strategy";
+import type { Json } from "@/types/supabase";
 
 interface SettingsActionResult<T = void> {
   success: boolean;
@@ -360,6 +364,87 @@ export async function updateCompanyAccountPhone(
   } catch (err) {
     const errorMsg =
       err instanceof Error ? err.message : "No se pudo actualizar el teléfono.";
+    return { success: false, error: errorMsg };
+  }
+}
+
+export interface UpdatePayrollImpactConfigInput {
+  companyId?: string;
+  payrollImpactConfig: unknown;
+  leaveApprovalMode?: LeaveApprovalMode;
+}
+
+/**
+ * Actualiza de forma unificada `payroll_impact_config` (con validación LFT e invariantes)
+ * y `leave_approval_config` de la empresa activa.
+ */
+export async function updatePayrollImpactConfigAction(
+  input: UpdatePayrollImpactConfigInput
+): Promise<SettingsActionResult<{ config: CompanyWorkRulesConfig; leaveApprovalMode?: LeaveApprovalMode }>> {
+  const parsed = safeParseCompanyWorkRulesConfig(input.payrollImpactConfig);
+  if (!parsed.success) {
+    return { success: false, error: parsed.error };
+  }
+
+  if (
+    input.leaveApprovalMode !== undefined &&
+    input.leaveApprovalMode !== "single_step" &&
+    input.leaveApprovalMode !== "two_step"
+  ) {
+    return { success: false, error: "Modo de aprobación de permisos inválido." };
+  }
+
+  const supabase = await createClient();
+  const {
+    data: { user },
+    error: authError,
+  } = await supabase.auth.getUser();
+
+  if (authError || !user) {
+    return { success: false, error: "No autorizado. Inicie sesión para continuar." };
+  }
+
+  const resolvedScope = await companyTenantService.resolveActiveCompanyScope(user.id, supabase);
+  const targetCompanyId =
+    input.companyId && isValidUuid(input.companyId)
+      ? input.companyId
+      : resolvedScope.companyId;
+
+  const membershipRole = await companyTenantService.verifyUserMembership(
+    user.id,
+    targetCompanyId,
+    supabase
+  );
+  if (!isCompanyAdminRole(membershipRole)) {
+    return {
+      success: false,
+      error: "No tienes permisos para modificar las reglas de esta empresa.",
+    };
+  }
+
+  try {
+    await CompanySettingsService.updateWorkRulesConfig(
+      supabase,
+      targetCompanyId,
+      parsed.data as unknown as Json,
+      input.leaveApprovalMode
+    );
+
+    revalidatePath("/dashboard/company/settings");
+    revalidatePath("/dashboard/company/payroll");
+    revalidatePath("/dashboard/company/incidents");
+    revalidatePath("/dashboard/company/leaves");
+
+    return {
+      success: true,
+      data: {
+        config: parsed.data,
+        leaveApprovalMode: input.leaveApprovalMode,
+      },
+    };
+  } catch (err) {
+    const errorMsg =
+      err instanceof Error ? err.message : "No se pudieron guardar las reglas de la empresa.";
     return { success: false, error: errorMsg };
   }
 }

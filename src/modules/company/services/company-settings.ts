@@ -245,4 +245,31 @@ export class CompanySettingsService {
       },
     ];
   }
+
+  /**
+   * Actualiza la configuración unificada de reglas de trabajo (payroll_impact_config)
+   * y opcionalmente el modo de aprobación de permisos (leave_approval_config).
+   */
+  static async updateWorkRulesConfig(
+    supabase: SupabaseClient<Database>,
+    companyId: string,
+    payrollImpactConfig: Json,
+    leaveApprovalMode?: "single_step" | "two_step"
+  ): Promise<void> {
+    const payload: Database["public"]["Tables"]["company_profiles"]["Update"] = {
+      payroll_impact_config: payrollImpactConfig,
+    };
+    if (leaveApprovalMode) {
+      payload.leave_approval_config = { approvalMode: leaveApprovalMode };
+    }
+
+    const { error } = await supabase
+      .from("company_profiles")
+      .update(payload)
+      .eq("id", companyId);
+
+    if (error) {
+      throw new Error(error.message || "No se pudo guardar la configuración de reglas de la empresa.");
+    }
+  }
 }

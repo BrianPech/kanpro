@@ -3,6 +3,7 @@
 import * as React from "react";
 import { useTheme } from "next-themes";
 import { getActiveCompanyContextAction } from "@/modules/company/actions/tenant-actions";
+import { CompanyWorkRulesPanel } from "./settings/company-work-rules-panel";
 import {
   X,
   Sun,
@@ -244,6 +245,10 @@ export function CompanySettingsModal({
           ?.leave_approval_config
       )
     );
+  const [payrollImpactConfig, setPayrollImpactConfig] = React.useState<unknown>(
+    (initialProfile as { payroll_impact_config?: unknown } | null)
+      ?.payroll_impact_config ?? null
+  );
   const [isSavingApprovalMode, setIsSavingApprovalMode] = React.useState(false);
 
   React.useEffect(() => {
@@ -346,6 +351,10 @@ export function CompanySettingsModal({
                 (comp as { leave_approval_config?: unknown })
                   .leave_approval_config
               )
+            );
+            setPayrollImpactConfig(
+              (comp as { payroll_impact_config?: unknown })
+                .payroll_impact_config ?? null
             );
           }
 
@@ -1417,84 +1426,19 @@ export function CompanySettingsModal({
                           Reglas de mi empresa
                         </h3>
                         <p className="text-xs text-muted-foreground font-medium">
-                          Define cómo se aprueban las solicitudes de vacaciones y permisos de tu equipo.
+                          Configura puntualidad, faltas, séptimo día, incapacidades, vacaciones, bonos y aprobación de permisos desde un solo lugar.
                         </p>
                       </div>
 
-                      <div className="space-y-3">
-                        <div className="space-y-0.5">
-                          <Label className="text-xs font-bold text-foreground">
-                            Aprobación de vacaciones y permisos
-                          </Label>
-                          <p className="text-[11px] text-muted-foreground font-medium">
-                            Por defecto es en 1 paso para agilizar operaciones; puedes habilitar el visto bueno previo del líder de área cuando lo necesites.
-                          </p>
-                        </div>
-
-                        <div
-                          role="radiogroup"
-                          aria-label="Flujo de aprobación de vacaciones"
-                          className="grid grid-cols-1 sm:grid-cols-2 gap-3"
-                        >
-                          <button
-                            type="button"
-                            role="radio"
-                            aria-checked={leaveApprovalMode === "single_step"}
-                            disabled={isSavingApprovalMode}
-                            onClick={() => handleLeaveApprovalModeChange("single_step")}
-                            className={cn(
-                              "text-left p-4 rounded-xl border transition-all cursor-pointer disabled:opacity-60",
-                              leaveApprovalMode === "single_step"
-                                ? "border-primary bg-primary/5 ring-1 ring-primary/30"
-                                : "border-border/40 hover:border-border hover:bg-muted/30"
-                            )}
-                          >
-                            <div className="flex items-center justify-between gap-2 mb-1.5">
-                              <span className="text-xs font-bold text-foreground">
-                                Flujo 1 paso (RH aprueba directo)
-                              </span>
-                              <Badge
-                                variant={leaveApprovalMode === "single_step" ? "default" : "outline"}
-                                className="text-[10px] shrink-0"
-                              >
-                                {leaveApprovalMode === "single_step" ? "Activo" : "Estándar"}
-                              </Badge>
-                            </div>
-                            <p className="text-[11px] text-muted-foreground leading-relaxed">
-                              Recursos Humanos aprueba o rechaza directamente cada solicitud de vacaciones o permiso.
-                            </p>
-                          </button>
-
-                          <button
-                            type="button"
-                            role="radio"
-                            aria-checked={leaveApprovalMode === "two_step"}
-                            disabled={isSavingApprovalMode}
-                            onClick={() => handleLeaveApprovalModeChange("two_step")}
-                            className={cn(
-                              "text-left p-4 rounded-xl border transition-all cursor-pointer disabled:opacity-60",
-                              leaveApprovalMode === "two_step"
-                                ? "border-primary bg-primary/5 ring-1 ring-primary/30"
-                                : "border-border/40 hover:border-border hover:bg-muted/30"
-                            )}
-                          >
-                            <div className="flex items-center justify-between gap-2 mb-1.5">
-                              <span className="text-xs font-bold text-foreground">
-                                Flujo 2 pasos (Vo.Bo. Líder → RH)
-                              </span>
-                              <Badge
-                                variant={leaveApprovalMode === "two_step" ? "default" : "outline"}
-                                className="text-[10px] shrink-0"
-                              >
-                                {leaveApprovalMode === "two_step" ? "Activo" : "Opcional"}
-                              </Badge>
-                            </div>
-                            <p className="text-[11px] text-muted-foreground leading-relaxed">
-                              Requiere primero el visto bueno del líder de área antes de la aprobación final de RH.
-                            </p>
-                          </button>
-                        </div>
-                      </div>
+                      <CompanyWorkRulesPanel
+                        companyId={activeCompanyId || undefined}
+                        initialPayrollImpactConfig={payrollImpactConfig}
+                        initialLeaveApprovalMode={leaveApprovalMode}
+                        onSaved={(savedConfig, savedApprovalMode) => {
+                          setPayrollImpactConfig(savedConfig);
+                          setLeaveApprovalMode(savedApprovalMode);
+                        }}
+                      />
                     </div>
                   )}
 

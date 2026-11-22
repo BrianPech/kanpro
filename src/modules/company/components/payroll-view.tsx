@@ -631,6 +631,30 @@ export function PayrollView({
                           </span>
                         </>
                       )}
+                      {((emp.incidentDelays ?? 0) > 0 || (emp.delayAbsenceEquivalents ?? 0) > 0) && (
+                        <>
+                          <span>•</span>
+                          <span className="text-amber-700 dark:text-amber-300 font-semibold">
+                            {emp.incidentDelays ?? 0} retardos → {emp.delayAbsenceEquivalents ?? 0}{" "}
+                            {(emp.delayAbsenceEquivalents ?? 0) === 1 ? "falta" : "faltas"} (−$
+                            {(emp.delayConversionDeduction ?? 0).toLocaleString()})
+                          </span>
+                        </>
+                      )}
+                      {(emp.absorbedIncidentsCount ?? 0) > 0 && (
+                        <>
+                          <span>•</span>
+                          <Badge
+                            variant="outline"
+                            className="text-[10px] py-0 h-4 text-muted-foreground border-border/60"
+                          >
+                            {emp.absorbedIncidentsCount}{" "}
+                            {emp.absorbedIncidentsCount === 1
+                              ? "absorbida por asistencia"
+                              : "absorbidas por asistencia"}
+                          </Badge>
+                        </>
+                      )}
                       {emp.bankAccount?.clabe && /^\d{18}$/.test(emp.bankAccount.clabe.trim()) ? (
                         <>
                           <span>•</span>
