@@ -415,14 +415,14 @@ isOneToOne: false
                   ]
                 },"company_incidents": {
                   Row: {
-                    "category": string,"category_label": string | null,"company_id": string,"created_at": string,"department": string | null,"description": string,"employee_id": string | null,"employee_name": string,"evidence_file_name": string | null,"evidence_type": string | null,"evidence_url": string | null,"id": string,"incident_date": string,"job_title": string | null,"resolution_notes": string | null,"responsible_supervisor": string | null,"severity": string,"status": string,"title": string,"updated_at": string,"notified_at": string | null,"acknowledged_at": string | null,"employee_statement": string | null,"employee_statement_at": string | null
+                    "category": string,"category_label": string | null,"clarification_deadline": string | null,"company_id": string,"created_at": string,"department": string | null,"description": string,"employee_id": string | null,"employee_name": string,"evidence_file_name": string | null,"evidence_type": string | null,"evidence_url": string | null,"id": string,"incident_date": string,"job_title": string | null,"resolution_notes": string | null,"responsible_supervisor": string | null,"severity": string,"status": string,"title": string,"updated_at": string,"notified_at": string | null,"acknowledged_at": string | null,"employee_statement": string | null,"employee_statement_at": string | null
                   }
                   ComputedFields: never
                   Insert: {
-                    "category": string,"category_label"?: string | null,"company_id": string,"created_at"?: string,"department"?: string | null,"description": string,"employee_id"?: string | null,"employee_name": string,"evidence_file_name"?: string | null,"evidence_type"?: string | null,"evidence_url"?: string | null,"id"?: string,"incident_date"?: string,"job_title"?: string | null,"resolution_notes"?: string | null,"responsible_supervisor"?: string | null,"severity"?: string,"status"?: string,"title": string,"updated_at"?: string,"notified_at"?: string | null,"acknowledged_at"?: string | null,"employee_statement"?: string | null,"employee_statement_at"?: string | null
+                    "category": string,"category_label"?: string | null,"clarification_deadline"?: string | null,"company_id": string,"created_at"?: string,"department"?: string | null,"description": string,"employee_id"?: string | null,"employee_name": string,"evidence_file_name"?: string | null,"evidence_type"?: string | null,"evidence_url"?: string | null,"id"?: string,"incident_date"?: string,"job_title"?: string | null,"resolution_notes"?: string | null,"responsible_supervisor"?: string | null,"severity"?: string,"status"?: string,"title": string,"updated_at"?: string,"notified_at"?: string | null,"acknowledged_at"?: string | null,"employee_statement"?: string | null,"employee_statement_at"?: string | null
                   }
                   Update: {
-                    "category"?: string,"category_label"?: string | null,"company_id"?: string,"created_at"?: string,"department"?: string | null,"description"?: string,"employee_id"?: string | null,"employee_name"?: string,"evidence_file_name"?: string | null,"evidence_type"?: string | null,"evidence_url"?: string | null,"id"?: string,"incident_date"?: string,"job_title"?: string | null,"resolution_notes"?: string | null,"responsible_supervisor"?: string | null,"severity"?: string,"status"?: string,"title"?: string,"updated_at"?: string,"notified_at"?: string | null,"acknowledged_at"?: string | null,"employee_statement"?: string | null,"employee_statement_at"?: string | null
+                    "category"?: string,"category_label"?: string | null,"clarification_deadline"?: string | null,"company_id"?: string,"created_at"?: string,"department"?: string | null,"description"?: string,"employee_id"?: string | null,"employee_name"?: string,"evidence_file_name"?: string | null,"evidence_type"?: string | null,"evidence_url"?: string | null,"id"?: string,"incident_date"?: string,"job_title"?: string | null,"resolution_notes"?: string | null,"responsible_supervisor"?: string | null,"severity"?: string,"status"?: string,"title"?: string,"updated_at"?: string,"notified_at"?: string | null,"acknowledged_at"?: string | null,"employee_statement"?: string | null,"employee_statement_at"?: string | null
                   }
                   Relationships: [
                     {
@@ -1126,6 +1126,9 @@ isOneToOne: true
           Functions: {
             "employee_respond_to_incident":
 { Args: { "p_incident_id": string,"p_acknowledge": boolean,"p_statement"?: string | null }; Returns: Database["public"]["Tables"]["company_incidents"]["Row"]
+                           },
+            "expire_overdue_clarification_incidents":
+{ Args: { "p_company_id": string }; Returns: Database["public"]["Tables"]["company_incidents"]["Row"][]
                            },
             "notify_candidate_contact":
 { Args: { "p_candidate_id": string,"p_company_name": string,"p_vacancy_title": string }; Returns: undefined

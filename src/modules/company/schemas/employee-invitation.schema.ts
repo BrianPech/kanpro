@@ -8,6 +8,15 @@ export const CONTRACT_TYPES = [
   { value: "honorarios", label: "Honorarios / Servicios Profesionales" },
 ] as const;
 
+export const paymentFrequencyEnum = z.enum([
+  "semanal",
+  "catorcenal",
+  "quincenal",
+  "mensual",
+]);
+
+export type InvitationPaymentFrequency = z.infer<typeof paymentFrequencyEnum>;
+
 export const createEmployeeInvitationSchema = z.object({
   full_name: z
     .string()
@@ -30,6 +39,7 @@ export const createEmployeeInvitationSchema = z.object({
     .positive("El salario debe ser un número positivo.")
     .optional()
     .nullable(),
+  payment_frequency: paymentFrequencyEnum.optional(),
   hire_date: z.string().optional().nullable(),
   contract_type: z.string().default("tiempo_indeterminado"),
   department: z.string().default("Operaciones"),
@@ -52,6 +62,7 @@ export const bulkEmployeeImportRowSchema = z.object({
   email: z.string().email("Correo inválido"),
   position: z.string().min(2, "Puesto requerido"),
   salary: z.number().positive().optional().nullable(),
+  payment_frequency: paymentFrequencyEnum.optional(),
   hire_date: z.string().optional().nullable(),
   contract_type: z.string().optional().default("tiempo_indeterminado"),
   department: z.string().optional().default("Operaciones"),

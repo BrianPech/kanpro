@@ -17,11 +17,21 @@ export const incidentSeverityEnum = z.enum(["baja", "media", "alta", "critica"])
 
 export const incidentStatusEnum = z.enum([
   "pendiente",
+  "por_aclarar",
   "en_revision",
   "aprobado",
   "rechazado",
   "resuelto",
 ]);
+
+const clarificationDeadlineSchema = z
+  .string()
+  .refine(
+    (val) => /^\d{4}-\d{2}-\d{2}$/.test(val) || !Number.isNaN(Date.parse(val)),
+    "Fecha límite de aclaración inválida"
+  )
+  .nullable()
+  .optional();
 
 export const evidenceTypeEnum = z.enum([
   "documento",
@@ -49,11 +59,13 @@ export const createIncidentSchema = z.object({
   evidenceFileName: z.string().max(255).optional(),
   evidenceType: evidenceTypeEnum.optional(),
   status: incidentStatusEnum.optional(),
+  clarificationDeadline: clarificationDeadlineSchema,
 });
 
 export const updateIncidentStatusSchema = z.object({
   incidentId: z.string().min(1, "El ID de la incidencia es requerido"),
   status: incidentStatusEnum,
+  clarificationDeadline: clarificationDeadlineSchema,
   resolutionNotes: z.string().max(1000, "Las notas de resolución no pueden exceder 1000 caracteres").optional(),
 });
 

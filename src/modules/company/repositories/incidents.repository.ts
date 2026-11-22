@@ -37,6 +37,10 @@ export interface IncidentsRepository {
     periodStart: string,
     periodEnd: string
   ): Promise<IncidentRow[]>;
+  expireOverdueClarifications?(
+    companyId: string,
+    now?: Date
+  ): Promise<IncidentRow[]>;
 }
 
 /**
@@ -226,5 +230,65 @@ export class SupabaseIncidentsRepository implements IncidentsRepository {
     }
 
     return data ?? [];
+  }
+
+  async expireOverdueClarifications(
+    companyId: string,
+    now: Date = new Date()
+  ): Promise<IncidentRow[]> {
+    if (!companyId) {
+      return [];
+    }
+
+    if (typeof this.supabase.rpc === "function") {
+      try {
+        const { data, error } = await this.supabase.rpc(
+          "expire_overdue_clarification_incidents",
+          { p_company_id: companyId }
+        );
+        if (!error && Array.isArray(data)) {
+          return data as IncidentRow[];
+        }
+      } catch {
+        // Fallback a actualización directa en entornos sin RPC desplegado
+      }
+    }
+
+    const nowIso = now.toISOString();
+    const { data: overdue, error: fetchError } = await this.supabase
+      .from("company_incidents")
+      .select("*")
+      .eq("company_id", companyId)
+      .eq("status", "por_aclarar")
+      .not("clarification_deadline", "is", null)
+      .lte("clarification_deadline", nowIso);
+
+    if (fetchError || !overdue || overdue.length === 0) {
+      return [];
+    }
+
+    const updatedRows: IncidentRow[] = [];
+    for (const row of overdue) {
+      const nextCategory = row.category === "retardo" ? "retardo" : "falta_injustificada";
+      const nextCategoryLabel =
+        nextCategory === "retardo"
+          ? row.category_label || "Retardo de Turno"
+          : "Falta Injustificada";
+      const defaultNote =
+        nextCategory === "retardo"
+          ? "Plazo de aclaración vencido sin justificante; retardo aplicado automáticamente."
+          : "Plazo de aclaración vencido sin justificante; marcada automáticamente como falta injustificada.";
+
+      const updated = await this.updateStatus(companyId, row.id, {
+        category: nextCategory,
+        category_label: nextCategoryLabel,
+        status: "aprobado",
+        resolution_notes: row.resolution_notes?.trim() || defaultNote,
+        updated_at: nowIso,
+      });
+      updatedRows.push(updated);
+    }
+
+    return updatedRows;
   }
 }

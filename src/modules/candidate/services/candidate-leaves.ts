@@ -6,6 +6,8 @@ import {
   calculateLFTVacationDays,
   calculateVacationPremium,
   calculateVacationExpiration,
+  filterLeavesInCurrentCycle,
+  getCurrentVacationCycleWindow,
   validateSpecialLeavePolicyDays,
 } from "@/modules/company/utils/vacation-calculator";
 import { SupabaseLeavesRepository } from "@/modules/company/repositories/leaves.repository";
@@ -251,8 +253,11 @@ export class CandidateLeavesService {
 
     const leavesList = rawLeaves || [];
 
-    // Calcular días tomados y pendientes para vacaciones
-    const vacationRequests = leavesList.filter((l) => l.request_type === "vacaciones");
+    // Calcular días tomados y pendientes para vacaciones dentro del ciclo anual vigente
+    const vacationRequests = filterLeavesInCurrentCycle(
+      leavesList.filter((l) => l.request_type === "vacaciones"),
+      hireDate
+    );
     const daysTaken = vacationRequests
       .filter((l) => l.status === "aprobada")
       .reduce((acc, curr) => acc + (Number(curr.total_working_days) || 0), 0);
@@ -382,11 +387,12 @@ export class CandidateLeavesService {
 
       const effectiveHireDate = hireDate || getMexicoDateISO();
       const lft = calculateLFTVacationDays(effectiveHireDate);
+      const cycleWindow = getCurrentVacationCycleWindow(effectiveHireDate);
 
-      // Consultar solicitudes previas en company_leaves
-      const { data: existingLeaves } = await supabase
+      // Consultar solicitudes previas en company_leaves del ciclo anual actual
+      let existingLeavesQuery = supabase
         .from("company_leaves")
-        .select("total_working_days, status")
+        .select("total_working_days, status, start_date")
         .eq("company_id", input.companyId)
         .eq("request_type", "vacaciones")
         .in("status", ["aprobada", "pendiente", "visto_bueno"])
@@ -396,10 +402,22 @@ export class CandidateLeavesService {
           }`
         );
 
-      const takenOrPending = (existingLeaves || []).reduce(
-        (sum, l) => sum + (Number(l.total_working_days) || 0),
-        0
-      );
+      if (cycleWindow && typeof existingLeavesQuery.gte === "function") {
+        existingLeavesQuery = existingLeavesQuery.gte(
+          "start_date",
+          cycleWindow.cycleStartDate
+        );
+      }
+
+      const { data: existingLeaves } = await existingLeavesQuery;
+
+      const takenOrPending = cycleWindow
+        ? (existingLeaves || [])
+            .filter(
+              (l) => !l.start_date || l.start_date >= cycleWindow.cycleStartDate
+            )
+            .reduce((sum, l) => sum + (Number(l.total_working_days) || 0), 0)
+        : 0;
 
       const available = Math.max(0, lft.totalDaysAccrued - takenOrPending);
 

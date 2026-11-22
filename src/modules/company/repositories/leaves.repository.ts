@@ -24,8 +24,17 @@ export interface LeavesRepository {
     periodEnd: string
   ): Promise<CompanyLeaveRow[]>;
   listPending(companyId: string): Promise<CompanyLeaveRow[]>;
-  balanceUsedDays(companyId: string, employeeId: string): Promise<number>;
-  balanceCommittedDays?(companyId: string, employeeId: string): Promise<number>;
+  balanceUsedDays(
+    companyId: string,
+    employeeId: string,
+    cycleStartDate?: string
+  ): Promise<number>;
+  balanceCommittedDays?(
+    companyId: string,
+    employeeId: string,
+    cycleStartDate?: string,
+    excludeLeaveId?: string
+  ): Promise<number>;
 }
 
 /**
@@ -202,19 +211,26 @@ export class SupabaseLeavesRepository implements LeavesRepository {
 
   async balanceUsedDays(
     companyId: string,
-    employeeId: string
+    employeeId: string,
+    cycleStartDate?: string
   ): Promise<number> {
     if (!companyId || !employeeId) {
       return 0;
     }
 
-    const { data, error } = await this.supabase
+    let query = this.supabase
       .from("company_leaves")
       .select("total_working_days")
       .eq("company_id", companyId)
       .eq("employee_id", employeeId)
       .eq("request_type", "vacaciones")
       .eq("status", "aprobada");
+
+    if (cycleStartDate && typeof query.gte === "function") {
+      query = query.gte("start_date", cycleStartDate);
+    }
+
+    const { data, error } = await query;
 
     if (error) {
       throw new Error(
@@ -230,19 +246,30 @@ export class SupabaseLeavesRepository implements LeavesRepository {
 
   async balanceCommittedDays(
     companyId: string,
-    employeeId: string
+    employeeId: string,
+    cycleStartDate?: string,
+    excludeLeaveId?: string
   ): Promise<number> {
     if (!companyId || !employeeId) {
       return 0;
     }
 
-    const { data, error } = await this.supabase
+    let query = this.supabase
       .from("company_leaves")
       .select("total_working_days")
       .eq("company_id", companyId)
       .eq("employee_id", employeeId)
       .eq("request_type", "vacaciones")
       .in("status", ["aprobada", "pendiente", "visto_bueno"]);
+
+    if (cycleStartDate && typeof query.gte === "function") {
+      query = query.gte("start_date", cycleStartDate);
+    }
+    if (excludeLeaveId && typeof query.neq === "function") {
+      query = query.neq("id", excludeLeaveId);
+    }
+
+    const { data, error } = await query;
 
     if (error) {
       throw new Error(

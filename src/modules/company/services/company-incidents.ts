@@ -19,6 +19,12 @@ import {
   type IncidentInsert,
   type IncidentUpdate,
 } from "../repositories/incidents.repository";
+import {
+  computeClarificationDeadline,
+  DEFAULT_PAYROLL_IMPACT_CONFIG,
+  parsePayrollImpactConfig,
+  resolveExpiredClarificationIncident,
+} from "../strategies/incident-payroll-impact.strategy";
 
 export type { IncidentRow, IncidentInsert, IncidentUpdate };
 
@@ -96,6 +102,12 @@ export class CompanyIncidentsService {
     const severity = input.severity || "media";
     const status =
       input.status || (category === "reconocimiento" ? "resuelto" : "pendiente");
+    const clarificationDeadline = await this.resolveClarificationDeadline(
+      companyId,
+      status,
+      incidentDate,
+      input.clarificationDeadline
+    );
 
     const insertPayload: IncidentInsert = {
       company_id: companyId,
@@ -115,6 +127,7 @@ export class CompanyIncidentsService {
       evidence_file_name: input.evidenceFileName || null,
       evidence_type: input.evidenceType || null,
       status,
+      ...(clarificationDeadline ? { clarification_deadline: clarificationDeadline } : {}),
     };
 
     const data = await this.repository.create(companyId, insertPayload);
@@ -166,6 +179,72 @@ export class CompanyIncidentsService {
     }
   }
 
+  private async getClarificationWindowDays(companyId: string): Promise<number> {
+    try {
+      const { data } = await this.supabase
+        .from("company_profiles")
+        .select("payroll_impact_config")
+        .eq("id", companyId)
+        .maybeSingle();
+      return parsePayrollImpactConfig(data?.payroll_impact_config).clarificationWindowDays;
+    } catch {
+      return DEFAULT_PAYROLL_IMPACT_CONFIG.clarificationWindowDays;
+    }
+  }
+
+  private async resolveClarificationDeadline(
+    companyId: string,
+    status: IncidentStatus,
+    baseDateISO: string,
+    explicitDeadline?: string | null
+  ): Promise<string | null> {
+    if (status !== "por_aclarar") {
+      return null;
+    }
+    if (explicitDeadline) {
+      const trimmed = explicitDeadline.trim();
+      if (/^\d{4}-\d{2}-\d{2}$/.test(trimmed)) {
+        // America/Cancun es UTC-5 permanente
+        return new Date(`${trimmed}T23:59:59-05:00`).toISOString();
+      }
+      return new Date(trimmed).toISOString();
+    }
+    const windowDays = await this.getClarificationWindowDays(companyId);
+    return computeClarificationDeadline(baseDateISO, windowDays);
+  }
+
+  async expireOverdueClarifications(
+    companyId: string,
+    now: Date = new Date()
+  ): Promise<IncidentRow[]> {
+    if (!companyId) {
+      return [];
+    }
+
+    if (this.repository.expireOverdueClarifications) {
+      return this.repository.expireOverdueClarifications(companyId, now);
+    }
+
+    const rows = await this.repository.listByCompany(companyId);
+    const transitioned: IncidentRow[] = [];
+    for (const row of rows) {
+      const resolved = resolveExpiredClarificationIncident(row, now);
+      if (resolved === row) continue;
+      const updated = await this.repository.updateStatus(companyId, row.id, {
+        category: resolved.category,
+        category_label:
+          resolved.category === "retardo"
+            ? row.category_label || CATEGORY_DEFAULT_LABELS.retardo
+            : CATEGORY_DEFAULT_LABELS.falta_injustificada,
+        status: resolved.status,
+        resolution_notes: resolved.resolution_notes,
+        updated_at: now.toISOString(),
+      });
+      transitioned.push(updated);
+    }
+    return transitioned;
+  }
+
   async updateIncidentStatus(
     companyId: string,
     input: UpdateIncidentStatusInput
@@ -174,10 +253,18 @@ export class CompanyIncidentsService {
       throw new Error("ID de empresa requerido.");
     }
 
+    const clarificationDeadline = await this.resolveClarificationDeadline(
+      companyId,
+      input.status,
+      getMexicoDateISO(),
+      input.clarificationDeadline
+    );
+
     const updatePayload: IncidentUpdate = {
       status: input.status,
       resolution_notes: input.resolutionNotes?.trim() || null,
       updated_at: `${getMexicoDateISO()}T12:00:00.000Z`,
+      ...(clarificationDeadline ? { clarification_deadline: clarificationDeadline } : {}),
     };
 
     return this.repository.updateStatus(
@@ -195,14 +282,24 @@ export class CompanyIncidentsService {
     await this.repository.delete(companyId, incidentId);
   }
 
-  async getCompanyIncidents(companyId: string): Promise<LaborIncident[]> {
+  async getCompanyIncidents(
+    companyId: string,
+    now: Date = new Date()
+  ): Promise<LaborIncident[]> {
     if (!companyId) {
       return [];
     }
 
+    try {
+      await this.expireOverdueClarifications(companyId, now);
+    } catch {
+      // Mejor esfuerzo: si la expiración en lote falla, resolvemos en lectura.
+    }
+
     const data = await this.repository.listByCompany(companyId);
 
-    return data.map((row) => {
+    return data.map((rawRow) => {
+      const row = resolveExpiredClarificationIncident(rawRow, now);
       const emp = Array.isArray(row.company_employees)
         ? row.company_employees[0]
         : row.company_employees;
@@ -242,6 +339,7 @@ export class CompanyIncidentsService {
         (row.evidence_type as LaborIncident["evidenceType"]) || undefined,
       responsibleSupervisor: row.responsible_supervisor || "Recursos Humanos",
       status: row.status as IncidentStatus,
+      clarificationDeadline: row.clarification_deadline || undefined,
       resolutionNotes: row.resolution_notes || undefined,
       createdAt: formatMexicoDateShort(row.created_at),
       notifiedAt: row.notified_at ? formatMexicoDateShort(row.notified_at) : undefined,

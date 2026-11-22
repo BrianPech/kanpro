@@ -67,6 +67,9 @@ export function parseEmployeeCsvText(csvText: string): BulkImportPreviewItem[] {
     contract_type: rawHeaders.findIndex((h) => h.includes("contrato") || h.includes("contract")),
     department: rawHeaders.findIndex((h) => h.includes("depto") || h.includes("departamento") || h.includes("area")),
     phone: rawHeaders.findIndex((h) => h.includes("tel") || h.includes("cel") || h.includes("phone")),
+    payment_frequency: rawHeaders.findIndex(
+      (h) => h.includes("frecuencia") || h.includes("periodicidad") || h.includes("frequency")
+    ),
   };
 
   const results: BulkImportPreviewItem[] = [];
@@ -83,6 +86,14 @@ export function parseEmployeeCsvText(csvText: string): BulkImportPreviewItem[] {
     const contract_type = (colIndex.contract_type >= 0 ? rawCols[colIndex.contract_type] : rawCols[5]) || "tiempo_indeterminado";
     const department = (colIndex.department >= 0 ? rawCols[colIndex.department] : rawCols[6]) || "Operaciones";
     const phone = colIndex.phone >= 0 ? rawCols[colIndex.phone] : rawCols[7];
+    const rawFreq =
+      colIndex.payment_frequency >= 0
+        ? rawCols[colIndex.payment_frequency]?.trim().toLowerCase()
+        : undefined;
+    const payment_frequency =
+      rawFreq === "semanal" || rawFreq === "catorcenal" || rawFreq === "quincenal" || rawFreq === "mensual"
+        ? rawFreq
+        : undefined;
 
     const parsedSalary = rawSalary && !isNaN(Number(rawSalary.replace(/[^0-9.]/g, "")))
       ? Number(rawSalary.replace(/[^0-9.]/g, ""))
@@ -93,6 +104,7 @@ export function parseEmployeeCsvText(csvText: string): BulkImportPreviewItem[] {
       email: email.trim().toLowerCase(),
       position: position.trim(),
       salary: parsedSalary,
+      payment_frequency,
       hire_date: rawHireDate?.trim() || undefined,
       contract_type: contract_type.trim() || "tiempo_indeterminado",
       department: department.trim() || "Operaciones",

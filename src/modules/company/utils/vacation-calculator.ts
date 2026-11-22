@@ -58,6 +58,20 @@ export function calculateLFTVacationDays(
     };
   }
 
+  // Si la fecha de referencia es anterior o igual a la fecha de ingreso, el devengado es 0
+  // (evita que el préstamo de meses deje months = 11 para fechas futuras).
+  if (targetDate.getTime() <= hireDate.getTime()) {
+    const isFutureHire = targetDate.getTime() < hireDate.getTime();
+    return {
+      yearsOfService: 0,
+      monthsOfService: 0,
+      daysOfService: 0,
+      formattedSeniority: "0 días",
+      totalDaysAccrued: 0,
+      currentYearEntitlement: isFutureHire ? 0 : getVacationDaysForYear(1, policy),
+    };
+  }
+
   let years = targetDate.getUTCFullYear() - hireDate.getUTCFullYear();
   let months = targetDate.getUTCMonth() - hireDate.getUTCMonth();
   let days = targetDate.getUTCDate() - hireDate.getUTCDate();
@@ -204,6 +218,63 @@ function addMonthsUTC(base: Date, monthsToAdd: number): string {
   const maxDay = new Date(Date.UTC(targetYear, targetMonth + 1, 0)).getUTCDate();
   const targetDay = Math.min(base.getUTCDate(), maxDay);
   return `${targetYear}-${String(targetMonth + 1).padStart(2, "0")}-${String(targetDay).padStart(2, "0")}`;
+}
+
+export interface VacationCycleWindow {
+  /** Inicio del ciclo anual vigente (YYYY-MM-DD, inclusivo). */
+  cycleStartDate: string;
+  /** Fin del ciclo anual vigente (YYYY-MM-DD, exclusivo: próximo aniversario). */
+  cycleEndDate: string;
+  /** Años completos de antigüedad al corte. */
+  completedYears: number;
+}
+
+/**
+ * Calcula la ventana del ciclo anual vacacional vigente con base en la fecha de ingreso
+ * y fecha de corte (zona America/Cancun). Devuelve null si hireDate es inválida o futura.
+ */
+export function getCurrentVacationCycleWindow(
+  hireDateStr: string | null | undefined,
+  targetDateStr?: string
+): VacationCycleWindow | null {
+  if (!hireDateStr) return null;
+  const referenceISO = targetDateStr || getMexicoDateISO();
+  const hireDate = parseMexicoCalendarDate(hireDateStr);
+  const targetDate = parseMexicoCalendarDate(referenceISO);
+  if (!hireDate || !targetDate || targetDate.getTime() < hireDate.getTime()) {
+    return null;
+  }
+
+  const seniority = calculateLFTVacationDays(hireDateStr, referenceISO);
+  const completedYears = seniority.yearsOfService;
+  const cycleStartDate = addMonthsUTC(hireDate, completedYears * 12);
+  const cycleEndDate = addMonthsUTC(hireDate, (completedYears + 1) * 12);
+
+  return {
+    cycleStartDate,
+    cycleEndDate,
+    completedYears,
+  };
+}
+
+/**
+ * Filtra solicitudes de vacaciones al ciclo anual vigente (start_date >= cycleStartDate),
+ * evitando que vacaciones tomadas en años anteriores consuman el saldo del ciclo actual.
+ */
+export function filterLeavesInCurrentCycle<
+  T extends { start_date?: string | null; startDate?: string | null }
+>(
+  leaves: T[],
+  hireDateStr: string | null | undefined,
+  targetDateStr?: string
+): T[] {
+  if (!hireDateStr) return leaves;
+  const window = getCurrentVacationCycleWindow(hireDateStr, targetDateStr);
+  if (!window) return [];
+  return leaves.filter((leave) => {
+    const start = (leave.start_date ?? leave.startDate ?? "").trim();
+    return start.length >= 10 && start >= window.cycleStartDate;
+  });
 }
 
 /**

@@ -12,6 +12,7 @@ import { IncidentActaService } from "@/modules/company/services/incident-acta.se
 import { buildActaAdministrativaPdf } from "@/modules/company/utils/acta-administrativa-pdf";
 import { calculateAbsenceDeduction } from "@/modules/company/utils/payroll-calculator";
 import {
+  DEFAULT_PAYROLL_IMPACT_CONFIG,
   filterPayrollEligibleIncidents,
   parsePayrollImpactConfig,
 } from "@/modules/company/strategies/incident-payroll-impact.strategy";
@@ -37,6 +38,7 @@ function buildIncident(overrides: Partial<IncidentRow> = {}): IncidentRow {
     evidence_file_name: null,
     evidence_type: null,
     status: "aprobado",
+    clarification_deadline: null,
     resolution_notes: null,
     created_at: "2026-10-05T15:00:00.000Z",
     updated_at: "2026-10-05T15:00:00.000Z",
@@ -286,15 +288,15 @@ describe("Parte 3A: evidencias y Acta Administrativa PDF", () => {
 
 describe("Parte 3A: cableado de incidencias en nómina", () => {
   test("parsePayrollImpactConfig: default, valores válidos e inválidos", () => {
-    expect(parsePayrollImpactConfig(null)).toEqual({ delaysPerAbsence: 3, recognitionBonusDays: 1 });
+    expect(parsePayrollImpactConfig(null)).toEqual(DEFAULT_PAYROLL_IMPACT_CONFIG);
     expect(parsePayrollImpactConfig({ delaysPerAbsence: 2, recognitionBonusDays: 0.5 })).toEqual({
+      ...DEFAULT_PAYROLL_IMPACT_CONFIG,
       delaysPerAbsence: 2,
       recognitionBonusDays: 0.5,
     });
-    expect(parsePayrollImpactConfig({ delaysPerAbsence: 0, recognitionBonusDays: -1 })).toEqual({
-      delaysPerAbsence: 3,
-      recognitionBonusDays: 1,
-    });
+    expect(parsePayrollImpactConfig({ delaysPerAbsence: 0, recognitionBonusDays: -1 })).toEqual(
+      DEFAULT_PAYROLL_IMPACT_CONFIG
+    );
   });
 
   test("filterPayrollEligibleIncidents: solo aplicadas y sin duplicar asistencia", () => {

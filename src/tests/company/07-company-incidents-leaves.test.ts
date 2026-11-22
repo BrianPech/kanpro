@@ -192,6 +192,7 @@ describe("Fase 16: Módulos de Incidencias y Permisos - Patrón Schema -> Handle
                       evidence_url: payload.evidence_url || null,
                       job_title: payload.job_title || null,
                       resolution_notes: null,
+                      clarification_deadline: payload.clarification_deadline || null,
                       notified_at: null, acknowledged_at: null, employee_statement: null, employee_statement_at: null,
                       responsible_supervisor: payload.responsible_supervisor || null,
                     };
@@ -294,6 +295,7 @@ describe("Fase 16: Módulos de Incidencias y Permisos - Patrón Schema -> Handle
         evidence_type: null,
         status: "pendiente",
         resolution_notes: null,
+        clarification_deadline: null,
         notified_at: null, acknowledged_at: null, employee_statement: null, employee_statement_at: null,
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
@@ -339,6 +341,7 @@ describe("Fase 16: Módulos de Incidencias y Permisos - Patrón Schema -> Handle
         evidence_type: null,
         status: "pendiente",
         resolution_notes: null,
+        clarification_deadline: null,
         notified_at: null, acknowledged_at: null, employee_statement: null, employee_statement_at: null,
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),

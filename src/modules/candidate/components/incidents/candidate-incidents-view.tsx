@@ -12,6 +12,7 @@ import { respondToIncidentAction } from "../../actions/incidents";
 
 const STATUS_LABELS: Record<string, string> = {
   pendiente: "Por revisar",
+  por_aclarar: "Por aclarar",
   en_revision: "En revisión",
   aprobado: "Aplicada",
   rechazado: "Descartada",

@@ -1,7 +1,10 @@
 import { createClient } from "@/lib/supabase/server";
-import { parseLocation, cleanCityName } from "@/lib/formatters";
+import { parseLocation, cleanCityName, getMexicoDateISO } from "@/lib/formatters";
 import { getCoordsForZone, haversineDistanceKm, GEO_CONFIG } from "@/config/geo";
-import { calculateLFTVacationDays } from "@/modules/company/utils/vacation-calculator";
+import {
+  calculateLFTVacationDays,
+  getCurrentVacationCycleWindow,
+} from "@/modules/company/utils/vacation-calculator";
 
 export interface ActiveEmploymentData {
   id: string;
@@ -565,19 +568,28 @@ export async function getCandidateDashboardData(): Promise<CandidateDashboardDat
       ? currentEmployee.company[0]
       : currentEmployee.company;
 
-    const hireDate = currentEmployee.hire_date || new Date().toISOString().split("T")[0];
+    const todayStr = getMexicoDateISO();
+    const hireDate = currentEmployee.hire_date || todayStr;
     const lft = calculateLFTVacationDays(hireDate);
+    const cycleWindow = getCurrentVacationCycleWindow(hireDate);
 
-    // Fetch approved vacation leaves and today's attendance in parallel
-    const todayStr = new Date().toISOString().split("T")[0];
+    // Fetch approved vacation leaves in current annual cycle and today's attendance in parallel
+    let vacationLeavesQuery = supabase
+      .from("company_leaves")
+      .select("total_working_days")
+      .eq("employee_id", currentEmployee.id)
+      .eq("request_type", "vacaciones")
+      .eq("status", "aprobada");
+
+    if (cycleWindow && typeof vacationLeavesQuery.gte === "function") {
+      vacationLeavesQuery = vacationLeavesQuery.gte(
+        "start_date",
+        cycleWindow.cycleStartDate
+      );
+    }
 
     const [{ data: vacationLeaves }, { data: todayAttendanceRow }] = await Promise.all([
-      supabase
-        .from("company_leaves")
-        .select("total_working_days")
-        .eq("employee_id", currentEmployee.id)
-        .eq("request_type", "vacaciones")
-        .eq("status", "aprobada"),
+      vacationLeavesQuery,
       supabase
         .from("company_attendance")
         .select("check_in_time, check_out_time, status, delay_minutes")
@@ -589,12 +601,14 @@ export async function getCandidateDashboardData(): Promise<CandidateDashboardDat
     interface VacationLeaveRow {
       total_working_days: number | null;
     }
-    const typedVacationLeaves = (vacationLeaves as unknown as VacationLeaveRow[]) || [];
+    const typedVacationLeaves = cycleWindow
+      ? (vacationLeaves as unknown as VacationLeaveRow[]) || []
+      : [];
     const vacationDaysTaken = typedVacationLeaves.reduce(
       (sum, item) => sum + (item.total_working_days || 0),
       0
     );
-    const vacationDaysAvailable = Math.max(0, lft.currentYearEntitlement - vacationDaysTaken);
+    const vacationDaysAvailable = Math.max(0, lft.totalDaysAccrued - vacationDaysTaken);
 
     // Find active contract for this employee
     const matchedContract = typedContracts.find(

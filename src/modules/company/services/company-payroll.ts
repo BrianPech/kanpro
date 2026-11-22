@@ -28,8 +28,10 @@ import {
 } from "../repositories/incidents.repository";
 import {
   calculateIncidentsPayrollImpact,
-  filterPayrollEligibleIncidents,
+  DelayAccumulationImpact,
   parsePayrollImpactConfig,
+  partitionPayrollIncidents,
+  resolveExpiredClarificationIncident,
 } from "../strategies/incident-payroll-impact.strategy";
 import type { IncidentCategory } from "../types/incidents";
 
@@ -67,6 +69,14 @@ export class CompanyPayrollService {
 
     if (!companyId) {
       return this.buildEmptyPayrollResult(periodInfo);
+    }
+
+    if (this.incidentsRepository.expireOverdueClarifications) {
+      try {
+        await this.incidentsRepository.expireOverdueClarifications(companyId, refDate);
+      } catch {
+        // Mejor esfuerzo: resolveExpiredClarificationIncident también evalúa vencimientos en memoria.
+      }
     }
 
     const [
@@ -173,15 +183,24 @@ export class CompanyPayrollService {
       const lateArrivals = empAtt.filter((a) => a.status === "retardo").length;
 
       // Impacto de incidencias aplicadas por RH (faltas, acumulación de retardos y reconocimientos)
-      const empIncidents = filterPayrollEligibleIncidents(
-        (incidentsByEmp.get(emp.id) || []).map((i) => ({
-          ...i,
-          category: i.category as IncidentCategory,
-        })),
+      const resolvedEmpIncidents = (incidentsByEmp.get(emp.id) || []).map((i) => {
+        const resolved = resolveExpiredClarificationIncident(i, refDate);
+        return {
+          ...resolved,
+          category: resolved.category as IncidentCategory,
+        };
+      });
+      const { eligible: empIncidents, absorbedByAttendance } = partitionPayrollIncidents(
+        resolvedEmpIncidents,
         empAtt
       );
       const incidentImpact = calculateIncidentsPayrollImpact(empIncidents, monthlySalary, impactConfig);
       const incidentDelays = empIncidents.filter((i) => i.category === "retardo").length;
+      const delayImpact = new DelayAccumulationImpact(
+        impactConfig.delaysPerAbsence,
+        impactConfig.delayDeductionDays,
+        impactConfig.seventhDayMode
+      ).calculate({ monthlySalary, count: incidentDelays });
       const unjustifiedAbsences = attendanceAbsences + incidentImpact.absenceEquivalents;
 
       let overtimeHours = 0;
@@ -209,9 +228,14 @@ export class CompanyPayrollService {
         ? Number(savedItem.performance_bonus)
         : incidentImpact.bonus;
 
+      // En modo séptimo día completo se descuenta 1 día completo una sola vez si existen faltas.
       const absenceDeductions =
-        calculateAbsenceDeduction(monthlySalary, attendanceAbsences) + incidentImpact.deduction;
-      const delayDeductions = lateArrivals * 100;
+        impactConfig.seventhDayMode === "completo"
+          ? calculateAbsenceDeduction(monthlySalary, unjustifiedAbsences, "completo")
+          : calculateAbsenceDeduction(monthlySalary, attendanceAbsences, impactConfig.seventhDayMode) +
+            incidentImpact.deduction;
+      // Decisión 5 (Art. 107 LFT): eliminada multa fija de $100; el retardo se descuenta solo vía conversión por incidencia.
+      const delayDeductions = 0;
       const imssDeduction = calculateIMSSWorkerShare(monthlySalary);
 
       const taxablePerceptions = baseSalaryPeriod + overtimePay + punctualityBonus + attendanceBonus + performanceBonus;
@@ -248,6 +272,13 @@ export class CompanyPayrollService {
         delayDeductions,
         imssDeduction,
         isrEstimated,
+        incidentDelays,
+        absenceEquivalents: incidentImpact.absenceEquivalents,
+        delayAbsenceEquivalents: delayImpact.absenceEquivalents,
+        delayConversionDeduction: delayImpact.deduction,
+        delaysPerAbsenceRule: impactConfig.delaysPerAbsence,
+        delayDeductionDaysRule: impactConfig.delayDeductionDays,
+        absorbedIncidentsCount: absorbedByAttendance.length,
         totalPerceptions,
         totalDeductions,
         netPayEstimated,

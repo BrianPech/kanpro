@@ -13,7 +13,13 @@ export type IncidentCategory =
   | "otro";
 
 export type IncidentSeverity = "baja" | "media" | "alta" | "critica";
-export type IncidentStatus = "pendiente" | "en_revision" | "aprobado" | "rechazado" | "resuelto";
+export type IncidentStatus =
+  | "pendiente"
+  | "por_aclarar"
+  | "en_revision"
+  | "aprobado"
+  | "rechazado"
+  | "resuelto";
 
 export interface LaborIncident {
   id: string;
@@ -37,6 +43,7 @@ export interface LaborIncident {
 
   responsibleSupervisor: string;
   status: IncidentStatus;
+  clarificationDeadline?: string;
   resolutionNotes?: string;
   createdAt: string;
 

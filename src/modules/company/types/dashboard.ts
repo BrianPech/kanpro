@@ -24,7 +24,7 @@ export type IncidentType =
   | "otro";
 
 export type IncidentSeverity = "baja" | "media" | "alta" | "critica";
-export type IncidentStatus = "pendiente" | "aprobado" | "rechazado" | "en_revision";
+export type IncidentStatus = "pendiente" | "por_aclarar" | "aprobado" | "rechazado" | "en_revision";
 
 export interface PendingIncidentItem {
   id: string;

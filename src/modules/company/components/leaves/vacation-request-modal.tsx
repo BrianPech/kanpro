@@ -66,7 +66,7 @@ export function VacationRequestModal({
   const selectedEmp = employees.find((e) => e.id === selectedEmployeeId) || employees[0];
   const lftDays = selectedEmp?.hireDate
     ? calculateLFTVacationDays(selectedEmp.hireDate).totalDaysAccrued
-    : 12;
+    : 0;
 
   const availableDaysBalance = lftDays;
   const workingDays = calculateWorkingDays(startDate, endDate);

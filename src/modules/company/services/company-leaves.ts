@@ -4,6 +4,7 @@ import { getMexicoDateISO } from "@/lib/formatters";
 import {
   calculateLFTVacationDays,
   calculateWorkingDays,
+  getCurrentVacationCycleWindow,
   validateSpecialLeavePolicyDays,
 } from "../utils/vacation-calculator";
 import { VacationRequestType } from "../types/employee-dossier";
@@ -104,11 +105,10 @@ export class CompanyLeavesService {
     const strategy = resolveLeaveApprovalStrategy(mode);
     const actor: LeaveApprovalActor = input.actor ?? "hr";
 
+    let existing: CompanyLeaveRow | null = null;
     let currentStatus: LeaveApprovalStatus = "pendiente";
-    if (mode === "two_step" || input.actor) {
-      const existing = this.repository.getById
-        ? await this.repository.getById(companyId, input.requestId)
-        : null;
+    if (this.repository.getById) {
+      existing = await this.repository.getById(companyId, input.requestId);
       if (!existing) {
         throw new Error(
           "No se encontró la solicitud de vacaciones o no pertenece a tu empresa."
@@ -118,6 +118,15 @@ export class CompanyLeavesService {
     }
 
     const outcome = strategy.decide(currentStatus, actor, input.decision);
+
+    // Al aprobar vacaciones, revalidar saldo disponible en el ciclo anual actual
+    if (
+      outcome.status === "aprobada" &&
+      existing?.request_type === "vacaciones" &&
+      existing.employee_id
+    ) {
+      await this.assertSufficientVacationBalanceForApproval(companyId, existing);
+    }
 
     const now = `${getMexicoDateISO()}T12:00:00.000Z`;
     const reviewerLabel =
@@ -207,9 +216,20 @@ export class CompanyLeavesService {
       emp.hire_date || emp.created_at?.split("T")[0] || null;
     if (input.requestType === "vacaciones" && effectiveHireDate) {
       const lft = calculateLFTVacationDays(effectiveHireDate);
-      const committedDays = this.repository.balanceCommittedDays
-        ? await this.repository.balanceCommittedDays(companyId, emp.id)
-        : await this.repository.balanceUsedDays(companyId, emp.id);
+      const cycleWindow = getCurrentVacationCycleWindow(effectiveHireDate);
+      const committedDays = cycleWindow
+        ? this.repository.balanceCommittedDays
+          ? await this.repository.balanceCommittedDays(
+              companyId,
+              emp.id,
+              cycleWindow.cycleStartDate
+            )
+          : await this.repository.balanceUsedDays(
+              companyId,
+              emp.id,
+              cycleWindow.cycleStartDate
+            )
+        : 0;
       const available = Math.max(0, lft.totalDaysAccrued - committedDays);
       if (workingDays > available) {
         throw new Error(
@@ -244,6 +264,53 @@ export class CompanyLeavesService {
       workingDays,
       leave: inserted,
     };
+  }
+
+  private async assertSufficientVacationBalanceForApproval(
+    companyId: string,
+    leave: CompanyLeaveRow
+  ): Promise<void> {
+    if (!leave.employee_id) return;
+
+    let effectiveHireDate: string | null = null;
+    try {
+      const empTable = this.supabase.from("company_employees");
+      if (empTable && typeof empTable.select === "function") {
+        const { data: emp } = await empTable
+          .select("hire_date, created_at")
+          .eq("id", leave.employee_id)
+          .eq("company_id", companyId)
+          .maybeSingle();
+        effectiveHireDate = emp?.hire_date || emp?.created_at?.split("T")[0] || null;
+      }
+    } catch {
+      return;
+    }
+
+    if (!effectiveHireDate) return;
+
+    const lft = calculateLFTVacationDays(effectiveHireDate);
+    const cycleWindow = getCurrentVacationCycleWindow(effectiveHireDate);
+    const committedOther = cycleWindow
+      ? this.repository.balanceCommittedDays
+        ? await this.repository.balanceCommittedDays(
+            companyId,
+            leave.employee_id,
+            cycleWindow.cycleStartDate,
+            leave.id
+          )
+        : await this.repository.balanceUsedDays(
+            companyId,
+            leave.employee_id,
+            cycleWindow.cycleStartDate
+          )
+      : 0;
+    const available = Math.max(0, lft.totalDaysAccrued - committedOther);
+    if (leave.total_working_days > available) {
+      throw new Error(
+        `Saldo de vacaciones insuficiente. Disponible: ${available} día(s), solicitado: ${leave.total_working_days} día(s).`
+      );
+    }
   }
 
   private async notifyEmployeeOfResolution(

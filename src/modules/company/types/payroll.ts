@@ -25,6 +25,15 @@ export interface PayrollEmployeeItem {
   imssDeduction: number; // Estimated employee IMSS share
   isrEstimated: number; // Estimated ISR retention
 
+  // Desglose de impacto por incidencias en el periodo (B3)
+  incidentDelays?: number;
+  absenceEquivalents?: number;
+  delayAbsenceEquivalents?: number;
+  delayConversionDeduction?: number;
+  delaysPerAbsenceRule?: number;
+  delayDeductionDaysRule?: 0.5 | 1;
+  absorbedIncidentsCount?: number;
+
   // Net
   totalPerceptions: number;
   totalDeductions: number;

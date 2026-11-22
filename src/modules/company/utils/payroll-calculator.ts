@@ -134,12 +134,27 @@ export function calculateOvertimePay(
   return Math.round(hourlyRate * hours * multiplier);
 }
 
+export type SeventhDayMode = "completo" | "proporcional" | "ninguno";
+
 /**
- * Calcula el importe de deducción por falta injustificada (Art. 72 LFT: Día de salario + proporcional descanso)
+ * Calcula el importe de deducción por falta injustificada (Art. 72 LFT):
+ * - proporcional (default): día + 1/6 del séptimo día (factor 1.1666)
+ * - completo: días faltados + 1 día completo de descanso semanal
+ * - ninguno: únicamente los días faltados (factor 1.0)
  */
-export function calculateAbsenceDeduction(monthlySalary: number, absences: number): number {
+export function calculateAbsenceDeduction(
+  monthlySalary: number,
+  absences: number,
+  seventhDayMode: SeventhDayMode = "proporcional"
+): number {
   if (absences <= 0 || monthlySalary <= 0) return 0;
   const dailySalary = monthlySalary / 30;
+  if (seventhDayMode === "ninguno") {
+    return Math.round(dailySalary * absences);
+  }
+  if (seventhDayMode === "completo") {
+    return Math.round(dailySalary * (absences + 1));
+  }
   // Factor 1.1666 incluye el proporcional del séptimo día de descanso semanal
   return Math.round(dailySalary * 1.1666 * absences);
 }
@@ -240,8 +255,12 @@ export class MexicanPayrollEngine {
     return calculateOvertimePay(monthlySalary, hours, rateType);
   }
 
-  calculateAbsence(monthlySalary: number, absences: number): number {
-    return calculateAbsenceDeduction(monthlySalary, absences);
+  calculateAbsence(
+    monthlySalary: number,
+    absences: number,
+    seventhDayMode: SeventhDayMode = "proporcional"
+  ): number {
+    return calculateAbsenceDeduction(monthlySalary, absences, seventhDayMode);
   }
 }
 

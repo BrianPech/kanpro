@@ -13,7 +13,10 @@ import {
   PositionHistoryItem,
   PerformanceReview,
 } from "../types/employee-dossier";
-import { calculateLFTVacationDays } from "../utils/vacation-calculator";
+import {
+  calculateLFTVacationDays,
+  filterLeavesInCurrentCycle,
+} from "../utils/vacation-calculator";
 import { LEAVE_TYPE_LABELS } from "./company-leaves";
 
 /**
@@ -444,7 +447,10 @@ export async function getEmployeeDossierById(
     rejectionReason: l.rejection_reason || undefined,
   }));
 
-  const vacationRows = rawEmpLeaves.filter((l) => l.request_type === "vacaciones");
+  const vacationRows = filterLeavesInCurrentCycle(
+    rawEmpLeaves.filter((l) => l.request_type === "vacaciones"),
+    hireDate
+  );
   const daysTaken = vacationRows
     .filter((l) => l.status === "aprobada")
     .reduce((acc, curr) => acc + (Number(curr.total_working_days) || 0), 0);

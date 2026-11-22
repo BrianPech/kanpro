@@ -570,7 +570,13 @@ export class CompanyEmployeeService {
       throw new Error("Ya existe una invitación pendiente enviada a este correo electrónico.");
     }
 
-    // 2. Insertar empleado temporal en estado pending
+    // 2. Insertar empleado temporal en estado pending (normalizando salario a equivalente mensual)
+    const paymentFrequency = val.payment_frequency || "quincenal";
+    const normalizedMonthlySalary =
+      val.salary != null
+        ? toMonthlyEquivalentSalary(val.salary, paymentFrequency)
+        : null;
+
     const employeePayload: CompanyEmployeeInsert = {
       company_id: companyId,
       full_name: val.full_name.trim(),
@@ -580,7 +586,8 @@ export class CompanyEmployeeService {
       phone: val.phone?.trim() || null,
       email: normalizedEmail,
       hire_date: val.hire_date || getMexicoDateISO(),
-      base_salary_monthly: val.salary ?? null,
+      base_salary_monthly: normalizedMonthlySalary,
+      payment_frequency: paymentFrequency,
       work_schedule: val.work_schedule?.trim() || null,
       notes: val.notes?.trim() || null,
       status: "pending",
@@ -670,6 +677,11 @@ export class CompanyEmployeeService {
         const email = row.email.toLowerCase().trim();
         const rawToken = crypto.randomBytes(32).toString("hex");
         const tokenHash = crypto.createHash("sha256").update(rawToken).digest("hex");
+        const paymentFrequency = row.payment_frequency || "quincenal";
+        const normalizedMonthlySalary =
+          row.salary != null
+            ? toMonthlyEquivalentSalary(row.salary, paymentFrequency)
+            : null;
 
         const { data: emp, error: empErr } = await supabase
           .from("company_employees")
@@ -681,7 +693,8 @@ export class CompanyEmployeeService {
             phone: row.phone?.trim() || null,
             email,
             hire_date: row.hire_date || today,
-            base_salary_monthly: row.salary ?? null,
+            base_salary_monthly: normalizedMonthlySalary,
+            payment_frequency: paymentFrequency,
             status: "pending",
           })
           .select("id")
