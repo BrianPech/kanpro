@@ -21,13 +21,13 @@ export function CompanyPageHeader({
   return (
     <div
       className={cn(
-        "flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 pb-2 border-b border-border/40",
+        "flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 pb-2 border-b border-border/40",
         className
       )}
     >
-      <div className="space-y-1">
-        <div className="flex items-center gap-2.5">
-          <h1 className="font-heading text-2xl sm:text-3xl font-bold tracking-tight text-foreground">
+      <div className="space-y-1 min-w-0 flex-1">
+        <div className="flex items-center gap-2.5 flex-wrap">
+          <h1 className="font-heading text-2xl sm:text-3xl font-bold tracking-tight text-foreground break-words">
             {title}
           </h1>
           {badge}
@@ -39,7 +39,7 @@ export function CompanyPageHeader({
         )}
       </div>
       {(actions || children) && (
-        <div className="flex flex-wrap items-center gap-2 sm:self-center">
+        <div className="flex flex-wrap items-center gap-2 lg:self-center shrink-0">
           {actions}
           {children}
         </div>

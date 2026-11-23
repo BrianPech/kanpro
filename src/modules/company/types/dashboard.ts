@@ -59,7 +59,7 @@ export interface TodayAttendanceItem {
 export interface PayrollSummaryData {
   periodName: string;
   periodDates?: string;
-  frequency: "quincenal" | "semanal" | "mensual";
+  frequency: "quincenal" | "semanal" | "catorcenal" | "mensual";
   cutoffDate: string;
   paymentDate: string;
   estimatedTotal: number;

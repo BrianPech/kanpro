@@ -1,5 +1,9 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
-import type { Database } from "@/types/supabase";
+import type { Database, Json } from "@/types/supabase";
+import {
+  DEFAULT_COMPANY_WORK_RULES_CONFIG,
+  parseCompanyWorkRulesConfig,
+} from "../strategies/company-policies.parser";
 import {
   ACTIVE_COMPANY_COOKIE,
   type CreateCompanyInput,
@@ -148,6 +152,9 @@ export class CompanyTenantService {
         leave_approval_config: {
           approvalMode: input.leave_approval_mode || "single_step",
         },
+        payroll_impact_config: parseCompanyWorkRulesConfig(
+          DEFAULT_COMPANY_WORK_RULES_CONFIG
+        ) as unknown as Json,
         owner_id: userId,
       })
       .select("id, company_name")

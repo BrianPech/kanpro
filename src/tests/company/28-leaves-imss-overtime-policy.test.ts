@@ -194,5 +194,29 @@ describe("Tarea 3: Incapacidad IMSS, catálogo de permisos, vacaciones, horas y 
     expect(openOvertime.unauthorizedHoursExcluded).toBe(0);
     expect(openOvertime.authorizedHoursPaid).toBe(4);
     expect(openOvertime.totalOvertimePay).toBe(800);
+
+    // 12h en la misma semana (con config por defecto): 9 a 2x ($1,800) + 3 a 3x ($900) = $2,700
+    const sameWeekTwelve = evaluateOvertimePolicy({
+      entries: [
+        { work_date: "2026-10-05", hours: 6, authorized: true },
+        { work_date: "2026-10-08", hours: 6, authorized: true },
+      ],
+      monthlySalary: 24000,
+    });
+    expect(sameWeekTwelve.doubleHours).toBe(9);
+    expect(sameWeekTwelve.tripleHours).toBe(3);
+    expect(sameWeekTwelve.totalOvertimePay).toBe(2700);
+
+    // 6h semana 1 + 6h semana 2: cada semana bajo el tope de 9h -> 12h a 2x ($2,400)
+    const twoWeeksTwelve = evaluateOvertimePolicy({
+      entries: [
+        { work_date: "2026-10-05", hours: 6, authorized: true },
+        { work_date: "2026-10-12", hours: 6, authorized: true },
+      ],
+      monthlySalary: 24000,
+    });
+    expect(twoWeeksTwelve.doubleHours).toBe(12);
+    expect(twoWeeksTwelve.tripleHours).toBe(0);
+    expect(twoWeeksTwelve.totalOvertimePay).toBe(2400);
   });
 });

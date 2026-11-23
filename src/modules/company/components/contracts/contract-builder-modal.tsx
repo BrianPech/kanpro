@@ -34,6 +34,7 @@ import { toast } from "sonner";
 import {
   calculateDailySalary,
   formatPaymentFrequencyLabel,
+  fromMonthlyEquivalentSalary,
   getMexicoDateISO,
 } from "@/lib/formatters";
 import { EmploymentContract, ContractTemplateType } from "../../types/contracts";
@@ -93,8 +94,12 @@ export function ContractBuilderModal({
   const [department, setDepartment] = useState(initialEmployeeData?.department || "Operaciones");
   const [startDate, setStartDate] = useState(getMexicoDateISO());
   const [endDate, setEndDate] = useState("");
-  const [salary, setSalary] = useState(initialEmployeeData?.baseSalary ? String(initialEmployeeData.baseSalary) : "");
   const [paymentFrequency, setPaymentFrequency] = useState<"quincenal" | "semanal" | "mensual">("quincenal");
+  const [salary, setSalary] = useState(
+    initialEmployeeData?.baseSalary
+      ? String(fromMonthlyEquivalentSalary(initialEmployeeData.baseSalary, "quincenal"))
+      : ""
+  );
   const [workSchedule, setWorkSchedule] = useState("Lunes a Viernes 08:00 - 17:00 (Sábados rotativos)");
   const [probationDays, setProbationDays] = useState("30");
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -125,7 +130,11 @@ export function ContractBuilderModal({
         setDepartment(found.department || "Operaciones");
         setEmployeeRfc(found.rfc || "");
         setEmployeeCurp(found.curp || "");
-        setSalary(found.baseSalary ? String(found.baseSalary) : "");
+        setSalary(
+          found.baseSalary
+            ? String(fromMonthlyEquivalentSalary(found.baseSalary, paymentFrequency))
+            : ""
+        );
       }
     }
   };
@@ -331,7 +340,17 @@ export function ContractBuilderModal({
                 </Label>
                 <Select
                   value={paymentFrequency}
-                  onValueChange={(val) => val && setPaymentFrequency(val as any)}
+                  onValueChange={(val) => {
+                    if (!val) return;
+                    const nextFreq = val as "quincenal" | "semanal" | "mensual";
+                    setPaymentFrequency(nextFreq);
+                    if (selectedEmployeeId !== "manual") {
+                      const found = activeEmployees.find((e) => e.id === selectedEmployeeId);
+                      if (found?.baseSalary) {
+                        setSalary(String(fromMonthlyEquivalentSalary(found.baseSalary, nextFreq)));
+                      }
+                    }
+                  }}
                 >
                   <SelectTrigger className="h-10 rounded-xl bg-background border-border/80 text-xs font-medium">
                     <SelectValue>

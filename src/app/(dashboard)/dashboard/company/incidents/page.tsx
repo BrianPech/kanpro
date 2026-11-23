@@ -22,7 +22,7 @@ export default async function CompanyIncidentsPage() {
     targetCompanyId
       ? supabase
           .from("company_employees")
-          .select("id, full_name, job_title, department")
+          .select("id, full_name, job_title, department, base_salary_monthly")
           .eq("company_id", targetCompanyId)
           .eq("status", "active")
           .order("full_name", { ascending: true })
@@ -42,6 +42,7 @@ export default async function CompanyIncidentsPage() {
     fullName: e.full_name || "Sin nombre",
     jobTitle: e.job_title,
     department: e.department,
+    baseSalaryMonthly: e.base_salary_monthly,
   }));
 
   return (

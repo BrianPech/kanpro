@@ -19,6 +19,7 @@ import { parseCompanyWorkRulesConfig } from "../../strategies/company-policies.p
 import type {
   CompanyWorkRulesConfig,
   CompTimeMode,
+  CutoffDaysBeforeEnd,
   DelayDeductionDays,
   DelayResetPeriod,
   DisciplinaryPayMode,
@@ -28,6 +29,55 @@ import type {
 } from "../../types/company-policies";
 import type { LeaveApprovalMode } from "../../strategies/leave-approval.strategy";
 import { updatePayrollImpactConfigAction } from "../../actions/settings";
+
+const DELAY_DEDUCTION_LABELS: Record<string, string> = {
+  "1": "1 día completo",
+  "0.5": "0.5 (medio día)",
+};
+
+const PERIODICITY_LABELS: Record<string, string> = {
+  semanal: "Semanal",
+  catorcenal: "Catorcenal",
+  quincenal: "Quincenal",
+  mensual: "Mensual",
+};
+
+const EARLY_DEPARTURE_LABELS: Record<EarlyDepartureMode, string> = {
+  descuento_proporcional: "Descuento proporcional",
+  retardo_equivalente: "Cuenta como retardo",
+  solo_registro: "Solo registro",
+};
+
+const COMP_TIME_LABELS: Record<CompTimeMode, string> = {
+  tiempo_por_tiempo: "Tiempo por tiempo",
+  banco_horas: "Banco de horas",
+  ninguno: "Sin compensación",
+};
+
+const SEVENTH_DAY_LABELS: Record<SeventhDayMode, string> = {
+  proporcional: "Proporcional (1.1666)",
+  completo: "Día completo (+1 día)",
+  ninguno: "Solo día faltado",
+};
+
+const SUSPENSION_MODE_LABELS: Record<DisciplinaryPayMode, string> = {
+  sin_goce_solo_dia: "Sin goce (solo días)",
+  sin_goce_con_septimo: "Sin goce + séptimo día",
+  con_goce: "Con goce de sueldo",
+};
+
+const ADMIN_FAULT_MODE_LABELS: Record<DisciplinaryPayMode, string> = {
+  con_goce: "Con goce (solo registro)",
+  sin_goce_solo_dia: "Sin goce (solo día)",
+  sin_goce_con_septimo: "Sin goce + séptimo día",
+};
+
+const CUTOFF_DAYS_LABELS: Record<string, string> = {
+  "0": "0 — Fin del periodo (default)",
+  "1": "1 día antes del cierre",
+  "2": "2 días antes del cierre",
+  "3": "3 días antes del cierre",
+};
 
 export interface WorkRulesPreset {
   id: "estandar" | "flexible" | "estricta";
@@ -261,7 +311,7 @@ export function CompanyWorkRulesPanel({
               }
             />
           </div>
-          <div className="space-y-1">
+          <div className="space-y-1 min-w-0">
             <Label className="text-[11px] font-semibold">Días descontados</Label>
             <Select
               value={String(config.delayDeductionDays)}
@@ -272,8 +322,10 @@ export function CompanyWorkRulesPanel({
                 }))
               }
             >
-              <SelectTrigger>
-                <SelectValue />
+              <SelectTrigger className="w-full min-w-0">
+                <SelectValue>
+                  {DELAY_DEDUCTION_LABELS[String(config.delayDeductionDays)] ?? String(config.delayDeductionDays)}
+                </SelectValue>
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="1">1 día completo</SelectItem>
@@ -281,7 +333,7 @@ export function CompanyWorkRulesPanel({
               </SelectContent>
             </Select>
           </div>
-          <div className="space-y-1">
+          <div className="space-y-1 min-w-0">
             <Label className="text-[11px] font-semibold">Reinicio de conteo</Label>
             <Select
               value={config.resetPeriod}
@@ -289,8 +341,10 @@ export function CompanyWorkRulesPanel({
                 val && setConfig((prev) => ({ ...prev, resetPeriod: val as DelayResetPeriod }))
               }
             >
-              <SelectTrigger>
-                <SelectValue />
+              <SelectTrigger className="w-full min-w-0">
+                <SelectValue>
+                  {PERIODICITY_LABELS[config.resetPeriod] ?? config.resetPeriod}
+                </SelectValue>
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="semanal">Semanal</SelectItem>
@@ -300,7 +354,7 @@ export function CompanyWorkRulesPanel({
               </SelectContent>
             </Select>
           </div>
-          <div className="space-y-1">
+          <div className="space-y-1 min-w-0">
             <Label className="text-[11px] font-semibold">Salida anticipada</Label>
             <Select
               value={config.earlyDepartureMode}
@@ -312,8 +366,10 @@ export function CompanyWorkRulesPanel({
                 }))
               }
             >
-              <SelectTrigger>
-                <SelectValue />
+              <SelectTrigger className="w-full min-w-0">
+                <SelectValue>
+                  {EARLY_DEPARTURE_LABELS[config.earlyDepartureMode] ?? config.earlyDepartureMode}
+                </SelectValue>
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="descuento_proporcional">Descuento proporcional</SelectItem>
@@ -322,7 +378,7 @@ export function CompanyWorkRulesPanel({
               </SelectContent>
             </Select>
           </div>
-          <div className="space-y-1">
+          <div className="space-y-1 min-w-0">
             <Label className="text-[11px] font-semibold">Tiempo compensable</Label>
             <Select
               value={config.compTimeMode}
@@ -330,8 +386,10 @@ export function CompanyWorkRulesPanel({
                 val && setConfig((prev) => ({ ...prev, compTimeMode: val as CompTimeMode }))
               }
             >
-              <SelectTrigger>
-                <SelectValue />
+              <SelectTrigger className="w-full min-w-0">
+                <SelectValue>
+                  {COMP_TIME_LABELS[config.compTimeMode] ?? config.compTimeMode}
+                </SelectValue>
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="tiempo_por_tiempo">Tiempo por tiempo</SelectItem>
@@ -368,7 +426,7 @@ export function CompanyWorkRulesPanel({
           </p>
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-          <div className="space-y-1">
+          <div className="space-y-1 min-w-0">
             <Label className="text-[11px] font-semibold">Descuento séptimo día</Label>
             <Select
               value={config.seventhDayMode}
@@ -376,8 +434,10 @@ export function CompanyWorkRulesPanel({
                 val && setConfig((prev) => ({ ...prev, seventhDayMode: val as SeventhDayMode }))
               }
             >
-              <SelectTrigger>
-                <SelectValue />
+              <SelectTrigger className="w-full min-w-0">
+                <SelectValue>
+                  {SEVENTH_DAY_LABELS[config.seventhDayMode] ?? config.seventhDayMode}
+                </SelectValue>
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="proporcional">Proporcional (1.1666)</SelectItem>
@@ -386,7 +446,7 @@ export function CompanyWorkRulesPanel({
               </SelectContent>
             </Select>
           </div>
-          <div className="space-y-1">
+          <div className="space-y-1 min-w-0">
             <Label htmlFor="clarification-window" className="text-[11px] font-semibold">
               Ventana para aclarar / justificante (días)
             </Label>
@@ -404,7 +464,7 @@ export function CompanyWorkRulesPanel({
               }
             />
           </div>
-          <div className="space-y-1">
+          <div className="space-y-1 min-w-0">
             <Label className="text-[11px] font-semibold">Suspensión disciplinaria</Label>
             <Select
               value={config.disciplinaryRules.suspensionMode}
@@ -419,8 +479,11 @@ export function CompanyWorkRulesPanel({
                 }))
               }
             >
-              <SelectTrigger>
-                <SelectValue />
+              <SelectTrigger className="w-full min-w-0">
+                <SelectValue>
+                  {SUSPENSION_MODE_LABELS[config.disciplinaryRules.suspensionMode] ??
+                    config.disciplinaryRules.suspensionMode}
+                </SelectValue>
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="sin_goce_solo_dia">Sin goce (solo días)</SelectItem>
@@ -429,7 +492,7 @@ export function CompanyWorkRulesPanel({
               </SelectContent>
             </Select>
           </div>
-          <div className="space-y-1">
+          <div className="space-y-1 min-w-0">
             <Label className="text-[11px] font-semibold">Falta administrativa</Label>
             <Select
               value={config.disciplinaryRules.administrativeFaultMode}
@@ -444,8 +507,11 @@ export function CompanyWorkRulesPanel({
                 }))
               }
             >
-              <SelectTrigger>
-                <SelectValue />
+              <SelectTrigger className="w-full min-w-0">
+                <SelectValue>
+                  {ADMIN_FAULT_MODE_LABELS[config.disciplinaryRules.administrativeFaultMode] ??
+                    config.disciplinaryRules.administrativeFaultMode}
+                </SelectValue>
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="con_goce">Con goce (solo registro)</SelectItem>
@@ -532,6 +598,31 @@ export function CompanyWorkRulesPanel({
               }
             />
           </div>
+          <div className="space-y-1">
+            <Label htmlFor="luto-days-event" className="text-[11px] font-semibold">
+              Luto (días hábiles/evento, mín. 3 LFT)
+            </Label>
+            <Input
+              id="luto-days-event"
+              type="number"
+              min={3}
+              max={30}
+              value={config.leaveCatalogue.luto.maxDaysPerEvent ?? 3}
+              onChange={(e) =>
+                setConfig((prev) => ({
+                  ...prev,
+                  leaveCatalogue: {
+                    ...prev.leaveCatalogue,
+                    luto: {
+                      ...prev.leaveCatalogue.luto,
+                      maxDaysPerYear: null,
+                      maxDaysPerEvent: Math.max(3, Math.min(30, Math.floor(Number(e.target.value) || 3))),
+                    },
+                  },
+                }))
+              }
+            />
+          </div>
         </div>
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pt-1">
           <div className="flex items-center gap-2">
@@ -579,7 +670,7 @@ export function CompanyWorkRulesPanel({
           </p>
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-          <div className="space-y-1">
+          <div className="space-y-1 min-w-0">
             <Label className="text-[11px] font-semibold">Periodicidad de nómina</Label>
             <Select
               value={config.payrollPeriodicity}
@@ -591,8 +682,10 @@ export function CompanyWorkRulesPanel({
                 }))
               }
             >
-              <SelectTrigger>
-                <SelectValue />
+              <SelectTrigger className="w-full min-w-0">
+                <SelectValue>
+                  {PERIODICITY_LABELS[config.payrollPeriodicity] ?? config.payrollPeriodicity}
+                </SelectValue>
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="semanal">Semanal</SelectItem>
@@ -602,23 +695,34 @@ export function CompanyWorkRulesPanel({
               </SelectContent>
             </Select>
           </div>
-          <div className="space-y-1">
-            <Label htmlFor="incident-cutoff-day" className="text-[11px] font-semibold">
-              Día de corte de incidencias (1-31)
+          <div className="space-y-1 min-w-0">
+            <Label htmlFor="cutoff-days-before-end" className="text-[11px] font-semibold">
+              Corte de incidencias (días antes del fin)
             </Label>
-            <Input
-              id="incident-cutoff-day"
-              type="number"
-              min={1}
-              max={31}
-              value={config.incidentCutoffDay}
-              onChange={(e) =>
+            <Select
+              value={String(config.cutoffDaysBeforeEnd)}
+              onValueChange={(val) =>
                 setConfig((prev) => ({
                   ...prev,
-                  incidentCutoffDay: Math.max(1, Math.min(31, Math.floor(Number(e.target.value) || 15))),
+                  cutoffDaysBeforeEnd: (
+                    ["0", "1", "2", "3"].includes(String(val)) ? Number(val) : 0
+                  ) as CutoffDaysBeforeEnd,
                 }))
               }
-            />
+            >
+              <SelectTrigger id="cutoff-days-before-end" className="w-full min-w-0">
+                <SelectValue>
+                  {CUTOFF_DAYS_LABELS[String(config.cutoffDaysBeforeEnd)] ??
+                    String(config.cutoffDaysBeforeEnd)}
+                </SelectValue>
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="0">0 — Fin del periodo (default)</SelectItem>
+                <SelectItem value="1">1 día antes del cierre</SelectItem>
+                <SelectItem value="2">2 días antes del cierre</SelectItem>
+                <SelectItem value="3">3 días antes del cierre</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">

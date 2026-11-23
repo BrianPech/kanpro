@@ -13,7 +13,6 @@ import {
   getFortnightPeriodInfo,
   calculateMexicanISR,
   calculateIMSSWorkerShare,
-  calculateOvertimePay,
   calculateAbsenceDeduction,
   FortnightPeriodInfo,
 } from "../utils/payroll-calculator";
@@ -239,9 +238,6 @@ export class CompanyPayrollService {
 
     const hasExplicitPeriodicity =
       isPlainObject(rawImpactConfig) && typeof rawImpactConfig.payrollPeriodicity === "string";
-    const hasExplicitBonusesConfig =
-      isPlainObject(rawImpactConfig) &&
-      ("punctualityBonus" in rawImpactConfig || "attendanceBonus" in rawImpactConfig);
 
     const companyName = companyRes.data?.company_name || companyRes.data?.legal_name || "Mi Empresa";
     const activeEmployees = employeesRes.data || [];
@@ -391,64 +387,28 @@ export class CompanyPayrollService {
           work_date: a.work_date,
           hours: Number(a.overtime_hours),
           authorized: a.overtime_status === "autorizado",
-          rateType: a.overtime_rate_type === "triple" ? "triple" : "doble",
+          rateType: (a.overtime_rate_type === "triple" ? "triple" : "doble") as "doble" | "triple",
         }));
 
       if (overtimeEntries.length > 0) {
-        const hasExplicitTriple = overtimeEntries.some((e) => e.rateType === "triple");
-        if (
-          hasExplicitTriple ||
-          (workRules.overtimeRules.doubleRateMultiplier === 2 &&
-            workRules.overtimeRules.tripleRateMultiplier === 3)
-        ) {
-          for (const entry of overtimeEntries) {
-            if (workRules.overtimeRules.requiresPriorAuthorization && !entry.authorized) {
-              continue;
-            }
-            overtimeHours += entry.hours;
-            const multiplierRatio =
-              entry.rateType === "triple"
-                ? workRules.overtimeRules.tripleRateMultiplier / 3
-                : workRules.overtimeRules.doubleRateMultiplier / 2;
-            overtimePay += Math.round(
-              calculateOvertimePay(
-                monthlySalary,
-                entry.hours,
-                entry.rateType as "doble" | "triple"
-              ) * multiplierRatio
-            );
-          }
-        } else {
-          const otResult = evaluateOvertimePolicy({
-            entries: overtimeEntries,
-            monthlySalary,
-            config: workRules,
-          });
-          overtimeHours = otResult.authorizedHoursPaid;
-          overtimePay = otResult.totalOvertimePay;
-        }
+        const otResult = evaluateOvertimePolicy({
+          entries: overtimeEntries,
+          monthlySalary,
+          config: workRules,
+        });
+        overtimeHours = otResult.authorizedHoursPaid;
+        overtimePay = otResult.totalOvertimePay;
       }
 
-      let defaultPunctuality = 0;
-      let defaultAttendance = 0;
-      if (hasExplicitBonusesConfig) {
-        const bonusRes = evaluatePeriodBonuses({
-          incidents: [...empIncidents, ...leaveBonusTriggers],
-          attendance: empAtt.filter((a) => a.work_date <= cutoffDate),
-          monthlySalary,
-          config: rawImpactConfig,
-          refDateISO,
-        });
-        defaultPunctuality = bonusRes.punctualityBonus.finalAmount;
-        defaultAttendance = bonusRes.attendanceBonus.finalAmount;
-      } else {
-        defaultPunctuality =
-          lateArrivals + incidentDelays === 0 ? Math.round(rawBaseSalaryPeriod * 0.05) : 0;
-        defaultAttendance =
-          unjustifiedAbsences + unpaidLeaveDays === 0
-            ? Math.round(rawBaseSalaryPeriod * 0.05)
-            : 0;
-      }
+      const bonusRes = evaluatePeriodBonuses({
+        incidents: [...empIncidents, ...leaveBonusTriggers],
+        attendance: empAtt.filter((a) => a.work_date <= cutoffDate),
+        monthlySalary,
+        config: rawImpactConfig,
+        refDateISO,
+      });
+      const defaultPunctuality = bonusRes.punctualityBonus.finalAmount;
+      const defaultAttendance = bonusRes.attendanceBonus.finalAmount;
 
       const punctualityBonus = savedItem?.punctuality_bonus !== undefined && savedItem?.punctuality_bonus !== null
         ? Number(savedItem.punctuality_bonus)

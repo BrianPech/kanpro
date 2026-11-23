@@ -220,6 +220,7 @@ export function CompanyEmployeesView({
 
   // New direct employee modal state
   const [isNewEmployeeModalOpen, setIsNewEmployeeModalOpen] = React.useState(false);
+  const [newEmployeeModalTab, setNewEmployeeModalTab] = React.useState<"register" | "invite">("register");
 
   // Onboarding Intro Disclosure Tour state
   const [isTourOpen, setIsTourOpen] = React.useState(true);
@@ -1200,7 +1201,10 @@ export function CompanyEmployeesView({
 
           <button
             type="button"
-            onClick={() => setIsNewEmployeeModalOpen(true)}
+            onClick={() => {
+              setNewEmployeeModalTab("register");
+              setIsNewEmployeeModalOpen(true);
+            }}
             className="h-[44px] px-[14px] rounded-[8px] bg-primary text-primary-foreground text-[14px] font-semibold leading-[20px] inline-flex items-center justify-center gap-[8px] hover:opacity-90 transition-opacity cursor-pointer"
           >
             <Plus className="size-4" />
@@ -1427,7 +1431,10 @@ export function CompanyEmployeesView({
                 <EmptyContent>
                   <Button
                     size="sm"
-                    onClick={() => setIsNewEmployeeModalOpen(true)}
+                    onClick={() => {
+                      setNewEmployeeModalTab("invite");
+                      setIsNewEmployeeModalOpen(true);
+                    }}
                     className="rounded-xl font-bold text-xs h-9 px-4 cursor-pointer gap-1.5 bg-primary text-primary-foreground"
                   >
                     <UserPlus className="size-4" />
@@ -1611,11 +1618,15 @@ export function CompanyEmployeesView({
                 <EmptyTitle>
                   {isFiltered
                     ? "No se encontraron empleados"
+                    : statusFilter === "Baja"
+                    ? "Sin bajas registradas"
                     : "Plantilla de empleados vacía"}
                 </EmptyTitle>
                 <EmptyDescription>
                   {isFiltered
                     ? "No hay empleados que coincidan con la búsqueda o los filtros aplicados. Intenta ajustar tu consulta."
+                    : statusFilter === "Baja"
+                    ? "No hay colaboradores dados de baja en tu plantilla actualmente."
                     : "Aún no tienes empleados registrados en tu plantilla. Puedes contratar candidatos desde tus postulaciones."}
                 </EmptyDescription>
               </EmptyHeader>
@@ -2573,6 +2584,7 @@ export function CompanyEmployeesView({
       <RegisterEmployeeModal
         isOpen={isNewEmployeeModalOpen}
         onOpenChange={setIsNewEmployeeModalOpen}
+        defaultTab={newEmployeeModalTab}
         onEmployeeCreated={handleEmployeeCreated}
       />
 

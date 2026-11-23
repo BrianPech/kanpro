@@ -15,8 +15,12 @@ import {
 } from "../types/employee-dossier";
 import {
   calculateLFTVacationDays,
+  calculateVacationPremium,
   filterLeavesInCurrentCycle,
 } from "../utils/vacation-calculator";
+import { parseCompanyWorkRulesConfig } from "../strategies/company-policies.parser";
+import { resolveCompanyVacationPolicy } from "../strategies/leaves-imss-overtime-policy.engine";
+import { calculatePunctualityRate } from "../utils/attendance-utils";
 import { LEAVE_TYPE_LABELS } from "./company-leaves";
 
 /**
@@ -71,13 +75,17 @@ export async function getEmployeeDossierById(
   let companyName = "Mi Empresa";
   const { data: profile } = await supabase
     .from("company_profiles")
-    .select("company_name, legal_name")
+    .select("company_name, legal_name, payroll_impact_config")
     .eq("id", companyId)
     .maybeSingle();
 
   if (profile?.legal_name || profile?.company_name) {
     companyName = profile.legal_name || profile.company_name;
   }
+  const workRules = parseCompanyWorkRulesConfig(
+    (profile as { payroll_impact_config?: unknown } | null)?.payroll_impact_config
+  );
+  const vacationPolicy = resolveCompanyVacationPolicy(workRules);
 
   const isUuid =
     /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(
@@ -205,7 +213,7 @@ export async function getEmployeeDossierById(
     toMexicoCalendarDate(candidateData?.applied_at) ||
     getMexicoDateISO();
 
-  const seniority = calculateLFTVacationDays(hireDate);
+  const seniority = calculateLFTVacationDays(hireDate, undefined, vacationPolicy.strategy);
 
   // 5. Fetch real documents (contracts & profile_documents)
   const documents: EmployeeDocument[] = [];
@@ -463,7 +471,56 @@ export async function getEmployeeDossierById(
     0,
     seniority.totalDaysAccrued - daysTaken - daysPendingApproval
   );
+  const vacationPremium = calculateVacationPremium(
+    baseSalaryMonthly,
+    seniority.totalDaysAccrued,
+    vacationPolicy.premiumPercentage / 100
+  );
   const currentMexicoYear = Number(getMexicoDateISO().slice(0, 4));
+
+  // 9. Fetch real attendance & overtime summary
+  let totalDaysPresent = 0;
+  let totalLateArrivals = 0;
+  let totalAbsences = 0;
+  let totalOvertimeHours = 0;
+
+  if (emp?.id) {
+    try {
+      const attTable = supabase.from("company_attendance");
+      if (attTable && typeof attTable.select === "function") {
+        const { data: attRows } = await attTable
+          .select("status, overtime_hours, overtime_status")
+          .eq("company_id", companyId)
+          .eq("employee_id", emp.id);
+
+        for (const row of attRows ?? []) {
+          if (row.status === "presente" || row.status === "retardo") {
+            totalDaysPresent += 1;
+          }
+          if (row.status === "retardo") {
+            totalLateArrivals += 1;
+          } else if (row.status === "falta_injustificada" || row.status === "ausente") {
+            totalAbsences += 1;
+          }
+          const otHours = Number(row.overtime_hours) || 0;
+          if (
+            otHours > 0 &&
+            (!workRules.overtimeRules.requiresPriorAuthorization ||
+              row.overtime_status === "autorizado")
+          ) {
+            totalOvertimeHours += otHours;
+          }
+        }
+      }
+    } catch {
+      // Fallback a 0 si el cliente mockeado no implementa company_attendance.
+    }
+  }
+
+  const punctualityRate =
+    totalDaysPresent > 0
+      ? calculatePunctualityRate(totalDaysPresent - totalLateArrivals, totalLateArrivals)
+      : 100;
 
   const dossier: EmployeeDossier = {
     id: emp?.id || candidateData?.id || employeeId,
@@ -511,6 +568,8 @@ export async function getEmployeeDossierById(
       daysPendingApproval,
       daysAvailable,
       nextPeriodDate: `Ciclo anual ${currentMexicoYear + 1}`,
+      premiumPercentage: vacationPolicy.premiumPercentage,
+      estimatedVacationPremiumMxn: vacationPremium.premiumAmount,
     },
 
     // Real Vacation Requests
@@ -520,11 +579,11 @@ export async function getEmployeeDossierById(
     performanceReviews: realReviews,
 
     attendanceSummary: {
-      punctualityRate: 100,
-      totalDaysPresent: 0,
-      totalLateArrivals: 0,
-      totalAbsences: 0,
-      totalOvertimeHours: 0,
+      punctualityRate,
+      totalDaysPresent,
+      totalLateArrivals,
+      totalAbsences,
+      totalOvertimeHours,
     },
   };
 

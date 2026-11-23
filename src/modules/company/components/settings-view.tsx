@@ -78,6 +78,7 @@ const CONFIG_MODULES = [
     icon: SunMoon,
     badge: "Apariencia",
     badgeColor: "bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border-indigo-500/20",
+    sectionId: "appearance",
   },
   {
     title: "Seguridad y Acceso",
@@ -85,6 +86,7 @@ const CONFIG_MODULES = [
     icon: Key,
     badge: "Protección",
     badgeColor: "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20",
+    sectionId: "account",
   },
   {
     title: "Control de Reclutamiento",
@@ -92,6 +94,7 @@ const CONFIG_MODULES = [
     icon: Briefcase,
     badge: "Operaciones",
     badgeColor: "bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20",
+    sectionId: "account",
   },
   {
     title: "Suscripción y Facturación",
@@ -99,6 +102,7 @@ const CONFIG_MODULES = [
     icon: CreditCard,
     badge: "Finanzas",
     badgeColor: "bg-purple-500/10 text-purple-600 dark:text-purple-400 border-purple-500/20",
+    sectionId: "subscription",
   },
   {
     title: "Notificaciones y Alertas",
@@ -106,6 +110,7 @@ const CONFIG_MODULES = [
     icon: BellRing,
     badge: "Alertas",
     badgeColor: "bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/20",
+    sectionId: "notifications",
   },
   {
     title: "Perfil Corporativo y SAT",
@@ -113,6 +118,7 @@ const CONFIG_MODULES = [
     icon: Building2,
     badge: "Legal",
     badgeColor: "bg-rose-500/10 text-rose-600 dark:text-rose-400 border-rose-500/20",
+    href: "/dashboard/company/profile",
   },
   {
     title: "Reglas de mi empresa",
@@ -120,6 +126,7 @@ const CONFIG_MODULES = [
     icon: SlidersHorizontal,
     badge: "Reglas",
     badgeColor: "bg-teal-500/10 text-teal-600 dark:text-teal-400 border-teal-500/20",
+    sectionId: "company_rules",
   },
 ];
 
@@ -129,6 +136,9 @@ export function CompanySettingsView({
   initialPauseState: _initialPauseState = false,
   initialInvoices: _initialInvoices = [],
 }: CompanySettingsViewProps) {
+  const [isModalOpen, setIsModalOpen] = React.useState(false);
+  const [selectedSection, setSelectedSection] = React.useState<string>("appearance");
+
   const formattedInvoices: BillingRecord[] = React.useMemo(() => {
     return (_initialInvoices || []).map((inv) => ({
       id: inv.id,
@@ -180,11 +190,18 @@ export function CompanySettingsView({
           
           {/* CompanySettingsModal Component */}
           <CompanySettingsModal
+            open={isModalOpen}
+            onOpenChange={setIsModalOpen}
+            defaultSection={selectedSection}
             initialProfile={initialProfile}
             initialInvoices={formattedInvoices}
             trigger={
               <Button
                 size="lg"
+                onClick={() => {
+                  setSelectedSection("appearance");
+                  setIsModalOpen(true);
+                }}
                 className="gap-2.5 font-extrabold cursor-pointer"
               >
                 <SlidersHorizontal className="size-4.5 stroke-[2.5]" />
@@ -193,16 +210,13 @@ export function CompanySettingsView({
             }
           />
 
-          <Link href="/dashboard/company/profile">
-            <Button
-              variant="outline"
-              size="lg"
-              className="gap-2 font-bold cursor-pointer"
-            >
-              <Building2 className="size-4 text-muted-foreground" />
-              <span>Ver Perfil Público</span>
-              <ArrowRight className="size-3.5 ml-1 text-muted-foreground" />
-            </Button>
+          <Link
+            href="/dashboard/company/profile"
+            className="inline-flex items-center justify-center h-10 px-6 rounded-xl border border-input bg-background hover:bg-accent hover:text-accent-foreground text-sm gap-2 font-bold cursor-pointer transition-colors"
+          >
+            <Building2 className="size-4 text-muted-foreground" />
+            <span>Ver Perfil Público</span>
+            <ArrowRight className="size-3.5 ml-1 text-muted-foreground" />
           </Link>
         </CardContent>
       </Card>
@@ -224,27 +238,56 @@ export function CompanySettingsView({
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {CONFIG_MODULES.map((module) => {
             const Icon = module.icon;
+            const cardInner = (
+              <div className="space-y-3">
+                <div className="flex items-center justify-between gap-2">
+                  <div className="size-10 rounded-2xl bg-muted/60 flex items-center justify-center shrink-0 text-foreground">
+                    <Icon className="size-5 text-primary" />
+                  </div>
+                  <Badge variant="outline" className={`text-[10px] font-bold px-2.5 py-0.5 rounded-full ${module.badgeColor}`}>
+                    {module.badge}
+                  </Badge>
+                </div>
+                <div className="space-y-1">
+                  <h3 className="text-sm font-bold text-foreground">{module.title}</h3>
+                  <p className="text-xs text-muted-foreground font-medium leading-relaxed">
+                    {module.description}
+                  </p>
+                </div>
+              </div>
+            );
+
+            if ("href" in module && module.href) {
+              return (
+                <Link key={module.title} href={module.href} className="block">
+                  <Card className="p-5 h-full flex flex-col justify-between gap-4 hover:border-primary/40 transition-all cursor-pointer">
+                    {cardInner}
+                  </Card>
+                </Link>
+              );
+            }
+
             return (
               <Card
                 key={module.title}
-                className="p-5 flex flex-col justify-between gap-4 hover:border-primary/40 transition-all"
+                role="button"
+                tabIndex={0}
+                onClick={() => {
+                  if ("sectionId" in module && module.sectionId) {
+                    setSelectedSection(module.sectionId);
+                    setIsModalOpen(true);
+                  }
+                }}
+                onKeyDown={(e) => {
+                  if ((e.key === "Enter" || e.key === " ") && "sectionId" in module && module.sectionId) {
+                    e.preventDefault();
+                    setSelectedSection(module.sectionId);
+                    setIsModalOpen(true);
+                  }
+                }}
+                className="p-5 flex flex-col justify-between gap-4 hover:border-primary/40 transition-all cursor-pointer"
               >
-                <div className="space-y-3">
-                  <div className="flex items-center justify-between gap-2">
-                    <div className="size-10 rounded-2xl bg-muted/60 flex items-center justify-center shrink-0 text-foreground">
-                      <Icon className="size-5 text-primary" />
-                    </div>
-                    <Badge variant="outline" className={`text-[10px] font-bold px-2.5 py-0.5 rounded-full ${module.badgeColor}`}>
-                      {module.badge}
-                    </Badge>
-                  </div>
-                  <div className="space-y-1">
-                    <h3 className="text-sm font-bold text-foreground">{module.title}</h3>
-                    <p className="text-xs text-muted-foreground font-medium leading-relaxed">
-                      {module.description}
-                    </p>
-                  </div>
-                </div>
+                {cardInner}
               </Card>
             );
           })}

@@ -466,11 +466,11 @@ export function CompanyProfileForm({
             )}
 
             <div className="absolute top-[16px] right-[16px] z-20">
-              <Button
-                type="button"
-                variant="outline"
-                disabled={isSaving || isUploadingBanner}
-                className="relative h-[40px] px-[14px] rounded-[8px] border-control-border bg-card/95 backdrop-blur-xs text-[14px] font-medium text-foreground hover:bg-card gap-[8px] cursor-pointer shadow-xs"
+              <label
+                className={cn(
+                  "relative inline-flex items-center justify-center h-[40px] px-[14px] rounded-[8px] border border-control-border bg-card/95 backdrop-blur-xs text-[14px] font-medium text-foreground hover:bg-card gap-[8px] cursor-pointer shadow-xs",
+                  (isSaving || isUploadingBanner) && "opacity-50 pointer-events-none"
+                )}
               >
                 {isUploadingBanner ? (
                   <>
@@ -488,16 +488,16 @@ export function CompanyProfileForm({
                   accept="image/png,image/jpeg,image/webp"
                   disabled={isSaving || isUploadingBanner}
                   onChange={handleBannerChange}
-                  className="absolute inset-0 opacity-0 cursor-pointer"
+                  className="sr-only"
                   aria-label="Subir portada"
                 />
-              </Button>
+              </label>
             </div>
           </div>
 
           {/* Logo + Company Name Row */}
-          <div className="px-[20px] sm:px-[24px] pb-[20px] pt-0 -mt-[40px] flex flex-col sm:flex-row sm:items-end justify-between gap-[16px] relative z-10">
-            <div className="flex flex-col sm:flex-row sm:items-end gap-[16px] min-w-0">
+          <div className="px-[20px] sm:px-[24px] pb-[20px] pt-0 -mt-[40px] flex flex-col lg:flex-row lg:items-end justify-between gap-[16px] relative z-10">
+            <div className="flex flex-col sm:flex-row sm:items-end gap-[16px] min-w-0 flex-1">
               {/* Rounded Square Logo */}
               <div className="relative size-[96px] rounded-[16px] bg-card border-4 border-card shadow-md overflow-hidden shrink-0 flex items-center justify-center">
                 {isUploadingLogo ? (
@@ -521,9 +521,9 @@ export function CompanyProfileForm({
                 />
               </div>
 
-              <div className="pb-[4px] min-w-0">
+              <div className="pb-[4px] min-w-0 flex-1">
                 <div className="flex items-center gap-[10px] flex-wrap">
-                  <h2 className="text-[24px] font-semibold leading-[32px] tracking-[-0.01em] text-foreground truncate">
+                  <h2 className="text-[24px] font-semibold leading-[32px] tracking-[-0.01em] text-foreground break-words">
                     {companyName && companyName.trim() !== ""
                       ? companyName
                       : "Nombre de tu empresa"}
@@ -541,7 +541,7 @@ export function CompanyProfileForm({
                     </Link>
                   )}
                 </div>
-                <p className="text-[14px] font-normal leading-[20px] text-muted-foreground mt-[2px] truncate">
+                <p className="text-[14px] font-normal leading-[20px] text-muted-foreground mt-[2px] break-words">
                   {[
                     industry ? INDUSTRY_LABELS[industry] || industry : null,
                     location || null,
@@ -552,11 +552,11 @@ export function CompanyProfileForm({
               </div>
             </div>
 
-            <Button
-              type="button"
-              variant="outline"
-              disabled={isSaving || isUploadingLogo}
-              className="relative h-[40px] px-[14px] rounded-[8px] border-control-border bg-card text-[14px] font-medium text-foreground hover:bg-muted/50 gap-[8px] cursor-pointer shrink-0 self-start sm:self-auto"
+            <label
+              className={cn(
+                "relative inline-flex items-center justify-center h-[40px] px-[14px] rounded-[8px] border border-control-border bg-card text-[14px] font-medium text-foreground hover:bg-muted/50 gap-[8px] cursor-pointer shrink-0 self-start lg:self-auto",
+                (isSaving || isUploadingLogo) && "opacity-50 pointer-events-none"
+              )}
             >
               {isUploadingLogo ? (
                 <>
@@ -574,10 +574,10 @@ export function CompanyProfileForm({
                 accept="image/png,image/jpeg,image/webp,image/svg+xml"
                 disabled={isSaving || isUploadingLogo}
                 onChange={handleLogoChange}
-                className="absolute inset-0 opacity-0 cursor-pointer"
+                className="sr-only"
                 aria-label="Cambiar foto de perfil"
               />
-            </Button>
+            </label>
           </div>
         </div>
 

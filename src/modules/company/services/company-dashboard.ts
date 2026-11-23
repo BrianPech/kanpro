@@ -1,7 +1,9 @@
 import { createClient } from "@/lib/supabase/server";
-import { getMexicoDateISO } from "@/lib/formatters";
+import { fromMonthlyEquivalentSalary, getMexicoDateISO } from "@/lib/formatters";
 import { calculatePunctualityRate } from "../utils/attendance-utils";
 import { getFortnightPeriodInfo } from "../utils/payroll-calculator";
+import { parseCompanyWorkRulesConfig } from "../strategies/company-policies.parser";
+import { resolvePayrollPeriodWithCutoff } from "../strategies/payroll-period-bonuses.engine";
 import {
   CompanyDashboardData,
   WorkforceKPIs,
@@ -138,6 +140,7 @@ export async function getCompanyDashboardData(targetCompanyId?: string): Promise
         .from("company_profiles")
         .select(`
           company_name,
+          payroll_impact_config,
           subscription_plan,
           subscription_status,
           subscription_period_end,
@@ -236,10 +239,38 @@ export async function getCompanyDashboardData(targetCompanyId?: string): Promise
       payrollSummary.status = dbPayrollStatus;
     }
 
+    const rawDashboardRules = (
+      companyRes.data as { payroll_impact_config?: unknown } | null | undefined
+    )?.payroll_impact_config;
+    const dashboardWorkRules = parseCompanyWorkRulesConfig(rawDashboardRules);
+    const hasExplicitDashboardPeriodicity =
+      typeof rawDashboardRules === "object" &&
+      rawDashboardRules !== null &&
+      !Array.isArray(rawDashboardRules) &&
+      typeof (rawDashboardRules as Record<string, unknown>).payrollPeriodicity === "string";
+
     if (companyRes.data) {
       if (companyRes.data.company_name) {
         companyName = companyRes.data.company_name;
       }
+
+      const periodWithCutoff = resolvePayrollPeriodWithCutoff({
+        refDateISO: todayStr,
+        config: rawDashboardRules,
+      });
+      if (dashboardWorkRules.payrollPeriodicity !== "quincenal") {
+        payrollSummary.frequency = dashboardWorkRules.payrollPeriodicity;
+        payrollSummary.periodName = `Periodo ${dashboardWorkRules.payrollPeriodicity}`;
+        payrollSummary.periodDates = `${periodWithCutoff.startDate} al ${periodWithCutoff.endDate}`;
+        payrollSummary.paymentDate = periodWithCutoff.endDate;
+        const [endY, endM, endD] = periodWithCutoff.endDate.split("-").map(Number);
+        const endUtc = new Date(Date.UTC(endY, endM - 1, endD));
+        payrollSummary.daysToPay = Math.max(
+          0,
+          Math.round((endUtc.getTime() - todayUtc.getTime()) / 86_400_000)
+        );
+      }
+      payrollSummary.cutoffDate = periodWithCutoff.cutoffDate;
 
       const companyProfilesObj = companyRes.data.profiles;
       const baseCompanyProfile = Array.isArray(companyProfilesObj)
@@ -500,13 +531,16 @@ export async function getCompanyDashboardData(targetCompanyId?: string): Promise
         const dept = emp.department || "Operaciones";
         const jobTitle = emp.job_title || "Colaborador";
 
-        // Department payroll tally using real base salary
+        // Department payroll tally using real base salary (y periodicidad configurada)
         const empSalary = emp.base_salary_monthly ? Number(emp.base_salary_monthly) : 0;
+        const empPeriodSalary = hasExplicitDashboardPeriodicity
+          ? fromMonthlyEquivalentSalary(empSalary, dashboardWorkRules.payrollPeriodicity)
+          : empSalary;
         if (!departmentTally[dept]) {
           departmentTally[dept] = { headcount: 0, amount: 0 };
         }
         departmentTally[dept].headcount += 1;
-        departmentTally[dept].amount += empSalary;
+        departmentTally[dept].amount += empPeriodSalary;
 
         // Only include employees who actually recorded attendance or an incident/leave today
         const existingAtt = attByEmp.get(emp.id);

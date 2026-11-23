@@ -100,12 +100,12 @@ export function CandidateRadarMap({
       const isSelected = selectedCity === cluster.city;
       const pill = L.divIcon({
         className: "kanpro-radar-cluster",
-        html: `<button type="button" style="display:inline-flex;align-items:center;gap:6px;padding:4px 10px;border-radius:9999px;font-size:12px;font-weight:700;white-space:nowrap;border:2px solid #ffffff;box-shadow:0 2px 8px rgba(0,0,0,0.22);background:${
+        html: `<span style="display:inline-flex;align-items:center;gap:6px;padding:4px 10px;border-radius:9999px;font-size:12px;font-weight:700;white-space:nowrap;border:2px solid #ffffff;box-shadow:0 2px 8px rgba(0,0,0,0.22);background:${
           isSelected ? "var(--primary, #0f766e)" : "#0b0b0b"
         };color:#ffffff;cursor:pointer;"><span>${cluster.count}</span><span style="font-weight:500;opacity:0.92;">${cluster.city
           .replace(/&/g, "&amp;")
           .replace(/</g, "&lt;")
-          .replace(/>/g, "&gt;")}</span></button>`,
+          .replace(/>/g, "&gt;")}</span></span>`,
         iconSize: [0, 0],
         iconAnchor: [0, 14],
       });

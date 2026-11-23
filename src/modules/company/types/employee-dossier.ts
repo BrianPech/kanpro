@@ -69,6 +69,8 @@ export interface VacationBalance {
   daysPendingApproval: number;
   daysAvailable: number;
   nextPeriodDate: string;
+  premiumPercentage?: number;
+  estimatedVacationPremiumMxn?: number;
 }
 
 export interface VacationRequest {

@@ -581,14 +581,16 @@ export function CompanyVerificationView({
             {progressHeading}
           </h2>
           <span className="text-[14px] font-medium leading-[20px] text-link tabular-nums">
-            {completedCount} de {totalCount} requisitos completos
+            {isApproved && completedCount < totalCount
+              ? `Verificación aprobada (${completedCount}/${totalCount} campos registrados)`
+              : `${completedCount} de ${totalCount} requisitos completos`}
           </span>
         </div>
 
         <div className="h-[6px] w-full rounded-full bg-muted overflow-hidden">
           <div
             className="h-full rounded-full bg-primary transition-all duration-300"
-            style={{ width: `${progressPercent}%` }}
+            style={{ width: `${isApproved ? 100 : progressPercent}%` }}
           />
         </div>
 

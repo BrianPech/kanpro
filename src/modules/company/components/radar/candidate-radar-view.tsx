@@ -101,14 +101,17 @@ export function CandidateRadarView({
         }
       }
 
-      // 2. Text search query (skills only)
+      // 2. Text search query (headline, name, summary, skills)
       if (searchQuery.trim()) {
         const query = searchQuery.toLowerCase();
         const skillsMatch = Array.isArray(cand.skills)
           ? cand.skills.some((s) => typeof s === "string" && s.toLowerCase().includes(query))
           : false;
+        const headlineMatch = (cand.headline || "").toLowerCase().includes(query);
+        const nameMatch = (cand.full_name || "").toLowerCase().includes(query);
+        const bioMatch = (cand.bio || "").toLowerCase().includes(query);
 
-        if (!skillsMatch) {
+        if (!skillsMatch && !headlineMatch && !nameMatch && !bioMatch) {
           return false;
         }
       }

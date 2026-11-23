@@ -92,7 +92,7 @@ export function IncidentEvidenceModal({
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[560px] p-6 max-h-[90vh] overflow-y-auto">
+      <DialogContent className="sm:max-w-[560px] p-6 max-h-[90vh] overflow-y-auto overflow-x-hidden">
         <DialogHeader className="space-y-2 text-left pb-3 border-b border-border/40">
           <div className="flex items-center justify-between gap-3">
             <div className="flex items-center gap-2">
@@ -126,9 +126,9 @@ export function IncidentEvidenceModal({
           </div>
 
           {/* Supervisor in charge */}
-          <div className="p-3 rounded-2xl bg-card border border-border/60 flex items-center justify-between text-xs">
-            <span className="text-muted-foreground font-medium">Supervisor Responsable:</span>
-            <span className="font-bold text-foreground">{incident.responsibleSupervisor}</span>
+          <div className="p-3 rounded-2xl bg-card border border-border/60 flex items-center justify-between gap-2 text-xs min-w-0">
+            <span className="text-muted-foreground font-medium shrink-0">Supervisor Responsable:</span>
+            <span className="font-bold text-foreground truncate min-w-0 text-right">{incident.responsibleSupervisor}</span>
           </div>
 
           {/* Attached Evidence */}
@@ -183,7 +183,7 @@ export function IncidentEvidenceModal({
           </div>
         </div>
 
-        <DialogFooter className="flex flex-col-reverse sm:flex-row gap-2 pt-3 border-t border-border/40">
+        <DialogFooter className="flex flex-col-reverse sm:flex-row sm:flex-wrap sm:justify-end gap-2 pt-3 border-t border-border/40">
           <Button
             type="button"
             variant="outline"

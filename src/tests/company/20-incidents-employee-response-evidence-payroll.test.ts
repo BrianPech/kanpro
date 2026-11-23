@@ -424,16 +424,39 @@ describe("Parte 3A: cableado de incidencias en nómina", () => {
     expect(byCompany.summary.employees[0].absenceDeductions).toBe(calculateAbsenceDeduction(salary, 2));
   });
 
-  test("sin incidencias aplicadas la nómina queda igual (bonos por defecto intactos)", async () => {
+  test("con config null los bonos son 0; con config explícito 5% aplica puntualidad y asistencia", async () => {
     const repo = buildFakeRepo({
       listByPeriod: vi.fn(async () => [{ ...applied("falta_injustificada", 1), status: "pendiente" }]),
     });
-    const { summary } = await new CompanyPayrollService(buildPayrollClient(null), repo).getCompanyPayrollData("comp-A", refDate);
-    const emp = summary.employees[0];
+    const byNull = await new CompanyPayrollService(buildPayrollClient(null), repo).getCompanyPayrollData("comp-A", refDate);
+    const empNull = byNull.summary.employees[0];
 
-    expect(emp.absenceDeductions).toBe(0);
-    expect(emp.unjustifiedAbsences).toBe(0);
-    expect(emp.performanceBonus).toBe(0);
-    expect(emp.attendanceBonus).toBe(300);
+    expect(empNull.absenceDeductions).toBe(0);
+    expect(empNull.unjustifiedAbsences).toBe(0);
+    expect(empNull.performanceBonus).toBe(0);
+    expect(empNull.punctualityBonus).toBe(0);
+    expect(empNull.attendanceBonus).toBe(0);
+
+    const byFivePercent = await new CompanyPayrollService(
+      buildPayrollClient({
+        punctualityBonus: {
+          enabled: true,
+          amount: 5,
+          type: "percentage",
+          cancelledBy: ["retardo", "falta_injustificada", "suspension"],
+        },
+        attendanceBonus: {
+          enabled: true,
+          amount: 5,
+          type: "percentage",
+          cancelledBy: ["falta_injustificada", "suspension"],
+        },
+      }),
+      repo
+    ).getCompanyPayrollData("comp-A", refDate);
+    const empExplicit = byFivePercent.summary.employees[0];
+
+    expect(empExplicit.punctualityBonus).toBe(300);
+    expect(empExplicit.attendanceBonus).toBe(300);
   });
 });

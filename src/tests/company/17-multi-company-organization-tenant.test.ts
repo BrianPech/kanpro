@@ -1,4 +1,5 @@
 import { describe, test, expect, vi } from "vitest";
+import { BUSINESS_TIME_ZONE } from "@/lib/formatters";
 import {
   createCompanySchema,
   switchActiveCompanySchema,
@@ -117,12 +118,23 @@ describe("Multi-Company Organization & Tenant Management (1 Usuario -> N Empresa
       expect(result.companyId).toBe(mockCompanyId);
       expect(result.companyName).toBe("Grupo Gastronómico Maya");
 
-      // Verificar que insertó company_profiles con owner_id
+      // Verificar que insertó company_profiles con owner_id y payroll_impact_config con bonos en 0
       expect(insertCompanyMock).toHaveBeenCalledWith(
         expect.objectContaining({
           company_name: "Grupo Gastronómico Maya",
           owner_id: mockUserId,
           rfc: "GGM200505XYZ",
+          payroll_impact_config: expect.objectContaining({
+            timezone: BUSINESS_TIME_ZONE,
+            punctualityBonus: expect.objectContaining({
+              enabled: false,
+              amount: 0,
+            }),
+            attendanceBonus: expect.objectContaining({
+              enabled: false,
+              amount: 0,
+            }),
+          }),
         })
       );
 

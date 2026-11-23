@@ -424,6 +424,61 @@ describe("B3 (1-3): Reglas de retardos, séptimo día, sin multa ilegal de $100 
     expect(summary.employees[0].unjustifiedAbsences).toBe(1);
     expect(summary.employees[0].absenceDeductions).toBe(calculateAbsenceDeduction(12000, 1, "proporcional"));
   });
+
+  test("H1: config null paga bonos 0; config explícito 5% paga 5% salvo incidencia", async () => {
+    const refDate = new Date("2026-10-10T18:00:00.000Z");
+    const emptyRepo: IncidentsRepository = {
+      create: vi.fn(),
+      updateStatus: vi.fn(),
+      delete: vi.fn(),
+      getById: vi.fn(async () => null),
+      markNotified: vi.fn(async () => undefined),
+      listByCompany: vi.fn(async () => []),
+      listByEmployeeAndPeriod: vi.fn(async () => []),
+      listByPeriod: vi.fn(async () => []),
+    };
+
+    const withNull = await new CompanyPayrollService(
+      buildPayrollClient({ payrollImpactConfig: null }),
+      emptyRepo
+    ).getCompanyPayrollData("comp-A", refDate);
+    expect(withNull.summary.employees[0].punctualityBonus).toBe(0);
+    expect(withNull.summary.employees[0].attendanceBonus).toBe(0);
+
+    const explicitFivePercent = {
+      punctualityBonus: {
+        enabled: true,
+        amount: 5,
+        type: "percentage",
+        cancelledBy: ["retardo", "falta_injustificada", "suspension"],
+      },
+      attendanceBonus: {
+        enabled: true,
+        amount: 5,
+        type: "percentage",
+        cancelledBy: ["falta_injustificada", "suspension"],
+      },
+    };
+    const withFivePercent = await new CompanyPayrollService(
+      buildPayrollClient({ payrollImpactConfig: explicitFivePercent }),
+      emptyRepo
+    ).getCompanyPayrollData("comp-A", refDate);
+    expect(withFivePercent.summary.employees[0].punctualityBonus).toBe(300);
+    expect(withFivePercent.summary.employees[0].attendanceBonus).toBe(300);
+
+    const delayRepo: IncidentsRepository = {
+      ...emptyRepo,
+      listByPeriod: vi.fn(async () => [
+        buildIncidentRow({ id: "d1", category: "retardo", incident_date: "2026-10-05", status: "aprobado" }),
+      ]),
+    };
+    const withDelay = await new CompanyPayrollService(
+      buildPayrollClient({ payrollImpactConfig: explicitFivePercent }),
+      delayRepo
+    ).getCompanyPayrollData("comp-A", refDate);
+    expect(withDelay.summary.employees[0].punctualityBonus).toBe(0);
+    expect(withDelay.summary.employees[0].attendanceBonus).toBe(300);
+  });
 });
 
 describe("Residuos Block B (2-4): Normalización en invitaciones, fallback modal = 0, ciclo vacacional y concurrencia", () => {

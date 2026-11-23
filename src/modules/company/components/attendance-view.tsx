@@ -98,6 +98,7 @@ interface AttendanceViewProps {
   initialRecords: AttendanceRecord[];
   initialStats: AttendanceOverviewStats;
   branchConfig: GeofenceConfig;
+  toleranceMinutes?: number;
   companyName: string;
   workDate: string;
   employees?: EmployeeSelectOption[];
@@ -108,6 +109,7 @@ export function AttendanceView({
   initialRecords,
   initialStats,
   branchConfig,
+  toleranceMinutes = 15,
   companyName,
   workDate,
   employees = [],
@@ -770,7 +772,7 @@ export function AttendanceView({
             {stats.punctualityRate} %
           </span>
           <span className="text-[12px] font-normal leading-[16px] text-muted-foreground">
-            Tolerancia de 15 minutos
+            Tolerancia de {toleranceMinutes} {toleranceMinutes === 1 ? "minuto" : "minutos"}
           </span>
         </div>
 
@@ -849,7 +851,7 @@ export function AttendanceView({
           </div>
 
           {/* Filters Row */}
-          <div className="flex flex-col lg:flex-row lg:items-end gap-[12px]">
+          <div className="flex flex-col sm:flex-row sm:flex-wrap lg:items-end gap-[12px]">
             {/* Fecha */}
             <div className="flex flex-col gap-[6px] w-full sm:w-[190px] shrink-0">
               <label
@@ -875,7 +877,7 @@ export function AttendanceView({
             </div>
 
             {/* Buscar registros */}
-            <div className="flex flex-col gap-[6px] flex-1 min-w-0">
+            <div className="flex flex-col gap-[6px] flex-1 min-w-[200px]">
               <label
                 htmlFor="attendance-search-input"
                 className="text-[14px] font-medium leading-[20px] text-foreground"

@@ -5,6 +5,7 @@ import {
   calculateLFTVacationDays,
   getCurrentVacationCycleWindow,
 } from "@/modules/company/utils/vacation-calculator";
+import { resolveCompanyVacationPolicy } from "@/modules/company/strategies/leaves-imss-overtime-policy.engine";
 
 export interface ActiveEmploymentData {
   id: string;
@@ -474,6 +475,7 @@ export async function getCandidateDashboardData(): Promise<CandidateDashboardDat
     rfc: string | null;
     fiscal_address: string | null;
     contact_phone: string | null;
+    payroll_impact_config?: unknown;
   }
 
   interface DBEmployeeWithCompany {
@@ -512,7 +514,8 @@ export async function getCandidateDashboardData(): Promise<CandidateDashboardDat
         logo_url,
         rfc,
         fiscal_address,
-        contact_phone
+        contact_phone,
+        payroll_impact_config
       )
     `)
     .eq("employee_id", user.id)
@@ -550,7 +553,8 @@ export async function getCandidateDashboardData(): Promise<CandidateDashboardDat
             logo_url,
             rfc,
             fiscal_address,
-            contact_phone
+            contact_phone,
+            payroll_impact_config
           )
         `)
         .eq("id", activeContract.employee_id)
@@ -570,7 +574,10 @@ export async function getCandidateDashboardData(): Promise<CandidateDashboardDat
 
     const todayStr = getMexicoDateISO();
     const hireDate = currentEmployee.hire_date || todayStr;
-    const lft = calculateLFTVacationDays(hireDate);
+    const vacationPolicy = resolveCompanyVacationPolicy(
+      (comp as { payroll_impact_config?: unknown } | undefined)?.payroll_impact_config
+    );
+    const lft = calculateLFTVacationDays(hireDate, undefined, vacationPolicy.strategy);
     const cycleWindow = getCurrentVacationCycleWindow(hireDate);
 
     // Fetch approved vacation leaves in current annual cycle and today's attendance in parallel

@@ -54,13 +54,25 @@ export default async function CandidateRadarPage() {
     location: v.location,
   }));
 
-  // 3. Consultar candidatos del directorio oficial (candidate_directory view)
-  const { data: candidatesData } = await supabase
-    .from("candidate_directory")
-    .select("*")
-    .limit(60);
+  // 3. Consultar candidatos del directorio oficial excluyendo empleados activos de esta empresa
+  const [{ data: candidatesData }, { data: companyEmployeesData }] = await Promise.all([
+    supabase.from("candidate_directory").select("*").limit(60),
+    supabase
+      .from("company_employees")
+      .select("employee_id, email")
+      .eq("company_id", targetCompanyId)
+      .not("status", "eq", "terminated"),
+  ]);
 
-  const candidates: CandidateDirectoryItem[] = candidatesData || [];
+  const internalEmployeeIds = new Set(
+    (companyEmployeesData || [])
+      .map((e) => e.employee_id)
+      .filter((id): id is string => Boolean(id))
+  );
+
+  const candidates: CandidateDirectoryItem[] = (candidatesData || []).filter(
+    (c) => !c.id || !internalEmployeeIds.has(c.id)
+  );
 
   return (
     <CandidateRadarView

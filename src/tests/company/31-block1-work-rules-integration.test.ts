@@ -3,7 +3,9 @@ import React from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@/types/supabase";
+import { BUSINESS_TIME_ZONE } from "@/lib/formatters";
 import { CompanyPayrollService } from "@/modules/company/services/company-payroll";
+import { CompanyTenantService } from "@/modules/company/services/company-tenant.service";
 import { calculateEarlyDepartureMinutes } from "@/modules/company/services/company-attendance";
 import { CompanyLeavesService } from "@/modules/company/services/company-leaves";
 import { PayrollView } from "@/modules/company/components/payroll-view";
@@ -65,8 +67,9 @@ function buildPayrollClient(options: {
   payrollImpactConfig?: unknown;
   leaves?: Array<Record<string, unknown>>;
   attendance?: Array<Record<string, unknown>>;
+  monthlySalary?: number;
 }) {
-  const { payrollImpactConfig = null, leaves = [], attendance = [] } = options;
+  const { payrollImpactConfig = null, leaves = [], attendance = [], monthlySalary = 15000 } = options;
   return {
     from: vi.fn((table: string) => {
       if (table === "company_profiles") {
@@ -101,7 +104,7 @@ function buildPayrollClient(options: {
                       job_title: "Supervisora",
                       department: "Operaciones",
                       avatar_url: null,
-                      base_salary_monthly: 15000, // $500 diarios
+                      base_salary_monthly: monthlySalary,
                       payment_frequency: "quincenal",
                       status: "active",
                       rfc: null,
@@ -381,5 +384,151 @@ describe("Bloque 1: Integración de Reglas de mi empresa en Nómina, Asistencia,
 
     expect(res.workingDays).toBe(5);
     expect(createdPayloads[0]?.incident_id).toBe("11111111-1111-4111-8111-111111111111");
+  });
+
+  test("H1: createCompany inicializa payroll_impact_config con bonos en 0; empresa con backfill conserva 5%", async () => {
+    const insertedPayloads: Array<Record<string, unknown>> = [];
+    const tenantClient = {
+      from: vi.fn((table: string) => {
+        if (table === "company_profiles") {
+          return {
+            insert: (payload: Record<string, unknown>) => {
+              insertedPayloads.push(payload);
+              return {
+                select: () => ({
+                  single: async () => ({
+                    data: { id: "comp-qa-reglas-new", company_name: payload.company_name },
+                    error: null,
+                  }),
+                }),
+              };
+            },
+          };
+        }
+        if (table === "company_members") {
+          return {
+            insert: async () => ({ error: null }),
+          };
+        }
+        return {};
+      }),
+    } as unknown as SupabaseClient<Database>;
+
+    const tenantService = new CompanyTenantService();
+    await tenantService.createCompany(
+      "usr-qa-reglas-owner",
+      {
+        company_name: "qa-reglas-Nueva",
+        industry: "Servicios",
+        location: "Cancún, Quintana Roo",
+      },
+      tenantClient
+    );
+
+    const savedConfig = insertedPayloads[0]?.payroll_impact_config as {
+      timezone: string;
+      punctualityBonus: { enabled: boolean; amount: number };
+      attendanceBonus: { enabled: boolean; amount: number };
+    };
+    expect(savedConfig).toBeDefined();
+    expect(savedConfig.timezone).toBe(BUSINESS_TIME_ZONE);
+    expect(savedConfig.punctualityBonus.enabled).toBe(false);
+    expect(savedConfig.punctualityBonus.amount).toBe(0);
+    expect(savedConfig.attendanceBonus.enabled).toBe(false);
+    expect(savedConfig.attendanceBonus.amount).toBe(0);
+
+    // Empresa nueva con el config guardado -> bonos 0
+    const refDate = new Date("2026-10-10T18:00:00.000Z");
+    const emptyRepo = buildIncidentsRepo([]);
+    const newCompanyPayroll = await new CompanyPayrollService(
+      buildPayrollClient({ payrollImpactConfig: savedConfig }),
+      emptyRepo
+    ).getCompanyPayrollData("comp-qa-reglas-new", refDate);
+    expect(newCompanyPayroll.summary.employees[0].punctualityBonus).toBe(0);
+    expect(newCompanyPayroll.summary.employees[0].attendanceBonus).toBe(0);
+
+    // Empresa existente con estructura del backfill de migración -> conserva 5% (375 de 7500)
+    const backfilledConfig = {
+      punctualityBonus: {
+        enabled: true,
+        amount: 5,
+        type: "percentage",
+        cancelledBy: ["retardo", "falta_injustificada", "suspension"],
+        partialCancelBy: [],
+        partialCancelPercentage: 50,
+      },
+      attendanceBonus: {
+        enabled: true,
+        amount: 5,
+        type: "percentage",
+        cancelledBy: ["falta_injustificada", "suspension"],
+        partialCancelBy: [],
+        partialCancelPercentage: 50,
+      },
+    };
+    const existingClean = await new CompanyPayrollService(
+      buildPayrollClient({ payrollImpactConfig: backfilledConfig }),
+      emptyRepo
+    ).getCompanyPayrollData("comp-A", refDate);
+    expect(existingClean.summary.employees[0].punctualityBonus).toBe(375);
+    expect(existingClean.summary.employees[0].attendanceBonus).toBe(375);
+  });
+
+  test("H2: nómina con multiplicadores estándar 2x/3x topa horas extras dobles a 9/semana y respeta requiresPriorAuthorization", async () => {
+    const refDate = new Date("2026-10-10T18:00:00.000Z");
+    const emptyRepo = buildIncidentsRepo([]);
+
+    // 12 horas en la misma semana (lun 5, mar 6, mie 7 oct 2026), salario $24,000 ($800/día, $100/h)
+    const sameWeekEntries = [
+      { employee_id: "emp-1", work_date: "2026-10-05", status: "presente", overtime_hours: 4, overtime_status: "autorizado", overtime_rate_type: "doble" },
+      { employee_id: "emp-1", work_date: "2026-10-06", status: "presente", overtime_hours: 4, overtime_status: "autorizado", overtime_rate_type: "doble" },
+      { employee_id: "emp-1", work_date: "2026-10-07", status: "presente", overtime_hours: 4, overtime_status: "autorizado", overtime_rate_type: "doble" },
+    ];
+
+    const defaultCapRes = await new CompanyPayrollService(
+      buildPayrollClient({ payrollImpactConfig: null, attendance: sameWeekEntries, monthlySalary: 24000 }),
+      emptyRepo
+    ).getCompanyPayrollData("comp-A", refDate);
+    expect(defaultCapRes.summary.employees[0].overtimeHours).toBe(12);
+    // 9h @ 2x ($1,800) + 3h @ 3x ($900) = $2,700 (no $2,400)
+    expect(defaultCapRes.summary.employees[0].overtimePay).toBe(2700);
+
+    // 12 horas en dos semanas distintas de la misma quincena (6h semana 1 + 6h semana 2) -> todas a 2x ($2,400)
+    const twoWeeksEntries = [
+      { employee_id: "emp-1", work_date: "2026-10-05", status: "presente", overtime_hours: 6, overtime_status: "autorizado", overtime_rate_type: "doble" },
+      { employee_id: "emp-1", work_date: "2026-10-12", status: "presente", overtime_hours: 6, overtime_status: "autorizado", overtime_rate_type: "doble" },
+    ];
+    const twoWeeksRes = await new CompanyPayrollService(
+      buildPayrollClient({ payrollImpactConfig: null, attendance: twoWeeksEntries, monthlySalary: 24000 }),
+      emptyRepo
+    ).getCompanyPayrollData("comp-A", refDate);
+    expect(twoWeeksRes.summary.employees[0].overtimeHours).toBe(12);
+    expect(twoWeeksRes.summary.employees[0].overtimePay).toBe(2400);
+
+    // Sin autorización previa: requiresPriorAuthorization=true excluye pendientes; false las paga con tope 9/3
+    const pendingEntries = [
+      { employee_id: "emp-1", work_date: "2026-10-05", status: "presente", overtime_hours: 12, overtime_status: "pendiente", overtime_rate_type: "doble" },
+    ];
+    const strictPendingRes = await new CompanyPayrollService(
+      buildPayrollClient({
+        payrollImpactConfig: { overtimeRules: { requiresPriorAuthorization: true } },
+        attendance: pendingEntries,
+        monthlySalary: 24000,
+      }),
+      emptyRepo
+    ).getCompanyPayrollData("comp-A", refDate);
+    expect(strictPendingRes.summary.employees[0].overtimeHours).toBe(0);
+    expect(strictPendingRes.summary.employees[0].overtimePay).toBe(0);
+
+    const openPendingRes = await new CompanyPayrollService(
+      buildPayrollClient({
+        payrollImpactConfig: { overtimeRules: { requiresPriorAuthorization: false } },
+        attendance: pendingEntries,
+        monthlySalary: 24000,
+      }),
+      emptyRepo
+    ).getCompanyPayrollData("comp-A", refDate);
+    expect(openPendingRes.summary.employees[0].overtimeHours).toBe(12);
+    expect(openPendingRes.summary.employees[0].overtimePay).toBe(2700);
   });
 });

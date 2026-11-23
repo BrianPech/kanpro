@@ -53,6 +53,7 @@ export interface EmployeeRosterOption {
   fullName: string;
   jobTitle?: string | null;
   department?: string | null;
+  baseSalaryMonthly?: number | null;
 }
 
 interface NewIncidentModalProps {
@@ -75,7 +76,7 @@ export function NewIncidentModal({
   const [category, setCategory] = useState<IncidentCategory>("falta_injustificada");
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
-  const [severity, setSeverity] = useState<IncidentSeverity>("media");
+  const [severity, setSeverity] = useState<IncidentSeverity>("alta");
   const [incidentDate, setIncidentDate] = useState(getMexicoDateISO());
   const [supervisor, setSupervisor] = useState("");
   const [hasEvidence, setHasEvidence] = useState(false);
@@ -345,7 +346,19 @@ export function NewIncidentModal({
               <Label className="text-xs font-bold text-foreground">Tipo de Incidencia / Trámite *</Label>
               <Select
                 value={category}
-                onValueChange={(val) => val && setCategory(val as IncidentCategory)}
+                onValueChange={(val) => {
+                  if (!val) return;
+                  const nextCat = val as IncidentCategory;
+                  setCategory(nextCat);
+                  if (
+                    nextCat === "falta_injustificada" ||
+                    nextCat === "incumplimiento" ||
+                    nextCat === "suspension" ||
+                    nextCat === "accidente"
+                  ) {
+                    setSeverity("alta");
+                  }
+                }}
               >
                 <SelectTrigger className="w-full">
                   <SelectValue>{categoryLabels[category] || category}</SelectValue>

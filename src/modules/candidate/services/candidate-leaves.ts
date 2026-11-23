@@ -12,6 +12,12 @@ import {
 } from "@/modules/company/utils/vacation-calculator";
 import { SupabaseLeavesRepository } from "@/modules/company/repositories/leaves.repository";
 import { LeaveOverlapService } from "@/modules/company/services/leave-overlap.service";
+import {
+  DEFAULT_COMPANY_WORK_RULES_CONFIG,
+  parseCompanyWorkRulesConfig,
+} from "@/modules/company/strategies/company-policies.parser";
+import { resolveCompanyVacationPolicy } from "@/modules/company/strategies/leaves-imss-overtime-policy.engine";
+import type { LeaveCatalogueKey } from "@/modules/company/types/company-policies";
 import type {
   LeaveRequestType,
   SubmitCandidateLeaveRequestInput,
@@ -86,6 +92,7 @@ interface CompanyProfileJoined {
   company_name: string;
   legal_name: string | null;
   logo_url: string | null;
+  payroll_impact_config?: unknown;
 }
 
 export class CandidateLeavesService {
@@ -115,7 +122,8 @@ export class CandidateLeavesService {
           id,
           company_name,
           legal_name,
-          logo_url
+          logo_url,
+          payroll_impact_config
         )
       `)
       .eq("candidate_id", userId)
@@ -149,7 +157,8 @@ export class CandidateLeavesService {
             id,
             company_name,
             legal_name,
-            logo_url
+            logo_url,
+            payroll_impact_config
           )
         `)
         .eq("id", activeContract.employee_id)
@@ -183,7 +192,8 @@ export class CandidateLeavesService {
             id,
             company_name,
             legal_name,
-            logo_url
+            logo_url,
+            payroll_impact_config
           )
         `)
         .eq("employee_id", userId)
@@ -228,10 +238,17 @@ export class CandidateLeavesService {
       getMexicoDateISO();
 
     // 3. Calcular antigüedad, días devengados Art. 76 LFT, prima vacacional Art. 80 y vencimiento Art. 81
-    const lft = calculateLFTVacationDays(hireDate);
+    const vacationPolicy = resolveCompanyVacationPolicy(
+      companyProfile?.payroll_impact_config ?? DEFAULT_COMPANY_WORK_RULES_CONFIG
+    );
+    const lft = calculateLFTVacationDays(hireDate, undefined, vacationPolicy.strategy);
     const expiration = calculateVacationExpiration(hireDate);
     const monthlySalary = Number(employeeRecord?.base_salary_monthly) || 0;
-    const premium = calculateVacationPremium(monthlySalary, lft.totalDaysAccrued);
+    const premium = calculateVacationPremium(
+      monthlySalary,
+      lft.totalDaysAccrued,
+      vacationPolicy.premiumPercentage / 100
+    );
 
     // 4. Consultar solicitudes previas en company_leaves
     let leavesQuery = supabase
@@ -335,8 +352,33 @@ export class CandidateLeavesService {
       throw new Error("El periodo seleccionado no contiene días laborales hábiles.");
     }
 
+    let rawCompanyWorkRules: unknown = null;
+    try {
+      const compTable = supabase.from("company_profiles");
+      if (compTable && typeof compTable.select === "function") {
+        const { data: compProfile } = await compTable
+          .select("payroll_impact_config")
+          .eq("id", input.companyId)
+          .maybeSingle();
+        rawCompanyWorkRules =
+          (compProfile as { payroll_impact_config?: unknown } | null)?.payroll_impact_config ??
+          null;
+      }
+    } catch {
+      rawCompanyWorkRules = null;
+    }
+
+    const workRules = parseCompanyWorkRulesConfig(
+      rawCompanyWorkRules ?? DEFAULT_COMPANY_WORK_RULES_CONFIG
+    );
+    const catalogueRule = workRules.leaveCatalogue[input.requestType as LeaveCatalogueKey];
+    const customMaxDays =
+      input.requestType === "luto"
+        ? (catalogueRule?.maxDaysPerEvent ?? 3)
+        : (catalogueRule?.maxDaysPerEvent ?? undefined);
+
     // 1b. Validar tope de días por política especial (días económicos, matrimonio, paternidad, luto)
-    validateSpecialLeavePolicyDays(input.requestType, workingDays);
+    validateSpecialLeavePolicyDays(input.requestType, workingDays, customMaxDays);
 
     // 1c. Validar solapamiento de ausencias con LeaveOverlapService si hay employeeId
     if (input.employeeId) {
@@ -386,7 +428,8 @@ export class CandidateLeavesService {
       }
 
       const effectiveHireDate = hireDate || getMexicoDateISO();
-      const lft = calculateLFTVacationDays(effectiveHireDate);
+      const vacationPolicy = resolveCompanyVacationPolicy(workRules);
+      const lft = calculateLFTVacationDays(effectiveHireDate, undefined, vacationPolicy.strategy);
       const cycleWindow = getCurrentVacationCycleWindow(effectiveHireDate);
 
       // Consultar solicitudes previas en company_leaves del ciclo anual actual

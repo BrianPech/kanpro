@@ -2,6 +2,7 @@ import { z } from "zod";
 import {
   BUSINESS_TIME_ZONE,
   calculateDailySalary,
+  parseMexicoCalendarDate,
   toMonthlyEquivalentSalary,
 } from "@/lib/formatters";
 import { calculateAbsenceDeduction } from "../utils/payroll-calculator";
@@ -269,6 +270,7 @@ export interface OvertimeEntry {
   work_date: string;
   hours: number;
   authorized: boolean;
+  rateType?: "doble" | "triple";
 }
 
 export interface OvertimeEvaluationInput {
@@ -290,11 +292,22 @@ export interface OvertimeEvaluationResult {
   totalOvertimePay: number;
 }
 
+function getOvertimeWeekKey(workDate: string): string {
+  const parsed = parseMexicoCalendarDate(workDate);
+  if (!parsed) return "default";
+  const dayOffset = (parsed.getUTCDay() + 6) % 7; // 0 = lunes, 6 = domingo
+  const monday = new Date(parsed.getTime() - dayOffset * 86_400_000);
+  const y = monday.getUTCFullYear();
+  const m = String(monday.getUTCMonth() + 1).padStart(2, "0");
+  const d = String(monday.getUTCDate()).padStart(2, "0");
+  return `${y}-${m}-${d}`;
+}
+
 /**
  * Calcula el pago de horas extras según `overtimeRules`:
  * - Si `requiresPriorAuthorization` es true, las horas sin autorización previa no se pagan.
- * - Primeras `maxDoubleHoursPerWeek` (máx. 9h LFT) al multiplicador doble (>= 2x),
- *   excedente al multiplicador triple (>= 3x).
+ * - Primeras `maxDoubleHoursPerWeek` por semana (máx. 9h LFT) al multiplicador doble (>= 2x),
+ *   excedente (o entradas explícitas `"triple"`) al multiplicador triple (>= 3x).
  */
 export function evaluateOvertimePolicy(
   input: OvertimeEvaluationInput
@@ -304,8 +317,8 @@ export function evaluateOvertimePolicy(
   const dailySalary = calculateDailySalary(monthlySalary, "mensual");
   const hourlyRate = dailySalary / 8;
 
-  let eligibleHours = 0;
   let unauthorizedHoursExcluded = 0;
+  const byWeek = new Map<string, { standardHours: number; explicitTripleHours: number }>();
 
   for (const entry of input.entries) {
     const hours = Math.max(0, Number(entry.hours) || 0);
@@ -315,12 +328,29 @@ export function evaluateOvertimePolicy(
       unauthorizedHoursExcluded += hours;
       continue;
     }
-    eligibleHours += hours;
+
+    const weekKey = getOvertimeWeekKey(entry.work_date);
+    const bucket = byWeek.get(weekKey) ?? { standardHours: 0, explicitTripleHours: 0 };
+    if (entry.rateType === "triple") {
+      bucket.explicitTripleHours += hours;
+    } else {
+      bucket.standardHours += hours;
+    }
+    byWeek.set(weekKey, bucket);
   }
 
-  const doubleHours = Math.min(eligibleHours, overtimeRules.maxDoubleHoursPerWeek);
-  const tripleHours = Math.max(0, eligibleHours - doubleHours);
+  let doubleHours = 0;
+  let tripleHours = 0;
 
+  for (const bucket of byWeek.values()) {
+    const weekDouble = Math.min(bucket.standardHours, overtimeRules.maxDoubleHoursPerWeek);
+    const weekTriple =
+      Math.max(0, bucket.standardHours - weekDouble) + bucket.explicitTripleHours;
+    doubleHours += weekDouble;
+    tripleHours += weekTriple;
+  }
+
+  const eligibleHours = doubleHours + tripleHours;
   const doublePay = Math.round(hourlyRate * doubleHours * overtimeRules.doubleRateMultiplier);
   const triplePay = Math.round(hourlyRate * tripleHours * overtimeRules.tripleRateMultiplier);
 

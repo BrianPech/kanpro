@@ -5,7 +5,15 @@ import {
   QuickInsight,
   ReportDefinition,
 } from "../types/reports";
+import {
+  calculateDailySalaryFromMonthly,
+  fromMonthlyEquivalentSalary,
+  getMexicoDateISO,
+} from "@/lib/formatters";
 import { calculateLFTVacationDays } from "../utils/vacation-calculator";
+import { parseCompanyWorkRulesConfig } from "../strategies/company-policies.parser";
+import { resolveCompanyVacationPolicy } from "../strategies/leaves-imss-overtime-policy.engine";
+import { resolvePayrollPeriodWithCutoff } from "../strategies/payroll-period-bonuses.engine";
 import { companyTenantService } from "./company-tenant.service";
 
 export async function getCompanyReportsData(): Promise<CompanyReportsData> {
@@ -52,7 +60,7 @@ export async function getCompanyReportsData(): Promise<CompanyReportsData> {
   ] = await Promise.all([
     supabase
       .from("company_profiles")
-      .select("company_name, legal_name, rfc, fiscal_address")
+      .select("company_name, legal_name, rfc, fiscal_address, payroll_impact_config")
       .eq("id", companyScopeId)
       .maybeSingle(),
     supabase
@@ -185,18 +193,29 @@ export async function getCompanyReportsData(): Promise<CompanyReportsData> {
   const averageSalary =
     activeCount > 0 ? Math.round(totalMonthlyPayroll / activeCount) : 0;
 
-  // 2. Vacation & LFT Seniority Calculations
+  // 2. Vacation & LFT Seniority Calculations using company work rules
+  const rawWorkRules = (companyProfileRes.data as { payroll_impact_config?: unknown } | null)
+    ?.payroll_impact_config;
+  const workRules = parseCompanyWorkRulesConfig(rawWorkRules);
+  const vacationPolicy = resolveCompanyVacationPolicy(workRules);
+  const reportPeriod = resolvePayrollPeriodWithCutoff({
+    refDateISO: getMexicoDateISO(),
+    config: rawWorkRules,
+  });
+
   let totalAccruedVacationDays = 0;
   let totalEstimatedVacationLiability = 0;
 
   const processedEmployees = activeEmployees.map((e: any) => {
     const hireDateStr = e.hire_date || e.created_at;
-    const lft = calculateLFTVacationDays(hireDateStr);
+    const lft = calculateLFTVacationDays(hireDateStr, undefined, vacationPolicy.strategy);
     const monthlySalary = Number(e.base_salary_monthly) || 0;
-    const dailySalary = Math.round(monthlySalary / 30);
+    const dailySalary = calculateDailySalaryFromMonthly(monthlySalary);
     const vacationDays = lft.currentYearEntitlement;
     const vacationLiability = vacationDays * dailySalary;
-    const primaVacacional = Math.round(vacationLiability * 0.25);
+    const primaVacacional = Math.round(
+      vacationLiability * (vacationPolicy.premiumPercentage / 100)
+    );
 
     totalAccruedVacationDays += vacationDays;
     totalEstimatedVacationLiability += vacationLiability + primaVacacional;
@@ -567,8 +586,8 @@ export async function getCompanyReportsData(): Promise<CompanyReportsData> {
       category: "finanzas",
       categoryLabel: "Nómina & Costos",
       description:
-        "Estimación y desglose de nómina bruta por empleado, sueldo diario integrado, montos quincenales y distribución departamental.",
-      recommendedFrequency: "Quincenal / Dispersión Bancaria",
+        `Estimación y desglose de nómina bruta por empleado, sueldo diario integrado, montos por periodicidad (${workRules.payrollPeriodicity}, corte ${reportPeriod.cutoffDate}) y distribución departamental.`,
+      recommendedFrequency: `${workRules.payrollPeriodicity.charAt(0).toUpperCase() + workRules.payrollPeriodicity.slice(1)} / Dispersión Bancaria`,
       recordCount: activeEmployees.length,
       columns: [
         { key: "colaborador", label: "Empleado" },
@@ -582,21 +601,22 @@ export async function getCompanyReportsData(): Promise<CompanyReportsData> {
         },
         {
           key: "sueldo_quincenal",
-          label: "Estimado Quincenal",
+          label: `Estimado (${workRules.payrollPeriodicity})`,
           format: "currency",
         },
         { key: "sueldo_diario", label: "Sueldo Diario", format: "currency" },
       ],
       data: activeEmployees.map((e: any) => {
         const monthly = Number(e.base_salary_monthly) || 0;
+        const effectiveFrequency = e.payment_frequency || workRules.payrollPeriodicity;
         return {
           colaborador: e.full_name,
           departamento: e.department || "Operaciones",
           puesto: e.job_title || "Empleado",
-          frecuencia: e.payment_frequency || "Quincenal",
+          frecuencia: effectiveFrequency,
           sueldo_mensual: monthly,
-          sueldo_quincenal: Math.round(monthly / 2),
-          sueldo_diario: Math.round(monthly / 30),
+          sueldo_quincenal: Math.round(fromMonthlyEquivalentSalary(monthly, effectiveFrequency)),
+          sueldo_diario: Math.round(calculateDailySalaryFromMonthly(monthly)),
         };
       }),
     },

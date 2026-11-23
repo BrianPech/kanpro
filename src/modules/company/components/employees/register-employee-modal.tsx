@@ -53,6 +53,7 @@ interface RegisterEmployeeModalProps {
   isOpen: boolean;
   onOpenChange: (open: boolean) => void;
   companyName?: string;
+  defaultTab?: "register" | "invite";
   onEmployeeCreated?: (employee: {
     id: string;
     employee_id?: string | null;
@@ -83,10 +84,17 @@ export function RegisterEmployeeModal({
   isOpen,
   onOpenChange,
   companyName,
+  defaultTab = "register",
   onEmployeeCreated,
 }: RegisterEmployeeModalProps) {
-  const [activeTab, setActiveTab] = React.useState<"register" | "invite">("register");
+  const [activeTab, setActiveTab] = React.useState<"register" | "invite">(defaultTab);
   const [isSubmitting, setIsSubmitting] = React.useState(false);
+
+  React.useEffect(() => {
+    if (isOpen) {
+      setActiveTab(defaultTab);
+    }
+  }, [isOpen, defaultTab]);
 
   // Tab 1: Registrar empleado
   const [fullName, setFullName] = React.useState("");

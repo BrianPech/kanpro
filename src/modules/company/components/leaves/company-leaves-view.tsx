@@ -596,7 +596,7 @@ export function CompanyLeavesView({
                         : "bg-muted/20 border-border/30 opacity-90"
                     )}
                   >
-                    <div className="flex items-start gap-3.5 min-w-0">
+                    <div className="flex items-start gap-3.5 min-w-0 flex-1">
                       <Avatar className="size-11 rounded-xl shrink-0 border border-border/40">
                         <AvatarImage src={req.avatarUrl || ""} />
                         <AvatarFallback className="rounded-xl text-xs font-bold bg-muted text-muted-foreground">
@@ -604,9 +604,9 @@ export function CompanyLeavesView({
                         </AvatarFallback>
                       </Avatar>
 
-                      <div className="space-y-1 min-w-0">
+                      <div className="space-y-1 min-w-0 flex-1">
                         <div className="flex items-center gap-2 flex-wrap">
-                          <h4 className="text-sm font-extrabold text-foreground truncate">
+                          <h4 className="text-sm font-extrabold text-foreground break-words">
                             {req.employeeName}
                           </h4>
                           <span className="text-xs text-muted-foreground font-medium">

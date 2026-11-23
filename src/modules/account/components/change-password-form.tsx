@@ -85,7 +85,7 @@ export function ChangePasswordForm() {
       </div>
 
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-4" noValidate>
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5">
+        <div className="grid grid-cols-1 lg:grid-cols-3 items-end gap-3.5">
           {/* Current Password */}
           <div className="space-y-1.5">
             <Label htmlFor="currentPassword" className="text-xs font-semibold text-foreground">

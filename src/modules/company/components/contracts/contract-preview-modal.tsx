@@ -208,14 +208,16 @@ export function ContractPreviewModal({
                   </span>
 
                   {contract.companySignature ? (
-                    <div className="space-y-1">
-                      {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img
-                        src={contract.companySignature.signatureDataUrl}
-                        alt="Firma Patrón"
-                        className="h-14 mx-auto object-contain"
-                      />
-                      <div className="text-[10px] font-mono text-emerald-600 dark:text-emerald-400 font-bold">
+                    <div className="space-y-1 min-w-0">
+                      <div className="bg-white rounded-lg p-1.5 inline-block mx-auto border border-border/40">
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img
+                          src={contract.companySignature.signatureDataUrl}
+                          alt="Firma Patrón"
+                          className="h-14 mx-auto object-contain"
+                        />
+                      </div>
+                      <div className="text-[10px] font-mono text-emerald-600 dark:text-emerald-400 font-bold break-all">
                         {contract.companySignature.certificateHash}
                       </div>
                       <span className="text-[10px] text-muted-foreground block">
@@ -250,14 +252,16 @@ export function ContractPreviewModal({
                   </span>
 
                   {contract.employeeSignature ? (
-                    <div className="space-y-1">
-                      {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img
-                        src={contract.employeeSignature.signatureDataUrl}
-                        alt="Firma Trabajador"
-                        className="h-14 mx-auto object-contain"
-                      />
-                      <div className="text-[10px] font-mono text-emerald-600 dark:text-emerald-400 font-bold">
+                    <div className="space-y-1 min-w-0">
+                      <div className="bg-white rounded-lg p-1.5 inline-block mx-auto border border-border/40">
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img
+                          src={contract.employeeSignature.signatureDataUrl}
+                          alt="Firma Trabajador"
+                          className="h-14 mx-auto object-contain"
+                        />
+                      </div>
+                      <div className="text-[10px] font-mono text-emerald-600 dark:text-emerald-400 font-bold break-all">
                         {contract.employeeSignature.certificateHash}
                       </div>
                       <span className="text-[10px] text-muted-foreground block">

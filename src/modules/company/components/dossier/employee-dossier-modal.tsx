@@ -782,7 +782,11 @@ export function EmployeeDossierModal({
                           Prestaciones de Ley:
                         </span>
                         <span className="font-semibold text-foreground text-[11px]">
-                          Aguinaldo (15 días), Prima vacacional (25%), IMSS & INFONAVIT
+                          Aguinaldo (15 días), Prima vacacional ({dossier.vacationBalance.premiumPercentage ?? 25}%
+                          {dossier.vacationBalance.estimatedVacationPremiumMxn
+                            ? ` • ~$${dossier.vacationBalance.estimatedVacationPremiumMxn.toLocaleString()} MXN`
+                            : ""}
+                          ), IMSS & INFONAVIT
                         </span>
                       </div>
                     </div>

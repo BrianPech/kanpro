@@ -37,6 +37,7 @@ export default async function CompanyAttendancePage({ searchParams }: CompanyAtt
       initialRecords={data.records}
       initialStats={data.stats}
       branchConfig={data.branchConfig}
+      toleranceMinutes={data.toleranceMinutes}
       companyName={data.companyName}
       workDate={data.workDate}
       employees={data.employees}

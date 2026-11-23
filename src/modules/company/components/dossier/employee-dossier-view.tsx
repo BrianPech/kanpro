@@ -562,7 +562,10 @@ export function EmployeeDossierView({ dossier }: EmployeeDossierViewProps) {
                 {dossier.vacationBalance.totalDaysAccruedLFT} días
               </div>
               <p className="text-[11px] text-muted-foreground font-medium">
-                {`Año ${dossier.vacationBalance.yearsOfService + 1} de servicio`}
+                {`Año ${dossier.vacationBalance.yearsOfService + 1} de servicio · Prima ${dossier.vacationBalance.premiumPercentage ?? 25}%`}
+                {dossier.vacationBalance.estimatedVacationPremiumMxn
+                  ? ` ($${dossier.vacationBalance.estimatedVacationPremiumMxn.toLocaleString()})`
+                  : ""}
               </p>
             </Card>
 

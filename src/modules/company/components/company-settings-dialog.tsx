@@ -164,6 +164,12 @@ export function CompanySettingsModal({
   const [activeSection, setActiveSection] = React.useState(
     defaultSection || "appearance"
   );
+
+  React.useEffect(() => {
+    if (defaultSection) {
+      setActiveSection(defaultSection);
+    }
+  }, [defaultSection, open]);
   const [language, setLanguage] = React.useState("es");
 
   React.useEffect(() => {
@@ -459,7 +465,14 @@ export function CompanySettingsModal({
     if (typeof window !== "undefined") {
       localStorage.setItem(key, String(newVal));
     }
-    toast.success(newVal ? `${label} activadas` : `${label} desactivadas`);
+    const isMasculine =
+      label.toLowerCase().startsWith("resumen") ||
+      label.toLowerCase().startsWith("aviso");
+    toast.success(
+      newVal
+        ? `${label} ${isMasculine ? "activado" : "activadas"}`
+        : `${label} ${isMasculine ? "desactivado" : "desactivadas"}`
+    );
   };
 
   const handleLeaveApprovalModeChange = async (nextMode: LeaveApprovalMode) => {
@@ -558,7 +571,7 @@ export function CompanySettingsModal({
             </Sidebar>
 
             {/* Main Area: Centered Section Content with ScrollArea */}
-            <main className="flex-1 h-full min-h-0 relative flex flex-col overflow-hidden bg-background">
+            <main className="flex-1 min-w-0 h-full min-h-0 relative flex flex-col overflow-hidden bg-background">
               
               {/* Top-Right 'X' Close Button */}
               <AlertDialogCancel
@@ -570,8 +583,8 @@ export function CompanySettingsModal({
               </AlertDialogCancel>
 
               {/* ScrollArea for Smooth and Custom Modal Scrolling */}
-              <ScrollArea className="h-full w-full">
-                <div className="p-6 sm:p-9">
+              <ScrollArea className="h-full w-full min-w-0 [&_[data-slot=scroll-area-content]]:min-w-0 [&>div>div]:!block">
+                <div className="p-6 sm:p-9 min-w-0 overflow-x-hidden">
                   
                   {/* 1. SECCIÓN: APARIENCIA E IDIOMA */}
                   {activeSection === "appearance" && (
@@ -1227,7 +1240,9 @@ export function CompanySettingsModal({
                           </p>
                         </div>
 
-                        <BillingSubscriptionsTable data={invoices} />
+                        <div className="w-full overflow-x-auto min-w-0">
+                          <BillingSubscriptionsTable data={invoices} />
+                        </div>
                       </div>
 
                     </div>

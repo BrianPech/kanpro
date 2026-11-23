@@ -41,6 +41,7 @@ export interface CompanyAttendanceResponse {
   companyName: string;
   workDate: string;
   branchConfig: GeofenceConfig;
+  toleranceMinutes?: number;
   records: AttendanceRecord[];
   stats: AttendanceOverviewStats;
   employees: EmployeeSelectOption[];
@@ -497,7 +498,7 @@ export class CompanyAttendanceService {
     const [profileRes, employeesRes, attendanceRes, leavesRes, branchRes] = await Promise.all([
       this.supabase
         .from("company_profiles")
-        .select("company_name, address_details, fiscal_address")
+        .select("company_name, address_details, fiscal_address, payroll_impact_config")
         .eq("id", companyId)
         .maybeSingle(),
       this.supabase
@@ -608,6 +609,7 @@ export class CompanyAttendanceService {
       };
     });
 
+    const workRules = parseCompanyWorkRulesConfig(profileRes.data?.payroll_impact_config);
     const stats = this.computeOverviewStats(records);
 
     return {
@@ -615,6 +617,7 @@ export class CompanyAttendanceService {
       companyName,
       workDate: todayStr,
       branchConfig,
+      toleranceMinutes: workRules.toleranceMinutes,
       records,
       stats,
       employees: employeeOptions,
@@ -790,6 +793,7 @@ export class CompanyAttendanceService {
       companyName: "Mi Empresa",
       workDate: todayStr,
       branchConfig,
+      toleranceMinutes: DEFAULT_COMPANY_WORK_RULES_CONFIG.toleranceMinutes,
       records: [],
       stats: {
         totalScheduled: 0,

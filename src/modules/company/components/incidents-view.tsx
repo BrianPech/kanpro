@@ -37,6 +37,11 @@ import { CompanyPageHeader } from "./shared/company-page-header";
 import { CompanyStatusBadge } from "./shared/company-status-badge";
 import { parseCompanyWorkRulesConfig } from "../strategies/company-policies.parser";
 import { getResetPeriodKey } from "../strategies/punctuality-policy.engine";
+import { calculateAbsenceDeduction } from "../utils/payroll-calculator";
+import {
+  evaluatePeriodBonuses,
+  type SingleBonusEvaluation,
+} from "../strategies/payroll-period-bonuses.engine";
 import { getMexicoDateISO } from "@/lib/formatters";
 
 interface IncidentsViewProps {
@@ -196,7 +201,13 @@ export function IncidentsView({
 
   const pendingCount = incidents.filter((i) => i.status === "pendiente").length;
   const recognitionCount = incidents.filter((i) => i.category === "reconocimiento").length;
-  const criticalCount = incidents.filter((i) => i.severity === "alta" || i.severity === "critica").length;
+  const criticalCount = incidents.filter(
+    (i) =>
+      i.severity === "alta" ||
+      i.severity === "critica" ||
+      i.category === "falta_injustificada" ||
+      i.category === "incumplimiento"
+  ).length;
 
   const workRules = React.useMemo(
     () => parseCompanyWorkRulesConfig(payrollImpactConfig),
@@ -207,6 +218,19 @@ export function IncidentsView({
     [workRules.resetPeriod]
   );
 
+  const salaryByEmployeeId = React.useMemo(() => {
+    const map = new Map<string, number>();
+    for (const emp of employees) {
+      const salary = emp.baseSalaryMonthly !== null && emp.baseSalaryMonthly !== undefined
+        ? Number(emp.baseSalaryMonthly)
+        : 0;
+      if (salary > 0) {
+        map.set(emp.id, salary);
+      }
+    }
+    return map;
+  }, [employees]);
+
   const payrollImpactRows = React.useMemo(() => {
     const byEmp = new Map<
       string,
@@ -216,41 +240,95 @@ export function IncidentsView({
         absencesCount: number;
         pendingClarifications: number;
         imssCount: number;
+        eligibleForBonuses: Array<{
+          category: LaborIncident["category"];
+          status: string;
+          incident_date: string;
+        }>;
       }
     >();
 
     for (const inc of incidents) {
       if (inc.status === "rechazado") continue;
-      if (getResetPeriodKey(inc.incidentDate, workRules.resetPeriod) !== currentPeriodKey) {
-        continue;
-      }
+      const inResetPeriod =
+        getResetPeriodKey(inc.incidentDate, workRules.resetPeriod) === currentPeriodKey;
       const entry = byEmp.get(inc.employeeId) ?? {
         employeeName: inc.employeeName,
         delaysCount: 0,
         absencesCount: 0,
         pendingClarifications: 0,
         imssCount: 0,
+        eligibleForBonuses: [],
       };
-      if (inc.status === "por_aclarar") {
-        entry.pendingClarifications += 1;
-      } else if (inc.category === "retardo" && inc.status === "aprobado") {
-        entry.delaysCount += 1;
-      } else if (inc.category === "falta_injustificada" && inc.status === "aprobado") {
-        entry.absencesCount += 1;
-      } else if (inc.category === "incapacidad") {
-        entry.imssCount += 1;
+      entry.eligibleForBonuses.push({
+        category: inc.category,
+        status: inc.status,
+        incident_date: inc.incidentDate,
+      });
+      if (inResetPeriod) {
+        if (inc.status === "por_aclarar") {
+          entry.pendingClarifications += 1;
+        } else if (inc.category === "retardo" && inc.status === "aprobado") {
+          entry.delaysCount += 1;
+        } else if (inc.category === "falta_injustificada" && inc.status === "aprobado") {
+          entry.absencesCount += 1;
+        } else if (inc.category === "incapacidad") {
+          entry.imssCount += 1;
+        }
       }
       byEmp.set(inc.employeeId, entry);
     }
+
+    const formatBonusEffect = (label: string, bonus: SingleBonusEvaluation): string | null => {
+      if (!bonus.enabled || bonus.status === "disabled" || bonus.baseAmount <= 0) {
+        return null;
+      }
+      if (bonus.status === "cancelled_full") {
+        return `${label}: cancelado (-$${bonus.baseAmount.toLocaleString("es-MX")} MXN)`;
+      }
+      if (bonus.status === "cancelled_partial") {
+        const lostAmount = Math.max(0, bonus.baseAmount - bonus.finalAmount);
+        return `${label}: parcial -${bonus.reductionPercentage}% (-$${lostAmount.toLocaleString("es-MX")} MXN)`;
+      }
+      return `${label}: íntegro ($${bonus.finalAmount.toLocaleString("es-MX")} MXN)`;
+    };
+
+    const todayISO = getMexicoDateISO();
 
     return Array.from(byEmp.entries()).map(([employeeId, row]) => {
       const delayAbsenceEquivalents =
         Math.floor(row.delaysCount / workRules.delaysPerAbsence) * workRules.delayDeductionDays;
       const totalAbsenceEquivalents = row.absencesCount + delayAbsenceEquivalents;
+      const knownSalary = salaryByEmployeeId.get(employeeId);
+      const usesSalaryEstimateFallback = knownSalary === undefined;
+      const monthlySalaryForCalc = knownSalary ?? 15000;
+      const estimatedDeductionMxn = calculateAbsenceDeduction(
+        monthlySalaryForCalc,
+        totalAbsenceEquivalents,
+        workRules.seventhDayMode
+      );
+      const bonusEval = evaluatePeriodBonuses({
+        incidents: row.eligibleForBonuses,
+        attendance: [],
+        monthlySalary: monthlySalaryForCalc,
+        config: payrollImpactConfig ?? workRules,
+        refDateISO: todayISO,
+      });
+      const bonusImpactNotes = [
+        formatBonusEffect("Bono puntualidad", bonusEval.punctualityBonus),
+        formatBonusEffect("Bono asistencia", bonusEval.attendanceBonus),
+      ].filter((note): note is string => note !== null);
+
+      const hasBonusImpact =
+        bonusEval.punctualityBonus.status === "cancelled_full" ||
+        bonusEval.punctualityBonus.status === "cancelled_partial" ||
+        bonusEval.attendanceBonus.status === "cancelled_full" ||
+        bonusEval.attendanceBonus.status === "cancelled_partial";
+
       const statusLabel =
         row.pendingClarifications > 0
           ? "Por aclarar"
-          : totalAbsenceEquivalents > 0
+          : totalAbsenceEquivalents > 0 || hasBonusImpact
             ? "Impacta nómina"
             : row.imssCount > 0
               ? "IMSS (sin falta)"
@@ -260,10 +338,15 @@ export function IncidentsView({
         ...row,
         delayAbsenceEquivalents,
         totalAbsenceEquivalents,
+        estimatedDeductionMxn,
+        usesSalaryEstimateFallback,
+        bonusImpactNotes,
+        deferredToNextPeriodCount: bonusEval.deferredToNextPeriodCount,
+        hasBonusImpact,
         statusLabel,
       };
     });
-  }, [incidents, workRules, currentPeriodKey]);
+  }, [incidents, salaryByEmployeeId, workRules, payrollImpactConfig, currentPeriodKey]);
 
   return (
     <div className="w-full space-y-6 pb-12 animate-in fade-in duration-300">
@@ -276,7 +359,7 @@ export function IncidentsView({
           </Badge>
         }
         actions={
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
             <Button
               variant="outline"
               size="sm"
@@ -376,9 +459,24 @@ export function IncidentsView({
                   <p className="text-[11px] text-muted-foreground">
                     {row.delaysCount} retardo(s) → {row.totalAbsenceEquivalents} falta(s) equiv.
                   </p>
+                  <p className="text-[11px] font-medium text-foreground/90">
+                    {row.totalAbsenceEquivalents > 0
+                      ? `Descuento est.: -$${row.estimatedDeductionMxn.toLocaleString("es-MX")} MXN${row.usesSalaryEstimateFallback ? " (base est.)" : ""}`
+                      : "Descuento est.: $0 MXN"}
+                  </p>
+                  {row.bonusImpactNotes.length > 0 && (
+                    <p className="text-[11px] text-amber-800 dark:text-amber-300">
+                      {row.bonusImpactNotes.join(" · ")}
+                    </p>
+                  )}
+                  {row.deferredToNextPeriodCount > 0 && (
+                    <p className="text-[10px] text-muted-foreground">
+                      {row.deferredToNextPeriodCount} incidencia(s) pasan al siguiente periodo por corte
+                    </p>
+                  )}
                 </div>
                 <Badge
-                  variant={row.totalAbsenceEquivalents > 0 ? "destructive" : "outline"}
+                  variant={row.totalAbsenceEquivalents > 0 || row.hasBonusImpact ? "destructive" : "outline"}
                   className="text-[10px] shrink-0"
                 >
                   {row.statusLabel}
