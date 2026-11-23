@@ -120,6 +120,15 @@ export const candidateRegisterSchema = z.object({
   password: passwordValidation,
 });
 
+export const candidateRegisterCredentialsSchema = z.object({
+  email: z
+    .string()
+    .trim()
+    .toLowerCase()
+    .email("Ingresa un correo electrónico válido"),
+  password: passwordValidation,
+});
+
 export const adminRegisterSchema = z.object({
   fullName: z.string().trim().min(2, "El nombre es muy corto"),
   email: z.string().trim().toLowerCase().email("Correo electrónico inválido"),
@@ -129,5 +138,8 @@ export const adminRegisterSchema = z.object({
 export type CompanyRegisterValues = z.infer<typeof companyRegisterSchema>;
 export type CandidateRegisterValues = z.infer<typeof candidateRegisterSchema>;
 export type CandidateRegisterInput = z.input<typeof candidateRegisterSchema>;
+export type CandidateRegisterCredentialsValues = z.infer<
+  typeof candidateRegisterCredentialsSchema
+>;
 export type AdminRegisterValues = z.infer<typeof adminRegisterSchema>;
 

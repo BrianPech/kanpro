@@ -1,11 +1,16 @@
 import { describe, test, expect, vi, beforeEach } from "vitest";
-import { candidateRegisterSchema } from "@/modules/auth/schemas/register.schema";
+import {
+  candidateRegisterSchema,
+  candidateRegisterCredentialsSchema,
+} from "@/modules/auth/schemas/register.schema";
 import { authService } from "@/modules/auth/services/auth-service";
 
 // Mock Supabase client
 const mockSignUp = vi.fn();
 const mockSignInWithPassword = vi.fn();
 const mockSignInWithOAuth = vi.fn();
+const mockVerifyOtp = vi.fn();
+const mockMaybeSingle = vi.fn();
 
 vi.mock("@/lib/supabase/client", () => ({
   createClient: vi.fn(() => ({
@@ -13,7 +18,15 @@ vi.mock("@/lib/supabase/client", () => ({
       signUp: mockSignUp,
       signInWithPassword: mockSignInWithPassword,
       signInWithOAuth: mockSignInWithOAuth,
+      verifyOtp: mockVerifyOtp,
     },
+    from: vi.fn(() => ({
+      select: vi.fn(() => ({
+        eq: vi.fn(() => ({
+          maybeSingle: mockMaybeSingle,
+        })),
+      })),
+    })),
   })),
 }));
 
@@ -323,6 +336,112 @@ describe("Módulo de Autenticación de Candidato - Registro y Validación", () =
       if (parsed.success) {
         expect(parsed.data.birthDate).toBe("1995-10-25");
       }
+    });
+  });
+
+  // =========================================================================
+  // 3. REGISTRO DE CREDENCIALES (candidateRegisterCredentialsSchema + signUpCandidateCredentials)
+  // =========================================================================
+  describe("3. Registro de credenciales de candidato (correo y contraseña)", () => {
+    test("Valida y normaliza correo y contraseña válidos", () => {
+      const result = candidateRegisterCredentialsSchema.safeParse({
+        email: "  Candidato.Nuevo@Ejemplo.COM  ",
+        password: "Password2026",
+      });
+
+      expect(result.success).toBe(true);
+      if (result.success) {
+        expect(result.data.email).toBe("candidato.nuevo@ejemplo.com");
+      }
+    });
+
+    test("Rechaza contraseñas que no cumplen los 3 requisitos (8 caracteres, mayúscula, número)", () => {
+      expect(
+        candidateRegisterCredentialsSchema.safeParse({
+          email: "test@ejemplo.com",
+          password: "Ab1",
+        }).success
+      ).toBe(false);
+
+      expect(
+        candidateRegisterCredentialsSchema.safeParse({
+          email: "test@ejemplo.com",
+          password: "password123",
+        }).success
+      ).toBe(false);
+
+      expect(
+        candidateRegisterCredentialsSchema.safeParse({
+          email: "test@ejemplo.com",
+          password: "PasswordOnly",
+        }).success
+      ).toBe(false);
+    });
+
+    test("Registra candidato solo con correo y contraseña enviando rol 'candidate'", async () => {
+      const mockUser = {
+        id: "cand-cred-1",
+        email: "nuevo@ejemplo.com",
+        identities: [{ id: "id-cred-1" }],
+      };
+      const mockSession = { access_token: "token-cred-1", user: mockUser };
+
+      mockSignUp.mockResolvedValue({
+        data: { user: mockUser, session: mockSession },
+        error: null,
+      });
+
+      const res = await authService.signUpCandidateCredentials({
+        email: "nuevo@ejemplo.com",
+        password: "Password2026",
+      });
+
+      expect(mockSignUp).toHaveBeenCalledWith(
+        expect.objectContaining({
+          email: "nuevo@ejemplo.com",
+          password: "Password2026",
+          options: expect.objectContaining({
+            data: { role: "candidate" },
+          }),
+        })
+      );
+      expect(res.role).toBe("candidate");
+      expect(res.session).toEqual(mockSession);
+    });
+
+    test("Verifica código OTP de 6 dígitos por correo y retorna sesión y rol", async () => {
+      const mockUser = {
+        id: "cand-otp-1",
+        email: "ana.martinez@correo.com",
+        user_metadata: { role: "candidate" },
+      };
+      const mockSession = { access_token: "otp-token", user: mockUser };
+
+      mockVerifyOtp.mockResolvedValue({
+        data: { user: mockUser, session: mockSession },
+        error: null,
+      });
+      mockMaybeSingle.mockResolvedValue({ data: { role: "candidate" } });
+
+      const res = await authService.verifyEmailOtp(
+        "  Ana.Martinez@Correo.com ",
+        "123456"
+      );
+
+      expect(mockVerifyOtp).toHaveBeenCalledWith({
+        email: "ana.martinez@correo.com",
+        token: "123456",
+        type: "signup",
+      });
+      expect(res.role).toBe("candidate");
+      expect(res.session).toEqual(mockSession);
+    });
+
+    test("Rechaza código OTP de correo con menos de 6 dígitos", async () => {
+      await expect(
+        authService.verifyEmailOtp("ana.martinez@correo.com", "123")
+      ).rejects.toThrow("6 dígitos");
+      expect(mockVerifyOtp).not.toHaveBeenCalled();
     });
   });
 });

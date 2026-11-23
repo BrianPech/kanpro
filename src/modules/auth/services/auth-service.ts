@@ -3,8 +3,10 @@ import { loginSchema, type LoginFormValues } from "../schemas/login.schema";
 import {
   companyRegisterSchema,
   candidateRegisterSchema,
+  candidateRegisterCredentialsSchema,
   type CompanyRegisterValues,
   type CandidateRegisterValues,
+  type CandidateRegisterCredentialsValues,
 } from "../schemas/register.schema";
 import type { UserRole, AuthSuccessResponse } from "../types/auth.types";
 
@@ -162,6 +164,64 @@ export const authService = {
     throw new Error("No se pudieron obtener los datos del usuario");
   },
 
+  async signUpCandidateCredentials(
+    data: CandidateRegisterCredentialsValues
+  ): Promise<AuthSuccessResponse> {
+    const validatedData = candidateRegisterCredentialsSchema.parse(data);
+
+    const supabase = createClient();
+    const origin =
+      typeof window !== "undefined"
+        ? window.location.origin
+        : process.env.NEXT_PUBLIC_APP_URL || "";
+
+    const { data: authData, error: authError } = await supabase.auth.signUp({
+      email: validatedData.email,
+      password: validatedData.password,
+      options: {
+        emailRedirectTo: `${origin}/auth/callback?role=candidate`,
+        data: {
+          role: "candidate" satisfies UserRole,
+        },
+      },
+    });
+
+    if (authError) throw authError;
+
+    if (
+      authData.user &&
+      Array.isArray(authData.user.identities) &&
+      authData.user.identities.length === 0
+    ) {
+      throw new Error(
+        "Ya existe una cuenta registrada con este correo electrónico. Por favor inicia sesión."
+      );
+    }
+
+    if (authData.user && !authData.session) {
+      try {
+        const { data: signInData } = await supabase.auth.signInWithPassword({
+          email: validatedData.email,
+          password: validatedData.password,
+        });
+        if (signInData?.session) {
+          authData.session = signInData.session;
+          if (signInData.user) {
+            authData.user = signInData.user;
+          }
+        }
+      } catch (err) {
+        console.warn("Auto sign-in after candidate registration skipped:", err);
+      }
+    }
+
+    if (authData.user) {
+      return { user: authData.user, session: authData.session, role: "candidate" };
+    }
+
+    throw new Error("No se pudieron obtener los datos del usuario");
+  },
+
   async resendVerificationEmail(email: string): Promise<void> {
     const supabase = createClient();
     const origin =
@@ -178,6 +238,54 @@ export const authService = {
     });
 
     if (error) throw error;
+  },
+
+  async verifyEmailOtp(
+    email: string,
+    token: string
+  ): Promise<AuthSuccessResponse> {
+    const cleanEmail = email.trim().toLowerCase();
+    const cleanToken = token.trim();
+
+    if (!cleanEmail) {
+      throw new Error("No se encontró el correo electrónico a verificar.");
+    }
+    if (!/^\d{6}$/.test(cleanToken)) {
+      throw new Error("Ingresa el código de 6 dígitos enviado a tu correo.");
+    }
+
+    const supabase = createClient();
+    const { data, error } = await supabase.auth.verifyOtp({
+      email: cleanEmail,
+      token: cleanToken,
+      type: "signup",
+    });
+
+    if (error) throw error;
+
+    if (data.user) {
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("role")
+        .eq("id", data.user.id)
+        .maybeSingle();
+
+      let role: UserRole = "candidate";
+      if (
+        profile?.role === "admin" ||
+        profile?.role === "company" ||
+        profile?.role === "candidate"
+      ) {
+        role = profile.role as UserRole;
+      } else {
+        const metaRole = data.user.user_metadata?.role;
+        role = metaRole === "company" ? "company" : "candidate";
+      }
+
+      return { user: data.user, session: data.session, role };
+    }
+
+    throw new Error("No se pudo verificar el código. Inténtalo de nuevo.");
   },
 
   async resetPasswordForEmail(email: string): Promise<void> {
