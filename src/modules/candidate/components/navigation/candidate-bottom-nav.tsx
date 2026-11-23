@@ -3,189 +3,173 @@
 import * as React from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { HugeiconsIcon } from "@hugeicons/react";
 import {
-  Clock,
-  LayoutDashboard,
-  Plane,
-  FileCheck2,
-  ShieldCheck,
-  Compass,
-  FileText,
-  Bookmark,
-  MoreHorizontal,
-} from "@/components/ui/icons";
+  Briefcase01Icon,
+  File01Icon,
+  Home01Icon,
+  Search01Icon,
+  UserCircleIcon,
+} from "@hugeicons/core-free-icons";
 import { cn } from "@/lib/utils";
-import { CandidateBottomNavDrawer } from "./candidate-bottom-nav-drawer";
 
 export interface CandidateBottomNavProps {
   isEmployee?: boolean;
 }
 
-export function CandidateBottomNav({ isEmployee = false }: CandidateBottomNavProps) {
+export function CandidateBottomNav({
+  isEmployee = false,
+}: CandidateBottomNavProps) {
   const pathname = usePathname();
-  const [isDrawerOpen, setIsDrawerOpen] = React.useState(false);
 
-  // 1. Navigation items for ACTIVE EMPLOYEES (Job seekers in an active contract)
-  // Work-first operational navigation: Today's Shift/Attendance, Leaves, Contracts, Documents + More (Jobs & Settings)
-  // Note: Profile is accessible in the sticky topbar header next to notifications
-  const employeeNavItems = [
-    {
-      id: "shift",
-      label: "Mi Turno",
-      href: "/dashboard/candidate",
-      isActive: pathname === "/dashboard/candidate",
-      icon: Clock,
-    },
-    {
-      id: "leaves",
-      label: "Permisos",
-      href: "/dashboard/candidate/leaves",
-      isActive: pathname.startsWith("/dashboard/candidate/leaves"),
-      icon: Plane,
-    },
-    {
-      id: "contracts",
-      label: "Contratos",
-      href: "/dashboard/candidate/contracts",
-      isActive: pathname.startsWith("/dashboard/candidate/contracts"),
-      icon: FileCheck2,
-    },
-    {
-      id: "documents",
-      label: "Documentos",
-      href: "/dashboard/candidate/documents",
-      isActive: pathname.startsWith("/dashboard/candidate/documents"),
-      icon: ShieldCheck,
-    },
-  ];
+  const isHomeActive = pathname === "/dashboard/candidate";
+  const isApplicationsActive = pathname.startsWith(
+    "/dashboard/candidate/applications"
+  );
+  const isSearchActive = pathname.startsWith("/dashboard/candidate/discovery");
+  const isWorkActive =
+    pathname.startsWith("/dashboard/candidate/contracts") ||
+    pathname.startsWith("/dashboard/candidate/leaves") ||
+    pathname.startsWith("/dashboard/candidate/incidents");
+  const isProfileActive =
+    pathname.startsWith("/dashboard/candidate/profile") ||
+    pathname.startsWith("/dashboard/candidate/documents") ||
+    pathname.startsWith("/dashboard/candidate/settings");
 
-  // 2. Navigation items for REGULAR CANDIDATES (Job Seekers without active contracts)
-  // Discovery-first navigation: Home, Search/Discovery, Applications, Saved + More
-  // Note: Profile is accessible in the sticky topbar header next to notifications
-  const candidateNavItems = [
+  const workHref = isEmployee
+    ? "/dashboard/candidate/leaves"
+    : "/dashboard/candidate/contracts";
+
+  const sideTabs = [
     {
       id: "home",
       label: "Inicio",
       href: "/dashboard/candidate",
-      isActive: pathname === "/dashboard/candidate",
-      icon: LayoutDashboard,
-    },
-    {
-      id: "discovery",
-      label: "Buscar",
-      href: "/dashboard/candidate/discovery",
-      isActive: pathname.startsWith("/dashboard/candidate/discovery"),
-      icon: Compass,
+      isActive: isHomeActive,
+      icon: Home01Icon,
     },
     {
       id: "applications",
-      label: "Empleos",
+      label: "Postulaciones",
       href: "/dashboard/candidate/applications",
-      isActive: pathname.startsWith("/dashboard/candidate/applications"),
-      icon: FileText,
+      isActive: isApplicationsActive,
+      icon: File01Icon,
     },
     {
-      id: "saved",
-      label: "Guardados",
-      href: "/dashboard/candidate/saved",
-      isActive: pathname.startsWith("/dashboard/candidate/saved"),
-      icon: Bookmark,
+      id: "work",
+      label: "Mi trabajo",
+      href: workHref,
+      isActive: isWorkActive,
+      icon: Briefcase01Icon,
     },
-  ];
+    {
+      id: "profile",
+      label: "Perfil",
+      href: "/dashboard/candidate/profile",
+      isActive: isProfileActive,
+      icon: UserCircleIcon,
+    },
+  ] as const;
 
-  const currentNavItems = isEmployee ? employeeNavItems : candidateNavItems;
-
-  // Check if current route is part of the secondary "Más" section
-  const isEmployeeSecondaryRoute =
-    isEmployee &&
-    (pathname.startsWith("/dashboard/candidate/discovery") ||
-      pathname.startsWith("/dashboard/candidate/applications") ||
-      pathname.startsWith("/dashboard/candidate/saved") ||
-      pathname.startsWith("/dashboard/candidate/settings"));
-
-  const isCandidateSecondaryRoute =
-    !isEmployee &&
-    (pathname.startsWith("/dashboard/candidate/documents") ||
-      pathname.startsWith("/dashboard/candidate/settings"));
-
-  const isMoreActive = isDrawerOpen || isEmployeeSecondaryRoute || isCandidateSecondaryRoute;
+  const leftTabs = sideTabs.slice(0, 2);
+  const rightTabs = sideTabs.slice(2, 4);
 
   return (
-    <>
-      {/* Conventional Bottom Navigation Bar (Docked Edge-to-Edge) */}
-      <div className="md:hidden fixed bottom-0 inset-x-0 z-50 w-full border-t border-border/80 bg-card/95 backdrop-blur-md pb-[env(safe-area-inset-bottom,0px)] shadow-[0_-4px_24px_rgba(0,0,0,0.08)] dark:shadow-[0_-4px_24px_rgba(0,0,0,0.3)]">
-        <nav
-          aria-label={
-            isEmployee
-              ? "Navegación principal móvil del colaborador"
-              : "Navegación principal móvil del candidato"
-          }
-          className="h-16 max-w-lg mx-auto px-2 flex items-center justify-around select-none"
-        >
-          {currentNavItems.map((item) => {
-            const Icon = item.icon;
-            const isSelected = item.isActive;
-
-            return (
-              <Link
-                key={item.id}
-                href={item.href}
-                aria-current={isSelected ? "page" : undefined}
-                className={cn(
-                  "flex-1 flex flex-col items-center justify-center py-1 rounded-2xl transition-all duration-150 active:scale-90 cursor-pointer gap-0.5",
-                  isSelected
-                    ? "text-primary font-bold"
-                    : "text-muted-foreground hover:text-foreground hover:bg-muted/40"
-                )}
-              >
-                <div className="relative flex items-center justify-center shrink-0">
-                  <Icon
-                    className={cn(
-                      "size-5.5 transition-transform",
-                      isSelected && "stroke-[2.5] scale-105"
-                    )}
-                  />
-                </div>
-                <span className="text-[10px] font-semibold tracking-tight leading-none mt-0.5">
-                  {item.label}
-                </span>
-              </Link>
-            );
-          })}
-
-          {/* Tab 5: "Más" Drawer Button */}
-          <button
-            type="button"
-            onClick={() => setIsDrawerOpen(true)}
-            aria-label="Abrir más opciones"
-            className={cn(
-              "flex-1 flex flex-col items-center justify-center py-1 rounded-2xl transition-all duration-150 active:scale-90 cursor-pointer gap-0.5",
-              isMoreActive
-                ? "text-primary font-bold"
-                : "text-muted-foreground hover:text-foreground hover:bg-muted/40"
-            )}
+    <div className="md:hidden fixed bottom-0 inset-x-0 z-50 w-full bg-background border-t border-border pb-[env(safe-area-inset-bottom,0px)]">
+      <nav
+        aria-label={
+          isEmployee
+            ? "Navegación principal móvil del colaborador"
+            : "Navegación principal móvil del candidato"
+        }
+        className="h-[84px] max-w-[430px] mx-auto grid grid-cols-5 items-start select-none"
+      >
+        {leftTabs.map((item) => (
+          <Link
+            key={item.id}
+            href={item.href}
+            aria-current={item.isActive ? "page" : undefined}
+            className="min-h-[72px] min-w-[48px] pt-2 flex flex-col items-center justify-start gap-1.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded-[8px] transition-colors"
           >
-            <div className="relative flex items-center justify-center shrink-0">
-              <MoreHorizontal
-                className={cn(
-                  "size-5.5 transition-transform",
-                  isMoreActive && "stroke-[2.5] scale-105"
-                )}
+            <span
+              className={cn(
+                "w-[56px] h-[32px] rounded-[16px] flex items-center justify-center transition-colors",
+                item.isActive
+                  ? "bg-muted text-primary"
+                  : "bg-transparent text-muted-foreground"
+              )}
+            >
+              <HugeiconsIcon
+                icon={item.icon}
+                size={20}
+                strokeWidth={1.75}
+                aria-hidden="true"
               />
-            </div>
-            <span className="text-[10px] font-semibold tracking-tight leading-none mt-0.5">
-              Más
             </span>
-          </button>
-        </nav>
-      </div>
+            <span
+              className={cn(
+                "text-[12px] font-medium leading-[17px] text-center truncate max-w-full px-0.5",
+                item.isActive ? "text-primary" : "text-muted-foreground"
+              )}
+            >
+              {item.label}
+            </span>
+          </Link>
+        ))}
 
-      {/* Drawer desplegable para opciones secundarias */}
-      <CandidateBottomNavDrawer
-        open={isDrawerOpen}
-        onOpenChange={setIsDrawerOpen}
-        isEmployee={isEmployee}
-      />
-    </>
+        {/* Acción central elevada: Buscar */}
+        <Link
+          href="/dashboard/candidate/discovery"
+          aria-current={isSearchActive ? "page" : undefined}
+          aria-label="Buscar vacantes"
+          className="min-h-[80px] min-w-[48px] -mt-1 flex flex-col items-center justify-start gap-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded-[12px] transition-transform active:scale-95"
+        >
+          <span className="size-[56px] rounded-full bg-primary hover:bg-primary-hover text-primary-foreground flex items-center justify-center shadow-xs transition-colors">
+            <HugeiconsIcon
+              icon={Search01Icon}
+              size={20}
+              strokeWidth={2}
+              aria-hidden="true"
+            />
+          </span>
+          <span className="text-[12px] font-medium leading-[17px] text-primary text-center">
+            Buscar
+          </span>
+        </Link>
+
+        {rightTabs.map((item) => (
+          <Link
+            key={item.id}
+            href={item.href}
+            aria-current={item.isActive ? "page" : undefined}
+            className="min-h-[72px] min-w-[48px] pt-2 flex flex-col items-center justify-start gap-1.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded-[8px] transition-colors"
+          >
+            <span
+              className={cn(
+                "w-[56px] h-[32px] rounded-[16px] flex items-center justify-center transition-colors",
+                item.isActive
+                  ? "bg-muted text-primary"
+                  : "bg-transparent text-muted-foreground"
+              )}
+            >
+              <HugeiconsIcon
+                icon={item.icon}
+                size={20}
+                strokeWidth={1.75}
+                aria-hidden="true"
+              />
+            </span>
+            <span
+              className={cn(
+                "text-[12px] font-medium leading-[17px] text-center truncate max-w-full px-0.5",
+                item.isActive ? "text-primary" : "text-muted-foreground"
+              )}
+            >
+              {item.label}
+            </span>
+          </Link>
+        ))}
+      </nav>
+    </div>
   );
 }

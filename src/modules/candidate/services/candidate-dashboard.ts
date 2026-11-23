@@ -122,6 +122,9 @@ export interface VacancyItem {
   paymentFrequency?: string | null
   modality?: string
   skills?: string[]
+  description?: string | null
+  requirements?: string | null
+  benefits?: string[]
 }
 
 
@@ -150,6 +153,7 @@ export interface CandidateDashboardData {
   }
   featuredVacancies: VacancyItem[]
   nearbyVacancies: VacancyItem[]
+  savedVacancyIds?: string[]
   pendingContractsCount: number
   activeEmployment: ActiveEmploymentData | null
   forcePasswordChange?: boolean
@@ -694,6 +698,9 @@ export async function getCandidateDashboardData(): Promise<CandidateDashboardDat
     is_active: boolean | null;
     zone: string | null;
     skills: string[] | null;
+    description?: string | null;
+    requirements?: string | null;
+    benefits?: string[] | null;
     company?: EmbeddedCompanyProfile | EmbeddedCompanyProfile[] | null;
   }
 
@@ -703,6 +710,9 @@ export async function getCandidateDashboardData(): Promise<CandidateDashboardDat
     .select(`
       id,
       title,
+      description,
+      requirements,
+      benefits,
       location,
       modality,
       employment_type,
@@ -928,7 +938,10 @@ export async function getCandidateDashboardData(): Promise<CandidateDashboardDat
       salary_max: max || null,
       paymentFrequency: vac.payment_frequency || "quincenal",
       modality: vac.modality || "Presencial",
-      skills: vac.skills || []
+      skills: vac.skills || [],
+      description: vac.description ?? null,
+      requirements: vac.requirements ?? null,
+      benefits: vac.benefits ?? [],
     }
   }
 
@@ -986,6 +999,15 @@ export async function getCandidateDashboardData(): Promise<CandidateDashboardDat
   const featuredVacancies = featuredDb.map(formatVacancyItem);
   const nearbyVacancies = sortedNearbyDb.map(formatVacancyItem);
 
+  const { data: savedRows } = await supabase
+    .from("saved_vacancies")
+    .select("vacancy_id")
+    .eq("candidate_id", user.id);
+
+  const savedVacancyIds = (savedRows ?? []).map(
+    (row: { vacancy_id: string }) => row.vacancy_id
+  );
+
   return {
     profile: profileData
       ? {
@@ -1010,6 +1032,7 @@ export async function getCandidateDashboardData(): Promise<CandidateDashboardDat
     },
     featuredVacancies,
     nearbyVacancies,
+    savedVacancyIds,
     pendingContractsCount,
     activeEmployment,
     forcePasswordChange: Boolean(user.user_metadata?.force_password_change),

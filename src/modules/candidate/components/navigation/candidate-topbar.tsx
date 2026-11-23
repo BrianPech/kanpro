@@ -1,177 +1,241 @@
 "use client";
 
-import { usePathname } from "next/navigation";
+import * as React from "react";
 import Link from "next/link";
+import { usePathname, useRouter } from "next/navigation";
 import {
   Bell,
-  Sparkles,
+  Bookmark,
+  ChevronRight,
+  LogOutIcon,
+  SettingsIcon,
+  UserIcon,
 } from "@/components/ui/icons";
-import * as React from "react";
-
 import { createClient } from "@/lib/supabase/client";
-import { Button } from "@/components/ui/button";
-import { SidebarTrigger } from "@/components/ui/sidebar";
-import { Separator } from "@/components/ui/separator";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Button } from "@/components/ui/button";
 import {
-  Breadcrumb,
-  BreadcrumbItem,
-  BreadcrumbLink,
-  BreadcrumbList,
-  BreadcrumbPage,
-  BreadcrumbSeparator,
-} from "@/components/ui/breadcrumb";
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuGroup,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { SidebarTrigger } from "@/components/ui/sidebar";
 import { NotificationBell } from "@/modules/notifications/components/notification-bell";
+import { cn } from "@/lib/utils";
 
-const routeNames: Record<string, string> = {
-  "/dashboard/candidate": "Mi Portal",
-  "/dashboard/candidate/discovery": "Explorar Empleos",
-  "/dashboard/candidate/applications": "Mis Postulaciones",
-  "/dashboard/candidate/documents": "Mis Documentos",
-  "/dashboard/candidate/contracts": "Mis Contratos",
-  "/dashboard/candidate/leaves": "Vacaciones & Permisos",
-  "/dashboard/candidate/incidents": "Mis Incidencias",
-  "/dashboard/candidate/profile": "Mi Perfil Profesional",
-  "/dashboard/candidate/profile/edit": "Editar Perfil",
-  "/dashboard/candidate/profile/cv": "Mi CV Digital",
-  "/dashboard/candidate/profile/preferences": "Preferencias de Empleo",
+const candidateRouteNames: Record<string, string> = {
+  "/dashboard/candidate": "Inicio",
+  "/dashboard/candidate/discovery": "Buscar vacantes",
+  "/dashboard/candidate/applications": "Postulaciones",
+  "/dashboard/candidate/saved": "Guardados",
+  "/dashboard/candidate/contracts": "Contratos",
+  "/dashboard/candidate/leaves": "Permisos y vacaciones",
+  "/dashboard/candidate/incidents": "Incidencias",
+  "/dashboard/candidate/documents": "Documentos",
+  "/dashboard/candidate/profile": "Mi perfil",
+  "/dashboard/candidate/profile/edit": "Editar perfil",
+  "/dashboard/candidate/profile/cv": "Mi CV digital",
+  "/dashboard/candidate/profile/preferences": "Preferencias",
   "/dashboard/candidate/profile/saved": "Guardados",
-  "/dashboard/candidate/saved": "Vacantes Guardadas",
-  "/dashboard/candidate/settings": "Ajustes de Cuenta",
+  "/dashboard/candidate/settings": "Configuración",
   "/dashboard/candidate/notifications/preferences": "Notificaciones",
-  "/dashboard/candidate/inbox": "Bandeja de Entrada",
-  "/dashboard/candidate/attendance": "Control de Asistencia",
+  "/dashboard/candidate/inbox": "Notificaciones",
 };
 
 export function CandidateTopbar({
   userName,
   userInitials,
-  plan: _plan,
+  isEmployee = false,
 }: {
   userName?: string;
   userInitials?: string;
   plan?: string;
+  isEmployee?: boolean;
 }) {
   const pathname = usePathname();
-  const supabase = createClient();
+  const router = useRouter();
   const [userId, setUserId] = React.useState<string | null>(null);
-  const [userAvatar, setUserAvatar] = React.useState<string | null>(null);
+  const [userEmail, setUserEmail] = React.useState<string>("");
+  const [userAvatar, setUserAvatar] = React.useState<string>("");
 
   React.useEffect(() => {
+    const supabase = createClient();
     async function loadUser() {
       const {
         data: { user },
       } = await supabase.auth.getUser();
       if (user) {
         setUserId(user.id);
-        setUserAvatar(user.user_metadata?.avatar_url || null);
+        setUserEmail(user.email || "");
+        setUserAvatar(
+          typeof user.user_metadata?.avatar_url === "string"
+            ? user.user_metadata.avatar_url
+            : ""
+        );
       }
     }
-    loadUser();
-  }, [supabase]);
+    void loadUser();
+  }, []);
 
-  const currentTitle = routeNames[pathname] || "Mi Portal";
   const isRoot = pathname === "/dashboard/candidate";
+  const hideOnMobileHome = isRoot && !isEmployee;
+
+  const currentTitle =
+    candidateRouteNames[pathname] ||
+    (pathname.includes("/vacancies/") ? "Detalle de vacante" : "Inicio");
+
+  const displayName = userName || "Candidato";
+  const initials =
+    userInitials ||
+    displayName
+      .trim()
+      .split(/\s+/)
+      .slice(0, 2)
+      .map((part) => part[0]?.toUpperCase() || "")
+      .join("") ||
+    "KP";
+
+  const handleLogout = () => {
+    window.location.href = "/auth/logout";
+  };
 
   return (
-    <header className="sticky top-0 z-40 flex h-16 shrink-0 items-center justify-between gap-2 border-b border-border/70 bg-background/80 backdrop-blur-md px-4 md:px-6 transition-all select-none">
-      {/* Left Area: Sidebar Trigger (hidden on mobile) & Title / Breadcrumbs */}
-      <div className="flex items-center gap-2 min-w-0">
-        {/* Sidebar Trigger is strictly for desktop/tablet; hidden on mobile */}
-        <SidebarTrigger className="-ml-1 h-8 w-8 rounded-lg hover:bg-muted hidden md:flex shrink-0" />
-        <Separator
-          orientation="vertical"
-          className="mr-2 data-vertical:h-4 data-vertical:self-auto hidden md:block shrink-0"
-        />
-
-        {/* Mobile Title View: Brand Emblem + Current Section Title */}
-        <div className="flex md:hidden items-center gap-2 min-w-0">
+    <header
+      className={cn(
+        "h-16 shrink-0 items-center justify-between gap-2 bg-sidebar px-4 md:px-8 select-none",
+        hideOnMobileHome ? "hidden md:flex" : "flex"
+      )}
+    >
+      {/* Ruta actual + trigger móvil (idéntico a CompanyTopbar) */}
+      <div className="flex items-center gap-2.5 min-w-0">
+        <SidebarTrigger className="md:hidden -ml-1 size-9 hover:bg-background/60 shrink-0" />
+        <nav
+          aria-label="Ruta actual"
+          className="flex items-center gap-2.5 text-[14px] leading-[19px] min-w-0"
+        >
           <Link
             href="/dashboard/candidate"
-            className="flex items-center gap-1.5 font-extrabold text-sm text-foreground tracking-tight shrink-0"
+            className="font-medium text-muted-foreground hover:text-foreground transition-colors whitespace-nowrap"
           >
-            <span className="size-6 rounded-lg bg-primary/10 text-primary flex items-center justify-center font-black text-xs border border-primary/20">
-              K
-            </span>
-            <span className="font-black text-foreground">K&apos;anPro</span>
+            {isEmployee ? "Empleado" : "Candidato"}
           </Link>
-          <span className="text-muted-foreground/40 text-xs shrink-0">•</span>
-          <span className="text-xs font-semibold text-foreground truncate max-w-[150px]">
+          <ChevronRight className="size-4 text-muted-foreground shrink-0" />
+          <span className="font-semibold text-foreground truncate">
             {currentTitle}
           </span>
-        </div>
-
-        {/* Desktop Breadcrumbs */}
-        <Breadcrumb className="hidden md:flex">
-          <BreadcrumbList>
-            <BreadcrumbItem>
-              {isRoot ? (
-                <BreadcrumbPage className="font-semibold text-sm text-foreground">
-                  Portal Candidato
-                </BreadcrumbPage>
-              ) : (
-                <BreadcrumbLink
-                  render={<Link href="/dashboard/candidate" />}
-                  className="text-xs text-muted-foreground font-medium"
-                >
-                  Candidato
-                </BreadcrumbLink>
-              )}
-            </BreadcrumbItem>
-            {!isRoot && (
-              <>
-                <BreadcrumbSeparator className="text-muted-foreground/40" />
-                <BreadcrumbItem>
-                  <BreadcrumbPage className="font-semibold text-sm text-foreground">
-                    {currentTitle}
-                  </BreadcrumbPage>
-                </BreadcrumbItem>
-              </>
-            )}
-          </BreadcrumbList>
-        </Breadcrumb>
+        </nav>
       </div>
 
-      {/* Right Area: Action, Notifications & Profile Avatar */}
+      {/* Controles globales: Notificaciones y Menú de cuenta (idéntico a CompanyTopbar) */}
       <div className="flex items-center gap-2 shrink-0">
-        <Button
-          variant="outline"
-          size="sm"
-          nativeButton={false}
-          render={<Link href="/dashboard/candidate/discovery" />}
-          className="hidden sm:flex items-center gap-1.5 h-9 px-3.5 text-xs font-semibold rounded-4xl border-primary/30 text-primary hover:bg-primary/10"
-        >
-          <Sparkles className="size-3.5" />
-          <span>Ver Vacantes</span>
-        </Button>
-
         {userId ? (
           <NotificationBell userId={userId} />
         ) : (
           <Button
             variant="ghost"
             size="icon"
-            className="relative h-8 w-8 rounded-lg text-muted-foreground hover:bg-muted"
+            aria-label="Notificaciones"
+            onClick={() => router.push("/dashboard/candidate/inbox")}
+            className="relative size-[44px] rounded-[8px] text-foreground hover:bg-background/60 cursor-pointer"
           >
-            <Bell className="size-4" />
+            <Bell className="size-5" />
           </Button>
         )}
 
-        {/* Profile Button next to Notifications */}
-        <Link
-          href="/dashboard/candidate/profile"
-          aria-label="Ir a mi perfil"
-          className="flex items-center justify-center size-8.5 rounded-full ring-1 ring-border/80 hover:ring-primary/60 transition-all active:scale-95 cursor-pointer ml-0.5"
-        >
-          <Avatar className="size-8 rounded-full border border-border/80">
-            {userAvatar && (
-              <AvatarImage src={userAvatar} alt={userName || "Perfil"} />
-            )}
-            <AvatarFallback className="text-[11px] font-bold bg-primary/10 text-primary">
-              {userInitials || "CP"}
-            </AvatarFallback>
-          </Avatar>
-        </Link>
+        <div className="h-6 w-px bg-border mx-1" aria-hidden="true" />
+
+        <DropdownMenu>
+          <DropdownMenuTrigger
+            render={
+              <button
+                type="button"
+                className="flex items-center gap-2 rounded-[12px] pr-2 hover:bg-background/60 transition-colors cursor-pointer shrink-0 select-none focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:outline-none"
+                aria-label="Abrir menú de usuario"
+              />
+            }
+          >
+            <Avatar className="size-[44px] rounded-[12px] shrink-0 after:hidden">
+              <AvatarImage
+                src={userAvatar}
+                alt={displayName}
+                className="rounded-[12px] object-cover"
+              />
+              <AvatarFallback className="rounded-[12px] bg-sidebar-accent text-link font-bold text-[15px]">
+                {initials}
+              </AvatarFallback>
+            </Avatar>
+            <span className="hidden sm:inline text-[14px] font-medium leading-[19px] text-foreground whitespace-nowrap">
+              {displayName}
+            </span>
+          </DropdownMenuTrigger>
+
+          <DropdownMenuContent
+            align="end"
+            side="bottom"
+            sideOffset={8}
+            className="w-[280px] rounded-[16px] p-0 shadow-xl border border-border bg-card overflow-hidden z-50"
+          >
+            {/* Resumen del usuario */}
+            <div className="px-[16px] py-[14px] border-b border-border flex items-center gap-[12px] text-left">
+              <Avatar className="size-[40px] rounded-[8px] shrink-0 after:hidden">
+                <AvatarImage
+                  src={userAvatar}
+                  alt={displayName}
+                  className="rounded-[8px] object-cover"
+                />
+                <AvatarFallback className="rounded-[8px] bg-sidebar-accent text-link font-semibold text-[13px]">
+                  {initials}
+                </AvatarFallback>
+              </Avatar>
+              <div className="min-w-0 flex-1">
+                <span className="truncate font-semibold text-[14px] leading-[20px] text-foreground block">
+                  {displayName}
+                </span>
+                {userEmail && (
+                  <span className="truncate text-[12px] leading-[16px] text-muted-foreground block font-normal">
+                    {userEmail}
+                  </span>
+                )}
+              </div>
+            </div>
+
+            <DropdownMenuGroup className="p-2">
+              <DropdownMenuItem
+                onClick={() => router.push("/dashboard/candidate/profile")}
+                className="min-h-[40px] rounded-[8px] px-3 text-[13.5px] font-medium cursor-pointer gap-2.5"
+              >
+                <UserIcon className="size-4 text-muted-foreground" />
+                <span>Mi perfil</span>
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                onClick={() => router.push("/dashboard/candidate/saved")}
+                className="min-h-[40px] rounded-[8px] px-3 text-[13.5px] font-medium cursor-pointer gap-2.5"
+              >
+                <Bookmark className="size-4 text-muted-foreground" />
+                <span>Vacantes guardadas</span>
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                onClick={() => router.push("/dashboard/candidate/settings")}
+                className="min-h-[40px] rounded-[8px] px-3 text-[13.5px] font-medium cursor-pointer gap-2.5"
+              >
+                <SettingsIcon className="size-4 text-muted-foreground" />
+                <span>Configuración</span>
+              </DropdownMenuItem>
+            </DropdownMenuGroup>
+
+            <div className="border-t border-border p-2">
+              <DropdownMenuItem
+                onClick={handleLogout}
+                className="min-h-[40px] rounded-[8px] px-3 text-[13.5px] font-medium text-destructive focus:text-destructive cursor-pointer gap-2.5"
+              >
+                <LogOutIcon className="size-4" />
+                <span>Cerrar sesión</span>
+              </DropdownMenuItem>
+            </div>
+          </DropdownMenuContent>
+        </DropdownMenu>
       </div>
     </header>
   );
