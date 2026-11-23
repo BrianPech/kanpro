@@ -1,12 +1,11 @@
 "use client";
 
-import React from "react";
+import React, { useEffect } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useForm, type SubmitHandler } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { z } from "zod";
 import { HugeiconsIcon } from "@hugeicons/react";
 import {
   ArrowLeft01Icon,
@@ -17,62 +16,34 @@ import {
   UserCircleIcon,
 } from "@hugeicons/core-free-icons";
 import { AlertCircle, Loader2 } from "@/components/ui/icons";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { normalizeDateToISO, normalizePhone } from "@/lib/formatters";
+import {
+  candidatePersonalReviewSchema,
+  type CandidatePersonalReviewInput,
+  type CandidatePersonalReviewValues,
+  type ExtractedIneData,
+} from "../schemas/candidate-onboarding.schema";
+import { saveCandidatePersonalReviewAction } from "../actions/candidate-onboarding.actions";
 
-const candidateReviewSchema = z.object({
-  fullName: z
-    .string()
-    .trim()
-    .min(2, "Ingresa tu nombre completo")
-    .max(100, "El nombre es muy largo"),
-  birthDate: z
-    .string()
-    .trim()
-    .min(1, "Ingresa tu fecha de nacimiento")
-    .refine((val) => {
-      const compact = val.replace(/\s+/g, "");
-      const iso = normalizeDateToISO(compact);
-      if (!iso) return false;
-      const [year, month, day] = iso.split("-").map(Number);
-      if (!year || !month || !day) return false;
-      const date = new Date(year, month - 1, day);
-      return !isNaN(date.getTime()) && date.getDate() === day;
-    }, "Ingresa una fecha válida (DD / MM / AAAA)")
-    .refine((val) => {
-      const compact = val.replace(/\s+/g, "");
-      const iso = normalizeDateToISO(compact);
-      if (!iso) return false;
-      const [year, month, day] = iso.split("-").map(Number);
-      const birth = new Date(year, month - 1, day);
-      const today = new Date();
-      const age = today.getFullYear() - birth.getFullYear();
-      const hadBirthday =
-        today.getMonth() > birth.getMonth() ||
-        (today.getMonth() === birth.getMonth() &&
-          today.getDate() >= birth.getDate());
-      return (hadBirthday ? age : age - 1) >= 15;
-    }, "Debes tener al menos 15 años."),
-  whatsappNumber: z
-    .string()
-    .trim()
-    .optional()
-    .refine((val) => {
-      if (!val) return true;
-      const clean = normalizePhone(val);
-      return clean ? clean.startsWith("+") && clean.length >= 12 && clean.length <= 16 : false;
-    }, "Ingresa un número de celular válido (10 dígitos)"),
-});
+const INE_EXTRACTED_STORAGE_KEY = "kanpro_ine_extracted_v1";
 
-export type CandidateIneReviewValues = z.infer<typeof candidateReviewSchema>;
+export type CandidateIneReviewValues = CandidatePersonalReviewValues;
 
 interface CandidateIneReviewFormProps {
-  defaultValues?: Partial<CandidateIneReviewValues>;
+  defaultValues?: Partial<CandidatePersonalReviewInput>;
   backHref?: string;
   nextHref?: string;
-  onConfirm?: (values: CandidateIneReviewValues) => Promise<void> | void;
+  onConfirm?: (values: CandidatePersonalReviewValues) => Promise<void> | void;
+}
+
+function formatIsoToDisplayDate(iso?: string): string {
+  if (!iso) return "";
+  const [year, month, day] = iso.split("-");
+  if (!year || !month || !day) return iso;
+  return `${day} / ${month} / ${year}`;
 }
 
 export function CandidateIneReviewForm({
@@ -85,23 +56,73 @@ export function CandidateIneReviewForm({
   const {
     register,
     handleSubmit,
+    setValue,
+    getValues,
     formState: { errors, isSubmitting },
-  } = useForm<CandidateIneReviewValues>({
-    resolver: zodResolver(candidateReviewSchema),
+  } = useForm<
+    CandidatePersonalReviewInput,
+    unknown,
+    CandidatePersonalReviewValues
+  >({
+    resolver: zodResolver(candidatePersonalReviewSchema),
     defaultValues: {
       fullName: defaultValues?.fullName ?? "",
       birthDate: defaultValues?.birthDate ?? "",
       whatsappNumber: defaultValues?.whatsappNumber ?? "",
+      curp: defaultValues?.curp,
+      gender: defaultValues?.gender,
+      electorKey: defaultValues?.electorKey,
+      ineValidityYear: defaultValues?.ineValidityYear,
     },
     mode: "onTouched",
   });
 
-  const onSubmit: SubmitHandler<CandidateIneReviewValues> = async (data) => {
+  useEffect(() => {
+    try {
+      const raw = sessionStorage.getItem(INE_EXTRACTED_STORAGE_KEY);
+      if (!raw) return;
+      const extracted = JSON.parse(raw) as ExtractedIneData;
+      if (extracted.fullName && !getValues("fullName")) {
+        setValue("fullName", extracted.fullName);
+      }
+      if (extracted.birthDate && !getValues("birthDate")) {
+        setValue("birthDate", formatIsoToDisplayDate(extracted.birthDate));
+      }
+      if (extracted.curp && !getValues("curp")) {
+        setValue("curp", extracted.curp);
+      }
+      if (extracted.gender && !getValues("gender")) {
+        setValue("gender", extracted.gender);
+      }
+      if (extracted.electorKey && !getValues("electorKey")) {
+        setValue("electorKey", extracted.electorKey);
+      }
+      if (extracted.ineValidityYear && !getValues("ineValidityYear")) {
+        setValue("ineValidityYear", extracted.ineValidityYear);
+      }
+    } catch {
+      // ignore invalid sessionStorage
+    }
+  }, [getValues, setValue]);
+
+  const onSubmit: SubmitHandler<CandidatePersonalReviewValues> = async (
+    data
+  ) => {
     if (onConfirm) {
       await onConfirm(data);
       return;
     }
+
+    const result = await saveCandidatePersonalReviewAction(data);
+    if (!result.success) {
+      toast.error("No se pudieron guardar tus datos", {
+        description: result.error,
+      });
+      return;
+    }
+
     router.push(nextHref);
+    router.refresh();
   };
 
   return (
@@ -245,7 +266,7 @@ export function CandidateIneReviewForm({
                     id="fullName"
                     type="text"
                     autoComplete="name"
-                    placeholder="Ana Martínez López"
+                    placeholder="Tu nombre completo"
                     aria-invalid={Boolean(errors.fullName)}
                     aria-describedby={
                       errors.fullName ? "fullName-error" : undefined
@@ -293,7 +314,7 @@ export function CandidateIneReviewForm({
                     type="text"
                     inputMode="numeric"
                     autoComplete="bday"
-                    placeholder="14 / 08 / 1996"
+                    placeholder="DD / MM / AAAA"
                     aria-invalid={Boolean(errors.birthDate)}
                     aria-describedby={
                       errors.birthDate ? "birthDate-error" : "birthDate-helper"

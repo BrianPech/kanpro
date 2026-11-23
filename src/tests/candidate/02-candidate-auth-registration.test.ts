@@ -3,6 +3,16 @@ import {
   candidateRegisterSchema,
   candidateRegisterCredentialsSchema,
 } from "@/modules/auth/schemas/register.schema";
+import {
+  candidatePersonalReviewSchema,
+  candidateAddressSchema,
+} from "@/modules/auth/schemas/candidate-onboarding.schema";
+import {
+  parseMexicanCurp,
+  parseIneQrPayload,
+  parseIneMrzText,
+  parseIneFrontText,
+} from "@/modules/auth/services/candidate-ine.service";
 import { authService } from "@/modules/auth/services/auth-service";
 
 // Mock Supabase client
@@ -442,6 +452,132 @@ describe("Módulo de Autenticación de Candidato - Registro y Validación", () =
         authService.verifyEmailOtp("ana.martinez@correo.com", "123")
       ).rejects.toThrow("6 dígitos");
       expect(mockVerifyOtp).not.toHaveBeenCalled();
+    });
+  });
+
+  // =========================================================================
+  // 4. EXTRACCIÓN DE INE Y ESQUEMAS DE ONBOARDING DE CANDIDATO
+  // =========================================================================
+  describe("4. Extracción determinista de INE (CURP / QR) y validación de onboarding", () => {
+    test("parseMexicanCurp extrae fecha de nacimiento, sexo y estado correctamente", () => {
+      const parsed = parseMexicanCurp("MALA960814MQRZRN05");
+      expect(parsed).toEqual({
+        curp: "MALA960814MQRZRN05",
+        birthDate: "1996-08-14",
+        gender: "M",
+        state: "Quintana Roo",
+      });
+    });
+
+    test("parseIneQrPayload extrae CURP, clave de elector, CP y vigencia", () => {
+      const parsed = parseIneQrPayload(
+        "CURP:MALA960814MQRZRN05 CLAVE:MRTLPA96081423M100 CP:77500 VIGENCIA:2031"
+      );
+      expect(parsed.curp).toBe("MALA960814MQRZRN05");
+      expect(parsed.birthDate).toBe("1996-08-14");
+      expect(parsed.gender).toBe("M");
+      expect(parsed.state).toBe("Quintana Roo");
+      expect(parsed.electorKey).toBe("MRTLPA96081423M100");
+      expect(parsed.postalCode).toBe("77500");
+      expect(parsed.ineValidityYear).toBe(2031);
+    });
+
+    test("candidatePersonalReviewSchema normaliza fecha con espacios DD / MM / AAAA y teléfono", () => {
+      const parsed = candidatePersonalReviewSchema.safeParse({
+        fullName: "Ana Martínez López",
+        birthDate: "14 / 08 / 1996",
+        whatsappNumber: "9981234567",
+      });
+      expect(parsed.success).toBe(true);
+      if (parsed.success) {
+        expect(parsed.data.birthDate).toBe("1996-08-14");
+        expect(parsed.data.whatsappNumber).toBe("+529981234567");
+      }
+    });
+
+    test("candidateAddressSchema valida CP de 5 dígitos y campos obligatorios", () => {
+      const ok = candidateAddressSchema.safeParse({
+        postalCode: "77500",
+        state: "Quintana Roo",
+        municipality: "Benito Juárez",
+        neighborhood: "Centro",
+        street: "Av. Ejemplo",
+        exteriorNumber: "123",
+        interiorNumber: "4B",
+      });
+      expect(ok.success).toBe(true);
+
+      const badCp = candidateAddressSchema.safeParse({
+        postalCode: "775",
+        state: "Quintana Roo",
+        municipality: "Benito Juárez",
+        neighborhood: "Centro",
+        street: "Av. Ejemplo",
+        exteriorNumber: "123",
+      });
+      expect(badCp.success).toBe(false);
+    });
+
+    test("parseIneMrzText extrae nombre completo, fecha de nacimiento, sexo y vigencia del reverso", () => {
+      const mrz = [
+        "IDMEX1234567890<<1234567890123",
+        "9608142M3112315MEX<01<<12345<6",
+        "MARTINEZ<LOPEZ<<ANA<<<<<<<<<<<",
+      ].join("\n");
+
+      const parsed = parseIneMrzText(mrz);
+      expect(parsed.fullName).toBe("Ana Martinez Lopez");
+      expect(parsed.birthDate).toBe("1996-08-14");
+      expect(parsed.gender).toBe("M");
+      expect(parsed.ineValidityYear).toBe(2031);
+    });
+
+    test("parseIneFrontText extrae nombre, CURP, clave de elector y domicilio estructurado", () => {
+      const frontText = [
+        "INSTITUTO NACIONAL ELECTORAL",
+        "NOMBRE",
+        "MARTINEZ",
+        "LOPEZ",
+        "ANA",
+        "DOMICILIO",
+        "AV KABAH 123 INT 4B",
+        "COL. CENTRO 77500",
+        "BENITO JUAREZ, Q. ROO.",
+        "CLAVE DE ELECTOR MRTLPA96081423M100",
+        "CURP MALA960814MQRZRN05",
+        "VIGENCIA 2021-2031",
+      ].join("\n");
+
+      const parsed = parseIneFrontText(frontText);
+      expect(parsed.fullName).toBe("Ana Martinez Lopez");
+      expect(parsed.curp).toBe("MALA960814MQRZRN05");
+      expect(parsed.birthDate).toBe("1996-08-14");
+      expect(parsed.electorKey).toBe("MRTLPA96081423M100");
+      expect(parsed.street).toBe("Av Kabah");
+      expect(parsed.exteriorNumber).toBe("123");
+      expect(parsed.interiorNumber).toBe("4B");
+      expect(parsed.neighborhood).toBe("Centro");
+      expect(parsed.postalCode).toBe("77500");
+      expect(parsed.municipality).toBe("Benito Juarez");
+      expect(parsed.state).toBe("Quintana Roo");
+      expect(parsed.ineValidityYear).toBe(2031);
+    });
+
+    test("parseIneFrontText limpia ruido OCR de bordes, Mz/Lt y abreviaturas con basura", () => {
+      const noisyFront = [
+        "DOMICILIO",
+        "El de Av.150/0 13 y 15 Sur Mz-68d Lt-10 Mu",
+        "El Ae Colbellavista 77712 D",
+        "El A Playadel Carmen, Q.roo. Am",
+      ].join("\n");
+
+      const parsed = parseIneFrontText(noisyFront);
+      expect(parsed.postalCode).toBe("77712");
+      expect(parsed.state).toBe("Quintana Roo");
+      expect(parsed.municipality).toBe("Playa del Carmen");
+      expect(parsed.neighborhood).toBe("Bellavista");
+      expect(parsed.street).toBe("Av.150/0 13 y 15 Sur");
+      expect(parsed.exteriorNumber).toBe("MZ-68D LT-10");
     });
   });
 });

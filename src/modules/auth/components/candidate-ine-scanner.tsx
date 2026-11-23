@@ -14,6 +14,21 @@ import {
 } from "@hugeicons/core-free-icons";
 import { AlertCircle, Loader2 } from "@/components/ui/icons";
 import { cn } from "@/lib/utils";
+import { processCandidateIneAction } from "../actions/candidate-onboarding.actions";
+import { CandidateIneProcessing } from "./candidate-ine-processing";
+
+const INE_EXTRACTED_STORAGE_KEY = "kanpro_ine_extracted_v1";
+
+async function dataUrlToJpegFile(
+  dataUrl: string,
+  fileName: string
+): Promise<File> {
+  const response = await fetch(dataUrl);
+  const blob = await response.blob();
+  return new File([blob], fileName, {
+    type: blob.type || "image/jpeg",
+  });
+}
 
 export type IneScanStep =
   | "front-scan"
@@ -180,6 +195,7 @@ export function CandidateIneScanner({
   const [cameraError, setCameraError] = useState<string | null>(null);
   const [cameraAttempt, setCameraAttempt] = useState(0);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [processingError, setProcessingError] = useState<string | null>(null);
 
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
@@ -417,18 +433,83 @@ export function CandidateIneScanner({
     }
 
     if (step === "back-review") {
+      if (onComplete && frontImage && backImage) {
+        onComplete({ frontImage, backImage, qrData });
+        return;
+      }
+
+      if (!frontImage) {
+        router.push("/register/candidate/review");
+        return;
+      }
+
+      setProcessingError(null);
       setIsSubmitting(true);
+
       try {
-        if (onComplete && frontImage && backImage) {
-          onComplete({ frontImage, backImage, qrData });
+        const formData = new FormData();
+        formData.append(
+          "front",
+          await dataUrlToJpegFile(frontImage, "ine_front.jpg")
+        );
+        if (backImage) {
+          formData.append(
+            "back",
+            await dataUrlToJpegFile(backImage, "ine_back.jpg")
+          );
+        }
+        if (qrData) {
+          formData.append("qrData", qrData);
+        }
+
+        const result = await processCandidateIneAction(formData);
+        if (!result.success) {
+          setProcessingError(result.error);
+          setIsSubmitting(false);
           return;
         }
-        router.push("/register/candidate/ine/processing");
-      } finally {
+
+        try {
+          sessionStorage.setItem(
+            INE_EXTRACTED_STORAGE_KEY,
+            JSON.stringify(result.data.extracted)
+          );
+        } catch {
+          // ignore storage quota/privacy restrictions
+        }
+
+        router.push("/register/candidate/review");
+        router.refresh();
+      } catch (error: unknown) {
+        const message =
+          error instanceof Error
+            ? error.message
+            : "No se pudo procesar tu INE. Inténtalo de nuevo.";
+        setProcessingError(message);
         setIsSubmitting(false);
       }
     }
   };
+
+  if (isSubmitting || processingError) {
+    return (
+      <CandidateIneProcessing
+        error={processingError}
+        onRetry={
+          processingError
+            ? () => {
+                setProcessingError(null);
+                setStep("front-scan");
+                setFrontImage(null);
+                setBackImage(null);
+                setQrData(null);
+                setCameraStatus("starting");
+              }
+            : undefined
+        }
+      />
+    );
+  }
 
   return (
     <div className="min-h-dvh landscape:h-dvh w-full bg-background text-foreground flex flex-col font-sans selection:bg-primary/20 overflow-hidden">

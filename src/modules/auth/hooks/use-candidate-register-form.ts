@@ -39,10 +39,10 @@ export function useCandidateRegisterForm() {
 
       toast.success("Cuenta creada", {
         description:
-          "Bienvenido a K'anPro. Serás redirigido al panel de Candidato.",
+          "Bienvenido a K'anPro. Prepara tu INE para completar tu perfil.",
       });
 
-      router.push("/dashboard/candidate");
+      router.push("/register/candidate/ine");
       router.refresh();
     } catch (error: unknown) {
       console.error("Error capturado en onSubmit de candidato:", error);

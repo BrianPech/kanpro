@@ -1,12 +1,11 @@
 "use client";
 
-import React from "react";
+import React, { useEffect } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useForm, type SubmitHandler } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { z } from "zod";
 import { HugeiconsIcon } from "@hugeicons/react";
 import { ArrowLeft01Icon, ArrowRight01Icon } from "@hugeicons/core-free-icons";
 import { AlertCircle, Loader2 } from "@/components/ui/icons";
@@ -14,21 +13,16 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import {
+  candidateAddressSchema,
+  type CandidateAddressValues,
+  type ExtractedIneData,
+} from "../schemas/candidate-onboarding.schema";
+import { saveCandidateAddressAction } from "../actions/candidate-onboarding.actions";
 
-const candidateAddressSchema = z.object({
-  postalCode: z
-    .string()
-    .trim()
-    .regex(/^\d{5}$/, "Ingresa un código postal de 5 dígitos"),
-  state: z.string().trim().min(2, "Ingresa tu estado"),
-  municipality: z.string().trim().min(2, "Ingresa tu municipio o alcaldía"),
-  neighborhood: z.string().trim().min(2, "Ingresa tu colonia"),
-  street: z.string().trim().min(2, "Ingresa tu calle"),
-  exteriorNumber: z.string().trim().min(1, "Requerido"),
-  interiorNumber: z.string().trim().optional(),
-});
+const INE_EXTRACTED_STORAGE_KEY = "kanpro_ine_extracted_v1";
 
-export type CandidateIneAddressValues = z.infer<typeof candidateAddressSchema>;
+export type CandidateIneAddressValues = CandidateAddressValues;
 
 interface CandidateIneAddressFormProps {
   defaultValues?: Partial<CandidateIneAddressValues>;
@@ -50,6 +44,8 @@ export function CandidateIneAddressForm({
   const {
     register,
     handleSubmit,
+    setValue,
+    getValues,
     formState: { errors, isSubmitting },
   } = useForm<CandidateIneAddressValues>({
     resolver: zodResolver(candidateAddressSchema),
@@ -65,20 +61,59 @@ export function CandidateIneAddressForm({
     mode: "onTouched",
   });
 
+  useEffect(() => {
+    try {
+      const raw = sessionStorage.getItem(INE_EXTRACTED_STORAGE_KEY);
+      if (!raw) return;
+      const extracted = JSON.parse(raw) as ExtractedIneData;
+      if (extracted.postalCode && !getValues("postalCode")) {
+        setValue("postalCode", extracted.postalCode);
+      }
+      if (extracted.state && !getValues("state")) {
+        setValue("state", extracted.state);
+      }
+      if (extracted.municipality && !getValues("municipality")) {
+        setValue("municipality", extracted.municipality);
+      }
+      if (extracted.neighborhood && !getValues("neighborhood")) {
+        setValue("neighborhood", extracted.neighborhood);
+      }
+      if (extracted.street && !getValues("street")) {
+        setValue("street", extracted.street);
+      }
+      if (extracted.exteriorNumber && !getValues("exteriorNumber")) {
+        setValue("exteriorNumber", extracted.exteriorNumber);
+      }
+      if (extracted.interiorNumber && !getValues("interiorNumber")) {
+        setValue("interiorNumber", extracted.interiorNumber);
+      }
+    } catch {
+      // ignore invalid sessionStorage
+    }
+  }, [getValues, setValue]);
+
   const onSubmit: SubmitHandler<CandidateIneAddressValues> = async (data) => {
     if (onConfirm) {
       await onConfirm(data);
       return;
     }
 
-    if (nextHref) {
-      router.push(nextHref);
+    const result = await saveCandidateAddressAction(data);
+    if (!result.success) {
+      toast.error("No se pudo guardar tu dirección", {
+        description: result.error,
+      });
       return;
     }
 
-    toast.success("Dirección confirmada", {
-      description: "Tu domicilio quedó registrado para continuar con tu perfil.",
-    });
+    try {
+      sessionStorage.removeItem(INE_EXTRACTED_STORAGE_KEY);
+    } catch {
+      // ignore
+    }
+
+    router.push(nextHref);
+    router.refresh();
   };
 
   return (
@@ -181,7 +216,7 @@ export function CandidateIneAddressForm({
                     inputMode="numeric"
                     maxLength={5}
                     autoComplete="postal-code"
-                    placeholder="77500"
+                    placeholder="5 dígitos"
                     aria-invalid={Boolean(errors.postalCode)}
                     aria-describedby={
                       errors.postalCode ? "postalCode-error" : undefined
@@ -215,7 +250,7 @@ export function CandidateIneAddressForm({
                     id="state"
                     type="text"
                     autoComplete="address-level1"
-                    placeholder="Quintana Roo"
+                    placeholder="Ingresa tu estado"
                     aria-invalid={Boolean(errors.state)}
                     aria-describedby={errors.state ? "state-error" : undefined}
                     className={INPUT_CLASS}
@@ -250,7 +285,7 @@ export function CandidateIneAddressForm({
                     id="municipality"
                     type="text"
                     autoComplete="address-level2"
-                    placeholder="Benito Juárez"
+                    placeholder="Ingresa tu municipio o alcaldía"
                     aria-invalid={Boolean(errors.municipality)}
                     aria-describedby={
                       errors.municipality ? "municipality-error" : undefined
@@ -284,7 +319,7 @@ export function CandidateIneAddressForm({
                     id="neighborhood"
                     type="text"
                     autoComplete="address-level3"
-                    placeholder="Centro"
+                    placeholder="Ingresa tu colonia"
                     aria-invalid={Boolean(errors.neighborhood)}
                     aria-describedby={
                       errors.neighborhood ? "neighborhood-error" : undefined
@@ -320,7 +355,7 @@ export function CandidateIneAddressForm({
                   id="street"
                   type="text"
                   autoComplete="street-address"
-                  placeholder="Av. Ejemplo"
+                  placeholder="Nombre de la calle"
                   aria-invalid={Boolean(errors.street)}
                   aria-describedby={errors.street ? "street-error" : undefined}
                   className={INPUT_CLASS}
@@ -353,7 +388,7 @@ export function CandidateIneAddressForm({
                   <Input
                     id="exteriorNumber"
                     type="text"
-                    placeholder="123"
+                    placeholder="Núm. exterior"
                     aria-invalid={Boolean(errors.exteriorNumber)}
                     aria-describedby={
                       errors.exteriorNumber ? "exteriorNumber-error" : undefined
@@ -386,7 +421,7 @@ export function CandidateIneAddressForm({
                   <Input
                     id="interiorNumber"
                     type="text"
-                    placeholder="4B"
+                    placeholder="Opcional"
                     className={INPUT_CLASS}
                     {...register("interiorNumber")}
                   />

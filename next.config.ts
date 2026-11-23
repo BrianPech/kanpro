@@ -4,12 +4,14 @@ import createMDX from "@next/mdx";
 const nextConfig: NextConfig = {
   pageExtensions: ["js", "jsx", "md", "mdx", "ts", "tsx"],
   reactCompiler: true,
+  serverExternalPackages: ["tesseract.js"],
   allowedDevOrigins: [
     "127.0.0.1",
     "localhost",
     "192.168.1.91",
     "192.168.1.91:3000",
     "*.local",
+    "*.trycloudflare.com",
   ],
   onDemandEntries: {
     maxInactiveAge: 20 * 1000,

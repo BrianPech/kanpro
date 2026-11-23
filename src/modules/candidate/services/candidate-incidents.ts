@@ -68,7 +68,7 @@ export class CandidateIncidentsService {
     const { data, error } = await this.supabase.rpc("employee_respond_to_incident", {
       p_incident_id: input.incidentId,
       p_acknowledge: input.acknowledge,
-      p_statement: input.statement ?? null,
+      p_statement: input.statement ?? "",
     });
 
     if (error || !data) {

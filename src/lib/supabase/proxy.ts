@@ -130,13 +130,21 @@ export async function updateSession(request: NextRequest) {
       : '/dashboard/candidate'
 
   // 3. Authenticated users trying to access public auth pages
+  const isCandidateOnboardingStep =
+    role === 'candidate' &&
+    (pathname.startsWith('/register/candidate/ine') ||
+      pathname.startsWith('/register/candidate/review') ||
+      pathname.startsWith('/register/candidate/address') ||
+      pathname.startsWith('/register/candidate/complete'))
+
   const isPublicAuthPage =
-    pathname === '/login' ||
-    pathname.startsWith('/login/') ||
-    pathname === '/register' ||
-    pathname.startsWith('/register/') ||
-    pathname === '/forgot-password' ||
-    pathname.startsWith('/forgot-password/')
+    !isCandidateOnboardingStep &&
+    (pathname === '/login' ||
+      pathname.startsWith('/login/') ||
+      pathname === '/register' ||
+      pathname.startsWith('/register/') ||
+      pathname === '/forgot-password' ||
+      pathname.startsWith('/forgot-password/'))
 
   if (isPublicAuthPage) {
     const url = request.nextUrl.clone()

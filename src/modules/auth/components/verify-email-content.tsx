@@ -80,7 +80,7 @@ export function VerifyEmailContent() {
           description: "Tu cuenta está lista para continuar.",
         });
         router.push(
-          res.role === "company" ? "/onboarding" : "/dashboard/candidate"
+          res.role === "company" ? "/onboarding" : "/register/candidate/ine"
         );
         router.refresh();
       } catch (error: unknown) {

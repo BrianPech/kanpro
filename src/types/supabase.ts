@@ -23,16 +23,30 @@ export type Database = {
           }
         },"public": {
           Tables: {
-            "admin_staff_members": {
+            "admin_staff_audit_log": {
                   Row: {
-                    "created_at": string,"department": string | null,"id": string,"notes": string | null,"permissions": (string)[] | null,"profile_id": string,"status": string,"sub_role": string,"updated_at": string
+                    "actor_profile_id": string,"created_at": string,"id": string,"next_state": Json | null,"operation": string,"previous_state": Json | null,"target_profile_id": string
                   }
                   ComputedFields: never
                   Insert: {
-                    "created_at"?: string,"department"?: string | null,"id"?: string,"notes"?: string | null,"permissions"?: (string)[] | null,"profile_id": string,"status"?: string,"sub_role"?: string,"updated_at"?: string
+                    "actor_profile_id": string,"created_at"?: string,"id"?: string,"next_state"?: Json | null,"operation": string,"previous_state"?: Json | null,"target_profile_id": string
                   }
                   Update: {
-                    "created_at"?: string,"department"?: string | null,"id"?: string,"notes"?: string | null,"permissions"?: (string)[] | null,"profile_id"?: string,"status"?: string,"sub_role"?: string,"updated_at"?: string
+                    "actor_profile_id"?: string,"created_at"?: string,"id"?: string,"next_state"?: Json | null,"operation"?: string,"previous_state"?: Json | null,"target_profile_id"?: string
+                  }
+                  Relationships: [
+                    
+                  ]
+                },"admin_staff_members": {
+                  Row: {
+                    "created_at": string,"department": string | null,"id": string,"notes": string | null,"permissions": (string)[],"profile_id": string,"status": string,"sub_role": string,"updated_at": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "created_at"?: string,"department"?: string | null,"id"?: string,"notes"?: string | null,"permissions"?: (string)[],"profile_id": string,"status"?: string,"sub_role"?: string,"updated_at"?: string
+                  }
+                  Update: {
+                    "created_at"?: string,"department"?: string | null,"id"?: string,"notes"?: string | null,"permissions"?: (string)[],"profile_id"?: string,"status"?: string,"sub_role"?: string,"updated_at"?: string
                   }
                   Relationships: [
                     {
@@ -171,14 +185,14 @@ isOneToOne: false
                   ]
                 },"candidate_private_profiles": {
                   Row: {
-                    "birth_date": string | null,"cedula_profesional": string | null,"created_at": string,"curp": string | null,"id": string,"rfc": string | null,"updated_at": string
+                    "address_exterior_number": string | null,"address_interior_number": string | null,"address_municipality": string | null,"address_neighborhood": string | null,"address_postal_code": string | null,"address_state": string | null,"address_street": string | null,"birth_date": string | null,"cedula_profesional": string | null,"created_at": string,"curp": string | null,"elector_key": string | null,"gender": string | null,"id": string,"ine_qr_payload": string | null,"ine_validity_year": number | null,"ine_verified_at": string | null,"rfc": string | null,"updated_at": string
                   }
                   ComputedFields: never
                   Insert: {
-                    "birth_date"?: string | null,"cedula_profesional"?: string | null,"created_at"?: string,"curp"?: string | null,"id": string,"rfc"?: string | null,"updated_at"?: string
+                    "address_exterior_number"?: string | null,"address_interior_number"?: string | null,"address_municipality"?: string | null,"address_neighborhood"?: string | null,"address_postal_code"?: string | null,"address_state"?: string | null,"address_street"?: string | null,"birth_date"?: string | null,"cedula_profesional"?: string | null,"created_at"?: string,"curp"?: string | null,"elector_key"?: string | null,"gender"?: string | null,"id": string,"ine_qr_payload"?: string | null,"ine_validity_year"?: number | null,"ine_verified_at"?: string | null,"rfc"?: string | null,"updated_at"?: string
                   }
                   Update: {
-                    "birth_date"?: string | null,"cedula_profesional"?: string | null,"created_at"?: string,"curp"?: string | null,"id"?: string,"rfc"?: string | null,"updated_at"?: string
+                    "address_exterior_number"?: string | null,"address_interior_number"?: string | null,"address_municipality"?: string | null,"address_neighborhood"?: string | null,"address_postal_code"?: string | null,"address_state"?: string | null,"address_street"?: string | null,"birth_date"?: string | null,"cedula_profesional"?: string | null,"created_at"?: string,"curp"?: string | null,"elector_key"?: string | null,"gender"?: string | null,"id"?: string,"ine_qr_payload"?: string | null,"ine_validity_year"?: number | null,"ine_verified_at"?: string | null,"rfc"?: string | null,"updated_at"?: string
                   }
                   Relationships: [
                     {
@@ -288,7 +302,7 @@ isOneToOne: false
                     "application_id"?: string | null,"candidate_id"?: string | null,"company_id": string,"company_signature_url"?: string | null,"company_signed"?: boolean,"contract_type": string,"created_at"?: string,"department": string,"employee_id"?: string | null,"employee_name"?: string | null,"employee_signature_url"?: string | null,"employee_signed"?: boolean,"end_date"?: string | null,"folio": string,"id"?: string,"job_title": string,"notes"?: string | null,"payment_frequency"?: string,"salary": number,"start_date": string,"status"?: string,"template_type"?: string,"updated_at"?: string
                   }
                   Update: {
-                    "application_id"?: string | null,"candidate_id"?: string | null,"company_id"?: string,"company_signature_url"?: string | null,"company_signed"?: boolean,"contract_type"?: string,"created_at"?: string,"department"?: string,"employee_id"?: string | null,"employee_signature_url"?: string | null,"employee_signed"?: boolean,"end_date"?: string | null,"folio"?: string,"id"?: string,"job_title"?: string,"notes"?: string | null,"payment_frequency"?: string,"salary"?: number,"start_date"?: string,"status"?: string,"template_type"?: string,"updated_at"?: string
+                    "application_id"?: string | null,"candidate_id"?: string | null,"company_id"?: string,"company_signature_url"?: string | null,"company_signed"?: boolean,"contract_type"?: string,"created_at"?: string,"department"?: string,"employee_id"?: string | null,"employee_name"?: string | null,"employee_signature_url"?: string | null,"employee_signed"?: boolean,"end_date"?: string | null,"folio"?: string,"id"?: string,"job_title"?: string,"notes"?: string | null,"payment_frequency"?: string,"salary"?: number,"start_date"?: string,"status"?: string,"template_type"?: string,"updated_at"?: string
                   }
                   Relationships: [
                     {
@@ -415,14 +429,14 @@ isOneToOne: false
                   ]
                 },"company_incidents": {
                   Row: {
-                    "category": string,"category_label": string | null,"clarification_deadline": string | null,"company_id": string,"complemento_empresa": number | null,"created_at": string,"department": string | null,"description": string,"dias_amparados": number | null,"employee_id": string | null,"employee_name": string,"evidence_file_name": string | null,"evidence_type": string | null,"evidence_url": string | null,"folio_imss": string | null,"id": string,"incident_date": string,"job_title": string | null,"ramo_imss": string | null,"resolution_notes": string | null,"responsible_supervisor": string | null,"severity": string,"status": string,"title": string,"updated_at": string,"notified_at": string | null,"acknowledged_at": string | null,"employee_statement": string | null,"employee_statement_at": string | null
+                    "acknowledged_at": string | null,"category": string,"category_label": string | null,"clarification_deadline": string | null,"company_id": string,"complemento_empresa": number | null,"created_at": string,"department": string | null,"description": string,"dias_amparados": number | null,"employee_id": string | null,"employee_name": string,"employee_statement": string | null,"employee_statement_at": string | null,"evidence_file_name": string | null,"evidence_type": string | null,"evidence_url": string | null,"folio_imss": string | null,"id": string,"incident_date": string,"job_title": string | null,"notified_at": string | null,"ramo_imss": string | null,"resolution_notes": string | null,"responsible_supervisor": string | null,"severity": string,"status": string,"title": string,"updated_at": string
                   }
                   ComputedFields: never
                   Insert: {
-                    "category": string,"category_label"?: string | null,"clarification_deadline"?: string | null,"company_id": string,"complemento_empresa"?: number | null,"created_at"?: string,"department"?: string | null,"description": string,"dias_amparados"?: number | null,"employee_id"?: string | null,"employee_name": string,"evidence_file_name"?: string | null,"evidence_type"?: string | null,"evidence_url"?: string | null,"folio_imss"?: string | null,"id"?: string,"incident_date"?: string,"job_title"?: string | null,"ramo_imss"?: string | null,"resolution_notes"?: string | null,"responsible_supervisor"?: string | null,"severity"?: string,"status"?: string,"title": string,"updated_at"?: string,"notified_at"?: string | null,"acknowledged_at"?: string | null,"employee_statement"?: string | null,"employee_statement_at"?: string | null
+                    "acknowledged_at"?: string | null,"category": string,"category_label"?: string | null,"clarification_deadline"?: string | null,"company_id": string,"complemento_empresa"?: number | null,"created_at"?: string,"department"?: string | null,"description": string,"dias_amparados"?: number | null,"employee_id"?: string | null,"employee_name": string,"employee_statement"?: string | null,"employee_statement_at"?: string | null,"evidence_file_name"?: string | null,"evidence_type"?: string | null,"evidence_url"?: string | null,"folio_imss"?: string | null,"id"?: string,"incident_date"?: string,"job_title"?: string | null,"notified_at"?: string | null,"ramo_imss"?: string | null,"resolution_notes"?: string | null,"responsible_supervisor"?: string | null,"severity"?: string,"status"?: string,"title": string,"updated_at"?: string
                   }
                   Update: {
-                    "category"?: string,"category_label"?: string | null,"clarification_deadline"?: string | null,"company_id"?: string,"complemento_empresa"?: number | null,"created_at"?: string,"department"?: string | null,"description"?: string,"dias_amparados"?: number | null,"employee_id"?: string | null,"employee_name"?: string,"evidence_file_name"?: string | null,"evidence_type"?: string | null,"evidence_url"?: string | null,"folio_imss"?: string | null,"id"?: string,"incident_date"?: string,"job_title"?: string | null,"ramo_imss"?: string | null,"resolution_notes"?: string | null,"responsible_supervisor"?: string | null,"severity"?: string,"status"?: string,"title"?: string,"updated_at"?: string,"notified_at"?: string | null,"acknowledged_at"?: string | null,"employee_statement"?: string | null,"employee_statement_at"?: string | null
+                    "acknowledged_at"?: string | null,"category"?: string,"category_label"?: string | null,"clarification_deadline"?: string | null,"company_id"?: string,"complemento_empresa"?: number | null,"created_at"?: string,"department"?: string | null,"description"?: string,"dias_amparados"?: number | null,"employee_id"?: string | null,"employee_name"?: string,"employee_statement"?: string | null,"employee_statement_at"?: string | null,"evidence_file_name"?: string | null,"evidence_type"?: string | null,"evidence_url"?: string | null,"folio_imss"?: string | null,"id"?: string,"incident_date"?: string,"job_title"?: string | null,"notified_at"?: string | null,"ramo_imss"?: string | null,"resolution_notes"?: string | null,"responsible_supervisor"?: string | null,"severity"?: string,"status"?: string,"title"?: string,"updated_at"?: string
                   }
                   Relationships: [
                     {
@@ -500,6 +514,50 @@ isOneToOne: false
       columns: ["employee_id"]
 isOneToOne: false
       referencedRelation: "company_employees"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "company_leaves_incident_id_fkey"
+      columns: ["incident_id"]
+isOneToOne: false
+      referencedRelation: "company_incidents"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"company_members": {
+                  Row: {
+                    "company_id": string,"created_at": string,"id": string,"role": string,"updated_at": string,"user_id": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "company_id": string,"created_at"?: string,"id"?: string,"role"?: string,"updated_at"?: string,"user_id": string
+                  }
+                  Update: {
+                    "company_id"?: string,"created_at"?: string,"id"?: string,"role"?: string,"updated_at"?: string,"user_id"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "company_members_company_id_fkey"
+      columns: ["company_id"]
+isOneToOne: false
+      referencedRelation: "company_directory"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "company_members_company_id_fkey"
+      columns: ["company_id"]
+isOneToOne: false
+      referencedRelation: "company_profiles"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "company_members_user_id_fkey"
+      columns: ["user_id"]
+isOneToOne: false
+      referencedRelation: "candidate_directory"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "company_members_user_id_fkey"
+      columns: ["user_id"]
+isOneToOne: false
+      referencedRelation: "profiles"
       referencedColumns: ["id"]
     }
                   ]
@@ -599,55 +657,28 @@ isOneToOne: false
       referencedColumns: ["id"]
     }
                   ]
-                },"company_members": {
-                  Row: {
-                    "company_id": string,"created_at": string,"id": string,"role": "owner" | "admin" | "recruiter" | "viewer","updated_at": string,"user_id": string
-                  }
-                  ComputedFields: never
-                  Insert: {
-                    "company_id": string,"created_at"?: string,"id"?: string,"role"?: "owner" | "admin" | "recruiter" | "viewer","updated_at"?: string,"user_id": string
-                  }
-                  Update: {
-                    "company_id"?: string,"created_at"?: string,"id"?: string,"role"?: "owner" | "admin" | "recruiter" | "viewer","updated_at"?: string,"user_id"?: string
-                  }
-                  Relationships: [
-                    {
-                      foreignKeyName: "company_members_company_id_fkey"
-                      columns: ["company_id"]
-                      isOneToOne: false
-                      referencedRelation: "company_profiles"
-                      referencedColumns: ["id"]
-                    },
-                    {
-                      foreignKeyName: "company_members_user_id_fkey"
-                      columns: ["user_id"]
-                      isOneToOne: false
-                      referencedRelation: "profiles"
-                      referencedColumns: ["id"]
-                    }
-                  ]
                 },"company_profiles": {
                   Row: {
-                    "address_details": string | null,"leave_approval_config": Json | null,"payroll_impact_config": Json | null,"banner_url": string | null,"branch_addresses": Json | null,"company_name": string,"company_size": string | null,"contact_phone": string | null,"corporate_email": string | null,"created_at": string,"credits_available": number,"description": string | null,"entity_type": Database["public"]['Enums']["company_entity_type"],"featured_vacancies_allowance": number,"featured_vacancies_used": number,"fiscal_address": string,"id": string,"imss_patronal_registry": string | null,"industry": string,"legal_name": string | null,"legal_rep_name": string | null,"logo_url": string | null,"operation_hours": string | null,"owner_id": string | null,"rating": number | null,"repse_registry": string | null,"rfc": string,"social_links": Json | null,"subscription_period_end": string | null,"subscription_plan": string,"subscription_status": string,"updated_at": string,"verification_status": Database["public"]['Enums']["verification_status"] | null,"website_url": string | null
+                    "address_details": string | null,"banner_url": string | null,"branch_addresses": Json | null,"company_name": string,"company_size": string | null,"contact_phone": string | null,"corporate_email": string | null,"created_at": string,"credits_available": number,"description": string | null,"entity_type": Database["public"]['Enums']["company_entity_type"],"featured_vacancies_allowance": number,"featured_vacancies_used": number,"fiscal_address": string,"id": string,"imss_patronal_registry": string | null,"industry": string,"leave_approval_config": Json | null,"legal_name": string | null,"legal_rep_name": string | null,"logo_url": string | null,"operation_hours": string | null,"owner_id": string | null,"payroll_impact_config": Json | null,"rating": number | null,"repse_registry": string | null,"rfc": string,"social_links": Json | null,"subscription_period_end": string | null,"subscription_plan": string,"subscription_status": string,"updated_at": string,"verification_status": Database["public"]['Enums']["verification_status"] | null,"website_url": string | null
                   }
                   ComputedFields: never
                   Insert: {
-                    "address_details"?: string | null,"leave_approval_config"?: Json | null,"payroll_impact_config"?: Json | null,"banner_url"?: string | null,"branch_addresses"?: Json | null,"company_name": string,"company_size"?: string | null,"contact_phone"?: string | null,"corporate_email"?: string | null,"created_at"?: string,"credits_available"?: number,"description"?: string | null,"entity_type"?: Database["public"]['Enums']["company_entity_type"],"featured_vacancies_allowance"?: number,"featured_vacancies_used"?: number,"fiscal_address": string,"id"?: string,"imss_patronal_registry"?: string | null,"industry": string,"legal_name"?: string | null,"legal_rep_name"?: string | null,"logo_url"?: string | null,"operation_hours"?: string | null,"owner_id"?: string | null,"rating"?: number | null,"repse_registry"?: string | null,"rfc": string,"social_links"?: Json | null,"subscription_period_end"?: string | null,"subscription_plan"?: string,"subscription_status"?: string,"updated_at"?: string,"verification_status"?: Database["public"]['Enums']["verification_status"] | null,"website_url"?: string | null
+                    "address_details"?: string | null,"banner_url"?: string | null,"branch_addresses"?: Json | null,"company_name": string,"company_size"?: string | null,"contact_phone"?: string | null,"corporate_email"?: string | null,"created_at"?: string,"credits_available"?: number,"description"?: string | null,"entity_type"?: Database["public"]['Enums']["company_entity_type"],"featured_vacancies_allowance"?: number,"featured_vacancies_used"?: number,"fiscal_address": string,"id"?: string,"imss_patronal_registry"?: string | null,"industry": string,"leave_approval_config"?: Json | null,"legal_name"?: string | null,"legal_rep_name"?: string | null,"logo_url"?: string | null,"operation_hours"?: string | null,"owner_id"?: string | null,"payroll_impact_config"?: Json | null,"rating"?: number | null,"repse_registry"?: string | null,"rfc": string,"social_links"?: Json | null,"subscription_period_end"?: string | null,"subscription_plan"?: string,"subscription_status"?: string,"updated_at"?: string,"verification_status"?: Database["public"]['Enums']["verification_status"] | null,"website_url"?: string | null
                   }
                   Update: {
-                    "address_details"?: string | null,"leave_approval_config"?: Json | null,"payroll_impact_config"?: Json | null,"banner_url"?: string | null,"branch_addresses"?: Json | null,"company_name"?: string,"company_size"?: string | null,"contact_phone"?: string | null,"corporate_email"?: string | null,"created_at"?: string,"credits_available"?: number,"description"?: string | null,"entity_type"?: Database["public"]['Enums']["company_entity_type"],"featured_vacancies_allowance"?: number,"featured_vacancies_used"?: number,"fiscal_address"?: string,"id"?: string,"imss_patronal_registry"?: string | null,"industry"?: string,"legal_name"?: string | null,"legal_rep_name"?: string | null,"logo_url"?: string | null,"operation_hours"?: string | null,"owner_id"?: string | null,"rating"?: number | null,"repse_registry"?: string | null,"rfc"?: string,"social_links"?: Json | null,"subscription_period_end"?: string | null,"subscription_plan"?: string,"subscription_status"?: string,"updated_at"?: string,"verification_status"?: Database["public"]['Enums']["verification_status"] | null,"website_url"?: string | null
+                    "address_details"?: string | null,"banner_url"?: string | null,"branch_addresses"?: Json | null,"company_name"?: string,"company_size"?: string | null,"contact_phone"?: string | null,"corporate_email"?: string | null,"created_at"?: string,"credits_available"?: number,"description"?: string | null,"entity_type"?: Database["public"]['Enums']["company_entity_type"],"featured_vacancies_allowance"?: number,"featured_vacancies_used"?: number,"fiscal_address"?: string,"id"?: string,"imss_patronal_registry"?: string | null,"industry"?: string,"leave_approval_config"?: Json | null,"legal_name"?: string | null,"legal_rep_name"?: string | null,"logo_url"?: string | null,"operation_hours"?: string | null,"owner_id"?: string | null,"payroll_impact_config"?: Json | null,"rating"?: number | null,"repse_registry"?: string | null,"rfc"?: string,"social_links"?: Json | null,"subscription_period_end"?: string | null,"subscription_plan"?: string,"subscription_status"?: string,"updated_at"?: string,"verification_status"?: Database["public"]['Enums']["verification_status"] | null,"website_url"?: string | null
                   }
                   Relationships: [
                     {
-      foreignKeyName: "company_profiles_id_fkey"
-      columns: ["id"]
-isOneToOne: true
+      foreignKeyName: "company_profiles_owner_id_fkey"
+      columns: ["owner_id"]
+isOneToOne: false
       referencedRelation: "candidate_directory"
       referencedColumns: ["id"]
     },{
-      foreignKeyName: "company_profiles_id_fkey"
-      columns: ["id"]
-isOneToOne: true
+      foreignKeyName: "company_profiles_owner_id_fkey"
+      columns: ["owner_id"]
+isOneToOne: false
       referencedRelation: "profiles"
       referencedColumns: ["id"]
     }
@@ -843,6 +874,18 @@ isOneToOne: false
                   }
                   Relationships: [
                     {
+      foreignKeyName: "profile_documents_company_id_fkey"
+      columns: ["company_id"]
+isOneToOne: false
+      referencedRelation: "company_directory"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "profile_documents_company_id_fkey"
+      columns: ["company_id"]
+isOneToOne: false
+      referencedRelation: "company_profiles"
+      referencedColumns: ["id"]
+    },{
       foreignKeyName: "profile_documents_owner_id_fkey"
       columns: ["owner_id"]
 isOneToOne: false
@@ -1095,7 +1138,7 @@ isOneToOne: false
           Views: {
             "candidate_directory": {
                   Row: {
-                    "avatar_url": string | null,"bio": string | null,"candidate_type": Database["public"]['Enums']["candidate_type"] | null,"education": Json | null,"experience": Json | null,"full_name": string | null,"headline": string | null,"id": string | null,"is_early_access": boolean | null,"is_verified": boolean | null,"location": string | null,"preferred_zone": string | null,"skills": (string)[] | null,"specialization_area": string | null,"trade_description": string | null,"years_experience": number | null
+                    "avatar_url": string | null,"bio": string | null,"candidate_type": Database["public"]['Enums']["candidate_type"],"education": Json | null,"experience": Json | null,"full_name": string,"headline": string | null,"id": string,"is_early_access": boolean,"is_verified": boolean,"location": string | null,"preferred_zone": string | null,"skills": (string)[] | null,"specialization_area": string | null,"trade_description": string | null,"years_experience": number | null
                   }
                   ComputedFields: never
                   Relationships: [
@@ -1103,41 +1146,114 @@ isOneToOne: false
                   ]
                 },"company_directory": {
                   Row: {
-                    "banner_url": string | null,"company_name": string | null,"company_size": string | null,"contact_phone": string | null,"description": string | null,"id": string | null,"industry": string | null,"is_early_access": boolean | null,"logo_url": string | null,"social_links": Json | null,"verification_status": Database["public"]['Enums']["verification_status"] | null,"website_url": string | null
+                    "banner_url": string | null,"company_name": string,"company_size": string | null,"contact_phone": string | null,"description": string | null,"id": string,"industry": string,"is_early_access": boolean | null,"logo_url": string | null,"social_links": Json | null,"verification_status": Database["public"]['Enums']["verification_status"] | null,"website_url": string | null
                   }
                   ComputedFields: never
                   Relationships: [
-                    {
-      foreignKeyName: "company_profiles_id_fkey"
-      columns: ["id"]
-isOneToOne: true
-      referencedRelation: "candidate_directory"
-      referencedColumns: ["id"]
-    },{
-      foreignKeyName: "company_profiles_id_fkey"
-      columns: ["id"]
-isOneToOne: true
-      referencedRelation: "profiles"
-      referencedColumns: ["id"]
-    }
+                    
                   ]
                 }
           }
           Functions: {
-            "employee_respond_to_incident":
-{ Args: { "p_incident_id": string,"p_acknowledge": boolean,"p_statement"?: string | null }; Returns: Database["public"]["Tables"]["company_incidents"]["Row"]
+            "adjust_company_credits":
+{ Args: { "p_amount": number,"p_company_id": string }; Returns: number
                            },
-            "expire_overdue_clarification_incidents":
-{ Args: { "p_company_id": string }; Returns: Database["public"]["Tables"]["company_incidents"]["Row"][]
+"admin_manage_staff":
+{ Args: { "p_actor_profile_id": string,"p_data"?: Json,"p_operation": string,"p_target_profile_id": string }; Returns: undefined
                            },
-            "notify_candidate_contact":
+"employee_respond_to_incident":
+{ Args: { "p_acknowledge": boolean,"p_incident_id": string,"p_statement": string }; Returns: {
+              "acknowledged_at": string | null,
+"category": string,
+"category_label": string | null,
+"clarification_deadline": string | null,
+"company_id": string,
+"complemento_empresa": number | null,
+"created_at": string,
+"department": string | null,
+"description": string,
+"dias_amparados": number | null,
+"employee_id": string | null,
+"employee_name": string,
+"employee_statement": string | null,
+"employee_statement_at": string | null,
+"evidence_file_name": string | null,
+"evidence_type": string | null,
+"evidence_url": string | null,
+"folio_imss": string | null,
+"id": string,
+"incident_date": string,
+"job_title": string | null,
+"notified_at": string | null,
+"ramo_imss": string | null,
+"resolution_notes": string | null,
+"responsible_supervisor": string | null,
+"severity": string,
+"status": string,
+"title": string,
+"updated_at": string
+            }
+                          SetofOptions: {
+        from: "*"
+        to: "company_incidents"
+        isOneToOne: true
+        isSetofReturn: false
+      } },
+"expire_overdue_clarification_incidents":
+{ Args: { "p_company_id": string }; Returns: {
+              "acknowledged_at": string | null,
+"category": string,
+"category_label": string | null,
+"clarification_deadline": string | null,
+"company_id": string,
+"complemento_empresa": number | null,
+"created_at": string,
+"department": string | null,
+"description": string,
+"dias_amparados": number | null,
+"employee_id": string | null,
+"employee_name": string,
+"employee_statement": string | null,
+"employee_statement_at": string | null,
+"evidence_file_name": string | null,
+"evidence_type": string | null,
+"evidence_url": string | null,
+"folio_imss": string | null,
+"id": string,
+"incident_date": string,
+"job_title": string | null,
+"notified_at": string | null,
+"ramo_imss": string | null,
+"resolution_notes": string | null,
+"responsible_supervisor": string | null,
+"severity": string,
+"status": string,
+"title": string,
+"updated_at": string
+            }[]
+                          SetofOptions: {
+        from: "*"
+        to: "company_incidents"
+        isOneToOne: false
+        isSetofReturn: true
+      } },
+"get_user_company_ids":
+{ Args: Record<PropertyKey, never>; Returns: string[]
+                           },
+"lft_vacation_days_for_year":
+{ Args: { "p_year": number }; Returns: number
+                           },
+"notify_candidate_contact":
 { Args: { "p_candidate_id": string,"p_company_name": string,"p_vacancy_title": string }; Returns: undefined
                            },
-            "respond_candidate_interview":
-{ Args: { "p_application_id": string,"p_status": string,"p_details"?: Json }; Returns: Json
+"respond_candidate_interview":
+{ Args: { "p_application_id": string,"p_details"?: Json,"p_status": string }; Returns: Json
                            },
-            "sign_employee_contract":
-{ Args: { "p_contract_id": string,"p_signature_url": string,"p_notes"?: string | null }; Returns: Json
+"sign_employee_contract":
+{ Args: { "p_contract_id": string,"p_notes"?: string,"p_signature_url": string }; Returns: Json
+                           },
+"user_has_company_access":
+{ Args: { "cid": string,"required_roles"?: (string)[] }; Returns: boolean
                            }
           }
           Enums: {

@@ -321,7 +321,7 @@ export class CandidateContractsService {
       const rpcRes = await supabase.rpc("sign_employee_contract", {
         p_contract_id: input.contractId,
         p_signature_url: input.signatureData,
-        p_notes: auditLog ?? null,
+        p_notes: auditLog,
       });
       if (rpcRes?.error && rpcRes.error.code !== "PGRST202") {
         updateErr = rpcRes.error;
