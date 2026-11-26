@@ -21,6 +21,7 @@ export interface CandidateDocument {
   doc_type: CandidateDocumentType;
   file_name: string;
   file_url: string;
+  file_size_bytes?: number | null;
   status: "pending" | "approved" | "rejected";
   rejection_reason: string | null;
   created_at?: string;
@@ -36,7 +37,7 @@ export const candidateDocumentsService = {
     const supabase = createClient();
     const { data, error } = await supabase
       .from("profile_documents")
-      .select("id, doc_type, file_name, file_url, status, rejection_reason, created_at")
+      .select("id, doc_type, file_name, file_url, file_size_bytes, status, rejection_reason, created_at")
       .eq("owner_id", userId)
       .order("created_at", { ascending: false });
     if (error) {

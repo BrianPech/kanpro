@@ -1,5 +1,9 @@
 import { describe, test, expect } from "vitest";
-import { normalizeDateToISO } from "@/modules/candidate/services/candidate-profile";
+import {
+  formatCandidateAddress,
+  getCandidateInitials,
+  normalizeDateToISO,
+} from "@/modules/candidate/services/candidate-profile";
 
 describe("Candidate Profile & Date Normalization", () => {
   test("normalizeDateToISO handles DD/MM/YYYY format", () => {
@@ -17,5 +21,41 @@ describe("Candidate Profile & Date Normalization", () => {
     expect(normalizeDateToISO(null)).toBeNull();
     expect(normalizeDateToISO("")).toBeNull();
     expect(normalizeDateToISO(undefined)).toBeNull();
+  });
+
+  test("formatCandidateAddress formats full INE address into two lines", () => {
+    expect(
+      formatCandidateAddress({
+        address_street: "Av. Ejemplo",
+        address_exterior_number: "123",
+        address_interior_number: "4B",
+        address_neighborhood: "Centro",
+        address_postal_code: "77500",
+        address_municipality: "Benito Juárez",
+        address_state: "Quintana Roo",
+        location: null,
+      })
+    ).toEqual({
+      line1: "Av. Ejemplo 123, interior 4B · Centro",
+      line2: "77500 · Benito Juárez, Quintana Roo",
+    });
+  });
+
+  test("formatCandidateAddress falls back to location when structured address is empty", () => {
+    expect(
+      formatCandidateAddress({
+        location: "Mérida - Norte",
+      })
+    ).toEqual({
+      line1: "Mérida - Norte",
+      line2: null,
+    });
+  });
+
+  test("getCandidateInitials extracts two-letter initials with email fallback", () => {
+    expect(getCandidateInitials("Ana Martínez López")).toBe("AM");
+    expect(getCandidateInitials("Ana")).toBe("AN");
+    expect(getCandidateInitials(null, "ana@correo.com")).toBe("A");
+    expect(getCandidateInitials(null, null)).toBe("KP");
   });
 });

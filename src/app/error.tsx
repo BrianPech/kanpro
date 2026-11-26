@@ -36,7 +36,7 @@ export default function GlobalError({
           <RefreshCw className="mr-2 h-4 w-4" />
           Reintentar
         </Button>
-        <Button render={<Link href="/" />} variant="outline" className="rounded-full px-6">
+        <Button render={<Link href="/" />} nativeButton={false} variant="outline" className="rounded-full px-6">
           <Home className="mr-2 h-4 w-4" />
           Ir al Inicio
         </Button>

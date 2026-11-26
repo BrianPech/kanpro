@@ -1,48 +1,33 @@
-/* eslint-disable @next/next/no-img-element */
-'use client';
+"use client";
 
-import * as React from 'react';
-import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+import * as React from "react";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { HugeiconsIcon } from "@hugeicons/react";
 import {
-  ArrowLeft,
-  Briefcase,
-  MapPin,
-  DollarSign,
-  Calendar,
-  Bookmark,
-  Share2,
-  Building2,
-  CheckCircle2,
-  Sparkles,
-  Gift,
-  Clock,
-  Send,
-  Check,
-  Phone,
-  MessageCircle,
-  ExternalLink,
-  ShieldCheck,
-  ChevronRight,
-  Navigation,
-  Globe,
-  Tag,
-  Loader2,
-} from "@/components/ui/icons";
-import { toast } from 'sonner';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Card } from '@/components/ui/card';
-import { MarkdownRenderer } from '@/components/ui/markdown-renderer';
-import { createClient } from '@/lib/supabase/client';
-import { cn } from '@/lib/utils';
+  AlertCircleIcon,
+  ArrowLeft01Icon,
+  ArrowRight01Icon,
+  Bookmark02Icon,
+  Briefcase01Icon,
+  Cancel01Icon,
+  CheckmarkCircle02Icon,
+  File01Icon,
+  Loading03Icon,
+  Location01Icon,
+  SentIcon,
+  Share08Icon,
+} from "@hugeicons/core-free-icons";
+import { toast } from "sonner";
 import {
-  cleanCityName,
-  formatPaymentFrequencyLabel,
-  parseLocation,
-} from '@/lib/formatters';
-import { buildWhatsAppUrl } from '@/hooks/use-connection';
-import { getCoordsForZone, haversineDistanceKm, GEO_CONFIG } from '@/config/geo';
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import { cn } from "@/lib/utils";
+import { cleanCityName, formatPaymentFrequencyLabel } from "@/lib/formatters";
+import { applyToVacancyAction } from "@/modules/candidate/actions/applications";
+import { toggleSavedVacancyAction } from "@/modules/candidate/actions/saved-vacancies";
 
 export interface CompanyDetails {
   id?: string;
@@ -80,6 +65,14 @@ export interface VacancyDetailData {
   company_id: string;
 }
 
+export interface CandidateReviewProfile {
+  fullName: string | null;
+  email: string | null;
+  whatsappNumber: string | null;
+  headline: string | null;
+  bio: string | null;
+}
+
 export interface CandidateVacancyDetailViewProps {
   vacancy: VacancyDetailData;
   company: CompanyDetails | null;
@@ -87,688 +80,692 @@ export interface CandidateVacancyDetailViewProps {
   initialIsSaved?: boolean;
   initialApplication?: { id: string; status: string } | null;
   candidateLocation?: string | null;
+  candidateProfile?: CandidateReviewProfile | null;
+}
+
+type FlowStep = "detail" | "review" | "sent";
+
+function getCompanyInitials(companyName: string): string {
+  const words = companyName.trim().split(/\s+/).filter(Boolean);
+  if (words.length === 0) return "KP";
+  if (words.length === 1) return words[0].slice(0, 2).toUpperCase();
+  return `${words[0][0]}${words[1][0]}`.toUpperCase();
+}
+
+function capitalizeLabel(value?: string | null): string {
+  const trimmed = (value || "").trim();
+  if (!trimmed) return "";
+  return trimmed.charAt(0).toUpperCase() + trimmed.slice(1);
+}
+
+function parseBulletLines(raw?: string | string[] | null): string[] {
+  if (!raw) return [];
+  if (Array.isArray(raw)) {
+    return raw.map((item) => item.trim()).filter(Boolean);
+  }
+  const trimmed = raw.trim();
+  if (!trimmed) return [];
+  if (trimmed.startsWith("[")) {
+    try {
+      const parsed: unknown = JSON.parse(trimmed);
+      if (Array.isArray(parsed)) {
+        return parsed
+          .filter((item): item is string => typeof item === "string")
+          .map((item) => item.trim())
+          .filter(Boolean);
+      }
+    } catch {
+      // Fall back to newline parsing
+    }
+  }
+  return trimmed
+    .split(/\r?\n/)
+    .map((line) => line.replace(/^\s*[-•*]\s*/, "").trim())
+    .filter(Boolean);
+}
+
+function formatSalaryRange(
+  salaryMin?: number | null,
+  salaryMax?: number | null
+): string {
+  const min = Number(salaryMin);
+  const max = Number(salaryMax);
+  if (min > 0 && max > 0) {
+    return `$${min.toLocaleString("es-MX")} – $${max.toLocaleString("es-MX")} MXN`;
+  }
+  if (min > 0) return `Desde $${min.toLocaleString("es-MX")} MXN`;
+  if (max > 0) return `Hasta $${max.toLocaleString("es-MX")} MXN`;
+  return "Sueldo a convenir";
+}
+
+function formatFrequencySubtitle(frequency?: string | null): string {
+  const normalized = (frequency || "").toLowerCase().trim();
+  if (!normalized || normalized === "mensual" || normalized === "monthly") {
+    return "Al mes";
+  }
+  return formatPaymentFrequencyLabel(frequency);
+}
+
+function VacancySummaryCard({
+  initials,
+  companyName,
+  title,
+  locationModality,
+}: {
+  initials: string;
+  companyName: string;
+  title: string;
+  locationModality: string;
+}) {
+  return (
+    <div className="flex min-h-[112px] w-full items-start gap-4 rounded-[16px] border border-border bg-background p-4">
+      <div
+        aria-hidden="true"
+        className="flex size-[40px] shrink-0 items-center justify-center rounded-[8px] bg-muted"
+      >
+        <span className="text-[12px] font-medium leading-[17px] text-primary">
+          {initials}
+        </span>
+      </div>
+      <div className="flex min-w-0 flex-1 flex-col gap-1 break-words">
+        <p className="text-[14px] font-normal leading-[19px] text-foreground">
+          {companyName}
+        </p>
+        <p className="text-[18px] font-semibold leading-[24px] text-foreground">
+          {title}
+        </p>
+        <p className="pt-1 text-[12px] font-medium leading-[17px] text-muted-foreground">
+          {locationModality}
+        </p>
+      </div>
+    </div>
+  );
 }
 
 export function CandidateVacancyDetailView({
   vacancy,
   company,
-  similarVacancies = [],
   initialIsSaved = false,
   initialApplication = null,
-  candidateLocation = null,
+  candidateProfile = null,
 }: CandidateVacancyDetailViewProps) {
   const router = useRouter();
-  const supabase = createClient();
-
+  const [step, setStep] = React.useState<FlowStep>("detail");
   const [isSaved, setIsSaved] = React.useState(initialIsSaved);
-  const [application, setApplication] = React.useState<{ id: string; status: string } | null>(initialApplication);
-  const [isApplying, setIsApplying] = React.useState(false);
-  const [isSaving, setIsSaving] = React.useState(false);
+  const [application, setApplication] = React.useState<{
+    id: string;
+    status: string;
+  } | null>(initialApplication);
+  const [isSubmitting, setIsSubmitting] = React.useState(false);
+  const [submitError, setSubmitError] = React.useState<string | null>(null);
+  const [, startSaveTransition] = React.useTransition();
 
-  const cleanCity = cleanCityName(vacancy.location || '');
-  const displayLocation = vacancy.zone && cleanCity
-    ? `${vacancy.zone}, ${cleanCity}`
-    : vacancy.location || vacancy.zone || 'Ubicación regional';
+  const companyName = company?.company_name?.trim() || "Empresa";
+  const initials = getCompanyInitials(companyName);
+  const cleanCity = cleanCityName(vacancy.location || "");
+  const displayLocation =
+    vacancy.zone && cleanCity
+      ? `${vacancy.zone}, ${cleanCity}`
+      : vacancy.location || vacancy.zone || "Ubicación por confirmar";
+  const modalityLabel = capitalizeLabel(vacancy.modality) || "Presencial";
+  const conditionsLabel = [
+    vacancy.employment_type || "Tiempo completo",
+    modalityLabel,
+  ]
+    .filter(Boolean)
+    .join(" · ");
+  const locationModalityLabel = `${displayLocation} · ${modalityLabel}`;
+  const formattedSalary = formatSalaryRange(
+    vacancy.salary_min,
+    vacancy.salary_max
+  );
+  const frequencyLabel = formatFrequencySubtitle(vacancy.payment_frequency);
+  const requirementLines = React.useMemo(
+    () => parseBulletLines(vacancy.requirements),
+    [vacancy.requirements]
+  );
+  const benefitLines = React.useMemo(
+    () => parseBulletLines(vacancy.benefits),
+    [vacancy.benefits]
+  );
 
-  // Distance calculation
-  const distanceBadge = React.useMemo(() => {
-    if (!candidateLocation) return null;
-    const candCoords = getCoordsForZone(candidateLocation);
-    const vacCoords =
-      getCoordsForZone(`${cleanCity} - ${vacancy.zone || ''}`) ||
-      getCoordsForZone(vacancy.zone) ||
-      getCoordsForZone(cleanCity) ||
-      (GEO_CONFIG[cleanCity]?.coords ?? null);
+  const runToggleSave = (nextExpectedSaved: boolean) => {
+    setIsSaved(nextExpectedSaved);
+    startSaveTransition(async () => {
+      const result = await toggleSavedVacancyAction({ vacancyId: vacancy.id });
+      if (!result.success) {
+        setIsSaved(!nextExpectedSaved);
+        toast.error("No se pudo actualizar", { description: result.error });
+        return;
+      }
 
-    if (candCoords && vacCoords) {
-      const dist = haversineDistanceKm(candCoords.lat, candCoords.lng, vacCoords.lat, vacCoords.lng);
-      if (dist < 1.5) return '< 1.5 km (Misma zona)';
-      if (dist < 10) return `${dist.toFixed(1)} km de tu casa`;
-      if (dist < 35) return `${dist.toFixed(0)} km (${cleanCity})`;
-      return `${dist.toFixed(0)} km de distancia`;
-    }
-    return null;
-  }, [candidateLocation, cleanCity, vacancy.zone]);
+      const savedNow = result.data.saved;
+      setIsSaved(savedNow);
+      toast.success(
+        savedNow ? "Vacante guardada" : "Vacante quitada de guardados",
+        {
+          action: {
+            label: "Deshacer",
+            onClick: () => runToggleSave(!savedNow),
+          },
+        }
+      );
+    });
+  };
 
-  // Formatted Salary
-  const formattedSalary = React.useMemo(() => {
-    const min = Number(vacancy.salary_min);
-    const max = Number(vacancy.salary_max);
-    if (min && max) return `$${min.toLocaleString()} - $${max.toLocaleString()} MXN`;
-    if (min) return `Desde $${min.toLocaleString()} MXN`;
-    if (max) return `Hasta $${max.toLocaleString()} MXN`;
-    return 'Sueldo a convenir / No especificado';
-  }, [vacancy.salary_min, vacancy.salary_max]);
-
-  // Publish date string
-  const publishedDateText = React.useMemo(() => {
-    if (!vacancy.created_at) return 'Reciente';
-    try {
-      const date = new Date(vacancy.created_at);
-      return date.toLocaleDateString('es-MX', {
-        day: 'numeric',
-        month: 'long',
-        year: 'numeric',
-      });
-    } catch {
-      return 'Reciente';
-    }
-  }, [vacancy.created_at]);
-
-  // Handle Share
   const handleShare = async () => {
-    const shareUrl = typeof window !== 'undefined' ? window.location.href : '';
+    const shareUrl = typeof window !== "undefined" ? window.location.href : "";
+    if (!shareUrl) return;
     if (navigator.share) {
       try {
         await navigator.share({
-          title: `${vacancy.title} en ${company?.company_name || "K'anPro"}`,
-          text: `Mira esta vacante de ${vacancy.title} en ${displayLocation} con salario de ${formattedSalary}`,
+          title: `${vacancy.title} · ${companyName}`,
           url: shareUrl,
         });
-      } catch (e) {
-        // user cancelled
+      } catch {
+        // User cancelled native share sheet; stay on detail
       }
-    } else {
-      navigator.clipboard.writeText(shareUrl);
-      toast.success('Enlace de la vacante copiado al portapapeles');
+      return;
+    }
+    try {
+      await navigator.clipboard.writeText(shareUrl);
+      toast.success("Enlace copiado al portapapeles");
+    } catch {
+      toast.error("No se pudo compartir el enlace");
     }
   };
 
-  // Handle Toggle Bookmark
-  const handleToggleBookmark = async () => {
-    try {
-      setIsSaving(true);
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) {
-        toast.error('Inicia sesión para guardar vacantes');
-        return;
-      }
-
-      if (isSaved) {
-        const { error } = await supabase
-          .from('saved_vacancies')
-          .delete()
-          .eq('candidate_id', user.id)
-          .eq('vacancy_id', vacancy.id);
-
-        if (error) throw error;
-        setIsSaved(false);
-        toast.info('Vacante removida de tus favoritos');
-      } else {
-        const { error } = await supabase
-          .from('saved_vacancies')
-          .insert({
-            candidate_id: user.id,
-            vacancy_id: vacancy.id,
-          });
-
-        if (error) throw error;
-        setIsSaved(true);
-        toast.success('Vacante guardada en tus favoritos');
-      }
-    } catch (err) {
-      console.error('Error toggling bookmark:', err);
-      toast.error('No se pudo actualizar favoritos');
-    } finally {
-      setIsSaving(false);
-    }
-  };
-
-  // Handle Apply to Vacancy
-  const handleApply = async () => {
-    if (application) return;
+  const handleSubmitApplication = async () => {
+    if (isSubmitting || application) return;
+    setIsSubmitting(true);
+    setSubmitError(null);
 
     try {
-      setIsApplying(true);
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) {
-        toast.error('Debes iniciar sesión para postularte');
+      const result = await applyToVacancyAction({ vacancyId: vacancy.id });
+      if (!result.success) {
+        setSubmitError(
+          result.error ||
+            "No pudimos enviar tu postulación. Tus datos siguen aquí. Inténtalo de nuevo."
+        );
         return;
       }
-
-      const { data: newApp, error } = await supabase
-        .from('applications')
-        .insert({
-          candidate_id: user.id,
-          vacancy_id: vacancy.id,
-          status: 'Pendiente',
-          applied_at: new Date().toISOString(),
-        })
-        .select('id, status')
-        .single();
-
-      if (error) {
-        console.error('Error applying to vacancy:', error);
-        toast.error('Hubo un error al enviar tu postulación');
-        return;
-      }
-
-      setApplication({ id: newApp.id, status: newApp.status || 'Pendiente' });
-      toast.success('🎉 ¡Postulación enviada exitosamente!', {
-        description: `Tu perfil ha sido enviado a ${company?.company_name || 'la empresa'}.`,
+      setApplication({
+        id: result.data.applicationId ?? vacancy.id,
+        status: "Por revisar",
       });
-    } catch (err) {
-      console.error('Apply error:', err);
-      toast.error('No se pudo procesar la postulación');
+      setStep("sent");
+    } catch {
+      setSubmitError(
+        "No pudimos enviar tu postulación. Tus datos siguen aquí. Inténtalo de nuevo."
+      );
     } finally {
-      setIsApplying(false);
+      setIsSubmitting(false);
     }
   };
 
-  // Skills list parsing with intelligent contextual fallback
-  const skillsList = React.useMemo(() => {
-    let rawList: string[] = [];
-    if (Array.isArray(vacancy.skills)) {
-      rawList = vacancy.skills.filter(Boolean);
-    } else if (typeof vacancy.skills === 'string') {
-      try {
-        const parsed = JSON.parse(vacancy.skills);
-        if (Array.isArray(parsed)) rawList = parsed.filter(Boolean);
-      } catch {
-        rawList = (vacancy.skills as string).split(',').map((s) => s.trim()).filter(Boolean);
-      }
-    }
+  /* ==================== PANTALLA 4: POSTULACIÓN ENVIADA (Figma 241:1245) ==================== */
+  if (step === "sent") {
+    return (
+      <div className="mx-auto flex min-h-[calc(100dvh-48px)] w-full max-w-[540px] flex-col justify-between pb-6 md:min-h-0">
+        <div>
+          <header className="flex items-center justify-end">
+            <Link
+              href="/dashboard/candidate"
+              aria-label="Volver a Inicio"
+              className="-mr-2 inline-flex size-[48px] items-center justify-center rounded-[8px] text-foreground transition-colors hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            >
+              <HugeiconsIcon
+                icon={Cancel01Icon}
+                size={20}
+                strokeWidth={1.75}
+                aria-hidden="true"
+              />
+            </Link>
+          </header>
 
-    if (rawList.length > 0) return rawList;
-
-    // Contextual fallback based on category & title
-    const cat = (vacancy.category || '').toLowerCase();
-    const tit = (vacancy.title || '').toLowerCase();
-
-    if (cat.includes('tecno') || tit.includes('desarroll') || tit.includes('sistemas') || tit.includes('program')) {
-      return ['Desarrollo de Software', 'Resolución de Problemas', 'Trabajo en Equipo', 'Pensamiento Lógico', 'Capacidad de Aprendizaje'];
-    }
-    if (cat.includes('venta') || tit.includes('ventas') || tit.includes('ejecutiv') || tit.includes('asesor') || tit.includes('cajer')) {
-      return ['Atención al Cliente', 'Facilidad de Palabra', 'Orientación a Resultados', 'Puntualidad', 'Manejo de Caja'];
-    }
-    if (cat.includes('hotel') || cat.includes('turism') || tit.includes('meser') || tit.includes('recepc') || tit.includes('cocin') || tit.includes('camarist')) {
-      return ['Servicio al Cliente', 'Trabajo en Equipo', 'Puntualidad', 'Actitud de Servicio', 'Dinamismo'];
-    }
-    if (cat.includes('admin') || tit.includes('admin') || tit.includes('contad') || tit.includes('auxiliar')) {
-      return ['Organización', 'Manejo de Documentos', 'Responsabilidad', 'Trabajo en Equipo', 'Puntualidad'];
-    }
-    if (cat.includes('operac') || cat.includes('logist') || tit.includes('chofer') || tit.includes('almacen')) {
-      return ['Organización', 'Puntualidad', 'Compromiso', 'Manejo Responsable', 'Trabajo en Equipo'];
-    }
-    return ['Trabajo en Equipo', 'Puntualidad', 'Responsabilidad', 'Buena Actitud', 'Compromiso'];
-  }, [vacancy.skills, vacancy.category, vacancy.title]);
-
-  // Benefits list parsing
-  const benefitsList = React.useMemo(() => {
-    if (Array.isArray(vacancy.benefits)) return vacancy.benefits.filter(Boolean);
-    if (typeof vacancy.benefits === 'string') {
-      try {
-        const parsed = JSON.parse(vacancy.benefits);
-        if (Array.isArray(parsed)) return parsed;
-      } catch {
-        return (vacancy.benefits as string).split(',').map((s) => s.trim()).filter(Boolean);
-      }
-    }
-    return [];
-  }, [vacancy.benefits]);
-
-  return (
-    <div className="w-full max-w-5xl mx-auto space-y-6 pb-20 animate-in fade-in duration-300 font-sans">
-      
-      {/* ── BACK BUTTON & TOP ACTIONS ── */}
-      <div className="flex items-center justify-between gap-4">
-        <button
-          onClick={() => router.back()}
-          className="inline-flex items-center gap-2 text-xs sm:text-sm font-medium text-muted-foreground hover:text-foreground transition-colors p-2 -ml-2 rounded-3xl hover:bg-muted cursor-pointer"
-        >
-          <ArrowLeft className="size-4" />
-          <span>Volver a vacantes</span>
-        </button>
-
-        <div className="flex items-center gap-2">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={handleShare}
-            className="h-9 px-4 rounded-4xl border-border/70 text-xs font-semibold gap-1.5 shadow-2xs cursor-pointer"
-          >
-            <Share2 className="size-3.5" />
-            <span className="hidden sm:inline">Compartir</span>
-          </Button>
-
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={handleToggleBookmark}
-            disabled={isSaving}
-            className="h-9 px-4 rounded-4xl border-border/70 text-xs font-semibold gap-1.5 shadow-2xs cursor-pointer"
-          >
-            <Bookmark className={cn('size-3.5', isSaved ? 'fill-primary text-primary' : 'text-muted-foreground')} />
-            <span className="hidden sm:inline">{isSaved ? 'Guardado' : 'Guardar'}</span>
-          </Button>
-        </div>
-      </div>
-
-      {/* ── HERO BANNER CARD ── */}
-      <div className="bg-card border border-border/70 rounded-4xl p-6 sm:p-8 shadow-xs relative overflow-hidden">
-        {/* Atmospheric radial wash */}
-        <div className="absolute inset-0 pointer-events-none -z-0 overflow-hidden" aria-hidden="true">
-          <div className="absolute -top-24 right-0 w-[500px] h-[300px] bg-gradient-to-b from-primary/10 via-primary/5 to-transparent blur-3xl rounded-full" />
-        </div>
-
-        <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
-          <div className="flex items-start gap-4 sm:gap-5 min-w-0 flex-1">
-            {/* Company Avatar */}
-            <div className="size-16 rounded-3xl bg-muted border border-border/70 flex items-center justify-center text-foreground shrink-0 font-bold text-lg overflow-hidden shadow-2xs">
-              {company?.logo_url ? (
-                <img src={company.logo_url} alt={company.company_name || 'Empresa'} className="size-full object-cover" />
-              ) : (
-                <span>
-                  {(company?.company_name || 'EM').substring(0, 2).toUpperCase()}
-                </span>
-              )}
+          <div className="mt-8 flex flex-col items-center text-center">
+            <div
+              aria-hidden="true"
+              className="flex size-[96px] items-center justify-center rounded-full bg-muted text-primary"
+            >
+              <HugeiconsIcon
+                icon={CheckmarkCircle02Icon}
+                size={48}
+                strokeWidth={1.75}
+              />
             </div>
 
-            {/* Title & Metadata */}
-            <div className="min-w-0 flex-1 space-y-1.5">
-              <div className="flex items-center gap-2 flex-wrap">
-                <span className="text-xs font-medium text-muted-foreground flex items-center gap-1.5">
-                  {company?.company_name || 'Empresa Empleadora'}
-                  <CheckCircle2 className="size-3.5 text-primary shrink-0" />
-                </span>
-
-                {distanceBadge && (
-                  <span className="inline-flex items-center gap-1 text-[11px] font-semibold px-2.5 py-0.5 rounded-3xl bg-primary/10 text-primary border border-primary/20">
-                    <Navigation className="size-2.5 text-primary" />
-                    {distanceBadge}
-                  </span>
-                )}
-
-                {(vacancy.is_featured || vacancy.is_promoted) && (
-                  <span className="inline-flex items-center gap-1 text-[11px] font-semibold px-2.5 py-0.5 rounded-3xl bg-primary/10 text-primary border border-primary/20">
-                    <Sparkles className="size-3" /> Destacada
-                  </span>
-                )}
-              </div>
-
-              <h1 className="text-2xl sm:text-3xl font-bold text-foreground tracking-tight leading-tight">
-                {vacancy.title}
-              </h1>
-
-              {/* Tag Chips */}
-              <div className="flex flex-wrap items-center gap-2 pt-1 text-xs text-muted-foreground">
-                <span className="inline-flex items-center gap-1 bg-muted/60 px-2.5 py-0.5 rounded-3xl border border-border/60">
-                  <MapPin className="size-3 text-muted-foreground shrink-0" />
-                  {displayLocation}
-                </span>
-                <span className="inline-flex items-center gap-1 bg-muted/60 px-2.5 py-0.5 rounded-3xl border border-border/60">
-                  <Briefcase className="size-3 text-muted-foreground shrink-0" />
-                  {vacancy.employment_type || 'Tiempo Completo'}
-                </span>
-                <span className="inline-flex items-center gap-1 bg-muted/60 px-2.5 py-0.5 rounded-3xl border border-border/60">
-                  <Building2 className="size-3 text-muted-foreground shrink-0" />
-                  {vacancy.modality || 'Presencial'}
-                </span>
-                <span className="inline-flex items-center gap-1 text-muted-foreground pl-1">
-                  <Clock className="size-3 shrink-0" />
-                  Publicado el {publishedDateText}
-                </span>
-              </div>
-            </div>
-          </div>
-
-          {/* Salary & Primary Apply Action */}
-          <div className="flex flex-col sm:flex-row md:flex-col items-start sm:items-center md:items-end justify-between gap-3 pt-4 md:pt-0 border-t md:border-t-0 border-border/60 shrink-0">
-            <div className="text-left md:text-right">
-              <span className="text-[10px] text-muted-foreground font-semibold uppercase tracking-wider block">
-                Salario {formatPaymentFrequencyLabel(vacancy.payment_frequency).toLowerCase()} ofrecido
-              </span>
-              <span className="text-xl sm:text-2xl font-bold font-mono text-foreground block mt-0.5">
-                {formattedSalary}
-              </span>
-            </div>
-
-            <div className="flex items-center gap-2 w-full sm:w-auto flex-wrap">
-              {(vacancy.preferred_contact_method === "whatsapp" ||
-                vacancy.preferred_contact_method === "both" ||
-                !vacancy.preferred_contact_method) &&
-                (vacancy.contact_phone || company?.contact_phone) && (
-                  <Button
-                    variant="outline"
-                    nativeButton={false}
-                    render={
-                      <a
-                        href={buildWhatsAppUrl(
-                          (vacancy.contact_phone || company?.contact_phone) as string,
-                          `Hola ${company?.company_name || "equipo"}, me interesa la vacante "${vacancy.title}" publicada en K'anPro.`
-                        )}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                      />
-                    }
-                    className="h-9 px-4 rounded-4xl text-xs font-semibold gap-1.5 border-emerald-500/40 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-500/10 cursor-pointer"
-                  >
-                    <MessageCircle className="size-4 text-emerald-600" />
-                    WhatsApp
-                  </Button>
-                )}
-
-              {application ? (
-                <Button
-                  disabled
-                  className="w-full sm:w-auto h-9 px-4 rounded-4xl font-semibold text-xs bg-primary/10 text-primary border border-primary/20 gap-2 cursor-default"
-                >
-                  <Check className="size-4 text-primary" />
-                  Postulado ({application.status})
-                </Button>
-              ) : (
-                <Button
-                  onClick={handleApply}
-                  disabled={isApplying}
-                  className="w-full sm:w-auto h-9 px-5 rounded-4xl text-xs font-semibold gap-2 shadow-xs cursor-pointer"
-                >
-                  {isApplying ? (
-                    <Loader2 className="size-4 animate-spin" />
-                  ) : (
-                    <Send className="size-4" />
-                  )}
-                  Postularme ahora
-                </Button>
-              )}
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* ── TWO-COLUMN CONTENT LAYOUT ── */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-        
-        {/* LEFT COLUMN (8 cols): Description, Requirements, Benefits */}
-        <div className="lg:col-span-8 space-y-6">
-          
-          {/* Main Description */}
-          <div className="bg-card border border-border/70 rounded-4xl p-6 sm:p-8 shadow-xs space-y-4">
-            <div className="flex items-center gap-2.5 pb-3 border-b border-border/60">
-              <div className="size-8 rounded-2xl bg-primary/10 text-primary flex items-center justify-center shrink-0">
-                <Sparkles className="size-4" />
-              </div>
-              <h2 className="text-base font-bold text-foreground tracking-tight">
-                Descripción del puesto
-              </h2>
-            </div>
-
-            <div className="pt-1 text-sm text-foreground/90 leading-relaxed">
-              <MarkdownRenderer content={vacancy.description} />
-            </div>
-          </div>
-
-          {/* Benefits Section */}
-          {benefitsList.length > 0 && (
-            <div className="bg-card border border-border/70 rounded-4xl p-6 sm:p-8 shadow-xs space-y-4">
-              <div className="flex items-center gap-2.5 pb-3 border-b border-border/60">
-                <div className="size-8 rounded-2xl bg-primary/10 text-primary flex items-center justify-center shrink-0">
-                  <Gift className="size-4" />
-                </div>
-                <h2 className="text-base font-bold text-foreground tracking-tight">
-                  Prestaciones y Beneficios
-                </h2>
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
-                {benefitsList.map((benefit, idx) => (
-                  <div
-                    key={idx}
-                    className="flex items-center gap-2.5 p-3 rounded-3xl bg-muted/40 border border-border/60 text-xs sm:text-sm font-medium text-foreground"
-                  >
-                    <CheckCircle2 className="size-4 text-primary shrink-0" />
-                    <span>{benefit}</span>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* Skills & Requirements Section */}
-          <div className="bg-card border border-border/70 rounded-4xl p-6 sm:p-8 shadow-xs space-y-6">
-            <div className="flex items-center gap-2.5 pb-3 border-b border-border/60">
-              <div className="size-8 rounded-2xl bg-primary/10 text-primary flex items-center justify-center shrink-0">
-                <Tag className="size-4" />
-              </div>
-              <h2 className="text-base font-bold text-foreground tracking-tight">
-                Requisitos y Habilidades
-              </h2>
-            </div>
-
-            {/* Skills Badges */}
-            <div className="space-y-2.5">
-              <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider block">
-                Habilidades y Competencias Clave
-              </span>
-              <div className="flex flex-wrap gap-2">
-                {skillsList.map((skill, idx) => (
-                  <Badge
-                    key={idx}
-                    variant="secondary"
-                    className="rounded-3xl px-3 py-1 text-xs font-medium border bg-muted/60 text-foreground border-border/60"
-                  >
-                    {skill}
-                  </Badge>
-                ))}
-              </div>
-            </div>
-
-            {/* Detailed Requirements */}
-            <div className="space-y-3 pt-3 border-t border-border/60">
-              <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider block">
-                Requisitos de Contratación
-              </span>
-
-              {vacancy.requirements && vacancy.requirements !== vacancy.description ? (
-                <div className="pt-1 text-sm text-foreground/90 leading-relaxed">
-                  <MarkdownRenderer content={vacancy.requirements} />
-                </div>
-              ) : (
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 pt-1">
-                  <div className="flex items-center gap-2.5 p-3 rounded-3xl bg-muted/40 border border-border/60 text-xs sm:text-sm font-medium text-foreground">
-                    <CheckCircle2 className="size-4 text-primary shrink-0" />
-                    <span>Disponibilidad de horario para el puesto</span>
-                  </div>
-                  <div className="flex items-center gap-2.5 p-3 rounded-3xl bg-muted/40 border border-border/60 text-xs sm:text-sm font-medium text-foreground">
-                    <CheckCircle2 className="size-4 text-primary shrink-0" />
-                    <span>Documentación básica en regla</span>
-                  </div>
-                  <div className="flex items-center gap-2.5 p-3 rounded-3xl bg-muted/40 border border-border/60 text-xs sm:text-sm font-medium text-foreground">
-                    <CheckCircle2 className="size-4 text-primary shrink-0" />
-                    <span>Puntualidad y sentido de responsabilidad</span>
-                  </div>
-                  <div className="flex items-center gap-2.5 p-3 rounded-3xl bg-muted/40 border border-border/60 text-xs sm:text-sm font-medium text-foreground">
-                    <CheckCircle2 className="size-4 text-primary shrink-0" />
-                    <span>Radicar en o cerca de {displayLocation}</span>
-                  </div>
-                </div>
-              )}
-            </div>
-          </div>
-
-        </div>
-
-        {/* RIGHT SIDEBAR (4 cols): Quick Details, Company Profile, Trust Card */}
-        <div className="lg:col-span-4 space-y-6">
-          
-          {/* Quick Summary Card */}
-          <div className="bg-card border border-border/70 rounded-4xl p-6 shadow-xs space-y-4">
-            <h3 className="text-sm font-bold text-foreground tracking-tight pb-3 border-b border-border/60">
-              Resumen del empleo
-            </h3>
-
-            <div className="space-y-3 text-xs sm:text-sm">
-              <div className="flex items-center justify-between gap-2">
-                <span className="text-muted-foreground flex items-center gap-1.5">
-                  <DollarSign className="size-4 text-primary shrink-0" />
-                  Sueldo
-                </span>
-                <span className="font-semibold font-mono text-foreground text-right">{formattedSalary}</span>
-              </div>
-
-              <div className="flex items-center justify-between gap-2">
-                <span className="text-muted-foreground flex items-center gap-1.5">
-                  <MapPin className="size-4 text-muted-foreground shrink-0" />
-                  Ubicación
-                </span>
-                <span className="font-medium text-foreground text-right truncate max-w-[170px]">
-                  {displayLocation}
-                </span>
-              </div>
-
-              <div className="flex items-center justify-between gap-2">
-                <span className="text-muted-foreground flex items-center gap-1.5">
-                  <Briefcase className="size-4 text-muted-foreground shrink-0" />
-                  Contrato
-                </span>
-                <span className="font-medium text-foreground text-right">
-                  {vacancy.employment_type || 'Tiempo Completo'}
-                </span>
-              </div>
-
-              <div className="flex items-center justify-between gap-2">
-                <span className="text-muted-foreground flex items-center gap-1.5">
-                  <Building2 className="size-4 text-muted-foreground shrink-0" />
-                  Modalidad
-                </span>
-                <span className="font-medium text-foreground text-right">
-                  {vacancy.modality || 'Presencial'}
-                </span>
-              </div>
-
-              <div className="flex items-center justify-between gap-2">
-                <span className="text-muted-foreground flex items-center gap-1.5">
-                  <Tag className="size-4 text-muted-foreground shrink-0" />
-                  Categoría
-                </span>
-                <span className="font-medium text-foreground text-right">
-                  {vacancy.category || 'General'}
-                </span>
-              </div>
-            </div>
-
-            <div className="pt-3 border-t border-border/60">
-              {application ? (
-                <Button disabled className="w-full h-9 rounded-4xl font-semibold text-xs bg-primary/10 text-primary border border-primary/20">
-                  Ya estás postulado
-                </Button>
-              ) : (
-                <Button
-                  onClick={handleApply}
-                  disabled={isApplying}
-                  className="w-full h-9 rounded-4xl text-xs font-semibold shadow-xs gap-1.5 cursor-pointer"
-                >
-                  <Send className="size-3.5" />
-                  Postularme a esta vacante
-                </Button>
-              )}
-            </div>
-          </div>
-
-          {/* Company Card */}
-          <div className="bg-card border border-border/70 rounded-4xl p-6 shadow-xs space-y-4">
-            <h3 className="text-sm font-bold text-foreground tracking-tight pb-3 border-b border-border/60 flex items-center justify-between">
-              <span>Sobre la empresa</span>
-              {company?.verification_status === "approved" && (
-                <ShieldCheck className="size-4 text-primary" />
-              )}
-            </h3>
-
-            <div className="space-y-3">
-              <div className="flex items-center gap-3">
-                <div className="size-11 rounded-3xl bg-muted flex items-center justify-center text-foreground font-bold text-sm overflow-hidden border border-border/70">
-                  {company?.logo_url ? (
-                    <img src={company.logo_url} alt={company.company_name || 'Empresa'} className="size-full object-cover" />
-                  ) : (
-                    <Building2 className="size-5 text-muted-foreground" />
-                  )}
-                </div>
-                <div>
-                  <h4 className="font-bold text-sm text-foreground">
-                    {company?.company_name || 'Empresa Empleadora'}
-                  </h4>
-                  <p className="text-xs text-muted-foreground">
-                    {company?.industry ||
-                      (company?.verification_status === "approved"
-                        ? "Empresa Verificada"
-                        : "Empresa registrada")}
-                  </p>
-                </div>
-              </div>
-
-              {company?.description && (
-                <p className="text-xs text-muted-foreground leading-relaxed line-clamp-3">
-                  {company.description}
-                </p>
-              )}
-
-              {company?.website_url && (
-                <a
-                  href={company.website_url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex items-center gap-1.5 text-xs font-semibold text-primary hover:underline underline-offset-4 pt-1"
-                >
-                  <Globe className="size-3.5" />
-                  Sitio web de la empresa
-                </a>
-              )}
-            </div>
-          </div>
-
-          {/* K'anPro Guarantee Card */}
-          <div className="p-5 rounded-4xl bg-primary/5 border border-primary/20 space-y-2">
-            <div className="flex items-center gap-2 text-foreground font-bold text-xs uppercase tracking-wider">
-              <ShieldCheck className="size-4 text-primary" />
-              Garantía K&apos;anPro
-            </div>
-            <p className="text-xs text-muted-foreground leading-relaxed">
-              Esta vacante cuenta con salario real y validación de contacto directo con el área de Recursos Humanos.
+            <h1 className="mt-8 text-[28px] font-bold leading-[39px] text-foreground">
+              ¡Postulación enviada!
+            </h1>
+            <p className="mt-4 max-w-[354px] text-[16px] font-normal leading-[22px] text-muted-foreground">
+              Tu perfil está en el proceso de selección de {companyName}.
             </p>
           </div>
 
-        </div>
+          <div className="mt-10 flex flex-col gap-6">
+            <VacancySummaryCard
+              initials={initials}
+              companyName={companyName}
+              title={vacancy.title}
+              locationModality={locationModalityLabel}
+            />
 
-      </div>
-
-      {/* ── SIMILAR VACANCIES SECTION ── */}
-      {similarVacancies.length > 0 && (
-        <section className="pt-6 space-y-4 border-t border-border/60">
-          <h3 className="text-base font-bold tracking-tight text-foreground">
-            Otras oportunidades que te pueden interesar
-          </h3>
-
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            {similarVacancies.slice(0, 3).map((item) => (
-              <div
-                key={item.id}
-                onClick={() => router.push(`/dashboard/candidate/vacancies/${item.id}`)}
-                className="group bg-card border border-border/70 rounded-4xl p-5 shadow-xs hover:border-border hover:bg-muted/30 transition-all cursor-pointer flex flex-col justify-between"
-              >
-                <div>
-                  <h4 className="text-sm font-bold text-foreground group-hover:text-primary transition-colors line-clamp-1">
-                    {item.title}
-                  </h4>
-                  <p className="text-xs text-muted-foreground font-normal mt-1">
-                    {item.location} • {item.employment_type || 'Tiempo Completo'}
-                  </p>
-                </div>
-                <div className="pt-3 mt-3 border-t border-border/60 flex items-center justify-between">
-                  <span className="text-xs font-bold font-mono text-foreground">
-                    {item.salary_min && item.salary_max
-                      ? `$${item.salary_min.toLocaleString()} - $${item.salary_max.toLocaleString()} MXN`
-                      : 'Sueldo a convenir'}
-                  </span>
-                  <span className="text-xs font-semibold text-foreground inline-flex items-center gap-0.5 group-hover:translate-x-0.5 transition-transform">
-                    Ver <ChevronRight className="size-3" />
-                  </span>
+            <section
+              aria-label="Estado inicial de la postulación"
+              className="flex min-h-[104px] w-full items-start gap-4 rounded-[16px] border border-border bg-background p-4"
+            >
+              <HugeiconsIcon
+                icon={File01Icon}
+                size={20}
+                strokeWidth={1.75}
+                aria-hidden="true"
+                className="mt-0.5 shrink-0 text-muted-foreground"
+              />
+              <div className="flex min-w-0 flex-1 flex-col gap-2">
+                <p className="text-[16px] font-normal leading-[22px] text-primary">
+                  Por revisar · Etapa 1 de 4
+                </p>
+                <div className="text-[14px] font-normal leading-[19px] text-muted-foreground">
+                  <p>La empresa revisará tu información.</p>
+                  <p>Sigue las novedades en Postulaciones.</p>
                 </div>
               </div>
-            ))}
+            </section>
           </div>
-        </section>
-      )}
+        </div>
 
+        <div className="sticky bottom-0 mt-8 bg-background pt-4 pb-[env(safe-area-inset-bottom,0px)]">
+          <Link
+            href="/dashboard/candidate/applications"
+            className="inline-flex min-h-[56px] w-full items-center justify-center gap-4 rounded-[8px] bg-primary text-[14px] font-semibold text-primary-foreground transition-colors hover:bg-primary-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          >
+            <HugeiconsIcon
+              icon={File01Icon}
+              size={20}
+              strokeWidth={1.75}
+              aria-hidden="true"
+            />
+            <span>Ver postulaciones</span>
+          </Link>
+        </div>
+      </div>
+    );
+  }
+
+  /* ==================== PANTALLAS 2 y 3: REVISA TU POSTULACIÓN / ENVIANDO (Figma 241:1211 y 242:1243) ==================== */
+  if (step === "review") {
+    return (
+      <div className="mx-auto flex min-h-[calc(100dvh-48px)] w-full max-w-[540px] flex-col justify-between pb-6 md:min-h-0">
+        <div>
+          <header className="flex items-center justify-between gap-2">
+            <div className="flex min-w-0 items-center gap-2">
+              <button
+                type="button"
+                disabled={isSubmitting}
+                onClick={() => setStep("detail")}
+                aria-label="Volver a la vacante"
+                className="-ml-2 inline-flex size-[48px] shrink-0 cursor-pointer items-center justify-center rounded-[8px] text-foreground transition-colors hover:bg-muted disabled:pointer-events-none disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              >
+                <HugeiconsIcon
+                  icon={ArrowLeft01Icon}
+                  size={20}
+                  strokeWidth={1.75}
+                  aria-hidden="true"
+                />
+              </button>
+              <h1 className="truncate text-[20px] font-semibold leading-[28px] text-foreground">
+                Revisa tu postulación
+              </h1>
+            </div>
+
+            <Popover>
+              <PopoverTrigger
+                type="button"
+                aria-label="Información sobre datos compartidos"
+                className="-mr-2 inline-flex size-[48px] shrink-0 cursor-pointer items-center justify-center rounded-[8px] text-primary transition-colors hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              >
+                <HugeiconsIcon
+                  icon={AlertCircleIcon}
+                  size={24}
+                  strokeWidth={1.75}
+                  aria-hidden="true"
+                />
+              </PopoverTrigger>
+              <PopoverContent
+                align="end"
+                side="bottom"
+                className="w-[300px] rounded-[16px] border border-border bg-background p-4 text-[14px] leading-[19px] text-foreground shadow-lg"
+              >
+                <p className="font-semibold text-foreground">Datos compartidos</p>
+                <p className="mt-1 text-muted-foreground">
+                  Al postularte, {companyName} recibirá tu currículum y tus datos
+                  de contacto únicamente para evaluar tu candidatura.
+                </p>
+              </PopoverContent>
+            </Popover>
+          </header>
+
+          <div className="mt-6 flex flex-col gap-6">
+            <VacancySummaryCard
+              initials={initials}
+              companyName={companyName}
+              title={vacancy.title}
+              locationModality={locationModalityLabel}
+            />
+
+            {/* Card Mi currículum */}
+            <section
+              aria-label="Resumen de tu currículum"
+              className="flex w-full flex-col gap-2 rounded-[16px] border border-border bg-background p-4"
+            >
+              <div className="flex items-center gap-4">
+                <HugeiconsIcon
+                  icon={File01Icon}
+                  size={20}
+                  strokeWidth={1.75}
+                  aria-hidden="true"
+                  className="shrink-0 text-muted-foreground"
+                />
+                <h2 className="text-[16px] font-normal leading-[22px] text-foreground">
+                  Mi currículum
+                </h2>
+              </div>
+              <p className="text-[16px] font-normal leading-[22px] text-foreground">
+                {candidateProfile?.headline?.trim() || "Perfil profesional"}
+              </p>
+              <p className="text-[14px] font-normal leading-[19px] text-muted-foreground">
+                {candidateProfile?.bio?.trim() ||
+                  "Tu perfil profesional se compartirá con la empresa para este proceso."}
+              </p>
+            </section>
+
+            {/* Card Datos de contacto */}
+            <section
+              aria-label="Tus datos de contacto"
+              className="flex w-full flex-col gap-2 rounded-[16px] border border-border bg-background p-4"
+            >
+              <h2 className="text-[16px] font-normal leading-[22px] text-foreground">
+                Datos de contacto
+              </h2>
+              <p className="text-[14px] font-normal leading-[19px] text-foreground">
+                {candidateProfile?.fullName?.trim() || "Candidato"}
+              </p>
+              {candidateProfile?.email && (
+                <p className="break-all text-[14px] font-normal leading-[19px] text-muted-foreground">
+                  {candidateProfile.email}
+                </p>
+              )}
+              {candidateProfile?.whatsappNumber && (
+                <p className="text-[14px] font-normal leading-[19px] text-muted-foreground">
+                  {candidateProfile.whatsappNumber}
+                </p>
+              )}
+            </section>
+
+            <p className="text-[14px] font-normal leading-[19px] text-muted-foreground">
+              Revisa que tu información esté actualizada antes de continuar.
+            </p>
+
+            <p className="text-[14px] font-normal leading-[19px] text-foreground">
+              Al enviar, {companyName} podrá consultar tu perfil profesional y tus
+              datos de contacto para este proceso.
+            </p>
+
+            {submitError && (
+              <p
+                role="alert"
+                className="text-[14px] font-normal leading-[19px] text-destructive"
+              >
+                {submitError}
+              </p>
+            )}
+          </div>
+        </div>
+
+        <div className="sticky bottom-0 mt-8 bg-background pt-4 pb-[env(safe-area-inset-bottom,0px)]">
+          <button
+            type="button"
+            disabled={isSubmitting}
+            aria-busy={isSubmitting}
+            onClick={handleSubmitApplication}
+            className="inline-flex min-h-[56px] w-full cursor-pointer items-center justify-center gap-4 rounded-[8px] bg-primary text-[14px] font-semibold text-primary-foreground transition-colors hover:bg-primary-hover disabled:cursor-not-allowed disabled:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          >
+            {isSubmitting ? (
+              <>
+                <HugeiconsIcon
+                  icon={Loading03Icon}
+                  size={20}
+                  strokeWidth={2}
+                  aria-hidden="true"
+                  className="animate-spin"
+                />
+                <span>Enviando…</span>
+              </>
+            ) : (
+              <>
+                <HugeiconsIcon
+                  icon={ArrowRight01Icon}
+                  size={20}
+                  strokeWidth={2}
+                  aria-hidden="true"
+                />
+                <span>
+                  {submitError ? "Reintentar envío" : "Enviar postulación"}
+                </span>
+              </>
+            )}
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  /* ==================== PANTALLA 1: DETALLE DE VACANTE (Figma 241:1156) ==================== */
+  return (
+    <div className="mx-auto flex min-h-[calc(100dvh-48px)] w-full max-w-[680px] flex-col justify-between pb-6 md:min-h-0">
+      <div>
+        {/* Header móvil / detalle */}
+        <header className="flex items-center justify-between gap-2">
+          <div className="flex min-w-0 items-center gap-2">
+            <button
+              type="button"
+              onClick={() => router.back()}
+              aria-label="Volver a Inicio"
+              className="-ml-2 inline-flex size-[48px] shrink-0 cursor-pointer items-center justify-center rounded-[8px] text-foreground transition-colors hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            >
+              <HugeiconsIcon
+                icon={ArrowLeft01Icon}
+                size={20}
+                strokeWidth={1.75}
+                aria-hidden="true"
+              />
+            </button>
+            <span className="truncate text-[20px] font-semibold leading-[28px] text-foreground">
+              Vacante
+            </span>
+          </div>
+
+          <div className="-mr-2 flex items-center gap-1 shrink-0">
+            <button
+              type="button"
+              onClick={() => runToggleSave(!isSaved)}
+              aria-pressed={isSaved}
+              aria-label={
+                isSaved
+                  ? `Quitar ${vacancy.title} de guardados`
+                  : `Guardar vacante ${vacancy.title}`
+              }
+              className={cn(
+                "inline-flex size-[48px] cursor-pointer items-center justify-center rounded-[8px] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+                isSaved
+                  ? "bg-muted text-primary"
+                  : "text-muted-foreground hover:bg-muted hover:text-foreground"
+              )}
+            >
+              <HugeiconsIcon
+                icon={Bookmark02Icon}
+                size={20}
+                strokeWidth={1.75}
+                aria-hidden="true"
+                className={cn(isSaved && "fill-current")}
+              />
+            </button>
+
+            <button
+              type="button"
+              onClick={handleShare}
+              aria-label={`Compartir vacante ${vacancy.title}`}
+              className="inline-flex size-[48px] cursor-pointer items-center justify-center rounded-[8px] text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            >
+              <HugeiconsIcon
+                icon={Share08Icon}
+                size={20}
+                strokeWidth={1.75}
+                aria-hidden="true"
+              />
+            </button>
+          </div>
+        </header>
+
+        {/* Contenido principal */}
+        <article className="mt-6 flex flex-col gap-6">
+          {/* Resumen de empresa, título y sueldo */}
+          <div className="flex flex-col gap-4">
+            <div className="flex items-center gap-4">
+              <div
+                aria-hidden="true"
+                className="flex size-[48px] shrink-0 items-center justify-center rounded-[8px] bg-muted"
+              >
+                <span className="text-[14px] font-semibold text-primary">
+                  {initials}
+                </span>
+              </div>
+              <div className="flex min-w-0 flex-col gap-0.5">
+                <p className="truncate text-[16px] font-normal leading-[22px] text-foreground">
+                  {companyName}
+                </p>
+                <p className="text-[12px] font-medium leading-[17px] text-primary">
+                  {application ? "Ya te postulaste" : "Vacante activa"}
+                </p>
+              </div>
+            </div>
+
+            <h1 className="text-[28px] font-bold leading-[39px] text-foreground">
+              {vacancy.title}
+            </h1>
+
+            <div className="flex flex-col gap-2">
+              <p className="text-[20px] font-semibold leading-normal text-foreground">
+                {formattedSalary}
+              </p>
+              <p className="text-[14px] font-normal leading-[19px] text-muted-foreground">
+                {frequencyLabel}
+              </p>
+            </div>
+          </div>
+
+          {/* Condiciones */}
+          <div className="flex flex-col gap-2">
+            <div className="flex items-center gap-4">
+              <HugeiconsIcon
+                icon={Location01Icon}
+                size={20}
+                strokeWidth={1.75}
+                aria-hidden="true"
+                className="shrink-0 text-muted-foreground"
+              />
+              <p className="text-[14px] font-normal leading-[19px] text-muted-foreground">
+                {displayLocation}
+              </p>
+            </div>
+
+            <div className="flex items-center gap-4">
+              <HugeiconsIcon
+                icon={Briefcase01Icon}
+                size={20}
+                strokeWidth={1.75}
+                aria-hidden="true"
+                className="shrink-0 text-muted-foreground"
+              />
+              <p className="text-[14px] font-normal leading-[19px] text-muted-foreground">
+                {conditionsLabel}
+              </p>
+            </div>
+          </div>
+
+          {/* Acerca del puesto */}
+          <section className="flex flex-col gap-2">
+            <h2 className="text-[20px] font-semibold leading-[28px] text-foreground">
+              Acerca del puesto
+            </h2>
+            <p className="whitespace-pre-line text-[14px] font-normal leading-[19px] text-foreground">
+              {vacancy.description?.trim() ||
+                "Consulta los detalles del puesto con la empresa al postularte."}
+            </p>
+          </section>
+
+          {/* Requisitos */}
+          {requirementLines.length > 0 && (
+            <section className="flex flex-col gap-2">
+              <h2 className="text-[20px] font-semibold leading-[28px] text-foreground">
+                Requisitos
+              </h2>
+              <ul className="flex flex-col gap-1 text-[14px] font-normal leading-[19px] text-foreground">
+                {requirementLines.map((line, idx) => (
+                  <li key={`${vacancy.id}-req-${idx}`}>• {line}</li>
+                ))}
+              </ul>
+            </section>
+          )}
+
+          {/* Beneficios */}
+          {benefitLines.length > 0 && (
+            <section className="flex flex-col gap-2">
+              <h2 className="text-[20px] font-semibold leading-[28px] text-foreground">
+                Beneficios
+              </h2>
+              <ul className="flex flex-col gap-1 text-[14px] font-normal leading-[19px] text-foreground">
+                {benefitLines.map((line, idx) => (
+                  <li key={`${vacancy.id}-ben-${idx}`}>• {line}</li>
+                ))}
+              </ul>
+            </section>
+          )}
+        </article>
+      </div>
+
+      {/* Acción principal única al alcance del pulgar */}
+      <div className="sticky bottom-0 mt-8 bg-background pt-4 pb-[env(safe-area-inset-bottom,0px)]">
+        {application ? (
+          <Link
+            href="/dashboard/candidate/applications"
+            className="inline-flex min-h-[56px] w-full items-center justify-center gap-4 rounded-[8px] bg-primary text-[14px] font-semibold text-primary-foreground transition-colors hover:bg-primary-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          >
+            <HugeiconsIcon
+              icon={File01Icon}
+              size={20}
+              strokeWidth={1.75}
+              aria-hidden="true"
+            />
+            <span>Ver postulaciones</span>
+          </Link>
+        ) : (
+          <button
+            type="button"
+            onClick={() => setStep("review")}
+            className="inline-flex min-h-[56px] w-full cursor-pointer items-center justify-center gap-4 rounded-[8px] bg-primary text-[14px] font-semibold text-primary-foreground transition-colors hover:bg-primary-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          >
+            <HugeiconsIcon
+              icon={SentIcon}
+              size={20}
+              strokeWidth={1.75}
+              aria-hidden="true"
+            />
+            <span>Aplicar</span>
+          </button>
+        )}
+      </div>
     </div>
   );
 }
-

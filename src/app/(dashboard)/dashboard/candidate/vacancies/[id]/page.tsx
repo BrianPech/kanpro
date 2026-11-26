@@ -1,82 +1,114 @@
-import * as React from 'react';
-import { notFound, redirect } from 'next/navigation';
-import { createClient } from '@/lib/supabase/server';
-import { CandidateVacancyDetailView } from '@/modules/candidate/components/candidate-vacancy-detail-view';
+import * as React from "react";
+import { notFound, redirect } from "next/navigation";
+import { createClient } from "@/lib/supabase/server";
+import {
+  CandidateVacancyDetailView,
+  type CandidateReviewProfile,
+  type CompanyDetails,
+  type VacancyDetailData,
+} from "@/modules/candidate/components/candidate-vacancy-detail-view";
 
-export const dynamic = 'force-dynamic';
+export const dynamic = "force-dynamic";
 
 interface PageProps {
   params: Promise<{ id: string }>;
+}
+
+interface EmbeddedCandidateResume {
+  headline: string | null;
+  bio: string | null;
 }
 
 export default async function CandidateVacancyDetailPage({ params }: PageProps) {
   const { id } = await params;
   const supabase = await createClient();
 
-  // 1. Get current user
-  const { data: { user } } = await supabase.auth.getUser();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
   if (!user) {
-    redirect('/login');
+    redirect("/login");
   }
 
-  // 2. Fetch vacancy
   const { data: vacancy, error: vacError } = await supabase
-    .from('vacancies')
-    .select('*')
-    .eq('id', id)
+    .from("vacancies")
+    .select("*")
+    .eq("id", id)
     .maybeSingle();
 
   if (vacError || !vacancy) {
     notFound();
   }
 
-  // 3. Parallel fetch: company profile, candidate location, saved state, application state, similar vacancies
   const [
     { data: company },
-    { data: candidateProfile },
+    { data: profileRow },
     { data: savedRecord },
     { data: applicationRecord },
-    { data: similarVacancies },
   ] = await Promise.all([
     supabase
-      .from('company_directory')
-      .select('id, company_name, logo_url, industry, description, contact_phone, website_url, verification_status')
-      .eq('id', vacancy.company_id)
+      .from("company_directory")
+      .select(
+        "id, company_name, logo_url, industry, description, contact_phone, website_url, verification_status"
+      )
+      .eq("id", vacancy.company_id)
       .maybeSingle(),
     supabase
-      .from('profiles')
-      .select('location')
-      .eq('id', user.id)
+      .from("profiles")
+      .select(
+        "full_name, email, whatsapp_number, location, candidate_profiles ( headline, bio )"
+      )
+      .eq("id", user.id)
       .maybeSingle(),
     supabase
-      .from('saved_vacancies')
-      .select('id')
-      .eq('candidate_id', user.id)
-      .eq('vacancy_id', id)
+      .from("saved_vacancies")
+      .select("id")
+      .eq("candidate_id", user.id)
+      .eq("vacancy_id", id)
       .maybeSingle(),
     supabase
-      .from('applications')
-      .select('id, status')
-      .eq('candidate_id', user.id)
-      .eq('vacancy_id', id)
+      .from("applications")
+      .select("id, status")
+      .eq("candidate_id", user.id)
+      .eq("vacancy_id", id)
       .maybeSingle(),
-    supabase
-      .from('vacancies')
-      .select('id, title, location, zone, salary_min, salary_max, employment_type, category, created_at, company_id')
-      .neq('id', id)
-      .or('is_active.eq.true,status.eq.Activa,status.eq.published')
-      .order('created_at', { ascending: false })
-      .limit(3),
   ]);
+
+  const rawResume = profileRow?.candidate_profiles as
+    | EmbeddedCandidateResume
+    | EmbeddedCandidateResume[]
+    | null
+    | undefined;
+  const resume = Array.isArray(rawResume) ? rawResume[0] ?? null : rawResume ?? null;
+
+  const candidateProfile: CandidateReviewProfile = {
+    fullName:
+      profileRow?.full_name ||
+      (typeof user.user_metadata?.full_name === "string"
+        ? user.user_metadata.full_name
+        : null),
+    email: profileRow?.email || user.email || null,
+    whatsappNumber:
+      profileRow?.whatsapp_number ||
+      (typeof user.user_metadata?.whatsapp_number === "string"
+        ? user.user_metadata.whatsapp_number
+        : null),
+    headline: resume?.headline ?? null,
+    bio: resume?.bio ?? null,
+  };
 
   return (
     <CandidateVacancyDetailView
-      vacancy={vacancy as any}
-      company={company as any}
-      similarVacancies={(similarVacancies || []) as any}
-      initialIsSaved={!!savedRecord}
-      initialApplication={applicationRecord ? { id: applicationRecord.id, status: applicationRecord.status } : null}
-      candidateLocation={candidateProfile?.location || null}
+      vacancy={vacancy as unknown as VacancyDetailData}
+      company={(company as CompanyDetails | null) ?? null}
+      initialIsSaved={Boolean(savedRecord)}
+      initialApplication={
+        applicationRecord
+          ? { id: applicationRecord.id, status: applicationRecord.status }
+          : null
+      }
+      candidateLocation={profileRow?.location ?? null}
+      candidateProfile={candidateProfile}
     />
   );
 }

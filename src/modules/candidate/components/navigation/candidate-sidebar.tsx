@@ -51,7 +51,7 @@ const CANDIDATE_NAV_GROUPS: NavGroup[] = [
     id: "bolsa",
     label: "Bolsa de empleo",
     items: [
-      { title: "Inicio", url: "/dashboard/candidate", icon: Home01Icon },
+      { title: "Vacantes", url: "/dashboard/candidate", icon: Home01Icon },
       {
         title: "Postulaciones",
         url: "/dashboard/candidate/applications",

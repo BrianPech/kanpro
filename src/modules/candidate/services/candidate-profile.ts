@@ -25,7 +25,80 @@ export interface CandidateProfileData {
   birth_date: string | null;
   rfc?: string | null;
   cedula_profesional?: string | null;
+  address_street?: string | null;
+  address_exterior_number?: string | null;
+  address_interior_number?: string | null;
+  address_neighborhood?: string | null;
+  address_postal_code?: string | null;
+  address_municipality?: string | null;
+  address_state?: string | null;
   is_early_access?: boolean;
+}
+
+export interface FormattedCandidateAddress {
+  line1: string | null;
+  line2: string | null;
+}
+
+/**
+ * Formats structured INE address fields into two readable lines for the profile summary card.
+ */
+export function formatCandidateAddress(
+  profile: Pick<
+    CandidateProfileData,
+    | "address_street"
+    | "address_exterior_number"
+    | "address_interior_number"
+    | "address_neighborhood"
+    | "address_postal_code"
+    | "address_municipality"
+    | "address_state"
+    | "location"
+  > | null
+): FormattedCandidateAddress {
+  if (!profile) return { line1: null, line2: null };
+
+  const streetBase = [profile.address_street?.trim(), profile.address_exterior_number?.trim()]
+    .filter(Boolean)
+    .join(" ");
+  const interior = profile.address_interior_number?.trim();
+  const streetFull = [streetBase, interior ? `interior ${interior}` : ""]
+    .filter(Boolean)
+    .join(", ");
+  const line1 = [streetFull, profile.address_neighborhood?.trim()]
+    .filter(Boolean)
+    .join(" · ") || null;
+
+  const cityState = [profile.address_municipality?.trim(), profile.address_state?.trim()]
+    .filter(Boolean)
+    .join(", ");
+  const line2 = [profile.address_postal_code?.trim(), cityState]
+    .filter(Boolean)
+    .join(" · ") || null;
+
+  if (!line1 && !line2 && profile.location?.trim()) {
+    return { line1: profile.location.trim(), line2: null };
+  }
+
+  return { line1, line2 };
+}
+
+/**
+ * Returns up to two uppercase initials from the candidate's full name (or email fallback).
+ */
+export function getCandidateInitials(
+  fullName: string | null | undefined,
+  email?: string | null
+): string {
+  const parts = (fullName || "").trim().split(/\s+/).filter(Boolean);
+  if (parts.length >= 2) {
+    return `${parts[0][0]}${parts[1][0]}`.toUpperCase();
+  }
+  if (parts.length === 1) {
+    return parts[0].slice(0, 2).toUpperCase();
+  }
+  const emailChar = (email || "").trim()[0];
+  return emailChar ? emailChar.toUpperCase() : "KP";
 }
 
 /**
@@ -80,6 +153,13 @@ interface EmbeddedPrivateProfile {
   birth_date: string | null;
   rfc: string | null;
   cedula_profesional: string | null;
+  address_street: string | null;
+  address_exterior_number: string | null;
+  address_interior_number: string | null;
+  address_neighborhood: string | null;
+  address_postal_code: string | null;
+  address_municipality: string | null;
+  address_state: string | null;
 }
 
 interface ProfileWithEmbeds {
@@ -110,7 +190,7 @@ export const candidateProfileService = {
       ] = await Promise.all([
         supabase
           .from("profiles")
-          .select("id, full_name, email, whatsapp_number, avatar_url, location, is_early_access, candidate_profiles ( headline, bio, skills, experience, education, certifications, languages, portfolio_links, preferred_zone ), candidate_private_profiles ( curp, birth_date, rfc, cedula_profesional )")
+          .select("id, full_name, email, whatsapp_number, avatar_url, location, is_early_access, candidate_profiles ( headline, bio, skills, experience, education, certifications, languages, portfolio_links, preferred_zone ), candidate_private_profiles ( curp, birth_date, rfc, cedula_profesional, address_street, address_exterior_number, address_interior_number, address_neighborhood, address_postal_code, address_municipality, address_state )")
           .eq("id", userId)
           .maybeSingle(),
         supabase.auth.getUser()
@@ -197,6 +277,13 @@ export const candidateProfileService = {
         birth_date: normalizedBirthDate,
         rfc: privateProfile?.rfc || null,
         cedula_profesional: privateProfile?.cedula_profesional || null,
+        address_street: privateProfile?.address_street || null,
+        address_exterior_number: privateProfile?.address_exterior_number || null,
+        address_interior_number: privateProfile?.address_interior_number || null,
+        address_neighborhood: privateProfile?.address_neighborhood || null,
+        address_postal_code: privateProfile?.address_postal_code || null,
+        address_municipality: privateProfile?.address_municipality || null,
+        address_state: privateProfile?.address_state || null,
         is_early_access: profile.is_early_access ?? true,
       };
     } catch (err: unknown) {

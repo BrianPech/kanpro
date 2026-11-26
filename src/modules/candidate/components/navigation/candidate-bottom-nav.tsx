@@ -12,6 +12,7 @@ import {
   UserCircleIcon,
 } from "@hugeicons/core-free-icons";
 import { cn } from "@/lib/utils";
+import { CandidateSearchSheet } from "./candidate-search-sheet";
 
 export interface CandidateBottomNavProps {
   isEmployee?: boolean;
@@ -21,12 +22,12 @@ export function CandidateBottomNav({
   isEmployee = false,
 }: CandidateBottomNavProps) {
   const pathname = usePathname();
+  const [searchOpen, setSearchOpen] = React.useState(false);
 
   const isHomeActive = pathname === "/dashboard/candidate";
   const isApplicationsActive = pathname.startsWith(
     "/dashboard/candidate/applications"
   );
-  const isSearchActive = pathname.startsWith("/dashboard/candidate/discovery");
   const isWorkActive =
     pathname.startsWith("/dashboard/candidate/contracts") ||
     pathname.startsWith("/dashboard/candidate/leaves") ||
@@ -74,6 +75,16 @@ export function CandidateBottomNav({
   const leftTabs = sideTabs.slice(0, 2);
   const rightTabs = sideTabs.slice(2, 4);
 
+  const hideOnMobileRoute =
+    pathname.startsWith("/dashboard/candidate/vacancies/") ||
+    pathname === "/dashboard/candidate/saved" ||
+    pathname === "/dashboard/candidate/profile/saved" ||
+    pathname === "/dashboard/candidate/profile/edit" ||
+    pathname === "/dashboard/candidate/profile/cv" ||
+    pathname === "/dashboard/candidate/profile/preferences" ||
+    pathname === "/dashboard/candidate/settings";
+  if (hideOnMobileRoute) return null;
+
   return (
     <div className="md:hidden fixed bottom-0 inset-x-0 z-50 w-full bg-background border-t border-border pb-[env(safe-area-inset-bottom,0px)]">
       <nav
@@ -117,12 +128,14 @@ export function CandidateBottomNav({
           </Link>
         ))}
 
-        {/* Acción central elevada: Buscar */}
-        <Link
-          href="/dashboard/candidate/discovery"
-          aria-current={isSearchActive ? "page" : undefined}
+        {/* Acción central elevada: Buscar (abre Sheet contextual, Figma 212:176) */}
+        <button
+          type="button"
+          onClick={() => setSearchOpen(true)}
+          aria-haspopup="dialog"
+          aria-expanded={searchOpen}
           aria-label="Buscar vacantes"
-          className="min-h-[80px] min-w-[48px] -mt-1 flex flex-col items-center justify-start gap-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded-[12px] transition-transform active:scale-95"
+          className="min-h-[80px] min-w-[48px] -mt-1 flex flex-col items-center justify-start gap-1 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded-[12px] transition-transform active:scale-95"
         >
           <span className="size-[56px] rounded-full bg-primary hover:bg-primary-hover text-primary-foreground flex items-center justify-center shadow-xs transition-colors">
             <HugeiconsIcon
@@ -135,7 +148,7 @@ export function CandidateBottomNav({
           <span className="text-[12px] font-medium leading-[17px] text-primary text-center">
             Buscar
           </span>
-        </Link>
+        </button>
 
         {rightTabs.map((item) => (
           <Link
@@ -170,6 +183,8 @@ export function CandidateBottomNav({
           </Link>
         ))}
       </nav>
+
+      <CandidateSearchSheet open={searchOpen} onOpenChange={setSearchOpen} />
     </div>
   );
 }

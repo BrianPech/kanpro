@@ -1,869 +1,418 @@
 "use client";
 
 import * as React from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useForm, useFieldArray } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { 
-  ArrowLeft, 
-  Camera, 
-  X, 
-  Plus, 
-  Trash2, 
-  Briefcase,
-  GraduationCap,
-  Loader2,
-  BadgeCheck,
-  Globe,
-  Sparkles,
-  Phone,
-  User,
-  ExternalLink
-} from "@/components/ui/icons";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
-import { Badge } from "@/components/ui/badge";
-import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
-import { Label } from "@/components/ui/label";
-import { Switch } from "@/components/ui/switch";
-import { createClient } from "@/lib/supabase/client";
-import { candidateProfileService } from "../services/candidate-profile";
-import { candidateDocumentsService } from "../services/candidate-documents";
-import { candidateProfileSchema } from "../schemas/candidate.schema";
-import { formatPhoneDisplay, normalizePhone } from "@/lib/formatters";
+import { HugeiconsIcon } from "@hugeicons/react";
 import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-  DialogFooter,
-} from "@/components/ui/dialog";
+  ArrowLeft01Icon,
+  ArrowRight01Icon,
+  CallIcon,
+  Camera01Icon,
+  Loading03Icon,
+  Location01Icon,
+  Mail01Icon,
+  PencilEdit02Icon,
+  UserCircleIcon,
+} from "@hugeicons/core-free-icons";
 import { toast } from "sonner";
-import { cn } from "@/lib/utils";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Skeleton } from "@/components/ui/skeleton";
+import { createClient } from "@/lib/supabase/client";
+import {
+  candidateProfileService,
+  getCandidateInitials,
+} from "../services/candidate-profile";
+import { candidateDocumentsService } from "../services/candidate-documents";
 
 interface EditPublicProfileViewProps {
   onBack?: () => void;
 }
 
-// Sub-component for isolated reactive Experience field array
-const ExperienceFieldArray = React.memo(({
-  control,
-  register,
-  errors,
-}: {
-  control: any;
-  register: any;
-  errors: any;
-}) => {
-  const { fields, append, remove } = useFieldArray({
-    control,
-    name: "experience",
-  });
-
-  return (
-    <div className="space-y-3">
-      {fields.length === 0 ? (
-        <div className="p-4 bg-muted/30 border border-border/60 rounded-3xl text-xs text-muted-foreground text-center">
-          No has registrado experiencias aún. Toca &quot;Añadir empleo&quot; para agregar tu historial.
-        </div>
-      ) : (
-        <div className="space-y-3">
-          {fields.map((field, index) => (
-            <div key={field.id} className="p-4 bg-muted/20 border border-border/60 rounded-3xl space-y-3.5 relative shadow-2xs">
-              <Button
-                type="button"
-                variant="ghost"
-                size="icon"
-                onClick={() => remove(index)}
-                className="absolute top-3 right-3 size-7 text-destructive hover:bg-destructive/10 rounded-full cursor-pointer"
-                aria-label="Eliminar experiencia"
-              >
-                <Trash2 className="size-3.5" />
-              </Button>
-              
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5 pr-8">
-                <div className="space-y-1.5">
-                  <Label className="text-xs font-semibold text-foreground">
-                    Puesto / Cargo <span className="text-destructive">*</span>
-                  </Label>
-                  <Input
-                    {...register(`experience.${index}.role`)}
-                    placeholder="Ej. Chef Ejecutivo, Mesero, Recepcionista"
-                    className="h-9 rounded-3xl bg-input/50 border-input text-xs sm:text-sm"
-                  />
-                  {errors.experience?.[index]?.role && (
-                    <p className="text-[11px] font-medium text-destructive mt-0.5">{errors.experience[index]?.role?.message}</p>
-                  )}
-                </div>
-
-                <div className="space-y-1.5">
-                  <Label className="text-xs font-semibold text-foreground">
-                    Empresa / Negocio <span className="text-destructive">*</span>
-                  </Label>
-                  <Input
-                    {...register(`experience.${index}.company`)}
-                    placeholder="Ej. Hotel Riviera Grand"
-                    className="h-9 rounded-3xl bg-input/50 border-input text-xs sm:text-sm"
-                  />
-                  {errors.experience?.[index]?.company && (
-                    <p className="text-[11px] font-medium text-destructive mt-0.5">{errors.experience[index]?.company?.message}</p>
-                  )}
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
-                <div className="space-y-1.5">
-                  <Label className="text-xs font-semibold text-foreground">
-                    Período <span className="text-destructive">*</span>
-                  </Label>
-                  <Input
-                    {...register(`experience.${index}.period`)}
-                    placeholder="Ej. 2022 - 2024"
-                    className="h-9 rounded-3xl bg-input/50 border-input text-xs sm:text-sm"
-                  />
-                  {errors.experience?.[index]?.period && (
-                    <p className="text-[11px] font-medium text-destructive mt-0.5">{errors.experience[index]?.period?.message}</p>
-                  )}
-                </div>
-
-                <div className="space-y-1.5">
-                  <Label className="text-xs font-semibold text-foreground">Descripción / Funciones</Label>
-                  <Input
-                    {...register(`experience.${index}.description`)}
-                    placeholder="Resumen de responsabilidades principales..."
-                    className="h-9 rounded-3xl bg-input/50 border-input text-xs sm:text-sm"
-                  />
-                </div>
-              </div>
-            </div>
-          ))}
-        </div>
-      )}
-
-      <Button
-        type="button"
-        variant="outline"
-        size="sm"
-        onClick={() => append({ role: "", company: "", period: "", description: "" })}
-        className="h-9 px-4 text-xs font-medium gap-1.5 rounded-4xl cursor-pointer"
-      >
-        <Plus className="size-3.5" />
-        <span>Añadir empleo</span>
-      </Button>
-    </div>
-  );
-});
-ExperienceFieldArray.displayName = "ExperienceFieldArray";
-
-// Sub-component for isolated reactive Education field array
-const EducationFieldArray = React.memo(({
-  control,
-  register,
-  errors,
-}: {
-  control: any;
-  register: any;
-  errors: any;
-}) => {
-  const { fields, append, remove } = useFieldArray({
-    control,
-    name: "education",
-  });
-
-  return (
-    <div className="space-y-3">
-      {fields.length === 0 ? (
-        <div className="p-4 bg-muted/30 border border-border/60 rounded-3xl text-xs text-muted-foreground text-center">
-          No has registrado estudios aún. Toca &quot;Añadir formación&quot; para sumar tus grados.
-        </div>
-      ) : (
-        <div className="space-y-3">
-          {fields.map((field, index) => (
-            <div key={field.id} className="p-4 bg-muted/20 border border-border/60 rounded-3xl space-y-3.5 relative shadow-2xs">
-              <Button
-                type="button"
-                variant="ghost"
-                size="icon"
-                onClick={() => remove(index)}
-                className="absolute top-3 right-3 size-7 text-destructive hover:bg-destructive/10 rounded-full cursor-pointer"
-                aria-label="Eliminar educación"
-              >
-                <Trash2 className="size-3.5" />
-              </Button>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5 pr-8">
-                <div className="space-y-1.5">
-                  <Label className="text-xs font-semibold text-foreground">
-                    Institución / Escuela <span className="text-destructive">*</span>
-                  </Label>
-                  <Input
-                    {...register(`education.${index}.institution`)}
-                    placeholder="Ej. Universidad del Caribe, CONALEP"
-                    className="h-9 rounded-3xl bg-input/50 border-input text-xs sm:text-sm"
-                  />
-                  {errors.education?.[index]?.institution && (
-                    <p className="text-[11px] font-medium text-destructive mt-0.5">{errors.education[index]?.institution?.message}</p>
-                  )}
-                </div>
-
-                <div className="space-y-1.5">
-                  <Label className="text-xs font-semibold text-foreground">
-                    Título / Carrera <span className="text-destructive">*</span>
-                  </Label>
-                  <Input
-                    {...register(`education.${index}.degree`)}
-                    placeholder="Ej. Licenciatura en Gastronomía, Técnico Hotelero"
-                    className="h-9 rounded-3xl bg-input/50 border-input text-xs sm:text-sm"
-                  />
-                  {errors.education?.[index]?.degree && (
-                    <p className="text-[11px] font-medium text-destructive mt-0.5">{errors.education[index]?.degree?.message}</p>
-                  )}
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
-                <div className="space-y-1.5">
-                  <Label className="text-xs font-semibold text-foreground">
-                    Período / Año de Egreso <span className="text-destructive">*</span>
-                  </Label>
-                  <Input
-                    {...register(`education.${index}.period`)}
-                    placeholder="Ej. 2018 - 2022"
-                    className="h-9 rounded-3xl bg-input/50 border-input text-xs sm:text-sm"
-                  />
-                  {errors.education?.[index]?.period && (
-                    <p className="text-[11px] font-medium text-destructive mt-0.5">{errors.education[index]?.period?.message}</p>
-                  )}
-                </div>
-
-                <div className="space-y-1.5">
-                  <Label className="text-xs font-semibold text-foreground">Detalles adicionales</Label>
-                  <Input
-                    {...register(`education.${index}.description`)}
-                    placeholder="Ej. Graduado con honores..."
-                    className="h-9 rounded-3xl bg-input/50 border-input text-xs sm:text-sm"
-                  />
-                </div>
-              </div>
-            </div>
-          ))}
-        </div>
-      )}
-
-      <Button
-        type="button"
-        variant="outline"
-        size="sm"
-        onClick={() => append({ institution: "", degree: "", period: "", description: "" })}
-        className="h-9 px-4 text-xs font-medium gap-1.5 rounded-4xl cursor-pointer"
-      >
-        <Plus className="size-3.5" />
-        <span>Añadir formación</span>
-      </Button>
-    </div>
-  );
-});
-EducationFieldArray.displayName = "EducationFieldArray";
+function splitFullName(fullName: string): { firstName: string; lastName: string } {
+  const parts = fullName.trim().split(/\s+/).filter(Boolean);
+  if (parts.length === 0) return { firstName: "", lastName: "" };
+  if (parts.length === 1) return { firstName: parts[0], lastName: "" };
+  return {
+    firstName: parts[0],
+    lastName: parts.slice(1).join(" "),
+  };
+}
 
 export function EditPublicProfileView({ onBack }: EditPublicProfileViewProps) {
   const router = useRouter();
-  const supabase = createClient();
-  const avatarInputRef = React.useRef<HTMLInputElement | null>(null);
+  const fileInputRef = React.useRef<HTMLInputElement>(null);
 
-  const [isLoading, setIsLoading] = React.useState<boolean>(true);
-  const [isSaving, setIsSaving] = React.useState<boolean>(false);
-  const [isUploadingPhoto, setIsUploadingPhoto] = React.useState<boolean>(false);
+  const [userId, setUserId] = React.useState<string | null>(null);
+  const [firstName, setFirstName] = React.useState("");
+  const [lastName, setLastName] = React.useState("");
+  const [email, setEmail] = React.useState("");
+  const [phone, setPhone] = React.useState("");
+  const [city, setCity] = React.useState("");
   const [avatarUrl, setAvatarUrl] = React.useState<string | null>(null);
-  const [candidateEmail, setCandidateEmail] = React.useState<string>("");
+  const [isLoading, setIsLoading] = React.useState(true);
+  const [isSaving, setIsSaving] = React.useState(false);
+  const [isUploadingPhoto, setIsUploadingPhoto] = React.useState(false);
+  const [formError, setFormError] = React.useState<string | null>(null);
 
-  // Skill Dialog state
-  const [isAddSkillOpen, setIsAddSkillOpen] = React.useState<boolean>(false);
-  const [newSkillText, setNewSkillText] = React.useState<string>("");
-
-  const {
-    register,
-    handleSubmit,
-    control,
-    setValue,
-    watch,
-    reset,
-    formState: { errors }
-  } = useForm<any>({
-    resolver: zodResolver(candidateProfileSchema) as any,
-    defaultValues: {
-      full_name: "",
-      whatsapp_number: "",
-      experience_summary: "",
-      headline: "",
-      skills: [],
-      experience: [],
-      education: [],
-      portfolio_links: [],
-      show_phone: true,
-    }
-  });
-
-  const skills = watch("skills") || [];
-  const fullName = watch("full_name") || "";
-  const showPhone = watch("show_phone") ?? true;
-  const experienceList = watch("experience") || [];
-
-  // Fetch initial profile from Supabase on mount
   React.useEffect(() => {
-    async function loadCandidateProfile() {
-      setIsLoading(true);
-      try {
-        const { data: { user } } = await supabase.auth.getUser();
-        if (user) {
-          setCandidateEmail(user.email || "");
-          const profile = await candidateProfileService.getProfile(user.id);
-          if (profile) {
-            reset({
-              full_name: profile.full_name || "",
-              whatsapp_number: profile.whatsapp_number || "",
-              experience_summary: profile.experience_summary || "",
-              headline: profile.headline || "",
-              skills: profile.skills || [],
-              experience: (profile.experience as any) || [],
-              education: (profile.education as any) || [],
-              portfolio_links: (profile.portfolio_links as any) || [],
-              show_phone: profile.show_phone ?? true,
-            });
+    let active = true;
+    const supabase = createClient();
 
-            if (profile.avatar_url) {
-              setAvatarUrl(profile.avatar_url);
-            }
-          }
-        }
+    async function load() {
+      try {
+        const {
+          data: { user },
+        } = await supabase.auth.getUser();
+        if (!active || !user) return;
+        setUserId(user.id);
+        setEmail(user.email || "");
+
+        const profile = await candidateProfileService.getProfile(user.id);
+        if (!active || !profile) return;
+
+        const { firstName: fn, lastName: ln } = splitFullName(
+          profile.full_name || ""
+        );
+        setFirstName(fn);
+        setLastName(ln);
+        setEmail(profile.email || user.email || "");
+        setPhone(profile.whatsapp_number || "");
+        setCity(profile.location || "");
+        setAvatarUrl(profile.avatar_url || null);
       } catch (err) {
-        console.error("Error loading candidate profile for edit:", err);
-        toast.error("Error al cargar la información del perfil");
+        console.error("Error loading personal data:", err);
+        if (active) {
+          setFormError("No pudimos cargar tus datos personales.");
+        }
       } finally {
-        setIsLoading(false);
+        if (active) setIsLoading(false);
       }
     }
 
-    loadCandidateProfile();
-  }, [supabase, reset]);
+    void load();
+    return () => {
+      active = false;
+    };
+  }, []);
 
-  const handleBack = () => {
-    if (onBack) {
-      onBack();
-    } else {
-      router.push("/dashboard/candidate/profile");
-    }
-  };
+  const fullNameCombined = [firstName.trim(), lastName.trim()]
+    .filter(Boolean)
+    .join(" ");
+  const initials = getCandidateInitials(fullNameCombined, email);
 
-  // Add / Remove Skills
-  const handleAddSkill = () => {
-    const trimmed = newSkillText.trim();
-    if (!trimmed) return;
-    if (skills.includes(trimmed)) {
-      toast.info("Esa habilidad ya está en tu lista");
-      return;
-    }
-    setValue("skills", [...skills, trimmed], { shouldValidate: true });
-    setNewSkillText("");
-    setIsAddSkillOpen(false);
-  };
-
-  const handleRemoveSkill = (skillToRemove: string) => {
-    setValue(
-      "skills",
-      skills.filter((s: string) => s !== skillToRemove),
-      { shouldValidate: true }
-    );
-  };
-
-  // Photo Upload Handler
-  const handlePhotoFileSelected = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    if (!file.type.startsWith("image/")) {
-      toast.error("Formato no válido", { description: "Por favor selecciona un archivo JPG, PNG o WebP." });
-      return;
-    }
-
-    if (file.size > 5 * 1024 * 1024) {
-      toast.error("Archivo muy pesado", { description: "La foto debe pesar menos de 5MB." });
-      return;
-    }
+  const handlePhotoChange = async (
+    event: React.ChangeEvent<HTMLInputElement>
+  ) => {
+    const file = event.target.files?.[0];
+    event.target.value = "";
+    if (!file || !userId) return;
 
     setIsUploadingPhoto(true);
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error("No hay sesión de usuario activa");
-
-      const publicUrl = await candidateDocumentsService.uploadAvatar(user.id, file);
-      setAvatarUrl(publicUrl);
-      toast.success("Foto de perfil cargada con éxito");
-    } catch (err: any) {
-      console.error("Error uploading avatar:", err);
-      toast.error("No se pudo subir la foto", { description: err.message || "Intenta nuevamente." });
+      const nextUrl = await candidateDocumentsService.uploadAvatar(userId, file);
+      setAvatarUrl(nextUrl);
+      toast.success("Foto de perfil actualizada");
+    } catch (err) {
+      const msg =
+        err instanceof Error ? err.message : "No se pudo subir la fotografía";
+      toast.error(msg);
     } finally {
       setIsUploadingPhoto(false);
     }
   };
 
-  const handleDeletePhoto = async () => {
-    try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (user) {
-        await candidateProfileService.updateProfile(user.id, { avatar_url: null });
-      }
-      setAvatarUrl(null);
-      toast.success("Foto de perfil eliminada");
-    } catch (err) {
-      console.error("Error deleting avatar:", err);
+  const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    if (!userId || isSaving) return;
+
+    if (!firstName.trim()) {
+      setFormError("Ingresa tu nombre antes de guardar.");
+      return;
     }
-  };
 
-  // Save Form Handler
-  const onSubmit = async (values: any) => {
     setIsSaving(true);
+    setFormError(null);
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) {
-        toast.error("Sesión no válida");
-        return;
-      }
-
-      await candidateProfileService.updateProfile(user.id, {
-        full_name: values.full_name.trim(),
-        whatsapp_number: values.whatsapp_number.trim(),
-        experience_summary: values.experience_summary?.trim() || "",
-        headline: values.headline?.trim() || "",
-        skills: values.skills,
-        experience: values.experience,
-        education: values.education,
-        portfolio_links: values.portfolio_links,
-        show_phone: values.show_phone ?? true,
+      await candidateProfileService.updateProfile(userId, {
+        full_name: fullNameCombined,
+        whatsapp_number: phone.trim(),
+        location: city.trim(),
         avatar_url: avatarUrl,
       });
-
-      toast.success("¡Perfil guardado exitosamente!");
-      setTimeout(() => {
-        handleBack();
-      }, 400);
+      toast.success("Cambios guardados");
+      router.refresh();
     } catch (err) {
-      console.error("Error saving profile:", err);
-      toast.error("Error al guardar los datos en la base de datos");
+      console.error("Error updating personal data:", err);
+      setFormError("No pudimos guardar tus cambios. Inténtalo de nuevo.");
     } finally {
       setIsSaving(false);
     }
   };
 
-  // Calculate dynamic completion percentage (0 - 100%)
-  const completionPercentage = React.useMemo(() => {
-    let score = 0;
-    if (fullName.trim() && fullName !== "Candidato K'anPro") score += 25;
-    if (candidateEmail.trim()) score += 15;
-    if (watch("whatsapp_number")?.trim()) score += 20;
-    if (watch("experience_summary")?.trim()) score += 15;
-    if (skills.length > 0) score += 15;
-    if (avatarUrl) score += 10;
-    return Math.min(score, 100);
-  }, [fullName, candidateEmail, watch("whatsapp_number"), watch("experience_summary"), skills, avatarUrl]);
-
-  const initialLetter = fullName.trim().length > 0 ? fullName.trim()[0].toUpperCase() : "C";
+  const handleBack = () => {
+    if (onBack) {
+      onBack();
+      return;
+    }
+    router.push("/dashboard/candidate/profile");
+  };
 
   return (
-    <div className="flex-1 min-h-full bg-transparent px-3 sm:px-6 lg:px-8 pt-2 pb-24 max-w-4xl mx-auto w-full animate-in fade-in duration-200">
-      <input
-        ref={avatarInputRef}
-        type="file"
-        accept="image/png,image/jpeg,image/webp"
-        className="hidden"
-        onChange={handlePhotoFileSelected}
-      />
+    <div className="mx-auto flex min-h-[calc(100dvh-48px)] w-full max-w-[540px] flex-col gap-6 pb-8 md:min-h-0">
+      <header className="flex flex-col gap-2">
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={handleBack}
+            aria-label="Volver a Mi perfil"
+            className="-ml-2 inline-flex size-[48px] shrink-0 cursor-pointer items-center justify-center rounded-[8px] text-foreground transition-colors hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          >
+            <HugeiconsIcon
+              icon={ArrowLeft01Icon}
+              size={20}
+              strokeWidth={1.75}
+              aria-hidden="true"
+            />
+          </button>
+          <h1 className="text-[28px] font-bold leading-[39px] text-foreground">
+            Datos personales
+          </h1>
+        </div>
+        <p className="text-[16px] font-normal leading-[22px] text-muted-foreground">
+          Actualiza cómo podemos contactarte.
+        </p>
+      </header>
 
       {isLoading ? (
-        <div className="py-24 flex justify-center items-center">
-          <Loader2 className="size-7 text-primary animate-spin" />
+        <div aria-busy="true" className="flex flex-col gap-6">
+          <div className="flex items-center gap-6">
+            <Skeleton className="size-[80px] rounded-full" />
+            <div className="flex flex-col gap-2">
+              <Skeleton className="h-5 w-28" />
+              <Skeleton className="h-8 w-32" />
+            </div>
+          </div>
+          <Skeleton className="h-[56px] w-full rounded-[8px]" />
+          <Skeleton className="h-[56px] w-full rounded-[8px]" />
+          <Skeleton className="h-[56px] w-full rounded-[8px]" />
         </div>
       ) : (
-        /* Main Profile Card matching Reference */
-        <div className="rounded-4xl border border-border/60 bg-card shadow-sm overflow-hidden">
-          
-          {/* 1. Hero Cover Banner */}
-          <div className="h-32 sm:h-44 bg-gradient-to-r from-primary/10 via-primary/5 to-muted/20 relative">
-            <Button
-              type="button"
-              variant="secondary"
-              size="icon"
-              onClick={handleBack}
-              aria-label="Regresar"
-              className="absolute top-4 left-4 size-9 rounded-full bg-background/80 hover:bg-background backdrop-blur-md shadow-xs cursor-pointer"
-            >
-              <ArrowLeft className="size-4" />
-            </Button>
-          </div>
-
-          {/* 2. Avatar Row */}
-          <div className="px-6 sm:px-8 flex items-end justify-between -mt-12 sm:-mt-14 relative z-10">
-            <div
-              onClick={() => avatarInputRef.current?.click()}
-              className="relative cursor-pointer group"
-            >
-              <Avatar className="size-22 sm:size-26 rounded-full border-4 border-card ring-1 ring-border/50 overflow-hidden bg-muted shadow-md">
-                {avatarUrl && <AvatarImage src={avatarUrl} alt={fullName} />}
-                <AvatarFallback className="text-2xl font-bold bg-muted text-foreground">
-                  {initialLetter}
-                </AvatarFallback>
-              </Avatar>
-
-              {/* Camera Hover Badge */}
-              <div className="absolute bottom-1 right-1 size-7 rounded-full bg-primary text-primary-foreground flex items-center justify-center shadow-md ring-2 ring-card hover:scale-105 transition-transform">
-                {isUploadingPhoto ? (
-                  <Loader2 className="size-3.5 animate-spin" />
-                ) : (
-                  <Camera className="size-3.5" />
-                )}
-              </div>
-            </div>
-          </div>
-
-          {/* 3. User Name & Contact Header */}
-          <div className="px-6 sm:px-8 pt-3 sm:pt-4 space-y-0.5">
-            <div className="flex items-center gap-2">
-              <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-foreground">
-                {fullName || "Tu Nombre Completo"}
-              </h1>
-              <BadgeCheck className="size-5 text-primary fill-primary/20" />
-            </div>
-            <p className="text-xs sm:text-sm text-muted-foreground">
-              {candidateEmail}
-            </p>
-          </div>
-
-          {/* 4. Metrics Bar (4 Indicators like Reference) */}
-          <div className="px-6 sm:px-8 py-4 border-y border-border/60 grid grid-cols-2 sm:grid-cols-4 gap-4 my-6">
-            <div className="space-y-0.5">
-              <span className="text-xs text-muted-foreground font-medium">Completitud</span>
-              <p className="text-sm sm:text-base font-bold text-foreground">{completionPercentage}%</p>
-            </div>
-            <div className="space-y-0.5">
-              <span className="text-xs text-muted-foreground font-medium">Habilidades</span>
-              <p className="text-sm sm:text-base font-bold text-foreground">{skills.length} agregadas</p>
-            </div>
-            <div className="space-y-0.5">
-              <span className="text-xs text-muted-foreground font-medium">Experiencia</span>
-              <p className="text-sm sm:text-base font-bold text-foreground">{experienceList.length} puestos</p>
-            </div>
-            <div className="space-y-0.5">
-              <span className="text-xs text-muted-foreground font-medium">Visibilidad</span>
-              <p className="text-sm sm:text-base font-bold text-foreground">{showPhone ? "Público" : "Protegido"}</p>
-            </div>
-          </div>
-
-          {/* 5. Form Sections (Side-by-side on desktop: Title on Left, Inputs on Right) */}
-          <form onSubmit={handleSubmit(onSubmit)} className="px-6 sm:px-8 pb-8 divide-y divide-border/60">
-            
-            {/* Section 1: Public profile */}
-            <div className="grid grid-cols-1 md:grid-cols-12 gap-4 md:gap-6 pt-2 pb-7">
-              <div className="md:col-span-4 space-y-1">
-                <h3 className="text-sm font-semibold text-foreground">Perfil público</h3>
-                <p className="text-xs text-muted-foreground leading-relaxed">
-                  Esta información se mostrará en tu tarjeta de candidato ante reclutadores y empresas.
-                </p>
-              </div>
-
-              <div className="md:col-span-8 space-y-4">
-                {/* Nombre Completo */}
-                <div className="space-y-1.5">
-                  <Label htmlFor="full_name" className="text-xs font-semibold text-foreground">
-                    Nombre Completo <span className="text-destructive">*</span>
-                  </Label>
-                  <Input
-                    id="full_name"
-                    placeholder="Tu nombre completo como aparecerá en el perfil"
-                    className="h-9 rounded-3xl bg-input/50 border-input text-xs sm:text-sm"
-                    {...register("full_name")}
-                  />
-                  {errors.full_name && (
-                    <p className="text-[11px] font-medium text-destructive mt-0.5">
-                      {errors.full_name?.message as string}
-                    </p>
-                  )}
-                </div>
-
-                {/* WhatsApp Directo */}
-                <div className="space-y-1.5">
-                  <Label htmlFor="whatsapp_number" className="text-xs font-semibold text-foreground">
-                    Número de WhatsApp Directo <span className="text-destructive">*</span>
-                  </Label>
-                  <div className="flex items-center gap-2">
-                    <div className="flex items-center justify-center h-9 px-3 rounded-3xl bg-muted/50 border border-input text-xs font-semibold text-muted-foreground shrink-0 select-none">
-                      <span className="mr-1.5">🇲🇽</span> +52
-                    </div>
-                    <div className="relative flex-1">
-                      <Input
-                        id="whatsapp_number"
-                        type="tel"
-                        placeholder="10 dígitos (ej. 999 123 4567)"
-                        value={formatPhoneDisplay(watch("whatsapp_number") || "")}
-                        onChange={(e) => setValue("whatsapp_number", normalizePhone(e.target.value), { shouldValidate: true })}
-                        className="h-9 rounded-3xl bg-input/50 border-input text-xs sm:text-sm pr-9"
-                      />
-                      <Phone className="size-3.5 absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none" />
-                    </div>
-                  </div>
-                  {errors.whatsapp_number ? (
-                    <p className="text-[11px] font-medium text-destructive mt-0.5">
-                      {errors.whatsapp_number?.message as string}
-                    </p>
-                  ) : (
-                    <p className="text-[11px] text-muted-foreground font-medium">
-                      Las empresas te contactarán a este número para entrevistas.
-                    </p>
-                  )}
-                </div>
-
-                {/* Titular Profesional */}
-                <div className="space-y-1.5">
-                  <Label htmlFor="headline" className="text-xs font-semibold text-foreground">
-                    Titular Profesional / Puesto Buscado <span className="text-destructive">*</span>
-                  </Label>
-                  <Input
-                    id="headline"
-                    placeholder="Ej. Chef Especialista en Cocina de Mar | Barman Bilingüe"
-                    className="h-9 rounded-3xl bg-input/50 border-input text-xs sm:text-sm"
-                    {...register("headline")}
-                  />
-                  {errors.headline ? (
-                    <p className="text-[11px] font-medium text-destructive mt-0.5">
-                      {errors.headline?.message as string}
-                    </p>
-                  ) : (
-                    <p className="text-[11px] text-muted-foreground font-medium">
-                      Una línea descriptiva que verán los reclutadores en el Radar de talento.
-                    </p>
-                  )}
-                </div>
-              </div>
-            </div>
-
-            {/* Section 2: About me / Biography */}
-            <div className="grid grid-cols-1 md:grid-cols-12 gap-4 md:gap-6 py-7">
-              <div className="md:col-span-4 space-y-1">
-                <h3 className="text-sm font-semibold text-foreground">Acerca de ti</h3>
-                <p className="text-xs text-muted-foreground leading-relaxed">
-                  Describe brevemente tu trayectoria laboral, tus fortalezas principales y tus metas.
-                </p>
-              </div>
-
-              <div className="md:col-span-8 space-y-1.5">
-                <Label htmlFor="experience_summary" className="text-xs font-semibold text-foreground">
-                  Biografía y Resumen
-                </Label>
-                <Textarea
-                  id="experience_summary"
-                  {...register("experience_summary")}
-                  placeholder="Describe brevemente tu trayectoria, tus fortalezas principales y lo que buscas en tu próximo empleo..."
-                  rows={4}
-                  className="w-full resize-none rounded-3xl bg-input/50 border-input text-xs sm:text-sm leading-relaxed p-3.5 min-h-24"
+        <form onSubmit={handleSubmit} className="flex flex-1 flex-col gap-5">
+          {/* Foto de perfil */}
+          <div className="flex items-center gap-6">
+            <Avatar className="size-[80px] shrink-0 rounded-full after:hidden">
+              {avatarUrl && (
+                <AvatarImage
+                  src={avatarUrl}
+                  alt={fullNameCombined || "Foto de perfil"}
+                  className="object-cover"
                 />
-              </div>
-            </div>
+              )}
+              <AvatarFallback className="rounded-full bg-muted text-[24px] font-bold text-primary">
+                {initials}
+              </AvatarFallback>
+            </Avatar>
 
-            {/* Section 3: Skills & Badges */}
-            <div className="grid grid-cols-1 md:grid-cols-12 gap-4 md:gap-6 py-7">
-              <div className="md:col-span-4 space-y-1">
-                <h3 className="text-sm font-semibold text-foreground">Habilidades y Destrezas</h3>
-                <p className="text-xs text-muted-foreground leading-relaxed">
-                  Palabras clave destacadas para aparecer en las búsquedas especializadas del Radar.
-                </p>
-              </div>
-
-              <div className="md:col-span-8 space-y-3">
-                <div className="flex flex-wrap items-center gap-1.5 min-h-11 p-3 bg-muted/20 border border-border/60 rounded-3xl">
-                  {skills.length === 0 ? (
-                    <span className="text-xs text-muted-foreground">
-                      No has agregado habilidades aún. Haz clic en añadir para sumar aptitudes.
-                    </span>
-                  ) : (
-                    skills.map((skill: string) => (
-                      <Badge
-                        key={skill}
-                        variant="secondary"
-                        className="text-xs font-medium px-2.5 py-1 gap-1.5 rounded-3xl bg-background border border-border/60 shadow-2xs"
-                      >
-                        <span>{skill}</span>
-                        <button
-                          type="button"
-                          onClick={() => handleRemoveSkill(skill)}
-                          className="text-muted-foreground hover:text-foreground cursor-pointer"
-                          aria-label={`Eliminar ${skill}`}
-                        >
-                          <X className="size-3" />
-                        </button>
-                      </Badge>
-                    ))
-                  )}
-                </div>
-
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setIsAddSkillOpen(true)}
-                  className="h-9 px-4 text-xs font-medium gap-1.5 rounded-4xl cursor-pointer"
-                >
-                  <Plus className="size-3.5" />
-                  <span>Añadir habilidad</span>
-                </Button>
-              </div>
-            </div>
-
-            {/* Section 4: Work Experience */}
-            <div className="grid grid-cols-1 md:grid-cols-12 gap-4 md:gap-6 py-7">
-              <div className="md:col-span-4 space-y-1">
-                <div className="flex items-center gap-2">
-                  <Briefcase className="size-4 text-primary" />
-                  <h3 className="text-sm font-semibold text-foreground">Experiencia Laboral</h3>
-                </div>
-                <p className="text-xs text-muted-foreground leading-relaxed">
-                  Tus empleos anteriores, empresas y funciones desempeñadas.
-                </p>
-              </div>
-
-              <div className="md:col-span-8">
-                <ExperienceFieldArray
-                  control={control}
-                  register={register}
-                  errors={errors}
-                />
-              </div>
-            </div>
-
-            {/* Section 5: Education */}
-            <div className="grid grid-cols-1 md:grid-cols-12 gap-4 md:gap-6 py-7">
-              <div className="md:col-span-4 space-y-1">
-                <div className="flex items-center gap-2">
-                  <GraduationCap className="size-4 text-primary" />
-                  <h3 className="text-sm font-semibold text-foreground">Educación y Grados</h3>
-                </div>
-                <p className="text-xs text-muted-foreground leading-relaxed">
-                  Estudios académicos, cursos concluidos o carreras técnicas.
-                </p>
-              </div>
-
-              <div className="md:col-span-8">
-                <EducationFieldArray
-                  control={control}
-                  register={register}
-                  errors={errors}
-                />
-              </div>
-            </div>
-
-            {/* Section 6: Support Access / Contact Visibility Switch (Style matching reference) */}
-            <div className="grid grid-cols-1 md:grid-cols-12 gap-4 md:gap-6 py-7 items-center">
-              <div className="md:col-span-8 space-y-1">
-                <h3 className="text-sm font-semibold text-foreground">Visibilidad de contacto directo</h3>
-                <p className="text-xs text-muted-foreground leading-relaxed">
-                  Permite a las empresas y reclutadores contactarte directamente a tu número de WhatsApp para agendar entrevistas.
-                </p>
-              </div>
-
-              <div className="md:col-span-4 flex justify-start md:justify-end">
-                <Switch
-                  checked={showPhone}
-                  onCheckedChange={(val) => setValue("show_phone", val)}
-                  aria-label="Permitir contacto directo"
-                />
-              </div>
-            </div>
-
-            {/* Section 7: Action Footer (Cancel / Save Changes) */}
-            <div className="pt-7 flex items-center justify-end gap-3">
-              <Button
+            <div className="flex flex-col items-start gap-1">
+              <p className="text-[16px] font-normal leading-[22px] text-foreground">
+                Foto de perfil
+              </p>
+              <button
                 type="button"
-                variant="outline"
-                onClick={handleBack}
-                className="rounded-4xl h-9 px-4 text-xs font-medium cursor-pointer"
+                disabled={isUploadingPhoto}
+                onClick={() => fileInputRef.current?.click()}
+                className="inline-flex min-h-[48px] cursor-pointer items-center gap-3 rounded-[8px] px-1 text-[14px] font-semibold text-primary transition-colors hover:underline disabled:opacity-60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
               >
-                Cancelar
-              </Button>
-
-              <Button
-                type="submit"
-                disabled={isSaving}
-                className="rounded-4xl h-9 px-5 text-xs font-medium gap-2 min-w-32 cursor-pointer shadow-xs"
-              >
-                {isSaving ? (
-                  <>
-                    <Loader2 className="size-3.5 animate-spin" />
-                    <span>Guardando...</span>
-                  </>
-                ) : (
-                  <span>Guardar cambios</span>
-                )}
-              </Button>
+                <HugeiconsIcon
+                  icon={isUploadingPhoto ? Loading03Icon : Camera01Icon}
+                  size={20}
+                  strokeWidth={1.75}
+                  aria-hidden="true"
+                  className={isUploadingPhoto ? "animate-spin" : undefined}
+                />
+                <span>
+                  {isUploadingPhoto ? "Subiendo…" : "Cambiar foto"}
+                </span>
+              </button>
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/jpeg,image/png,image/webp"
+                onChange={handlePhotoChange}
+                className="hidden"
+                aria-label="Seleccionar foto de perfil"
+              />
             </div>
-
-          </form>
-
-        </div>
-      )}
-
-      {/* Add Skill Modal Dialog */}
-      <Dialog open={isAddSkillOpen} onOpenChange={setIsAddSkillOpen}>
-        <DialogContent className="sm:max-w-sm rounded-4xl border-border bg-card p-6 space-y-3">
-          <DialogHeader className="space-y-1 text-left">
-            <DialogTitle className="text-base font-bold text-foreground">
-              Agregar Habilidad o Destreza
-            </DialogTitle>
-            <DialogDescription className="text-xs text-muted-foreground">
-              Ingresa una competencia técnica o destreza profesional.
-            </DialogDescription>
-          </DialogHeader>
-
-          <div className="space-y-1.5 py-1">
-            <Label htmlFor="skill_input" className="text-xs font-semibold text-foreground">
-              Habilidad
-            </Label>
-            <Input
-              id="skill_input"
-              type="text"
-              autoFocus
-              value={newSkillText}
-              onChange={(e) => setNewSkillText(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === "Enter") {
-                  e.preventDefault();
-                  handleAddSkill();
-                }
-              }}
-              placeholder="Ej. Cocina Caliente, Proactivo, Inglés..."
-              className="h-9 rounded-3xl bg-input/50 border-input text-xs sm:text-sm"
-            />
           </div>
 
-          <DialogFooter className="flex items-center justify-end gap-2 pt-3 border-t border-border/60">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setIsAddSkillOpen(false)}
-              className="rounded-4xl h-9 px-4 text-xs font-medium"
+          {/* Nombre */}
+          <div className="flex flex-col gap-2">
+            <label
+              htmlFor="personal-first-name"
+              className="text-[12px] font-semibold leading-[17px] text-foreground"
             >
-              Cancelar
-            </Button>
-            <Button
-              type="button"
-              size="sm"
-              onClick={handleAddSkill}
-              className="rounded-4xl h-9 px-4 text-xs font-medium shadow-xs"
+              Nombre
+            </label>
+            <div className="flex h-[56px] w-full items-center gap-3 rounded-[8px] border border-input bg-background px-4 focus-within:border-primary focus-within:ring-2 focus-within:ring-ring">
+              <HugeiconsIcon
+                icon={UserCircleIcon}
+                size={20}
+                strokeWidth={1.75}
+                aria-hidden="true"
+                className="shrink-0 text-muted-foreground"
+              />
+              <input
+                id="personal-first-name"
+                type="text"
+                autoComplete="given-name"
+                value={firstName}
+                onChange={(e) => setFirstName(e.target.value)}
+                placeholder="Tu nombre"
+                className="min-w-0 flex-1 bg-transparent text-[14px] text-foreground placeholder:text-muted-foreground focus:outline-none"
+              />
+            </div>
+          </div>
+
+          {/* Apellidos */}
+          <div className="flex flex-col gap-2">
+            <label
+              htmlFor="personal-last-name"
+              className="text-[12px] font-semibold leading-[17px] text-foreground"
             >
-              Agregar
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+              Apellidos
+            </label>
+            <div className="flex h-[56px] w-full items-center gap-3 rounded-[8px] border border-input bg-background px-4 focus-within:border-primary focus-within:ring-2 focus-within:ring-ring">
+              <HugeiconsIcon
+                icon={UserCircleIcon}
+                size={20}
+                strokeWidth={1.75}
+                aria-hidden="true"
+                className="shrink-0 text-muted-foreground"
+              />
+              <input
+                id="personal-last-name"
+                type="text"
+                autoComplete="family-name"
+                value={lastName}
+                onChange={(e) => setLastName(e.target.value)}
+                placeholder="Tus apellidos"
+                className="min-w-0 flex-1 bg-transparent text-[14px] text-foreground placeholder:text-muted-foreground focus:outline-none"
+              />
+            </div>
+          </div>
+
+          {/* Correo de acceso (pertenece a Configuración) */}
+          <Link
+            href="/dashboard/candidate/settings"
+            className="group flex min-h-[64px] w-full items-center gap-4 border-b border-border py-2 text-left transition-colors hover:bg-muted/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          >
+            <HugeiconsIcon
+              icon={Mail01Icon}
+              size={20}
+              strokeWidth={1.75}
+              aria-hidden="true"
+              className="shrink-0 text-muted-foreground"
+            />
+            <div className="flex min-w-0 flex-1 flex-col gap-0.5">
+              <p className="text-[14px] font-semibold leading-[19px] text-foreground">
+                Correo de acceso
+              </p>
+              <p className="truncate text-[12px] font-medium leading-[17px] text-muted-foreground">
+                {email || "Configura tu correo"}
+              </p>
+            </div>
+            <HugeiconsIcon
+              icon={ArrowRight01Icon}
+              size={20}
+              strokeWidth={1.75}
+              aria-hidden="true"
+              className="shrink-0 text-muted-foreground transition-transform group-hover:translate-x-0.5 group-hover:text-foreground"
+            />
+          </Link>
+
+          {/* Teléfono */}
+          <div className="flex flex-col gap-2">
+            <label
+              htmlFor="personal-phone"
+              className="text-[12px] font-semibold leading-[17px] text-foreground"
+            >
+              Teléfono
+            </label>
+            <div className="flex h-[56px] w-full items-center gap-3 rounded-[8px] border border-input bg-background px-4 focus-within:border-primary focus-within:ring-2 focus-within:ring-ring">
+              <HugeiconsIcon
+                icon={CallIcon}
+                size={20}
+                strokeWidth={1.75}
+                aria-hidden="true"
+                className="shrink-0 text-muted-foreground"
+              />
+              <input
+                id="personal-phone"
+                type="tel"
+                autoComplete="tel"
+                value={phone}
+                onChange={(e) => setPhone(e.target.value)}
+                placeholder="+52 998 000 0000"
+                className="min-w-0 flex-1 bg-transparent text-[14px] text-foreground placeholder:text-muted-foreground focus:outline-none"
+              />
+            </div>
+          </div>
+
+          {/* Ciudad */}
+          <div className="flex flex-col gap-2">
+            <label
+              htmlFor="personal-city"
+              className="text-[12px] font-semibold leading-[17px] text-foreground"
+            >
+              Ciudad
+            </label>
+            <div className="flex h-[56px] w-full items-center gap-3 rounded-[8px] border border-input bg-background px-4 focus-within:border-primary focus-within:ring-2 focus-within:ring-ring">
+              <HugeiconsIcon
+                icon={Location01Icon}
+                size={20}
+                strokeWidth={1.75}
+                aria-hidden="true"
+                className="shrink-0 text-muted-foreground"
+              />
+              <input
+                id="personal-city"
+                type="text"
+                autoComplete="address-level2"
+                value={city}
+                onChange={(e) => setCity(e.target.value)}
+                placeholder="Cancún, Quintana Roo"
+                className="min-w-0 flex-1 bg-transparent text-[14px] text-foreground placeholder:text-muted-foreground focus:outline-none"
+              />
+            </div>
+          </div>
+
+          {formError && (
+            <p role="alert" className="text-[14px] leading-[19px] text-destructive">
+              {formError}
+            </p>
+          )}
+
+          {/* CTA único al alcance del pulgar */}
+          <div className="sticky bottom-0 mt-auto bg-background pt-4 pb-[env(safe-area-inset-bottom,0px)]">
+            <button
+              type="submit"
+              disabled={isSaving}
+              aria-busy={isSaving}
+              className="inline-flex min-h-[56px] w-full cursor-pointer items-center justify-center gap-3 rounded-[8px] bg-primary text-[14px] font-semibold text-primary-foreground transition-colors hover:bg-primary-hover disabled:opacity-70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            >
+              <HugeiconsIcon
+                icon={isSaving ? Loading03Icon : PencilEdit02Icon}
+                size={20}
+                strokeWidth={1.75}
+                aria-hidden="true"
+                className={isSaving ? "animate-spin" : undefined}
+              />
+              <span>{isSaving ? "Guardando…" : "Guardar cambios"}</span>
+            </button>
+          </div>
+        </form>
+      )}
     </div>
   );
 }
-

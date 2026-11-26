@@ -26,7 +26,7 @@ import { NotificationBell } from "@/modules/notifications/components/notificatio
 import { cn } from "@/lib/utils";
 
 const candidateRouteNames: Record<string, string> = {
-  "/dashboard/candidate": "Inicio",
+  "/dashboard/candidate": "Vacantes",
   "/dashboard/candidate/discovery": "Buscar vacantes",
   "/dashboard/candidate/applications": "Postulaciones",
   "/dashboard/candidate/saved": "Guardados",
@@ -80,7 +80,24 @@ export function CandidateTopbar({
   }, []);
 
   const isRoot = pathname === "/dashboard/candidate";
-  const hideOnMobileHome = isRoot && !isEmployee;
+  const isVacancyDetail = pathname.startsWith("/dashboard/candidate/vacancies/");
+  const isApplications = pathname === "/dashboard/candidate/applications";
+  const isSaved =
+    pathname === "/dashboard/candidate/saved" ||
+    pathname === "/dashboard/candidate/profile/saved";
+  const isProfileMobileFlow =
+    pathname === "/dashboard/candidate/profile" ||
+    pathname === "/dashboard/candidate/profile/edit" ||
+    pathname === "/dashboard/candidate/profile/cv" ||
+    pathname === "/dashboard/candidate/profile/preferences" ||
+    pathname === "/dashboard/candidate/settings" ||
+    pathname === "/dashboard/candidate/documents";
+  const hideOnMobileHome =
+    (isRoot && !isEmployee) ||
+    isVacancyDetail ||
+    isApplications ||
+    isSaved ||
+    isProfileMobileFlow;
 
   const currentTitle =
     candidateRouteNames[pathname] ||

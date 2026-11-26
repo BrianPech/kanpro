@@ -2,26 +2,54 @@
 
 import * as React from "react";
 import { useRouter } from "next/navigation";
-import { 
-  ArrowLeft, 
-  BellRing, 
-  Loader2,
-  Check
-} from "@/components/ui/icons";
-import { Button } from "@/components/ui/button";
-import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Switch } from "@/components/ui/switch";
-import { Label } from "@/components/ui/label";
-import { createClient } from "@/lib/supabase/client";
+import { HugeiconsIcon } from "@hugeicons/react";
+import {
+  ArrowLeft01Icon,
+  ArrowRight01Icon,
+  Briefcase01Icon,
+  Building03Icon,
+  Cancel01Icon,
+  CheckmarkCircle02Icon,
+  Loading03Icon,
+  Location01Icon,
+  Notification02Icon,
+} from "@hugeicons/core-free-icons";
 import { toast } from "sonner";
+import {
+  Sheet,
+  SheetClose,
+  SheetContent,
+  SheetTitle,
+} from "@/components/ui/sheet";
+import { Switch } from "@/components/ui/switch";
+import { createClient } from "@/lib/supabase/client";
 import { cn } from "@/lib/utils";
+import type { Json } from "@/types/supabase";
 
 interface JobAlertPreferencesViewProps {
   onBack?: () => void;
 }
 
-const ALL_CATEGORIES = [
+type PreferenceSheet =
+  | "role"
+  | "categories"
+  | "locations"
+  | "salary"
+  | "alerts";
+
+type AlertFrequency = "Instantánea" | "Resumen diario" | "Semanal";
+type WorkModality = "Presencial" | "Híbrido" | "Remoto";
+
+interface StoredAlertPreferences {
+  target_role?: string;
+  categories?: string[];
+  locations?: string[];
+  min_salary?: number;
+  modalities?: WorkModality[];
+  frequency?: AlertFrequency;
+}
+
+const ALL_CATEGORIES: readonly string[] = [
   "Hotelería & Recepción",
   "Alimentos & Bebidas",
   "Cocina & Gastronomía",
@@ -32,7 +60,7 @@ const ALL_CATEGORIES = [
   "Coctelería & Bar",
 ];
 
-const ALL_LOCATIONS = [
+const ALL_LOCATIONS: readonly string[] = [
   "Playa del Carmen, Q. Roo",
   "Cancún, Q. Roo",
   "Tulum, Q. Roo",
@@ -42,399 +70,765 @@ const ALL_LOCATIONS = [
   "Riviera Maya",
 ];
 
-export function JobAlertPreferencesView({ onBack }: JobAlertPreferencesViewProps) {
-  const router = useRouter();
-  const supabase = createClient();
+const ALL_MODALITIES: readonly WorkModality[] = [
+  "Presencial",
+  "Híbrido",
+  "Remoto",
+];
 
-  // Local state
-  const [alertsEnabled, setAlertsEnabled] = React.useState<boolean>(true);
-  const [minSalaryExpectation, setMinSalaryExpectation] = React.useState<number>(14000);
-  const [alertFrequency, setAlertFrequency] = React.useState<string>("Instantánea");
+const ALL_FREQUENCIES: readonly AlertFrequency[] = [
+  "Instantánea",
+  "Resumen diario",
+  "Semanal",
+];
+
+function formatCategoriesSummary(categories: string[]): string {
+  if (categories.length === 0) return "Elige tus sectores";
+  if (categories.length === 1) return categories[0];
+  return `${categories[0]} + ${categories.length - 1}`;
+}
+
+function formatLocationsSummary(locations: string[]): string {
+  if (locations.length === 0) return "Elige tus zonas";
+  const shortNames = locations.map((loc) => loc.split(",")[0]?.trim() || loc);
+  if (shortNames.length === 1) return shortNames[0];
+  if (shortNames.length === 2) return `${shortNames[0]} y ${shortNames[1]}`;
+  return `${shortNames[0]}, ${shortNames[1]} + ${shortNames.length - 2}`;
+}
+
+function SelectionOptionRow({
+  label,
+  selected,
+  onClick,
+  role = "checkbox",
+}: {
+  label: string;
+  selected: boolean;
+  onClick: () => void;
+  role?: "checkbox" | "radio";
+}) {
+  return (
+    <button
+      type="button"
+      role={role}
+      aria-checked={selected}
+      onClick={onClick}
+      className={cn(
+        "flex min-h-[52px] w-full cursor-pointer items-center justify-between gap-4 rounded-[8px] border px-4 py-3 text-left transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+        selected
+          ? "border-[1.5px] border-primary bg-background text-foreground"
+          : "border-input bg-background text-foreground hover:bg-muted/40"
+      )}
+    >
+      <span className="text-[14px] font-normal leading-[19px] text-foreground">
+        {label}
+      </span>
+      {selected ? (
+        <HugeiconsIcon
+          icon={CheckmarkCircle02Icon}
+          size={20}
+          strokeWidth={1.75}
+          aria-hidden="true"
+          className="shrink-0 text-primary"
+        />
+      ) : (
+        <span
+          aria-hidden="true"
+          className="size-[20px] shrink-0 rounded-full border border-input"
+        />
+      )}
+    </button>
+  );
+}
+
+export function JobAlertPreferencesView({
+  onBack,
+}: JobAlertPreferencesViewProps) {
+  const router = useRouter();
+
+  // Saved/committed preferences state
+  const [targetRole, setTargetRole] = React.useState("");
   const [selectedCategories, setSelectedCategories] = React.useState<string[]>([
-    "Hotelería & Recepción",
-    "Alimentos & Bebidas",
+    "Administración & RH",
   ]);
   const [selectedLocations, setSelectedLocations] = React.useState<string[]>([
     "Playa del Carmen, Q. Roo",
     "Cancún, Q. Roo",
   ]);
+  const [minSalary, setMinSalary] = React.useState<number>(14000);
+  const [selectedModalities, setSelectedModalities] = React.useState<
+    WorkModality[]
+  >(["Presencial"]);
+  const [alertsEnabled, setAlertsEnabled] = React.useState<boolean>(true);
+  const [alertFrequency, setAlertFrequency] =
+    React.useState<AlertFrequency>("Resumen diario");
 
-  const [isSaving, setIsSaving] = React.useState<boolean>(false);
+  // Sheet & draft states (discarded when sheet closes without confirming)
+  const [openSheet, setOpenSheet] = React.useState<PreferenceSheet | null>(null);
+  const [draftRole, setDraftRole] = React.useState("");
+  const [draftCategories, setDraftCategories] = React.useState<string[]>([]);
+  const [draftLocations, setDraftLocations] = React.useState<string[]>([]);
+  const [draftSalaryInput, setDraftSalaryInput] = React.useState("14000");
+  const [draftModalities, setDraftModalities] = React.useState<WorkModality[]>(
+    []
+  );
+  const [draftAlertsEnabled, setDraftAlertsEnabled] = React.useState(true);
+  const [draftFrequency, setDraftFrequency] =
+    React.useState<AlertFrequency>("Resumen diario");
 
-  // Load preferences from Supabase
+  const [isSaving, setIsSaving] = React.useState(false);
+  const [savedBannerVisible, setSavedBannerVisible] = React.useState(false);
+
   React.useEffect(() => {
-    async function loadData() {
-      try {
-        const { data: { user } } = await supabase.auth.getUser();
-        if (user) {
-          const [{ data: baseProfile }, { data: candProfile }] = await Promise.all([
-            supabase
-              .from("profiles")
-              .select("location")
-              .eq("id", user.id)
-              .maybeSingle(),
-            supabase
-              .from("candidate_profiles")
-              .select("job_alerts_enabled, preferred_zone, specialization_area, social_links")
-              .eq("id", user.id)
-              .maybeSingle()
-          ]);
+    let active = true;
+    const supabase = createClient();
 
-          if (candProfile) {
-            if (candProfile.job_alerts_enabled !== undefined && candProfile.job_alerts_enabled !== null) {
-              setAlertsEnabled(!!candProfile.job_alerts_enabled);
-            }
-            const metadataAlerts = (candProfile.social_links as any)?.alert_preferences;
-            if (metadataAlerts) {
-              if (Array.isArray(metadataAlerts.categories) && metadataAlerts.categories.length > 0) {
-                setSelectedCategories(metadataAlerts.categories);
-              }
-              if (Array.isArray(metadataAlerts.locations) && metadataAlerts.locations.length > 0) {
-                setSelectedLocations(metadataAlerts.locations);
-              }
-              if (metadataAlerts.min_salary) {
-                setMinSalaryExpectation(Number(metadataAlerts.min_salary));
-              }
-              if (metadataAlerts.frequency) {
-                setAlertFrequency(metadataAlerts.frequency);
-              }
-            } else {
-              if (candProfile.specialization_area) {
-                setSelectedCategories([candProfile.specialization_area]);
-              }
-              if (candProfile.preferred_zone || baseProfile?.location) {
-                const loc = candProfile.preferred_zone || baseProfile?.location;
-                if (loc) setSelectedLocations([loc]);
-              }
-            }
-          } else if (baseProfile?.location) {
-            setSelectedLocations([baseProfile.location]);
-          }
+    async function loadPreferences() {
+      try {
+        const {
+          data: { user },
+        } = await supabase.auth.getUser();
+        if (!active || !user) return;
+
+        const { data: candProfile } = await supabase
+          .from("candidate_profiles")
+          .select(
+            "headline, job_alerts_enabled, preferred_zone, specialization_area, social_links"
+          )
+          .eq("id", user.id)
+          .maybeSingle();
+
+        if (!active || !candProfile) return;
+
+        if (candProfile.job_alerts_enabled !== null) {
+          setAlertsEnabled(Boolean(candProfile.job_alerts_enabled));
+        }
+
+        const social =
+          candProfile.social_links &&
+          typeof candProfile.social_links === "object" &&
+          !Array.isArray(candProfile.social_links)
+            ? (candProfile.social_links as Record<string, unknown>)
+            : null;
+        const stored = social?.alert_preferences as
+          | StoredAlertPreferences
+          | undefined;
+
+        if (stored?.target_role) {
+          setTargetRole(stored.target_role);
+        } else if (candProfile.headline) {
+          setTargetRole(candProfile.headline);
+        }
+
+        if (Array.isArray(stored?.categories) && stored.categories.length > 0) {
+          setSelectedCategories(stored.categories);
+        } else if (candProfile.specialization_area) {
+          setSelectedCategories([candProfile.specialization_area]);
+        }
+
+        if (Array.isArray(stored?.locations) && stored.locations.length > 0) {
+          setSelectedLocations(stored.locations);
+        } else if (candProfile.preferred_zone) {
+          setSelectedLocations([candProfile.preferred_zone]);
+        }
+
+        if (typeof stored?.min_salary === "number" && stored.min_salary > 0) {
+          setMinSalary(stored.min_salary);
+        }
+
+        if (Array.isArray(stored?.modalities) && stored.modalities.length > 0) {
+          setSelectedModalities(stored.modalities);
+        }
+
+        if (
+          stored?.frequency &&
+          ALL_FREQUENCIES.includes(stored.frequency)
+        ) {
+          setAlertFrequency(stored.frequency);
         }
       } catch (err) {
         console.error("Error loading preferences:", err);
       }
     }
-    loadData();
-  }, [supabase]);
 
-  const handleBack = () => {
-    if (onBack) {
-      onBack();
-    } else {
-      router.push("/dashboard/candidate/profile");
+    void loadPreferences();
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  const handleOpenSheet = (sheet: PreferenceSheet) => {
+    setDraftRole(targetRole);
+    setDraftCategories(selectedCategories);
+    setDraftLocations(selectedLocations);
+    setDraftSalaryInput(String(minSalary));
+    setDraftModalities(selectedModalities);
+    setDraftAlertsEnabled(alertsEnabled);
+    setDraftFrequency(alertFrequency);
+    setOpenSheet(sheet);
+  };
+
+  const toggleDraftItem = <T extends string>(
+    list: T[],
+    item: T,
+    setter: React.Dispatch<React.SetStateAction<T[]>>
+  ) => {
+    setter((prev) =>
+      prev.includes(item)
+        ? prev.length > 1
+          ? prev.filter((x) => x !== item)
+          : prev
+        : [...prev, item]
+    );
+  };
+
+  const handleApplySheet = () => {
+    if (openSheet === "role") {
+      setTargetRole(draftRole.trim());
+    } else if (openSheet === "categories") {
+      setSelectedCategories(draftCategories);
+    } else if (openSheet === "locations") {
+      setSelectedLocations(draftLocations);
+    } else if (openSheet === "salary") {
+      const parsed = Number(draftSalaryInput.replace(/[^\d]/g, ""));
+      if (parsed >= 1000) {
+        setMinSalary(parsed);
+      }
+      setSelectedModalities(draftModalities);
+    } else if (openSheet === "alerts") {
+      setAlertsEnabled(draftAlertsEnabled);
+      setAlertFrequency(draftFrequency);
     }
+    setSavedBannerVisible(false);
+    setOpenSheet(null);
   };
 
-  const toggleCategory = (cat: string) => {
-    setSelectedCategories((prev) => {
-      if (prev.includes(cat)) {
-        return prev.length > 1 ? prev.filter((c) => c !== cat) : prev;
-      } else {
-        return [...prev, cat];
-      }
-    });
-  };
-
-  const toggleLocation = (loc: string) => {
-    setSelectedLocations((prev) => {
-      if (prev.includes(loc)) {
-        return prev.length > 1 ? prev.filter((l) => l !== loc) : prev;
-      } else {
-        return [...prev, loc];
-      }
-    });
-  };
-
-  const handleSavePreferences = async () => {
+  const handleSaveAll = async () => {
+    if (isSaving) return;
     setIsSaving(true);
+    const supabase = createClient();
+
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error("No hay usuario autenticado");
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      if (!user) {
+        toast.error("Inicia sesión para guardar tus preferencias");
+        return;
+      }
 
-      const primaryCat = selectedCategories[0] || "Hotelería & Recepción";
-      const primaryLoc = selectedLocations[0] || "Playa del Carmen, Q. Roo";
-
-      // 1. Get existing social_links to preserve other metadata
-      const { data: existingCand } = await supabase
+      const { data: current } = await supabase
         .from("candidate_profiles")
         .select("social_links")
         .eq("id", user.id)
         .maybeSingle();
 
-      const existingSocial = (existingCand?.social_links as Record<string, any>) || {};
-      const updatedSocial = {
-        ...existingSocial,
-        alert_preferences: {
-          categories: selectedCategories,
-          locations: selectedLocations,
-          min_salary: minSalaryExpectation,
-          frequency: alertFrequency,
-          updated_at: new Date().toISOString(),
-        }
+      const existingSocial =
+        current?.social_links &&
+        typeof current.social_links === "object" &&
+        !Array.isArray(current.social_links)
+          ? (current.social_links as Record<string, Json | undefined>)
+          : {};
+
+      const alertPrefs: StoredAlertPreferences = {
+        target_role: targetRole.trim() || undefined,
+        categories: selectedCategories,
+        locations: selectedLocations,
+        min_salary: minSalary,
+        modalities: selectedModalities,
+        frequency: alertFrequency,
       };
 
-      // 2. Persist to candidate_profiles
-      const { error: candError } = await supabase
-        .from("candidate_profiles")
-        .upsert({
-          id: user.id,
-          job_alerts_enabled: alertsEnabled,
-          specialization_area: primaryCat,
-          preferred_zone: primaryLoc,
-          social_links: updatedSocial as any,
-          updated_at: new Date().toISOString(),
-        });
+      const { error } = await supabase.from("candidate_profiles").upsert({
+        id: user.id,
+        job_alerts_enabled: alertsEnabled,
+        specialization_area: selectedCategories[0] ?? null,
+        preferred_zone: selectedLocations[0] ?? null,
+        social_links: {
+          ...existingSocial,
+          alert_preferences: alertPrefs as unknown as Json,
+        },
+        updated_at: new Date().toISOString(),
+      });
 
-      if (candError) {
-        console.warn("Warning updating candidate_profiles alert preferences:", candError.message || candError);
-      }
-
-      // 3. Update base profile location and auth metadata
-      try {
-        await supabase
-          .from("profiles")
-          .update({
-            location: primaryLoc,
-            updated_at: new Date().toISOString(),
-          })
-          .eq("id", user.id);
-
-        await supabase.auth.updateUser({
-          data: {
-            job_alerts_enabled: alertsEnabled,
-            alert_preferences: updatedSocial.alert_preferences,
-          }
-        });
-      } catch (e) {
-        console.warn("Non-fatal sync with auth metadata:", e);
-      }
-
-      toast.success("Preferencias de alertas guardadas con éxito");
-      setTimeout(() => {
-        handleBack();
-      }, 500);
-    } catch (err: any) {
+      if (error) throw error;
+      setSavedBannerVisible(true);
+    } catch (err) {
       console.error("Error saving preferences:", err);
-      toast.error("Error al guardar en la base de datos");
+      toast.error("No pudimos guardar tus preferencias. Inténtalo de nuevo.");
     } finally {
       setIsSaving(false);
     }
   };
 
-  return (
-    <div className="flex-1 min-h-full bg-transparent px-4 sm:px-6 lg:px-8 pt-2 pb-28 md:pb-12 max-w-3xl mx-auto w-full animate-in fade-in duration-300 relative space-y-6">
-      
-      {/* Header */}
-      <div className="flex items-center justify-between py-2">
-        <Button
-          variant="outline"
-          size="icon"
-          onClick={handleBack}
-          aria-label="Regresar"
-          className="size-10 rounded-full cursor-pointer"
-        >
-          <ArrowLeft className="size-4" />
-        </Button>
+  const handleBack = () => {
+    if (onBack) {
+      onBack();
+      return;
+    }
+    router.push("/dashboard/candidate/profile");
+  };
 
-        <div className="text-center space-y-0.5">
-          <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-foreground">
-            Configuración de Alertas
-          </h1>
-          <p className="text-xs text-muted-foreground hidden sm:block">
-            Personaliza tus notificaciones de vacantes acordes a tu perfil
-          </p>
+  const salaryModalitySummary = `$${minSalary.toLocaleString("es-MX")} MXN/mes · ${selectedModalities.join(", ")}`;
+  const alertsSummary = alertsEnabled
+    ? `Activadas · ${alertFrequency}`
+    : "Desactivadas";
+
+  const rows: ReadonlyArray<{
+    id: PreferenceSheet;
+    icon: typeof Briefcase01Icon;
+    title: string;
+    subtitle: string;
+  }> = [
+    {
+      id: "role",
+      icon: Briefcase01Icon,
+      title: "Puesto de interés",
+      subtitle: targetRole || "Agrega el puesto que buscas",
+    },
+    {
+      id: "categories",
+      icon: Briefcase01Icon,
+      title: "Sectores de interés",
+      subtitle: formatCategoriesSummary(selectedCategories),
+    },
+    {
+      id: "locations",
+      icon: Location01Icon,
+      title: "Zonas para trabajar",
+      subtitle: formatLocationsSummary(selectedLocations),
+    },
+    {
+      id: "salary",
+      icon: Building03Icon,
+      title: "Sueldo y modalidad",
+      subtitle: salaryModalitySummary,
+    },
+    {
+      id: "alerts",
+      icon: Notification02Icon,
+      title: "Alertas de empleo",
+      subtitle: alertsSummary,
+    },
+  ];
+
+  return (
+    <div className="mx-auto flex min-h-[calc(100dvh-48px)] w-full max-w-[600px] flex-col justify-between gap-6 pb-8 md:min-h-0">
+      <div className="flex flex-col gap-6">
+        {/* Encabezado volver a Mi perfil (móvil) */}
+        <div className="flex h-[48px] items-center gap-2 md:hidden">
+          <button
+            type="button"
+            onClick={handleBack}
+            aria-label="Volver a Mi perfil"
+            className="-ml-2 inline-flex size-[48px] shrink-0 cursor-pointer items-center justify-center rounded-[8px] text-foreground transition-colors hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          >
+            <HugeiconsIcon
+              icon={ArrowLeft01Icon}
+              size={24}
+              strokeWidth={1.75}
+              aria-hidden="true"
+            />
+          </button>
+          <span className="text-[14px] font-normal leading-[19px] text-foreground">
+            Mi perfil
+          </span>
         </div>
 
-        <div className="size-10" />
-      </div>
+        {/* Presentación */}
+        <header className="flex flex-col gap-2">
+          <h1 className="text-[28px] font-bold leading-[39px] text-foreground">
+            Preferencias de empleo
+          </h1>
+          <p className="text-[16px] font-normal leading-[22px] text-muted-foreground">
+            Personaliza las oportunidades que quieres recibir.
+          </p>
+        </header>
 
-      {/* Form Area */}
-      <div className="space-y-6">
-        
-        {/* 1. Master Switch Card */}
-        <Card className="rounded-4xl border-primary/20 bg-primary/5 dark:bg-primary/10 shadow-xs">
-          <CardContent className="p-5 sm:p-6 flex items-center justify-between gap-4">
-            <div className="flex items-center gap-3.5 min-w-0">
-              <div className="size-10 rounded-3xl bg-primary/10 text-primary flex items-center justify-center shrink-0">
-                <BellRing className="size-5" />
-              </div>
-              <div className="min-w-0 space-y-0.5">
-                <h3 className="text-sm sm:text-base font-bold text-foreground">
-                  Notificaciones de Alertas
-                </h3>
-                <p className="text-xs sm:text-sm text-muted-foreground leading-relaxed">
-                  Recibe avisos cuando se publiquen vacantes acordes a tu perfil
+        {/* Lista de 5 preferencias */}
+        <div className="flex flex-col divide-y divide-border">
+          {rows.map((row) => (
+            <button
+              key={row.id}
+              type="button"
+              onClick={() => handleOpenSheet(row.id)}
+              className="group flex min-h-[76px] w-full cursor-pointer items-center gap-4 py-4 text-left transition-colors hover:bg-muted/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            >
+              <HugeiconsIcon
+                icon={row.icon}
+                size={20}
+                strokeWidth={1.75}
+                aria-hidden="true"
+                className="shrink-0 text-muted-foreground"
+              />
+              <div className="flex min-w-0 flex-1 flex-col gap-1">
+                <p className="text-[14px] font-semibold leading-[19px] text-foreground">
+                  {row.title}
+                </p>
+                <p className="truncate text-[13px] font-normal leading-[18px] text-muted-foreground">
+                  {row.subtitle}
                 </p>
               </div>
-            </div>
+              <HugeiconsIcon
+                icon={ArrowRight01Icon}
+                size={20}
+                strokeWidth={1.75}
+                aria-hidden="true"
+                className="shrink-0 text-muted-foreground transition-transform group-hover:translate-x-0.5 group-hover:text-foreground"
+              />
+            </button>
+          ))}
+        </div>
 
-            <Switch
-              checked={alertsEnabled}
-              onCheckedChange={setAlertsEnabled}
-              className="shrink-0"
-              aria-label="Habilitar alertas de empleo"
+        <p className="text-[14px] font-normal leading-[19px] text-muted-foreground">
+          Tus zonas de interés no cambian tu domicilio personal.
+        </p>
+      </div>
+
+      {/* Confirmación inline (Figma 323:2124) + CTA Guardar preferencias */}
+      <div className="sticky bottom-0 flex flex-col gap-4 bg-background pt-2 pb-[env(safe-area-inset-bottom,0px)]">
+        {savedBannerVisible && (
+          <div
+            role="status"
+            aria-live="polite"
+            className="flex min-h-[56px] w-full items-center gap-3 rounded-[16px] bg-muted pl-4 pr-2"
+          >
+            <HugeiconsIcon
+              icon={CheckmarkCircle02Icon}
+              size={22}
+              strokeWidth={1.75}
+              aria-hidden="true"
+              className="shrink-0 text-primary"
             />
-          </CardContent>
-        </Card>
-
-        {/* 2. Options (if alertsEnabled is true) */}
-        {alertsEnabled && (
-          <div className="space-y-6 animate-in fade-in duration-200">
-            
-            {/* Categories Section */}
-            <Card className="rounded-4xl border-border/70 bg-card shadow-xs">
-              <CardHeader className="pb-3">
-                <CardTitle className="text-base font-bold">Categorías de Interés</CardTitle>
-                <CardDescription className="text-xs">
-                  Selecciona los sectores donde deseas recibir ofertas laborales:
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="flex flex-wrap gap-2">
-                  {ALL_CATEGORIES.map((cat) => {
-                    const isSel = selectedCategories.includes(cat);
-                    return (
-                      <Button
-                        key={cat}
-                        type="button"
-                        variant={isSel ? "default" : "outline"}
-                        size="sm"
-                        onClick={() => toggleCategory(cat)}
-                        className={cn(
-                          "h-9 rounded-3xl text-xs font-medium gap-1.5 cursor-pointer transition-all",
-                          isSel && "shadow-xs"
-                        )}
-                      >
-                        {isSel && <Check className="size-3.5" />}
-                        <span>{cat}</span>
-                      </Button>
-                    );
-                  })}
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Locations Section */}
-            <Card className="rounded-4xl border-border/70 bg-card shadow-xs">
-              <CardHeader className="pb-3">
-                <CardTitle className="text-base font-bold">Zonas y Ciudades Preferidas</CardTitle>
-                <CardDescription className="text-xs">
-                  Recibirás avisos de vacantes publicadas en estas zonas:
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="flex flex-wrap gap-2">
-                  {ALL_LOCATIONS.map((loc) => {
-                    const isSel = selectedLocations.includes(loc);
-                    return (
-                      <Button
-                        key={loc}
-                        type="button"
-                        variant={isSel ? "default" : "outline"}
-                        size="sm"
-                        onClick={() => toggleLocation(loc)}
-                        className={cn(
-                          "h-9 rounded-3xl text-xs font-medium gap-1.5 cursor-pointer transition-all",
-                          isSel && "shadow-xs"
-                        )}
-                      >
-                        {isSel && <Check className="size-3.5" />}
-                        <span>{loc}</span>
-                      </Button>
-                    );
-                  })}
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Minimum Salary Slider Section */}
-            <Card className="rounded-4xl border-border/70 bg-card shadow-xs">
-              <CardHeader className="pb-3">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <CardTitle className="text-base font-bold">Sueldo Mínimo Deseado</CardTitle>
-                    <CardDescription className="text-xs">
-                      Filtra vacantes que cumplan con tu expectativa salarial mínima.
-                    </CardDescription>
-                  </div>
-                  <Badge variant="secondary" className="text-xs font-mono font-bold px-3 py-1 rounded-3xl">
-                    ${Math.round(minSalaryExpectation / 1000)}k MXN /mes
-                  </Badge>
-                </div>
-              </CardHeader>
-              <CardContent className="space-y-2">
-                <input
-                  type="range"
-                  min={8000}
-                  max={35000}
-                  step={1000}
-                  value={minSalaryExpectation}
-                  onChange={(e) => setMinSalaryExpectation(Number(e.target.value))}
-                  className="w-full h-2 bg-muted rounded-lg appearance-none cursor-pointer accent-primary"
-                />
-                <div className="flex justify-between text-[11px] text-muted-foreground font-medium">
-                  <span>$8,000 MXN</span>
-                  <span>$35,000+ MXN</span>
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Frequency Selection */}
-            <Card className="rounded-4xl border-border/70 bg-card shadow-xs">
-              <CardHeader className="pb-3">
-                <CardTitle className="text-base font-bold">Frecuencia de Notificación</CardTitle>
-                <CardDescription className="text-xs">
-                  ¿Con qué frecuencia deseas recibir resúmenes y alertas?
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="grid grid-cols-3 gap-2.5">
-                  {["Instantánea", "Resumen Diario", "Semanal"].map((freq) => {
-                    const isSel = alertFrequency === freq;
-                    return (
-                      <Button
-                        key={freq}
-                        type="button"
-                        variant={isSel ? "default" : "outline"}
-                        onClick={() => setAlertFrequency(freq)}
-                        className={cn(
-                          "h-9 rounded-3xl text-xs sm:text-sm font-semibold transition-all cursor-pointer",
-                          isSel && "shadow-xs"
-                        )}
-                      >
-                        {freq}
-                      </Button>
-                    );
-                  })}
-                </div>
-              </CardContent>
-            </Card>
-
+            <span className="flex-1 text-[14px] font-medium text-foreground">
+              Preferencias guardadas
+            </span>
+            <button
+              type="button"
+              onClick={() => setSavedBannerVisible(false)}
+              aria-label="Cerrar aviso"
+              className="inline-flex size-[48px] shrink-0 cursor-pointer items-center justify-center rounded-[8px] text-foreground hover:bg-background/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            >
+              <HugeiconsIcon
+                icon={Cancel01Icon}
+                size={18}
+                strokeWidth={1.75}
+                aria-hidden="true"
+              />
+            </button>
           </div>
         )}
 
-        {/* Save CTA Button */}
-        <div className="pt-2 flex justify-end">
-          <Button
-            type="button"
-            onClick={handleSavePreferences}
-            disabled={isSaving}
-            className="w-full sm:w-auto h-9 rounded-4xl font-semibold text-xs sm:text-sm gap-2 min-w-44 cursor-pointer shadow-xs"
-          >
-            {isSaving ? (
-              <>
-                <Loader2 className="size-4 animate-spin" />
-                <span>Guardando...</span>
-              </>
-            ) : (
-              <span>Guardar Preferencias</span>
-            )}
-          </Button>
-        </div>
-
+        <button
+          type="button"
+          disabled={isSaving}
+          aria-busy={isSaving}
+          onClick={() => void handleSaveAll()}
+          className="inline-flex min-h-[56px] w-full cursor-pointer items-center justify-center gap-3 rounded-[8px] bg-primary text-[14px] font-semibold text-primary-foreground transition-colors hover:bg-primary-hover disabled:opacity-70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+        >
+          <HugeiconsIcon
+            icon={isSaving ? Loading03Icon : CheckmarkCircle02Icon}
+            size={20}
+            strokeWidth={1.75}
+            aria-hidden="true"
+            className={isSaving ? "animate-spin" : undefined}
+          />
+          <span>{isSaving ? "Guardando…" : "Guardar preferencias"}</span>
+        </button>
       </div>
 
+      {/* Sheets contextuales de edición con borrador independiente */}
+      <Sheet
+        open={Boolean(openSheet)}
+        onOpenChange={(open) => !open && setOpenSheet(null)}
+      >
+        <SheetContent
+          side="bottom"
+          showCloseButton={false}
+          className="mx-auto w-full max-w-[460px] max-h-[calc(100dvh-64px)] overflow-y-auto rounded-t-[24px] border-t border-border bg-background px-6 pt-6 pb-[calc(24px+env(safe-area-inset-bottom,0px))] shadow-xl"
+        >
+          <div className="flex items-center justify-between gap-2">
+            <SheetTitle className="text-[22px] font-bold leading-[30px] text-foreground">
+              {openSheet === "role" && "Puesto de interés"}
+              {openSheet === "categories" && "Sectores de interés"}
+              {openSheet === "locations" && "Zonas para trabajar"}
+              {openSheet === "salary" && "Sueldo y modalidad"}
+              {openSheet === "alerts" && "Alertas de empleo"}
+            </SheetTitle>
+
+            <SheetClose
+              render={
+                <button
+                  type="button"
+                  aria-label="Cerrar"
+                  className="-mr-2 inline-flex size-[48px] shrink-0 cursor-pointer items-center justify-center rounded-[8px] text-foreground transition-colors hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                />
+              }
+            >
+              <HugeiconsIcon
+                icon={Cancel01Icon}
+                size={20}
+                strokeWidth={1.75}
+                aria-hidden="true"
+              />
+            </SheetClose>
+          </div>
+
+          {/* Sheet: Puesto de interés */}
+          {openSheet === "role" && (
+            <div className="mt-4 flex flex-col gap-5">
+              <p className="text-[14px] leading-[19px] text-muted-foreground">
+                Escribe el puesto principal que estás buscando.
+              </p>
+              <label className="flex flex-col gap-2 text-[12px] font-semibold text-foreground">
+                Puesto deseado
+                <input
+                  type="text"
+                  value={draftRole}
+                  onChange={(e) => setDraftRole(e.target.value)}
+                  placeholder="Ej. Auxiliar administrativo"
+                  className="h-[56px] rounded-[8px] border border-input bg-background px-4 text-[14px] font-normal text-foreground focus:border-primary focus:outline-none focus:ring-2 focus:ring-ring"
+                />
+              </label>
+              <button
+                type="button"
+                onClick={handleApplySheet}
+                className="mt-2 inline-flex min-h-[56px] w-full cursor-pointer items-center justify-center gap-3 rounded-[8px] bg-primary text-[14px] font-semibold text-primary-foreground hover:bg-primary-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              >
+                <HugeiconsIcon
+                  icon={CheckmarkCircle02Icon}
+                  size={20}
+                  strokeWidth={1.75}
+                  aria-hidden="true"
+                />
+                <span>Usar selección</span>
+              </button>
+            </div>
+          )}
+
+          {/* Sheet: Sectores de interés (Figma 323:1869) */}
+          {openSheet === "categories" && (
+            <div className="mt-4 flex flex-col gap-4">
+              <p className="text-[14px] leading-[19px] text-muted-foreground">
+                Selecciona uno o más sectores donde te gustaría trabajar.
+              </p>
+              <div className="flex flex-col gap-2.5">
+                {ALL_CATEGORIES.map((category) => (
+                  <SelectionOptionRow
+                    key={category}
+                    label={category}
+                    selected={draftCategories.includes(category)}
+                    onClick={() =>
+                      toggleDraftItem(
+                        draftCategories,
+                        category,
+                        setDraftCategories
+                      )
+                    }
+                  />
+                ))}
+              </div>
+              <button
+                type="button"
+                onClick={handleApplySheet}
+                className="mt-2 inline-flex min-h-[56px] w-full cursor-pointer items-center justify-center gap-3 rounded-[8px] bg-primary text-[14px] font-semibold text-primary-foreground hover:bg-primary-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              >
+                <HugeiconsIcon
+                  icon={CheckmarkCircle02Icon}
+                  size={20}
+                  strokeWidth={1.75}
+                  aria-hidden="true"
+                />
+                <span>Usar selección</span>
+              </button>
+            </div>
+          )}
+
+          {/* Sheet: Zonas para trabajar (Figma 323:1925) */}
+          {openSheet === "locations" && (
+            <div className="mt-4 flex flex-col gap-4">
+              <p className="text-[14px] leading-[19px] text-muted-foreground">
+                Elige una o más zonas donde quieres encontrar empleo.
+              </p>
+              <div className="flex flex-col gap-2.5">
+                {ALL_LOCATIONS.map((loc) => (
+                  <SelectionOptionRow
+                    key={loc}
+                    label={loc}
+                    selected={draftLocations.includes(loc)}
+                    onClick={() =>
+                      toggleDraftItem(draftLocations, loc, setDraftLocations)
+                    }
+                  />
+                ))}
+              </div>
+              <p className="text-[13px] leading-[18px] text-muted-foreground">
+                Estas preferencias no actualizan tu dirección.
+              </p>
+              <button
+                type="button"
+                onClick={handleApplySheet}
+                className="mt-2 inline-flex min-h-[56px] w-full cursor-pointer items-center justify-center gap-3 rounded-[8px] bg-primary text-[14px] font-semibold text-primary-foreground hover:bg-primary-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              >
+                <HugeiconsIcon
+                  icon={CheckmarkCircle02Icon}
+                  size={20}
+                  strokeWidth={1.75}
+                  aria-hidden="true"
+                />
+                <span>Usar selección</span>
+              </button>
+            </div>
+          )}
+
+          {/* Sheet: Sueldo y modalidad (Figma 323:1979) */}
+          {openSheet === "salary" && (
+            <div className="mt-4 flex flex-col gap-5">
+              <p className="text-[14px] leading-[19px] text-muted-foreground">
+                Indica el sueldo mínimo y las modalidades que te interesan.
+              </p>
+
+              <div className="flex flex-col gap-2">
+                <label
+                  htmlFor="pref-min-salary"
+                  className="text-[12px] font-semibold text-foreground"
+                >
+                  Sueldo mínimo mensual (MXN)
+                </label>
+                <input
+                  id="pref-min-salary"
+                  type="text"
+                  inputMode="numeric"
+                  value={draftSalaryInput}
+                  onChange={(e) => setDraftSalaryInput(e.target.value)}
+                  placeholder="14,000"
+                  className="h-[56px] rounded-[8px] border border-input bg-background px-4 text-[14px] text-foreground focus:border-primary focus:outline-none focus:ring-2 focus:ring-ring"
+                />
+                <p className="text-[13px] leading-[18px] text-muted-foreground">
+                  De $8,000 a $35,000 MXN al mes, en incrementos de $1,000.
+                </p>
+              </div>
+
+              <div className="flex flex-col gap-2.5">
+                <p className="text-[16px] font-normal leading-[22px] text-foreground">
+                  Modalidad de trabajo
+                </p>
+                {ALL_MODALITIES.map((mod) => (
+                  <SelectionOptionRow
+                    key={mod}
+                    label={mod}
+                    selected={draftModalities.includes(mod)}
+                    onClick={() =>
+                      toggleDraftItem(draftModalities, mod, setDraftModalities)
+                    }
+                  />
+                ))}
+              </div>
+
+              <button
+                type="button"
+                onClick={handleApplySheet}
+                className="mt-2 inline-flex min-h-[56px] w-full cursor-pointer items-center justify-center gap-3 rounded-[8px] bg-primary text-[14px] font-semibold text-primary-foreground hover:bg-primary-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              >
+                <HugeiconsIcon
+                  icon={CheckmarkCircle02Icon}
+                  size={20}
+                  strokeWidth={1.75}
+                  aria-hidden="true"
+                />
+                <span>Usar preferencias</span>
+              </button>
+            </div>
+          )}
+
+          {/* Sheet: Alertas de empleo Activadas / Desactivadas (Figma 323:2026 y 323:2080) */}
+          {openSheet === "alerts" && (
+            <div className="mt-4 flex flex-col gap-5">
+              <p className="text-[14px] leading-[19px] text-muted-foreground">
+                {draftAlertsEnabled
+                  ? "Recibe avisos de vacantes acordes a tus preferencias."
+                  : "Controla si quieres recibir avisos de nuevas vacantes."}
+              </p>
+
+              <div className="flex items-center justify-between gap-4 rounded-[16px] bg-muted p-4">
+                <div className="flex items-center gap-3">
+                  <HugeiconsIcon
+                    icon={Notification02Icon}
+                    size={20}
+                    strokeWidth={1.75}
+                    aria-hidden="true"
+                    className="shrink-0 text-muted-foreground"
+                  />
+                  <div className="flex flex-col">
+                    <span className="text-[14px] font-medium text-foreground">
+                      Alertas de empleo
+                    </span>
+                    <span className="text-[13px] text-muted-foreground">
+                      {draftAlertsEnabled ? "Activadas" : "Desactivadas"}
+                    </span>
+                  </div>
+                </div>
+                <Switch
+                  checked={draftAlertsEnabled}
+                  onCheckedChange={setDraftAlertsEnabled}
+                  aria-label="Activar o desactivar alertas de empleo"
+                />
+              </div>
+
+              {draftAlertsEnabled ? (
+                <div className="flex flex-col gap-3">
+                  <p className="text-[16px] font-normal leading-[22px] text-foreground">
+                    ¿Cuándo quieres recibirlas?
+                  </p>
+                  <div
+                    role="radiogroup"
+                    aria-label="Frecuencia de alertas de empleo"
+                    className="flex flex-col gap-2.5"
+                  >
+                    {ALL_FREQUENCIES.map((freq) => (
+                      <SelectionOptionRow
+                        key={freq}
+                        role="radio"
+                        label={freq}
+                        selected={draftFrequency === freq}
+                        onClick={() => setDraftFrequency(freq)}
+                      />
+                    ))}
+                  </div>
+                  <p className="text-[13px] leading-[18px] text-muted-foreground">
+                    La frecuencia aplica a nuevas vacantes que coincidan con tus
+                    preferencias.
+                  </p>
+                </div>
+              ) : (
+                <div className="flex flex-col gap-3">
+                  <p className="text-[15px] leading-[21px] text-foreground">
+                    No recibirás alertas de nuevas vacantes. Tus sectores,
+                    zonas, sueldo y modalidad se conservan.
+                  </p>
+                  <p className="text-[13px] leading-[18px] text-muted-foreground">
+                    Puedes seguir buscando y postulándote con normalidad.
+                  </p>
+                </div>
+              )}
+
+              <button
+                type="button"
+                onClick={handleApplySheet}
+                className="mt-2 inline-flex min-h-[56px] w-full cursor-pointer items-center justify-center gap-3 rounded-[8px] bg-primary text-[14px] font-semibold text-primary-foreground hover:bg-primary-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              >
+                <HugeiconsIcon
+                  icon={CheckmarkCircle02Icon}
+                  size={20}
+                  strokeWidth={1.75}
+                  aria-hidden="true"
+                />
+                <span>Usar preferencias</span>
+              </button>
+            </div>
+          )}
+        </SheetContent>
+      </Sheet>
     </div>
   );
 }
