@@ -1,113 +1,123 @@
+import Link from "next/link";
+import { HugeiconsIcon } from "@hugeicons/react";
+import {
+  CheckmarkBadge01Icon,
+  SecurityCheckIcon,
+  Settings01Icon,
+  UserGroupIcon,
+} from "@hugeicons/core-free-icons";
 import { StaffDataTable } from "@/modules/admin/components/staff-data-table";
 import { getAdminStaffMembers } from "@/app/(dashboard)/dashboard/admin/staff/actions";
-import { Card } from "@/components/ui/card";
-import {
-  ShieldCheck,
-  UserCheck,
-  KeyRound,
-  Users,
-} from "@/components/ui/icons";
 
 export const metadata = {
   title: "Administradores y Staff | K'anPro Admin",
-  description: "Gestión de equipo interno, control de roles y permisos granulares en K'anPro.",
+  description:
+    "Gestión de equipo interno, control de roles y permisos granulares en K'anPro.",
 };
 
 export default async function AdminStaffPage() {
-  // Fetch real staff data from database
   const staffMembers = await getAdminStaffMembers();
 
   const totalStaff = staffMembers.length;
-  const totalSuperAdmins = staffMembers.filter((s) => s.subRole === "super_admin").length;
+  const totalSuperAdmins = staffMembers.filter(
+    (s) => s.subRole === "super_admin"
+  ).length;
   const activeStaff = staffMembers.filter((s) => s.status === "active").length;
   const totalPermissionsAssigned = staffMembers.reduce(
     (acc, curr) => acc + (curr.permissions?.length || 0),
     0
   );
 
+  const kpiCards = [
+    {
+      label: "Personal registrado",
+      value: `${totalStaff}`,
+      totalSuffix: "",
+      subtitle: "Equipo interno K'anPro",
+      icon: UserGroupIcon,
+    },
+    {
+      label: "Super admins",
+      value: `${totalSuperAdmins}`,
+      totalSuffix: "",
+      subtitle: "Acceso directivo global",
+      icon: SecurityCheckIcon,
+    },
+    {
+      label: "Personal activo",
+      value: `${activeStaff}`,
+      totalSuffix: `/ ${totalStaff}`,
+      subtitle: "Con sesión operativa",
+      icon: CheckmarkBadge01Icon,
+    },
+    {
+      label: "Permisos asignados",
+      value: `${totalPermissionsAssigned}`,
+      totalSuffix: "",
+      subtitle: "Reglas granulares activas",
+      icon: Settings01Icon,
+    },
+  ];
+
   return (
-    <div className="flex flex-1 flex-col gap-6 pb-8 animate-in fade-in duration-200">
-      
-      {/* 4 KPI Summary Cards */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3.5">
-        <Card className="bg-card border border-border/60 rounded-2xl p-4 shadow-xs flex flex-col justify-between hover:border-border transition-colors">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-bold text-muted-foreground uppercase tracking-wider">
-              Personal Registrado
-            </span>
-            <div className="size-8 rounded-xl bg-purple-500/10 text-purple-600 dark:text-purple-400 flex items-center justify-center">
-              <Users className="size-4" />
-            </div>
-          </div>
-          <div className="mt-2 space-y-0.5">
-            <h3 className="text-2xl sm:text-3xl font-extrabold text-foreground font-mono">
-              {totalStaff}
-            </h3>
-            <p className="text-[11px] font-semibold text-muted-foreground">
-              Equipo interno K'anPro
-            </p>
-          </div>
-        </Card>
+    <div className="flex flex-1 flex-col gap-4 w-full pb-4">
+      {/* Encabezado compacto */}
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex flex-col gap-0.5">
+          <h1 className="text-[24px] sm:text-[28px] font-bold leading-[1.2] tracking-tight text-foreground">
+            Administradores y staff
+          </h1>
+          <p className="text-[13px] font-normal leading-[18px] text-muted-foreground">
+            Control de equipo interno, sub-roles administrativos y permisos granulares de acceso.
+          </p>
+        </div>
 
-        <Card className="bg-card border border-border/60 rounded-2xl p-4 shadow-xs flex flex-col justify-between hover:border-border transition-colors">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-bold text-indigo-600 dark:text-indigo-400 uppercase tracking-wider">
-              Super Admins
-            </span>
-            <div className="size-8 rounded-xl bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 flex items-center justify-center">
-              <ShieldCheck className="size-4" />
-            </div>
-          </div>
-          <div className="mt-2 space-y-0.5">
-            <h3 className="text-2xl sm:text-3xl font-extrabold text-foreground font-mono">
-              {totalSuperAdmins}
-            </h3>
-            <p className="text-[11px] font-semibold text-muted-foreground">
-              Acceso directivo global
-            </p>
-          </div>
-        </Card>
-
-        <Card className="bg-card border border-border/60 rounded-2xl p-4 shadow-xs flex flex-col justify-between hover:border-border transition-colors">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-bold text-emerald-600 dark:text-emerald-400 uppercase tracking-wider">
-              Personal Activo
-            </span>
-            <div className="size-8 rounded-xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center">
-              <UserCheck className="size-4" />
-            </div>
-          </div>
-          <div className="mt-2 space-y-0.5">
-            <h3 className="text-2xl sm:text-3xl font-extrabold text-foreground font-mono">
-              {activeStaff} <span className="text-xs text-muted-foreground font-sans">/ {totalStaff}</span>
-            </h3>
-            <p className="text-[11px] font-semibold text-muted-foreground">
-              Con sesión operativa activa
-            </p>
-          </div>
-        </Card>
-
-        <Card className="bg-card border border-border/60 rounded-2xl p-4 shadow-xs flex flex-col justify-between hover:border-border transition-colors">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-bold text-blue-600 dark:text-blue-400 uppercase tracking-wider">
-              Permisos Asignados
-            </span>
-            <div className="size-8 rounded-xl bg-blue-500/10 text-blue-600 dark:text-blue-400 flex items-center justify-center">
-              <KeyRound className="size-4" />
-            </div>
-          </div>
-          <div className="mt-2 space-y-0.5">
-            <h3 className="text-2xl sm:text-3xl font-extrabold text-foreground font-mono">
-              {totalPermissionsAssigned}
-            </h3>
-            <p className="text-[11px] font-semibold text-muted-foreground">
-              Reglas de acceso granulares
-            </p>
-          </div>
-        </Card>
+        <Link
+          href="/dashboard/admin/staff/new"
+          className="h-[36px] px-3 rounded-[8px] bg-primary text-primary-foreground text-[13px] font-semibold inline-flex items-center justify-center gap-1.5 hover:opacity-90 transition-opacity self-start sm:self-auto"
+        >
+          <span>+ Nuevo staff</span>
+        </Link>
       </div>
 
-      {/* Staff Interactive Table */}
+      {/* KPIs compactos */}
+      <div className="grid grid-cols-2 xl:grid-cols-4 gap-3">
+        {kpiCards.map((card) => (
+          <div
+            key={card.label}
+            className="bg-card border border-border rounded-[14px] px-3.5 py-3 flex flex-col gap-1.5"
+          >
+            <div className="flex items-center justify-between gap-2">
+              <span className="text-[12px] font-medium leading-[16px] text-muted-foreground truncate">
+                {card.label}
+              </span>
+              <span className="size-[30px] rounded-[8px] bg-sidebar-accent text-link flex items-center justify-center shrink-0">
+                <HugeiconsIcon
+                  icon={card.icon}
+                  size={16}
+                  strokeWidth={1.8}
+                  aria-hidden="true"
+                />
+              </span>
+            </div>
+            <div className="flex items-baseline gap-1.5">
+              <span className="text-[22px] sm:text-[24px] font-bold leading-[28px] text-foreground tabular-nums">
+                {card.value}
+              </span>
+              {card.totalSuffix && (
+                <span className="text-[12px] font-medium text-muted-foreground tabular-nums">
+                  {card.totalSuffix}
+                </span>
+              )}
+            </div>
+            <span className="text-[11.5px] leading-[15px] text-muted-foreground truncate">
+              {card.subtitle}
+            </span>
+          </div>
+        ))}
+      </div>
+
+      {/* Tabla compacta */}
       <StaffDataTable initialData={staffMembers} />
     </div>
   );

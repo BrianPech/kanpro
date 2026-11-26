@@ -1,198 +1,243 @@
 "use client";
 
 import * as React from "react";
+import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { HugeiconsIcon } from "@hugeicons/react";
 import {
-  LayoutDashboard,
-  ShieldCheck,
-  BadgeCheck,
-  ShieldAlert,
-  Headphones,
-  Users,
-  UserCog,
-  Settings,
-  BookOpen,
-  KanproIsotype,
-  FileText,
-  Activity,
-  PlusCircle,
-  HelpCircle,
-} from "@/components/ui/icons";
+  Alert02Icon,
+  CheckmarkBadge01Icon,
+  CustomerService01Icon,
+  HelpCircleIcon,
+  Home01Icon,
+  SecurityCheckIcon,
+  Settings01Icon,
+  UserGroupIcon,
+} from "@hugeicons/core-free-icons";
 import {
   Sidebar,
   SidebarContent,
+  SidebarFooter,
   SidebarGroup,
-  SidebarGroupContent,
   SidebarGroupLabel,
   SidebarHeader,
   SidebarMenu,
-  SidebarMenuButton,
   SidebarMenuItem,
-  SidebarFooter,
+  useSidebar,
 } from "@/components/ui/sidebar";
-import { NavUser } from "@/components/shared/nav-user";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
 
-export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
+type HugeIconType = typeof Home01Icon;
+
+interface NavItem {
+  title: string;
+  url: string;
+  icon: HugeIconType;
+}
+
+interface NavGroup {
+  id: string;
+  label: string;
+  items: NavItem[];
+}
+
+const ADMIN_NAV_GROUPS: NavGroup[] = [
+  {
+    id: "general",
+    label: "General",
+    items: [
+      {
+        title: "Dashboard Central",
+        url: "/dashboard/admin",
+        icon: Home01Icon,
+      },
+    ],
+  },
+  {
+    id: "operaciones",
+    label: "Operaciones y moderación",
+    items: [
+      {
+        title: "Verificación de expedientes",
+        url: "/dashboard/admin/verifications",
+        icon: CheckmarkBadge01Icon,
+      },
+      {
+        title: "Moderación y reportes",
+        url: "/dashboard/admin/reports",
+        icon: Alert02Icon,
+      },
+      {
+        title: "Soporte y tickets",
+        url: "/dashboard/admin/support",
+        icon: CustomerService01Icon,
+      },
+    ],
+  },
+  {
+    id: "comunidad",
+    label: "Comunidad y accesos",
+    items: [
+      {
+        title: "Usuarios",
+        url: "/dashboard/admin/users",
+        icon: UserGroupIcon,
+      },
+      {
+        title: "Administradores y staff",
+        url: "/dashboard/admin/staff",
+        icon: SecurityCheckIcon,
+      },
+    ],
+  },
+  {
+    id: "sistema",
+    label: "Sistema",
+    items: [
+      {
+        title: "Configuración",
+        url: "/dashboard/admin/settings",
+        icon: Settings01Icon,
+      },
+    ],
+  },
+];
+
+export function AppSidebar({
+  className,
+  ...props
+}: React.ComponentProps<typeof Sidebar>) {
   const pathname = usePathname();
+  const { isMobile, setOpenMobile } = useSidebar();
 
-  const sections = [
-    {
-      label: "General",
-      items: [
-        {
-          title: "Dashboard Central",
-          url: "/dashboard/admin",
-          icon: LayoutDashboard,
-        },
-      ],
+  const isItemActive = React.useCallback(
+    (url: string) => {
+      if (url === "/dashboard/admin") {
+        return pathname === url;
+      }
+      return pathname === url || pathname.startsWith(`${url}/`);
     },
-    {
-      label: "Operaciones & Moderación",
-      items: [
-        {
-          title: "Verificación de Expedientes",
-          url: "/dashboard/admin/verifications",
-          icon: BadgeCheck,
-        },
-        {
-          title: "Moderación y Reportes",
-          url: "/dashboard/admin/reports",
-          icon: ShieldAlert,
-        },
-        {
-          title: "Soporte Técnico & Tickets",
-          url: "/dashboard/admin/support",
-          icon: Headphones,
-        },
-      ],
-    },
-    {
-      label: "Comunidad & Accesos",
-      items: [
-        {
-          title: "Directorio de Usuarios",
-          url: "/dashboard/admin/users",
-          icon: Users,
-        },
-        {
-          title: "Administradores & Staff",
-          url: "/dashboard/admin/staff",
-          icon: ShieldCheck,
-        },
-      ],
-    },
-  ];
+    [pathname]
+  );
 
-  const secondaryNav = [
-    {
-      title: "Configuración del Sistema",
-      url: "/dashboard/admin/settings",
-      icon: Settings,
-    },
-  ];
+  const handleNavClick = () => {
+    if (isMobile) setOpenMobile(false);
+  };
 
   return (
-    <Sidebar variant="inset" {...props}>
-      {/* Header */}
-      <SidebarHeader className="py-3">
-        <SidebarMenu>
-          <SidebarMenuItem>
-            <SidebarMenuButton
-              size="lg"
-              render={<Link href="/dashboard/admin" />}
-              className="hover:bg-sidebar-accent"
-            >
-              <div className="flex aspect-square size-8 items-center justify-center rounded-lg bg-primary text-primary-foreground">
-                <KanproIsotype className="size-4.5" variant="white" />
-              </div>
-              <div className="grid flex-1 text-left text-sm leading-tight">
-                <span className="truncate font-bold tracking-tight text-sidebar-foreground">
-                  K&apos;anPro Admin
-                </span>
-                <span className="truncate text-xs text-muted-foreground font-medium">
-                  Panel Central
-                </span>
-              </div>
-            </SidebarMenuButton>
-          </SidebarMenuItem>
-        </SidebarMenu>
+    <Sidebar
+      collapsible="offcanvas"
+      {...props}
+      className={cn(
+        "border-none bg-sidebar text-sidebar-foreground select-none",
+        className
+      )}
+    >
+      {/* Marca */}
+      <SidebarHeader className="px-5 pt-0 pb-3 gap-3 bg-sidebar">
+        <div className="min-h-[64px] flex items-center pt-[5px]">
+          <Link
+            href="/dashboard/admin"
+            onClick={handleNavClick}
+            aria-label="K'anPro Administración - Inicio"
+            className="relative h-[43.667px] w-[117.087px] shrink-0"
+          >
+            <Image
+              src="/images/kanpro-mark-light.svg"
+              alt=""
+              width={34}
+              height={38}
+              priority
+              className="absolute left-0 top-0 h-[38.261px] w-[34.435px] dark:hidden"
+            />
+            <Image
+              src="/images/kanpro-mark-dark.svg"
+              alt=""
+              width={34}
+              height={38}
+              priority
+              className="absolute left-0 top-0 h-[38.261px] w-[34.435px] hidden dark:block"
+            />
+            <span className="absolute left-[42.09px] top-[14.67px] text-[24.232px] font-semibold leading-none whitespace-nowrap">
+              <span className="text-[#0b0b0b] dark:text-white">an </span>
+              <span className="text-link">Pro</span>
+            </span>
+          </Link>
+        </div>
+
+        <div className="h-px w-full bg-border mt-1" />
       </SidebarHeader>
 
-      {/* Content Navigation Groups */}
-      <SidebarContent className="px-2 py-2">
-        {sections.map((section) => (
-          <SidebarGroup key={section.label} className="p-0 mb-3">
-            <SidebarGroupLabel className="text-xs font-semibold text-muted-foreground/70 px-2">
-              {section.label}
-            </SidebarGroupLabel>
-            <SidebarGroupContent>
-              <SidebarMenu className="gap-1">
-                {section.items.map((item) => {
-                  const isActive =
-                    pathname === item.url ||
-                    (pathname.startsWith(item.url) &&
-                      !["/dashboard/admin"].includes(item.url));
+      {/* Navegación principal */}
+      <SidebarContent className="bg-sidebar overflow-hidden">
+        <ScrollArea className="h-full px-3">
+          <div className="flex flex-col gap-4 pb-4">
+            {ADMIN_NAV_GROUPS.map((group) => (
+              <SidebarGroup key={group.id} className="p-0 gap-0.5">
+                <SidebarGroupLabel className="h-auto px-2 pb-1 text-[12px] font-semibold leading-[15px] text-muted-foreground">
+                  {group.label}
+                </SidebarGroupLabel>
+                <SidebarMenu className="gap-0.5">
+                  {group.items.map((item) => {
+                    const active = isItemActive(item.url);
 
-                  return (
-                    <SidebarMenuItem key={item.title}>
-                      <SidebarMenuButton
-                        render={<Link href={item.url} />}
-                        isActive={isActive}
-                        tooltip={item.title}
-                        className={cn(
-                          "h-9 rounded-lg px-2.5 gap-2.5 text-sm font-medium transition-all",
-                          isActive &&
-                            "bg-sidebar-accent text-sidebar-accent-foreground font-semibold"
-                        )}
-                      >
-                        <item.icon className="size-4 shrink-0" />
-                        <span>{item.title}</span>
-                      </SidebarMenuButton>
-                    </SidebarMenuItem>
-                  );
-                })}
-              </SidebarMenu>
-            </SidebarGroupContent>
-          </SidebarGroup>
-        ))}
-
-        {/* Secondary Navigation */}
-        <SidebarGroup className="mt-auto">
-          <SidebarGroupLabel className="text-xs font-semibold text-muted-foreground/70 px-2">
-            Administración
-          </SidebarGroupLabel>
-          <SidebarGroupContent>
-            <SidebarMenu className="gap-1">
-              {secondaryNav.map((item) => {
-                const isActive = pathname === item.url;
-                return (
-                  <SidebarMenuItem key={item.title}>
-                    <SidebarMenuButton
-                      render={<Link href={item.url} />}
-                      isActive={isActive}
-                      tooltip={item.title}
-                      className={cn(
-                        "h-9 rounded-lg px-2.5 gap-2.5 text-xs font-medium text-muted-foreground hover:text-foreground transition-all",
-                        isActive &&
-                          "bg-sidebar-accent text-sidebar-accent-foreground font-semibold"
-                      )}
-                    >
-                      <item.icon className="size-3.5 shrink-0" />
-                      <span>{item.title}</span>
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
-                );
-              })}
-            </SidebarMenu>
-          </SidebarGroupContent>
-        </SidebarGroup>
+                    return (
+                      <SidebarMenuItem key={item.url}>
+                        <Link
+                          href={item.url}
+                          onClick={handleNavClick}
+                          aria-current={active ? "page" : undefined}
+                          className={cn(
+                            "flex items-center gap-2 min-h-[36px] w-full pl-2 pr-1.5 py-2 rounded-[8px] text-[13.5px] font-medium leading-[19px] transition-colors",
+                            active
+                              ? "bg-sidebar-accent text-link"
+                              : "text-foreground hover:bg-background/60 dark:hover:bg-background/30"
+                          )}
+                        >
+                          <HugeiconsIcon
+                            icon={item.icon}
+                            size={20}
+                            strokeWidth={1.75}
+                            aria-hidden="true"
+                            className="shrink-0"
+                          />
+                          <span className="flex-1 truncate">{item.title}</span>
+                          {active && (
+                            <span
+                              aria-hidden="true"
+                              className="h-4 w-[2px] rounded-full bg-link shrink-0"
+                            />
+                          )}
+                        </Link>
+                      </SidebarMenuItem>
+                    );
+                  })}
+                </SidebarMenu>
+              </SidebarGroup>
+            ))}
+          </div>
+        </ScrollArea>
       </SidebarContent>
 
-      {/* Footer */}
-      <SidebarFooter className="p-2">
-        <NavUser />
+      {/* Pie lateral: Centro de ayuda */}
+      <SidebarFooter className="px-5 pt-2 pb-5 bg-sidebar gap-2">
+        <div className="h-px w-full bg-border" />
+        <Link
+          href="/contact"
+          onClick={handleNavClick}
+          className="flex items-center gap-2 min-h-[36px] w-full pl-2.5 pr-2 py-2 rounded-[8px] text-[14px] font-medium leading-[19px] text-foreground hover:bg-background/60 dark:hover:bg-background/30 transition-colors"
+        >
+          <HugeiconsIcon
+            icon={HelpCircleIcon}
+            size={20}
+            strokeWidth={1.75}
+            aria-hidden="true"
+            className="shrink-0"
+          />
+          <span className="truncate">Centro de ayuda</span>
+        </Link>
       </SidebarFooter>
     </Sidebar>
   );

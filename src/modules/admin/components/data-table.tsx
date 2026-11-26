@@ -2,25 +2,30 @@
 
 import * as React from "react";
 import Link from "next/link";
+import { HugeiconsIcon } from "@hugeicons/react";
 import {
-  Search,
-  ShieldCheck,
-  Briefcase,
-  Users,
-  Building2,
-  Headphones,
-  ShieldAlert,
-  ArrowUpRight,
+  Alert02Icon,
+  Briefcase01Icon,
+  Building03Icon,
+  CustomerService01Icon,
+  UserGroupIcon,
+} from "@hugeicons/core-free-icons";
+import {
+  ChevronLeft,
+  ChevronRight,
   Filter,
-  CheckCircle2,
-  Clock,
-  ExternalLink,
+  Search,
   X,
 } from "@/components/ui/icons";
-import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Card } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import {
   Table,
   TableBody,
@@ -34,16 +39,56 @@ import type { PlatformOperationItem } from "../services/admin-analytics";
 
 interface DataTableProps {
   data?: PlatformOperationItem[];
+  defaultPageSize?: number;
 }
 
-export function DataTable({ data = [] }: DataTableProps) {
+const PAGE_SIZE_OPTIONS = [5, 10, 20] as const;
+const ROW_HEIGHT_PX = 52;
+const HEADER_HEIGHT_PX = 36;
+
+function getCategoryIcon(category: PlatformOperationItem["category"]) {
+  switch (category) {
+    case "verification":
+      return Building03Icon;
+    case "vacancy":
+      return Briefcase01Icon;
+    case "report":
+      return Alert02Icon;
+    case "support":
+      return CustomerService01Icon;
+    case "user":
+    default:
+      return UserGroupIcon;
+  }
+}
+
+function getStatusClass(status: PlatformOperationItem["status"]): string {
+  switch (status) {
+    case "pending":
+    case "urgent":
+      return "text-warning-foreground";
+    case "active":
+      return "text-success-foreground";
+    case "resolved":
+    default:
+      return "text-muted-foreground";
+  }
+}
+
+export function DataTable({
+  data = [],
+  defaultPageSize = 5,
+}: DataTableProps) {
   const [searchQuery, setSearchQuery] = React.useState("");
   const [categoryFilter, setCategoryFilter] = React.useState<string>("all");
+  const [pageSize, setPageSize] = React.useState<number>(defaultPageSize);
+  const [page, setPage] = React.useState<number>(1);
 
   const filteredData = React.useMemo(() => {
+    const q = searchQuery.trim().toLowerCase();
     return data.filter((item) => {
-      const q = searchQuery.toLowerCase();
       const matchesSearch =
+        !q ||
         item.title.toLowerCase().includes(q) ||
         item.subtitle.toLowerCase().includes(q) ||
         (item.details && item.details.toLowerCase().includes(q));
@@ -55,101 +100,76 @@ export function DataTable({ data = [] }: DataTableProps) {
     });
   }, [data, searchQuery, categoryFilter]);
 
-  const getCategoryIcon = (category: PlatformOperationItem["category"]) => {
-    switch (category) {
-      case "verification":
-        return <Building2 className="size-4 text-purple-600 dark:text-purple-400" />;
-      case "vacancy":
-        return <Briefcase className="size-4 text-emerald-600 dark:text-emerald-400" />;
-      case "report":
-        return <ShieldAlert className="size-4 text-rose-600 dark:text-rose-400" />;
-      case "support":
-        return <Headphones className="size-4 text-amber-600 dark:text-amber-400" />;
-      case "user":
-      default:
-        return <Users className="size-4 text-primary" />;
-    }
-  };
+  const totalItems = filteredData.length;
+  const totalPages = Math.max(1, Math.ceil(totalItems / pageSize));
+  const currentPage = Math.min(page, totalPages);
 
-  const getCategoryBadgeClass = (category: PlatformOperationItem["category"]) => {
-    switch (category) {
-      case "verification":
-        return "bg-purple-500/10 text-purple-700 dark:text-purple-300 border-purple-500/20";
-      case "vacancy":
-        return "bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border-emerald-500/20";
-      case "report":
-        return "bg-rose-500/10 text-rose-700 dark:text-rose-300 border-rose-500/20";
-      case "support":
-        return "bg-amber-500/10 text-amber-700 dark:text-amber-300 border-amber-500/20";
-      case "user":
-      default:
-        return "bg-primary/10 text-primary border-primary/20";
-    }
-  };
+  const paginatedData = React.useMemo(() => {
+    const start = (currentPage - 1) * pageSize;
+    return filteredData.slice(start, start + pageSize);
+  }, [filteredData, currentPage, pageSize]);
 
-  const getStatusBadge = (status: PlatformOperationItem["status"], label: string) => {
-    switch (status) {
-      case "pending":
-      case "urgent":
-        return (
-          <Badge variant="outline" className="bg-amber-500/10 text-amber-700 dark:text-amber-300 border-amber-500/20 font-bold text-[10px]">
-            <Clock className="size-3 mr-1" />
-            {label}
-          </Badge>
-        );
-      case "active":
-        return (
-          <Badge variant="outline" className="bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border-emerald-500/20 font-bold text-[10px]">
-            <CheckCircle2 className="size-3 mr-1" />
-            {label}
-          </Badge>
-        );
-      case "resolved":
-      default:
-        return (
-          <Badge variant="outline" className="bg-muted text-muted-foreground border-border/60 font-semibold text-[10px]">
-            {label}
-          </Badge>
-        );
-    }
-  };
+  const startItem = totalItems === 0 ? 0 : (currentPage - 1) * pageSize + 1;
+  const endItem = Math.min(currentPage * pageSize, totalItems);
 
-  const categoryCounts = React.useMemo(() => {
-    return {
+  const categoryCounts = React.useMemo(
+    () => ({
       all: data.length,
       verification: data.filter((d) => d.category === "verification").length,
       vacancy: data.filter((d) => d.category === "vacancy").length,
       user: data.filter((d) => d.category === "user").length,
-    };
-  }, [data]);
+    }),
+    [data]
+  );
+
+  const tabs = [
+    { id: "all", label: "Todas", count: categoryCounts.all },
+    {
+      id: "verification",
+      label: "Verificaciones",
+      count: categoryCounts.verification,
+    },
+    { id: "vacancy", label: "Vacantes", count: categoryCounts.vacancy },
+    { id: "user", label: "Registros", count: categoryCounts.user },
+  ];
+
+  // Reserves exact height for pageSize rows so switching pages or filters never shifts the page layout
+  const tableMinHeight = HEADER_HEIGHT_PX + pageSize * ROW_HEIGHT_PX;
 
   return (
-    <Card className="bg-card border border-border/60 rounded-3xl shadow-xs overflow-hidden mx-4 lg:mx-6">
-      {/* Header Toolbar */}
-      <div className="p-4 sm:p-5 space-y-3 border-b border-border/60">
-        <div className="flex flex-col sm:flex-row justify-between items-stretch sm:items-center gap-3">
-          <div>
-            <h3 className="text-base sm:text-lg font-extrabold text-foreground">
-              Bandeja de Operaciones & Actividad Reciente
-            </h3>
-            <p className="text-xs text-muted-foreground font-medium">
-              Flujo unificado de validaciones de empresas, publicaciones de vacantes e interacciones de usuarios.
+    <section className="bg-card border border-border rounded-[14px] overflow-hidden">
+      {/* Toolbar compacta */}
+      <div className="px-4 py-3 border-b border-border flex flex-col gap-2.5">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
+          <div className="flex flex-col gap-0.5">
+            <h2 className="text-[15px] font-semibold leading-[20px] text-foreground">
+              Actividad reciente
+            </h2>
+            <p className="text-[12px] text-muted-foreground">
+              Verificaciones de empresas, vacantes publicadas y nuevos registros
             </p>
           </div>
 
-          {/* Search Input */}
-          <div className="relative w-full sm:w-80">
-            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-muted-foreground size-4 pointer-events-none" />
+          <div className="relative w-full sm:w-64 shrink-0">
+            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground size-3.5 pointer-events-none" />
             <Input
               value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Buscar actividad o empresa..."
-              className="h-10 pl-10 pr-8 rounded-xl bg-muted/40 border-border/60 text-xs sm:text-sm font-medium"
+              onChange={(e) => {
+                setSearchQuery(e.target.value);
+                setPage(1);
+              }}
+              placeholder="Buscar entidad o evento..."
+              className="h-8 pl-8 pr-7 rounded-[8px] bg-background border-control-border text-[12.5px]"
             />
             {searchQuery && (
               <button
-                onClick={() => setSearchQuery("")}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground cursor-pointer"
+                type="button"
+                aria-label="Limpiar búsqueda"
+                onClick={() => {
+                  setSearchQuery("");
+                  setPage(1);
+                }}
+                className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground cursor-pointer"
               >
                 <X className="size-3.5" />
               </button>
@@ -157,36 +177,27 @@ export function DataTable({ data = [] }: DataTableProps) {
           </div>
         </div>
 
-        {/* Category Tabs */}
-        <div className="flex flex-wrap gap-1.5 pt-1">
-          {[
-            { id: "all", label: "Todas las Operaciones", count: categoryCounts.all },
-            { id: "verification", label: "Verificaciones", count: categoryCounts.verification },
-            { id: "vacancy", label: "Vacantes Publicadas", count: categoryCounts.vacancy },
-            { id: "user", label: "Registros", count: categoryCounts.user },
-          ].map((tab) => {
+        {/* Filtros por categoría */}
+        <div className="flex flex-wrap items-center gap-1.5">
+          {tabs.map((tab) => {
             const isSelected = categoryFilter === tab.id;
             return (
               <button
                 key={tab.id}
                 type="button"
-                onClick={() => setCategoryFilter(tab.id)}
+                onClick={() => {
+                  setCategoryFilter(tab.id);
+                  setPage(1);
+                }}
                 className={cn(
-                  "px-3 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer select-none",
+                  "h-7 px-2.5 rounded-[8px] text-[12px] font-medium transition-colors inline-flex items-center gap-1.5 cursor-pointer select-none",
                   isSelected
-                    ? "bg-primary text-primary-foreground shadow-2xs"
-                    : "bg-muted/50 hover:bg-muted text-muted-foreground hover:text-foreground"
+                    ? "bg-sidebar-accent text-link"
+                    : "text-muted-foreground hover:text-foreground hover:bg-muted/60"
                 )}
               >
                 <span>{tab.label}</span>
-                <span
-                  className={cn(
-                    "text-[10px] px-1.5 py-0.2 rounded-full font-mono font-extrabold",
-                    isSelected
-                      ? "bg-primary-foreground/20 text-primary-foreground"
-                      : "bg-background text-muted-foreground"
-                  )}
-                >
+                <span className="text-[11px] tabular-nums opacity-75">
                   {tab.count}
                 </span>
               </button>
@@ -195,98 +206,190 @@ export function DataTable({ data = [] }: DataTableProps) {
         </div>
       </div>
 
-      {/* Table Container */}
-      <div className="overflow-x-auto">
-        <Table className="w-full">
-          <TableHeader className="bg-muted/30 border-b border-border/60">
-            <TableRow className="hover:bg-transparent">
-              <TableHead className="py-3.5 px-4 sm:px-6 font-extrabold text-xs uppercase tracking-wider text-muted-foreground">
-                Operación / Entidad
+      {/* Tabla compacta con columnas y altura estables */}
+      <div
+        className="overflow-x-auto"
+        style={{ minHeight: `${tableMinHeight}px` }}
+      >
+        <Table className="w-full table-fixed min-w-[640px]">
+          <TableHeader className="bg-muted/30 border-b border-border">
+            <TableRow className="hover:bg-transparent h-9">
+              <TableHead className="h-9 px-4 w-[34%] text-[11.5px] font-semibold text-muted-foreground">
+                Entidad
               </TableHead>
-              <TableHead className="py-3.5 px-4 font-extrabold text-xs uppercase tracking-wider text-muted-foreground">
-                Detalles
+              <TableHead className="h-9 px-3 w-[28%] text-[11.5px] font-semibold text-muted-foreground hidden md:table-cell">
+                Detalle
               </TableHead>
-              <TableHead className="py-3.5 px-4 font-extrabold text-xs uppercase tracking-wider text-muted-foreground">
+              <TableHead className="h-9 px-3 w-[120px] text-[11.5px] font-semibold text-muted-foreground">
                 Fecha
               </TableHead>
-              <TableHead className="py-3.5 px-4 font-extrabold text-xs uppercase tracking-wider text-muted-foreground">
+              <TableHead className="h-9 px-3 w-[112px] text-[11.5px] font-semibold text-muted-foreground">
                 Estatus
               </TableHead>
-              <TableHead className="py-3.5 px-4 sm:px-6 text-right font-extrabold text-xs uppercase tracking-wider text-muted-foreground">
+              <TableHead className="h-9 px-4 w-[136px] text-right text-[11.5px] font-semibold text-muted-foreground">
                 Acción
               </TableHead>
             </TableRow>
           </TableHeader>
-          <TableBody className="divide-y divide-border/40">
-            {filteredData.length === 0 ? (
-              <TableRow>
-                <TableCell colSpan={5} className="py-12 text-center text-muted-foreground">
-                  <div className="flex flex-col items-center justify-center gap-2">
-                    <Filter className="size-6 text-muted-foreground/40" />
-                    <p className="text-sm font-bold text-foreground">No hay operaciones pendientes</p>
-                    <p className="text-xs text-muted-foreground">
-                      No se encontraron registros con los filtros seleccionados.
+          <TableBody className="divide-y divide-border">
+            {paginatedData.length === 0 ? (
+              <TableRow className="hover:bg-transparent">
+                <TableCell
+                  colSpan={5}
+                  style={{ height: `${pageSize * ROW_HEIGHT_PX}px` }}
+                  className="text-center text-muted-foreground align-middle"
+                >
+                  <div className="flex flex-col items-center justify-center gap-1">
+                    <Filter className="size-4 text-muted-foreground/50" />
+                    <p className="text-[13px] font-medium text-foreground">
+                      Sin actividad reciente
+                    </p>
+                    <p className="text-[12px] text-muted-foreground">
+                      No hay registros para los filtros seleccionados.
                     </p>
                   </div>
                 </TableCell>
               </TableRow>
             ) : (
-              filteredData.map((item) => (
-                <TableRow key={item.id} className="hover:bg-muted/30 transition-colors">
-                  {/* Entity & Icon */}
-                  <TableCell className="py-3.5 px-4 sm:px-6">
-                    <div className="flex items-center gap-3">
-                      <div className={cn("size-9 rounded-xl flex items-center justify-center border shrink-0", getCategoryBadgeClass(item.category))}>
-                        {getCategoryIcon(item.category)}
+              paginatedData.map((item) => {
+                const Icon = getCategoryIcon(item.category);
+                return (
+                  <TableRow
+                    key={item.id}
+                    className="h-[52px] hover:bg-muted/30 transition-colors"
+                  >
+                    <TableCell className="py-2 px-4">
+                      <div className="flex items-center gap-2.5 min-w-0">
+                        <span className="size-[30px] rounded-[8px] bg-sidebar-accent text-link flex items-center justify-center shrink-0">
+                          <HugeiconsIcon
+                            icon={Icon}
+                            size={15}
+                            strokeWidth={1.8}
+                            aria-hidden="true"
+                          />
+                        </span>
+                        <div className="min-w-0 flex-1">
+                          <div className="text-[13px] font-medium text-foreground truncate">
+                            {item.title}
+                          </div>
+                          <div className="text-[11.5px] text-muted-foreground truncate">
+                            {item.subtitle}
+                          </div>
+                        </div>
                       </div>
-                      <div className="min-w-0">
-                        <h4 className="text-xs sm:text-sm font-bold text-foreground truncate">
-                          {item.title}
-                        </h4>
-                        <p className="text-[11px] font-semibold text-muted-foreground truncate">
-                          {item.subtitle}
-                        </p>
-                      </div>
-                    </div>
-                  </TableCell>
+                    </TableCell>
 
-                  {/* Details */}
-                  <TableCell className="py-3.5 px-4">
-                    <p className="text-xs text-muted-foreground font-medium max-w-xs truncate">
-                      {item.details || "—"}
-                    </p>
-                  </TableCell>
+                    <TableCell className="py-2 px-3 hidden md:table-cell">
+                      <span className="text-[12px] text-muted-foreground block truncate">
+                        {item.details || "—"}
+                      </span>
+                    </TableCell>
 
-                  {/* Timestamp */}
-                  <TableCell className="py-3.5 px-4">
-                    <span className="text-xs font-semibold text-muted-foreground whitespace-nowrap">
-                      {item.timestamp}
-                    </span>
-                  </TableCell>
+                    <TableCell className="py-2 px-3 whitespace-nowrap">
+                      <span className="text-[12px] text-muted-foreground tabular-nums block truncate">
+                        {item.timestamp}
+                      </span>
+                    </TableCell>
 
-                  {/* Status Badge */}
-                  <TableCell className="py-3.5 px-4">
-                    {getStatusBadge(item.status, item.statusLabel)}
-                  </TableCell>
+                    <TableCell className="py-2 px-3 whitespace-nowrap">
+                      <span
+                        className={cn(
+                          "text-[12px] font-semibold block truncate",
+                          getStatusClass(item.status)
+                        )}
+                      >
+                        {item.statusLabel}
+                      </span>
+                    </TableCell>
 
-                  {/* Quick Action Button */}
-                  <TableCell className="py-3.5 px-4 sm:px-6 text-right">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      render={<Link href={item.actionUrl} />}
-                      className="h-8 px-3 rounded-xl text-xs font-bold gap-1 border-border/60 hover:bg-primary hover:text-primary-foreground hover:border-primary transition-all cursor-pointer shadow-none"
-                    >
-                      <span>{item.actionLabel}</span>
-                      <ArrowUpRight className="size-3" />
-                    </Button>
-                  </TableCell>
-                </TableRow>
-              ))
+                    <TableCell className="py-2 px-4 text-right whitespace-nowrap">
+                      <Link
+                        href={item.actionUrl}
+                        className="text-[12.5px] font-medium text-link hover:underline"
+                      >
+                        {item.actionLabel} →
+                      </Link>
+                    </TableCell>
+                  </TableRow>
+                );
+              })
             )}
           </TableBody>
         </Table>
       </div>
-    </Card>
+
+      {/* Pie de paginación siempre visible para evitar saltos */}
+      <div className="px-4 py-2.5 border-t border-border bg-muted/20 flex flex-wrap items-center justify-between gap-3">
+        <span className="text-[12px] text-muted-foreground tabular-nums">
+          {totalItems === 0
+            ? "0 resultados"
+            : `Mostrando ${startItem}–${endItem} de ${totalItems}`}
+        </span>
+
+        <div className="flex items-center gap-3">
+          <div className="flex items-center gap-1.5">
+            <span className="text-[12px] text-muted-foreground hidden sm:inline">
+              Filas:
+            </span>
+            <Select
+              value={String(pageSize)}
+              onValueChange={(val) => {
+                const next = Number(val);
+                if (next > 0) {
+                  setPageSize(next);
+                  setPage(1);
+                }
+              }}
+            >
+              <SelectTrigger
+                aria-label="Filas por página"
+                className="h-7 w-[64px] rounded-[8px] border-control-border bg-background text-[12px] tabular-nums"
+              >
+                <SelectValue>{pageSize}</SelectValue>
+              </SelectTrigger>
+              <SelectContent className="rounded-[10px] border-border bg-popover">
+                {PAGE_SIZE_OPTIONS.map((size) => (
+                  <SelectItem
+                    key={size}
+                    value={String(size)}
+                    className="text-[12px] tabular-nums"
+                  >
+                    {size}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="flex items-center gap-1.5">
+            <span className="text-[12px] text-muted-foreground tabular-nums min-w-[72px] text-center">
+              Pág. {currentPage} / {totalPages}
+            </span>
+            <Button
+              type="button"
+              variant="outline"
+              size="icon"
+              aria-label="Página anterior"
+              disabled={currentPage <= 1}
+              onClick={() => setPage((p) => Math.max(1, p - 1))}
+              className="size-7 rounded-[8px] border-control-border cursor-pointer"
+            >
+              <ChevronLeft className="size-3.5" />
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              size="icon"
+              aria-label="Página siguiente"
+              disabled={currentPage >= totalPages}
+              onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+              className="size-7 rounded-[8px] border-control-border cursor-pointer"
+            >
+              <ChevronRight className="size-3.5" />
+            </Button>
+          </div>
+        </div>
+      </div>
+    </section>
   );
 }

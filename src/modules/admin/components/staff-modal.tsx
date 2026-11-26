@@ -5,7 +5,6 @@ import { toast } from "sonner";
 import {
   Dialog,
   DialogContent,
-  DialogHeader,
   DialogTitle,
   DialogDescription,
 } from "@/components/ui/dialog";
@@ -49,32 +48,43 @@ import {
   deleteAdminStaffMember,
 } from "@/app/(dashboard)/dashboard/admin/staff/actions";
 import {
-  ShieldCheck,
-  UserPlus,
-  Trash2,
-  KeyRound,
-  Building2,
-  Mail,
-  Phone,
-  Shield,
-  Users,
-  Briefcase,
   BarChart3,
-  Settings2,
-  X,
+  Briefcase,
+  Building2,
+  CheckCheck,
+  KeyRound,
   Loader2,
   RotateCcw,
-  CheckCheck,
+  Settings2,
+  ShieldCheck,
+  UserPlus,
+  Users,
+  X,
 } from "@/components/ui/icons";
 import { cn } from "@/lib/utils";
 
-function getInitials(name: string) {
+const STATUS_LABELS: Record<AdminStaffStatus, string> = {
+  active: "Activo",
+  inactive: "Inactivo",
+  suspended: "Suspendido",
+};
+
+function getDepartmentLabel(value: string): string {
+  return STAFF_DEPARTMENTS.find((d) => d.value === value)?.label || value;
+}
+
+function getInitials(name: string): string {
   if (!name) return "AD";
-  const parts = name.trim().split(" ");
+  const parts = name.trim().split(/\s+/).filter(Boolean);
   if (parts.length >= 2) {
-    return (parts[0][0] + parts[1][0]).toUpperCase();
+    return `${parts[0][0]}${parts[1][0]}`.toUpperCase();
   }
-  return name.substring(0, 2).toUpperCase();
+  return name.slice(0, 2).toUpperCase();
+}
+
+function getErrorMessage(err: unknown, fallback: string): string {
+  if (err instanceof Error && err.message) return err.message;
+  return fallback;
 }
 
 function getPermissionIcon(key: AdminPermissionKey) {
@@ -96,13 +106,114 @@ function getPermissionIcon(key: AdminPermissionKey) {
   }
 }
 
+function PermissionMatrix({
+  permissions,
+  onToggle,
+  onSelectAll,
+  onReset,
+}: {
+  permissions: AdminPermissionKey[];
+  onToggle: (key: AdminPermissionKey) => void;
+  onSelectAll: () => void;
+  onReset: () => void;
+}) {
+  const validCount = permissions.filter((p) =>
+    ALL_PERMISSIONS.some((ap) => ap.key === p)
+  ).length;
+
+  return (
+    <div className="space-y-3">
+      <div className="flex items-center justify-between gap-2 pb-2 border-b border-border">
+        <div className="flex items-center gap-2">
+          <span className="text-[13px] font-semibold text-foreground">
+            Permisos granulares
+          </span>
+          <Badge
+            variant="outline"
+            className="rounded-[6px] px-1.5 py-0 text-[11px] tabular-nums"
+          >
+            {validCount} / {ALL_PERMISSIONS.length}
+          </Badge>
+        </div>
+
+        <div className="flex items-center gap-1">
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            onClick={onSelectAll}
+            className="h-7 px-2 text-[11.5px] font-medium text-link gap-1 rounded-[6px] cursor-pointer"
+          >
+            <CheckCheck className="size-3.5" />
+            <span>Todos</span>
+          </Button>
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            onClick={onReset}
+            className="h-7 px-2 text-[11.5px] font-medium text-muted-foreground gap-1 rounded-[6px] cursor-pointer"
+          >
+            <RotateCcw className="size-3.5" />
+            <span>Por rol</span>
+          </Button>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+        {ALL_PERMISSIONS.map((perm) => {
+          const isChecked = permissions.includes(perm.key);
+          const Icon = getPermissionIcon(perm.key);
+          return (
+            <label
+              key={perm.key}
+              className={cn(
+                "flex items-start gap-2.5 p-2.5 rounded-[10px] border text-[12px] cursor-pointer transition-colors select-none",
+                isChecked
+                  ? "border-primary/40 bg-sidebar-accent/60 text-foreground"
+                  : "border-border bg-background text-muted-foreground hover:bg-muted/40"
+              )}
+            >
+              <Checkbox
+                checked={isChecked}
+                onCheckedChange={() => onToggle(perm.key)}
+                className="mt-0.5"
+              />
+              <div className="flex flex-col gap-0.5 min-w-0 flex-1">
+                <div className="flex items-center gap-1.5">
+                  <Icon
+                    className={cn(
+                      "size-3.5 shrink-0",
+                      isChecked ? "text-link" : "text-muted-foreground"
+                    )}
+                  />
+                  <span className="font-medium text-foreground text-[12.5px] leading-tight">
+                    {perm.label}
+                  </span>
+                </div>
+                <span className="text-[11px] text-muted-foreground leading-snug">
+                  {perm.description}
+                </span>
+              </div>
+            </label>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
 interface CreateStaffModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onSuccess?: () => void;
 }
 
-export function CreateStaffModal({ open, onOpenChange, onSuccess }: CreateStaffModalProps) {
+export function CreateStaffModal({
+  open,
+  onOpenChange,
+  onSuccess,
+}: CreateStaffModalProps) {
   const [loading, setLoading] = React.useState(false);
   const [subRole, setSubRole] = React.useState<AdminSubRole>("ops_admin");
   const [department, setDepartment] = React.useState("Operaciones");
@@ -114,8 +225,10 @@ export function CreateStaffModal({ open, onOpenChange, onSuccess }: CreateStaffM
     setSubRole(role);
     setPermissions(SUB_ROLE_LABELS[role].defaultPermissions);
     if (role === "super_admin") setDepartment("Dirección General");
-    else if (role === "verification_admin") setDepartment("Validación y Expedientes");
-    else if (role === "content_admin") setDepartment("Publicaciones y Vacantes");
+    else if (role === "verification_admin")
+      setDepartment("Validación y Expedientes");
+    else if (role === "content_admin")
+      setDepartment("Publicaciones y Vacantes");
     else if (role === "support") setDepartment("Atención al Usuario");
     else setDepartment("Operaciones");
   };
@@ -126,18 +239,9 @@ export function CreateStaffModal({ open, onOpenChange, onSuccess }: CreateStaffM
     );
   };
 
-  const handleSelectAll = () => {
-    setPermissions(ALL_PERMISSIONS.map((p) => p.key));
-  };
-
-  const handleResetRoleDefaults = () => {
-    setPermissions(SUB_ROLE_LABELS[subRole].defaultPermissions);
-  };
-
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setLoading(true);
-
     const formData = new FormData(e.currentTarget);
     const name = formData.get("name") as string;
     const email = formData.get("email") as string;
@@ -154,238 +258,212 @@ export function CreateStaffModal({ open, onOpenChange, onSuccess }: CreateStaffM
         permissions,
         notes,
       });
-
-      toast.success(`Personal ${name} registrado correctamente como ${SUB_ROLE_LABELS[subRole].label}`);
+      toast.success(
+        `${name} registrado como ${SUB_ROLE_LABELS[subRole].label}`
+      );
       onOpenChange(false);
       onSuccess?.();
     } catch (err: unknown) {
-      toast.error((err as Error).message || "Error al dar de alta al nuevo personal");
+      toast.error(getErrorMessage(err, "Error al dar de alta personal"));
     } finally {
       setLoading(false);
     }
   };
 
-  const validPermissionsCount = permissions.filter((p) =>
-    ALL_PERMISSIONS.some((ap) => ap.key === p)
-  ).length;
-
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent
         showCloseButton={false}
-        className="w-[96vw] max-w-[96vw] sm:max-w-[94vw] md:max-w-4xl lg:max-w-5xl max-h-[92vh] rounded-3xl border-border/60 bg-card p-5 sm:p-7 flex flex-col gap-4 overflow-hidden shadow-2xl"
+        className="w-[96vw] max-w-[96vw] md:max-w-4xl max-h-[90vh] rounded-[16px] border-border bg-card p-5 flex flex-col gap-4 overflow-hidden"
       >
-        {/* Modal Header Bar */}
-        <div className="border-b border-border/50 pb-3.5 flex items-center justify-between gap-3 shrink-0">
-          <div className="flex items-center gap-3 min-w-0">
-            <div className="size-11 rounded-2xl bg-primary/10 text-primary flex items-center justify-center font-extrabold border border-primary/20 shrink-0">
-              <UserPlus className="size-5" />
-            </div>
+        <div className="border-b border-border pb-3 flex items-center justify-between gap-3 shrink-0">
+          <div className="flex items-center gap-2.5 min-w-0">
+            <span className="size-9 rounded-[10px] bg-sidebar-accent text-link flex items-center justify-center shrink-0">
+              <UserPlus className="size-4" />
+            </span>
             <div className="min-w-0">
-              <DialogTitle className="text-base sm:text-lg font-extrabold text-foreground truncate">
-                Dar de Alta a Nuevo Personal / Staff
+              <DialogTitle className="text-[16px] font-semibold text-foreground truncate">
+                Nuevo miembro de staff
               </DialogTitle>
-              <DialogDescription className="text-xs text-muted-foreground truncate">
-                Configure la información general y asigne los permisos operativos para el nuevo miembro del equipo.
+              <DialogDescription className="text-[12px] text-muted-foreground truncate">
+                Configura datos generales, sub-rol y permisos de acceso.
               </DialogDescription>
             </div>
           </div>
 
           <Button
+            type="button"
             variant="ghost"
             size="icon"
             onClick={() => onOpenChange(false)}
-            className="size-8 rounded-xl hover:bg-muted text-muted-foreground hover:text-foreground cursor-pointer shrink-0"
+            className="size-8 rounded-[8px] text-muted-foreground hover:text-foreground cursor-pointer shrink-0"
           >
             <X className="size-4" />
           </Button>
         </div>
 
-        <form onSubmit={handleSubmit} className="flex-1 min-h-0 flex flex-col justify-between gap-5 overflow-y-auto pr-1">
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-            
-            {/* Left Column: Personal Data & Role (5 cols) */}
-            <div className="lg:col-span-5 space-y-4">
-              <div className="space-y-3.5">
-                <div className="space-y-1.5">
-                  <Label htmlFor="create-name" className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
-                    Nombre Completo *
+        <form
+          onSubmit={handleSubmit}
+          className="flex-1 min-h-0 flex flex-col justify-between gap-4 overflow-y-auto pr-0.5"
+        >
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-start">
+            <div className="lg:col-span-5 space-y-3">
+              <div className="space-y-1">
+                <Label
+                  htmlFor="create-name"
+                  className="text-[12px] font-medium text-muted-foreground"
+                >
+                  Nombre completo *
+                </Label>
+                <Input
+                  id="create-name"
+                  name="name"
+                  required
+                  placeholder="Ej. Ana María Gómez"
+                  className="h-9 text-[13px] rounded-[8px] bg-background border-control-border"
+                />
+              </div>
+
+              <div className="space-y-1">
+                <Label
+                  htmlFor="create-email"
+                  className="text-[12px] font-medium text-muted-foreground"
+                >
+                  Correo institucional *
+                </Label>
+                <Input
+                  id="create-email"
+                  name="email"
+                  type="email"
+                  required
+                  placeholder="agomez@kanpro.com"
+                  className="h-9 text-[13px] rounded-[8px] bg-background border-control-border"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-2.5">
+                <div className="space-y-1">
+                  <Label
+                    htmlFor="create-phone"
+                    className="text-[12px] font-medium text-muted-foreground"
+                  >
+                    Teléfono
                   </Label>
                   <Input
-                    id="create-name"
-                    name="name"
-                    required
-                    placeholder="Ej. Ana María Gómez"
-                    className="h-10 text-xs sm:text-sm rounded-xl bg-muted/30 border-border/60"
+                    id="create-phone"
+                    name="whatsappNumber"
+                    placeholder="+52 999 123 4567"
+                    className="h-9 text-[13px] rounded-[8px] bg-background border-control-border"
                   />
                 </div>
 
-                <div className="space-y-1.5">
-                  <Label htmlFor="create-email" className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
-                    Correo Institucional *
+                <div className="space-y-1">
+                  <Label
+                    htmlFor="create-department"
+                    className="text-[12px] font-medium text-muted-foreground"
+                  >
+                    Departamento
                   </Label>
-                  <Input
-                    id="create-email"
-                    name="email"
-                    type="email"
-                    required
-                    placeholder="agomez@kanpro.com"
-                    className="h-10 text-xs sm:text-sm rounded-xl bg-muted/30 border-border/60"
-                  />
-                </div>
-
-                <div className="grid grid-cols-2 gap-3">
-                  <div className="space-y-1.5">
-                    <Label htmlFor="create-phone" className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
-                      Teléfono
-                    </Label>
-                    <Input
-                      id="create-phone"
-                      name="whatsappNumber"
-                      placeholder="+52 999 123 4567"
-                      className="h-10 text-xs sm:text-sm rounded-xl bg-muted/30 border-border/60"
-                    />
-                  </div>
-
-                  <div className="space-y-1.5">
-                    <Label htmlFor="create-department" className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
-                      Departamento
-                    </Label>
-                    <Select value={department} onValueChange={(val) => val && setDepartment(val)}>
-                      <SelectTrigger id="create-department" className="h-10 w-full text-xs sm:text-sm rounded-xl bg-muted/30 border-border/60 px-3">
-                        <SelectValue placeholder="Seleccionar departamento" />
-                      </SelectTrigger>
-                      <SelectContent alignItemWithTrigger={false} className="w-(--anchor-width) min-w-[280px] rounded-2xl border-border/60 p-1.5 shadow-2xl bg-popover">
-                        <SelectGroup>
-                          {STAFF_DEPARTMENTS.map((dept) => (
-                            <SelectItem key={dept.value} value={dept.value} className="text-xs rounded-xl py-2 px-3 font-medium cursor-pointer">
-                              <span className="font-bold">{dept.label}</span>
-                            </SelectItem>
-                          ))}
-                        </SelectGroup>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </div>
-
-                <div className="space-y-1.5">
-                  <Label htmlFor="create-role" className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
-                    Rol Administrativo *
-                  </Label>
-                  <Select value={subRole} onValueChange={(val) => handleSubRoleChange(val as AdminSubRole)}>
-                    <SelectTrigger id="create-role" className="h-10 w-full text-xs sm:text-sm rounded-xl bg-muted/30 border-border/60 px-3">
-                      <SelectValue placeholder="Seleccionar rol de personal" />
+                  <Select
+                    value={department}
+                    onValueChange={(val) => val && setDepartment(val)}
+                  >
+                    <SelectTrigger
+                      id="create-department"
+                      className="h-9 w-full text-[12.5px] rounded-[8px] bg-background border-control-border"
+                    >
+                      <SelectValue>{getDepartmentLabel(department)}</SelectValue>
                     </SelectTrigger>
-                    <SelectContent alignItemWithTrigger={false} className="w-(--anchor-width) min-w-[280px] rounded-2xl border-border/60 p-1.5 shadow-2xl bg-popover">
+                    <SelectContent className="rounded-[10px] border-border bg-popover">
                       <SelectGroup>
-                        {Object.entries(SUB_ROLE_LABELS).map(([key, info]) => (
-                          <SelectItem key={key} value={key} className="text-xs rounded-xl py-2 px-3 font-medium cursor-pointer">
-                            <span className="font-bold">{info.label}</span>
+                        {STAFF_DEPARTMENTS.map((dept) => (
+                          <SelectItem
+                            key={dept.value}
+                            value={dept.value}
+                            className="text-[12.5px]"
+                          >
+                            {dept.label}
                           </SelectItem>
                         ))}
                       </SelectGroup>
                     </SelectContent>
                   </Select>
                 </div>
+              </div>
 
-                <div className="space-y-1.5">
-                  <Label htmlFor="create-notes" className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
-                    Notas u Observaciones
-                  </Label>
-                  <Textarea
-                    id="create-notes"
-                    name="notes"
-                    placeholder="Detalles sobre responsabilidades, turnos o área asignada..."
-                    className="text-xs rounded-xl bg-muted/30 border-border/60 min-h-[70px]"
-                  />
-                </div>
+              <div className="space-y-1">
+                <Label
+                  htmlFor="create-role"
+                  className="text-[12px] font-medium text-muted-foreground"
+                >
+                  Sub-rol administrativo *
+                </Label>
+                <Select
+                  value={subRole}
+                  onValueChange={(val) =>
+                    val && handleSubRoleChange(val as AdminSubRole)
+                  }
+                >
+                  <SelectTrigger
+                    id="create-role"
+                    className="h-9 w-full text-[12.5px] rounded-[8px] bg-background border-control-border"
+                  >
+                    <SelectValue>{SUB_ROLE_LABELS[subRole].label}</SelectValue>
+                  </SelectTrigger>
+                  <SelectContent className="rounded-[10px] border-border bg-popover">
+                    <SelectGroup>
+                      {Object.entries(SUB_ROLE_LABELS).map(([key, info]) => (
+                        <SelectItem
+                          key={key}
+                          value={key}
+                          className="text-[12.5px]"
+                        >
+                          {info.label}
+                        </SelectItem>
+                      ))}
+                    </SelectGroup>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-1">
+                <Label
+                  htmlFor="create-notes"
+                  className="text-[12px] font-medium text-muted-foreground"
+                >
+                  Notas
+                </Label>
+                <Textarea
+                  id="create-notes"
+                  name="notes"
+                  placeholder="Responsabilidades, turnos o área asignada..."
+                  className="text-[12.5px] rounded-[8px] bg-background border-control-border min-h-[64px]"
+                />
               </div>
             </div>
 
-            {/* Right Column: Permission Matrix (7 cols) */}
-            <div className="lg:col-span-7 space-y-3.5">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-1 border-b border-border/40">
-                <div className="flex items-center gap-2">
-                  <KeyRound className="size-4 text-purple-600" />
-                  <span className="text-xs font-extrabold text-foreground uppercase tracking-wider">
-                    Permisos Granulares
-                  </span>
-                  <Badge variant="outline" className="text-[10px] font-bold rounded-lg bg-card border-border/60 font-mono">
-                    {validPermissionsCount} / {ALL_PERMISSIONS.length} Concedidos
-                  </Badge>
-                </div>
-
-                <div className="flex items-center gap-1.5 self-end sm:self-auto">
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="sm"
-                    onClick={handleSelectAll}
-                    className="h-7 px-2 text-[11px] font-bold text-primary gap-1 hover:bg-primary/10 rounded-lg cursor-pointer"
-                  >
-                    <CheckCheck className="size-3" />
-                    <span>Todos</span>
-                  </Button>
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="sm"
-                    onClick={handleResetRoleDefaults}
-                    className="h-7 px-2 text-[11px] font-bold text-muted-foreground gap-1 hover:bg-muted rounded-lg cursor-pointer"
-                  >
-                    <RotateCcw className="size-3" />
-                    <span>Restablecer</span>
-                  </Button>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-                {ALL_PERMISSIONS.map((perm) => {
-                  const isChecked = permissions.includes(perm.key);
-                  const Icon = getPermissionIcon(perm.key);
-
-                  return (
-                    <label
-                      key={perm.key}
-                      className={cn(
-                        "flex items-start gap-3 p-3.5 rounded-2xl border text-xs cursor-pointer transition-all select-none",
-                        isChecked
-                          ? "border-primary/50 bg-primary/5 text-foreground shadow-2xs ring-1 ring-primary/20"
-                          : "border-border/60 bg-muted/20 text-muted-foreground hover:bg-muted/40"
-                      )}
-                    >
-                      <Checkbox
-                        checked={isChecked}
-                        onCheckedChange={() => togglePermission(perm.key)}
-                        className="mt-0.5"
-                      />
-                      <div className="flex flex-col gap-1 min-w-0 flex-1">
-                        <div className="flex items-center gap-1.5">
-                          <Icon className={cn("size-3.5 shrink-0", isChecked ? "text-primary" : "text-muted-foreground")} />
-                          <span className="font-extrabold text-foreground text-xs leading-tight">
-                            {perm.label}
-                          </span>
-                        </div>
-                        <span className="text-[11px] text-muted-foreground leading-snug">
-                          {perm.description}
-                        </span>
-                      </div>
-                    </label>
-                  );
-                })}
-              </div>
+            <div className="lg:col-span-7">
+              <PermissionMatrix
+                permissions={permissions}
+                onToggle={togglePermission}
+                onSelectAll={() =>
+                  setPermissions(ALL_PERMISSIONS.map((p) => p.key))
+                }
+                onReset={() =>
+                  setPermissions(SUB_ROLE_LABELS[subRole].defaultPermissions)
+                }
+              />
             </div>
           </div>
 
-          {/* Modal Footer */}
-          <div className="flex items-center justify-end gap-2 pt-3 border-t border-border/50 shrink-0">
+          <div className="flex items-center justify-end gap-2 pt-3 border-t border-border shrink-0">
             <Button
               type="button"
               variant="outline"
               size="sm"
               onClick={() => onOpenChange(false)}
               disabled={loading}
-              className="h-10 px-4 rounded-xl text-xs font-bold cursor-pointer"
+              className="h-8 px-3 rounded-[8px] text-[12.5px] font-medium border-control-border cursor-pointer"
             >
               Cancelar
             </Button>
@@ -393,10 +471,10 @@ export function CreateStaffModal({ open, onOpenChange, onSuccess }: CreateStaffM
               type="submit"
               size="sm"
               disabled={loading}
-              className="h-10 px-5 rounded-xl text-xs font-bold bg-primary text-primary-foreground hover:bg-primary/90 gap-1.5 cursor-pointer shadow-xs"
+              className="h-8 px-3.5 rounded-[8px] text-[12.5px] font-semibold bg-primary text-primary-foreground hover:opacity-90 gap-1.5 cursor-pointer"
             >
-              {loading ? <Loader2 className="size-3.5 animate-spin" /> : <UserPlus className="size-4" />}
-              <span>Dar de Alta Personal</span>
+              {loading && <Loader2 className="size-3.5 animate-spin" />}
+              <span>Dar de alta</span>
             </Button>
           </div>
         </form>
@@ -412,7 +490,12 @@ interface EditStaffModalProps {
   onSuccess?: () => void;
 }
 
-export function EditStaffModal({ staff, open, onOpenChange, onSuccess }: EditStaffModalProps) {
+export function EditStaffModal({
+  staff,
+  open,
+  onOpenChange,
+  onSuccess,
+}: EditStaffModalProps) {
   if (!staff) return null;
 
   return (
@@ -441,10 +524,14 @@ function EditStaffModalContent({
   const [subRole, setSubRole] = React.useState<AdminSubRole>(staff.subRole);
   const [status, setStatus] = React.useState<AdminStaffStatus>(staff.status);
   const [department, setDepartment] = React.useState(staff.department);
-  
-  // Ensure we only hold valid unique permissions
   const [permissions, setPermissions] = React.useState<AdminPermissionKey[]>(
-    Array.from(new Set((staff.permissions || []).filter((p) => ALL_PERMISSIONS.some((ap) => ap.key === p))))
+    Array.from(
+      new Set(
+        (staff.permissions || []).filter((p) =>
+          ALL_PERMISSIONS.some((ap) => ap.key === p)
+        )
+      )
+    )
   );
 
   const handleSubRoleChange = (role: AdminSubRole) => {
@@ -456,14 +543,6 @@ function EditStaffModalContent({
     setPermissions((prev) =>
       prev.includes(key) ? prev.filter((p) => p !== key) : [...prev, key]
     );
-  };
-
-  const handleSelectAll = () => {
-    setPermissions(ALL_PERMISSIONS.map((p) => p.key));
-  };
-
-  const handleResetRoleDefaults = () => {
-    setPermissions(SUB_ROLE_LABELS[subRole].defaultPermissions);
   };
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
@@ -487,20 +566,15 @@ function EditStaffModalContent({
         status,
         notes,
       });
-
-      toast.success(`Personal ${name} actualizado correctamente`);
+      toast.success(`Personal ${name} actualizado`);
       onOpenChange(false);
       onSuccess?.();
     } catch (err: unknown) {
-      toast.error((err as Error).message || "Error al actualizar la información");
+      toast.error(getErrorMessage(err, "Error al actualizar información"));
     } finally {
       setLoading(false);
     }
   };
-
-  const validPermissionsCount = permissions.filter((p) =>
-    ALL_PERMISSIONS.some((ap) => ap.key === p)
-  ).length;
 
   const initials = getInitials(staff.name);
 
@@ -508,263 +582,250 @@ function EditStaffModalContent({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent
         showCloseButton={false}
-        className="w-[96vw] max-w-[96vw] sm:max-w-[94vw] md:max-w-4xl lg:max-w-5xl xl:max-w-6xl max-h-[92vh] rounded-3xl border-border/60 bg-card p-5 sm:p-7 flex flex-col gap-4 overflow-hidden shadow-2xl"
+        className="w-[96vw] max-w-[96vw] md:max-w-4xl max-h-[90vh] rounded-[16px] border-border bg-card p-5 flex flex-col gap-4 overflow-hidden"
       >
-        {/* Modal Header Bar */}
-        <div className="border-b border-border/50 pb-3.5 flex items-center justify-between gap-3 shrink-0">
-          <div className="flex items-center gap-3.5 min-w-0">
-            <Avatar className="size-11 rounded-2xl border border-border/60 bg-muted shrink-0">
-              <AvatarImage src={staff.avatar} alt={staff.name} />
-              <AvatarFallback className="bg-purple-500/10 text-purple-600 dark:text-purple-400 font-extrabold text-sm">
+        <div className="border-b border-border pb-3 flex items-center justify-between gap-3 shrink-0">
+          <div className="flex items-center gap-3 min-w-0">
+            <Avatar className="size-9 rounded-[10px] shrink-0 after:hidden">
+              <AvatarImage
+                src={staff.avatar}
+                alt={staff.name}
+                className="rounded-[10px] object-cover"
+              />
+              <AvatarFallback className="rounded-[10px] bg-sidebar-accent text-link font-semibold text-[12px]">
                 {initials}
               </AvatarFallback>
             </Avatar>
 
             <div className="min-w-0">
               <div className="flex items-center gap-2 flex-wrap">
-                <DialogTitle className="text-base sm:text-lg font-extrabold text-foreground truncate">
+                <DialogTitle className="text-[16px] font-semibold text-foreground truncate">
                   {staff.name}
                 </DialogTitle>
                 <Badge
-                  variant="outline"
-                  className={cn(
-                    "text-[10px] px-2 py-0.5 font-bold rounded-lg border",
-                    subRole === "super_admin"
-                      ? "bg-purple-500/10 text-purple-600 border-purple-500/20"
-                      : "bg-muted text-muted-foreground border-border/60"
-                  )}
+                  variant={subRole === "super_admin" ? "secondary" : "outline"}
+                  className="rounded-[6px] px-2 py-0 text-[11px] font-medium"
                 >
                   {SUB_ROLE_LABELS[subRole]?.label || "Staff"}
                 </Badge>
               </div>
-              <DialogDescription className="text-xs text-muted-foreground truncate font-mono">
-                {staff.email} • ID: {staff.profileId.slice(0, 8)}
+              <DialogDescription className="text-[12px] text-muted-foreground truncate">
+                {staff.email} · ID {staff.profileId.slice(0, 8)}
               </DialogDescription>
             </div>
           </div>
 
           <Button
+            type="button"
             variant="ghost"
             size="icon"
             onClick={() => onOpenChange(false)}
-            className="size-8 rounded-xl hover:bg-muted text-muted-foreground hover:text-foreground cursor-pointer shrink-0"
+            className="size-8 rounded-[8px] text-muted-foreground hover:text-foreground cursor-pointer shrink-0"
           >
             <X className="size-4" />
           </Button>
         </div>
 
-        <form onSubmit={handleSubmit} className="flex-1 min-h-0 flex flex-col justify-between gap-5 overflow-y-auto pr-1">
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-            
-            {/* Left Column: Staff Details & Role / Status (5 cols) */}
-            <div className="lg:col-span-5 space-y-4">
-              <div className="space-y-3.5">
-                <div className="space-y-1.5">
-                  <Label htmlFor="edit-name" className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
-                    Nombre Completo *
+        <form
+          onSubmit={handleSubmit}
+          className="flex-1 min-h-0 flex flex-col justify-between gap-4 overflow-y-auto pr-0.5"
+        >
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-start">
+            <div className="lg:col-span-5 space-y-3">
+              <div className="space-y-1">
+                <Label
+                  htmlFor="edit-name"
+                  className="text-[12px] font-medium text-muted-foreground"
+                >
+                  Nombre completo *
+                </Label>
+                <Input
+                  id="edit-name"
+                  name="name"
+                  defaultValue={staff.name}
+                  required
+                  className="h-9 text-[13px] rounded-[8px] bg-background border-control-border"
+                />
+              </div>
+
+              <div className="space-y-1">
+                <Label
+                  htmlFor="edit-email"
+                  className="text-[12px] font-medium text-muted-foreground"
+                >
+                  Correo electrónico *
+                </Label>
+                <Input
+                  id="edit-email"
+                  name="email"
+                  type="email"
+                  defaultValue={staff.email}
+                  required
+                  className="h-9 text-[13px] rounded-[8px] bg-background border-control-border"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-2.5">
+                <div className="space-y-1">
+                  <Label
+                    htmlFor="edit-phone"
+                    className="text-[12px] font-medium text-muted-foreground"
+                  >
+                    Teléfono
                   </Label>
                   <Input
-                    id="edit-name"
-                    name="name"
-                    defaultValue={staff.name}
-                    required
-                    className="h-10 text-xs sm:text-sm rounded-xl bg-muted/30 border-border/60"
+                    id="edit-phone"
+                    name="whatsappNumber"
+                    defaultValue={staff.whatsappNumber}
+                    className="h-9 text-[13px] rounded-[8px] bg-background border-control-border"
                   />
                 </div>
 
-                <div className="space-y-1.5">
-                  <Label htmlFor="edit-email" className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
-                    Correo Electrónico *
+                <div className="space-y-1">
+                  <Label
+                    htmlFor="edit-dept"
+                    className="text-[12px] font-medium text-muted-foreground"
+                  >
+                    Departamento
                   </Label>
-                  <Input
-                    id="edit-email"
-                    name="email"
-                    type="email"
-                    defaultValue={staff.email}
-                    required
-                    className="h-10 text-xs sm:text-sm rounded-xl bg-muted/30 border-border/60"
-                  />
-                </div>
-
-                <div className="grid grid-cols-2 gap-3">
-                  <div className="space-y-1.5">
-                    <Label htmlFor="edit-phone" className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
-                      Teléfono
-                    </Label>
-                    <Input
-                      id="edit-phone"
-                      name="whatsappNumber"
-                      defaultValue={staff.whatsappNumber}
-                      className="h-10 text-xs sm:text-sm rounded-xl bg-muted/30 border-border/60"
-                    />
-                  </div>
-
-                  <div className="space-y-1.5">
-                    <Label htmlFor="edit-dept" className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
-                      Departamento
-                    </Label>
-                    <Select value={department} onValueChange={(val) => val && setDepartment(val)}>
-                      <SelectTrigger id="edit-dept" className="h-10 w-full text-xs sm:text-sm rounded-xl bg-muted/30 border-border/60 px-3">
-                        <SelectValue placeholder="Seleccionar departamento" />
-                      </SelectTrigger>
-                      <SelectContent alignItemWithTrigger={false} className="w-(--anchor-width) min-w-[280px] rounded-2xl border-border/60 p-1.5 shadow-2xl bg-popover">
-                        <SelectGroup>
-                          {STAFF_DEPARTMENTS.map((dept) => (
-                            <SelectItem key={dept.value} value={dept.value} className="text-xs rounded-xl py-2 px-3 font-medium cursor-pointer">
-                              <span className="font-bold">{dept.label}</span>
-                            </SelectItem>
-                          ))}
-                        </SelectGroup>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-2 gap-3">
-                  <div className="space-y-1.5">
-                    <Label htmlFor="edit-role" className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
-                      Rol Administrativo
-                    </Label>
-                    <Select value={subRole} onValueChange={(val) => handleSubRoleChange(val as AdminSubRole)}>
-                      <SelectTrigger id="edit-role" className="h-10 w-full text-xs sm:text-sm rounded-xl bg-muted/30 border-border/60 px-3">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent alignItemWithTrigger={false} className="w-(--anchor-width) min-w-[280px] rounded-2xl border-border/60 p-1.5 shadow-2xl bg-popover">
-                        <SelectGroup>
-                          {Object.entries(SUB_ROLE_LABELS).map(([key, info]) => (
-                            <SelectItem key={key} value={key} className="text-xs rounded-xl py-2 px-3 font-medium cursor-pointer">
-                              <span className="font-bold">{info.label}</span>
-                            </SelectItem>
-                          ))}
-                        </SelectGroup>
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  <div className="space-y-1.5">
-                    <Label htmlFor="edit-status" className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
-                      Estado del Acceso
-                    </Label>
-                    <Select value={status} onValueChange={(val) => setStatus(val as AdminStaffStatus)}>
-                      <SelectTrigger id="edit-status" className="h-10 w-full text-xs sm:text-sm rounded-xl bg-muted/30 border-border/60 px-3">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent alignItemWithTrigger={false} className="w-(--anchor-width) min-w-[200px] rounded-2xl border-border/60 p-1.5 shadow-2xl bg-popover">
-                        <SelectGroup>
-                          <SelectItem value="active" className="text-xs text-emerald-600 font-bold rounded-xl py-2 px-3 cursor-pointer">
-                            Activo
+                  <Select
+                    value={department}
+                    onValueChange={(val) => val && setDepartment(val)}
+                  >
+                    <SelectTrigger
+                      id="edit-dept"
+                      className="h-9 w-full text-[12.5px] rounded-[8px] bg-background border-control-border"
+                    >
+                      <SelectValue>{getDepartmentLabel(department)}</SelectValue>
+                    </SelectTrigger>
+                    <SelectContent className="rounded-[10px] border-border bg-popover">
+                      <SelectGroup>
+                        {STAFF_DEPARTMENTS.map((dept) => (
+                          <SelectItem
+                            key={dept.value}
+                            value={dept.value}
+                            className="text-[12.5px]"
+                          >
+                            {dept.label}
                           </SelectItem>
-                          <SelectItem value="inactive" className="text-xs text-amber-600 font-bold rounded-xl py-2 px-3 cursor-pointer">
-                            Inactivo
-                          </SelectItem>
-                          <SelectItem value="suspended" className="text-xs text-rose-600 font-bold rounded-xl py-2 px-3 cursor-pointer">
-                            Suspendido
-                          </SelectItem>
-                        </SelectGroup>
-                      </SelectContent>
-                    </Select>
-                  </div>
+                        ))}
+                      </SelectGroup>
+                    </SelectContent>
+                  </Select>
                 </div>
+              </div>
 
-                <div className="space-y-1.5">
-                  <Label htmlFor="edit-notes" className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
-                    Notas u Observaciones
+              <div className="grid grid-cols-2 gap-2.5">
+                <div className="space-y-1">
+                  <Label
+                    htmlFor="edit-role"
+                    className="text-[12px] font-medium text-muted-foreground"
+                  >
+                    Sub-rol
                   </Label>
-                  <Textarea
-                    id="edit-notes"
-                    name="notes"
-                    defaultValue={staff.notes}
-                    placeholder="Detalles sobre cambios de rol, motivos o asignaciones..."
-                    className="text-xs rounded-xl bg-muted/30 border-border/60 min-h-[70px]"
-                  />
+                  <Select
+                    value={subRole}
+                    onValueChange={(val) =>
+                      val && handleSubRoleChange(val as AdminSubRole)
+                    }
+                  >
+                    <SelectTrigger
+                      id="edit-role"
+                      className="h-9 w-full text-[12.5px] rounded-[8px] bg-background border-control-border"
+                    >
+                      <SelectValue>{SUB_ROLE_LABELS[subRole].label}</SelectValue>
+                    </SelectTrigger>
+                    <SelectContent className="rounded-[10px] border-border bg-popover">
+                      <SelectGroup>
+                        {Object.entries(SUB_ROLE_LABELS).map(([key, info]) => (
+                          <SelectItem
+                            key={key}
+                            value={key}
+                            className="text-[12.5px]"
+                          >
+                            {info.label}
+                          </SelectItem>
+                        ))}
+                      </SelectGroup>
+                    </SelectContent>
+                  </Select>
                 </div>
+
+                <div className="space-y-1">
+                  <Label
+                    htmlFor="edit-status"
+                    className="text-[12px] font-medium text-muted-foreground"
+                  >
+                    Estado
+                  </Label>
+                  <Select
+                    value={status}
+                    onValueChange={(val) =>
+                      val && setStatus(val as AdminStaffStatus)
+                    }
+                  >
+                    <SelectTrigger
+                      id="edit-status"
+                      className="h-9 w-full text-[12.5px] rounded-[8px] bg-background border-control-border"
+                    >
+                      <SelectValue>{STATUS_LABELS[status]}</SelectValue>
+                    </SelectTrigger>
+                    <SelectContent className="rounded-[10px] border-border bg-popover">
+                      <SelectGroup>
+                        <SelectItem value="active" className="text-[12.5px]">
+                          Activo
+                        </SelectItem>
+                        <SelectItem value="inactive" className="text-[12.5px]">
+                          Inactivo
+                        </SelectItem>
+                        <SelectItem value="suspended" className="text-[12.5px]">
+                          Suspendido
+                        </SelectItem>
+                      </SelectGroup>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+
+              <div className="space-y-1">
+                <Label
+                  htmlFor="edit-notes"
+                  className="text-[12px] font-medium text-muted-foreground"
+                >
+                  Notas
+                </Label>
+                <Textarea
+                  id="edit-notes"
+                  name="notes"
+                  defaultValue={staff.notes}
+                  placeholder="Observaciones o cambios de rol..."
+                  className="text-[12.5px] rounded-[8px] bg-background border-control-border min-h-[64px]"
+                />
               </div>
             </div>
 
-            {/* Right Column: Permission Matrix (7 cols) */}
-            <div className="lg:col-span-7 space-y-3.5">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-1 border-b border-border/40">
-                <div className="flex items-center gap-2">
-                  <KeyRound className="size-4 text-purple-600" />
-                  <span className="text-xs font-extrabold text-foreground uppercase tracking-wider">
-                    Permisos Granulares
-                  </span>
-                  <Badge variant="outline" className="text-[10px] font-bold rounded-lg bg-card border-border/60 font-mono">
-                    {validPermissionsCount} / {ALL_PERMISSIONS.length} Concedidos
-                  </Badge>
-                </div>
-
-                <div className="flex items-center gap-1.5 self-end sm:self-auto">
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="sm"
-                    onClick={handleSelectAll}
-                    className="h-7 px-2 text-[11px] font-bold text-primary gap-1 hover:bg-primary/10 rounded-lg cursor-pointer"
-                  >
-                    <CheckCheck className="size-3" />
-                    <span>Todos</span>
-                  </Button>
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="sm"
-                    onClick={handleResetRoleDefaults}
-                    className="h-7 px-2 text-[11px] font-bold text-muted-foreground gap-1 hover:bg-muted rounded-lg cursor-pointer"
-                  >
-                    <RotateCcw className="size-3" />
-                    <span>Restablecer</span>
-                  </Button>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-                {ALL_PERMISSIONS.map((perm) => {
-                  const isChecked = permissions.includes(perm.key);
-                  const Icon = getPermissionIcon(perm.key);
-
-                  return (
-                    <label
-                      key={perm.key}
-                      className={cn(
-                        "flex items-start gap-3 p-3.5 rounded-2xl border text-xs cursor-pointer transition-all select-none",
-                        isChecked
-                          ? "border-primary/50 bg-primary/5 text-foreground shadow-2xs ring-1 ring-primary/20"
-                          : "border-border/60 bg-muted/20 text-muted-foreground hover:bg-muted/40"
-                      )}
-                    >
-                      <Checkbox
-                        checked={isChecked}
-                        onCheckedChange={() => togglePermission(perm.key)}
-                        className="mt-0.5"
-                      />
-                      <div className="flex flex-col gap-1 min-w-0 flex-1">
-                        <div className="flex items-center gap-1.5">
-                          <Icon className={cn("size-3.5 shrink-0", isChecked ? "text-primary" : "text-muted-foreground")} />
-                          <span className="font-extrabold text-foreground text-xs leading-tight">
-                            {perm.label}
-                          </span>
-                        </div>
-                        <span className="text-[11px] text-muted-foreground leading-snug">
-                          {perm.description}
-                        </span>
-                      </div>
-                    </label>
-                  );
-                })}
-              </div>
+            <div className="lg:col-span-7">
+              <PermissionMatrix
+                permissions={permissions}
+                onToggle={togglePermission}
+                onSelectAll={() =>
+                  setPermissions(ALL_PERMISSIONS.map((p) => p.key))
+                }
+                onReset={() =>
+                  setPermissions(SUB_ROLE_LABELS[subRole].defaultPermissions)
+                }
+              />
             </div>
           </div>
 
-          {/* Modal Footer */}
-          <div className="flex items-center justify-end gap-2 pt-3 border-t border-border/50 shrink-0">
+          <div className="flex items-center justify-end gap-2 pt-3 border-t border-border shrink-0">
             <Button
               type="button"
               variant="outline"
               size="sm"
               onClick={() => onOpenChange(false)}
               disabled={loading}
-              className="h-10 px-4 rounded-xl text-xs font-bold cursor-pointer"
+              className="h-8 px-3 rounded-[8px] text-[12.5px] font-medium border-control-border cursor-pointer"
             >
               Cancelar
             </Button>
@@ -772,10 +833,10 @@ function EditStaffModalContent({
               type="submit"
               size="sm"
               disabled={loading}
-              className="h-10 px-5 rounded-xl text-xs font-bold bg-primary text-primary-foreground hover:bg-primary/90 cursor-pointer shadow-xs"
+              className="h-8 px-3.5 rounded-[8px] text-[12.5px] font-semibold bg-primary text-primary-foreground hover:opacity-90 gap-1.5 cursor-pointer"
             >
-              {loading ? <Loader2 className="size-3.5 animate-spin" /> : <ShieldCheck className="size-4" />}
-              <span>Guardar Cambios</span>
+              {loading && <Loader2 className="size-3.5 animate-spin" />}
+              <span>Guardar cambios</span>
             </Button>
           </div>
         </form>
@@ -791,7 +852,12 @@ interface DeleteStaffDialogProps {
   onSuccess?: () => void;
 }
 
-export function DeleteStaffDialog({ staff, open, onOpenChange, onSuccess }: DeleteStaffDialogProps) {
+export function DeleteStaffDialog({
+  staff,
+  open,
+  onOpenChange,
+  onSuccess,
+}: DeleteStaffDialogProps) {
   const [loading, setLoading] = React.useState(false);
 
   if (!staff) return null;
@@ -800,11 +866,11 @@ export function DeleteStaffDialog({ staff, open, onOpenChange, onSuccess }: Dele
     setLoading(true);
     try {
       await deleteAdminStaffMember(staff.profileId);
-      toast.success(`Acceso administrativo de ${staff.name} revocado correctamente`);
+      toast.success(`Acceso administrativo de ${staff.name} revocado`);
       onOpenChange(false);
       onSuccess?.();
     } catch (err: unknown) {
-      toast.error((err as Error).message || "Error al dar de baja al usuario");
+      toast.error(getErrorMessage(err, "Error al revocar acceso"));
     } finally {
       setLoading(false);
     }
@@ -812,28 +878,31 @@ export function DeleteStaffDialog({ staff, open, onOpenChange, onSuccess }: Dele
 
   return (
     <AlertDialog open={open} onOpenChange={onOpenChange}>
-      <AlertDialogContent className="rounded-3xl max-w-md p-6 border-border/60 shadow-2xl">
+      <AlertDialogContent className="rounded-[16px] max-w-md p-5 border-border bg-card">
         <AlertDialogHeader>
-          <AlertDialogTitle className="flex items-center gap-2 text-destructive font-extrabold text-base">
-            <Trash2 className="size-5" />
-            <span>Dar de Baja Acceso Administrativo</span>
+          <AlertDialogTitle className="text-[16px] font-semibold text-foreground">
+            Revocar acceso administrativo
           </AlertDialogTitle>
-          <AlertDialogDescription className="text-xs text-muted-foreground pt-2 leading-relaxed">
-            ¿Está seguro de revocar el acceso administrativo a <strong className="text-foreground">{staff.name}</strong> ({staff.email})?
-            <br /><br />
-            El usuario perderá inmediatamente todos los permisos de administración y su rol volverá a ser de usuario básico.
+          <AlertDialogDescription className="text-[12.5px] text-muted-foreground pt-1 leading-relaxed">
+            ¿Revocar los privilegios de{" "}
+            <strong className="text-foreground">{staff.name}</strong> (
+            {staff.email})? Perderá todos los permisos de administración y su
+            cuenta pasará a rol básico.
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter className="gap-2 pt-2">
-          <AlertDialogCancel disabled={loading} className="h-10 rounded-xl text-xs font-bold cursor-pointer">
+          <AlertDialogCancel
+            disabled={loading}
+            className="h-8 px-3 rounded-[8px] text-[12.5px] font-medium border-control-border cursor-pointer"
+          >
             Cancelar
           </AlertDialogCancel>
           <AlertDialogAction
             onClick={handleDelete}
             disabled={loading}
-            className="h-10 rounded-xl bg-destructive text-destructive-foreground hover:bg-destructive/90 text-xs font-bold cursor-pointer shadow-xs"
+            className="h-8 px-3.5 rounded-[8px] bg-destructive text-destructive-foreground hover:opacity-90 text-[12.5px] font-semibold cursor-pointer"
           >
-            {loading ? "Procesando..." : "Confirmar Baja"}
+            {loading ? "Procesando..." : "Confirmar baja"}
           </AlertDialogAction>
         </AlertDialogFooter>
       </AlertDialogContent>

@@ -3,13 +3,6 @@
 import * as React from "react";
 import { Area, AreaChart, CartesianGrid, XAxis, YAxis } from "recharts";
 import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import {
   ChartContainer,
   ChartTooltip,
   ChartTooltipContent,
@@ -23,7 +16,6 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
-import { TrendingUp, Send, Briefcase } from "@/components/ui/icons";
 import { useIsMobile } from "@/hooks/use-mobile";
 
 interface ChartAreaInteractiveProps {
@@ -40,24 +32,29 @@ const chartConfig = {
     color: "var(--primary)",
   },
   vacancies: {
-    label: "Vacantes Publicadas",
-    color: "#10b981", // Emerald 500
+    label: "Vacantes publicadas",
+    color: "var(--chart-2)",
   },
 } satisfies ChartConfig;
 
+const TIME_RANGE_LABELS: Record<"90d" | "30d" | "7d", string> = {
+  "90d": "Últimos 90 días",
+  "30d": "Últimos 30 días",
+  "7d": "Últimos 7 días",
+};
+
 export function ChartAreaInteractive({ data = [] }: ChartAreaInteractiveProps) {
   const isMobile = useIsMobile();
-  const [timeRange, setTimeRange] = React.useState<"90d" | "30d" | "7d">("90d");
-
-  React.useEffect(() => {
-    if (isMobile) {
-      setTimeRange("7d");
-    }
-  }, [isMobile]);
+  const [selectedRange, setSelectedRange] = React.useState<"90d" | "30d" | "7d" | null>(null);
+  const timeRange = selectedRange ?? (isMobile ? "7d" : "30d");
 
   const dataset = React.useMemo(() => {
     if (data && data.length > 0) return data;
-    const zeroFilled: Array<{ date: string; applications: number; vacancies: number }> = [];
+    const zeroFilled: Array<{
+      date: string;
+      applications: number;
+      vacancies: number;
+    }> = [];
     const now = new Date();
     for (let i = 89; i >= 0; i--) {
       const d = new Date(now);
@@ -84,109 +81,128 @@ export function ChartAreaInteractive({ data = [] }: ChartAreaInteractiveProps) {
   }, [filteredData]);
 
   return (
-    <Card className="bg-card border border-border/60 rounded-3xl shadow-xs overflow-hidden mx-4 lg:mx-6">
-      <CardHeader className="p-4 sm:p-6 border-b border-border/60 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div className="space-y-1">
-          <div className="flex items-center gap-2">
-            <CardTitle className="text-base sm:text-lg font-extrabold text-foreground">
-              Dinámica de Contratación & Actividad
-            </CardTitle>
-            <span className="hidden sm:inline-flex items-center gap-1 text-[11px] font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 px-2.5 py-0.5 rounded-full">
-              <TrendingUp className="size-3" />
-              <span>Sureste de México</span>
-            </span>
-          </div>
-          <CardDescription className="text-xs text-muted-foreground font-medium">
-            Comparativa de postulaciones de candidatos vs. nuevas vacantes publicadas.
-          </CardDescription>
+    <section className="bg-card border border-border rounded-[14px] overflow-hidden">
+      {/* Header compacto */}
+      <div className="px-4 py-3 border-b border-border flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
+        <div className="flex flex-col gap-0.5 min-w-0">
+          <h2 className="text-[15px] font-semibold leading-[20px] text-foreground">
+            Dinámica de actividad
+          </h2>
+          <p className="text-[12px] text-muted-foreground">
+            Postulaciones recibidas vs. vacantes publicadas
+          </p>
         </div>
 
-        {/* Time range switcher */}
-        <div className="flex items-center gap-2">
-          {/* Desktop Toggle Group */}
+        <div className="flex items-center gap-2 shrink-0">
           <ToggleGroup
             value={[timeRange]}
             onValueChange={(val) => {
-              if (val.length > 0 && val[0]) setTimeRange(val[0] as "90d" | "30d" | "7d");
+              if (val.length > 0 && val[0]) {
+                setSelectedRange(val[0] as "90d" | "30d" | "7d");
+              }
             }}
             variant="outline"
-            className="hidden sm:flex bg-muted/40 p-0.5 rounded-xl border-border/60"
+            className="hidden sm:flex bg-muted/50 p-0.5 rounded-[8px] border-border"
           >
-            <ToggleGroupItem value="90d" className="text-xs font-bold px-3 py-1 rounded-lg">
-              90 Días
+            <ToggleGroupItem
+              value="90d"
+              className="h-7 text-[12px] font-medium px-2.5 rounded-[6px]"
+            >
+              90d
             </ToggleGroupItem>
-            <ToggleGroupItem value="30d" className="text-xs font-bold px-3 py-1 rounded-lg">
-              30 Días
+            <ToggleGroupItem
+              value="30d"
+              className="h-7 text-[12px] font-medium px-2.5 rounded-[6px]"
+            >
+              30d
             </ToggleGroupItem>
-            <ToggleGroupItem value="7d" className="text-xs font-bold px-3 py-1 rounded-lg">
-              7 Días
+            <ToggleGroupItem
+              value="7d"
+              className="h-7 text-[12px] font-medium px-2.5 rounded-[6px]"
+            >
+              7d
             </ToggleGroupItem>
           </ToggleGroup>
 
-          {/* Mobile Select */}
           <div className="sm:hidden w-full">
             <Select
               value={timeRange}
               onValueChange={(val) => {
-                if (val) setTimeRange(val as "90d" | "30d" | "7d");
+                if (val) setSelectedRange(val as "90d" | "30d" | "7d");
               }}
             >
-              <SelectTrigger className="h-9 rounded-xl text-xs font-bold border-border/60 bg-muted/40 w-full">
-                <SelectValue placeholder="Periodo" />
+              <SelectTrigger className="h-8 rounded-[8px] text-[12px] font-medium border-control-border bg-background w-full">
+                <SelectValue>{TIME_RANGE_LABELS[timeRange]}</SelectValue>
               </SelectTrigger>
-              <SelectContent className="rounded-xl border-border/60 bg-popover shadow-lg">
-                <SelectItem value="90d" className="text-xs font-semibold rounded-lg">90 Días</SelectItem>
-                <SelectItem value="30d" className="text-xs font-semibold rounded-lg">30 Días</SelectItem>
-                <SelectItem value="7d" className="text-xs font-semibold rounded-lg">7 Días</SelectItem>
+              <SelectContent className="rounded-[10px] border-border bg-popover">
+                <SelectItem value="90d" className="text-[12px]">
+                  Últimos 90 días
+                </SelectItem>
+                <SelectItem value="30d" className="text-[12px]">
+                  Últimos 30 días
+                </SelectItem>
+                <SelectItem value="7d" className="text-[12px]">
+                  Últimos 7 días
+                </SelectItem>
               </SelectContent>
             </Select>
           </div>
         </div>
-      </CardHeader>
+      </div>
 
-      {/* Summary KPI Ribbon */}
-      <div className="grid grid-cols-3 divide-x divide-border/40 border-b border-border/40 bg-muted/20 text-center py-3 px-4">
-        <div className="space-y-0.5">
-          <span className="text-[10px] sm:text-xs font-bold text-muted-foreground uppercase tracking-wider flex items-center justify-center gap-1.5">
-            <Send className="size-3 text-primary" />
-            <span>Postulaciones</span>
+      {/* Cinta de resumen compacta */}
+      <div className="grid grid-cols-3 divide-x divide-border border-b border-border bg-muted/30 px-3 py-2">
+        <div className="px-2 flex flex-col gap-0.5">
+          <span className="text-[11px] font-medium text-muted-foreground flex items-center gap-1.5">
+            <span className="size-2 rounded-full bg-primary shrink-0" />
+            <span className="truncate">Postulaciones</span>
           </span>
-          <p className="text-base sm:text-xl font-extrabold text-foreground font-mono">
-            {totals.totalApps.toLocaleString()}
-          </p>
+          <span className="text-[16px] font-bold text-foreground tabular-nums leading-tight">
+            {totals.totalApps.toLocaleString("es-MX")}
+          </span>
         </div>
 
-        <div className="space-y-0.5">
-          <span className="text-[10px] sm:text-xs font-bold text-muted-foreground uppercase tracking-wider flex items-center justify-center gap-1.5">
-            <Briefcase className="size-3 text-emerald-500" />
-            <span>Nuevas Vacantes</span>
+        <div className="px-2 flex flex-col gap-0.5">
+          <span className="text-[11px] font-medium text-muted-foreground flex items-center gap-1.5">
+            <span className="size-2 rounded-full bg-chart-2 shrink-0" />
+            <span className="truncate">Vacantes</span>
           </span>
-          <p className="text-base sm:text-xl font-extrabold text-emerald-600 dark:text-emerald-400 font-mono">
-            {totals.totalVacs.toLocaleString()}
-          </p>
+          <span className="text-[16px] font-bold text-foreground tabular-nums leading-tight">
+            {totals.totalVacs.toLocaleString("es-MX")}
+          </span>
         </div>
 
-        <div className="space-y-0.5">
-          <span className="text-[10px] sm:text-xs font-bold text-muted-foreground uppercase tracking-wider">
-            Promedio Diario
+        <div className="px-2 flex flex-col gap-0.5">
+          <span className="text-[11px] font-medium text-muted-foreground truncate">
+            Promedio diario
           </span>
-          <p className="text-base sm:text-xl font-extrabold text-foreground font-mono">
-            {totals.dailyAvg} <span className="text-[10px] text-muted-foreground font-sans">apps/día</span>
-          </p>
+          <span className="text-[16px] font-bold text-foreground tabular-nums leading-tight">
+            {totals.dailyAvg}{" "}
+            <span className="text-[11px] font-normal text-muted-foreground">
+              / día
+            </span>
+          </span>
         </div>
       </div>
 
-      <CardContent className="p-4 sm:p-6 pt-4 sm:pt-6">
-        <ChartContainer config={chartConfig} className="aspect-auto h-[260px] sm:h-[290px] w-full">
-          <AreaChart data={filteredData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+      {/* Área del gráfico */}
+      <div className="p-3.5 pt-4">
+        <ChartContainer
+          config={chartConfig}
+          className="aspect-auto h-[215px] sm:h-[230px] w-full"
+        >
+          <AreaChart
+            data={filteredData}
+            margin={{ top: 6, right: 8, left: -24, bottom: 0 }}
+          >
             <defs>
               <linearGradient id="fillApps" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="5%" stopColor="var(--primary)" stopOpacity={0.4} />
+                <stop offset="5%" stopColor="var(--primary)" stopOpacity={0.28} />
                 <stop offset="95%" stopColor="var(--primary)" stopOpacity={0.0} />
               </linearGradient>
               <linearGradient id="fillVacs" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="5%" stopColor="#10b981" stopOpacity={0.4} />
-                <stop offset="95%" stopColor="#10b981" stopOpacity={0.0} />
+                <stop offset="5%" stopColor="var(--chart-2)" stopOpacity={0.28} />
+                <stop offset="95%" stopColor="var(--chart-2)" stopOpacity={0.0} />
               </linearGradient>
             </defs>
             <CartesianGrid vertical={false} strokeDasharray="3 3" opacity={0.3} />
@@ -194,7 +210,7 @@ export function ChartAreaInteractive({ data = [] }: ChartAreaInteractiveProps) {
               dataKey="date"
               tickLine={false}
               axisLine={false}
-              tickMargin={8}
+              tickMargin={6}
               minTickGap={28}
               tickFormatter={(value) => {
                 const date = new Date(value);
@@ -203,26 +219,26 @@ export function ChartAreaInteractive({ data = [] }: ChartAreaInteractiveProps) {
                   day: "numeric",
                 });
               }}
-              className="text-[11px] font-semibold text-muted-foreground"
+              className="text-[11px] text-muted-foreground"
             />
             <YAxis
               tickLine={false}
               axisLine={false}
-              tickMargin={8}
-              className="text-[11px] font-mono text-muted-foreground"
+              tickMargin={6}
+              className="text-[11px] tabular-nums text-muted-foreground"
             />
             <ChartTooltip
               cursor={{ stroke: "var(--border)", strokeWidth: 1 }}
               content={
                 <ChartTooltipContent
-                  labelFormatter={(value) => {
-                    return new Date(value).toLocaleDateString("es-MX", {
+                  labelFormatter={(value) =>
+                    new Date(value).toLocaleDateString("es-MX", {
                       weekday: "short",
                       day: "numeric",
-                      month: "long",
+                      month: "short",
                       year: "numeric",
-                    });
-                  }}
+                    })
+                  }
                   indicator="dot"
                 />
               }
@@ -232,18 +248,18 @@ export function ChartAreaInteractive({ data = [] }: ChartAreaInteractiveProps) {
               type="monotone"
               fill="url(#fillApps)"
               stroke="var(--primary)"
-              strokeWidth={2.5}
+              strokeWidth={2}
             />
             <Area
               dataKey="vacancies"
               type="monotone"
               fill="url(#fillVacs)"
-              stroke="#10b981"
+              stroke="var(--chart-2)"
               strokeWidth={2}
             />
           </AreaChart>
         </ChartContainer>
-      </CardContent>
-    </Card>
+      </div>
+    </section>
   );
 }

@@ -1,34 +1,34 @@
 "use client";
 
 import * as React from "react";
-import Link from "next/link";
 import {
   useReactTable,
   getCoreRowModel,
-  getFilteredRowModel,
   getPaginationRowModel,
   getSortedRowModel,
   flexRender,
   type ColumnDef,
-  type ColumnFiltersState,
-  type VisibilityState,
   type SortingState,
 } from "@tanstack/react-table";
 import { toast } from "sonner";
-
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
 import {
   DropdownMenu,
-  DropdownMenuCheckboxItem,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import {
   Table,
   TableBody,
@@ -38,32 +38,25 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import {
-  CircleCheck,
-  Loader2,
-  MoreVertical,
-  SlidersHorizontal,
+  ArrowUpDown,
   ChevronLeft,
   ChevronRight,
-  ChevronsLeft,
-  ChevronsRight,
-  ShieldCheck,
-  UserPlus,
-  Search,
-  KeyRound,
-  Building2,
-  Mail,
-  UserX,
-  Download,
-  Shield,
+  CircleCheck,
   Clock,
-  ArrowUpDown,
-  Phone,
+  Download,
+  KeyRound,
+  MoreVertical,
+  Search,
+  ShieldCheck,
+  UserX,
+  X,
 } from "@/components/ui/icons";
-
 import {
   ALL_PERMISSIONS,
   SUB_ROLE_LABELS,
   type AdminStaffItem,
+  type AdminStaffStatus,
+  type AdminSubRole,
 } from "@/modules/admin/types/staff";
 import {
   EditStaffModal,
@@ -72,13 +65,38 @@ import {
 import { toggleAdminStaffStatus } from "@/app/(dashboard)/dashboard/admin/staff/actions";
 import { cn } from "@/lib/utils";
 
-function getInitials(name: string) {
+type RoleFilter = "all" | AdminSubRole;
+type StatusFilter = "all" | AdminStaffStatus;
+
+const PAGE_SIZE_OPTIONS = [5, 10, 20] as const;
+const ROW_HEIGHT_PX = 54;
+const HEADER_HEIGHT_PX = 36;
+
+const STATUS_FILTER_LABELS: Record<StatusFilter, string> = {
+  all: "Estado: Todos",
+  active: "Activos",
+  inactive: "Inactivos",
+  suspended: "Suspendidos",
+};
+
+const STATUS_LABELS: Record<AdminStaffStatus, string> = {
+  active: "Activo",
+  inactive: "Inactivo",
+  suspended: "Suspendido",
+};
+
+function getInitials(name: string): string {
   if (!name) return "AD";
-  const parts = name.trim().split(" ");
+  const parts = name.trim().split(/\s+/).filter(Boolean);
   if (parts.length >= 2) {
-    return (parts[0][0] + parts[1][0]).toUpperCase();
+    return `${parts[0][0]}${parts[1][0]}`.toUpperCase();
   }
-  return name.substring(0, 2).toUpperCase();
+  return name.slice(0, 2).toUpperCase();
+}
+
+function getErrorMessage(err: unknown, fallback: string): string {
+  if (err instanceof Error && err.message) return err.message;
+  return fallback;
 }
 
 interface StaffDataTableProps {
@@ -87,107 +105,108 @@ interface StaffDataTableProps {
 
 export function StaffDataTable({ initialData }: StaffDataTableProps) {
   const [data, setData] = React.useState<AdminStaffItem[]>(initialData);
-  const [activeTab, setActiveTab] = React.useState("all");
+  const [roleFilter, setRoleFilter] = React.useState<RoleFilter>("all");
+  const [statusFilter, setStatusFilter] = React.useState<StatusFilter>("all");
   const [searchQuery, setSearchQuery] = React.useState("");
-  const [columnVisibility, setColumnVisibility] = React.useState<VisibilityState>({});
-  const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([]);
   const [sorting, setSorting] = React.useState<SortingState>([]);
   const [pagination, setPagination] = React.useState({
     pageIndex: 0,
     pageSize: 10,
   });
 
-  // Modal States
-  const [editingStaff, setEditingStaff] = React.useState<AdminStaffItem | null>(null);
-  const [deletingStaff, setDeletingStaff] = React.useState<AdminStaffItem | null>(null);
+  const [editingStaff, setEditingStaff] = React.useState<AdminStaffItem | null>(
+    null
+  );
+  const [deletingStaff, setDeletingStaff] =
+    React.useState<AdminStaffItem | null>(null);
 
   React.useEffect(() => {
     setData(initialData);
   }, [initialData]);
 
-  // Quick status toggle
-  const handleStatusToggle = async (staff: AdminStaffItem, newStatus: "active" | "inactive" | "suspended") => {
-    try {
-      await toggleAdminStaffStatus(staff.profileId, newStatus);
-      setData((prev) =>
-        prev.map((item) =>
-          item.profileId === staff.profileId ? { ...item, status: newStatus } : item
-        )
-      );
-      toast.success(`Estado de ${staff.name} actualizado a ${newStatus === "active" ? "Activo" : "Inactivo"}`);
-    } catch (err: unknown) {
-      toast.error((err as Error).message || "Error al cambiar estado");
-    }
-  };
+  const handleStatusToggle = React.useCallback(
+    async (staff: AdminStaffItem, newStatus: AdminStaffStatus) => {
+      try {
+        await toggleAdminStaffStatus(staff.profileId, newStatus);
+        setData((prev) =>
+          prev.map((item) =>
+            item.profileId === staff.profileId
+              ? { ...item, status: newStatus }
+              : item
+          )
+        );
+        toast.success(
+          `Estado de ${staff.name} actualizado a ${STATUS_LABELS[newStatus]}`
+        );
+      } catch (err: unknown) {
+        toast.error(getErrorMessage(err, "Error al cambiar estado"));
+      }
+    },
+    []
+  );
 
   const columns = React.useMemo<ColumnDef<AdminStaffItem>[]>(
     () => [
       {
         accessorKey: "name",
         header: ({ column }) => (
-          <Button
-            variant="ghost"
-            size="sm"
+          <button
+            type="button"
             onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
-            className="-ml-3 h-8 text-xs font-extrabold uppercase tracking-wider text-muted-foreground hover:text-foreground"
+            className="inline-flex items-center gap-1 text-[11.5px] font-semibold text-muted-foreground hover:text-foreground cursor-pointer"
           >
             <span>Personal</span>
-            <ArrowUpDown className="size-3 ml-1" />
-          </Button>
+            <ArrowUpDown className="size-3" />
+          </button>
         ),
         cell: ({ row }) => {
           const staff = row.original;
           const initials = getInitials(staff.name);
           return (
-            <div className="flex items-center gap-3">
-              <Avatar className="size-10 rounded-2xl border border-border/60 bg-muted shrink-0">
-                <AvatarImage src={staff.avatar} alt={staff.name} />
-                <AvatarFallback className="bg-purple-500/10 text-purple-600 dark:text-purple-400 font-extrabold text-xs">
+            <button
+              type="button"
+              onClick={() => setEditingStaff(staff)}
+              className="flex items-center gap-2.5 min-w-0 w-full text-left cursor-pointer group"
+            >
+              <Avatar className="size-[30px] rounded-[8px] shrink-0 after:hidden">
+                <AvatarImage
+                  src={staff.avatar}
+                  alt={staff.name}
+                  className="rounded-[8px] object-cover"
+                />
+                <AvatarFallback className="rounded-[8px] bg-sidebar-accent text-link font-semibold text-[11px]">
                   {initials}
                 </AvatarFallback>
               </Avatar>
-              <div className="min-w-0">
-                <div className="flex items-center gap-1.5">
-                  <span className="font-extrabold text-sm text-foreground truncate">
+              <div className="min-w-0 flex-1">
+                <div className="flex items-center gap-1.5 min-w-0">
+                  <span className="text-[13px] font-medium text-foreground truncate group-hover:text-link transition-colors">
                     {staff.name}
                   </span>
                   {staff.subRole === "super_admin" && (
-                    <ShieldCheck className="size-3.5 text-purple-500 shrink-0" />
+                    <ShieldCheck className="size-3.5 text-link shrink-0" />
                   )}
                 </div>
-                <span className="text-xs text-muted-foreground flex items-center gap-1 truncate font-mono">
-                  <Mail className="size-3 text-muted-foreground/70 shrink-0" />
+                <span className="text-[11.5px] text-muted-foreground block truncate">
                   {staff.email}
                 </span>
               </div>
-            </div>
+            </button>
           );
         },
       },
       {
         accessorKey: "subRole",
-        header: "Rol de Personal",
+        header: "Sub-rol",
         cell: ({ row }) => {
           const subRole = row.original.subRole;
           const info = SUB_ROLE_LABELS[subRole] || SUB_ROLE_LABELS.ops_admin;
           return (
             <Badge
-              variant="outline"
-              className={cn(
-                "px-2.5 py-0.5 text-xs font-bold rounded-xl gap-1.5 border shadow-2xs",
-                subRole === "super_admin"
-                  ? "bg-purple-500/10 text-purple-600 border-purple-500/20"
-                  : subRole === "verification_admin"
-                  ? "bg-indigo-500/10 text-indigo-600 border-indigo-500/20"
-                  : subRole === "ops_admin"
-                  ? "bg-blue-500/10 text-blue-600 border-blue-500/20"
-                  : subRole === "content_admin"
-                  ? "bg-amber-500/10 text-amber-600 border-amber-500/20"
-                  : "bg-emerald-500/10 text-emerald-600 border-emerald-500/20"
-              )}
+              variant={subRole === "super_admin" ? "secondary" : "outline"}
+              className="rounded-[6px] px-2 py-0.5 text-[11px] font-medium"
             >
-              <Shield className="size-3" />
-              <span>{info.label}</span>
+              {info.label}
             </Badge>
           );
         },
@@ -196,31 +215,25 @@ export function StaffDataTable({ initialData }: StaffDataTableProps) {
         accessorKey: "department",
         header: "Departamento",
         cell: ({ row }) => (
-          <span className="text-xs font-semibold text-foreground flex items-center gap-1.5">
-            <Building2 className="size-3.5 text-muted-foreground shrink-0" />
+          <span className="text-[12.5px] text-foreground block truncate">
             {row.original.department}
           </span>
         ),
       },
       {
         accessorKey: "permissions",
-        header: "Permisos Granulares",
+        header: "Permisos",
         cell: ({ row }) => {
           const count = row.original.permissions?.length || 0;
           const total = ALL_PERMISSIONS.length;
-          const isFullAccess = count === total || row.original.subRole === "super_admin";
+          const isFullAccess =
+            count === total || row.original.subRole === "super_admin";
           return (
             <Badge
               variant="outline"
-              className={cn(
-                "px-2.5 py-0.5 text-xs font-bold gap-1 rounded-xl border",
-                isFullAccess
-                  ? "border-purple-500/30 bg-purple-500/10 text-purple-600 dark:text-purple-400"
-                  : "border-border/60 bg-muted/30 text-muted-foreground"
-              )}
+              className="rounded-[6px] px-2 py-0.5 text-[11px] font-medium tabular-nums"
             >
-              <KeyRound className="size-3" />
-              <span>{isFullAccess ? "Acceso Total" : `${count}/${total} Permisos`}</span>
+              {isFullAccess ? "Acceso total" : `${count} / ${total}`}
             </Badge>
           );
         },
@@ -230,46 +243,31 @@ export function StaffDataTable({ initialData }: StaffDataTableProps) {
         header: "Estado",
         cell: ({ row }) => {
           const status = row.original.status;
-          if (status === "active") {
-            return (
-              <Badge
-                variant="outline"
-                className="px-2.5 py-0.5 text-xs font-bold border-emerald-500/20 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 gap-1.5 rounded-xl"
-              >
-                <CircleCheck className="size-3" />
-                <span>Activo</span>
-              </Badge>
-            );
-          }
-          if (status === "suspended") {
-            return (
-              <Badge
-                variant="outline"
-                className="px-2.5 py-0.5 text-xs font-bold border-rose-500/20 bg-rose-500/10 text-rose-600 dark:text-rose-400 gap-1.5 rounded-xl"
-              >
-                <UserX className="size-3" />
-                <span>Suspendido</span>
-              </Badge>
-            );
-          }
+          const colorClass =
+            status === "active"
+              ? "text-success-foreground"
+              : status === "suspended"
+                ? "text-destructive"
+                : "text-warning-foreground";
           return (
-            <Badge
-              variant="outline"
-              className="px-2.5 py-0.5 text-xs font-bold border-amber-500/20 bg-amber-500/10 text-amber-600 dark:text-amber-400 gap-1.5 rounded-xl"
+            <span
+              className={cn(
+                "text-[12px] font-semibold whitespace-nowrap",
+                colorClass
+              )}
             >
-              <Clock className="size-3" />
-              <span>Inactivo</span>
-            </Badge>
+              {STATUS_LABELS[status]}
+            </span>
           );
         },
       },
       {
         accessorKey: "createdAt",
-        header: () => <div className="text-right">Fecha Alta</div>,
+        header: "Alta",
         cell: ({ row }) => (
-          <div className="text-right text-xs font-medium text-muted-foreground">
+          <span className="text-[12px] text-muted-foreground tabular-nums whitespace-nowrap">
             {row.original.createdAt}
-          </div>
+          </span>
         ),
       },
       {
@@ -277,55 +275,57 @@ export function StaffDataTable({ initialData }: StaffDataTableProps) {
         header: () => <div className="text-right">Acciones</div>,
         cell: ({ row }) => {
           const staff = row.original;
-
           return (
             <div className="flex items-center justify-end gap-1.5">
-              <Button
-                variant="outline"
-                size="sm"
+              <button
+                type="button"
                 onClick={() => setEditingStaff(staff)}
-                className="h-8 px-3 rounded-xl text-xs font-bold gap-1 cursor-pointer border-border/60 hover:bg-muted"
+                className="text-[12px] font-medium text-link hover:underline whitespace-nowrap cursor-pointer"
               >
-                <KeyRound className="size-3 text-purple-600" />
-                <span>Permisos</span>
-              </Button>
+                Permisos →
+              </button>
 
               <DropdownMenu>
                 <DropdownMenuTrigger
                   render={
                     <Button
+                      type="button"
                       variant="ghost"
                       size="icon"
-                      className="size-8 rounded-xl text-muted-foreground hover:text-foreground cursor-pointer"
+                      aria-label={`Acciones para ${staff.name}`}
+                      className="size-7 rounded-[8px] text-muted-foreground hover:text-foreground cursor-pointer"
                     />
                   }
                 >
                   <MoreVertical className="size-4" />
                 </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-52 rounded-2xl p-1.5 shadow-xl border-border/60">
+                <DropdownMenuContent
+                  align="end"
+                  className="w-48 rounded-[12px] p-1 border-border bg-card shadow-lg"
+                >
                   <DropdownMenuItem
-                    className="text-xs font-bold cursor-pointer gap-2 rounded-xl py-2"
+                    className="h-8 px-2.5 text-[12.5px] font-medium cursor-pointer gap-2 rounded-[8px]"
                     onClick={() => setEditingStaff(staff)}
                   >
-                    <KeyRound className="size-4 text-purple-600" />
-                    <span>Editar Información & Permisos</span>
+                    <KeyRound className="size-3.5 text-muted-foreground" />
+                    <span>Editar y permisos</span>
                   </DropdownMenuItem>
 
                   {staff.status === "active" ? (
                     <DropdownMenuItem
-                      className="text-xs font-bold cursor-pointer gap-2 rounded-xl py-2"
+                      className="h-8 px-2.5 text-[12.5px] font-medium cursor-pointer gap-2 rounded-[8px]"
                       onClick={() => handleStatusToggle(staff, "inactive")}
                     >
-                      <Clock className="size-4 text-amber-500" />
-                      <span>Desactivar Cuenta</span>
+                      <Clock className="size-3.5 text-warning-foreground" />
+                      <span>Desactivar cuenta</span>
                     </DropdownMenuItem>
                   ) : (
                     <DropdownMenuItem
-                      className="text-xs font-bold cursor-pointer gap-2 rounded-xl py-2"
+                      className="h-8 px-2.5 text-[12.5px] font-medium cursor-pointer gap-2 rounded-[8px] text-success-foreground"
                       onClick={() => handleStatusToggle(staff, "active")}
                     >
-                      <CircleCheck className="size-4 text-emerald-500" />
-                      <span>Reactivar Cuenta</span>
+                      <CircleCheck className="size-3.5" />
+                      <span>Reactivar cuenta</span>
                     </DropdownMenuItem>
                   )}
 
@@ -333,11 +333,11 @@ export function StaffDataTable({ initialData }: StaffDataTableProps) {
 
                   <DropdownMenuItem
                     variant="destructive"
-                    className="text-xs font-bold cursor-pointer gap-2 rounded-xl py-2 text-rose-600"
+                    className="h-8 px-2.5 text-[12.5px] font-medium cursor-pointer gap-2 rounded-[8px] text-destructive"
                     onClick={() => setDeletingStaff(staff)}
                   >
-                    <UserX className="size-4" />
-                    <span>Dar de Baja Personal</span>
+                    <UserX className="size-3.5" />
+                    <span>Revocar acceso</span>
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
@@ -346,244 +346,283 @@ export function StaffDataTable({ initialData }: StaffDataTableProps) {
         },
       },
     ],
-    []
+    [handleStatusToggle]
   );
 
-  // Filtered dataset
   const filteredData = React.useMemo(() => {
+    const q = searchQuery.trim().toLowerCase();
     return data.filter((item) => {
-      // Role filter
-      if (activeTab !== "all" && item.subRole !== activeTab) {
-        return false;
-      }
-      // Search query
-      if (searchQuery.trim()) {
-        const q = searchQuery.toLowerCase();
-        const matchesName = item.name.toLowerCase().includes(q);
-        const matchesEmail = item.email.toLowerCase().includes(q);
-        const matchesDept = item.department.toLowerCase().includes(q);
-        if (!matchesName && !matchesEmail && !matchesDept) {
-          return false;
-        }
+      if (roleFilter !== "all" && item.subRole !== roleFilter) return false;
+      if (statusFilter !== "all" && item.status !== statusFilter) return false;
+      if (q) {
+        const matches =
+          item.name.toLowerCase().includes(q) ||
+          item.email.toLowerCase().includes(q) ||
+          item.department.toLowerCase().includes(q);
+        if (!matches) return false;
       }
       return true;
     });
-  }, [data, activeTab, searchQuery]);
+  }, [data, roleFilter, statusFilter, searchQuery]);
 
   const table = useReactTable({
     data: filteredData,
     columns,
-    state: {
-      sorting,
-      columnVisibility,
-      pagination,
-    },
+    state: { sorting, pagination },
     onSortingChange: setSorting,
     onPaginationChange: setPagination,
-    onColumnVisibilityChange: setColumnVisibility,
     getCoreRowModel: getCoreRowModel(),
     getSortedRowModel: getSortedRowModel(),
     getPaginationRowModel: getPaginationRowModel(),
   });
 
-  // Export CSV
   const handleExportCSV = () => {
-    const headers = ["Nombre", "Email", "Rol", "Departamento", "Estado", "Permisos", "Fecha Registro"];
+    const headers = [
+      "Nombre",
+      "Email",
+      "Sub-rol",
+      "Departamento",
+      "Estado",
+      "Permisos",
+      "Fecha Alta",
+    ];
     const rows = filteredData.map((s) => [
-      `"${s.name}"`,
+      `"${s.name.replace(/"/g, '""')}"`,
       `"${s.email}"`,
-      `"${s.subRole}"`,
+      `"${SUB_ROLE_LABELS[s.subRole]?.label || s.subRole}"`,
       `"${s.department}"`,
-      `"${s.status}"`,
+      `"${STATUS_LABELS[s.status]}"`,
       `"${s.permissions?.length || 0} permisos"`,
       `"${s.createdAt}"`,
     ]);
 
-    const csvContent = [headers.join(","), ...rows.map((r) => r.join(","))].join("\n");
+    const csvContent =
+      "\uFEFF" + [headers.join(","), ...rows.map((r) => r.join(","))].join("\n");
     const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.href = url;
     link.download = `staff_kanpro_${new Date().toISOString().slice(0, 10)}.csv`;
     link.click();
-    toast.success("Listado de personal exportado en CSV");
+    URL.revokeObjectURL(url);
+    toast.success("Listado de personal exportado a CSV");
   };
 
-  const roleCounts = React.useMemo(() => {
-    return {
+  const roleCounts = React.useMemo(
+    () => ({
       all: data.length,
       super_admin: data.filter((s) => s.subRole === "super_admin").length,
       ops_admin: data.filter((s) => s.subRole === "ops_admin").length,
-      verification_admin: data.filter((s) => s.subRole === "verification_admin").length,
+      verification_admin: data.filter((s) => s.subRole === "verification_admin")
+        .length,
       content_admin: data.filter((s) => s.subRole === "content_admin").length,
       support: data.filter((s) => s.subRole === "support").length,
-    };
-  }, [data]);
+    }),
+    [data]
+  );
+
+  const roleTabs: Array<{ id: RoleFilter; label: string; count: number }> = [
+    { id: "all", label: "Todos", count: roleCounts.all },
+    { id: "super_admin", label: "Super Admin", count: roleCounts.super_admin },
+    { id: "ops_admin", label: "Operaciones", count: roleCounts.ops_admin },
+    {
+      id: "verification_admin",
+      label: "Verificación",
+      count: roleCounts.verification_admin,
+    },
+    { id: "content_admin", label: "Contenido", count: roleCounts.content_admin },
+    { id: "support", label: "Soporte", count: roleCounts.support },
+  ];
+
+  const currentPageIndex = table.getState().pagination.pageIndex;
+  const currentPageSize = table.getState().pagination.pageSize;
+  const totalPages = Math.max(1, table.getPageCount());
+  const startItem =
+    filteredData.length === 0 ? 0 : currentPageIndex * currentPageSize + 1;
+  const endItem = Math.min(
+    (currentPageIndex + 1) * currentPageSize,
+    filteredData.length
+  );
+
+  // Reserve exact height for currentPageSize rows to eliminate layout shift
+  const tableMinHeight = HEADER_HEIGHT_PX + currentPageSize * ROW_HEIGHT_PX;
+  const colWidths = [
+    "w-[26%]",
+    "w-[16%]",
+    "w-[17%]",
+    "w-[11%]",
+    "w-[9%]",
+    "w-[10%]",
+    "w-[11%]",
+  ];
 
   return (
-    <Card className="bg-card border border-border/60 rounded-3xl shadow-xs overflow-hidden">
-      
-      {/* Top Toolbar Container */}
-      <div className="p-4 sm:p-5 space-y-4 border-b border-border/60">
-        
-        {/* Row 1: Search, Controls & CTA */}
-        <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
-          <div className="relative flex-1 max-w-md">
-            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 size-4 text-muted-foreground/70" />
-            <Input
-              placeholder="Buscar personal por nombre, correo o área..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-9.5 h-10 rounded-2xl bg-muted/30 border-border/60 text-xs sm:text-sm font-medium focus-visible:ring-primary/20"
-            />
+    <section className="bg-card border border-border rounded-[14px] overflow-hidden">
+      {/* Toolbar compacta */}
+      <div className="px-4 py-3 border-b border-border flex flex-col gap-2.5">
+        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-2.5">
+          <div className="flex flex-wrap items-center gap-1.5">
+            {roleTabs.map((tab) => {
+              const active = roleFilter === tab.id;
+              return (
+                <button
+                  key={tab.id}
+                  type="button"
+                  onClick={() => {
+                    setRoleFilter(tab.id);
+                    setPagination((prev) => ({ ...prev, pageIndex: 0 }));
+                  }}
+                  className={cn(
+                    "h-7 px-2.5 rounded-[8px] text-[12px] font-medium transition-colors inline-flex items-center gap-1.5 cursor-pointer select-none",
+                    active
+                      ? "bg-sidebar-accent text-link"
+                      : "text-muted-foreground hover:text-foreground hover:bg-muted/60"
+                  )}
+                >
+                  <span>{tab.label}</span>
+                  <span className="text-[11px] tabular-nums opacity-75">
+                    {tab.count}
+                  </span>
+                </button>
+              );
+            })}
           </div>
 
-          <div className="flex items-center gap-2 self-end sm:self-auto shrink-0">
+          <div className="flex flex-wrap items-center gap-2">
+            <div className="relative flex-1 sm:w-56 sm:flex-initial">
+              <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 size-3.5 text-muted-foreground pointer-events-none" />
+              <Input
+                placeholder="Buscar personal o área..."
+                value={searchQuery}
+                onChange={(e) => {
+                  setSearchQuery(e.target.value);
+                  setPagination((prev) => ({ ...prev, pageIndex: 0 }));
+                }}
+                className="h-8 pl-8 pr-7 rounded-[8px] bg-background border-control-border text-[12.5px]"
+              />
+              {searchQuery && (
+                <button
+                  type="button"
+                  aria-label="Limpiar búsqueda"
+                  onClick={() => {
+                    setSearchQuery("");
+                    setPagination((prev) => ({ ...prev, pageIndex: 0 }));
+                  }}
+                  className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground cursor-pointer"
+                >
+                  <X className="size-3.5" />
+                </button>
+              )}
+            </div>
+
+            <Select
+              value={statusFilter}
+              onValueChange={(val) => {
+                if (val) {
+                  setStatusFilter(val as StatusFilter);
+                  setPagination((prev) => ({ ...prev, pageIndex: 0 }));
+                }
+              }}
+            >
+              <SelectTrigger
+                size="sm"
+                aria-label="Filtrar por estado"
+                className="w-[132px] rounded-[8px] border-control-border bg-background text-[12px]"
+              >
+                <SelectValue>{STATUS_FILTER_LABELS[statusFilter]}</SelectValue>
+              </SelectTrigger>
+              <SelectContent className="rounded-[10px] border-border bg-popover">
+                <SelectItem value="all" className="text-[12px]">
+                  Estado: Todos
+                </SelectItem>
+                <SelectItem value="active" className="text-[12px]">
+                  Activos
+                </SelectItem>
+                <SelectItem value="inactive" className="text-[12px]">
+                  Inactivos
+                </SelectItem>
+                <SelectItem value="suspended" className="text-[12px]">
+                  Suspendidos
+                </SelectItem>
+              </SelectContent>
+            </Select>
+
             <Button
+              type="button"
               variant="outline"
               size="sm"
               onClick={handleExportCSV}
-              className="h-10 px-3.5 rounded-2xl border-border/60 text-xs font-bold gap-1.5 hover:bg-muted cursor-pointer"
+              className="h-8 px-2.5 rounded-[8px] border-control-border text-[12px] font-medium gap-1.5 cursor-pointer shrink-0"
             >
-              <Download className="size-3.5" />
-              <span>Exportar</span>
-            </Button>
-
-            <DropdownMenu>
-              <DropdownMenuTrigger
-                render={
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="h-10 px-3 rounded-2xl border-border/60 text-xs font-bold gap-1.5 hover:bg-muted cursor-pointer"
-                  />
-                }
-              >
-                <SlidersHorizontal className="size-3.5" />
-                <span className="hidden sm:inline">Columnas</span>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-44 rounded-2xl p-1.5 border-border/60">
-                {table
-                  .getAllColumns()
-                  .filter((column) => column.getCanHide())
-                  .map((column) => (
-                    <DropdownMenuCheckboxItem
-                      key={column.id}
-                      className="capitalize text-xs font-medium rounded-xl py-1.5"
-                      checked={column.getIsVisible()}
-                      onCheckedChange={(value) => column.toggleVisibility(!!value)}
-                    >
-                      {column.id === "name"
-                        ? "Personal"
-                        : column.id === "subRole"
-                        ? "Rol"
-                        : column.id === "department"
-                        ? "Departamento"
-                        : column.id === "permissions"
-                        ? "Permisos"
-                        : column.id === "status"
-                        ? "Estado"
-                        : column.id === "createdAt"
-                        ? "Fecha Registro"
-                        : column.id}
-                    </DropdownMenuCheckboxItem>
-                  ))}
-              </DropdownMenuContent>
-            </DropdownMenu>
-
-            <Button
-              render={<Link href="/dashboard/admin/staff/new" />}
-              size="sm"
-              className="h-10 px-4 rounded-2xl text-xs font-bold gap-1.5 bg-primary text-primary-foreground hover:bg-primary/90 shadow-xs cursor-pointer"
-            >
-              <UserPlus className="size-4" />
-              <span>Dar de Alta Personal</span>
+              <Download className="size-3.5 text-muted-foreground" />
+              <span className="hidden sm:inline">CSV</span>
             </Button>
           </div>
         </div>
-
-        {/* Row 2: Role Filter Pills */}
-        <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar pt-1">
-          {[
-            { key: "all", label: "Todo el Personal", count: roleCounts.all },
-            { key: "super_admin", label: "Super Admins", count: roleCounts.super_admin },
-            { key: "ops_admin", label: "Operaciones", count: roleCounts.ops_admin },
-            { key: "verification_admin", label: "Verificación", count: roleCounts.verification_admin },
-            { key: "content_admin", label: "Contenido", count: roleCounts.content_admin },
-            { key: "support", label: "Soporte", count: roleCounts.support },
-          ].map((pill) => {
-            const isActive = activeTab === pill.key;
-            return (
-              <button
-                key={pill.key}
-                type="button"
-                onClick={() => {
-                  setActiveTab(pill.key);
-                  setPagination((prev) => ({ ...prev, pageIndex: 0 }));
-                }}
-                className={cn(
-                  "px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all shrink-0 cursor-pointer flex items-center gap-2 border",
-                  isActive
-                    ? "bg-foreground text-background border-foreground shadow-2xs"
-                    : "bg-muted/40 text-muted-foreground border-transparent hover:bg-muted hover:text-foreground"
-                )}
-              >
-                <span>{pill.label}</span>
-                <span
-                  className={cn(
-                    "text-[10px] px-1.5 py-0.2 rounded-md font-mono font-bold",
-                    isActive ? "bg-background/20 text-background" : "bg-muted text-muted-foreground"
-                  )}
-                >
-                  {pill.count}
-                </span>
-              </button>
-            );
-          })}
-        </div>
       </div>
 
-      {/* TanStack Table View */}
-      <div className="overflow-x-auto">
-        <Table className="w-full">
-          <TableHeader className="bg-muted/30 border-b border-border/60">
+      {/* Tabla compacta sin layout shift */}
+      <div
+        className="overflow-x-auto"
+        style={{ minHeight: `${tableMinHeight}px` }}
+      >
+        <Table className="w-full table-fixed min-w-[780px]">
+          <TableHeader className="bg-muted/30 border-b border-border">
             {table.getHeaderGroups().map((headerGroup) => (
-              <TableRow key={headerGroup.id} className="hover:bg-transparent">
-                {headerGroup.headers.map((header) => (
+              <TableRow
+                key={headerGroup.id}
+                className="hover:bg-transparent h-9"
+              >
+                {headerGroup.headers.map((header, idx) => (
                   <TableHead
                     key={header.id}
-                    className="py-3.5 px-4 sm:px-6 font-extrabold text-xs uppercase tracking-wider text-muted-foreground"
+                    className={cn(
+                      "h-9 px-4 text-[11.5px] font-semibold text-muted-foreground",
+                      colWidths[idx]
+                    )}
                   >
                     {header.isPlaceholder
                       ? null
-                      : flexRender(header.column.columnDef.header, header.getContext())}
+                      : flexRender(
+                          header.column.columnDef.header,
+                          header.getContext()
+                        )}
                   </TableHead>
                 ))}
               </TableRow>
             ))}
           </TableHeader>
-          <TableBody className="divide-y divide-border/40">
+          <TableBody className="divide-y divide-border">
             {table.getRowModel().rows.length === 0 ? (
-              <TableRow>
+              <TableRow className="hover:bg-transparent">
                 <TableCell
                   colSpan={columns.length}
-                  className="py-16 text-center text-muted-foreground"
+                  style={{ height: `${currentPageSize * ROW_HEIGHT_PX}px` }}
+                  className="text-center text-muted-foreground align-middle"
                 >
-                  <div className="flex flex-col items-center justify-center gap-2">
-                    <ShieldCheck className="size-8 stroke-[1.4] text-muted-foreground/50" />
-                    <p className="text-sm font-bold text-foreground">No se encontró personal registrado</p>
-                    <p className="text-xs text-muted-foreground max-w-sm">
-                      No hay registros que coincidan con la búsqueda o filtro de rol seleccionado.
+                  <div className="flex flex-col items-center justify-center gap-1">
+                    <ShieldCheck className="size-5 text-muted-foreground/50" />
+                    <p className="text-[13px] font-medium text-foreground">
+                      No se encontró personal administrativo
+                    </p>
+                    <p className="text-[12px] text-muted-foreground">
+                      Ajusta la búsqueda o los filtros seleccionados.
                     </p>
                   </div>
                 </TableCell>
               </TableRow>
             ) : (
               table.getRowModel().rows.map((row) => (
-                <TableRow key={row.id} className="hover:bg-muted/30 transition-colors">
+                <TableRow
+                  key={row.id}
+                  className="h-[54px] hover:bg-muted/30 transition-colors"
+                >
                   {row.getVisibleCells().map((cell) => (
-                    <TableCell key={cell.id} className="py-3.5 px-4 sm:px-6">
-                      {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                    <TableCell key={cell.id} className="py-2 px-4">
+                      {flexRender(
+                        cell.column.columnDef.cell,
+                        cell.getContext()
+                      )}
                     </TableCell>
                   ))}
                 </TableRow>
@@ -593,83 +632,97 @@ export function StaffDataTable({ initialData }: StaffDataTableProps) {
         </Table>
       </div>
 
-      {/* Pagination Footer */}
-      <div className="p-4 border-t border-border/60 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-muted-foreground">
-        <div className="flex items-center gap-2">
-          <span>
-            Página <strong>{table.getState().pagination.pageIndex + 1}</strong> de{" "}
-            <strong>{Math.max(1, table.getPageCount())}</strong>
-          </span>
-          <span className="text-muted-foreground/60">•</span>
-          <span>
-            Mostrando {table.getRowModel().rows.length} de {filteredData.length} miembros del equipo
-          </span>
-        </div>
+      {/* Pie de paginación compacto */}
+      <div className="px-4 py-2.5 border-t border-border bg-muted/20 flex flex-wrap items-center justify-between gap-3">
+        <span className="text-[12px] text-muted-foreground tabular-nums">
+          {filteredData.length === 0
+            ? "0 resultados"
+            : `Mostrando ${startItem}–${endItem} de ${filteredData.length}`}
+        </span>
 
-        <div className="flex items-center gap-1.5">
-          <Button
-            variant="outline"
-            size="icon"
-            onClick={() => table.setPageIndex(0)}
-            disabled={!table.getCanPreviousPage()}
-            className="size-8 rounded-lg border-border/60"
-          >
-            <ChevronsLeft className="size-4" />
-          </Button>
-          <Button
-            variant="outline"
-            size="icon"
-            onClick={() => table.previousPage()}
-            disabled={!table.getCanPreviousPage()}
-            className="size-8 rounded-lg border-border/60"
-          >
-            <ChevronLeft className="size-4" />
-          </Button>
-          <Button
-            variant="outline"
-            size="icon"
-            onClick={() => table.nextPage()}
-            disabled={!table.getCanNextPage()}
-            className="size-8 rounded-lg border-border/60"
-          >
-            <ChevronRight className="size-4" />
-          </Button>
-          <Button
-            variant="outline"
-            size="icon"
-            onClick={() => table.setPageIndex(table.getPageCount() - 1)}
-            disabled={!table.getCanNextPage()}
-            className="size-8 rounded-lg border-border/60"
-          >
-            <ChevronsRight className="size-4" />
-          </Button>
+        <div className="flex items-center gap-3">
+          <div className="flex items-center gap-1.5">
+            <span className="text-[12px] text-muted-foreground hidden sm:inline">
+              Filas:
+            </span>
+            <Select
+              value={String(currentPageSize)}
+              onValueChange={(val) => {
+                const next = Number(val);
+                if (next > 0) {
+                  setPagination({ pageIndex: 0, pageSize: next });
+                }
+              }}
+            >
+              <SelectTrigger
+                aria-label="Filas por página"
+                className="h-7 w-[64px] rounded-[8px] border-control-border bg-background text-[12px] tabular-nums"
+              >
+                <SelectValue>{currentPageSize}</SelectValue>
+              </SelectTrigger>
+              <SelectContent className="rounded-[10px] border-border bg-popover">
+                {PAGE_SIZE_OPTIONS.map((size) => (
+                  <SelectItem
+                    key={size}
+                    value={String(size)}
+                    className="text-[12px] tabular-nums"
+                  >
+                    {size}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="flex items-center gap-1.5">
+            <span className="text-[12px] text-muted-foreground tabular-nums min-w-[72px] text-center">
+              Pág. {currentPageIndex + 1} / {totalPages}
+            </span>
+            <Button
+              type="button"
+              variant="outline"
+              size="icon"
+              aria-label="Página anterior"
+              disabled={!table.getCanPreviousPage()}
+              onClick={() => table.previousPage()}
+              className="size-7 rounded-[8px] border-control-border cursor-pointer"
+            >
+              <ChevronLeft className="size-3.5" />
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              size="icon"
+              aria-label="Página siguiente"
+              disabled={!table.getCanNextPage()}
+              onClick={() => table.nextPage()}
+              className="size-7 rounded-[8px] border-control-border cursor-pointer"
+            >
+              <ChevronRight className="size-3.5" />
+            </Button>
+          </div>
         </div>
       </div>
 
-      {/* Modals & Dialogs */}
+      {/* Modales */}
       <EditStaffModal
         staff={editingStaff}
-        open={!!editingStaff}
-        onOpenChange={(open) => {
-          if (!open) setEditingStaff(null);
-        }}
-        onSuccess={() => {
-          setEditingStaff(null);
-        }}
+        open={Boolean(editingStaff)}
+        onOpenChange={(open) => !open && setEditingStaff(null)}
       />
+
       <DeleteStaffDialog
         staff={deletingStaff}
-        open={!!deletingStaff}
-        onOpenChange={(open) => {
-          if (!open) setDeletingStaff(null);
-        }}
+        open={Boolean(deletingStaff)}
+        onOpenChange={(open) => !open && setDeletingStaff(null)}
         onSuccess={() => {
           if (deletingStaff) {
-            setData((prev) => prev.filter((s) => s.id !== deletingStaff.id));
+            setData((prev) =>
+              prev.filter((item) => item.profileId !== deletingStaff.profileId)
+            );
           }
-          setDeletingStaff(null);
         }}
       />
-    </Card>
+    </section>
   );
 }
